@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reserva - Espacio Mimar_T</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script type="text/javascript">
+    (function(){
+      // Tu Public Key actualizada de la captura
+      emailjs.init("AU6Z1JJBvWY9zpSnn");
+    })();
+  </script>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1 style="color: #ff85a2; font-weight: 300;">Espacio Mimar_T</h1>
+      <p id="bienvenida" style="color: #888; font-size: 0.9em;"></p>
+    </header>
+
+    <div id="flujo-reserva">
+      <section class="step">
+        <h2>1️⃣ Elegí un servicio</h2>
+        <div id="servicesContainer" class="grid-servicios"></div>
+      </section>
+
+      <section class="step">
+        <hr>
+        <h2>2️⃣ Seleccioná una fecha</h2>
+        <input type="date" id="fecha" class="input-moderno">
+      </section>
+
+      <section class="step">
+        <hr>
+        <h2>3️⃣ Horarios disponibles</h2>
+        <div id="horariosContainer" class="grid-horarios">
+          <p style="color: #999; padding: 20px;">Seleccioná un servicio y fecha primero.</p>
+        </div>
+      </section>
+    </div>
+
+    <button id="btnLogout" class="btn-salir">Cerrar Sesión</button>
+  </div>
+
+  <script type="module" src="js/panel.js"></script>
+  <!-- MODAL EMAIL PROFESIONAL -->
+<div id="modalEmail" class="modal-overlay hidden">
+  <div class="modal-content">
+    <h2>Confirmá tu email</h2>
+    <p>Necesitamos tu correo para enviarte las confirmaciones.</p>
+
+    <input type="email" id="inputEmail" placeholder="ejemplo@email.com">
+
+    <div class="modal-actions">
+      <button id="btnGuardarEmail">Guardar</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
