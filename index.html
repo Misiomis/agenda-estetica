@@ -1,80 +1,56 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Espacio Mimar_T | Agenda</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-  <script>
-    (function(){
-        // Nota: Aquí va tu PUBLIC_KEY, no el ID del servicio. 
-        // Asegúrate de que sea la correcta para que EmailJS funcione.
-        emailjs.init("TU_PUBLIC_KEY"); 
-    })();
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espacio Mimar_T | Agenda</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script>
+        (function(){
+            // Tu Public Key vinculada a tu cuenta
+            emailjs.init("AU6Z1JJBvWY9zpSnn");
+        })();
+    </script>
 </head>
 <body>
-
-  <div class="container">
-    
-    <div id="section-login">
-        <header>
+    <div class="container">
+        <div id="section-login">
             <h1>Espacio Mimar_T</h1>
-            <h2>Sistema de Agenda</h2>
-        </header>
-
-        <main class="login-card">
-            <h3>Ingresar Usuario</h3>
-            
-            <div class="input-group">
-                <label for="usuario">Palabra Clave</label>
-                <input type="text" id="usuario" placeholder="Ej: GIMENA" required>
+            <div class="login-card">
+                <div class="input-group">
+                    <label>Palabra Clave</label>
+                    <input type="text" id="usuario" placeholder="Ej: CASA AZUL">
+                </div>
+                <div class="input-group">
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="email" placeholder="ejemplo@correo.com">
+                </div>
+                <div class="input-group">
+                    <label>WhatsApp</label>
+                    <input type="tel" id="whatsapp" placeholder="3757...">
+                </div>
+                <button id="btn-ingresar" class="btn-primary">Ingresar</button>
             </div>
+        </div>
 
-            <div class="input-group">
-                <label for="email">Correo Electrónico</label>
-                <input type="email" id="email" placeholder="ejemplo@correo.com" required>
+        <div id="section-agenda" class="hidden">
+            <div class="agenda-header">
+                <h1 id="bienvenida"></h1>
+                <button id="btnLogout" class="btn-logout">Salir</button>
             </div>
-
-            <div class="input-group">
-                <label for="whatsapp">WhatsApp</label>
-                <input type="tel" id="whatsapp" placeholder="Ej: 3757..." required>
-            </div>
-
-            <button id="btn-ingresar" class="btn-primary">Ingresar</button>
-        </main>
-        
-        <footer>
-            <p class="footer">Acceso exclusivo para clientes</p>
-        </footer>
-    </div>
-
-    <div id="section-agenda" class="hidden">
-        <header class="agenda-header">
-            <h1 id="bienvenida">¡Bienvenido!</h1>
-            <button id="btnLogout" class="btn-logout">Cerrar Sesión</button>
-        </header>
-
-        <section class="booking-area">
-            <h3>1. Seleccioná un Servicio</h3>
-            <div id="servicesContainer" class="services-grid"></div>
-
-            <div class="date-selection">
+            <div class="booking-area">
+                <h3>1. Seleccioná un Servicio</h3>
+                <div id="servicesContainer" class="services-grid"></div>
+                
                 <h3>2. Elegí la Fecha</h3>
                 <input type="date" id="fecha">
+                
+                <h3>3. Horarios Disponibles</h3>
+                <div id="horariosContainer" class="horarios-grid"></div>
             </div>
-
-            <h3>3. Horarios Disponibles</h3>
-            <div id="horariosContainer" class="horarios-grid">
-                <p>Seleccioná una fecha para ver horarios</p>
-            </div>
-        </section>
+        </div>
     </div>
-
-  </div>
-
-  <script type="module" src="js/script.js"></script>
-
+    <script type="module" src="js/script.js"></script>
 </body>
 </html>

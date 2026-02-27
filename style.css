@@ -1,108 +1,127 @@
-/* VARIABLES Y RESET */
-:root {
-    --verde-mimar: #72bd99;
-    --verde-dark: #5da685;
+/* VARIABLES GLOBALES */
+:root { 
+    --verde: #72bd99; 
+    --verde-oscuro: #5da685;
+    --rojo: #ff4d4d;
+    --fondo: #f4f7f6; 
     --blanco: #ffffff;
-    --gris-fondo: #f4f7f6;
-    --texto: #333;
+    --gris-borde: #ddd;
+    --gris-suave: #eee;
 }
 
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--gris-fondo);
-    color: var(--texto);
+/* RESET Y CUERPO */
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: var(--fondo); 
+    display: flex; 
+    justify-content: center; 
+    padding: 20px; 
     margin: 0;
-    display: flex;
-    justify-content: center;
-    padding: 20px;
 }
 
-.container {
-    width: 100%;
-    max-width: 450px;
-    background: var(--blanco);
-    padding: 30px;
-    border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-    text-align: center;
+.container { 
+    width: 100%; 
+    max-width: 450px; 
+    background: var(--blanco); 
+    padding: 25px; 
+    border-radius: 20px; 
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08); 
 }
 
-/* CLASE MAESTRA PARA OCULTAR */
-.hidden {
-    display: none !important;
-}
+/* UTILIDADES */
+.hidden { display: none !important; }
 
-/* CABECERAS */
-h1 { color: var(--verde-mimar); margin-bottom: 5px; }
-h2 { font-weight: 300; font-size: 1.1rem; margin-bottom: 30px; color: #777; }
-h3 { font-size: 1rem; margin: 20px 0 10px; text-align: left; border-left: 4px solid var(--verde-mimar); padding-left: 10px; }
+/* LOGIN CARD */
+.login-card { text-align: left; }
+.input-group { margin-bottom: 18px; }
+label { display: block; font-size: 0.9rem; margin-bottom: 5px; color: #555; }
 
-/* INPUTS Y BOTONES */
-.input-group { margin-bottom: 15px; text-align: left; }
-label { display: block; font-size: 0.85rem; margin-bottom: 5px; color: #555; }
-
-input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    box-sizing: border-box;
+input { 
+    width: 100%; 
+    padding: 12px; 
+    border-radius: 10px; 
+    border: 1px solid var(--gris-borde); 
+    box-sizing: border-box; 
     font-size: 1rem;
 }
 
-.btn-primary {
-    width: 100%;
-    background-color: var(--verde-mimar);
-    color: white;
-    border: none;
-    padding: 15px;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.3s;
+input:focus {
+    outline: none;
+    border-color: var(--verde);
 }
 
-.btn-primary:hover { background-color: var(--verde-dark); }
+.btn-primary { 
+    width: 100%; 
+    background: var(--verde); 
+    color: white; 
+    border: none; 
+    padding: 14px; 
+    border-radius: 10px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    font-size: 1rem;
+    transition: background 0.3s ease;
+}
 
-/* DISEÑO DE LA AGENDA */
-.agenda-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
+.btn-primary:hover { background: var(--verde-oscuro); }
+
+/* AGENDA HEADER */
+.agenda-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    border-bottom: 2px solid var(--verde); 
+    margin-bottom: 20px; 
     padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
 }
 
-.btn-logout {
-    background: #ffeded;
-    color: #ff4d4d;
-    border: 1px solid #ff4d4d;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 0.8rem;
-    cursor: pointer;
+.agenda-header h1 { font-size: 1.4rem; color: var(--verde); margin: 0; }
+
+.btn-logout { 
+    background: var(--rojo); 
+    color: white; 
+    border: none; 
+    padding: 6px 12px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-size: 0.85rem;
 }
 
 /* GRILLAS DE SERVICIOS Y HORARIOS */
-.services-grid, .horarios-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
+.services-grid, .horarios-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 12px; 
+    margin-top: 15px; 
 }
 
-.btn-servicio, .btn-hora {
-    background: white;
-    border: 1px solid #eee;
-    padding: 10px;
-    border-radius: 8px;
-    cursor: pointer;
+.btn-servicio, .btn-hora { 
+    padding: 12px; 
+    border: 1px solid var(--gris-suave); 
+    border-radius: 10px; 
+    cursor: pointer; 
+    background: var(--blanco); 
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
 }
 
-.btn-servicio.selected {
-    background-color: var(--verde-mimar);
-    color: white;
-    border-color: var(--verde-mimar);
+.btn-servicio:hover, .btn-hora:hover:not(:disabled) {
+    border-color: var(--verde);
+    background-color: #f0f9f4;
+}
+
+.btn-servicio.selected { 
+    background: var(--verde); 
+    color: white; 
+    border-color: var(--verde);
+    box-shadow: 0 4px 10px rgba(114, 189, 153, 0.3);
+}
+
+/* ESTADO BLOQUEADO (TURNOS OCUPADOS) */
+.btn-hora.bloqueado, .btn-hora:disabled {
+    background-color: #f8f8f8 !important;
+    color: #bbb !important;
+    border: 1px dashed #ddd !important;
+    cursor: not-allowed;
+    opacity: 0.7;
 }

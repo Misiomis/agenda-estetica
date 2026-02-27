@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Admin - Espacio Mimar_T</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Panel Administrativo</h1>
+        <p id="mensaje"></p>
+
+        <!-- Acá se va a renderizar el calendario semanal -->
+        <div id="agendaAdmin"></div>
+    </div>
+
+    <script>
+        const usuario = localStorage.getItem("usuario");
+
+        if (usuario !== "ADMIN_GIMENA") {
+            window.location.href = "index.html";
+        } else {
+            document.getElementById("mensaje").innerText =
+                "Bienvenida Gimena ✨";
+        }
+    </script>
+
+    <!-- Conexión con el JS del admin -->
+    <script type="module" src="./js/admin.js"></script>
+
+</body>
+</html>
