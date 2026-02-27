@@ -1,261 +1,110 @@
-body { 
-  font-family: 'Segoe UI', Arial, sans-serif; 
-  background-color: #f3f7f5; 
-  color: #4E8F7A; 
-  padding: 20px; 
+/* RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', system-ui, sans-serif;
 }
 
-.container { 
-  max-width: 550px; 
-  margin: 0 auto; 
-  background: white; 
-  padding: 30px; 
-  border-radius: 24px; 
-  box-shadow: 0 10px 30px rgba(114, 189, 153, 0.15); 
-  text-align: center; 
-}
-
-.grid-servicios { 
-  display: grid; 
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); 
-  gap: 10px; 
-  margin: 20px 0; 
-}
-
-.btn-servicio-pro { 
-  padding: 15px; 
-  border: 1px solid #e6f1ed; 
-  background: white; 
-  border-radius: 12px; 
-  cursor: pointer; 
-  transition: 0.3s; 
-  font-size: 0.9em; 
-  color: #4E8F7A;
-}
-
-.btn-servicio-pro.active { 
-  background: #72bd99; 
-  color: white; 
-  border-color: #5FAF8E; 
-  transform: translateY(-2px); 
-}
-
-.grid-horarios { 
-  display: flex; 
-  flex-wrap: wrap; 
-  justify-content: center; 
-  gap: 8px; 
-  margin-top: 15px; 
-}
-
-.btn-hora-pro { 
-  padding: 10px 18px; 
-  border: 1px solid #72bd99; 
-  background: white; 
-  color: #4E8F7A; 
-  border-radius: 10px; 
-  cursor: pointer; 
-  font-weight: bold; 
-  transition: 0.2s;
-}
-
-.btn-hora-pro:hover {
-  background: #72bd99;
-  color: white;
-}
-
-.btn-hora-pro.ocupado { 
-  background: #fafafa; 
-  border-color: #e0e0e0; 
-  color: #bbb; 
-  cursor: not-allowed; 
-}
-
-.input-moderno { 
-  padding: 12px; 
-  border-radius: 10px; 
-  border: 1px solid #d9e9e3; 
-  width: 85%; 
-  outline: none; 
-  margin-top: 10px; 
-}
-
-.input-moderno:focus {
-  border-color: #72bd99;
-  box-shadow: 0 0 0 2px rgba(114, 189, 153, 0.2);
-}
-
-.btn-salir { 
-  background: none; 
-  border: none; 
-  color: #72bd99; 
-  text-decoration: underline; 
-  margin-top: 40px; 
-  cursor: pointer; 
-  opacity: 0.7; 
-}
-
-.btn-salir:hover {
-  color: #4E8F7A;
-}
-/* ===============================
-   VARIABLES DE MARCA
-=================================*/
-:root {
-  --verde-principal: #72bd99;
-  --verde-hover: #5aa883;
-  --gris-suave: #f5f7f6;
-  --gris-texto: #444;
-  --rojo-bloqueado: #e57373;
-}
-
-/* ===============================
-   BOTONES SERVICIOS
-=================================*/
-.btn-servicio {
-  padding: 12px 18px;
-  margin: 8px;
-  border-radius: 10px;
-  border: 2px solid var(--verde-principal);
-  background-color: white;
-  color: var(--verde-principal);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.btn-servicio:hover {
-  background-color: var(--verde-principal);
-  color: white;
-  transform: translateY(-2px);
-}
-
-.btn-servicio.selected {
-  background-color: var(--verde-principal);
-  color: white;
-  box-shadow: 0 4px 12px rgba(114, 189, 153, 0.3);
-}
-
-/* ===============================
-   BOTONES HORARIOS
-=================================*/
-.btn-hora {
-  padding: 10px 14px;
-  margin: 6px;
-  border-radius: 8px;
-  border: 1px solid var(--verde-principal);
-  background-color: var(--gris-suave);
-  color: var(--gris-texto);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-hora:hover {
-  background-color: var(--verde-principal);
-  color: white;
-  transform: scale(1.05);
-}
-
-/* ===============================
-   HORARIOS BLOQUEADOS
-=================================*/
-.btn-hora.bloqueado {
-  background-color: #eee;
-  color: var(--rojo-bloqueado);
-  border-color: var(--rojo-bloqueado);
-  cursor: not-allowed;
-}
-
-/* ===============================
-   INPUT FECHA
-=================================*/
-input[type="date"] {
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  outline: none;
-  transition: border 0.2s ease;
-}
-
-input[type="date"]:focus {
-  border-color: var(--verde-principal);
-}
-
-/* ===============================
-   TITULOS / BIENVENIDA
-=================================*/
-#bienvenida {
-  color: var(--verde-principal);
-  font-weight: 600;
-}
-/* ===============================
-   MODAL EMAIL PROFESIONAL
-=================================*/
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+/* BODY */
+body {
+  background: linear-gradient(180deg, #f4f8f7 0%, #e8f2ef 100%);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
+  min-height: 100vh;
+  padding: 20px;
 }
 
-.modal-overlay.hidden {
-  display: none;
-}
-
-.modal-content {
-  background: white;
-  padding: 30px;
-  border-radius: 14px;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-  animation: fadeIn 0.25s ease;
-}
-
-.modal-content h2 {
-  color: #72bd99;
-  margin-bottom: 10px;
-}
-
-.modal-content input {
+/* CARD */
+.container {
+  background: #ffffff;
   width: 100%;
-  padding: 12px;
-  margin-top: 15px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+  max-width: 420px;
+  padding: 45px 28px;
+  border-radius: 22px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  animation: fadeIn 0.6s ease;
+}
+
+/* LOGO */
+.logo {
+  width: 90px;
+  margin-bottom: 15px;
+}
+
+/* TITLES */
+h1 {
+  color: #72bd99;
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  color: #555;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+/* DIVIDER */
+.divider {
+  height: 1px;
+  background: #eee;
+  margin: 25px 0;
+}
+
+/* SECTION TITLE */
+h3 {
+  color: #333;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+/* INPUT */
+input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  margin-bottom: 18px;
+  transition: 0.3s;
+}
+
+input:focus {
   outline: none;
-}
-
-.modal-content input:focus {
   border-color: #72bd99;
+  box-shadow: 0 0 0 3px rgba(114, 189, 153, 0.2);
 }
 
-.modal-actions {
-  margin-top: 20px;
-}
-
-.modal-actions button {
-  background: #72bd99;
+/* BUTTON */
+button {
+  width: 100%;
+  padding: 15px;
+  border-radius: 14px;
   border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
+  background: #72bd99;
   color: white;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: 0.3s;
 }
 
-.modal-actions button:hover {
-  background: #5aa883;
+button:hover {
+  background: #5da887;
 }
 
+/* FOOTER */
+.footer {
+  margin-top: 20px;
+  font-size: 12px;
+  color: #888;
+}
+
+/* ANIMATION */
 @keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
