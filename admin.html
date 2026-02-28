@@ -1,33 +1,176 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Panel Admin - Espacio Mimar_T</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Admin - Espacio Mimar T</title>
+  <link rel="stylesheet" href="style.css">
+
+  <script>
+    const isAdmin = localStorage.getItem("adminAuth");
+    if (isAdmin !== "true") {
+      window.location.href = "login-admin.html";
+    }
+  </script>
+
+  <style>
+    .calendar {
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      margin-top: 20px;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+
+    .day-name {
+      font-weight: bold;
+      text-align: center;
+      color: #888;
+      padding-bottom: 10px;
+    }
+
+    .day {
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8f9fa;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .day.has-reservation {
+      background: #ffe3e3;
+      color: #d63031;
+      border: 2px solid #ff7675;
+      font-weight: bold;
+    }
+
+    .reserva-card {
+      background: #fff;
+      padding: 15px;
+      border-radius: 12px;
+      margin-top: 15px;
+      border-left: 5px solid #d63031;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .btn-cancel {
+      margin-top: 8px;
+      background: #d63031;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-cancel:hover {
+      background: #c0392b;
+    }
+
+    /* MODAL */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      z-index: 999;
+    }
+
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 16px;
+      width: 320px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    .modal-buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .btn-danger {
+      background: #d63031;
+      color: white;
+      border: none;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Panel Administrativo</h1>
-        <p id="mensaje"></p>
+<div class="container">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Panel Administrativo</h1>
+    <button id="btnLogout">Cerrar sesión</button>
+  </div>
 
-        <!-- Acá se va a renderizar el calendario semanal -->
-        <div id="agendaAdmin"></div>
+  <p>Bienvenida Gimena ✨</p>
+
+  <div class="calendar">
+    <div class="calendar-header">
+      <button id="btnPrev">←</button>
+      <h2 id="monthTitle">Cargando...</h2>
+      <button id="btnNext">→</button>
     </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
 
-    <script>
-        const usuario = localStorage.getItem("usuario");
+  <div id="selectedDay" style="margin-top: 30px;"></div>
+</div>
 
-        if (usuario !== "ADMIN_GIMENA") {
-            window.location.href = "index.html";
-        } else {
-            document.getElementById("mensaje").innerText =
-                "Bienvenida Gimena ✨";
-        }
-    </script>
+<!-- MODAL -->
+<div id="modalConfirm" class="modal hidden">
+  <div class="modal-content">
+    <h3>¿Cancelar turno?</h3>
+    <p>Esta acción no se puede deshacer.</p>
+    <div class="modal-buttons">
+      <button id="modalCancel">Volver</button>
+      <button id="modalConfirmBtn" class="btn-danger">Sí, cancelar</button>
+    </div>
+  </div>
+</div>
 
-    <!-- Conexión con el JS del admin -->
-    <script type="module" src="./js/admin.js"></script>
+<script type="module" src="js/admin.js"></script>
+
+<script>
+  document.getElementById('btnLogout').onclick = function() {
+    localStorage.removeItem("adminAuth");
+    window.location.href = "login-admin.html";
+  };
+</script>
 
 </body>
 </html>

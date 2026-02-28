@@ -1,58 +1,156 @@
-import { db } from "./firebase.js";
-import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getFirestore, 
+  collection, 
+  getDocs,
+  deleteDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const contenedor = document.getElementById("agendaAdmin");
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH_DOMAIN",
+  projectId: "estetica-8d067",
+  storageBucket: "TU_BUCKET",
+  messagingSenderId: "TU_SENDER_ID",
+  appId: "TU_APP_ID"
+};
 
-async function cargarReservas() {
-    try {
-        const snap = await getDocs(collection(db, "reservas"));
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-        const reservas = [];
+let currentDate = new Date();
+let reservasPorFecha = {};
 
-        snap.forEach(doc => {
-            reservas.push(doc.data());
-        });
+function renderCalendar() {
+  const grid = document.getElementById("calendarGrid");
+  const monthTitle = document.getElementById("monthTitle");
 
-        // Ordenar por fecha y hora
-        reservas.sort((a, b) => {
-            const fechaA = new Date(`${a.fecha}T${a.hora}`);
-            const fechaB = new Date(`${b.fecha}T${b.hora}`);
-            return fechaA - fechaB;
-        });
+  grid.innerHTML = "";
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
 
-        contenedor.innerHTML = "<h2>Reservas registradas:</h2>";
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
 
-        reservas.forEach(data => {
+  monthTitle.innerText = firstDay
+    .toLocaleString("es-ES", { month: "long", year: "numeric" })
+    .toUpperCase();
 
-            const nombre =
-                data.clienteId ||
-                data.nombre ||
-                data.usuario ||
-                "Sin nombre";
+  const dayNames = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+  dayNames.forEach(d => {
+    const div = document.createElement("div");
+    div.className = "day-name";
+    div.innerText = d;
+    grid.appendChild(div);
+  });
 
-            const fecha = data.fecha || "Sin fecha";
-            const hora = data.hora || "Sin hora";
-            const servicio = data.servicio || "Sin servicio";
+  let startDay = (firstDay.getDay() + 6) % 7;
+  for (let i = 0; i < startDay; i++) {
+    grid.appendChild(document.createElement("div"));
+  }
 
-            const item = document.createElement("div");
-            item.style.marginBottom = "12px";
-            item.style.padding = "12px";
-            item.style.border = "1px solid #ddd";
-            item.style.borderRadius = "10px";
-            item.style.background = "#f9f9f9";
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
-            item.innerHTML = `
-                <strong>${nombre}</strong><br>
-                ${fecha} - ${hora}<br>
-                ${servicio}
-            `;
+    const div = document.createElement("div");
+    div.className = "day";
+    div.innerText = d;
 
-            contenedor.appendChild(item);
-        });
-
-    } catch (error) {
-        console.error("Error cargando reservas:", error);
+    if (reservasPorFecha[dateStr]) {
+      div.classList.add("has-reservation");
     }
+
+    div.onclick = () => showDay(dateStr);
+    grid.appendChild(div);
+  }
 }
 
-cargarReservas();
+async function loadReservas() {
+  const snapshot = await getDocs(collection(db, "reservas"));
+  reservasPorFecha = {};
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    const id = docSnap.id;
+
+    if (data.fecha) {
+      if (!reservasPorFecha[data.fecha]) {
+        reservasPorFecha[data.fecha] = [];
+      }
+
+      reservasPorFecha[data.fecha].push({
+        id,
+        ...data
+      });
+    }
+  });
+
+  renderCalendar();
+}
+
+function showDay(fecha) {
+  const container = document.getElementById("selectedDay");
+  const reservas = reservasPorFecha[fecha];
+
+  let html = `<h3 style="margin-top:20px;">Día: ${fecha}</h3>`;
+
+  if (!reservas) {
+    html += `<p>No hay reservas para este día.</p>`;
+  } else {
+    reservas.forEach(r => {
+      html += `
+        <div class="reserva-card">
+          <strong>${r.hora} hs</strong> - ${r.nombreCliente}<br>
+          <span>Servicio: ${r.servicio}</span><br>
+          <button class="btn-cancel" onclick="cancelarReserva('${r.id}', '${fecha}')">
+            Cancelar turno
+          </button>
+        </div>
+      `;
+    });
+  }
+
+  container.innerHTML = html;
+}
+
+let reservaPendiente = null;
+let fechaPendiente = null;
+
+window.cancelarReserva = function(id, fecha) {
+  reservaPendiente = id;
+  fechaPendiente = fecha;
+  document.getElementById("modalConfirm").classList.remove("hidden");
+};
+
+document.getElementById("modalCancel").onclick = function() {
+  document.getElementById("modalConfirm").classList.add("hidden");
+};
+
+document.getElementById("modalConfirmBtn").onclick = async function() {
+  if (!reservaPendiente) return;
+
+  await deleteDoc(doc(db, "reservas", reservaPendiente));
+
+  document.getElementById("modalConfirm").classList.add("hidden");
+
+  await loadReservas();
+  showDay(fechaPendiente);
+
+  reservaPendiente = null;
+  fechaPendiente = null;
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btnPrev").onclick = () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderCalendar();
+  };
+
+  document.getElementById("btnNext").onclick = () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendar();
+  };
+
+  loadReservas();
+});

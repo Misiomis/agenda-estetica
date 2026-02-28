@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elegir Fecha | Espacio Mimar_T</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- FLATPICKR -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+
+  <style>
+    body {
+      background: #f6f7f9;
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    .agenda-layout {
+      display: flex;
+      gap: 40px;
+      max-width: 1100px;
+      margin: 60px auto;
+      padding: 20px;
+    }
+
+    .calendar-panel {
+      flex: 2;
+      background: white;
+      padding: 40px;
+      border-radius: 25px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.08);
+    }
+
+    .resumen-panel {
+      flex: 1;
+      background: white;
+      padding: 40px;
+      border-radius: 25px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    #calendarWrapper {
+      margin-top: 20px;
+    }
+
+    #horarios {
+      margin-top: 30px;
+    }
+
+    #horarios button {
+      margin: 6px;
+      padding: 10px 18px;
+      border-radius: 15px;
+      border: none;
+      background: #f1f1f1;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    #horarios button:hover {
+      background: #72bd99;
+      color: white;
+    }
+
+    .flatpickr-calendar {
+      border-radius: 20px !important;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important;
+    }
+
+    .flatpickr-day.selected {
+      background: #72bd99 !important;
+      border-color: #72bd99 !important;
+    }
+
+    .flatpickr-day.today {
+      border-color: #72bd99 !important;
+    }
+
+    .flatpickr-day:hover {
+      background: #d9f1e7 !important;
+    }
+
+    .volver-btn {
+      background: #ff7675;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 25px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .volver-btn:hover {
+      background: #e85c5b;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="agenda-layout">
+
+  <div class="calendar-panel">
+    <h2>Elegí fecha y hora</h2>
+
+    <!-- INPUT REAL para flatpickr -->
+    <input type="text" id="calendarInput" hidden>
+
+    <!-- Donde se renderiza -->
+    <div id="calendarWrapper"></div>
+
+    <div id="horarios"></div>
+  </div>
+
+  <div class="resumen-panel">
+    <div>
+      <h3 id="servicioTitulo"></h3>
+    </div>
+
+    <button class="volver-btn" onclick="volver()">Volver</button>
+  </div>
+
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const servicio = params.get("servicio");
+
+  document.getElementById("servicioTitulo").innerText = servicio;
+
+  flatpickr("#calendarInput", {
+    inline: true,
+    appendTo: document.getElementById("calendarWrapper"),
+    locale: "es",
+    minDate: new Date(),      // 🔥 Usa fecha real del sistema
+    defaultDate: new Date(),  // 🔥 Arranca en hoy
+    dateFormat: "Y-m-d",
+    onChange: function(selectedDates, dateStr) {
+      generarHorarios(dateStr);
+    }
+  });
+
+  function generarHorarios(fecha) {
+    const horariosDiv = document.getElementById("horarios");
+    horariosDiv.innerHTML = "";
+
+    const horarios = [
+      "16:00","16:30",
+      "17:00","17:30",
+      "18:00","18:30",
+      "19:00","19:30"
+    ];
+
+    horarios.forEach(hora => {
+      const btn = document.createElement("button");
+      btn.innerText = hora;
+      horariosDiv.appendChild(btn);
+    });
+  }
+
+  function volver() {
+    window.location.href = "index.html";
+  }
+</script>
+
+</body>
+</html>
