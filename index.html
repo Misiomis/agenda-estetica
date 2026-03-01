@@ -8,18 +8,21 @@
   <link rel="stylesheet" href="style.css">
 
   <style>
-    body {
+    html, body {
       margin: 0;
-      font-family: 'Segoe UI', Arial, sans-serif;
+      padding: 0;
       background: #f6f7f9;
-      display: flex;
-      justify-content: center;
-      padding: 20px;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
     }
 
     .container {
       width: 100%;
-      max-width: 500px;
+      max-width: 520px;
+      margin: 80px auto; /* 🔥 controla la posición real */
       background: white;
       padding: 30px;
       border-radius: 25px;
@@ -34,7 +37,7 @@
     label {
       font-size: 14px;
       font-weight: 500;
-      margin-top: 10px;
+      margin-top: 12px;
       display: block;
     }
 
@@ -61,22 +64,19 @@
       margin-top: 10px;
     }
 
-    #btn-ingresar {
-      background: #72bd99;
-      color: white;
-    }
-
-    #btn-ingresar:hover {
-      background: #5fae8b;
-    }
-
+    #btn-ingresar,
     #btnLogout {
       background: #72bd99;
       color: white;
     }
 
+    #btn-ingresar:hover,
+    #btnLogout:hover {
+      background: #5fae8b;
+    }
+
     #servicesContainer {
-      margin-top: 15px;
+      margin-top: 20px;
       display: grid;
       gap: 10px;
     }
@@ -103,14 +103,7 @@
     .login-error {
       color: #d63031;
       font-size: 14px;
-    }
-
-    /* Desktop mejora */
-    @media (min-width: 768px) {
-      body {
-        align-items: center;
-        min-height: 100vh;
-      }
+      margin-top: 5px;
     }
   </style>
 </head>
@@ -119,7 +112,6 @@
 
 <div class="container">
 
-  <!-- LOGIN -->
   <div id="section-login">
     <h1>Espacio Mimar_T</h1>
 
@@ -136,7 +128,6 @@
     <div id="loginError" class="login-error"></div>
   </div>
 
-  <!-- AGENDA -->
   <div id="section-agenda" class="hidden">
     <button id="btnLogout">Salir</button>
 
