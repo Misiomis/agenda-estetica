@@ -3,187 +3,135 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Elegir Fecha | Espacio Mimar</title>
+<title>Fecha y Hora</title>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
 <style>
-:root { --primary: #72bd99; --danger: #ff0000; --bg: #f4f7f6; }
-body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display:flex; justify-content:center; align-items:center; min-height:100vh; margin:0; }
-.container { background:white; padding:25px; border-radius:20px; width:90%; max-width:400px; box-shadow:0 10px 30px rgba(0,0,0,0.1); text-align:center; }
-#horarios { margin-top:20px; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px; }
-.hora-btn { padding:12px; border:1.5px solid var(--primary); border-radius:12px; background:white; color:var(--primary); font-weight:bold; cursor:pointer; }
-.hora-btn.selected { background:#2d5a44 !important; color:white !important; }
-.hora-btn:disabled { background:var(--danger) !important; border-color:var(--danger) !important; color:white !important; cursor:not-allowed; }
-#area-confirmar { margin-top:20px; display:none; }
-.btn-principal { width:100%; padding:15px; border:none; border-radius:12px; background:var(--primary); color:white; font-weight:bold; cursor:pointer; font-size:1.1rem; }
-.modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); backdrop-filter:blur(5px); justify-content:center; align-items:center; z-index:1000; }
-.modal-content { background:white; padding:30px; border-radius:24px; width:85%; max-width:320px; text-align:center; }
+:root{
+  --bg:#0f1115;
+  --card:#161a21;
+  --primary:#72bd99;
+  --text:#ffffff;
+  --soft:#9ca3af;
+}
+
+*{box-sizing:border-box;}
+
+body{
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+.header{
+  padding:20px;
+  font-size:1.2rem;
+  font-weight:600;
+  border-bottom:1px solid #222;
+}
+
+.section{
+  padding:20px;
+}
+
+#calendar{
+  width:100%;
+}
+
+.flatpickr-calendar{
+  background:var(--card);
+  color:white;
+  border:none;
+  width:100% !important;
+  box-shadow:none;
+}
+
+.flatpickr-day{
+  color:white;
+  border-radius:12px;
+}
+
+.flatpickr-day.selected{
+  background:var(--primary);
+  border:none;
+}
+
+.flatpickr-day.today{
+  border:1px solid var(--primary);
+}
+
+#horarios{
+  margin-top:25px;
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+
+.hora-btn{
+  padding:16px;
+  border-radius:14px;
+  background:var(--card);
+  border:1px solid #2a2f3a;
+  color:white;
+  font-size:1rem;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.hora-btn:hover{
+  background:var(--primary);
+  color:black;
+}
+
+.hora-btn.selected{
+  background:var(--primary);
+  color:black;
+}
+
+.btn-confirmar{
+  margin-top:30px;
+  width:100%;
+  padding:18px;
+  border-radius:18px;
+  border:none;
+  background:var(--primary);
+  font-size:1rem;
+  font-weight:600;
+  cursor:pointer;
+}
+
 </style>
 </head>
+
 <body>
 
-<div class="container">
-<h2 id="titulo-servicio">Cargando...</h2>
-<div id="user-display" style="font-size:0.85rem; margin-bottom:10px; color:#666;"></div>
-<input type="text" id="calendar" style="display:none">
-<div id="horarios"></div>
-<div id="area-confirmar">
-<button class="btn-principal" id="btn-finalizar">Reservar Turno</button>
-</div>
-<button style="width:100%; margin-top:15px; border:none; background:none; color:#888; cursor:pointer;" onclick="history.back()">← Volver</button>
+<div class="header">
+  Seleccioná Fecha y Hora
 </div>
 
-<div id="modalExito" class="modal-overlay">
-<div class="modal-content">
-<div style="font-size:3rem;">✅</div>
-<h3>¡Reserva Exitosa!</h3>
-<p id="resumen-cita" style="color:#666;"></p>
-<p style="background:#e8f5e9; padding:10px; border-radius:8px; color:#2e7d32; font-weight:bold;">
-Confirmación enviada al correo.
-</p>
-<button class="btn-principal" onclick="location.href='index.html'" style="margin-top:10px;">Entendido</button>
+<div class="section">
+
+  <input type="text" id="calendar">
+
+  <div id="horarios"></div>
+
+  <button id="btn-finalizar" class="btn-confirmar">
+    Confirmar Turno
+  </button>
+
 </div>
-</div>
 
-<script type="module">
-import { db } from "./js/firebase.js";
-import { collection, query, where, getDocs, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-/* ================= EMAILJS ================= */
-emailjs.init("AU6Z1JJBVWY9zpSnn");
-
-/* ================= USUARIO ================= */
-const clientId = localStorage.getItem("usuario");
-if (!clientId) window.location.href = "index.html";
-document.getElementById("user-display").innerHTML = `Cliente: <b>${clientId}</b>`;
-
-const params = new URLSearchParams(window.location.search);
-const servicio = params.get("servicio") || "Servicio";
-document.getElementById("titulo-servicio").innerText = servicio;
-
-let fechaGlobal = "";
-let horaGlobal = "";
-
-/* ================= CALENDARIO ================= */
+<script>
 flatpickr("#calendar", {
-inline:true,
-locale:"es",
-minDate:"today",
-onChange:async (dates,dateStr)=>{
-fechaGlobal=dateStr;
-document.getElementById("area-confirmar").style.display="none";
-const dia = dates[0].toLocaleDateString("es-ES",{weekday:"long"})
-.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-cargarHorarios(dia,dateStr);
-}
+  inline:true,
+  locale:"es",
+  minDate:"today"
 });
-
-async function cargarHorarios(dia,fechaDoc){
-const container=document.getElementById("horarios");
-container.innerHTML="Buscando...";
-try{
-const q=query(collection(db,"reservas"),where("fecha","==",fechaDoc));
-const snap=await getDocs(q);
-const ocupados=snap.docs.map(d=>d.data().hora);
-
-const docSnap=await getDoc(doc(db,"horarios",dia));
-container.innerHTML="";
-
-if(!docSnap.exists()||!docSnap.data().activo){
-container.innerHTML="No disponible";
-return;
-}
-
-docSnap.data().bloques.forEach(b=>{
-let actual=aMinutos(b.inicio), fin=aMinutos(b.fin);
-while(actual<fin){
-const hTexto=aHora(actual);
-const btn=document.createElement("button");
-btn.className="hora-btn";
-btn.innerText=hTexto;
-
-if(ocupados.includes(hTexto)){
-btn.disabled=true;
-}else{
-btn.onclick=()=>{
-document.querySelectorAll('.hora-btn').forEach(b=>b.classList.remove('selected'));
-btn.classList.add('selected');
-horaGlobal=hTexto;
-document.getElementById("area-confirmar").style.display="block";
-};
-}
-
-container.appendChild(btn);
-actual+=(b.tipo==="fraccionado"?30:60);
-}
-});
-}catch(e){
-container.innerHTML="Error.";
-}
-}
-
-/* ================= RESERVAR ================= */
-document.getElementById("btn-finalizar").onclick=async()=>{
-
-if(!fechaGlobal||!horaGlobal){
-alert("Seleccioná fecha y hora.");
-return;
-}
-
-const btn=document.getElementById("btn-finalizar");
-btn.innerText="Reservando...";
-btn.disabled=true;
-
-try{
-
-const clienteSnap=await getDoc(doc(db,"clients",clientId));
-const emailCliente=clienteSnap.exists()?clienteSnap.data().email:"";
-
-/* Guardar en Firebase */
-await addDoc(collection(db,"reservas"),{
-clientId,
-emailCliente,
-servicio,
-fecha:fechaGlobal,
-hora:horaGlobal,
-timestamp:new Date()
-});
-
-/* ================= ENVÍO EMAIL ================= */
-if(emailCliente){
-await emailjs.send(
-"service_p8k8xah",
-"template_3nk7shm",
-{
-to_email: emailCliente,
-to_name: clientId,
-servicio: servicio,
-fecha: fechaGlobal,
-hora: horaGlobal
-}
-);
-}
-
-document.getElementById("resumen-cita").innerHTML=
-`<b>${servicio}</b><br>${fechaGlobal} - ${horaGlobal} hs`;
-
-document.getElementById("modalExito").style.display="flex";
-
-}catch(err){
-console.error("EMAILJS ERROR:",err);
-alert("Error al procesar la reserva.");
-btn.disabled=false;
-btn.innerText="Reservar Turno";
-}
-};
-
-function aMinutos(h){const[hrs,min]=h.split(":").map(Number);return hrs*60+min;}
-function aHora(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");}
-
 </script>
+
 </body>
 </html>
