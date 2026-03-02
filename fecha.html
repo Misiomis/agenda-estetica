@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fecha y Hora</title>
+<title>Seleccionar Fecha y Hora</title>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -18,18 +18,18 @@
   --soft:#9ca3af;
 }
 
-*{box-sizing:border-box;}
+*{box-sizing:border-box;margin:0;padding:0;}
 
 body{
-  margin:0;
   font-family:'Segoe UI',sans-serif;
   background:var(--bg);
   color:var(--text);
+  min-height:100vh;
 }
 
 .header{
   padding:20px;
-  font-size:1.2rem;
+  font-size:1.1rem;
   font-weight:600;
   border-bottom:1px solid #222;
 }
@@ -38,30 +38,47 @@ body{
   padding:20px;
 }
 
-#calendar{
-  width:100%;
+.flatpickr-calendar{
+  background:var(--card) !important;
+  color:white !important;
+  border:none !important;
+  width:100% !important;
+  box-shadow:none !important;
 }
 
-.flatpickr-calendar{
-  background:var(--card);
-  color:white;
-  border:none;
-  width:100% !important;
-  box-shadow:none;
+.flatpickr-months{
+  background:transparent !important;
+}
+
+.flatpickr-current-month{
+  color:white !important;
+  font-weight:700 !important;
+  font-size:1.1rem !important;
+}
+
+.flatpickr-current-month .cur-month,
+.flatpickr-current-month input.cur-year{
+  color:white !important;
+  font-weight:700 !important;
+}
+
+.flatpickr-prev-month svg,
+.flatpickr-next-month svg{
+  fill:var(--primary) !important;
 }
 
 .flatpickr-day{
-  color:white;
-  border-radius:12px;
-}
-
-.flatpickr-day.selected{
-  background:var(--primary);
-  border:none;
+  color:white !important;
+  border-radius:12px !important;
 }
 
 .flatpickr-day.today{
-  border:1px solid var(--primary);
+  border:1px solid var(--primary) !important;
+}
+
+.flatpickr-day.selected{
+  background:var(--primary) !important;
+  color:black !important;
 }
 
 #horarios{
@@ -92,6 +109,12 @@ body{
   color:black;
 }
 
+.hora-btn:disabled{
+  background:#2a2f3a;
+  color:#666;
+  cursor:not-allowed;
+}
+
 .btn-confirmar{
   margin-top:30px;
   width:100%;
@@ -104,6 +127,10 @@ body{
   cursor:pointer;
 }
 
+.btn-confirmar:disabled{
+  opacity:0.4;
+  cursor:not-allowed;
+}
 </style>
 </head>
 
@@ -114,23 +141,79 @@ body{
 </div>
 
 <div class="section">
-
   <input type="text" id="calendar">
 
   <div id="horarios"></div>
 
-  <button id="btn-finalizar" class="btn-confirmar">
+  <button id="btn-finalizar" class="btn-confirmar" disabled>
     Confirmar Turno
   </button>
-
 </div>
 
-<script>
+<script type="module">
+
+import { db } from "./js/firebase.js";
+import { collection, query, where, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+let fechaGlobal = "";
+let horaGlobal = "";
+
 flatpickr("#calendar", {
-  inline:true,
-  locale:"es",
-  minDate:"today"
+  inline: true,
+  locale: "es",
+  minDate: "today",
+  onChange: async (dates, dateStr) => {
+    fechaGlobal = dateStr;
+    await cargarHorarios(dateStr);
+  }
 });
+
+async function cargarHorarios(fechaDoc) {
+  const container = document.getElementById("horarios");
+  container.innerHTML = "";
+
+  const horariosBase = [
+    "09:00","10:00","11:00","12:00",
+    "16:00","17:00","18:00","19:00","20:00"
+  ];
+
+  const q = query(collection(db, "reservas"), where("fecha", "==", fechaDoc));
+  const snap = await getDocs(q);
+  const ocupados = snap.docs.map(d => d.data().hora);
+
+  horariosBase.forEach(hTexto => {
+    const btn = document.createElement("button");
+    btn.className = "hora-btn";
+    btn.innerText = hTexto;
+
+    if (ocupados.includes(hTexto)) {
+      btn.disabled = true;
+    } else {
+      btn.onclick = () => {
+        document.querySelectorAll('.hora-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        horaGlobal = hTexto;
+        document.getElementById("btn-finalizar").disabled = false;
+      };
+    }
+
+    container.appendChild(btn);
+  });
+}
+
+document.getElementById("btn-finalizar").onclick = async () => {
+  if (!fechaGlobal || !horaGlobal) return;
+
+  await addDoc(collection(db, "reservas"), {
+    fecha: fechaGlobal,
+    hora: horaGlobal,
+    timestamp: new Date()
+  });
+
+  alert("Turno confirmado");
+  location.reload();
+};
+
 </script>
 
 </body>
