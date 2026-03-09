@@ -14,150 +14,235 @@
 body{
 background:#f4f7f6;
 font-family:Arial;
+margin:0;
 }
+
+
+/* CONTENEDOR */
 
 .container{
+
 max-width:900px;
+
 margin:40px auto;
+
 padding:20px;
+
+text-align:center;
+
 }
+
+
+/* LOGO */
+
+.logo{
+
+width:220px;
+
+margin-bottom:10px;
+
+}
+
+
+/* TITULO */
+
+h2{
+
+margin-top:5px;
+
+color:#2d3748;
+
+}
+
+
+/* TARJETA CALENDARIO */
 
 .calendar{
+
 background:white;
-padding:25px;
+
+padding:35px;
+
 border-radius:20px;
+
 margin-top:20px;
-box-shadow:0 4px 15px rgba(0,0,0,0.05);
+
+box-shadow:0 10px 35px rgba(0,0,0,0.08);
+
 }
+
+
+/* HEADER CALENDARIO */
 
 .calendar-header{
+
 display:flex;
+
 justify-content:space-between;
+
 align-items:center;
-margin-bottom:10px;
+
+margin-bottom:20px;
+
 font-weight:bold;
+
 }
+
+
+/* GRID */
 
 .calendar-grid{
+
 display:grid;
+
 grid-template-columns:repeat(7,1fr);
-gap:10px;
+
+gap:12px;
+
 }
+
+
+/* DIAS */
 
 .day{
+
 aspect-ratio:1;
+
 display:flex;
+
 align-items:center;
+
 justify-content:center;
+
 background:#f8f9fa;
+
 border-radius:12px;
+
 cursor:pointer;
+
 font-weight:bold;
+
+transition:0.2s;
+
 }
+
 
 .day:hover{
+
 background:#e9ecef;
+
 }
+
+
+/* DIA SELECCIONADO */
 
 .day.selected{
+
 border:2px solid #72bd99;
+
 color:#72bd99;
+
 }
+
+
+/* DIA BLOQUEADO */
 
 .day.blocked{
+
 background:#ffe3e3;
+
 border:2px solid #ff7675;
+
 color:#d63031;
+
 }
+
+
+/* HORARIOS */
 
 #horarios{
+
 display:grid;
+
 grid-template-columns:repeat(4,1fr);
+
 gap:10px;
+
 margin-top:25px;
+
 }
+
+
+/* BOTON HORARIO */
 
 .hora-btn{
+
 padding:12px;
+
 border-radius:10px;
+
 border:1px solid #ddd;
+
 background:white;
+
 cursor:pointer;
+
+transition:0.2s;
+
 }
+
+
+.hora-btn:hover{
+
+background:#f0f0f0;
+
+}
+
 
 .hora-btn.selected{
+
 background:#72bd99;
+
 color:white;
+
 border:none;
+
 }
+
+
+/* BOTON PRINCIPAL */
 
 .btn-principal{
-margin-top:25px;
+
+margin-top:30px;
+
 background:#72bd99;
+
 color:white;
+
 border:none;
+
 padding:15px;
+
 border-radius:12px;
+
 width:100%;
+
 cursor:pointer;
+
 font-weight:bold;
+
+font-size:16px;
+
+transition:0.2s;
+
 }
 
 
-/* MODAL */
+.btn-principal:hover{
 
-.modal{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.45);
-display:none;
-align-items:center;
-justify-content:center;
-z-index:999;
-}
+background:#63a987;
 
-.modal-box{
-background:white;
-padding:35px;
-border-radius:16px;
-width:380px;
-text-align:center;
-box-shadow:0 10px 40px rgba(0,0,0,0.2);
-animation:fadeIn .25s ease;
-}
-
-.modal-box h3{
-margin-bottom:10px;
-color:#2d3748;
-}
-
-.modal-box p{
-color:#555;
-margin-bottom:20px;
-}
-
-.modal-box button{
-background:#72bd99;
-color:white;
-border:none;
-padding:10px 20px;
-border-radius:10px;
-cursor:pointer;
-font-weight:bold;
-}
-
-@keyframes fadeIn{
-from{
-transform:scale(.9);
-opacity:0;
-}
-to{
-transform:scale(1);
-opacity:1;
-}
 }
 
 </style>
@@ -168,16 +253,20 @@ opacity:1;
 
 <div class="container">
 
-<h2 id="titulo-servicio">Servicio</h2>
+<img src="img/logo.png" class="logo">
 
-<p id="user-display"></p>
+<h2 id="titulo-servicio"></h2>
 
 <div class="calendar">
 
 <div class="calendar-header">
+
 <button id="prevMonth">◀</button>
+
 <div id="monthLabel"></div>
+
 <button id="nextMonth">▶</button>
+
 </div>
 
 <div class="calendar-grid" id="calendarGrid"></div>
@@ -187,28 +276,12 @@ opacity:1;
 <div id="horarios"></div>
 
 <button id="btn-finalizar" class="btn-principal">
+
 Reservar turno
+
 </button>
 
 </div>
-
-
-<!-- MODAL -->
-
-<div id="modalAviso" class="modal">
-
-<div class="modal-box">
-
-<h3 id="modalTitulo"></h3>
-
-<p id="modalMensaje"></p>
-
-<button id="modalBtn">Aceptar</button>
-
-</div>
-
-</div>
-
 
 
 <script type="module">
@@ -216,32 +289,24 @@ Reservar turno
 import { db } from "./js/firebase.js";
 
 import {
+
 collection,
+
 query,
+
 where,
+
 getDocs,
+
 addDoc,
+
 doc,
+
 getDoc
+
 }
+
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-
-function mostrarAviso(titulo,mensaje){
-
-document.getElementById("modalTitulo").innerText=titulo
-document.getElementById("modalMensaje").innerText=mensaje
-
-document.getElementById("modalAviso").style.display="flex"
-
-}
-
-document.getElementById("modalBtn").onclick=()=>{
-
-document.getElementById("modalAviso").style.display="none"
-
-}
-
 
 
 /* PARAMETROS */
@@ -260,7 +325,9 @@ document.getElementById("titulo-servicio").innerText=servicioNombre;
 const userDni=sessionStorage.getItem("userDni");
 
 let clientName="";
+
 let clientEmail="";
+
 
 if(userDni){
 
@@ -269,36 +336,23 @@ const snap=await getDoc(doc(db,"clients",userDni));
 if(snap.exists()){
 
 clientName=snap.data().fullName;
+
 clientEmail=snap.data().email;
 
-document.getElementById("user-display").innerHTML=
-`Cliente: <b>${clientName}</b>`;
-
 }
 
 }
-
 
 
 /* DIAS BLOQUEADOS */
 
-let fechasBloqueadas=[];
-let motivosBloqueo={};
+const fechasBloqueadas=["2026-04-03"];
 
-const excepcionesSnap=await getDocs(collection(db,"calendarExceptions"));
+const motivosBloqueo={
 
-excepcionesSnap.forEach(docSnap=>{
+"2026-04-03":"Viernes Santo"
 
-const data=docSnap.data();
-
-if(data.active && data.type==="blocked"){
-
-fechasBloqueadas.push(data.date);
-motivosBloqueo[data.date]=data.reason;
-
-}
-
-});
+};
 
 
 /* CALENDARIO */
@@ -315,17 +369,21 @@ function renderCalendar(){
 grid.innerHTML="";
 
 const year=current.getFullYear();
+
 const month=current.getMonth();
 
 label.innerText=current.toLocaleString("es",{month:"long",year:"numeric"});
 
+
 const firstDay=new Date(year,month,1).getDay();
+
 const days=new Date(year,month+1,0).getDate();
 
 
 for(let i=0;i<firstDay;i++){
 
 const empty=document.createElement("div");
+
 grid.appendChild(empty);
 
 }
@@ -334,23 +392,27 @@ grid.appendChild(empty);
 for(let d=1;d<=days;d++){
 
 const day=document.createElement("div");
+
 day.className="day";
+
 day.innerText=d;
+
 
 const fecha=`${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
+
 if(fechasBloqueadas.includes(fecha)){
+
 day.classList.add("blocked");
+
 }
+
 
 day.onclick=()=>{
 
 if(fechasBloqueadas.includes(fecha)){
 
-mostrarAviso(
-"Día no disponible",
-"Este día se encuentra cerrado: "+motivosBloqueo[fecha]
-)
+alert("Día cerrado: "+motivosBloqueo[fecha]);
 
 return;
 
@@ -360,11 +422,13 @@ selectDay(day,d);
 
 };
 
+
 grid.appendChild(day);
 
 }
 
 }
+
 
 renderCalendar();
 
@@ -372,41 +436,47 @@ renderCalendar();
 document.getElementById("prevMonth").onclick=()=>{
 
 current.setMonth(current.getMonth()-1);
+
 renderCalendar();
 
 };
+
 
 document.getElementById("nextMonth").onclick=()=>{
 
 current.setMonth(current.getMonth()+1);
+
 renderCalendar();
 
 };
 
 
-
-/* SELECCION DIA */
-
 let fechaGlobal="";
+
 let horaGlobal="";
+
 
 function selectDay(el,day){
 
 document.querySelectorAll(".day")
+
 .forEach(d=>d.classList.remove("selected"));
 
 el.classList.add("selected");
 
+
 const y=current.getFullYear();
+
 const m=String(current.getMonth()+1).padStart(2,"0");
+
 const d=String(day).padStart(2,"0");
+
 
 fechaGlobal=`${y}-${m}-${d}`;
 
 cargarHorarios(fechaGlobal);
 
 }
-
 
 
 /* HORARIOS */
@@ -417,33 +487,47 @@ const container=document.getElementById("horarios");
 
 container.innerHTML="Cargando...";
 
+
 const q=query(collection(db,"reservas"),where("fecha","==",fecha));
 
 const snap=await getDocs(q);
 
+
 const ocupados=snap.docs.map(d=>d.data().hora);
+
 
 container.innerHTML="";
 
+
 const horarios=[
+
 "07:00","08:00","09:00","10:00","11:00","12:00",
+
 "12:30","16:00","17:00","18:00","19:00","20:00","20:30"
+
 ];
+
 
 horarios.forEach(h=>{
 
 const btn=document.createElement("button");
 
 btn.className="hora-btn";
+
 btn.innerText=h;
 
+
 if(ocupados.includes(h)){
+
 btn.disabled=true;
+
 }
+
 
 btn.onclick=()=>{
 
 document.querySelectorAll(".hora-btn")
+
 .forEach(b=>b.classList.remove("selected"));
 
 btn.classList.add("selected");
@@ -452,12 +536,12 @@ horaGlobal=h;
 
 };
 
+
 container.appendChild(btn);
 
 });
 
 }
-
 
 
 /* RESERVAR */
@@ -466,40 +550,42 @@ document.getElementById("btn-finalizar").onclick=async()=>{
 
 if(!horaGlobal){
 
-mostrarAviso("Atención","Seleccioná un horario disponible");
+alert("Seleccioná horario");
 
 return;
 
 }
 
+
 await addDoc(collection(db,"reservas"),{
 
 clientId:userDni,
+
 clientName,
+
 clientEmail,
+
 servicioId,
+
 servicioNombre,
+
 fecha:fechaGlobal,
+
 hora:horaGlobal,
+
 timestamp:new Date()
 
 });
 
 
-mostrarAviso(
-"Turno reservado ✔",
-"Su turno fue registrado correctamente.\n\nNos estaremos comunicando a través de sus números de contacto para continuar la atención."
-)
+alert("Turno reservado correctamente");
 
-setTimeout(()=>{
+window.location.href="index.html";
 
-window.location.href="index.html"
-
-},3500)
-
-}
+};
 
 </script>
 
 </body>
+
 </html>

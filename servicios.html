@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
 
 <meta charset="UTF-8">
@@ -9,123 +10,313 @@
 
 <link rel="stylesheet" href="style.css">
 
+<style>
+
+body{
+background:#f4f7f6;
+font-family:Arial;
+margin:0;
+}
+
+/* HEADER */
+
+.header{
+
+text-align:center;
+
+padding:40px 20px 10px 20px;
+
+}
+
+.header img{
+
+width:220px;
+
+margin-bottom:10px;
+
+}
+
+/* TITULO */
+
+h1{
+
+text-align:center;
+
+margin-bottom:40px;
+
+color:#2d3748;
+
+}
+
+/* CONTENEDOR */
+
+.container{
+
+max-width:1000px;
+
+margin:auto;
+
+padding:20px;
+
+display:grid;
+
+grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+
+gap:20px;
+
+}
+
+/* TARJETA */
+
+.servicio-card{
+
+background:white;
+
+padding:25px;
+
+border-radius:18px;
+
+box-shadow:0 8px 25px rgba(0,0,0,0.06);
+
+transition:0.25s;
+
+display:flex;
+
+flex-direction:column;
+
+justify-content:space-between;
+
+}
+
+.servicio-card:hover{
+
+transform:translateY(-5px);
+
+box-shadow:0 12px 35px rgba(0,0,0,0.10);
+
+}
+
+/* TITULO SERVICIO */
+
+.servicio-card h3{
+
+margin-bottom:10px;
+
+color:#2d3748;
+
+}
+
+/* TEXTO */
+
+.servicio-card p{
+
+font-size:14px;
+
+line-height:1.5;
+
+color:#555;
+
+margin-bottom:20px;
+
+}
+
+/* BOTON */
+
+.btn-reservar{
+
+background:#72bd99;
+
+border:none;
+
+padding:12px;
+
+border-radius:10px;
+
+color:white;
+
+font-weight:bold;
+
+cursor:pointer;
+
+width:100%;
+
+transition:0.2s;
+
+}
+
+.btn-reservar:hover{
+
+background:#63a987;
+
+}
+
+</style>
+
 </head>
 
 <body>
 
+
+<div class="header">
+
+<img src="img/logo.png">
+
+</div>
+
+
+<h1>Tratamientos</h1>
+
+
 <div class="container">
 
-<h2>Tratamientos</h2>
 
-<div id="listaServicios">
-Cargando servicios...
-</div>
+<div class="servicio-card">
 
-</div>
+<h3>Faciales</h3>
 
-<script type="module">
+<p>
+Tratamientos orientados a mejorar la salud y calidad de la piel,
+trabajando sobre acné, manchas, cicatrices, poros dilatados
+y signos de envejecimiento.
+</p>
 
-import { db } from "./js/firebase.js";
-
-import {
-collection,
-query,
-where,
-orderBy,
-getDocs
-}
-
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const container=document.getElementById("listaServicios");
-
-async function cargarServicios(){
-
-const q=query(
-collection(db,"services"),
-where("activo","==",true),
-orderBy("orden")
-);
-
-const snap=await getDocs(q);
-
-container.innerHTML="";
-
-let categorias={};
-
-snap.forEach(doc=>{
-
-const data=doc.data();
-
-if(!categorias[data.categoria]){
-categorias[data.categoria]=[];
-}
-
-categorias[data.categoria].push({
-id:doc.id,
-...data
-});
-
-});
-
-for(const catName in categorias){
-
-const h=document.createElement("div");
-h.className="categoria";
-h.innerText=catName.toUpperCase();
-
-container.appendChild(h);
-
-categorias[catName].forEach(serv=>{
-
-const div=document.createElement("div");
-div.className="servicio";
-
-div.innerHTML=`
-
-<div class="servicio-titulo">
-${serv.nombre}
-<span>▼</span>
-</div>
-
-<div class="servicio-desc">
-
-${serv.descripcion}
-
-<button class="btn-reservar">
+<button class="btn-reservar"
+onclick="irReserva('facial','Tratamiento Facial')">
 Reservar
 </button>
 
 </div>
 
-`;
 
-div.querySelector(".servicio-titulo").onclick=()=>{
 
-const d=div.querySelector(".servicio-desc");
+<div class="servicio-card">
 
-d.style.display=d.style.display==="block"?"none":"block";
+<h3>Corporales</h3>
 
-};
+<p>
+Tratamientos destinados a mejorar la apariencia de la piel
+y el contorno corporal, trabajando sobre adiposidad localizada,
+celulitis y estrías.
+</p>
 
-div.querySelector(".btn-reservar").onclick=()=>{
+<button class="btn-reservar"
+onclick="irReserva('corporal','Tratamientos Corporales')">
+Reservar
+</button>
+
+</div>
+
+
+
+<div class="servicio-card">
+
+<h3>Manchas</h3>
+
+<p>
+Procedimientos orientados a mejorar hiperpigmentaciones
+en distintas zonas del cuerpo, ayudando a unificar
+el tono de la piel.
+</p>
+
+<button class="btn-reservar"
+onclick="irReserva('manchas','Tratamiento Manchas')">
+Reservar
+</button>
+
+</div>
+
+
+
+<div class="servicio-card">
+
+<h3>Detox</h3>
+
+<p>
+Tratamientos destinados a favorecer la eliminación
+de líquidos retenidos y mejorar la circulación,
+generando bienestar corporal.
+</p>
+
+<button class="btn-reservar"
+onclick="irReserva('detox','Tratamiento Detox Drenante')">
+Reservar
+</button>
+
+</div>
+
+
+
+<div class="servicio-card">
+
+<h3>Tonificación</h3>
+
+<p>
+Tratamientos que estimulan y fortalecen grupos musculares
+mediante tecnología electromagnética,
+mejorando tono y firmeza.
+</p>
+
+<button class="btn-reservar"
+onclick="irReserva('tonificacion','Tonificación MioUp')">
+Reservar
+</button>
+
+</div>
+
+
+
+<div class="servicio-card">
+
+<h3>Criolipólisis</h3>
+
+<p>
+Tratamiento no invasivo que utiliza frío controlado
+para reducir adiposidad localizada de forma progresiva.
+</p>
+
+<button class="btn-reservar"
+onclick="irReserva('crio','Lipocell Cryo 360')">
+Reservar
+</button>
+
+</div>
+
+
+
+<div class="servicio-card">
+
+<h3>Labios</h3>
+
+<p>
+Tratamiento diseñado para mejorar hidratación,
+textura y apariencia de los labios,
+restaurando suavidad y luminosidad.
+</p>
+
+<button class="btn-reservar"
+onclick="irReserva('labios','Hidratación y Revitalización de Labios')">
+Reservar
+</button>
+
+</div>
+
+
+</div>
+
+
+
+<script>
+
+function irReserva(id,nombre){
 
 window.location.href=
-`fecha.html?sid=${serv.id}&servicio=${encodeURIComponent(serv.nombre)}`;
-
-};
-
-container.appendChild(div);
-
-});
+`fecha.html?sid=${id}&servicio=${encodeURIComponent(nombre)}`
 
 }
-
-}
-
-cargarServicios();
 
 </script>
 
+
 </body>
+
 </html>
