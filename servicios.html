@@ -2,280 +2,179 @@
 <html lang="es">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servicios | Espacio Mimar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { margin: 0; background: #f4f7f6; font-family: 'Montserrat', sans-serif; color: #333; }
 
-<title>Servicios | Espacio Mimar</title>
+        /* HERO */
+        .hero {
+            width: 100%; height: 220px;
+            background: url("img/cabina.jpeg") center center/cover no-repeat;
+            display: flex; align-items: center; justify-content: center; position: relative;
+        }
+        .hero::after { content: ""; position: absolute; inset: 0; background: rgba(44, 62, 58, 0.2); }
+        .hero h1 {
+            position: relative; z-index: 1; font-family: 'Playfair Display', serif;
+            color: white; font-size: 52px; letter-spacing: 3px; margin: 0;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
 
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+        /* CONTENEDOR */
+        .container { width: 90%; max-width: 1400px; margin: auto; padding: 20px 20px 60px 20px; text-align: center; }
 
-<style>
+        .logo {
+            width: 320px; margin-top: -50px; margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.95); padding: 15px 35px;
+            border-radius: 25px; backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1); position: relative; z-index: 2;
+        }
 
-body{
-margin:0;
-background:#f4f7f6;
-font-family:'Montserrat',sans-serif;
-}
+        .servicios { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; margin-top: 20px; }
 
-/* HERO */
+        .servicio {
+            background: white; border-radius: 20px; padding: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05); display: flex;
+            flex-direction: column; justify-content: space-between;
+            min-height: 280px; transition: all .3s ease; text-align: left;
+        }
 
-.hero{
-width:100%;
-height:200px;
-background:url("img/cabina.jpeg") center center/cover no-repeat;
-display:flex;
-align-items:center;
-justify-content:center;
-position:relative;
-}
+        .servicio h3 { margin: 0; font-family: 'Playfair Display', serif; font-size: 22px; color: #2c3e3a; }
+        .duracion { margin-top: 8px; font-size: 13px; color: #72bd99; font-weight: 600; text-transform: uppercase; }
+        .servicio p { margin-top: 15px; font-size: 14px; color: #666; line-height: 1.7; }
 
-/* Capa de claridad sobre la imagen para que el verde oscuro resalte */
-.hero::after{
-content:"";
-position:absolute;
-inset:0;
-background:rgba(255, 255, 255, 0.3);
-}
+        button {
+            margin-top: 25px; background: #72bd99; color: white; border: none;
+            padding: 14px; border-radius: 12px; cursor: pointer; font-size: 14px;
+            font-weight: 600; transition: all .25s ease;
+        }
+        button:hover { background: #5fa886; transform: scale(1.02); }
 
-.hero h1{
-position:relative;
-z-index: 1;
-font-family:'Playfair Display',serif;
-color:#2c3e3a;
-font-size:48px;
-letter-spacing:2px;
-margin: 0;
-text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
-}
+        /* MODAL MIO UP */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+            display: none; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .modal-card {
+            background: white; padding: 40px; border-radius: 25px;
+            max-width: 450px; width: 90%; text-align: center;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+        }
+        .modal-card h2 { font-family: 'Playfair Display', serif; color: #3f8f6f; margin: 0 0 20px 0; }
+        .modal-card p { font-size: 15px; line-height: 1.6; color: #555; margin-bottom: 25px; }
+        .info-box {
+            font-size: 14px; background: #f0f7f4; padding: 20px;
+            border-radius: 15px; border-left: 5px solid #72bd99;
+            text-align: left; margin-bottom: 25px;
+        }
 
-/* CONTENEDOR */
-
-.container{
-width:95%;
-max-width:1600px;
-margin:auto;
-padding:40px;
-text-align:center;
-}
-
-/* LOGO */
-
-.logo{
-width:380px;
-margin-top:-60px;
-margin-bottom:30px;
-background:white;
-padding:12px 30px;
-border-radius:20px;
-box-shadow:0 10px 30px rgba(0,0,0,0.08);
-position: relative;
-z-index: 2;
-}
-
-/* GRID SERVICIOS */
-
-.servicios{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:35px;
-}
-
-/* CARD */
-
-.servicio{
-background:white;
-border-radius:18px;
-padding:35px;
-box-shadow:0 12px 35px rgba(0,0,0,0.08);
-display:flex;
-flex-direction:column;
-justify-content:space-between;
-min-height:260px;
-transition:.25s;
-text-align:left;
-}
-
-.servicio:hover{
-transform:translateY(-6px);
-box-shadow:0 18px 40px rgba(0,0,0,0.12);
-}
-
-.servicio h3{
-margin:0;
-font-size:20px;
-color:#2c3e3a;
-}
-
-.duracion{
-margin-top:6px;
-font-size:13px;
-color:#72bd99;
-font-weight:600;
-}
-
-.servicio p{
-margin-top:15px;
-font-size:15px;
-color:#555;
-line-height:1.6;
-}
-
-button{
-margin-top:20px;
-background:#72bd99;
-color:white;
-border:none;
-padding:12px;
-border-radius:10px;
-cursor:pointer;
-font-size:15px;
-transition:.2s;
-}
-
-button:hover{
-background:#63ab8a;
-}
-
-/* RESPONSIVE */
-
-@media(max-width:1200px){
-.servicios{
-grid-template-columns:repeat(2,1fr);
-}
-}
-
-@media(max-width:600px){
-
-.servicios{
-grid-template-columns:1fr;
-}
-
-.hero{
-height:160px;
-}
-
-.hero h1{
-font-size:36px;
-}
-
-.logo{
-width:260px;
-}
-
-}
-
-/* FOOTER */
-
-.footer{
-margin-top:20px;
-font-size:12px;
-color:#aaa;
-padding-bottom:30px;
-text-align:center;
-width:100%;
-}
-
-</style>
-
+        .footer { margin-top: 40px; font-size: 12px; color: #aaa; padding: 30px 0; text-align: center; border-top: 1px solid #e0e6e4; }
+    </style>
 </head>
 
 <body>
 
-<div class="hero">
-<h1>Servicios</h1>
-</div>
+    <div class="hero">
+        <h1>Nuestros Servicios</h1>
+    </div>
 
-<div class="container">
+    <div class="container">
+        <img src="img/logo.png" class="logo">
+        <div id="loading">Cargando experiencias...</div>
+        <div class="servicios" id="listaServicios"></div>
+    </div>
 
-<img src="img/logo.png" class="logo">
+    <div id="modalMioUp" class="modal-overlay">
+        <div class="modal-card">
+            <h2>Mio Up - Info</h2>
+            <p>Recordá que este tratamiento dura <b>30 minutos por zona</b>.</p>
+            <div class="info-box">
+                • Si elegís un bloque de <b>1 hora</b>, se usarán automáticamente <b>2 zonas</b> de tu membresía.<br><br>
+                • Para realizar <b>1 sola zona</b>, buscá los horarios de 30 min (fraccionados).
+            </div>
+            <button style="width:100%" id="btnContinuarMio">Entendido, Continuar</button>
+        </div>
+    </div>
 
-<div class="servicios" id="listaServicios"></div>
+    <div class="footer">
+        © 2026 Espacio Mimar T — Todos los derechos reservados
+    </div>
 
-</div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-<div class="footer">
-© 2026 Espacio Mimar T — Todos los derechos reservados
-</div>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
+            authDomain: "estetica-8d067.firebaseapp.com",
+            projectId: "estetica-8d067",
+            storageBucket: "estetica-8d067.firebasestorage.app",
+            messagingSenderId: "501220214938",
+            appId: "1:501220214938:web:af6e262c23d9a7ea853723",
+            measurementId: "G-J4NH9ENVYL"
+        };
 
-<script type="module">
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const contenedor = document.getElementById("listaServicios");
+        const loading = document.getElementById("loading");
+        const modal = document.getElementById("modalMioUp");
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        async function cargarServicios() {
+            try {
+                const snapshot = await getDocs(collection(db, "services"));
+                let servicios = [];
+                snapshot.forEach(doc => {
+                    if (doc.data().activo) servicios.push(doc.data());
+                });
 
-const firebaseConfig = {
-apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
-authDomain: "estetica-8d067.firebaseapp.com",
-projectId: "estetica-8d067",
-storageBucket: "estetica-8d067.firebasestorage.app",
-messagingSenderId: "501220214938",
-appId: "1:501220214938:web:af6e262c23d9a7ea853723",
-measurementId: "G-J4NH9ENVYL"
-};
+                servicios.sort((a, b) => a.orden - b.orden);
+                loading.style.display = "none";
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+                servicios.forEach(s => {
+                    const div = document.createElement("div");
+                    div.className = "servicio";
+                    div.innerHTML = `
+                        <div>
+                            <h3>${s.nombre}</h3>
+                            <div class="duracion">${s.duracion} min</div>
+                            <p>${s.descripcion || 'Consultar detalles.'}</p>
+                        </div>
+                        <button class="btn-reservar" data-nombre="${s.nombre}">Reservar Turno</button>
+                    `;
+                    contenedor.appendChild(div);
+                });
 
-const contenedor = document.getElementById("listaServicios");
+                // Event listener para los botones (método seguro)
+                document.querySelectorAll('.btn-reservar').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const nombre = btn.getAttribute('data-nombre');
+                        localStorage.setItem("servicioSeleccionado", nombre);
+                        
+                        if (nombre.toLowerCase().includes("mio up")) {
+                            modal.style.display = "flex";
+                        } else {
+                            window.location.href = "fecha.html";
+                        }
+                    });
+                });
 
-async function cargarServicios(){
+            } catch (e) {
+                loading.innerText = "Error al cargar.";
+            }
+        }
 
-const snapshot = await getDocs(collection(db,"services"));
+        document.getElementById("btnContinuarMio").onclick = () => {
+            window.location.href = "fecha.html";
+        };
 
-let servicios = [];
-
-snapshot.forEach((doc)=>{
-
-const s = doc.data();
-
-if(s.activo === true){
-servicios.push(s);
-}
-
-});
-
-servicios.sort((a,b)=>a.orden - b.orden);
-
-servicios.forEach((s)=>{
-
-const descripcion = s.descripcion ? s.descripcion : "";
-
-const tarjeta=document.createElement("div");
-tarjeta.className="servicio";
-
-tarjeta.innerHTML=`
-
-<div>
-
-<h3>${s.nombre}</h3>
-
-<div class="duracion">${s.duracion} min</div>
-
-<p>${descripcion}</p>
-
-</div>
-
-<button onclick="reservar('${s.nombre}')">Reservar</button>
-
-`;
-
-contenedor.appendChild(tarjeta);
-
-});
-
-}
-
-cargarServicios();
-
-window.reservar=function(servicio){
-
-localStorage.setItem("servicioSeleccionado",servicio);
-
-window.location.href="fecha.html";
-
-}
-
-</script>
-
+        cargarServicios();
+    </script>
 </body>
 </html>
