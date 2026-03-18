@@ -3,77 +3,100 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Servicios | Espacio Mimar</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 
     <style>
-        body { margin: 0; background: #f4f7f6; font-family: 'Montserrat', sans-serif; color: #333; }
+        :root { --verde-mimar: #72bd99; --verde-oscuro: #3f8f6f; --verde-fondo: #f4f7f6; }
 
-        /* HERO */
+        body { margin: 0; background: var(--verde-fondo); font-family: 'Montserrat', sans-serif; color: #333; overflow-x: hidden; }
+
+        /* HERO - Ajustado para que el texto no se tape */
         .hero {
-            width: 100%; height: 220px;
+            width: 100%; height: 200px;
             background: url("img/cabina.jpeg") center center/cover no-repeat;
             display: flex; align-items: center; justify-content: center; position: relative;
         }
-        .hero::after { content: ""; position: absolute; inset: 0; background: rgba(44, 62, 58, 0.2); }
+        .hero::after { content: ""; position: absolute; inset: 0; background: rgba(44, 62, 58, 0.3); }
         .hero h1 {
             position: relative; z-index: 1; font-family: 'Playfair Display', serif;
-            color: white; font-size: 52px; letter-spacing: 3px; margin: 0;
-            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            color: white; font-size: 38px; letter-spacing: 2px; margin: 0;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3); text-align: center; padding: 0 15px;
         }
 
         /* CONTENEDOR */
-        .container { width: 90%; max-width: 1400px; margin: auto; padding: 20px 20px 60px 20px; text-align: center; }
+        .container { width: 95%; max-width: 1200px; margin: auto; padding: 0 15px 60px 15px; text-align: center; }
 
+        /* LOGO - Corregido el solapamiento de err2.jpeg */
         .logo {
-            width: 320px; margin-top: -50px; margin-bottom: 40px;
-            background: rgba(255, 255, 255, 0.95); padding: 15px 35px;
-            border-radius: 25px; backdrop-filter: blur(10px);
+            width: 280px; max-width: 85%; margin: -40px auto 30px auto;
+            background: rgba(255, 255, 255, 0.98); padding: 12px 25px;
+            border-radius: 20px; backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1); position: relative; z-index: 2;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; z-index: 10;
+            display: block;
         }
 
-        .servicios { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; margin-top: 20px; }
+        #loading { padding: 40px; color: var(--verde-oscuro); font-weight: 500; }
+
+        /* GRILLA DE SERVICIOS RESPONSIVA */
+        .servicios { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+            gap: 20px; 
+            margin-top: 10px; 
+        }
 
         .servicio {
-            background: white; border-radius: 20px; padding: 30px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.05); display: flex;
+            background: white; border-radius: 20px; padding: 25px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.04); display: flex;
             flex-direction: column; justify-content: space-between;
-            min-height: 280px; transition: all .3s ease; text-align: left;
+            min-height: 250px; transition: transform .3s ease; text-align: left;
+            border: 1px solid #f0f0f0;
         }
 
-        .servicio h3 { margin: 0; font-family: 'Playfair Display', serif; font-size: 22px; color: #2c3e3a; }
-        .duracion { margin-top: 8px; font-size: 13px; color: #72bd99; font-weight: 600; text-transform: uppercase; }
-        .servicio p { margin-top: 15px; font-size: 14px; color: #666; line-height: 1.7; }
+        .servicio:active { transform: scale(0.98); }
 
-        button {
-            margin-top: 25px; background: #72bd99; color: white; border: none;
-            padding: 14px; border-radius: 12px; cursor: pointer; font-size: 14px;
-            font-weight: 600; transition: all .25s ease;
+        .servicio h3 { margin: 0; font-family: 'Playfair Display', serif; font-size: 20px; color: #2c3e3a; line-height: 1.2; }
+        .duracion { margin-top: 8px; font-size: 12px; color: var(--verde-mimar); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .servicio p { margin-top: 12px; font-size: 14px; color: #666; line-height: 1.6; }
+
+        .btn-reservar {
+            margin-top: 20px; background: var(--verde-mimar); color: white; border: none;
+            padding: 15px; border-radius: 12px; cursor: pointer; font-size: 14px;
+            font-weight: 600; transition: background .25s ease; width: 100%;
         }
-        button:hover { background: #5fa886; transform: scale(1.02); }
 
-        /* MODAL MIO UP */
+        /* MODAL MIO UP RESPONSIVO */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
-            display: none; justify-content: center; align-items: center; z-index: 9999;
+            display: none; justify-content: center; align-items: center; z-index: 9999; padding: 20px;
         }
         .modal-card {
-            background: white; padding: 40px; border-radius: 25px;
-            max-width: 450px; width: 90%; text-align: center;
+            background: white; padding: 30px; border-radius: 25px;
+            max-width: 400px; width: 100%; text-align: center;
             box-shadow: 0 25px 60px rgba(0,0,0,0.3);
         }
-        .modal-card h2 { font-family: 'Playfair Display', serif; color: #3f8f6f; margin: 0 0 20px 0; }
-        .modal-card p { font-size: 15px; line-height: 1.6; color: #555; margin-bottom: 25px; }
+        .modal-card h2 { font-family: 'Playfair Display', serif; color: var(--verde-oscuro); margin: 0 0 15px 0; font-size: 24px; }
+        .modal-card p { font-size: 14px; line-height: 1.5; color: #555; margin-bottom: 20px; }
         .info-box {
-            font-size: 14px; background: #f0f7f4; padding: 20px;
-            border-radius: 15px; border-left: 5px solid #72bd99;
-            text-align: left; margin-bottom: 25px;
+            font-size: 13px; background: #f0f7f4; padding: 15px;
+            border-radius: 15px; border-left: 5px solid var(--verde-mimar);
+            text-align: left; margin-bottom: 20px; color: #444;
         }
 
-        .footer { margin-top: 40px; font-size: 12px; color: #aaa; padding: 30px 0; text-align: center; border-top: 1px solid #e0e6e4; }
+        .footer { margin-top: 40px; font-size: 11px; color: #999; padding: 30px 0; text-align: center; border-top: 1px solid #e0e6e4; }
+
+        /* Ajustes para pantallas muy pequeñas */
+        @media (max-width: 480px) {
+            .hero { height: 160px; }
+            .hero h1 { font-size: 28px; }
+            .logo { width: 220px; margin-top: -30px; padding: 10px 20px; }
+            .servicio { padding: 20px; }
+            .modal-card { padding: 20px; }
+        }
     </style>
 </head>
 
@@ -97,7 +120,8 @@
                 • Si elegís un bloque de <b>1 hora</b>, se usarán automáticamente <b>2 zonas</b> de tu membresía.<br><br>
                 • Para realizar <b>1 sola zona</b>, buscá los horarios de 30 min (fraccionados).
             </div>
-            <button style="width:100%" id="btnContinuarMio">Entendido, Continuar</button>
+            <button class="btn-reservar" id="btnContinuarMio">Entendido, Continuar</button>
+            <button id="btnCerrarModal" style="background:none; border:none; color:#888; margin-top:15px; cursor:pointer; font-size:12px;">Volver atrás</button>
         </div>
     </div>
 
@@ -109,6 +133,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
+        // Tu config de Firebase se mantiene igual
         const firebaseConfig = {
             apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
             authDomain: "estetica-8d067.firebaseapp.com",
@@ -131,7 +156,8 @@
                 const snapshot = await getDocs(collection(db, "services"));
                 let servicios = [];
                 snapshot.forEach(doc => {
-                    if (doc.data().activo) servicios.push(doc.data());
+                    const data = doc.data();
+                    if (data.activo) servicios.push(data);
                 });
 
                 servicios.sort((a, b) => a.orden - b.orden);
@@ -144,20 +170,20 @@
                         <div>
                             <h3>${s.nombre}</h3>
                             <div class="duracion">${s.duracion} min</div>
-                            <p>${s.descripcion || 'Consultar detalles.'}</p>
+                            <p>${s.descripcion || 'Consultar detalles en cabina.'}</p>
                         </div>
                         <button class="btn-reservar" data-nombre="${s.nombre}">Reservar Turno</button>
                     `;
                     contenedor.appendChild(div);
                 });
 
-                // Event listener para los botones (método seguro)
+                // Listener para botones
                 document.querySelectorAll('.btn-reservar').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const nombre = btn.getAttribute('data-nombre');
                         localStorage.setItem("servicioSeleccionado", nombre);
                         
-                        if (nombre.toLowerCase().includes("mio up")) {
+                        if (nombre.toLowerCase().includes("mio")) {
                             modal.style.display = "flex";
                         } else {
                             window.location.href = "fecha.html";
@@ -166,12 +192,17 @@
                 });
 
             } catch (e) {
-                loading.innerText = "Error al cargar.";
+                console.error(e);
+                loading.innerText = "Hubo un problema al cargar los servicios.";
             }
         }
 
         document.getElementById("btnContinuarMio").onclick = () => {
             window.location.href = "fecha.html";
+        };
+
+        document.getElementById("btnCerrarModal").onclick = () => {
+            modal.style.display = "none";
         };
 
         cargarServicios();
