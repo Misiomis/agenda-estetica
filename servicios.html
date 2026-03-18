@@ -12,7 +12,7 @@
 
         body { margin: 0; background: var(--verde-fondo); font-family: 'Montserrat', sans-serif; color: #333; overflow-x: hidden; }
 
-        /* HERO - Ajustado para que el texto no se tape */
+        /* HERO */
         .hero {
             width: 100%; height: 200px;
             background: url("img/cabina.jpeg") center center/cover no-repeat;
@@ -28,7 +28,6 @@
         /* CONTENEDOR */
         .container { width: 95%; max-width: 1200px; margin: auto; padding: 0 15px 60px 15px; text-align: center; }
 
-        /* LOGO - Corregido el solapamiento de err2.jpeg */
         .logo {
             width: 280px; max-width: 85%; margin: -40px auto 30px auto;
             background: rgba(255, 255, 255, 0.98); padding: 12px 25px;
@@ -40,7 +39,6 @@
 
         #loading { padding: 40px; color: var(--verde-oscuro); font-weight: 500; }
 
-        /* GRILLA DE SERVICIOS RESPONSIVA */
         .servicios { 
             display: grid; 
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
@@ -57,7 +55,6 @@
         }
 
         .servicio:active { transform: scale(0.98); }
-
         .servicio h3 { margin: 0; font-family: 'Playfair Display', serif; font-size: 20px; color: #2c3e3a; line-height: 1.2; }
         .duracion { margin-top: 8px; font-size: 12px; color: var(--verde-mimar); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
         .servicio p { margin-top: 12px; font-size: 14px; color: #666; line-height: 1.6; }
@@ -68,34 +65,38 @@
             font-weight: 600; transition: background .25s ease; width: 100%;
         }
 
-        /* MODAL MIO UP RESPONSIVO */
+        /* --- MODAL MIO UP CORREGIDO --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
-            display: none; justify-content: center; align-items: center; z-index: 9999; padding: 20px;
+            display: none; justify-content: center; align-items: center; z-index: 9999;
         }
         .modal-card {
             background: white; padding: 30px; border-radius: 25px;
-            max-width: 400px; width: 100%; text-align: center;
+            width: 90%; max-width: 400px; max-height: 90vh; /* Altura máxima para no salirse */
+            overflow-y: auto; /* Scroll si el texto es muy largo en celu */
+            text-align: center;
             box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            position: relative;
         }
         .modal-card h2 { font-family: 'Playfair Display', serif; color: var(--verde-oscuro); margin: 0 0 15px 0; font-size: 24px; }
-        .modal-card p { font-size: 14px; line-height: 1.5; color: #555; margin-bottom: 20px; }
+        .modal-card p { font-size: 15px; line-height: 1.5; color: #555; margin-bottom: 20px; }
         .info-box {
-            font-size: 13px; background: #f0f7f4; padding: 15px;
+            font-size: 14px; background: #f0f7f4; padding: 18px;
             border-radius: 15px; border-left: 5px solid var(--verde-mimar);
-            text-align: left; margin-bottom: 20px; color: #444;
+            text-align: left; margin-bottom: 20px; color: #444; line-height: 1.5;
         }
+        .info-box b { color: var(--verde-oscuro); }
 
         .footer { margin-top: 40px; font-size: 11px; color: #999; padding: 30px 0; text-align: center; border-top: 1px solid #e0e6e4; }
 
-        /* Ajustes para pantallas muy pequeñas */
         @media (max-width: 480px) {
             .hero { height: 160px; }
             .hero h1 { font-size: 28px; }
             .logo { width: 220px; margin-top: -30px; padding: 10px 20px; }
-            .servicio { padding: 20px; }
-            .modal-card { padding: 20px; }
+            .modal-card { padding: 25px 20px; }
+            .modal-card h2 { font-size: 22px; }
+            .info-box { font-size: 13px; }
         }
     </style>
 </head>
@@ -115,13 +116,15 @@
     <div id="modalMioUp" class="modal-overlay">
         <div class="modal-card">
             <h2>Mio Up - Info</h2>
-            <p>Recordá que este tratamiento dura <b>30 minutos por zona</b>.</p>
+            <p>Recordá que este tratamiento dura <br><b>30 minutos por zona</b>.</p>
             <div class="info-box">
-                • Si elegís un bloque de <b>1 hora</b>, se usarán automáticamente <b>2 zonas</b> de tu membresía.<br><br>
-                • Para realizar <b>1 sola zona</b>, buscá los horarios de 30 min (fraccionados).
+                <div class="info-box">
+                • <b>1 Zona = 30 minutos:</b> Si reservás un turno de 30 min, se descontará <b>media hora</b> de tu membresía.<br><br>
+                • <b>2 Zonas = 1 hora:</b> Si querés trabajar dos zonas, seleccioná un bloque de 1 hora (o dos de 30 min) y se descontará <b>1 hora</b> de tu membresía.
+            </div>
             </div>
             <button class="btn-reservar" id="btnContinuarMio">Entendido, Continuar</button>
-            <button id="btnCerrarModal" style="background:none; border:none; color:#888; margin-top:15px; cursor:pointer; font-size:12px;">Volver atrás</button>
+            <button id="btnCerrarModal" style="background:none; border:none; color:#888; margin-top:15px; cursor:pointer; font-size:13px; text-decoration: underline;">Volver atrás</button>
         </div>
     </div>
 
@@ -133,7 +136,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-        // Tu config de Firebase se mantiene igual
         const firebaseConfig = {
             apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
             authDomain: "estetica-8d067.firebaseapp.com",
@@ -177,14 +179,15 @@
                     contenedor.appendChild(div);
                 });
 
-                // Listener para botones
                 document.querySelectorAll('.btn-reservar').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const nombre = btn.getAttribute('data-nombre');
                         localStorage.setItem("servicioSeleccionado", nombre);
                         
+                        // Validamos de forma más segura el nombre para abrir el modal
                         if (nombre.toLowerCase().includes("mio")) {
                             modal.style.display = "flex";
+                            document.body.style.overflow = "hidden"; // Evita scroll de fondo
                         } else {
                             window.location.href = "fecha.html";
                         }
@@ -203,6 +206,15 @@
 
         document.getElementById("btnCerrarModal").onclick = () => {
             modal.style.display = "none";
+            document.body.style.overflow = "auto";
+        };
+
+        // Cerrar modal si tocan fuera del card
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.style.display = "none";
+                document.body.style.overflow = "auto";
+            }
         };
 
         cargarServicios();
