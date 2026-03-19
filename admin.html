@@ -3,126 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Admin | Gimena Knack</title>
+    <title>Admin Pro | Espacio Mimar T</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
     <style>
-        :root { --verde: #72bd99; --rojo: #ff4d4d; --texto: #2c3e3a; }
-        body { font-family: 'Montserrat', sans-serif; background: #f4f7f6; margin: 0; color: var(--texto); }
-        
+        :root { --verde: #72bd99; --verde-oscuro: #3f8f6f; --rojo: #ff4d4d; --texto: #2c3e3a; }
+        body { font-family: 'Montserrat', sans-serif; background: #f4f7f6; margin: 0; color: var(--texto); padding-bottom: 50px; }
         .header { background: white; padding: 15px; text-align: center; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
+        .menu-nav { margin-top: 15px; display: flex; justify-content: center; gap: 10px; }
+        .btn-nav { padding: 8px 20px; border: 1px solid #eee; background: white; border-radius: 20px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.3s; }
+        .btn-nav.active { background: var(--verde); color: white; border-color: var(--verde); }
+
         .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
+        .section { display: none; }
+        .section.active { display: block; }
 
-        /* --- FICHA ESTILO LISTA VERTICAL --- */
-        .card { background: white; border-radius: 20px; padding: 25px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); position: relative; }
-        .card h3 { margin: 0; font-family: 'Playfair Display', serif; color: var(--verde); font-size: 24px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
-        .dni-text { font-size: 12px; color: #aaa; margin: 10px 0 20px 0; display: block; }
+        /* AGENDA - CALENDARIO */
+        .calendar-container { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 15px; }
+        .day-name { font-size: 10px; color: #aaa; font-weight: 600; text-transform: uppercase; padding-bottom: 5px; }
+        .day { padding: 12px 5px; border-radius: 10px; font-size: 13px; cursor: pointer; border: 1px solid #f8f8f8; background: white; transition: 0.2s; }
+        .day.has-reserva { background: #fff0f0; border: 1.5px solid var(--rojo); color: var(--rojo); font-weight: 600; }
+        .day.selected { background: var(--verde) !important; color: white !important; }
 
-        /* Datos en vertical */
-        .data-list { display: flex; flex-direction: column; gap: 12px; }
-        .data-item { display: flex; justify-content: space-between; border-bottom: 1px solid #f9f9f9; padding-bottom: 5px; font-size: 14px; }
-        .data-item b { color: #555; font-weight: 600; }
-        
-        .alerta { color: var(--rojo); font-weight: bold; }
-        .objetivo-seccion { margin-top: 20px; background: #fdfdfd; padding: 15px; border-radius: 12px; border: 1px solid #f0f0f0; font-size: 14px; }
+        /* BITÁCORA */
+        .detalle-dia-card { background: white; border-radius: 20px; padding: 20px; margin-top: 20px; border-top: 4px solid var(--verde); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        textarea { width: 100%; height: 90px; border: 1px solid #ddd; border-radius: 10px; padding: 10px; font-family: inherit; resize: none; box-sizing: border-box; background: #fdfdfd; margin-top: 10px; }
+        .btn-save { background: var(--verde); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; }
 
-        /* Botón de exportar individual */
-        .btn-export { 
-            width: 100%; margin-top: 20px; padding: 12px; background: var(--texto); color: white; 
-            border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: 0.3s;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        .btn-export:hover { background: #000; }
-
-        /* Estilo para que el PDF salga prolijo */
-        .pdf-header { display: none; text-align: center; margin-bottom: 20px; }
+        /* HISTORIAS - LISTA VERTICAL */
+        .ficha-paciente { background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; box-shadow: 0 5px 10px rgba(0,0,0,0.03); border-left: 5px solid var(--verde); }
+        .ficha-paciente b { font-size: 17px; color: var(--verde-oscuro); display: block; margin-bottom: 5px; }
+        .ficha-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; font-size: 12px; }
+        .ficha-item { color: #555; }
+        .ficha-item span { font-weight: 600; color: var(--texto); }
+        .ficha-objetivo { margin-top: 12px; padding-top: 10px; border-top: 1px solid #f0f0f0; font-size: 13px; font-style: italic; color: #777; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h2 style="font-family:'Playfair Display'; margin:0;">Gimena Knack | Admin</h2>
+        <h2 style="font-family:'Playfair Display'; margin:0; color:var(--verde-oscuro)">Gimena Knack</h2>
+        <div class="menu-nav">
+            <button class="btn-nav active" id="btn-agenda" onclick="navegar('agenda')">📅 Agenda</button>
+            <button class="btn-nav" id="btn-historias" onclick="navegar('historias')">📁 Historias</button>
+        </div>
     </div>
 
     <div class="container">
-        <div id="listaHistorias">Cargando fichas de pacientes...</div>
+        <div id="sec-agenda" class="section active">
+            <button style="width:100%; background:var(--texto); color:white; border:none; padding:15px; border-radius:12px; margin-bottom:20px; font-weight:600; cursor:pointer;" onclick="exportarResumenMensual()">📄 Exportar Resumen Mensual (PDF)</button>
+            <div class="calendar-container">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <button onclick="cambiarMes(-1)" style="border:none; background:none; cursor:pointer; font-size:18px;">◀</button>
+                    <h3 id="monthTitle" style="font-family:'Playfair Display'; margin:0;"></h3>
+                    <button onclick="cambiarMes(1)" style="border:none; background:none; cursor:pointer; font-size:18px;">▶</button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+            </div>
+            <div id="panelDetalleDia"></div>
+        </div>
+
+        <div id="sec-historias" class="section">
+            <h3 style="font-family:'Playfair Display'; color:var(--verde-oscuro); margin-bottom:15px;">Base de Pacientes</h3>
+            <div id="listaHistorias">Cargando fichas...</div>
+        </div>
     </div>
+
+    <div id="resumenInvisible" style="display:none;"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew", projectId: "estetica-8d067" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        window.cargarHistorias = async () => {
-            const div = document.getElementById("listaHistorias");
+        let fechaActual = new Date();
+        let todasLasReservas = [];
+        let mapaPacientes = {};
+
+        // CARGA INICIAL
+        async function cargarTodo() {
             try {
-                const snap = await getDocs(collection(db, "historias"));
-                div.innerHTML = "";
+                const snapHist = await getDocs(collection(db, "historias"));
+                snapHist.forEach(d => { mapaPacientes[d.id] = d.data().nombre || "Sin nombre"; });
 
-                snap.forEach(doc => {
-                    const p = doc.data();
-                    const cardId = `ficha-${doc.id}`;
-                    
-                    const resaltar = (val) => (val && val.toLowerCase() !== "no") ? `<span class="alerta">${val}</span>` : "No";
-
-                    const cardHtml = `
-                        <div class="card" id="${cardId}">
-                            <h3>${p.nombre || "Paciente sin nombre"}</h3>
-                            <span class="dni-text">ID/DNI: ${doc.id} | Fecha: ${p.fechaRegistro || '--'}</span>
-                            
-                            <div class="data-list">
-                                <div class="data-item"><b>Edad:</b> <span>${p.edad || '--'}</span></div>
-                                <div class="data-item"><b>Teléfono:</b> <span>${p.telefono || '--'}</span></div>
-                                <div class="data-item"><b>Zona:</b> <span>${p.zona || '--'}</span></div>
-                                <div class="data-item"><b>Hijos:</b> <span>${resaltar(p.hijos)}</span></div>
-                                <div class="data-item"><b>Embarazo:</b> <span>${resaltar(p.embarazo)}</span></div>
-                                <div class="data-item"><b>Enfermedad:</b> <span>${resaltar(p.enfermedad)}</span></div>
-                                <div class="data-item"><b>Alergias:</b> <span>${resaltar(p.alergias)}</span></div>
-                                <div class="data-item"><b>Medicación:</b> <span>${resaltar(p.medicacion)}</span></div>
-                            </div>
-
-                            <div class="objetivo-seccion">
-                                <b>Objetivo del Tratamiento:</b><br>
-                                <p style="margin-top:8px; line-height:1.4;">${p.objetivo || "No especificado"}</p>
-                            </div>
-
-                            <button class="btn-export" onclick="exportarFicha('${cardId}', '${p.nombre}')">
-                                📄 Exportar esta ficha a PDF
-                            </button>
-                        </div>
-                    `;
-                    div.innerHTML += cardHtml;
+                const snapRes = await getDocs(collection(db, "reservas"));
+                todasLasReservas = [];
+                snapRes.forEach(d => {
+                    const data = d.data();
+                    const nombreReal = mapaPacientes[data.dni] || data.nombre || "Paciente";
+                    todasLasReservas.push({ id: d.id, ...data, nombreFinal: nombreReal });
                 });
-            } catch (e) {
-                div.innerHTML = "Error: " + e.message;
+                renderCalendario();
+            } catch (e) { console.error(e); }
+        }
+
+        // CALENDARIO (Se mantiene igual, funcional)
+        function renderCalendario() {
+            const grid = document.getElementById("calendarGrid");
+            grid.innerHTML = "";
+            const diasSemana = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
+            diasSemana.forEach(d => grid.innerHTML += `<div class="day-name">${d}</div>`);
+
+            const mes = fechaActual.getMonth();
+            const año = fechaActual.getFullYear();
+            document.getElementById("monthTitle").innerText = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(fechaActual);
+
+            const primerDiaMes = new Date(año, mes, 1).getDay();
+            const offset = (primerDiaMes === 0) ? 6 : primerDiaMes - 1;
+            const diasEnMes = new Date(año, mes + 1, 0).getDate();
+
+            for (let i = 0; i < offset; i++) grid.innerHTML += `<div></div>`;
+            for (let d = 1; d <= diasEnMes; d++) {
+                const fStr = `${año}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const tiene = todasLasReservas.some(r => r.fecha === fStr);
+                const div = document.createElement("div");
+                div.className = `day ${tiene ? 'has-reserva' : ''}`;
+                div.innerText = d;
+                div.onclick = () => verDetalleDia(fStr, div);
+                grid.appendChild(div);
             }
+        }
+
+        window.verDetalleDia = (fecha, el) => {
+            document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
+            el.classList.add('selected');
+            const filtradas = todasLasReservas.filter(r => r.fecha === fecha);
+            const panel = document.getElementById("panelDetalleDia");
+            if (filtradas.length === 0) {
+                panel.innerHTML = `<p style="text-align:center; color:#999; margin-top:20px;">Sin turnos para este día.</p>`;
+                return;
+            }
+            panel.innerHTML = filtradas.map(r => `
+                <div class="detalle-dia-card">
+                    <b style="font-size:18px;">${r.nombreFinal}</b><br>
+                    <small>${r.servicio || 'Tratamiento'} | ${r.hora || '--'} hs</small>
+                    <textarea id="texto-${r.id}" placeholder="Escribe aquí el detalle de la sesión...">${r.detalleSesion || ''}</textarea>
+                    <button class="btn-save" onclick="guardarDetalle('${r.id}')">Guardar Registro ✅</button>
+                </div>`).join('');
         };
 
-        // Función para exportar solo LA FICHA seleccionada
-        window.exportarFicha = (id, nombre) => {
-            const elemento = document.getElementById(id);
-            // Clonamos para quitar el botón del PDF antes de generar
-            const clon = elemento.cloneNode(true);
-            clon.querySelector('.btn-export').remove();
-            clon.style.boxShadow = "none";
-            clon.style.border = "1px solid #eee";
-
-            const opciones = {
-                margin: 15,
-                filename: `Ficha_${nombre.replace(/ /g, "_")}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 3 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opciones).from(clon).save();
+        window.guardarDetalle = async (id) => {
+            const txt = document.getElementById(`texto-${id}`).value;
+            try {
+                await updateDoc(doc(db, "reservas", id), { detalleSesion: txt });
+                alert("Detalle guardado correctamente.");
+                cargarTodo();
+            } catch (e) { alert("Error al guardar."); }
         };
 
-        cargarHistorias();
+        // HISTORIAS DETALLADAS (Vuelve el formato de lista completa)
+        async function cargarHistoriasTab() {
+            const div = document.getElementById("listaHistorias");
+            div.innerHTML = "Actualizando datos...";
+            const snap = await getDocs(collection(db, "historias"));
+            div.innerHTML = "";
+            snap.forEach(docSnap => {
+                const p = docSnap.data();
+                div.innerHTML += `
+                <div class="ficha-paciente">
+                    <b>${p.nombre || 'Sin nombre'}</b>
+                    <div class="ficha-grid">
+                        <div class="ficha-item">DNI: <span>${docSnap.id}</span></div>
+                        <div class="ficha-item">Tel: <span>${p.telefono || '--'}</span></div>
+                        <div class="ficha-item">Edad: <span>${p.edad || '--'}</span></div>
+                        <div class="ficha-item">Hijos: <span>${p.hijos || 'No'}</span></div>
+                        <div class="ficha-item">Embarazo: <span>${p.embarazo || 'No'}</span></div>
+                        <div class="ficha-item">Alergias: <span>${p.alergias || 'No'}</span></div>
+                        <div class="ficha-item">Medicacion: <span>${p.medicacion || 'No'}</span></div>
+                        <div class="ficha-item">Enfermedad: <span>${p.enfermedad || 'No'}</span></div>
+                    </div>
+                    <div class="ficha-objetivo"><b>Objetivo:</b> ${p.objetivo || 'No especificado'}</div>
+                </div>`;
+            });
+        }
+
+        window.navegar = (s) => {
+            document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+            document.querySelectorAll('.btn-nav').forEach(x => x.classList.remove('active'));
+            document.getElementById(`sec-${s}`).classList.add('active');
+            document.getElementById(`btn-${s}`).classList.add('active');
+            if(s === 'historias') cargarHistoriasTab();
+        };
+
+        window.cambiarMes = (n) => { fechaActual.setMonth(fechaActual.getMonth() + n); renderCalendario(); };
+        
+        cargarTodo();
     </script>
 </body>
 </html>
