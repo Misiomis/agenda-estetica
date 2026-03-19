@@ -1,135 +1,178 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmar turno | Espacio Mimar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Confirmar Turno | Espacio Mimar</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
     <style>
-        body { background:#f4f7f6; font-family:'Montserrat',sans-serif; margin:0; display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:100vh; }
-        .container { background:white; padding:40px; border-radius:20px; text-align:center; box-shadow:0 12px 35px rgba(0,0,0,0.08); max-width:420px; width:90%; }
-        .logo { width:180px; margin-bottom:20px; }
-        h2 { margin-bottom:25px; font-family:'Playfair Display',serif; color:#2c3e3a; }
-        .info { font-size:18px; margin:10px 0; color:#444; }
-        
-        #btnConfirmar { margin-top:25px; background:#72bd99; color:white; border:none; padding:14px 22px; border-radius:12px; cursor:pointer; font-weight:bold; font-size:16px; width:100%; transition:.25s; }
-        #btnConfirmar:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.15); }
-        
-        .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); display:none; justify-content:center; align-items:center; z-index: 1000; }
-        .modal-box { background:white; padding:40px; border-radius:18px; text-align:center; box-shadow:0 20px 45px rgba(0,0,0,0.25); max-width:380px; width:90%; }
-        .modal-box h3 { margin-top:0; color:#2c3e3a; font-family:'Playfair Display',serif; }
-        .modal-box p { color:#555; margin:12px 0; line-height:1.6; }
-        .modal-box button { margin-top:20px; background:#72bd99; border:none; padding:12px 22px; border-radius:10px; color:white; font-weight:bold; cursor:pointer; }
-        .footer { margin-top:30px; font-size:12px; color:#aaa; text-align:center; }
+        :root{ --verde-mimar:#72bd99; --verde-oscuro:#3f8f6f; --verde-fondo:#e8f5ee; }
+        body{ margin:0; background:#f4f7f6; font-family:'Montserrat',sans-serif; color:#2c3e3a; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; box-sizing: border-box;}
+        .card{ background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
+        .logo{ width: 180px; margin-bottom: 20px; }
+        h2{ font-family: 'Playfair Display', serif; color: var(--verde-oscuro); margin-bottom: 25px; }
+        .detalle-reserva{ text-align: left; background: var(--verde-fondo); padding: 20px; border-radius: 15px; margin-bottom: 25px; border: 1px solid #d1eadd; }
+        .item{ margin-bottom: 15px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 10px; }
+        .item:last-child{ border: none; }
+        .label{ font-size: 12px; color: #777; text-transform: uppercase; font-weight: 600; display: block; }
+        .valor{ font-size: 16px; color: var(--verde-oscuro); font-weight: 600; }
+        .boton-confirmar{ width: 100%; padding: 18px; background: var(--verde-mimar); border: none; border-radius: 12px; color: white; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .boton-confirmar:disabled{ background: #ccc; cursor: not-allowed; }
+        .link-volver{ display: block; margin-top: 20px; color: #999; text-decoration: none; font-size: 14px; }
+
+        /* MODAL ÉXITO */
+        .modal-exito { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:999; backdrop-filter: blur(4px); }
+        .modal-content { background:white; padding:40px 20px; border-radius:20px; text-align:center; width:90%; max-width:400px; }
+        .modal-content h3 { color: var(--verde-oscuro); font-family: 'Playfair Display', serif; }
+        .btn-cerrar { background: var(--verde-mimar); color:white; border:none; padding:15px 30px; border-radius:10px; margin-top:20px; cursor:pointer; width: 100%; font-weight: 600; }
     </style>
 </head>
-
 <body>
 
-    <div class="container">
+    <div class="card">
         <img src="img/logo.png" class="logo">
-        <h2>Confirmar turno</h2>
-        <div class="info"><strong>Servicio:</strong> <span id="servicioTexto"></span></div>
-        <div class="info"><strong>Fecha:</strong> <span id="fechaTexto"></span></div>
-        <div class="info"><strong>Hora:</strong> <span id="horaTexto"></span></div>
-        <button id="btnConfirmar">Confirmar turno</button>
+        <h2>Confirma tu turno</h2>
+        
+        <div class="detalle-reserva">
+            <div class="item">
+                <span class="label">Servicio</span>
+                <span class="valor" id="servicioTexto">Cargando...</span>
+            </div>
+            <div class="item">
+                <span class="label">Día</span>
+                <span class="valor" id="fechaTexto">Cargando...</span>
+            </div>
+            <div class="item">
+                <span class="label">Horario</span>
+                <span class="valor" id="horaTexto">Cargando...</span>
+            </div>
+        </div>
+
+        <button id="btnConfirmar" class="boton-confirmar">Confirmar y Finalizar</button>
+        <a href="fecha.html" class="link-volver">Modificar fecha</a>
     </div>
 
-    <div class="modal" id="modalConfirmado">
-        <div class="modal-box">
-            <h3>Turno confirmado</h3>
-            <p>Tu turno fue reservado correctamente.</p>
-            <p>Te enviamos la confirmación por WhatsApp y correo electrónico.</p>
-            <button onclick="volverInicio()">Aceptar</button>
+    <div id="modalConfirmado" class="modal-exito">
+        <div class="modal-content">
+            <div style="font-size: 50px; margin-bottom: 10px;">✅</div>
+            <h3>¡Turno Reservado!</h3>
+            <p>Tu reserva se realizó con éxito. Te enviamos los detalles por WhatsApp.</p>
+            <button class="btn-cerrar" onclick="window.location.href='index.html'">Finalizar</button>
         </div>
     </div>
 
-    <div class="footer">
-        © 2026 Espacio Mimar T — Todos los derechos reservados
-    </div>
-
-    <script>
-        function volverInicio(){
-            localStorage.clear(); 
-            window.location.href = "index.html";
-        }
-    </script>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-        const firebaseConfig = {
-            projectId: "estetica-8d067",
-            apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
-            authDomain: "estetica-8d067.firebaseapp.com"
-        };
-
+        // CONFIGURACIÓN DIRECTA (EVITA ERROR 404)
+        const firebaseConfig = { projectId: "estetica-8d067", apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        /* DATOS TURNOS */
-        const servicio = localStorage.getItem("servicioSeleccionado");
-        const fecha = localStorage.getItem("fechaSeleccionada");
-        const hora = localStorage.getItem("horaSeleccionada");
-        const dniUsuario = localStorage.getItem("clienteDNI");
+        // LEER DATOS CON PROTECCIÓN (si es null, no rompe el script)
+        const servicio = localStorage.getItem("servicioSeleccionado") || "";
+        const fechaRaw = localStorage.getItem("fechaSeleccionada") || "";
+        const horaRaw = localStorage.getItem("horaSeleccionada") || "";
+        const dniUsuario = localStorage.getItem("clienteDNI") || "";
+        const duracion = parseInt(localStorage.getItem("duracionSeleccionada")) || 60;
 
-        if(!servicio || !fecha || !hora){
+        if(!servicio || !fechaRaw || !horaRaw || !dniUsuario){
+            alert("Faltan datos de la reserva. Reintentá.");
             window.location.href="fecha.html";
         }
 
-        /* FORMATEAR FECHA - SOLUCIÓN AL ERROR DEL DÍA ANTERIOR */
-        const [year, month, day] = fecha.split("-");
+        const horaLimpia = horaRaw.replace(" hs","").trim();
+
+        // FORMATEAR FECHA PARA MOSTRAR
+        const [year, month, day] = fechaRaw.split("-");
         const fechaObj = new Date(year, month - 1, day); 
-        
-        const fechaBonita = fechaObj.toLocaleDateString("es-AR", {
-            weekday: "long",
-            day: "numeric",
-            month: "long"
-        });
+        const fechaBonita = fechaObj.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
-        /* MOSTRAR DATOS */
+        // MOSTRAR EN PANTALLA
         document.getElementById("servicioTexto").innerText = servicio;
-        document.getElementById("fechaTexto").innerText = fechaBonita;
-        document.getElementById("horaTexto").innerText = hora + " hs";
+        document.getElementById("fechaTexto").innerText = fechaBonita.charAt(0).toUpperCase() + fechaBonita.slice(1);
+        document.getElementById("horaTexto").innerText = horaLimpia + " hs";
 
-        /* LÓGICA DEL BOTÓN CONFIRMAR */
         const boton = document.getElementById("btnConfirmar");
-        const modal = document.getElementById("modalConfirmado");
 
         boton.onclick = async function(){
             boton.disabled = true;
             boton.innerText = "Procesando...";
 
             try {
-                const snap = await getDoc(doc(db, "clients", dniUsuario));
-                
-                if(snap.exists()){
-                    const nombre = snap.data().nombre || snap.data().fullName;
+                // 1. VALIDAR DISPONIBILIDAD (Doble check por si otro reservó mientras tanto)
+                const snap = await getDocs(query(collection(db,"reservas"), where("fecha","==",fechaRaw)));
+                let ocupado = false;
 
-                    // TU URL DE CLOUD FUNCTION ACTUALIZADA
+                snap.forEach(doc => {
+                    const hDB = (doc.data().hora || "").replace(" hs","").trim();
+                    if(hDB === horaLimpia) ocupado = true;
+                });
+
+                if(ocupado){
+                    alert("Lo sentimos, este horario se acaba de ocupar.");
+                    window.location.href = "fecha.html";
+                    return;
+                }
+
+                // 2. DESCONTAR SALDO
+                const clientRef = doc(db, "clients", dniUsuario);
+                const snapClient = await getDoc(clientRef);
+                
+                if(!snapClient.exists()){
+                    alert("Error con el usuario.");
+                    return;
+                }
+
+                const data = snapClient.data();
+                const saldoActual = data.hoursBalance || 0;
+                const descuento = duracion / 60; // 1 hora = 1 punto, 30 min = 0.5 puntos
+
+                if (saldoActual < descuento) {
+                    alert("No tienes saldo suficiente para esta sesión.");
+                    window.location.href = "servicios.html";
+                    return;
+                }
+
+                // 3. GUARDAR RESERVA
+                await addDoc(collection(db,"reservas"), {
+                    fecha: fechaRaw,
+                    hora: horaLimpia,
+                    duracion: duracion,
+                    dni: dniUsuario,
+                    servicio: servicio,
+                    clienteNombre: data.nombre || data.fullName || "Cliente",
+                    timestamp: new Date()
+                });
+
+                // 4. ACTUALIZAR SALDO EN FIRESTORE
+                await updateDoc(clientRef, { hoursBalance: saldoActual - descuento });
+
+                // 5. DISPARAR WHATSAPP (OPCIONAL)
+                try {
                     const urlCloudFunction = "https://enviarconfirmacionturno-iccpnou5ja-uc.a.run.app"; 
-                    
-                    await fetch(urlCloudFunction, {
+                    fetch(urlCloudFunction, {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
+                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            nombre: nombre,
+                            nombre: data.nombre || data.fullName,
                             servicio: servicio,
                             fecha: fechaBonita,
-                            hora: hora + " hs"
+                            hora: horaLimpia + " hs"
                         })
                     });
-                }
-            } catch(error) {
-                console.error("Error en el proceso de notificación:", error);
-            }
+                } catch(e) { console.log("WhatsApp error silencioso", e); }
 
-            // Mostramos el modal de éxito de todas formas
-            modal.style.display = "flex";
+                // ÉXITO
+                document.getElementById("modalConfirmado").style.display = "flex";
+
+            } catch(error) {
+                console.error("Error confirmando:", error);
+                alert("Hubo un problema técnico. Reintentá.");
+                boton.disabled = false;
+                boton.innerText = "Confirmar y Finalizar";
+            }
         };
     </script>
 </body>
