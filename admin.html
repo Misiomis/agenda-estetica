@@ -1,284 +1,290 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Panel Admin | Gimena Knack</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { 
+            --verde-mimar: #72bd99; 
+            --verde-oscuro: #3f8f6f; 
+            --verde-fondo: #f4f7f6; 
+            --rojo-fuerte: #d32f2f;
+        }
+        
+        body { font-family: 'Montserrat', sans-serif; background: var(--verde-fondo); margin: 0; color: #2c3e3a; overflow-x: hidden; }
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+        /* ============================== */
+        /* LANDING & LOGIN OVERLAY PRO    */
+        /* ============================== */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at top right, #e8f5ee, #f8fbfa);
+            z-index: 10000; display: flex; align-items: center; justify-content: center;
+        }
+        
+        /* Decoración de fondo */
+        .bg-deco { position: absolute; font-family: 'Playfair Display', serif; font-style: italic; color: rgba(63, 143, 111, 0.04); font-size: 120px; z-index: 1; user-select: none; }
+        .dec-left { bottom: -20px; left: -30px; }
+        .dec-right { top: -20px; right: -30px; }
 
-<title>Panel Admin | Espacio Mimar</title>
+        .login-card {
+            position: relative; z-index: 10;
+            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(15px);
+            padding: 50px 40px; border-radius: 40px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.05); width: 90%; max-width: 400px;
+            text-align: center; border: 1px solid rgba(255, 255, 255, 0.5);
+            animation: fadeIn 1s ease-out;
+        }
 
-<style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-body{
-font-family:Arial;
-background:#f4f7f6;
-margin:0;
-}
+        .login-card img { width: 160px; margin-bottom: 20px; }
+        .login-card h1 { font-family: 'Playfair Display', serif; color: var(--verde-oscuro); margin: 0; font-size: 28px; }
+        .login-card p { color: #777; font-size: 13px; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px; }
+        
+        .login-card input {
+            width: 100%; padding: 18px; border-radius: 15px; border: 1px solid #ddd;
+            margin-bottom: 20px; outline: none; text-align: center; font-size: 18px; 
+            letter-spacing: 6px; box-sizing: border-box; background: white;
+        }
+        
+        .login-card button {
+            width: 100%; padding: 18px; background: var(--verde-mimar); color: white; 
+            border: none; border-radius: 15px; font-weight: 600; cursor: pointer; 
+            font-size: 16px; transition: 0.3s; box-shadow: 0 10px 20px rgba(114, 189, 153, 0.3);
+        }
+        .login-card button:hover { background: var(--verde-oscuro); transform: translateY(-2px); }
+        #errorMsg { color: #e74c3c; font-size: 12px; margin-top: 15px; display: none; font-weight: 600; }
 
-/* HEADER */
+        /* ============================== */
+        /* HEADER & MENU (POST LOGIN)     */
+        /* ============================== */
+        .header { text-align: center; padding: 40px 20px; background: white; border-bottom: 1px solid #eee; }
+        .header h2 { font-family: 'Playfair Display', serif; color: var(--verde-oscuro); margin: 0; font-size: 26px; }
+        
+        .menu-admin { display: flex; justify-content: center; gap: 12px; margin-top: 25px; flex-wrap: wrap; }
+        .menu-admin button {
+            background: white; border: 1px solid #e0e0e0; padding: 12px 22px;
+            border-radius: 15px; color: var(--verde-oscuro); font-weight: 600;
+            cursor: pointer; font-size: 13px; transition: 0.3s; display: flex; align-items: center; gap: 8px;
+        }
+        .menu-admin button:hover { background: var(--verde-mimar); color: white; border-color: var(--verde-mimar); transform: translateY(-2px); }
+        .btn-logout { color: #ff7675 !important; border-color: #ff7675 !important; }
+        .btn-logout:hover { background: #ff7675 !important; color: white !important; }
 
-.header{
-text-align:center;
-padding:40px 20px;
-}
+        /* ============================== */
+        /* CALENDARIO & GRILLA            */
+        /* ============================== */
+        .container { max-width: 1000px; margin: auto; padding: 30px 20px; box-sizing: border-box; }
+        .calendar-section { background: white; padding: 30px; border-radius: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.03); }
+        
+        .cal-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .cal-controls h3 { margin: 0; font-family: 'Playfair Display', serif; color: var(--verde-oscuro); font-size: 22px; }
 
-.header h1{
-margin:0;
-font-size:28px;
-}
+        .diasSemana { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: 600; color: #bbb; font-size: 11px; margin-bottom: 15px; text-transform: uppercase; }
+        .gridDias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+        
+        .day { 
+            background: #f9f9f9; padding: 22px 5px; text-align: center; border-radius: 18px; 
+            cursor: pointer; transition: 0.2s; font-weight: 600; border: 1px solid #f0f0f0; 
+            font-size: 15px; color: #444; position: relative;
+        }
+        .day:hover:not(.empty) { background: #fff; border-color: var(--verde-mimar); transform: scale(1.05); z-index: 2; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .day.empty { background: none; border: none; cursor: default; }
+        
+        /* 🔥 ESTADO ROJO FUERTE 🔥 */
+        .day.ocupado { 
+            background: var(--rojo-fuerte) !important; 
+            color: white !important; 
+            border-color: var(--rojo-fuerte) !important;
+            box-shadow: 0 6px 15px rgba(211, 47, 47, 0.4);
+        }
 
-.header p{
-color:#666;
-margin-top:5px;
-}
+        /* ============================== */
+        /* VISTA DETALLE Y TURNOS         */
+        /* ============================== */
+        .turno-card { background: #fdfdfd; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
+        .turno-time { font-size: 18px; font-weight: 600; color: var(--verde-oscuro); display: block; margin-bottom: 5px; }
+        textarea.registro-nota { width: 100%; height: 100px; margin-top: 15px; padding: 15px; border-radius: 15px; border: 1px solid #ddd; font-family: inherit; box-sizing: border-box; resize: none; font-size: 14px; background: white; }
+        .btn-save { background: var(--verde-mimar); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; margin-top: 10px; }
 
-/* MENU */
-
-.menu-admin{
-display:flex;
-justify-content:center;
-gap:15px;
-margin-top:20px;
-}
-
-.menu-admin button{
-background:#72bd99;
-border:none;
-padding:10px 18px;
-border-radius:10px;
-color:white;
-font-weight:bold;
-cursor:pointer;
-font-size:14px;
-}
-
-.menu-admin button:hover{
-opacity:0.9;
-}
-
-/* CONTAINER */
-
-.container{
-max-width:1100px;
-margin:auto;
-padding:20px;
-}
-
-/* CALENDARIO */
-
-.calendar{
-background:white;
-padding:30px;
-border-radius:20px;
-box-shadow:0 10px 35px rgba(0,0,0,0.08);
-}
-
-/* DIAS SEMANA */
-
-.diasSemana{
-display:grid;
-grid-template-columns:repeat(7,1fr);
-text-align:center;
-margin-bottom:10px;
-font-weight:bold;
-color:#666;
-}
-
-/* GRID DIAS */
-
-.gridDias{
-display:grid;
-grid-template-columns:repeat(7,1fr);
-gap:10px;
-}
-
-/* DIA */
-
-.day{
-background:#f2f2f2;
-padding:18px;
-text-align:center;
-border-radius:10px;
-cursor:pointer;
-transition:0.2s;
-font-weight:bold;
-}
-
-.day:hover{
-background:#e7f3ed;
-}
-
-/* DIA OCUPADO */
-
-.day.ocupado{
-background:#ffd6d6;
-border:2px solid #ff6b6b;
-}
-
-/* TURNOS */
-
-.turnos{
-margin-top:25px;
-}
-
-.turno{
-background:white;
-border-left:4px solid #ff7675;
-padding:15px;
-margin-bottom:12px;
-border-radius:8px;
-box-shadow:0 3px 10px rgba(0,0,0,0.05);
-}
-
-.turno h2{
-margin:0 0 5px 0;
-font-size:18px;
-}
-
-.turno p{
-margin:4px 0;
-}
-
-/* TEXTAREA */
-
-textarea{
-width:100%;
-height:80px;
-margin-top:10px;
-padding:8px;
-border-radius:8px;
-border:1px solid #ddd;
-font-family:Arial;
-}
-
-/* BOTON GUARDAR */
-
-button.guardar{
-margin-top:10px;
-background:#72bd99;
-border:none;
-padding:8px 12px;
-border-radius:8px;
-color:white;
-cursor:pointer;
-}
-
-/* HISTORIAS */
-
-#listaHistorias div{
-background:white;
-padding:20px;
-border-radius:10px;
-margin-bottom:15px;
-box-shadow:0 3px 10px rgba(0,0,0,0.05);
-}
-
-/* FOOTER */
-
-.footer{
-margin-top:20px;
-font-size:12px;
-color:#aaa;
-padding-bottom:30px;
-text-align:center;
-width:100%;
-}
-
-</style>
-
+        /* HISTORIAS */
+        .card-paciente { background: white; padding: 25px; border-radius: 20px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); border-left: 6px solid var(--verde-mimar); }
+        
+        .footer { text-align: center; padding: 40px; color: #ccc; font-size: 11px; letter-spacing: 1px; }
+    </style>
 </head>
-
 <body>
 
-<script>
+    <div id="loginOverlay">
+        <div class="bg-deco dec-left">Gimena</div>
+        <div class="bg-deco dec-right">Knack</div>
 
-/* PROTECCIÓN SIMPLE ADMIN */
+        <div class="login-card">
+            <img src="img/logo.png" alt="Logo">
+            <h1>Panel Admin</h1>
+            <p>Gimena Knack — Estética</p>
+            <input type="password" id="adminPass" placeholder="••••">
+            <button onclick="validarAcceso()">Ingresar al Sistema</button>
+            <p id="errorMsg">Clave incorrecta</p>
+            
+            <div style="margin-top: 30px; font-size: 10px; color: #bbb; letter-spacing: 1px;">
+                SISTEMA DE GESTIÓN EXCLUSIVO
+            </div>
+        </div>
+    </div>
 
-const password = prompt("Acceso administrador");
+    <div id="panelContent" style="display:none;">
+        <div class="header">
+            <h2>Panel Profesional</h2>
+            <div class="menu-admin">
+                <button onclick="mostrarSeccion('agendaPanel')">📅 Agenda</button>
+                <button onclick="mostrarSeccion('historiasPanel')">📁 Historias</button>
+                <button class="btn-logout" onclick="cerrarSesion()">✕ Salir</button>
+            </div>
+        </div>
 
-if(password !== "mimar2026"){
+        <div class="container">
+            <div id="agendaPanel">
+                <div class="calendar-section" id="agendaContainer"></div>
+            </div>
 
-document.body.innerHTML="Acceso restringido";
+            <div id="historiasPanel" style="display:none">
+                <h2 style="font-family:'Playfair Display', serif; color:var(--verde-oscuro);">Base de Pacientes</h2>
+                <div id="listaHistorias"></div>
+            </div>
+        </div>
 
-}
+        <div class="footer">
+            © 2026 GIMENA KNACK — DESARROLLADO POR BRAULIO
+        </div>
+    </div>
 
-</script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
 
-<div class="header">
+        const firebaseConfig = { 
+            projectId: "estetica-8d067", 
+            apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew" 
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-<h1>Panel Administrativo</h1>
-<p>Bienvenida Gimena ✨</p>
+        let reservas = [];
+        let mesActual = new Date().getMonth();
+        let yearActual = new Date().getFullYear();
 
-<div class="menu-admin">
+        // ESCUCHA AUTOMÁTICA DE RESERVAS
+        function iniciarAgenda() {
+            onSnapshot(collection(db, "reservas"), (snapshot) => {
+                reservas = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderCalendario();
+            });
+        }
 
-<button onclick="mostrarAgenda()">Agenda</button>
-<button onclick="mostrarHistorias()">Historias clínicas</button>
-<button onclick="cerrarSesion()">Cerrar sesión</button>
+        window.renderCalendario = function() {
+            const container = document.getElementById("agendaContainer");
+            const primerDiaMes = new Date(yearActual, mesActual, 1);
+            const diasMes = new Date(yearActual, mesActual + 1, 0).getDate();
+            let offset = (primerDiaMes.getDay() === 0) ? 6 : primerDiaMes.getDay() - 1;
 
-</div>
+            container.innerHTML = `
+                <div class="cal-controls">
+                    <button onclick="cambiarMes(-1)" style="border:none;background:none;cursor:pointer;font-size:18px;">◀</button>
+                    <h3>${obtenerMes(mesActual)} ${yearActual}</h3>
+                    <button onclick="cambiarMes(1)" style="border:none;background:none;cursor:pointer;font-size:18px;">▶</button>
+                </div>
+                <div class="diasSemana"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>
+                <div id="gridDias" class="gridDias"></div>
+            `;
+            const grid = document.getElementById("gridDias");
 
-</div>
+            for(let i=0; i<offset; i++) grid.appendChild(Object.assign(document.createElement("div"), {className:"day empty"}));
 
+            for(let d=1; d<=diasMes; d++) {
+                const fechaISO = `${yearActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+                const turnosDia = reservas.filter(r => r.fecha === fechaISO);
+                
+                const day = document.createElement("div");
+                day.className = `day ${turnosDia.length > 0 ? 'ocupado' : ''}`;
+                day.innerText = d;
+                day.onclick = () => verDetalle(fechaISO, turnosDia);
+                grid.appendChild(day);
+            }
+        };
 
-<div class="container">
+        window.cambiarMes = (n) => { mesActual += n; if(mesActual<0){mesActual=11;yearActual--;} if(mesActual>11){mesActual=0;yearActual++;} renderCalendario(); };
 
-<!-- PANEL AGENDA -->
+        function verDetalle(f, lista) {
+            const container = document.getElementById("agendaContainer");
+            container.innerHTML = `<button onclick="renderCalendario()" style="margin-bottom:20px;cursor:pointer;border:1px solid #ccc;background:none;padding:8px 15px;border-radius:10px;">← Volver</button>
+                                   <h3 style="color:var(--verde-oscuro);margin-bottom:20px;">Turnos del ${f}</h3>`;
+            if(lista.length === 0) { container.innerHTML += "<p>Día sin reservas.</p>"; return; }
 
-<div id="agendaPanel">
+            lista.sort((a,b)=>a.hora.localeCompare(b.hora)).forEach(t => {
+                const card = document.createElement("div");
+                card.className = "turno-card";
+                card.innerHTML = `
+                    <span class="turno-time">${t.hora} hs</span>
+                    <p><b>Paciente:</b> ${t.clienteNombre || t.fullName || 'S/D'}</p>
+                    <p><b>Servicio:</b> ${t.servicio}</p>
+                    <textarea id="note-${t.id}" class="registro-nota" placeholder="Evolución de la paciente...">${t.registro || ""}</textarea>
+                    <button class="btn-save" onclick="guardarNota('${t.id}')">Guardar Registro</button>
+                `;
+                container.appendChild(card);
+            });
+        }
 
-<div class="calendar">
+        window.guardarNota = async (id) => {
+            const nota = document.getElementById(`note-${id}`).value;
+            await updateDoc(doc(db, "reservas", id), { registro: nota });
+            alert("Nota guardada.");
+        };
 
-<!-- CALENDARIO GENERADO POR JS -->
-<div id="agendaContainer"></div>
+        window.mostrarHistorias = async () => {
+            const div = document.getElementById("listaHistorias");
+            div.innerHTML = "<p>Cargando...</p>";
+            const snap = await getDocs(collection(db, "historias"));
+            div.innerHTML = "";
+            snap.forEach(d => {
+                const p = d.data();
+                const c = document.createElement("div");
+                c.className = "card-paciente";
+                c.innerHTML = `<h4>${p.nombre}</h4><p>DNI: ${d.id}</p><p>Tel: ${p.telefono}</p>`;
+                div.appendChild(c);
+            });
+        };
 
-</div>
+        iniciarAgenda();
+    </script>
 
-</div>
-
-
-<!-- PANEL HISTORIAS -->
-
-<div id="historiasPanel" style="display:none">
-
-<h2>Historias clínicas</h2>
-
-<div id="listaHistorias"></div>
-
-</div>
-
-</div>
-
-<div class="footer">
-© 2026 Espacio Mimar T — Todos los derechos reservados
-</div>
-
-<script type="module" src="./js/admin.js"></script>
-
-<script>
-
-function mostrarAgenda(){
-
-document.getElementById("agendaPanel").style.display="block";
-document.getElementById("historiasPanel").style.display="none";
-
-}
-
-function mostrarHistorias(){
-
-document.getElementById("agendaPanel").style.display="none";
-document.getElementById("historiasPanel").style.display="block";
-
-}
-
-function cerrarSesion(){
-
-localStorage.clear();
-window.location.href="index.html";
-
-}
-
-</script>
-
+    <script>
+        function validarAcceso() {
+            const p = document.getElementById("adminPass").value;
+            if(p === "mimar2026") {
+                document.getElementById("loginOverlay").style.display = "none";
+                document.getElementById("panelContent").style.display = "block";
+                localStorage.setItem("sessionGimena", "true");
+            } else {
+                document.getElementById("errorMsg").style.display = "block";
+            }
+        }
+        if(localStorage.getItem("sessionGimena") === "true") {
+            document.getElementById("loginOverlay").style.display = "none";
+            document.getElementById("panelContent").style.display = "block";
+        }
+        function mostrarSeccion(s) {
+            document.getElementById("agendaPanel").style.display = s === "agendaPanel" ? "block" : "none";
+            document.getElementById("historiasPanel").style.display = s === "historiasPanel" ? "block" : "none";
+            if(s === 'historiasPanel') window.mostrarHistorias();
+        }
+        function cerrarSesion() { localStorage.removeItem("sessionGimena"); window.location.reload(); }
+        function obtenerMes(m) { return ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][m]; }
+    </script>
 </body>
 </html>
