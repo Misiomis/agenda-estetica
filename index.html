@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+a<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -171,7 +171,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Usamos addEventListener para asegurar que el click se capture correctamente
         document.getElementById("btnIngresar").addEventListener("click", async () => {
             const nombreIngresado = document.getElementById("nombre").value.trim().toLowerCase();
             const dniIngresado = document.getElementById("dni").value.trim();
@@ -191,15 +190,12 @@
                     const cliente = docSnap.data();
                     
                     if (cliente.fullName.toLowerCase() === nombreIngresado) {
-                        // Guardamos datos en local para las siguientes páginas
                         localStorage.setItem("clienteDNI", dniIngresado);
                         localStorage.setItem("clienteNombre", cliente.fullName);
 
-                        // --- LÓGICA DE REDIRECCIÓN (EL EMBUDO) ---
+                        // --- LÓGICA DE REDIRECCIÓN ACTUALIZADA (Sin consentimiento.html) ---
                         if (!cliente.politicaAceptada) {
                             window.location.href = "politica.html";
-                        } else if (!cliente.consentimientoAceptado) {
-                            window.location.href = "consentimiento.html";
                         } else if (cliente.consultaNutricionalRespondida !== true) {
                             window.location.href = "servicioincluido.html";
                         } else if (!cliente.historiaCompletada) {
