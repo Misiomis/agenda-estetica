@@ -3,47 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Pro | Espacio Mimar T</title>
+    <title>Admin Mimar T | Gestión</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        :root { --verde: #72bd99; --verde-oscuro: #3f8f6f; --rojo: #ff4d4d; --texto: #2c3e3a; }
+        :root { --verde: #72bd99; --verde-oscuro: #3f8f6f; --rojo: #ff4d4d; --texto: #2c3e3a; --whatsapp: #25D366; }
         body { font-family: 'Montserrat', sans-serif; background: #f4f7f6; margin: 0; color: var(--texto); padding-bottom: 50px; }
         .header { background: white; padding: 15px; text-align: center; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
         .menu-nav { margin-top: 15px; display: flex; justify-content: center; gap: 10px; }
         .btn-nav { padding: 8px 20px; border: 1px solid #eee; background: white; border-radius: 20px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.3s; }
         .btn-nav.active { background: var(--verde); color: white; border-color: var(--verde); }
-
         .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
         .section { display: none; }
         .section.active { display: block; }
-
-        /* AGENDA - CALENDARIO */
         .calendar-container { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; margin-top: 15px; }
         .day-name { font-size: 10px; color: #aaa; font-weight: 600; text-transform: uppercase; padding-bottom: 5px; }
         .day { padding: 12px 5px; border-radius: 10px; font-size: 13px; cursor: pointer; border: 1px solid #f8f8f8; background: white; transition: 0.2s; }
         .day.has-reserva { background: #fff0f0; border: 1.5px solid var(--rojo); color: var(--rojo); font-weight: 600; }
         .day.selected { background: var(--verde) !important; color: white !important; }
-
-        /* BITÁCORA */
         .detalle-dia-card { background: white; border-radius: 20px; padding: 20px; margin-top: 20px; border-top: 4px solid var(--verde); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        textarea { width: 100%; height: 90px; border: 1px solid #ddd; border-radius: 10px; padding: 10px; font-family: inherit; resize: none; box-sizing: border-box; background: #fdfdfd; margin-top: 10px; }
-        .btn-save { background: var(--verde); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; }
-
-        /* HISTORIAS - LISTA VERTICAL */
-        .ficha-paciente { background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; box-shadow: 0 5px 10px rgba(0,0,0,0.03); border-left: 5px solid var(--verde); }
-        .ficha-paciente b { font-size: 17px; color: var(--verde-oscuro); display: block; margin-bottom: 5px; }
-        .ficha-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; font-size: 12px; }
-        .ficha-item { color: #555; }
-        .ficha-item span { font-weight: 600; color: var(--texto); }
-        .ficha-objetivo { margin-top: 12px; padding-top: 10px; border-top: 1px solid #f0f0f0; font-size: 13px; font-style: italic; color: #777; }
+        textarea { width: 100%; height: 80px; border: 1px solid #ddd; border-radius: 10px; padding: 10px; font-family: inherit; resize: none; box-sizing: border-box; background: #fdfdfd; margin-top: 10px; }
+        .btn-save { background: var(--verde); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; flex: 1; }
+        .btn-ws { background: var(--whatsapp); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .ficha-paciente { background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; border-left: 5px solid var(--verde); box-shadow: 0 5px 10px rgba(0,0,0,0.03); }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h2 style="font-family:'Playfair Display'; margin:0; color:var(--verde-oscuro)">Gimena Knack</h2>
+        <h2 style="font-family:'Playfair Display'; margin:0; color:var(--verde-oscuro)">Gimena Knack | Panel</h2>
         <div class="menu-nav">
             <button class="btn-nav active" id="btn-agenda" onclick="navegar('agenda')">📅 Agenda</button>
             <button class="btn-nav" id="btn-historias" onclick="navegar('historias')">📁 Historias</button>
@@ -52,11 +40,10 @@
 
     <div class="container">
         <div id="sec-agenda" class="section active">
-            <button style="width:100%; background:var(--texto); color:white; border:none; padding:15px; border-radius:12px; margin-bottom:20px; font-weight:600; cursor:pointer;" onclick="exportarResumenMensual()">📄 Exportar Resumen Mensual (PDF)</button>
             <div class="calendar-container">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <button onclick="cambiarMes(-1)" style="border:none; background:none; cursor:pointer; font-size:18px;">◀</button>
-                    <h3 id="monthTitle" style="font-family:'Playfair Display'; margin:0;"></h3>
+                    <h3 id="monthTitle" style="font-family:'Playfair Display'; margin:0; text-transform: capitalize;"></h3>
                     <button onclick="cambiarMes(1)" style="border:none; background:none; cursor:pointer; font-size:18px;">▶</button>
                 </div>
                 <div class="calendar-grid" id="calendarGrid"></div>
@@ -65,12 +52,10 @@
         </div>
 
         <div id="sec-historias" class="section">
-            <h3 style="font-family:'Playfair Display'; color:var(--verde-oscuro); margin-bottom:15px;">Base de Pacientes</h3>
-            <div id="listaHistorias">Cargando fichas...</div>
+            <h3 style="font-family:'Playfair Display'; color:var(--verde-oscuro);">Fichas de Pacientes</h3>
+            <div id="listaHistorias"></div>
         </div>
     </div>
-
-    <div id="resumenInvisible" style="display:none;"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -80,117 +65,133 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // CONFIGURACIÓN META (VERIFICADO)
+        const WHATSAPP_TOKEN = "EAAMzA3ngIUkBQ630dPYUcq6NBWPoybtHpMw8KbMEqTzv49lsAXW9honZCnblqcVdlxltSO35kXQc42D8P6dNwgx2YN4JWxpCwUxoZAziQVyK5jZArVQYaL63CZChQNZCdZBppqIEymvfBbZCsrdBJbXnUnlpdj06DSpYorrgnkmZCJ4wda6M3pQEdIh1PRHOfwZDZD";
+        const PHONE_NUMBER_ID = "995248997010108"; 
+
         let fechaActual = new Date();
         let todasLasReservas = [];
-        let mapaPacientes = {};
+        let mapaClientes = {};
 
-        // CARGA INICIAL
         async function cargarTodo() {
             try {
-                const snapHist = await getDocs(collection(db, "historias"));
-                snapHist.forEach(d => { mapaPacientes[d.id] = d.data().nombre || "Sin nombre"; });
+                const snapC = await getDocs(collection(db, "clients"));
+                mapaClientes = {};
+                snapC.forEach(d => {
+                    const c = d.data();
+                    if(c.dni) mapaClientes[c.dni] = { nombre: c.fullName, tel: c.phone };
+                });
 
-                const snapRes = await getDocs(collection(db, "reservas"));
+                const snapR = await getDocs(collection(db, "reservas"));
                 todasLasReservas = [];
-                snapRes.forEach(d => {
-                    const data = d.data();
-                    const nombreReal = mapaPacientes[data.dni] || data.nombre || "Paciente";
-                    todasLasReservas.push({ id: d.id, ...data, nombreFinal: nombreReal });
+                snapR.forEach(d => {
+                    const r = d.data();
+                    const info = mapaClientes[r.dni] || { nombre: r.fullName || "Sin Nombre", tel: r.phone };
+                    todasLasReservas.push({ id: d.id, ...r, nombreReal: info.nombre, telReal: info.tel });
                 });
                 renderCalendario();
             } catch (e) { console.error(e); }
         }
 
-        // CALENDARIO (Se mantiene igual, funcional)
         function renderCalendario() {
             const grid = document.getElementById("calendarGrid");
             grid.innerHTML = "";
-            const diasSemana = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
-            diasSemana.forEach(d => grid.innerHTML += `<div class="day-name">${d}</div>`);
-
+            ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'].forEach(d => grid.innerHTML += `<div class="day-name">${d}</div>`);
+            
             const mes = fechaActual.getMonth();
             const año = fechaActual.getFullYear();
             document.getElementById("monthTitle").innerText = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(fechaActual);
 
-            const primerDiaMes = new Date(año, mes, 1).getDay();
-            const offset = (primerDiaMes === 0) ? 6 : primerDiaMes - 1;
-            const diasEnMes = new Date(año, mes + 1, 0).getDate();
+            const primerDia = (new Date(año, mes, 1).getDay() + 6) % 7;
+            const diasMes = new Date(año, mes + 1, 0).getDate();
 
-            for (let i = 0; i < offset; i++) grid.innerHTML += `<div></div>`;
-            for (let d = 1; d <= diasEnMes; d++) {
+            for (let i = 0; i < primerDia; i++) grid.innerHTML += `<div></div>`;
+            for (let d = 1; d <= diasMes; d++) {
                 const fStr = `${año}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const tiene = todasLasReservas.some(r => r.fecha === fStr);
                 const div = document.createElement("div");
                 div.className = `day ${tiene ? 'has-reserva' : ''}`;
                 div.innerText = d;
-                div.onclick = () => verDetalleDia(fStr, div);
+                div.onclick = () => verTurnos(fStr, div);
                 grid.appendChild(div);
             }
         }
 
-        window.verDetalleDia = (fecha, el) => {
+        window.verTurnos = (f, el) => {
             document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
             el.classList.add('selected');
-            const filtradas = todasLasReservas.filter(r => r.fecha === fecha);
+            const filtrados = todasLasReservas.filter(r => r.fecha === f).sort((a,b) => a.hora.localeCompare(b.hora));
             const panel = document.getElementById("panelDetalleDia");
-            if (filtradas.length === 0) {
-                panel.innerHTML = `<p style="text-align:center; color:#999; margin-top:20px;">Sin turnos para este día.</p>`;
-                return;
-            }
-            panel.innerHTML = filtradas.map(r => `
+            
+            panel.innerHTML = filtrados.length ? filtrados.map(r => `
                 <div class="detalle-dia-card">
-                    <b style="font-size:18px;">${r.nombreFinal}</b><br>
-                    <small>${r.servicio || 'Tratamiento'} | ${r.hora || '--'} hs</small>
-                    <textarea id="texto-${r.id}" placeholder="Escribe aquí el detalle de la sesión...">${r.detalleSesion || ''}</textarea>
-                    <button class="btn-save" onclick="guardarDetalle('${r.id}')">Guardar Registro ✅</button>
-                </div>`).join('');
-        };
-
-        window.guardarDetalle = async (id) => {
-            const txt = document.getElementById(`texto-${id}`).value;
-            try {
-                await updateDoc(doc(db, "reservas", id), { detalleSesion: txt });
-                alert("Detalle guardado correctamente.");
-                cargarTodo();
-            } catch (e) { alert("Error al guardar."); }
-        };
-
-        // HISTORIAS DETALLADAS (Vuelve el formato de lista completa)
-        async function cargarHistoriasTab() {
-            const div = document.getElementById("listaHistorias");
-            div.innerHTML = "Actualizando datos...";
-            const snap = await getDocs(collection(db, "historias"));
-            div.innerHTML = "";
-            snap.forEach(docSnap => {
-                const p = docSnap.data();
-                div.innerHTML += `
-                <div class="ficha-paciente">
-                    <b>${p.nombre || 'Sin nombre'}</b>
-                    <div class="ficha-grid">
-                        <div class="ficha-item">DNI: <span>${docSnap.id}</span></div>
-                        <div class="ficha-item">Tel: <span>${p.telefono || '--'}</span></div>
-                        <div class="ficha-item">Edad: <span>${p.edad || '--'}</span></div>
-                        <div class="ficha-item">Hijos: <span>${p.hijos || 'No'}</span></div>
-                        <div class="ficha-item">Embarazo: <span>${p.embarazo || 'No'}</span></div>
-                        <div class="ficha-item">Alergias: <span>${p.alergias || 'No'}</span></div>
-                        <div class="ficha-item">Medicacion: <span>${p.medicacion || 'No'}</span></div>
-                        <div class="ficha-item">Enfermedad: <span>${p.enfermedad || 'No'}</span></div>
+                    <b>${r.nombreReal}</b><br>
+                    <small>${r.servicio} | ${r.hora} hs</small>
+                    <textarea id="n-${r.id}" placeholder="Notas...">${r.detalleSesion || ''}</textarea>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button class="btn-save" onclick="guardarN('${r.id}')">Guardar ✓</button>
+                        <button class="btn-ws" onclick="enviarW('${r.telReal}')">Confirmar 📲</button>
                     </div>
-                    <div class="ficha-objetivo"><b>Objetivo:</b> ${p.objetivo || 'No especificado'}</div>
-                </div>`;
-            });
-        }
+                </div>`).join('') : '<p style="text-align:center; opacity:0.4;">Sin turnos para hoy</p>';
+        };
 
-        window.navegar = (s) => {
+        window.enviarW = async (tel) => {
+            if(!tel) return alert("No hay teléfono registrado.");
+            
+            let num = tel.toString().replace(/\D/g, "");
+            if (!num.startsWith("54")) num = "549" + num;
+
+            // EL PAYLOAD AHORA ESTÁ VACÍO DE PARÁMETROS (REQUERIDO PARA TU PLANTILLA)
+            const payload = {
+                messaging_product: "whatsapp",
+                to: num,
+                type: "template",
+                template: {
+                    name: "turno_confirmado", 
+                    language: { code: "en" }
+                }
+            };
+
+            try {
+                const res = await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                if(res.ok) alert("✅ Mensaje enviado!");
+                else alert("❌ Error: " + data.error.message);
+            } catch (e) { alert("Error de red"); }
+        };
+
+        window.guardarN = async (id) => {
+            const val = document.getElementById(`n-${id}`).value;
+            await updateDoc(doc(db, "reservas", id), { detalleSesion: val });
+            alert("Nota guardada");
+        };
+
+        window.navegar = async (s) => {
             document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
             document.querySelectorAll('.btn-nav').forEach(x => x.classList.remove('active'));
             document.getElementById(`sec-${s}`).classList.add('active');
             document.getElementById(`btn-${s}`).classList.add('active');
-            if(s === 'historias') cargarHistoriasTab();
+            if(s === 'historias') {
+                const list = document.getElementById("listaHistorias");
+                list.innerHTML = "Cargando...";
+                const snap = await getDocs(collection(db, "historias"));
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const p = d.data();
+                    list.innerHTML += `<div class="ficha-paciente">
+                        <b>${p.nombre}</b><br><small>Tel: ${p.telefono}</small><br>
+                        <p style="font-size:12px; margin-top:5px;">${p.objetivo || 'Sin objetivo cargado'}</p>
+                    </div>`;
+                });
+            }
         };
 
         window.cambiarMes = (n) => { fechaActual.setMonth(fechaActual.getMonth() + n); renderCalendario(); };
-        
         cargarTodo();
     </script>
 </body>

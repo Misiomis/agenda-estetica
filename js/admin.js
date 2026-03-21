@@ -1,463 +1,163 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import {
-getFirestore,
-collection,
-onSnapshot,
-doc,
-updateDoc,
-getDocs
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
-
-
-/* ============================= */
-/* ESTILO BOTONES */
-/* ============================= */
-
-const style = document.createElement("style");
-
-style.innerHTML = `
-
-.pdfBtn{
-margin-top:18px;
-background:#72bd99;
-border:none;
-color:white;
-padding:10px 18px;
-border-radius:10px;
-font-size:14px;
-font-weight:500;
-cursor:pointer;
-transition:all .25s ease;
-box-shadow:0 4px 10px rgba(0,0,0,0.08);
-}
-
-.pdfBtn:hover{
-transform:translateY(-2px);
-box-shadow:0 8px 18px rgba(0,0,0,0.15);
-background:#63a886;
-}
-
-.pdfBtn:active{
-transform:scale(.96);
-}
-
-`;
-
-document.head.appendChild(style);
-
-
-
-/* ============================= */
-/* FIREBASE */
-/* ============================= */
-
+// CONFIGURACIÓN FIREBASE (Captura image_e27f26.jpg)
 const firebaseConfig = {
-apiKey: "TU_API_KEY",
-authDomain: "TU_AUTH_DOMAIN",
-projectId: "estetica-8d067",
-storageBucket: "TU_BUCKET",
-messagingSenderId: "TU_ID",
-appId: "TU_APP_ID"
+    apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
+    projectId: "estetica-8d067",
+    appId: "1:774341571551:web:863e0e7a2b2923057e4e4a"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// CONFIGURACIÓN META (Basada en tu captura image_e286c2.jpg)
+const WHATSAPP_TOKEN = "EAAMzA3ngIUkBQ630dPYUcq6NBWPoybtHpMw8KbMEqTzv49lsAXW9honZCnblqcVdlxltSO35kXQc42D8P6dNwgx2YN4JWxpCwUxoZAziQVyK5jZArVQYaL63CZChQNZCdZBppqIEymvfBbZCsrdBJbXnUnlpdj06DSpYorrgnkmZCJ4wda6M3pQEdIh1PRHOfwZDZD";
+// Usamos el ID que aparece en el paso 2 de tu captura (ejemplo cURL)
+const PHONE_NUMBER_ID = "995248997818188"; 
 
+let reservas = [];
+let diccionarioClientes = {};
+let mesActual = new Date().getMonth();
+let yearActual = new Date().getFullYear();
 
-/* ============================= */
-/* VARIABLES */
-/* ============================= */
-
-let agendaContainer;
-let listaHistorias;
-
-let reservas=[];
-
-let mesActual=new Date().getMonth();
-let yearActual=new Date().getFullYear();
-
-
-
-document.addEventListener("DOMContentLoaded",()=>{
-
-agendaContainer=document.getElementById("agendaContainer");
-listaHistorias=document.getElementById("listaHistorias");
-
-cargarReservas();
-
-});
-
-
-
-/* ============================= */
-/* CARGAR RESERVAS */
-/* ============================= */
-
-function cargarReservas(){
-
-onSnapshot(collection(db,"reservas"),(snapshot)=>{
-
-reservas=[];
-
-snapshot.forEach(docu=>{
-reservas.push({
-id:docu.id,
-...docu.data()
-});
-});
-
-renderCalendario();
-
-});
-
+// 1. CARGAR CLIENTES PARA MAPEAR DNI -> NOMBRE
+async function cargarDiccionario() {
+    const snap = await getDocs(collection(db, "clients"));
+    diccionarioClientes = {};
+    snap.forEach(d => {
+        const c = d.data();
+        if (c.dni) {
+            diccionarioClientes[c.dni] = {
+                nombre: c.fullName || "Sin nombre",
+                tel: c.phone || ""
+            };
+        }
+    });
 }
 
-
-
-/* ============================= */
-/* CALENDARIO */
-/* ============================= */
-
-function renderCalendario(){
-
-agendaContainer.innerHTML="";
-
-const primerDiaMes=new Date(yearActual,mesActual,1);
-const diasMes=new Date(yearActual,mesActual+1,0).getDate();
-
-let primerDia=primerDiaMes.getDay();
-primerDia=(primerDia===0)?6:primerDia-1;
-
-const calendario=document.createElement("div");
-
-calendario.innerHTML=`
-
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-
-<button id="prevMes" style="background:#72bd99;border:none;color:white;padding:8px 14px;border-radius:8px;cursor:pointer">
-◀
-</button>
-
-<h2>${nombreMes(mesActual)} ${yearActual}</h2>
-
-<button id="nextMes" style="background:#72bd99;border:none;color:white;padding:8px 14px;border-radius:8px;cursor:pointer">
-▶
-</button>
-
-</div>
-
-<div class="diasSemana">
-<div>Lun</div>
-<div>Mar</div>
-<div>Mié</div>
-<div>Jue</div>
-<div>Vie</div>
-<div>Sáb</div>
-<div>Dom</div>
-</div>
-
-<div id="gridDias" class="gridDias"></div>
-
-`;
-
-agendaContainer.appendChild(calendario);
-
-const grid=document.getElementById("gridDias");
-
-for(let i=0;i<primerDia;i++){
-grid.appendChild(document.createElement("div"));
+// 2. ESCUCHAR RESERVAS
+async function iniciar() {
+    await cargarDiccionario();
+    onSnapshot(collection(db, "reservas"), (snapshot) => {
+        reservas = snapshot.docs.map(d => {
+            const data = d.data();
+            // Si el DNI está en clientes, traemos el nombre "Braulio V", si no, usamos el del registro
+            const info = diccionarioClientes[data.dni] || { nombre: data.fullName || "Paciente", tel: data.phone || "" };
+            return { id: d.id, ...data, nombreFinal: info.nombre, telFinal: info.tel };
+        });
+        renderCalendario();
+    });
 }
 
-for(let d=1;d<=diasMes;d++){
+// 3. RENDER CALENDARIO
+function renderCalendario() {
+    const container = document.getElementById("agendaContainer");
+    container.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
+            <button onclick="cambiarMes(-1)">◀</button>
+            <h2 style="margin:0">${obtenerNombreMes(mesActual)} ${yearActual}</h2>
+            <button onclick="cambiarMes(1)">▶</button>
+        </div>
+        <div class="diasSemana"><div>Lu</div><div>Ma</div><div>Mi</div><div>Ju</div><div>Vi</div><div>Sa</div><div>Do</div></div>
+        <div id="gridDias" class="gridDias"></div>
+    `;
 
-const fecha=`${yearActual}-${String(mesActual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const grid = document.getElementById("gridDias");
+    const primerDia = new Date(yearActual, mesActual, 1).getDay();
+    const totalDias = new Date(yearActual, mesActual + 1, 0).getDate();
+    const offset = (primerDia === 0) ? 6 : primerDia - 1;
 
-const reservasDia=reservas.filter(r=>r.fecha===fecha);
+    for (let i = 0; i < offset; i++) grid.appendChild(document.createElement("div"));
 
-const day=document.createElement("div");
-
-day.className="day";
-day.innerText=d;
-
-if(reservasDia.length>0){
-day.classList.add("ocupado");
+    for (let d = 1; d <= totalDias; d++) {
+        const fecha = `${yearActual}-${String(mesActual + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        const tieneTurno = reservas.some(r => r.fecha === fecha);
+        const el = document.createElement("div");
+        el.className = `day ${tieneTurno ? 'ocupado' : ''}`;
+        el.innerText = d;
+        el.onclick = () => mostrarTurnosDia(fecha);
+        grid.appendChild(el);
+    }
 }
 
-day.onclick=()=>mostrarTurnos(fecha,reservasDia);
+// 4. MOSTRAR DETALLE DEL DÍA
+function mostrarTurnosDia(fecha) {
+    const container = document.getElementById("agendaContainer");
+    const lista = reservas.filter(r => r.fecha === fecha).sort((a,b) => a.hora.localeCompare(b.hora));
+    
+    container.innerHTML = `<h3>Turnos: ${fecha}</h3>`;
+    
+    if(lista.length === 0) container.innerHTML += "<p>No hay turnos hoy.</p>";
 
-grid.appendChild(day);
+    lista.forEach(t => {
+        const card = document.createElement("div");
+        card.className = "card-turno";
+        card.innerHTML = `
+            <strong>${t.nombreFinal}</strong> <br>
+            <small>${t.hora} hs - ${t.servicio || 'Sin tratamiento'}</small>
+            <textarea id="nota-${t.id}" placeholder="Escribe aquí el detalle de la sesión...">${t.detalleSesion || ""}</textarea>
+            <button class="btn-save" onclick="window.guardarNota('${t.id}')">Guardar Registro ✓</button>
+            <button class="btn-ws" onclick="window.enviarWS('${t.telFinal}', '${t.nombreFinal}', '${t.fecha}', '${t.hora}')">Confirmar WhatsApp 📲</button>
+        `;
+        container.appendChild(card);
+    });
 
+    const btnVolver = document.createElement("button");
+    btnVolver.innerText = "Volver al Calendario";
+    btnVolver.style.cssText = "width:100%; margin-top:15px; padding:10px; cursor:pointer";
+    btnVolver.onclick = renderCalendario;
+    container.appendChild(btnVolver);
 }
 
-document.getElementById("prevMes").onclick=()=>{
-
-mesActual--;
-
-if(mesActual<0){
-mesActual=11;
-yearActual--;
-}
-
-renderCalendario();
-
+// 5. ACCIONES
+window.guardarNota = async (id) => {
+    const nota = document.getElementById(`nota-${id}`).value;
+    try {
+        await updateDoc(doc(db, "reservas", id), { detalleSesion: nota });
+        alert("¡Registro guardado!");
+    } catch (e) { alert("Error al guardar."); }
 };
 
-document.getElementById("nextMes").onclick=()=>{
+window.enviarWS = async (tel, nombre, fecha, hora) => {
+    if (!tel) return alert("No hay teléfono registrado.");
+    
+    // Limpieza de número para Argentina (549...)
+    let num = tel.toString().replace(/\D/g, "");
+    if (!num.startsWith("54")) num = "54" + num;
 
-mesActual++;
+    const url = `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`;
+    const data = {
+        messaging_product: "whatsapp",
+        to: num,
+        type: "template",
+        template: {
+            name: "confirmacion_de_cita", // Asegurate que sea este nombre exacto en Meta
+            language: { code: "es" },
+            components: [{
+                type: "body",
+                parameters: [
+                    { type: "text", text: fecha }, // {{1}}
+                    { type: "text", text: hora }   // {{2}}
+                ]
+            }]
+        }
+    };
 
-if(mesActual>11){
-mesActual=0;
-yearActual++;
-}
-
-renderCalendario();
-
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        const resJson = await res.json();
+        if (res.ok) alert("✅ Mensaje enviado a " + nombre);
+        else alert("❌ Error: " + resJson.error.message);
+    } catch (e) { alert("Error de red."); }
 };
 
-}
-
-
-
-/* ============================= */
-/* TURNOS */
-/* ============================= */
-
-function mostrarTurnos(fecha,lista){
-
-agendaContainer.innerHTML="";
-
-const titulo=document.createElement("h2");
-titulo.innerText="Turnos "+fecha;
-
-agendaContainer.appendChild(titulo);
-
-lista.sort((a,b)=>a.hora.localeCompare(b.hora));
-
-lista.forEach(turno=>{
-
-const card=document.createElement("div");
-
-card.style.background="white";
-card.style.padding="20px";
-card.style.borderRadius="12px";
-card.style.marginBottom="15px";
-card.style.boxShadow="0 2px 6px rgba(0,0,0,0.05)";
-
-card.innerHTML=`
-
-<h3>${turno.clientName || "Paciente"}</h3>
-<p><b>Hora:</b> ${turno.hora}</p>
-<p><b>Servicio:</b> ${turno.servicioNombre}</p>
-
-<textarea placeholder="Registro tratamiento">${turno.registro || ""}</textarea>
-
-<br><br>
-<button class="guardar">Guardar</button>
-
-`;
-
-agendaContainer.appendChild(card);
-
-});
-
-const volver=document.createElement("button");
-
-volver.innerText="Volver calendario";
-volver.onclick=renderCalendario;
-
-agendaContainer.appendChild(volver);
-
-}
-
-
-
-/* ============================= */
-/* HISTORIAS CLINICAS */
-/* ============================= */
-
-window.mostrarHistorias = async function(){
-
-document.getElementById("agendaPanel").style.display="none";
-document.getElementById("historiasPanel").style.display="block";
-
-listaHistorias.innerHTML="";
-
-const buscador = document.createElement("input");
-
-buscador.placeholder="🔎 Buscar paciente por nombre o DNI";
-buscador.style.width="100%";
-buscador.style.padding="14px";
-buscador.style.marginBottom="25px";
-buscador.style.borderRadius="10px";
-buscador.style.border="1px solid #ccc";
-
-listaHistorias.appendChild(buscador);
-
-const contenedor=document.createElement("div");
-
-listaHistorias.appendChild(contenedor);
-
-const snapshot = await getDocs(collection(db,"historias"));
-
-let pacientes=[];
-
-snapshot.forEach(docu=>{
-pacientes.push({
-dni:docu.id,
-...docu.data()
-});
-});
-
-function render(lista){
-
-contenedor.innerHTML="";
-
-lista.forEach(data=>{
-
-const card=document.createElement("div");
-
-card.style.background="white";
-card.style.padding="25px";
-card.style.borderRadius="12px";
-card.style.marginBottom="20px";
-card.style.boxShadow="0 3px 10px rgba(0,0,0,0.05)";
-
-card.innerHTML=`
-
-<h3>${data.nombre}</h3>
-
-<p><b>DNI:</b> ${data.dni}</p>
-<p><b>Edad:</b> ${data.edad}</p>
-<p><b>Teléfono:</b> ${data.telefono}</p>
-
-<hr>
-
-<b>Antecedentes salud</b>
-<p>Enfermedad: ${data.enfermedad}</p>
-<p>Medicación: ${data.medicacion}</p>
-<p>Alergias: ${data.alergias}</p>
-
-<hr>
-
-<b>Antecedentes ginecológicos</b>
-<p>Embarazo: ${data.embarazo}</p>
-<p>Lactancia: ${data.lactancia}</p>
-
-<hr>
-
-<b>Antecedentes estéticos</b>
-<p>Tratamientos previos: ${data.esteticos}</p>
-
-<hr>
-
-<b>Otros antecedentes</b>
-<p>Marcapasos: ${data.marcapasos}</p>
-<p>Implantes: ${data.implantes}</p>
-<p>Cáncer: ${data.cancer}</p>
-
-<br>
-
-<button class="pdfBtn">📄 Exportar PDF</button>
-
-`;
-
-contenedor.appendChild(card);
-
-card.querySelector(".pdfBtn").onclick=()=>exportarPDF(data);
-
-});
-
-}
-
-render(pacientes);
-
-buscador.addEventListener("input",()=>{
-
-const texto=buscador.value.toLowerCase();
-
-const filtrados=pacientes.filter(p=>
-(p.nombre || "").toLowerCase().includes(texto) ||
-(p.dni || "").includes(texto)
-);
-
-render(filtrados);
-
-});
-
-}
-
-
-
-/* ============================= */
-/* EXPORTAR PDF */
-/* ============================= */
-
-function exportarPDF(data){
-
-const doc = new jsPDF();
-
-doc.setFontSize(18);
-doc.text("Historia clínica",20,20);
-
-doc.setFontSize(12);
-
-let y=40;
-
-function linea(texto){
-
-doc.text(texto,20,y);
-y+=8;
-
-}
-
-linea("Nombre: "+data.nombre);
-linea("DNI: "+data.dni);
-linea("Edad: "+data.edad);
-linea("Teléfono: "+data.telefono);
-
-y+=5;
-linea("Antecedentes salud");
-linea("Enfermedad: "+data.enfermedad);
-linea("Medicación: "+data.medicacion);
-linea("Alergias: "+data.alergias);
-
-y+=5;
-linea("Antecedentes ginecológicos");
-linea("Embarazo: "+data.embarazo);
-linea("Lactancia: "+data.lactancia);
-
-y+=5;
-linea("Antecedentes estéticos");
-linea("Tratamientos previos: "+data.esteticos);
-
-y+=5;
-linea("Otros antecedentes");
-linea("Marcapasos: "+data.marcapasos);
-linea("Implantes: "+data.implantes);
-linea("Cáncer: "+data.cancer);
-
-doc.save("historia_"+data.nombre+".pdf");
-
-}
-
-
-
-/* ============================= */
-/* UTIL */
-/* ============================= */
-
-function nombreMes(m){
-
-const meses=[
-"Enero","Febrero","Marzo","Abril","Mayo","Junio",
-"Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
-];
-
-return meses[m];
-
-}
+// UTILIDADES
+window.cambiarMes = (n) => { mesActual += n; if(mesActual<0){mesActual=11; yearActual--;} if(mesActual>11){mesActual=0; yearActual++;} renderCalendario(); };
+function obtenerNombreMes(m) { return ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][m]; }
+
+iniciar();
