@@ -54,23 +54,11 @@
             </div>
             <div id="panelDetalleDia"></div>
         </div>
-
-        <div id="sec-historias" class="section">
-            <h3 style="font-family:'Playfair Display'; color:var(--verde-oscuro);">Historias Clínicas</h3>
-            <input type="text" id="filtroHistorias" placeholder="Buscar paciente..." onkeyup="filtrarHistorias()" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd;">
-            <div id="listaHistoriasReal"></div>
-        </div>
-
-        <div id="sec-buscar" class="section">
-            <h3 style="font-family:'Playfair Display'; color:var(--verde-oscuro);">Buscador de Citas</h3>
-            <input type="text" id="busquedaNombre" placeholder="Nombre..." onkeyup="filtrarCitas()" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:10px;">
-            <div id="resultadosBusqueda"></div>
-        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew", projectId: "estetica-8d067" };
         const app = initializeApp(firebaseConfig);
@@ -81,15 +69,96 @@
 
         let fechaActual = new Date();
         let todasLasReservas = [];
+        let todosLosClientes = [];
         let fechaSeleccionadaGlobal = "";
 
         async function cargarTodo() {
-            const snapR = await getDocs(collection(db, "reservas"));
-            todasLasReservas = []; 
-            snapR.forEach(d => todasLasReservas.push({ id: d.id, ...d.data() }));
+            // Cargamos reservas y clientes para cruzar los datos de teléfono
+            const [snapR, snapC] = await Promise.all([
+                getDocs(collection(db, "reservas")),
+                getDocs(collection(db, "clients"))
+            ]);
+            
+            todasLasReservas = snapR.docs.map(d => ({ id: d.id, ...d.data() }));
+            todosLosClientes = snapC.docs.map(d => ({ ...d.data() }));
+            
             renderCalendario();
             if(fechaSeleccionadaGlobal) verTurnos(fechaSeleccionadaGlobal);
         }
+
+        window.enviarW = async (telOriginal, nombre, fecha, hora, servicio, accion) => {
+            let numFinal = telOriginal;
+
+            // Si el teléfono no vino de la reserva, lo buscamos en la lista de clientes
+            if (!numFinal || numFinal === "undefined") {
+                const clienteEncontrado = todosLosClientes.find(c => c.fullName === nombre);
+                if (clienteEncontrado && clienteEncontrado.phone) {
+                    numFinal = clienteEncontrado.phone;
+                } else {
+                    return alert(`⚠️ Error: No se encontró el teléfono para ${nombre} en ninguna colección.`);
+                }
+            }
+
+            let numLimpio = numFinal.toString().replace(/\D/g, ""); 
+            if (numLimpio.length === 10) numLimpio = "549" + numLimpio;
+            else if (numLimpio.startsWith("54") && !numLimpio.startsWith("549")) {
+                numLimpio = "549" + numLimpio.substring(2);
+            }
+
+            let tName = (accion === 'confirmar') ? "turno_confirmado" : (accion === 'recordar') ? "recordatorio_turno" : "turno_cancelado";
+            let tLang = (accion === 'confirmar') ? "en" : "es_AR"; 
+
+            const payload = {
+                messaging_product: "whatsapp",
+                to: numLimpio,
+                type: "template",
+                template: {
+                    name: tName, language: { code: tLang },
+                    components: [{
+                        type: "body",
+                        parameters: [
+                            { type: "text", text: nombre },
+                            { type: "text", text: servicio || "Tratamiento" },
+                            { type: "text", text: fecha.split('-').reverse().join('/') },
+                            { type: "text", text: hora }
+                        ]
+                    }]
+                }
+            };
+
+            try {
+                const res = await fetch(`https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`, {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) alert(`✅ Mensaje enviado a ${nombre}`);
+                else {
+                    const errorData = await res.json();
+                    alert(`❌ Error Meta: ${errorData.error.message}`);
+                }
+            } catch (e) { alert("❌ Error de conexión."); }
+        };
+
+        window.verTurnos = (f, el) => {
+            fechaSeleccionadaGlobal = f;
+            document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
+            if(el) el.classList.add('selected');
+            const filtrados = todasLasReservas.filter(r => r.fecha === f).sort((a,b) => a.hora.localeCompare(b.hora));
+            
+            document.getElementById("panelDetalleDia").innerHTML = filtrados.length ? filtrados.map(r => `
+                <div class="detalle-dia-card">
+                    <b>${r.clienteNombre || 'Sin nombre'}</b> - ${r.hora} hs<br>
+                    <small>${r.servicio || 'Estética'}</small>
+                    <textarea id="n-${r.id}" placeholder="Notas...">${r.detalleSesion || ''}</textarea>
+                    <button class="btn-save" onclick="guardarN('${r.id}')">Guardar Nota</button>
+                    <div class="grid-acciones">
+                        <button class="btn-ws btn-confirmar" onclick="enviarW('${r.phone || r.telefono}','${r.clienteNombre}','${r.fecha}','${r.hora}','${r.servicio}','confirmar')">✅ Conf.</button>
+                        <button class="btn-ws btn-recordar" onclick="enviarW('${r.phone || r.telefono}','${r.clienteNombre}','${r.fecha}','${r.hora}','${r.servicio}','recordar')">🔔 Rec.</button>
+                        <button class="btn-ws btn-cancelar" onclick="eliminarYNotificar('${r.id}','${r.phone || r.telefono}','${r.clienteNombre}','${r.fecha}','${r.hora}','${r.servicio}')">❌ Canc.</button>
+                    </div>
+                </div>`).join('') : '<p style="text-align:center; opacity:0.5">Sin turnos</p>';
+        };
 
         function renderCalendario() {
             const grid = document.getElementById("calendarGrid");
@@ -104,77 +173,16 @@
                 const tiene = todasLasReservas.some(r => r.fecha === fStr);
                 const div = document.createElement("div"); 
                 div.className = `day ${tiene ? 'has-reserva' : ''} ${fechaSeleccionadaGlobal === fStr ? 'selected' : ''}`;
-                div.innerText = d; 
-                div.onclick = () => verTurnos(fStr, div); 
-                grid.appendChild(div);
+                div.innerText = d; div.onclick = () => verTurnos(fStr, div); grid.appendChild(div);
             }
         }
 
-        window.verTurnos = (f, el) => {
-            fechaSeleccionadaGlobal = f;
-            document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
-            if(el) el.classList.add('selected');
-            const panel = document.getElementById("panelDetalleDia");
-            const filtrados = todasLasReservas.filter(r => r.fecha === f).sort((a,b) => a.hora.localeCompare(b.hora));
-            panel.innerHTML = filtrados.length ? filtrados.map(r => renderTarjeta(r)).join('') : '<p style="text-align:center; padding:20px; opacity:0.5">Sin turnos</p>';
-        };
-
-        function renderTarjeta(r) {
-            return `
-                <div class="detalle-dia-card">
-                    <b>${r.clienteNombre}</b> - ${r.hora} hs<br>
-                    <small>${r.servicio} | ${r.fecha.split('-').reverse().join('/')}</small>
-                    <textarea id="n-${r.id}" placeholder="Notas...">${r.detalleSesion || ''}</textarea>
-                    <button class="btn-save" onclick="guardarN('${r.id}')">Guardar Nota</button>
-                    <div class="grid-acciones">
-                        <button class="btn-ws btn-confirmar" onclick="enviarW('${r.telefono}','${r.clienteNombre}','${r.fecha}','${r.hora}','${r.servicio}','confirmar')">✅ Conf.</button>
-                        <button class="btn-ws btn-recordar" onclick="enviarW('${r.telefono}','${r.clienteNombre}','${r.fecha}','${r.hora}','${r.servicio}','recordar')">🔔 Rec.</button>
-                        <button class="btn-ws btn-cancelar" onclick="eliminarYNotificar('${r.id}','${r.telefono}','${r.clienteNombre}','${r.fecha}','${r.hora}','${r.servicio}')">❌ Canc.</button>
-                    </div>
-                </div>`;
-        }
-
-        window.enviarW = async (tel, nombre, fecha, hora, servicio, accion) => {
-            if (!tel) return alert("Sin teléfono");
-            let num = tel.toString().replace(/\D/g, ""); 
-            if (!num.startsWith("549")) num = "549" + num.slice(-10);
-            
-            let tName = (accion === 'confirmar') ? "turno_confirmado" : (accion === 'recordar') ? "recordatorio_turno" : "turno_cancelado";
-            let tLang = (accion === 'confirmar') ? "en" : "es_AR"; // Confirmar está en English según tu panel[cite: 8]
-
-            const payload = {
-                messaging_product: "whatsapp", to: num, type: "template",
-                template: { name: tName, language: { code: tLang },
-                    components: [{ type: "body", parameters: [
-                        { type: "text", text: nombre }, { type: "text", text: servicio },
-                        { type: "text", text: fecha.split('-').reverse().join('/') }, { type: "text", text: hora }
-                    ]}]
-                }
-            };
-
-            try {
-                const res = await fetch(`https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`, {
-                    method: "POST", headers: { "Authorization": `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-                if (res.ok) alert("Mensaje enviado");
-            } catch (e) { alert("Error"); }
-        };
-
-        window.eliminarYNotificar = async (id, tel, nombre, fecha, hora, servicio) => {
-            if (confirm("¿Eliminar turno?")) {
-                if (confirm("¿Notificar cancelación?")) await enviarW(tel, nombre, fecha, hora, servicio, 'cancelar');
-                await deleteDoc(doc(db, "reservas", id));
-                cargarTodo();
-            }
-        };
-
+        window.cambiarMes = (n) => { fechaActual.setMonth(fechaActual.getMonth() + n); renderCalendario(); };
         window.navegar = (s) => { 
             document.querySelectorAll('.section, .btn-nav').forEach(x => x.classList.remove('active')); 
             document.getElementById(`sec-${s}`).classList.add('active'); 
             document.getElementById(`btn-${s}`).classList.add('active'); 
         };
-        window.cambiarMes = (n) => { fechaActual.setMonth(fechaActual.getMonth() + n); renderCalendario(); };
         window.guardarN = async (id) => { 
             await updateDoc(doc(db, "reservas", id), { detalleSesion: document.getElementById(`n-${id}`).value }); 
             alert("Nota guardada"); 
