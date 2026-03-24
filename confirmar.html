@@ -19,8 +19,6 @@
         .boton-confirmar{ width: 100%; padding: 18px; background: var(--verde-mimar); border: none; border-radius: 12px; color: white; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; }
         .boton-confirmar:disabled{ background: #ccc; cursor: not-allowed; }
         .link-volver{ display: block; margin-top: 20px; color: #999; text-decoration: none; font-size: 14px; }
-
-        /* MODAL ÉXITO */
         .modal-exito { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:999; backdrop-filter: blur(4px); }
         .modal-content { background:white; padding:40px 20px; border-radius:20px; text-align:center; width:90%; max-width:400px; }
         .modal-content h3 { color: var(--verde-oscuro); font-family: 'Playfair Display', serif; }
@@ -65,21 +63,21 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-        // --- CONFIGURACIÓN WHATSAPP ---
         const WHATSAPP_TOKEN = "EAAMzA3ngIUkBQ630dPYUcq6NBWPoybtHpMw8KbMEqTzv49lsAXW9honZCnblqcVdlxltSO35kXQc42D8P6dNwgx2YN4JWxpCwUxoZAziQVyK5jZArVQYaL63CZChQNZCdZBppqIEymvfBbZCsrdBJbXnUnlpdj06DSpYorrgnkmZCJ4wda6M3pQEdIh1PRHOfwZDZD";
         const PHONE_NUMBER_ID = "995248997010108";
-        // ------------------------------
 
         const firebaseConfig = { projectId: "estetica-8d067", apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        const servicio = localStorage.getItem("servicioSeleccionado") || "";
+        // Recuperar datos de localStorage
+        const servicio = localStorage.getItem("servicioSeleccionado") || "Tratamiento";
         const fechaRaw = localStorage.getItem("fechaSeleccionada") || "";
         const horaRaw = localStorage.getItem("horaSeleccionada") || "";
         const dniUsuario = localStorage.getItem("clienteDNI") || "";
         const duracion = parseInt(localStorage.getItem("duracionSeleccionada")) || 60;
 
+        // Formateo de UI
         const horaLimpia = horaRaw.replace(" hs","").trim();
         const [year, month, day] = fechaRaw.split("-");
         const fechaObj = new Date(year, month - 1, day); 
@@ -96,49 +94,47 @@
             boton.innerText = "Procesando...";
 
             try {
-                // 1. VALIDAR DISPONIBILIDAD
-                const snap = await getDocs(query(collection(db,"reservas"), where("fecha","==",fechaRaw), where("hora","==",horaLimpia)));
-                if(!snap.empty){
-                    alert("Este horario se ocupó recién.");
+                // 1. VERIFICAR SI EL TURNO SE OCUPÓ
+                const q = query(collection(db,"reservas"), where("fecha","==",fechaRaw), where("hora","==",horaLimpia));
+                const snapCheck = await getDocs(q);
+                if(!snapCheck.empty){
+                    alert("Lo sentimos, este horario se acaba de ocupar.");
                     window.location.href = "fecha.html";
                     return;
                 }
 
-                // 2. DATOS DEL CLIENTE
+                // 2. OBTENER CLIENTE
                 const clientRef = doc(db, "clients", dniUsuario);
                 const snapClient = await getDoc(clientRef);
-                const data = snapClient.data();
-
-                // --- LÓGICA DE LIMPIEZA DE TELÉFONO (VERSIÓN PRO) ---
-                let nro = (data.telefono || data.phone || "").toString().replace(/\D/g, '');
-                if (nro.startsWith("0")) nro = nro.substring(1);
-                if (nro.startsWith("54")) nro = nro.substring(2);
-                if (nro.startsWith("9")) nro = nro.substring(1);
+                if(!snapClient.exists()){ alert("Error: Cliente no registrado."); return; }
                 
-                // Si tiene 12 dígitos es porque quedó un "15" en el medio
-                if (nro.length === 12 && (nro.includes("15", 2) || nro.includes("15", 3) || nro.includes("15", 4))) {
-                    nro = nro.replace("15", "");
-                }
-                // Estandarizar a 549 + 10 dígitos
-                if (nro.length === 10) nro = "549" + nro;
-                else if (!nro.startsWith("549")) nro = "549" + nro;
-                // ---------------------------------------------------
-
+                const data = snapClient.data();
                 const finalNombre = data.nombre || data.fullName || "Cliente";
                 const saldoActual = data.hoursBalance || 0;
                 const descuento = duracion / 60;
 
                 if (saldoActual < descuento) {
-                    alert("Saldo insuficiente.");
+                    alert("No tienes saldo suficiente para este turno.");
                     boton.disabled = false;
                     boton.innerText = "Confirmar y Finalizar";
                     return;
                 }
 
-                // 3. GUARDAR EN FIRESTORE
-                const nombreID = finalNombre.replace(/\s+/g, '_');
-                const customID = `${nombreID}_${fechaRaw}_${horaLimpia.replace(':','')}`;
+                // 3. LIMPIEZA DE TELÉFONO (Formato 549...)
+                let nro = (data.telefono || data.phone || "").toString().replace(/\D/g, '');
+                if (nro.startsWith("0")) nro = nro.substring(1);
+                if (nro.startsWith("549")) { /* ya ok */ }
+                else if (nro.startsWith("54")) nro = "549" + nro.substring(2);
+                else if (nro.startsWith("9")) nro = "549" + nro.substring(1);
+                else nro = "549" + nro;
 
+                // Quitar el 15 si está presente después del prefijo
+                if (nro.length > 11 && nro.substring(5,7) === "15") {
+                    nro = nro.substring(0, 5) + nro.substring(7);
+                }
+
+                // 4. GUARDAR RESERVA
+                const customID = `${finalNombre.replace(/\s+/g, '_')}_${fechaRaw}_${horaLimpia.replace(':','')}`;
                 await setDoc(doc(db, "reservas", customID), {
                     fecha: fechaRaw,
                     hora: horaLimpia,
@@ -150,50 +146,54 @@
                     timestamp: new Date()
                 });
 
+                // 5. ACTUALIZAR SALDO
                 await updateDoc(clientRef, { hoursBalance: saldoActual - descuento });
 
-                // 4. DISPARAR WHATSAPP DIRECTO
-                try {
-                    await fetch(`https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`, {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${WHATSAPP_TOKEN}`,
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            messaging_product: "whatsapp",
-                            to: nro,
-                            type: "template",
-                            template: {
-                                name: "confirmacion_turno",
-                                language: { code: "es_AR" },
-                                components: [{
-                                    type: "body",
-                                    parameters: [
-                                        { type: "text", text: finalNombre },
-                                        { type: "text", text: servicio },
-                                        { type: "text", text: fechaBonita },
-                                        { type: "text", text: horaLimpia + " hs" }
-                                    ]
-                                }]
-                            }
-                        })
-                    });
-                } catch(e) { console.error("Error WhatsApp:", e); }
+                // 6. ENVÍO WHATSAPP
+                const response = await fetch(`https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${WHATSAPP_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        messaging_product: "whatsapp",
+                        to: nro,
+                        type: "template",
+                        template: {
+                            name: "confirmacion_turno",
+                            language: { code: "es_AR" },
+                            components: [{
+                                type: "body",
+                                parameters: [
+                                    { type: "text", text: String(finalNombre) },
+                                    { type: "text", text: String(servicio) },
+                                    { type: "text", text: String(fechaBonita) },
+                                    { type: "text", text: String(horaLimpia + " hs") }
+                                ]
+                            }]
+                        }
+                    })
+                });
 
+                const resJson = await response.json();
+                if(resJson.error) {
+                    console.error("Detalle Error Meta:", resJson.error);
+                }
+
+                // Mostrar éxito aunque el WS falle (para no trabar al cliente)
                 document.getElementById("modalConfirmado").style.display = "flex";
 
             } catch(error) {
-                console.error("Error general:", error);
+                console.error("Error Crítico:", error);
+                alert("Hubo un problema al procesar tu turno.");
                 boton.disabled = false;
                 boton.innerText = "Confirmar y Finalizar";
             }
         };
 
         document.getElementById("btnFinalizar").onclick = function() {
-            localStorage.removeItem("servicioSeleccionado");
-            localStorage.removeItem("fechaSeleccionada");
-            localStorage.removeItem("horaSeleccionada");
+            localStorage.clear();
             window.location.href = "index.html";
         };
     </script>

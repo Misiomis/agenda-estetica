@@ -94,14 +94,14 @@
             mapaClientes = {}; 
             snapC.forEach(d => { 
                 const c = d.data(); 
-                if(c.dni) mapaClientes[c.dni] = { nombre: c.fullName || c.nombre, tel: c.phone }; 
+                if(c.dni) mapaClientes[c.dni] = { nombre: c.fullName || c.nombre, tel: c.phone || c.telefono }; 
             });
 
             const snapR = await getDocs(collection(db, "reservas"));
             todasLasReservas = []; 
             snapR.forEach(d => { 
                 const r = d.data(); 
-                const info = mapaClientes[r.dni] || { nombre: r.clienteNombre || "Sin Nombre", tel: r.phone }; 
+                const info = mapaClientes[r.dni] || { nombre: r.clienteNombre || "Sin Nombre", tel: r.phone || r.telefono }; 
                 todasLasReservas.push({ id: d.id, ...r, nombreReal: info.nombre, telReal: info.tel }); 
             });
 
@@ -154,7 +154,6 @@
                 bloques.forEach(b => {
                     let inicio = parseInt(b.inicio.split(':')[0]);
                     let fin = parseInt(b.fin.split(':')[0]);
-                    // Bucle corregido: incluye el inicio y fin exactos configurados
                     for(let i = inicio; i < fin; i++) { 
                         let hFormateada = `${String(i).padStart(2, '0')}:00`;
                         if (!horasOcupadas.includes(hFormateada)) {
@@ -175,7 +174,7 @@
                         <b style="color:${esB ? 'var(--rojo)' : 'inherit'}">${r.nombreReal || r.clienteNombre}</b>
                         <span>${r.hora} hs</span>
                     </div>
-                    <small>${r.servicio} | Fecha: ${r.fecha.split('-').reverse().join('/')}</small>
+                    <small>${r.servicio || 'Tratamiento'} | Fecha: ${r.fecha.split('-').reverse().join('/')}</small>
                     ${!esB ? `
                         <textarea id="n-${r.id}" placeholder="Notas de la sesión...">${r.detalleSesion || ''}</textarea>
                         <button class="btn-save" onclick="guardarN('${r.id}')">Guardar Nota</button>
@@ -235,16 +234,65 @@
         };
         
         window.enviarW = async (tel, nombre, fecha, hora, servicio, accion) => {
-            let num = tel.toString().replace(/\D/g, ""); if (!num.startsWith("54")) num = "549" + num;
+            if (!tel || tel === "undefined") {
+                alert("Atención: Este paciente no tiene un número de teléfono guardado o es inválido.");
+                return;
+            }
+
+            // LIMPIEZA DE NÚMERO EXTREMA (Igual al confirmar)
+            let num = tel.toString().replace(/\D/g, ""); 
+            if (num.startsWith("0")) num = num.substring(1);
+            if (num.startsWith("54")) num = num.substring(2);
+            if (num.startsWith("9")) num = num.substring(1);
+            if (num.length === 12 && (num.includes("15", 2) || num.includes("15", 3) || num.includes("15", 4))) {
+                num = num.replace("15", "");
+            }
+            if (num.length === 10) num = "549" + num;
+            else if (!num.startsWith("549")) num = "549" + num;
+
             const fL = fecha.split('-').reverse().slice(0,2).join('/');
             let t = (accion==='confirmar') ? "turno_confirmado" : (accion==='recordar') ? "recordatorio_de_cita" : "turno_cancelado";
+            
             try {
-                await fetch(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
-                    method: "POST", headers: { "Authorization": `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({ messaging_product: "whatsapp", to: num, type: "template", template: { name: t, language: { code: "es_AR" }, components: [{ type: "body", parameters: [{type:"text", text:nombre}, {type:"text", text:servicio||"Tratamiento"}, {type:"text", text:fL}, {type:"text", text:hora}]}] } })
+                // FIJADO EN VERSIÓN v18.0 PARA EVITAR EL ERROR 404
+                const res = await fetch(`https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`, {
+                    method: "POST", 
+                    headers: { 
+                        "Authorization": `Bearer ${WHATSAPP_TOKEN}`, 
+                        "Content-Type": "application/json" 
+                    },
+                    body: JSON.stringify({ 
+                        messaging_product: "whatsapp", 
+                        to: num, 
+                        type: "template", 
+                        template: { 
+                            name: t, 
+                            language: { code: "es_AR" }, 
+                            components: [{ 
+                                type: "body", 
+                                parameters: [
+                                    {type:"text", text: String(nombre || "Cliente")}, 
+                                    {type:"text", text: String(servicio || "Tratamiento")}, 
+                                    {type:"text", text: String(fL)}, 
+                                    {type:"text", text: String(hora + " hs")}
+                                ]
+                            }] 
+                        } 
+                    })
                 });
-                alert("Mensaje enviado a " + nombre);
-            } catch(e) { alert("Error al enviar WhatsApp"); }
+
+                const data = await res.json();
+                
+                if(data.error) {
+                    console.error("Error de Meta (WhatsApp):", data.error);
+                    alert("No se pudo enviar el mensaje a " + nombre + ".\nMotivo: " + data.error.message);
+                } else {
+                    alert("Mensaje enviado con éxito a " + nombre);
+                }
+            } catch(e) { 
+                console.error("Fallo de conexión enviando WhatsApp:", e);
+                alert("Error de red al intentar enviar el WhatsApp."); 
+            }
         };
 
         cargarTodo();
