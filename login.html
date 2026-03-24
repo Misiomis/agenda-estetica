@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Ingreso | Espacio Mimar</title>
+
+<style>
+
+body{
+background:#f4f7f6;
+font-family:Arial, Helvetica, sans-serif;
+margin:0;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
+
+.container{
+background:white;
+padding:40px;
+border-radius:20px;
+text-align:center;
+box-shadow:0 10px 35px rgba(0,0,0,0.08);
+max-width:420px;
+width:90%;
+}
+
+.logo{
+width:160px;
+margin-bottom:15px;
+}
+
+.nombre{
+font-size:22px;
+font-weight:bold;
+margin-top:10px;
+}
+
+.credenciales{
+font-size:14px;
+color:#666;
+margin-top:4px;
+}
+
+.descripcion{
+font-size:13px;
+color:#555;
+margin-top:10px;
+line-height:1.5;
+margin-bottom:25px;
+}
+
+input{
+width:100%;
+padding:12px;
+margin-bottom:15px;
+border-radius:10px;
+border:1px solid #ccc;
+font-size:15px;
+}
+
+button{
+background:#72bd99;
+color:white;
+border:none;
+padding:14px;
+width:100%;
+border-radius:12px;
+font-size:16px;
+font-weight:bold;
+cursor:pointer;
+}
+
+button:hover{
+opacity:0.9;
+}
+
+/* FOOTER */
+
+.footer{
+margin-top:20px;
+font-size:12px;
+color:#aaa;
+padding-bottom:30px;
+text-align:center;
+width:100%;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<img src="img/logo.png" class="logo">
+
+<div class="nombre">
+Gimena Knack
+</div>
+
+<div class="credenciales">
+Farmacéutica MP 1212<br>
+Cosmetóloga · Cosmiatra · Dermocosmiatra
+</div>
+
+<div class="descripcion">
+Especialista en tratamientos faciales y corporales personalizados.  
+En <strong>Espacio Mimar</strong> cada tratamiento se realiza con evaluación profesional, productos de calidad y atención individualizada para el cuidado integral de la piel.
+</div>
+
+<h3>Ingreso de paciente</h3>
+
+<input id="nombre" placeholder="Nombre y apellido">
+
+<input id="telefono" placeholder="Teléfono">
+
+<button onclick="ingresar()">
+Ingresar
+</button>
+
+</div>
+
+<div class="footer">
+© 2026 Espacio Mimar T — Todos los derechos reservados
+</div>
+
+<script>
+
+function ingresar(){
+
+const nombre = document.getElementById("nombre").value
+const telefono = document.getElementById("telefono").value
+
+if(nombre=="" || telefono==""){
+
+alert("Por favor complete los datos")
+return
+
+}
+
+// guardar paciente
+localStorage.setItem("usuario",nombre)
+localStorage.setItem("telefono",telefono)
+
+// ir a historia clínica
+window.location.href="historia.html"
+
+}
+
+</script>
+
+</body>
+</html>

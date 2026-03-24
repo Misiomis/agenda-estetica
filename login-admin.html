@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Login Admin - Espacio Mimar T</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+
+  .footer{
+  margin-top:20px;
+  font-size:12px;
+  color:#aaa;
+  padding-bottom:30px;
+  text-align:center;
+  width:100%;
+  }
+
+  </style>
+
+</head>
+<body>
+
+  <div class="container">
+    <h1>Acceso Administrativo</h1>
+
+    <input type="text" id="adminUser" placeholder="Usuario">
+    <input type="password" id="adminPass" placeholder="Contraseña">
+    
+    <button onclick="loginAdmin()">Ingresar</button>
+
+    <p id="errorMsg" style="color:red;"></p>
+  </div>
+
+  <div class="footer">
+  © 2026 Espacio Mimar T — Todos los derechos reservados
+  </div>
+
+  <script>
+    const ADMIN_USER = "gimena";
+    const ADMIN_PASS = "Mimar2026";
+
+    function loginAdmin() {
+      const user = document.getElementById("adminUser").value;
+      const pass = document.getElementById("adminPass").value;
+
+      if (user === ADMIN_USER && pass === ADMIN_PASS) {
+        localStorage.setItem("adminAuth", "true");
+        window.location.href = "admin.html";
+      } else {
+        document.getElementById("errorMsg").innerText = "Datos incorrectos";
+      }
+    }
+  </script>
+
+</body>
+</html>
