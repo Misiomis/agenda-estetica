@@ -768,7 +768,7 @@
                     const c = docCli.data() || {};
                     return {
                         dni: docCli.id,
-                        fullName: c.fullName || c.nombre || "",
+                        fullName: c.fullName || c.fullLname || c.nombre || c.name || "",
                         phone: c.phone || "",
                         email: c.email || "",
                         username: c.username || "",
@@ -776,7 +776,7 @@
                         hoursBalance: c.hoursBalance ?? 0,
                         membershipActive: resolverMembresiaActiva(c)
                     };
-                }).filter(p => p.fullName).sort((a, b) => a.fullName.localeCompare(b.fullName));
+                }).sort((a, b) => (a.fullName || "").localeCompare((b.fullName || ""), 'es'));
 
                 todasLasReservas = snapR.docs.map(d => {
                     const data = d.data();
@@ -1304,7 +1304,7 @@
 
                 const c = snap.data() || {};
                 document.getElementById("cliPhone").value = c.phone || "";
-                document.getElementById("cliFullName").value = c.fullName || c.nombre || "";
+                document.getElementById("cliFullName").value = c.fullName || c.fullLname || c.nombre || c.name || "";
                 document.getElementById("cliHoursBalance").value = (c.hoursBalance ?? "").toString();
                 document.getElementById("cliEmail").value = c.email || "";
                 document.getElementById("cliUsername").value = c.username || "";
@@ -1464,6 +1464,7 @@
                 politicaAceptada: document.getElementById("cliPolitica").checked,
                 dni,
                 fullName,
+                fullLname: fullName,
                 phone,
                 email,
                 username,
