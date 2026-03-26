@@ -656,8 +656,12 @@ const CONFIG_DIAS = {
 };
 
 const EXCEPCIONES_HORARIOS = {
-    "2026-03-26": { normal: ["08:00", "09:00", "10:00", "11:00", "16:00", "17:00"], fraccionado: ["12:00", "12:30"] },
+    "2026-03-26": { normal: ["08:00", "09:00", "10:00", "11:00", "16:00"], fraccionado: ["12:00", "12:30"] },
     "2026-04-25": { normal: ["17:00"], fraccionado: [] }
+};
+
+const DESBLOQUEOS_MANUALES = {
+    "2026-03-26": ["16:00"]
 };
 
 const SABADOS_BLOQUEADOS = ["2026-03-01", "2026-03-08", "2026-03-15", "2026-03-22", "2026-03-29", "2026-04-04", "2026-04-11", "2026-04-18", "2026-04-25"];
@@ -742,7 +746,10 @@ async function cargarHorarios(fecha, fStr){
     if(!config) { container.innerHTML="<p>Cerrado</p>"; return; }
 
     const snapRes=await getDocs(query(collection(db,"reservas"),where("fecha","==",fStr)));
-    const ocupados=snapRes.docs.map(doc=> (doc.data().hora||"").replace(" hs","").trim());
+    const desbloqueados = DESBLOQUEOS_MANUALES[fStr] || [];
+    const ocupados=snapRes.docs
+        .map(doc=> (doc.data().hora||"").replace(" hs","").trim())
+        .filter(h => !desbloqueados.includes(h));
     container.innerHTML="";
 
     const todos = [
@@ -828,7 +835,10 @@ cargarDatos();
 function renderHorariosPorConfig(config, container, fStr) {
     return getDocs(query(collection(db, "reservas"), where("fecha", "==", fStr)))
         .then(snapRes => {
-            const ocupados = snapRes.docs.map(doc => (doc.data().hora || "").replace(" hs", "").trim());
+            const desbloqueados = DESBLOQUEOS_MANUALES[fStr] || [];
+            const ocupados = snapRes.docs
+                .map(doc => (doc.data().hora || "").replace(" hs", "").trim())
+                .filter(h => !desbloqueados.includes(h));
             container.innerHTML = "";
 
             const todos = [
