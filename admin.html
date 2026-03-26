@@ -757,10 +757,16 @@
                 });
 
                 if (!membresiaNormalizadaSesion) {
-                    const totalNormalizados = await asegurarCampoMembresiaEnFirestore(snapC.docs || []);
-                    if (totalNormalizados > 0) {
+                    try {
+                        const totalNormalizados = await asegurarCampoMembresiaEnFirestore(snapC.docs || []);
+                        if (totalNormalizados > 0) {
+                            mostrarAviso(`✅ Membresía normalizada automáticamente en ${totalNormalizados} cliente(s)`);
+                        }
                         membresiaNormalizadaSesion = true;
-                        mostrarAviso(`✅ Membresía normalizada automáticamente en ${totalNormalizados} cliente(s)`);
+                    } catch (errorNormalizacion) {
+                        console.warn("No se pudo normalizar membresía en segundo plano:", errorNormalizacion);
+                        // No bloquear la carga del panel si las reglas impiden escritura.
+                        membresiaNormalizadaSesion = true;
                     }
                 }
 
