@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingreso | Espacio Mimar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --verde-principal: #8ca38a;
+            --verde-oscuro: #6f8a6d;
+            --texto-suave: #6b706a;
+            --ink: #2f3d32;
+            --card-shadow: 0 32px 84px rgba(19, 33, 23, 0.22), 0 8px 20px rgba(19, 33, 23, 0.11);
+        }
+
+        html, body {
+            overflow-x: hidden;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #dfe8e2;
+            background-image:
+                linear-gradient(160deg, rgba(44, 84, 63, 0.28) 0%, rgba(44, 84, 63, 0.18) 46%, rgba(97, 135, 115, 0.24) 100%),
+                url("img/recepcion.jpeg");
+            background-position: center;
+            background-size: cover;
+            background-repeat: no-repeat;
+            min-height: 100vh;
+            min-height: 100svh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            flex-direction: column;
+            padding: 20px 0;
+            -webkit-text-size-adjust: 100%;
+            line-height: 1.42;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 82% 9%, rgba(199, 225, 205, 0.2) 0%, rgba(199, 225, 205, 0) 42%),
+                radial-gradient(circle at 10% 92%, rgba(126, 177, 151, 0.16) 0%, rgba(126, 177, 151, 0) 44%);
+            backdrop-filter: blur(2px);
+        }
+
+        body::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image: radial-gradient(rgba(14, 33, 21, 0.06) 0.6px, transparent 0.6px);
+            background-size: 3px 3px;
+            opacity: 0.17;
+        }
+
+        .container {
+            position: relative;
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(13px);
+            padding: 50px 40px;
+            border-radius: 30px;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            max-width: 420px;
+            width: 90%;
+            border: 1px solid rgba(255,255,255,0.42);
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(140,163,138,0) 0%, rgba(140,163,138,0.9) 50%, rgba(140,163,138,0) 100%);
+        }
+
+        .container > * {
+            animation: riseFade .42s ease both;
+        }
+
+        .container > *:nth-child(2) { animation-delay: .04s; }
+        .container > *:nth-child(3) { animation-delay: .08s; }
+        .container > *:nth-child(4) { animation-delay: .12s; }
+        .container > *:nth-child(5) { animation-delay: .16s; }
+
+        .logo {
+            width: 300px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 8px 18px rgba(33, 63, 44, 0.14));
+        }
+
+        .subtitulo {
+            color: var(--verde-principal);
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+
+        .profesional-card {
+            background: linear-gradient(145deg, rgba(238,243,238,0.9) 0%, rgba(230,236,230,0.9) 100%);
+            padding: 22px;
+            border-radius: 18px;
+            margin-bottom: 32px;
+            border: 1px solid rgba(136, 166, 138, 0.22);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+
+        .profesional {
+            font-weight: 700;
+            font-size: 19px;
+            color: #3e5140;
+            margin-bottom: 4px;
+            letter-spacing: .2px;
+        }
+
+        .titulo-profesional {
+            font-size: 13px;
+            color: #677566;
+            margin-bottom: 8px;
+        }
+
+        .credenciales {
+            font-size: 12px;
+            color: #6b706a;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .descripcion {
+            font-size: 13px;
+            color: #6f756f;
+            line-height: 1.6;
+            font-style: italic;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 500;
+            color: #3e463f;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+        }
+
+        input {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #d7e0d8;
+            font-size: 15px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            color: var(--ink);
+            background: rgba(255,255,255,0.92);
+            transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+
+        input:focus {
+            border-color: #8bb797;
+            box-shadow: 0 0 0 3px rgba(119, 178, 146, 0.18);
+            background: #fff;
+            outline: none;
+        }
+
+        button {
+            background: linear-gradient(135deg, #8ca38a 0%, #6f8a6d 100%);
+            border: none;
+            color: white;
+            padding: 18px;
+            width: 100%;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+            box-shadow: 0 12px 24px rgba(74, 98, 72, 0.28);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            filter: saturate(1.05);
+            box-shadow: 0 14px 26px rgba(74, 98, 72, 0.34);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:focus-visible,
+        input:focus-visible {
+            outline: 3px solid rgba(106, 152, 118, 0.42);
+            outline-offset: 2px;
+        }
+
+        .error {
+            color: #d9534f;
+            font-size: 13px;
+            margin-top: 15px;
+            display: none;
+            font-weight: 600;
+        }
+
+        .footer {
+            margin-top: 25px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.86);
+            text-shadow: 0 1px 3px rgba(23, 38, 26, 0.28);
+            padding-bottom: 20px;
+            text-align: center;
+            width: 100%;
+            z-index: 1;
+            letter-spacing: .2px;
+        }
+
+        @keyframes riseFade {
+            0% {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .container > * {
+                animation: none;
+            }
+
+            button,
+            input {
+                transition: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                background-position: 58% top;
+                background-size: cover;
+                min-height: 100svh;
+                height: auto;
+                padding: max(14px, env(safe-area-inset-top)) 10px max(18px, env(safe-area-inset-bottom));
+            }
+
+            body::before {
+                background:
+                    linear-gradient(180deg, rgba(32, 62, 48, 0.2) 0%, rgba(32, 62, 48, 0.1) 45%, rgba(32, 62, 48, 0.24) 100%);
+            }
+
+            body::after {
+                display: none;
+            }
+
+            .container {
+                padding: 32px 22px;
+                border-radius: 22px;
+            }
+
+            .logo {
+                width: min(72vw, 280px);
+                height: auto;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .container {
+                width: 94%;
+                padding: 28px 18px;
+            }
+
+            .subtitulo {
+                letter-spacing: 2px;
+            }
+
+            h2 {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="img/logo.png" class="logo">
+        <div class="subtitulo">Estética Avanzada</div>
+        
+        <div class="profesional-card">
+            <div class="profesional">Gimena Knack</div>
+            <div class="titulo-profesional">Farmacéutica · Dermatocosmiatra</div>
+            <div class="credenciales">MP 1212 · R.C. 2319</div>
+            <div class="descripcion">Tratamientos dermoestéticos personalizados con respaldo farmacéutico y tecnología avanzada para el cuidado integral de la piel</div>
+        </div>
+
+        <h2>Ingreso de Pacientes</h2>
+        <input id="nombre" placeholder="Nombre + inicial apellido (ej: juan p)">
+        <input id="dni" placeholder="DNI (sin puntos)">
+        <button id="btnIngresar">Iniciar Sesión</button>
+        <div id="error" class="error"></div>
+    </div>
+
+    <div class="footer">© 2026 Espacio Mimar T — Todos los derechos reservados</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
+            authDomain: "estetica-8d067.firebaseapp.com",
+            projectId: "estetica-8d067",
+            storageBucket: "estetica-8d067.firebasestorage.app",
+            messagingSenderId: "501220214938",
+            appId: "1:501220214938:web:af6e262c23d9a7ea853723"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const getIngresoErrorMessage = (error) => {
+            switch (error?.code) {
+                case "permission-denied":
+                    return "Acceso bloqueado por reglas de Firestore (clients).";
+                case "unavailable":
+                    return "Servicio no disponible. Intentá nuevamente en unos segundos.";
+                case "failed-precondition":
+                    return "Falta habilitar Firestore para este proyecto.";
+                default:
+                    return "Error de conexión con la base de datos.";
+            }
+        };
+
+        document.getElementById("btnIngresar").addEventListener("click", async () => {
+            const nombreIngresado = document.getElementById("nombre").value.trim().toLowerCase();
+            const dniIngresado = document.getElementById("dni").value.trim();
+            const errorDiv = document.getElementById("error");
+
+            if(!nombreIngresado || !dniIngresado) {
+                errorDiv.innerText = "Por favor, completa ambos campos.";
+                errorDiv.style.display = "block";
+                return;
+            }
+
+            try {
+                const docRef = doc(db, "clients", dniIngresado);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const cliente = docSnap.data();
+                    
+                    if (cliente.fullName.toLowerCase() === nombreIngresado) {
+                        localStorage.setItem("clienteDNI", dniIngresado);
+                        localStorage.setItem("clienteNombre", cliente.fullName);
+
+                        // --- LÓGICA DE REDIRECCIÓN ACTUALIZADA (Sin consentimiento.html) ---
+                        if (!cliente.politicaAceptada) {
+                            window.location.href = "politica.html";
+                        } else if (cliente.consultaNutricionalRespondida !== true) {
+                            window.location.href = "servicioincluido.html";
+                        } else if (!cliente.historiaCompletada) {
+                            window.location.href = "historia.html";
+                        } else {
+                            window.location.href = "servicios.html";
+                        }
+                    } else {
+                        errorDiv.innerText = "El nombre no coincide con el DNI.";
+                        errorDiv.style.display = "block";
+                    }
+                } else {
+                    errorDiv.innerText = "Paciente no encontrado.";
+                    errorDiv.style.display = "block";
+                }
+            } catch (error) {
+                console.error("Error al ingresar:", error);
+                errorDiv.innerText = getIngresoErrorMessage(error);
+                errorDiv.style.display = "block";
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Elegir fecha | Espacio Mimar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --verde-mimar:#72bd99;
+            --verde-oscuro:#3f8f6f;
+            --verde-fondo:#e8f5ee;
+            --crema:#f6f2ea;
+            --ink:#24312d;
+            --card-shadow:0 14px 36px rgba(35,52,45,0.1);
+            --radius-xl:24px;
+        }
+
+        *{ box-sizing:border-box }
+
+        body{
+            margin:0;
+            background:radial-gradient(circle at 15% -10%, #ffffff 0%, #f6fbf8 35%, #edf5f1 70%, #e8f0ec 100%);
+            font-family:'Montserrat',sans-serif;
+            color:var(--ink);
+            overflow-x:hidden;
+            min-height:100vh;
+            line-height:1.42;
+            -webkit-font-smoothing:antialiased;
+            text-rendering:optimizeLegibility;
+            position:relative;
+        }
+
+        body::before{
+            content:"";
+            position:fixed;
+            inset:0;
+            pointer-events:none;
+            background:
+                radial-gradient(circle at 92% 8%, rgba(114,189,153,0.08) 0%, rgba(114,189,153,0) 46%),
+                radial-gradient(circle at 8% 76%, rgba(61,134,105,0.06) 0%, rgba(61,134,105,0) 42%);
+            z-index:0;
+        }
+
+        body::after{
+            content:"";
+            position:fixed;
+            inset:0;
+            pointer-events:none;
+            background-image:radial-gradient(rgba(26,53,42,0.04) 0.5px, transparent 0.5px);
+            background-size:3px 3px;
+            opacity:.15;
+            z-index:0;
+        }
+
+        .hero{
+            width:100%;
+            display:flex;
+            justify-content:center;
+            position:relative;
+            z-index:1;
+        }
+
+        .hero::after{
+            content:"";
+            position:absolute;
+            inset:auto 0 0 0;
+            height:44%;
+            background:linear-gradient(180deg, rgba(244,247,246,0) 0%, rgba(244,247,246,0.92) 68%, rgba(244,247,246,1) 100%);
+            pointer-events:none;
+        }
+
+        .hero img{
+            width:100%;
+            max-height:280px;
+            object-fit:cover;
+            filter:saturate(1.04) contrast(1.02);
+        }
+
+        .container{
+            max-width:1050px;
+            margin:auto;
+            padding:20px;
+            text-align:center;
+            margin-top:clamp(-96px, -7vw, -58px);
+            position:relative;
+            z-index:2;
+        }
+
+        .container::before,
+        .container::after{
+            content:"";
+            position:absolute;
+            width:220px;
+            height:220px;
+            border-radius:50%;
+            pointer-events:none;
+            z-index:-1;
+            filter:blur(2px);
+        }
+
+        .container::before{
+            left:-90px;
+            top:180px;
+            background:radial-gradient(circle, rgba(114,189,153,0.19) 0%, rgba(114,189,153,0) 68%);
+        }
+
+        .container::after{
+            right:-100px;
+            top:430px;
+            background:radial-gradient(circle, rgba(80,155,124,0.14) 0%, rgba(80,155,124,0) 70%);
+        }
+
+        .container > *{
+            animation:fadeUp .42s ease both;
+        }
+
+        .container > *:nth-child(2){ animation-delay:.04s; }
+        .container > *:nth-child(3){ animation-delay:.08s; }
+        .container > *:nth-child(4){ animation-delay:.12s; }
+        .container > *:nth-child(5){ animation-delay:.16s; }
+
+        .logo{
+            width:280px;
+            max-width:80%;
+            margin-bottom:18px;
+            display:block;
+            margin-left:auto;
+            margin-right:auto;
+            filter:drop-shadow(0 8px 20px rgba(51,79,69,0.14));
+        }
+
+        .aviso-mio,
+        .calendario,
+        .card-recommendations{
+            background:rgba(255,255,255,0.94);
+            border-radius:var(--radius-xl);
+            border:1px solid rgba(90,144,119,0.16);
+            box-shadow:var(--card-shadow);
+            backdrop-filter:blur(2px);
+        }
+
+        .aviso-mio{
+            padding:20px;
+            margin-bottom:20px;
+            text-align:center;
+            box-shadow:0 10px 24px rgba(41,66,56,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+
+        .aviso-mio p{
+            letter-spacing:.15px;
+            line-height:1.5;
+        }
+
+        #saldoStatus{
+            font-weight:700;
+            color:var(--verde-oscuro);
+            background:linear-gradient(135deg, #edf7f2 0%, #e3f2ea 100%);
+            display:inline-block;
+            padding:11px 22px;
+            border-radius:30px;
+            margin-bottom:20px;
+            border:1px solid rgba(114,189,153,0.6);
+            font-size:13px;
+            letter-spacing:.2px;
+        }
+
+        .calendario{
+            padding:22px;
+            margin-bottom:30px;
+            width:100%;
+            box-shadow:0 16px 30px rgba(31,54,45,0.12), inset 0 1px 0 rgba(255,255,255,0.95);
+        }
+
+        .mes{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:20px;
+            font-weight:600;
+        }
+
+        #mes{
+            font-weight:700;
+            letter-spacing:.4px;
+            color:#2e4a3f;
+            text-transform:capitalize;
+        }
+
+        .mes button{
+            border:none;
+            background:linear-gradient(135deg, #77c39f 0%, #4b9d79 100%);
+            color:white;
+            padding:10px 16px;
+            border-radius:11px;
+            cursor:pointer;
+            transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+            box-shadow:0 8px 18px rgba(63,143,111,0.24);
+        }
+
+        .mes button:hover{ transform:translateY(-1px); filter:saturate(1.05); }
+        .mes button:active{ transform:translateY(0); }
+
+        .mes button:focus-visible,
+        .dia:focus-visible,
+        .hora:focus-visible,
+        .boton:focus-visible,
+        .floating-warning-close:focus-visible{
+            outline:3px solid rgba(83,145,115,0.45);
+            outline-offset:2px;
+        }
+
+        .semana{
+            display:grid;
+            grid-template-columns:repeat(7,1fr);
+            margin-bottom:10px;
+            font-weight:700;
+            color:#6b7872;
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.5px;
+        }
+
+        .grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:8px }
+
+        .dia{
+            padding:12px 2px;
+            border-radius:12px;
+            background:#f3f7f5;
+            cursor:pointer;
+            transition:all .18s ease;
+            font-size:13px;
+            text-align:center;
+            border:1px solid #deebe5;
+            font-weight:500;
+            min-height:42px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+
+        .dia:hover{
+            transform:translateY(-1px);
+            border-color:#9acfb8;
+            background:#ecf6f1;
+            box-shadow:0 8px 16px rgba(89,146,119,0.14);
+        }
+
+        .seleccionado{
+            border:2px solid var(--verde-mimar)!important;
+            background:linear-gradient(180deg, #f3fbf7 0%, #e6f5ee 100%)!important;
+            font-weight:700;
+            color:#244135;
+            box-shadow:0 8px 16px rgba(101,171,139,0.26);
+        }
+
+        .domingo,.pasado,.bloqueado{
+            background:#eff2f1;
+            color:#b1bab6;
+            cursor:not-allowed;
+            opacity:.72;
+            border-color:#e8ecea;
+            box-shadow:none;
+            transform:none;
+        }
+
+        .horarios{
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(96px,1fr));
+            gap:12px;
+            margin-top:20px;
+        }
+
+        .hora{
+            background:white;
+            border-radius:12px;
+            padding:12px;
+            cursor:pointer;
+            border:1px solid #d6e3dd;
+            text-align:center;
+            font-size:14px;
+            transition:all .18s ease;
+            font-weight:600;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,0.85);
+        }
+
+        .hora:hover{
+            transform:translateY(-1px);
+            border-color:#8ec7ac;
+            box-shadow:0 8px 18px rgba(90,145,118,0.16);
+        }
+
+        .hora.selected{
+            background:linear-gradient(135deg, #79c5a1 0%, #4f9f7b 100%);
+            color:white;
+            border-color:#4f9f7b;
+            box-shadow:0 10px 18px rgba(70,131,103,0.3);
+        }
+
+        .hora.ocupado{
+            background:#ffebee!important;
+            color:#d32f2f!important;
+            cursor:not-allowed!important;
+            text-decoration:line-through!important;
+            border:1px solid #d32f2f!important;
+            pointer-events:none!important;
+            box-shadow:none!important;
+        }
+
+        .boton{
+            width:100%;
+            padding:18px;
+            background:linear-gradient(135deg, #77c39f 0%, #4e9f7b 100%);
+            border:none;
+            border-radius:14px;
+            color:white;
+            font-size:16px;
+            cursor:pointer;
+            font-weight:700;
+            margin-top:20px;
+            letter-spacing:.3px;
+            box-shadow:0 12px 24px rgba(63,143,111,0.28);
+            transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+            position:relative;
+            isolation:isolate;
+        }
+
+        .boton::before{
+            content:"";
+            position:absolute;
+            inset:0;
+            border-radius:inherit;
+            background:linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 55%);
+            pointer-events:none;
+        }
+
+        .boton:hover{ transform:translateY(-1px); filter:saturate(1.04); }
+        .boton:active{ transform:translateY(0); }
+        .boton:disabled{ background:#c9d2cd; box-shadow:none; cursor:not-allowed; }
+
+        .modal-mimar{ position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,22,19,0.56); display:none; justify-content:center; align-items:center; z-index:9999; backdrop-filter:blur(4px); padding:20px }
+        .modal-box{ background:white; padding:25px; border-radius:20px; text-align:center; max-width:400px; width:100%; box-shadow:0 24px 50px rgba(15,22,19,0.24) }
+
+        /* Badge dinámico */
+        .badge-balance {
+            display: inline-block;
+            background: linear-gradient(135deg, #edf8f3 0%, #e1f2e9 100%);
+            color: var(--verde-oscuro);
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(114, 189, 153, 0.65);
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 18px rgba(71, 128, 103, 0.14);
+        }
+
+        /* Card de recomendaciones */
+        .card-recommendations {
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-recommendations::after {
+            content: "";
+            position: absolute;
+            inset: 0 auto auto 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(114,189,153,0) 0%, rgba(114,189,153,0.7) 50%, rgba(114,189,153,0) 100%);
+            pointer-events: none;
+        }
+
+        .card-recommendations h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(22px, 3vw, 30px);
+            color: var(--verde-oscuro);
+            margin: 0 0 25px 0;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            line-height: 1.2;
+        }
+
+        .recommendations-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .recommendation-block {
+            background: linear-gradient(135deg, #eef8f3 0%, #e8f4ee 100%);
+            border-left: 4px solid var(--verde-oscuro);
+            border-radius: 16px;
+            padding: 18px;
+            text-align: left;
+            font-size: 14px;
+            color: #2c3e3a;
+            line-height: 1.6;
+            transition: all 0.22s ease;
+        }
+
+        .recommendation-block:hover {
+            box-shadow: 0 10px 20px rgba(114, 189, 153, 0.2);
+            transform: translateY(-2px) scale(1.005);
+        }
+
+        /* Caja de advertencia */
+        .floating-warning {
+            position: relative;
+            top: auto;
+            left: auto;
+            width: 100%;
+            z-index: 100;
+            background: linear-gradient(90deg, rgba(252, 244, 225, 0.97) 0%, rgba(248, 236, 206, 0.97) 100%);
+            color: #7c2d12;
+            border: 1px solid #efbf67;
+            border-radius: 14px;
+            box-shadow: 0 10px 24px rgba(88, 68, 28, 0.12);
+            overflow: hidden;
+            pointer-events: none;
+            padding: 9px 0;
+            margin-bottom: 20px;
+        }
+
+        .floating-warning-track {
+            display: inline-block;
+            white-space: nowrap;
+            animation: floatWarning 28s linear infinite;
+        }
+
+        .floating-warning:hover .floating-warning-track {
+            animation-play-state: paused;
+        }
+
+        .floating-warning span {
+            font-size: 14px;
+            font-weight: 700;
+            color: #7c2d12;
+            padding: 0 40px;
+            pointer-events: auto;
+        }
+
+        .floating-warning-close {
+            position: absolute;
+            top: 6px;
+            right: 10px;
+            border: none;
+            background: transparent;
+            color: #7c2d12;
+            font-size: 16px;
+            cursor: pointer;
+            pointer-events: auto;
+            padding: 0 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .floating-warning-close:hover {
+            color: #f59e0b;
+        }
+
+        @keyframes floatWarning {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        @keyframes fadeUp {
+            0% {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .floating-warning-track {
+                animation: none;
+            }
+            .container > * {
+                animation: none;
+            }
+            .dia,
+            .hora,
+            .mes button,
+            .boton,
+            .recommendation-block {
+                transition: none;
+            }
+            .hero img {
+                filter:none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin-top: -68px;
+                padding: 16px;
+            }
+
+            .container::before,
+            .container::after,
+            body::after {
+                display:none;
+            }
+
+            .card-recommendations {
+                padding: 20px;
+                border-radius: 20px;
+            }
+
+            .card-recommendations h2 {
+                font-size: 22px;
+                margin-bottom: 20px;
+            }
+
+            .recommendation-block {
+                padding: 16px;
+                font-size: 13px;
+            }
+
+            .floating-warning span {
+                font-size: 13px;
+                padding: 0 34px;
+            }
+
+            .calendario,
+            .aviso-mio {
+                border-radius: 20px;
+                padding: 16px;
+            }
+
+            .dia {
+                min-height: 40px;
+            }
+
+            .horarios {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 10px;
+            }
+
+            .warning-box {
+                padding: 16px;
+                gap: 12px;
+            }
+
+            .warning-icon {
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 14px; margin-top: -52px; }
+            .hero img { max-height: 220px; }
+            .card-recommendations { padding: 16px; border-radius: 18px; }
+            .card-recommendations h2 { font-size: 20px; }
+            .recommendation-block { font-size: 12px; padding: 14px; }
+            .badge-balance { padding: 10px 16px; font-size: 12px; }
+            .warning-box { padding: 14px; }
+            .warning-text { font-size: 13px; }
+            .boton {
+                padding: 14px;
+                font-size: 15px;
+                position: sticky;
+                bottom: 10px;
+                z-index: 12;
+            }
+            .semana { font-size: 10px; }
+            .grid { gap: 6px; }
+            .dia { min-height: 38px; font-size: 12px; }
+            .hora { font-size: 13px; padding: 11px 8px; }
+            #mes { font-size: 14px; }
+            .floating-warning-track { animation-duration: 34s; }
+            .aviso-mio,
+            .calendario,
+            .card-recommendations {
+                backdrop-filter:none;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="hero"><img src="img/fecha.jpeg"></div>
+<div class="container">
+    <img src="img/logo.png" class="logo">
+    <div class="badge-balance" id="badgeBalance">Cargando tu saldo...</div>
+
+    <div class="card-recommendations">
+        <h2>Recomendaciones para reservar tus sesiones</h2>
+        <div class="recommendations-grid">
+            <div class="recommendation-block">Si reservaste 2 horas, se recomienda sacar un turno aproximadamente cada 15 días.</div>
+            <div class="recommendation-block">Si reservaste 4 horas, reservá una sesión por semana durante cuatro semanas.</div>
+            <div class="recommendation-block">Si reservaste 8 horas, podés realizar dos sesiones seguidas en el mismo día.</div>
+            <div class="recommendation-block">Los horarios de 12:00 a 13:00 y de 20:00 a 21:00 dejalos para personas que trabajan.</div>
+            <div class="recommendation-block">Si querés realizar una sola sesión de Mio-Up, podés reservar un bloque de 30 minutos.</div>
+        </div>
+    </div>
+
+    <div class="floating-warning" id="floatingWarning">
+        <div class="floating-warning-track" id="floatingWarningTrack">
+            <span>⚠️ Importante: Los horarios de 12:00 a 13:00 y de 20:00 a 21:00 son exclusivos para personas que trabajan o sesiones de Mio-Up (30 min).</span>
+        </div>
+        <button class="floating-warning-close" id="floatingWarningClose">✕</button>
+    </div>
+    
+    <div id="saldoStatus">Verificando balance...</div>
+    
+    <div class="aviso-mio">
+        <p style="font-size: 0.85rem; color: #666; margin:0;">Seleccioná un día del calendario para ver horarios.</p>
+    </div>
+
+    <div class="calendario">
+        <div class="mes"><button id="btnMesAnterior">◀</button><div id="mes"></div><button id="btnMesSiguiente">▶</button></div>
+        <div class="semana"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>
+        <div class="grid" id="dias"></div>
+    </div>
+
+    <div class="horarios" id="horarios"></div>
+    <button class="boton" id="reservarBtn" disabled>Confirmar Reserva</button>
+</div>
+
+<div id="modalMimar" class="modal-mimar">
+    <div class="modal-box">
+        <h4 id="modalTitulo" style="font-family:'Playfair Display'; color:var(--verde-oscuro); margin-top:0;">Aviso</h4>
+        <p id="modalMsg" style="font-size:14px;"></p>
+        <button id="btnFinalizarModal" class="boton" style="margin-top:10px;">Entendido</button>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+const firebaseConfig={ projectId:"estetica-8d067", apiKey:"AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew" };
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+const CONFIG_DIAS = {
+    "lunes": { normal: ["16:00", "17:00", "18:00", "19:00"], fraccionado: ["20:00", "20:30"] },
+    "martes": { 
+        normal: ["07:00", "08:00", "09:00", "10:00", "11:00", "16:00", "17:00", "18:00", "19:00"], 
+        fraccionado: ["12:00", "12:30", "20:00", "20:30"] 
+    },
+    "miercoles": { normal: ["15:00", "16:00", "17:00", "18:00", "19:00"], fraccionado: ["20:00", "20:30"] },
+    "jueves": { normal: ["08:00", "09:00", "10:00", "11:00"], fraccionado: ["12:00", "12:30"] },
+    "viernes": { normal: ["15:00", "16:00", "17:00", "18:00", "19:00"], fraccionado: [] },
+    "sabado": { normal: ["08:00", "09:00", "10:00", "11:00"], fraccionado: ["12:00", "12:30"] }
+};
+
+const EXCEPCIONES_HORARIOS = {
+    "2026-04-25": { normal: ["17:00"], fraccionado: [] }
+};
+
+const SABADOS_BLOQUEADOS = ["2026-03-01", "2026-03-08", "2026-03-15", "2026-03-22", "2026-03-29", "2026-04-04", "2026-04-11", "2026-04-18", "2026-04-25"];
+
+let fechaActual=new Date();
+let fechaSeleccionada=null, horaSeleccionada=null, duracionTurno=60, excepciones={};
+const hoy=new Date(); hoy.setHours(0,0,0,0);
+const dniUsuario=localStorage.getItem("clienteDNI");
+const servicioGuardado=localStorage.getItem("servicioSeleccionado")||"";
+const esMioUp=servicioGuardado.toLowerCase().includes("mio");
+
+async function cargarDatos(){
+    const snap=await getDoc(doc(db,"clients",dniUsuario));
+    if(snap.exists()) {
+        const horas = snap.data().hoursBalance;
+        document.getElementById("saldoStatus").innerText=`Tienes ${horas} sesiones disponibles`;
+        document.getElementById("badgeBalance").innerText=`Tu saldo: ${horas} hora${horas !== 1 ? 's' : ''}`;
+    }
+
+    // CARGAR EXCEPCIONES (JUEVES Y VIERNES SANTO)
+    const exSnap=await getDocs(collection(db,"calendarExceptions"));
+    excepciones = {};
+    exSnap.forEach(doc => { if(doc.data().active) excepciones[doc.id] = doc.data().reason; });
+
+    renderCalendario();
+}
+
+
+function renderCalendario(){
+    const y=fechaActual.getFullYear(); const m=fechaActual.getMonth();
+    document.getElementById("mes").innerText=`${["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][m]} ${y}`;
+    const contenedor=document.getElementById("dias"); contenedor.innerHTML="";
+    const diasMes=new Date(y,m+1,0).getDate(); const primerDia=new Date(y,m,1).getDay();
+    let offset=primerDia===0?6:primerDia-1;
+    for(let i=0;i<offset;i++){ contenedor.appendChild(document.createElement("div")); }
+
+    for(let d=1;d<=diasMes;d++){
+        const fStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        let f=new Date(y,m,d); f.setHours(0,0,0,0);
+        let div=document.createElement("div"); div.className="dia"; div.innerText=d;
+
+        if(f.getDay()===0) div.classList.add("domingo");
+        else if(f<hoy) div.classList.add("pasado");
+        else if(excepciones[fStr]){
+            div.classList.add("bloqueado");
+            div.onclick=()=>mostrarAviso("Cerrado", `Motivo: ${excepciones[fStr]}`);
+        } else {
+            div.onclick=()=>{
+                document.querySelectorAll(".dia").forEach(e=>e.classList.remove("seleccionado"));
+                div.classList.add("seleccionado"); fechaSeleccionada=f; cargarHorarios(f, fStr);
+            };
+        }
+        contenedor.appendChild(div);
+    }
+}
+
+async function cargarHorarios(fecha, fStr){
+    const container=document.getElementById("horarios");
+    container.innerHTML="<p>Buscando turnos...</p>";
+
+    if(excepciones[fStr]) { container.innerHTML=`<p style="color:red;">Día cerrado: ${excepciones[fStr]}</p>`; return; }
+
+    // Excepción de horarios puntuales
+    if(EXCEPCIONES_HORARIOS[fStr]){
+        const config = EXCEPCIONES_HORARIOS[fStr];
+        return renderHorariosPorConfig(config, container, fStr);
+    }
+
+    const nombreDia=["domingo","lunes","martes","miercoles","jueves","viernes","sabado"][fecha.getDay()];
+
+    // Bloquear sábados de marzo/abril excepto el 2026-04-25
+    if(nombreDia === 'sabado' && !EXCEPCIONES_HORARIOS[fStr]){
+        const mes = fecha.getMonth() + 1;
+        const year = fecha.getFullYear();
+        if(year === 2026 && (mes === 3 || mes === 4)){
+            container.innerHTML = "<p style='color:#555;'>No hay horarios disponibles para este sábado.</p>";
+            return;
+        }
+    }
+
+    const config = CONFIG_DIAS[nombreDia];
+    if(!config) { container.innerHTML="<p>Cerrado</p>"; return; }
+
+    const snapRes=await getDocs(query(collection(db,"reservas"),where("fecha","==",fStr)));
+    const ocupados=snapRes.docs.map(doc=> (doc.data().hora||"").replace(" hs","").trim());
+    container.innerHTML="";
+
+    const todos = [
+        ...config.normal.map(h => ({h, tipo:'normal'})),
+        ...config.fraccionado.map(h => ({h, tipo:'fraccionado'}))
+    ].sort((a,b) => a.h.localeCompare(b.h));
+
+    todos.forEach(item => {
+        let div=document.createElement("div"); div.className="hora"; div.innerText=item.h;
+        
+        // --- LÓGICA DE BLOQUEO EN CADENA ---
+        let estaOcupado = ocupados.includes(item.h);
+        
+        // Si el de las 12:00 está libre pero el de las 12:30 está ocupado (o viceversa), marcamos AMBOS en rojo.
+        if (!estaOcupado) {
+            if (item.h === "12:00" && ocupados.includes("12:30")) estaOcupado = true;
+            if (item.h === "12:30" && ocupados.includes("12:00")) estaOcupado = true;
+            if (item.h === "20:00" && ocupados.includes("20:30")) estaOcupado = true;
+            if (item.h === "20:30" && ocupados.includes("20:00")) estaOcupado = true;
+        }
+
+        if(estaOcupado) { 
+            div.classList.add("ocupado"); 
+        } else {
+            div.onclick=()=>{
+                if(!esMioUp && item.tipo==='fraccionado') {
+                    const esInicio = (item.h==="12:00" || item.h==="20:00");
+                    if(!esInicio) {
+                        mostrarAviso("Bloque de 30 min", "Para una sesión normal de 1 hora, selecciona el horario de inicio (12:00 o 20:00).");
+                        return;
+                    }
+                }
+                horaSeleccionada=item.h;
+                duracionTurno = (esMioUp && item.tipo==='fraccionado') ? 30 : 60;
+                document.querySelectorAll(".hora").forEach(e=>e.classList.remove("selected"));
+                div.classList.add("selected"); document.getElementById("reservarBtn").disabled=false;
+            };
+        }
+        container.appendChild(div);
+    });
+}
+
+function mostrarAviso(titulo, msg){
+    document.getElementById("modalTitulo").innerText=titulo;
+    document.getElementById("modalMsg").innerHTML=msg;
+    document.getElementById("modalMimar").style.display="flex";
+}
+
+document.getElementById("btnFinalizarModal").onclick=()=>document.getElementById("modalMimar").style.display="none";
+
+document.getElementById("reservarBtn").onclick=()=>{
+    const fStr=`${fechaSeleccionada.getFullYear()}-${String(fechaSeleccionada.getMonth()+1).padStart(2,'0')}-${String(fechaSeleccionada.getDate()).padStart(2,'0')}`;
+    localStorage.setItem("fechaSeleccionada", fStr);
+    localStorage.setItem("horaSeleccionada", horaSeleccionada);
+    localStorage.setItem("duracionSeleccionada", duracionTurno);
+    window.location.href="confirmar.html";
+};
+
+document.getElementById("btnMesSiguiente").onclick=()=>{ fechaActual.setMonth(fechaActual.getMonth()+1); renderCalendario(); };
+document.getElementById("btnMesAnterior").onclick=()=>{ fechaActual.setMonth(fechaActual.getMonth()-1); renderCalendario(); };
+
+const closeFloatingWarning = document.getElementById("floatingWarningClose");
+if (closeFloatingWarning) {
+    closeFloatingWarning.onclick = () => {
+        document.getElementById("floatingWarning").style.display = "none";
+        localStorage.setItem("floatingWarningHidden", "true");
+    };
+}
+
+window.addEventListener("scroll", () => {
+    const el = document.querySelector(".floating-warning");
+    if (!el) return;
+    const atTop = window.scrollY < 140;
+    el.style.opacity = atTop ? "1" : "0.4";
+});
+
+if (localStorage.getItem("floatingWarningHidden") === "true") {
+    const fl = document.getElementById("floatingWarning");
+    if (fl) fl.style.display = "none";
+}
+
+cargarDatos();
+function renderHorariosPorConfig(config, container, fStr) {
+    return getDocs(query(collection(db, "reservas"), where("fecha", "==", fStr)))
+        .then(snapRes => {
+            const ocupados = snapRes.docs.map(doc => (doc.data().hora || "").replace(" hs", "").trim());
+            container.innerHTML = "";
+
+            const todos = [
+                ...config.normal.map(h => ({h, tipo: 'normal'})),
+                ...config.fraccionado.map(h => ({h, tipo: 'fraccionado'}))
+            ].sort((a,b) => a.h.localeCompare(b.h));
+
+            todos.forEach(item => {
+                let div = document.createElement("div");
+                div.className = "hora";
+                div.innerText = item.h;
+
+                let estaOcupado = ocupados.includes(item.h);
+                if (!estaOcupado) {
+                    if (item.h === "12:00" && ocupados.includes("12:30")) estaOcupado = true;
+                    if (item.h === "12:30" && ocupados.includes("12:00")) estaOcupado = true;
+                    if (item.h === "20:00" && ocupados.includes("20:30")) estaOcupado = true;
+                    if (item.h === "20:30" && ocupados.includes("20:00")) estaOcupado = true;
+                }
+
+                if (estaOcupado) {
+                    div.classList.add("ocupado");
+                } else {
+                    div.onclick = () => {
+                        if(!esMioUp && item.tipo === 'fraccionado') {
+                            const esInicio = (item.h === "12:00" || item.h === "20:00");
+                            if(!esInicio) {
+                                mostrarAviso("Bloque de 30 min", "Para una sesión normal de 1 hora, selecciona el horario de inicio (12:00 o 20:00). ");
+                                return;
+                            }
+                        }
+                        horaSeleccionada = item.h;
+                        duracionTurno = (esMioUp && item.tipo === 'fraccionado') ? 30 : 60;
+                        document.querySelectorAll(".hora").forEach(e => e.classList.remove("selected"));
+                        div.classList.add("selected");
+                        document.getElementById("reservarBtn").disabled = false;
+                    };
+                }
+
+                container.appendChild(div);
+            });
+        })
+        .catch(error => {
+            console.error(error);
+            container.innerHTML = "<p style='color:red;'>Error cargando horarios</p>";
+        });
+}</script>
+</body>
+</html>

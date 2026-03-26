@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política y Consentimiento | Espacio Mimar</title>
+<style>
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f5f5f5;
+        margin: 0;
+        padding: 0;
+        color: #333;
+        line-height: 1.5;
+    }
+
+    .container {
+        max-width: 850px;
+        margin: 20px auto;
+        background: white;
+        padding: 35px;
+        box-shadow: 0 0 15px rgba(0,0,0,0.05);
+        border-radius: 15px;
+    }
+
+    h1 { text-align: center; color: #72bd99; margin-bottom: 25px; font-size: 24px; }
+    h2 { color: #72bd99; margin-top: 25px; font-size: 19px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    
+    p, ul li { font-size: 13.5px; margin-bottom: 10px; }
+    ul { padding-left: 20px; }
+
+    .acceptance-section {
+        background: #fcfdfc;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #eef2f0;
+        margin-top: 25px;
+        transition: opacity 0.3s;
+    }
+
+    .consent-scroll {
+        height: 100px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #ddd;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 15px;
+    }
+
+    .check-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-bottom: 15px;
+    }
+
+    .check-group input { width: 17px; height: 17px; cursor: pointer; accent-color: #72bd99; }
+
+    .btn-step {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: none;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+        font-size: 14px;
+    }
+
+    .btn-off { background: #eee; color: #aaa; cursor: not-allowed; }
+    .btn-on { background: #72bd99; color: white; box-shadow: 0 4px 10px rgba(114, 189, 153, 0.2); }
+
+    .hidden { display: none; }
+
+    .footer {
+        margin-top: 20px;
+        font-size: 11px;
+        color: #aaa;
+        padding-bottom: 30px;
+        text-align: center;
+        width: 100%;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Política de Privacidad y Consentimiento Informado</h1>
+
+    <p>En <strong>Espacio Mimar</strong> nos comprometemos a proteger la privacidad y seguridad de los datos personales de nuestros clientes, así como a brindar información clara sobre los tratamientos estéticos ofrecidos.</p>
+
+    <h2>1. Datos personales recopilados</h2>
+    <p>Para la correcta gestión de turnos y tratamientos podemos solicitar:</p>
+    <ul>
+        <li>Nombre y apellido, DNI, Teléfono y Correo electrónico.</li>
+        <li>Información relevante para el tratamiento estético.</li>
+    </ul>
+
+    <h2>2. Uso de la información</h2>
+    <p>Los datos se utilizan para gestión de turnos, recordatorios vía WhatsApp y seguimiento de resultados.</p>
+
+    <h2>3. Reserva de turnos</h2>
+    <ul>
+        <li>Las cancelaciones deben realizarse con al menos <strong>48 horas de anticipación</strong>.</li>
+        <li>En caso de no asistir sin aviso previo, la sesión podrá considerarse realizada.</li>
+    </ul>
+
+    <h2>4. Consentimiento informado</h2>
+    <p>El cliente declara haber recibido información sobre el procedimiento y cuidados posteriores.</p>
+
+    <h2>5. Contraindicaciones</h2>
+    <ul>
+        <li>Embarazo, marcapasos, diabetes no controlada o cirugías recientes.</li>
+    </ul>
+
+    <h2>6. Resultados</h2>
+    <p>Los resultados pueden variar según el tipo de piel y hábitos del cliente.</p>
+
+    <h2>7. Seguridad de la información</h2>
+    <p>La información se almacena mediante herramientas digitales seguras.</p>
+
+    <h2>8. Modificaciones</h2>
+    <p>Espacio Mimar podrá actualizar esta política para adaptarse a cambios legales.</p>
+
+    <h2>9. Contacto</h2>
+    <p>Para consultas, puede comunicarse vía WhatsApp al número oficial del centro.</p>
+
+    <div id="step1" class="acceptance-section">
+        <label class="check-group">
+            <input type="checkbox" id="checkPolitica">
+            He leído y acepto la Política de Privacidad de Espacio Mimar
+        </label>
+        <button id="btnPolitica" class="btn-step btn-off" disabled>Aceptar Política</button>
+    </div>
+
+    <div id="step2" class="acceptance-section hidden">
+        <h3 style="font-size: 16px; color: #72bd99; margin-top:0;">Consentimiento de Tratamiento</h3>
+        <div class="consent-scroll">
+            Autorizo el tratamiento de mis datos personales conforme a la legislación vigente. Declaro haber sido informado sobre los procedimientos, alcances y contraindicaciones de los servicios estéticos de Espacio Mimar, otorgando mi consentimiento para la realización de los mismos y el seguimiento profesional correspondiente.
+        </div>
+        <label class="check-group">
+            <input type="checkbox" id="checkConsent">
+            Acepto el Consentimiento Informado para mi tratamiento
+        </label>
+        <button id="btnFinalizar" class="btn-step btn-off" disabled>Aceptar y Finalizar Registro</button>
+    </div>
+
+    <div class="footer">© 2026 Espacio Mimar T — Todos los derechos reservados</div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
+        authDomain: "estetica-8d067.firebaseapp.com",
+        projectId: "estetica-8d067",
+        storageBucket: "estetica-8d067.firebasestorage.app",
+        messagingSenderId: "501220214938",
+        appId: "1:501220214938:web:af6e262c23d9a7ea853723"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const checkP = document.getElementById("checkPolitica");
+    const btnP = document.getElementById("btnPolitica");
+    const checkC = document.getElementById("checkConsent");
+    const btnF = document.getElementById("btnFinalizar");
+    const step2 = document.getElementById("step2");
+
+    // Lógica Paso 1
+    checkP.onchange = () => {
+        btnP.disabled = !checkP.checked;
+        btnP.className = checkP.checked ? "btn-step btn-on" : "btn-step btn-off";
+    };
+
+    btnP.onclick = () => {
+        document.getElementById("step1").style.opacity = "0.5";
+        document.getElementById("step1").style.pointerEvents = "none";
+        step2.classList.remove("hidden");
+        step2.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // Lógica Paso 2
+    checkC.onchange = () => {
+        btnF.disabled = !checkC.checked;
+        btnF.className = checkC.checked ? "btn-step btn-on" : "btn-step btn-off";
+    };
+
+    btnF.onclick = async () => {
+        const dni = localStorage.getItem("clienteDNI");
+        if(!dni) {
+            alert("Error de sesión");
+            window.location.href = "index.html";
+            return;
+        }
+
+        try {
+            const userRef = doc(db, "clients", dni);
+            // Esto agrega los campos automáticamente en la ficha del cliente
+            await updateDoc(userRef, { 
+                politicaAceptada: true,
+                consentimientoAceptado: true,
+                fechaAceptacion: new Date()
+            });
+            localStorage.setItem("consentimiento", "ok");
+            window.location.href = "servicioincluido.html";
+        } catch (e) {
+            console.error("Error al guardar:", e);
+            alert("Error al guardar. Reintentá.");
+        }
+    };
+</script>
+
+</body>
+</html>

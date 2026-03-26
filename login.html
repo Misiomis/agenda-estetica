@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Ingreso | Espacio Mimar</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+--verde:#72bd99;
+--verde-oscuro:#4e9d7a;
+--ink:#2b3934;
+--muted:#64706b;
+}
+
+*{
+box-sizing:border-box;
+}
+
+body{
+background:radial-gradient(circle at 14% -10%, #ffffff 0%, #f4f9f6 40%, #eaf2ee 72%, #e2ebe6 100%);
+font-family:'Montserrat',sans-serif;
+margin:0;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
+padding:20px 12px;
+position:relative;
+overflow-x:hidden;
+line-height:1.45;
+-webkit-font-smoothing:antialiased;
+text-rendering:optimizeLegibility;
+}
+
+body::before{
+content:"";
+position:fixed;
+inset:0;
+pointer-events:none;
+background:
+radial-gradient(circle at 92% 8%, rgba(114,189,153,0.1) 0%, rgba(114,189,153,0) 42%),
+radial-gradient(circle at 8% 82%, rgba(62,136,106,0.08) 0%, rgba(62,136,106,0) 44%);
+}
+
+.container{
+background:rgba(255,255,255,0.94);
+padding:42px;
+border-radius:24px;
+text-align:center;
+box-shadow:0 22px 48px rgba(29,51,42,0.16), 0 7px 16px rgba(29,51,42,0.08);
+max-width:440px;
+width:92%;
+border:1px solid rgba(106,167,138,0.16);
+position:relative;
+z-index:2;
+overflow:hidden;
+}
+
+.container::before{
+content:"";
+position:absolute;
+inset:0 0 auto 0;
+height:3px;
+background:linear-gradient(90deg, rgba(114,189,153,0) 0%, rgba(114,189,153,0.85) 50%, rgba(114,189,153,0) 100%);
+}
+
+.container > *{
+animation:fadeLift .4s ease both;
+}
+
+.container > *:nth-child(2){ animation-delay:.05s; }
+.container > *:nth-child(3){ animation-delay:.1s; }
+.container > *:nth-child(4){ animation-delay:.15s; }
+
+.logo{
+width:170px;
+margin-bottom:15px;
+filter:drop-shadow(0 8px 18px rgba(45,83,67,0.14));
+}
+
+.nombre{
+font-size:24px;
+font-weight:700;
+margin-top:10px;
+color:var(--ink);
+font-family:'Playfair Display',serif;
+letter-spacing:0.2px;
+}
+
+.credenciales{
+font-size:14px;
+color:var(--muted);
+margin-top:5px;
+line-height:1.55;
+}
+
+.descripcion{
+font-size:13px;
+color:#5f6965;
+margin-top:10px;
+line-height:1.6;
+margin-bottom:25px;
+}
+
+h3{
+font-weight:600;
+color:#3e4a45;
+letter-spacing:.3px;
+}
+
+input{
+width:100%;
+padding:13px;
+margin-bottom:15px;
+border-radius:11px;
+border:1px solid #d7e2dc;
+font-size:15px;
+background:#fff;
+color:var(--ink);
+transition:border-color .2s ease, box-shadow .2s ease;
+}
+
+input:focus{
+outline:none;
+border-color:#87bb9f;
+box-shadow:0 0 0 3px rgba(114,189,153,0.2);
+}
+
+button{
+background:linear-gradient(135deg,#79c6a2 0%,#4f9e7b 100%);
+color:white;
+border:none;
+padding:14px;
+width:100%;
+border-radius:12px;
+font-size:16px;
+font-weight:700;
+cursor:pointer;
+transition:transform .2s ease, box-shadow .2s ease, filter .2s ease;
+box-shadow:0 12px 24px rgba(65,128,100,0.26);
+}
+
+button:hover{
+transform:translateY(-1px);
+filter:saturate(1.04);
+}
+
+button:active{
+transform:translateY(0);
+}
+
+button:focus-visible,
+input:focus-visible{
+outline:3px solid rgba(86,149,117,0.4);
+outline-offset:2px;
+}
+
+.footer{
+margin-top:20px;
+font-size:12px;
+color:#8b9691;
+padding-bottom:20px;
+text-align:center;
+width:100%;
+letter-spacing:0.2px;
+}
+
+@keyframes fadeLift{
+0%{
+opacity:0;
+transform:translateY(8px);
+}
+100%{
+opacity:1;
+transform:translateY(0);
+}
+}
+
+@media (prefers-reduced-motion: reduce){
+.container > *{
+animation:none;
+}
+
+button,
+input{
+transition:none;
+}
+}
+
+@media (max-width: 480px){
+.container{
+padding:30px 18px;
+border-radius:20px;
+}
+
+.logo{
+width:150px;
+}
+
+.nombre{
+font-size:22px;
+}
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<img src="img/logo.png" class="logo">
+
+<div class="nombre">
+Gimena Knack
+</div>
+
+<div class="credenciales">
+Farmacéutica MP 1212<br>
+Cosmetóloga · Cosmiatra · Dermocosmiatra
+</div>
+
+<div class="descripcion">
+Especialista en tratamientos faciales y corporales personalizados.  
+En <strong>Espacio Mimar</strong> cada tratamiento se realiza con evaluación profesional, productos de calidad y atención individualizada para el cuidado integral de la piel.
+</div>
+
+<h3>Ingreso de paciente</h3>
+
+<input id="nombre" placeholder="Nombre y apellido">
+
+<input id="telefono" placeholder="Teléfono">
+
+<button onclick="ingresar()">
+Ingresar
+</button>
+
+</div>
+
+<div class="footer">
+© 2026 Espacio Mimar T — Todos los derechos reservados
+</div>
+
+<script>
+
+function ingresar(){
+
+const nombre = document.getElementById("nombre").value
+const telefono = document.getElementById("telefono").value
+
+if(nombre=="" || telefono==""){
+
+alert("Por favor complete los datos")
+return
+
+}
+
+// guardar paciente
+localStorage.setItem("usuario",nombre)
+localStorage.setItem("telefono",telefono)
+
+// ir a historia clínica
+window.location.href="historia.html"
+
+}
+
+</script>
+
+</body>
+</html>
