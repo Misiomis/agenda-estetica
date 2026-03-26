@@ -138,9 +138,13 @@
                 }
 
                 // 3. Enviar WhatsApp usando el telefono de la ficha
+                // Normalizar: sacar caracteres no numéricos y agregar 549 si no tiene prefijo Argentina
+                let telNormalizado = (telefonoExtraido || "").toString().replace(/\D/g, "");
+                if (!telNormalizado.startsWith("54")) telNormalizado = "549" + telNormalizado;
+
                 const payload = {
                     messaging_product: "whatsapp",
-                    to: telefonoExtraido, 
+                    to: telNormalizado,
                     type: "template",
                     template: {
                         name: TEMPLATE_NAME,
