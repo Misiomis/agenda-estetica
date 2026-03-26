@@ -8,52 +8,62 @@ service cloud.firestore {
         && request.auth.token.email == "espaciomimart36@gmail.com";
     }
 
-    function estaAutenticado() {
-      return request.auth != null;
+    // Campos críticos que solo el admin puede tocar
+    function noCambiaCamposAdmin() {
+      return !(request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(['membershipActive', 'membresia', 'hoursBalance', 'role']));
     }
 
     // ── clients ──────────────────────────────────────────────────────────────
-    // Admin: lectura y escritura total.
-    // Cliente autenticado: solo puede leer/editar su propio documento.
+    // Admin: lectura y escritura total (incluye membershipActive, hoursBalance).
+    // Pacientes sin auth: pueden leer (necesario para login por DNI).
+    // Pacientes sin auth: pueden actualizar solo campos no-críticos
+    //   (historiaCompletada, consentimientoAceptado, politicaAceptada, etc.)
     match /clients/{clientId} {
-      allow read:   if esAdmin() || (estaAutenticado() && request.auth.uid == clientId);
-      allow write:  if esAdmin() || (estaAutenticado() && request.auth.uid == clientId);
-    }
-
-    // ── reservas ─────────────────────────────────────────────────────────────
-    match /reservas/{reservaId} {
-      allow read:  if estaAutenticado();
-      allow write: if esAdmin();
+      allow read:   if true;
+      allow write:  if esAdmin();
+      allow update: if noCambiaCamposAdmin();
     }
 
     // ── historias ────────────────────────────────────────────────────────────
+    // Cualquiera puede escribir su historia clínica (flujo sin auth Firebase).
     match /historias/{historiaId} {
-      allow read:  if estaAutenticado();
-      allow write: if esAdmin();
+      allow read:   if esAdmin();
+      allow write:  if true;
+    }
+
+    // ── reservas ─────────────────────────────────────────────────────────────
+    // Pacientes crean reservas. Admin puede modificar/cancelar.
+    match /reservas/{reservaId} {
+      allow read:   if true;
+      allow create: if true;
+      allow update, delete: if esAdmin();
     }
 
     // ── horarios ─────────────────────────────────────────────────────────────
+    // Pacientes leen para ver disponibilidad.
     match /horarios/{horarioId} {
-      allow read:  if estaAutenticado();
-      allow write: if esAdmin();
+      allow read:   if true;
+      allow write:  if esAdmin();
     }
 
     // ── calendarExceptions (bloqueos) ────────────────────────────────────────
+    // Pacientes leen para saber qué días están bloqueados.
     match /calendarExceptions/{excId} {
-      allow read:  if estaAutenticado();
-      allow write: if esAdmin();
+      allow read:   if true;
+      allow write:  if esAdmin();
     }
 
     // ── configuracion ────────────────────────────────────────────────────────
     match /configuracion/{docId} {
-      allow read:  if estaAutenticado();
-      allow write: if esAdmin();
+      allow read:   if true;
+      allow write:  if esAdmin();
     }
 
     // ── services ─────────────────────────────────────────────────────────────
     match /services/{serviceId} {
-      allow read:  if true;
-      allow write: if esAdmin();
+      allow read:   if true;
+      allow write:  if esAdmin();
     }
 
   }
