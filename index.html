@@ -14,13 +14,16 @@ a<!DOCTYPE html>
         body { 
             margin: 0; 
             font-family: 'Montserrat', sans-serif; 
-            background: url("img/recepcion.jpeg") center/cover no-repeat; 
-            height: 100vh; 
+            background: #e8eeea url("img/recepcion.jpeg") center/cover no-repeat; 
+            min-height: 100vh;
+            min-height: 100svh;
             display: flex; 
             justify-content: center; 
             align-items: center; 
             position: relative; 
             flex-direction: column; 
+            padding: 20px 0;
+            -webkit-text-size-adjust: 100%;
         }
         body::before { 
             content: ""; 
@@ -131,6 +134,49 @@ a<!DOCTYPE html>
             text-align: center; 
             width: 100%; 
             z-index: 1; 
+        }
+
+        html, body {
+            overflow-x: hidden;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                background-position: 58% top;
+                background-size: cover;
+                min-height: 100svh;
+                height: auto;
+                padding: max(14px, env(safe-area-inset-top)) 10px max(18px, env(safe-area-inset-bottom));
+            }
+
+            body::before {
+                background: rgba(140,163,138,0.28);
+            }
+
+            .container {
+                padding: 32px 22px;
+                border-radius: 22px;
+            }
+
+            .logo {
+                width: min(72vw, 280px);
+                height: auto;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .container {
+                width: 94%;
+                padding: 28px 18px;
+            }
+
+            .subtitulo {
+                letter-spacing: 2px;
+            }
+
+            h2 {
+                font-size: 18px;
+            }
         }
     </style>
 </head>
