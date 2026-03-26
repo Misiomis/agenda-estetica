@@ -83,15 +83,16 @@
 
                 if (docSnap.exists()) {
                     const datosCliente = docSnap.data();
-                    telefonoExtraido = datosCliente.phone; // Extrae el campo phone exacto
+                    telefonoExtraido = datosCliente.phone || datosCliente.telefono || datosCliente.whatsapp || "";
 
                     if (telefonoExtraido) {
                         document.getElementById("txtTelefono").innerText = telefonoExtraido;
                         boton.disabled = false;
                         boton.innerText = "Confirmar y Enviar WhatsApp";
                     } else {
-                        document.getElementById("txtTelefono").innerText = "Sin teléfono en ficha";
-                        boton.innerText = "Falta teléfono en ficha";
+                        document.getElementById("txtTelefono").innerText = "Sin teléfono en ficha (se guardará igual)";
+                        boton.disabled = false;
+                        boton.innerText = "Confirmar turno";
                     }
                 } else {
                     document.getElementById("txtTelefono").innerText = "Usuario no registrado";
@@ -116,9 +117,11 @@
                 // 1. Guardar turno en Firestore (con multiple redundancia de nombres para el panel)
                 await addDoc(collection(db, "reservas"), {
                     cliente: nombreLs, 
+                    clienteNombre: nombreLs,
                     nombre: nombreLs, 
                     title: nombreLs,
                     displayName: nombreLs,
+                    phone: telefonoExtraido || "",
                     telefono: telefonoExtraido,
                     dni: dniLs,
                     servicio: servLs,
@@ -139,49 +142,55 @@
 
                 // 3. Enviar WhatsApp usando el telefono de la ficha
                 // Normalizar: sacar caracteres no numéricos y agregar 549 si no tiene prefijo Argentina
-                let telNormalizado = (telefonoExtraido || "").toString().replace(/\D/g, "");
-                if (!telNormalizado.startsWith("54")) telNormalizado = "549" + telNormalizado;
+                if (telefonoExtraido) {
+                    let telNormalizado = (telefonoExtraido || "").toString().replace(/\D/g, "");
+                    if (!telNormalizado.startsWith("54")) telNormalizado = "549" + telNormalizado;
 
-                const payload = {
-                    messaging_product: "whatsapp",
-                    to: telNormalizado,
-                    type: "template",
-                    template: {
-                        name: TEMPLATE_NAME,
-                        language: { code: TEMPLATE_LANG },
-                        components: [{
-                            type: "body",
-                            parameters: [
-                                { type: "text", text: nombreLs },
-                                { type: "text", text: servLs },
-                                { type: "text", text: fechaLs },
-                                { type: "text", text: horaLs }
-                            ]
-                        }]
+                    const payload = {
+                        messaging_product: "whatsapp",
+                        to: telNormalizado,
+                        type: "template",
+                        template: {
+                            name: TEMPLATE_NAME,
+                            language: { code: TEMPLATE_LANG },
+                            components: [{
+                                type: "body",
+                                parameters: [
+                                    { type: "text", text: nombreLs },
+                                    { type: "text", text: servLs },
+                                    { type: "text", text: fechaLs },
+                                    { type: "text", text: horaLs }
+                                ]
+                            }]
+                        }
+                    };
+
+                    try {
+                        const response = await fetch(`https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`, {
+                            method: "POST",
+                            headers: {
+                                "Authorization": `Bearer ${WHATSAPP_TOKEN}`,
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify(payload)
+                        });
+
+                        const resJson = await response.json();
+                        if (!response.ok) {
+                            console.error("Error API WhatsApp:", resJson);
+                            alert("Turno guardado, pero falló el WhatsApp.");
+                        }
+                    } catch (waError) {
+                        console.error("Error enviando WhatsApp:", waError);
+                        alert("Turno guardado, pero no se pudo enviar WhatsApp.");
                     }
-                };
-
-                const response = await fetch(`https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${WHATSAPP_TOKEN}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const resJson = await response.json();
-
-                if (response.ok) {
-                    document.getElementById("modalConfirmado").style.display = "flex";
-                } else {
-                    console.error("Error API WhatsApp:", resJson);
-                    alert("Turno guardado, pero falló el WhatsApp. Revisa la consola.");
-                    document.getElementById("modalConfirmado").style.display = "flex"; 
                 }
+
+                document.getElementById("modalConfirmado").style.display = "flex";
             } catch (error) {
                 console.error("Error general:", error);
-                alert("Error de conexión al guardar el turno.");
+                const detalle = error?.code || error?.message || "Error desconocido";
+                alert(`No se pudo guardar el turno en Firestore: ${detalle}`);
                 boton.disabled = false;
                 boton.innerText = "Reintentar";
             }
