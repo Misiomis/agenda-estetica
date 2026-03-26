@@ -928,7 +928,7 @@
                         <button class="btn-ws btn-recordar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','recordar')">Recordar</button>
                         <button class="btn-ws btn-cancelar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar')">Cancelar</button>
                     </div>
-                    <button onclick="enviarDetalleManual('${r.id}')" style="width:100%; margin-top:8px; padding:10px; border-radius:10px; border:none; background:#25d366; color:white; font-weight:700; cursor:pointer; font-size:13px">📲 Enviar resumen de sesión</button>
+                    ${tieneNota ? `<button id="btnEnviarResumen-${r.id}" onclick="enviarDetalleManual('${r.id}')" style="width:100%; margin-top:8px; padding:10px; border-radius:10px; border:none; background:#25d366; color:white; font-weight:700; cursor:pointer; font-size:13px">📲 Enviar resumen de sesión</button>` : ''}
                 </div>`;
             }).join('') : '<p style="text-align:center; opacity:0.5">Sin turnos.</p>';
 
@@ -1228,18 +1228,19 @@
                     const btnGuardar = document.getElementById(`btnN-${id}`);
                     if (btnGuardar) btnGuardar.remove();
                 }
-                // WhatsApp automático con detalle de la sesión
-                let envioDetalle = null;
-                if (nota && tel) {
-                    envioDetalle = await enviarDetalleSesionWhatsApp(tel, nombre, fecha, hora || "", servicio || "Tratamiento", nota);
+                // Mostrar botón enviar resumen si no existe ya
+                if (!document.getElementById(`btnEnviarResumen-${id}`)) {
+                    const card = document.getElementById(`nd-${id}`)?.closest('.detalle-dia-card') || document.getElementById(`nd-${id}`)?.parentElement;
+                    if (card) {
+                        const btnEnviar = document.createElement('button');
+                        btnEnviar.id = `btnEnviarResumen-${id}`;
+                        btnEnviar.textContent = '📲 Enviar resumen de sesión';
+                        btnEnviar.style.cssText = 'width:100%; margin-top:8px; padding:10px; border-radius:10px; border:none; background:#25d366; color:white; font-weight:700; cursor:pointer; font-size:13px';
+                        btnEnviar.onclick = () => enviarDetalleManual(id);
+                        card.appendChild(btnEnviar);
+                    }
                 }
-                if (nota && tel && envioDetalle?.ok) {
-                    mostrarAviso("✅ Nota guardada y detalle enviado por WhatsApp 📲");
-                } else if (nota && tel && envioDetalle && !envioDetalle.ok) {
-                    mostrarAviso("✅ Nota guardada. Falló el envío del detalle por WhatsApp");
-                } else {
-                    mostrarAviso("✅ Nota guardada");
-                }
+                mostrarAviso('✅ Nota guardada');
             } catch (error) {
                 console.error(error);
                 mostrarAviso("❌ No se pudo guardar la nota");
