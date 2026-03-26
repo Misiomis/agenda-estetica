@@ -116,6 +116,9 @@
         const modalResultados = document.getElementById("modalCitasCliente");
         const listaResultados = document.getElementById("listaResultadosCitas");
 
+        const SERVICIO_LED_NOMBRE = "Facial LED Regenerativo";
+        const SERVICIO_LED_RESUMEN = "Tratamiento no invasivo con cabina LED profesional que estimula colageno y elastina para mejorar firmeza, luminosidad y textura, ayudando tambien en acne, inflamacion, rojeces y manchas. Sesion relajante de 30 minutos, sin dolor ni recuperacion; ideal para piel sensible y resultados progresivos desde la primera aplicacion.";
+
         // LÓGICA DE BÚSQUEDA Y ORDENAMIENTO
         async function ejecutarConsulta(dni) {
             modalBusqueda.style.display = "none";
@@ -212,6 +215,22 @@
                     const data = doc.data();
                     if (data.activo) servicios.push(data);
                 });
+
+                const yaExisteServicioLED = servicios.some(
+                    s => (s.nombre || "").trim().toLowerCase() === SERVICIO_LED_NOMBRE.toLowerCase()
+                );
+
+                if (!yaExisteServicioLED) {
+                    const ordenMax = servicios.reduce((max, s) => Math.max(max, Number(s.orden) || 0), 0);
+                    servicios.push({
+                        nombre: SERVICIO_LED_NOMBRE,
+                        duracion: 30,
+                        descripcion: SERVICIO_LED_RESUMEN,
+                        orden: ordenMax + 1,
+                        activo: true
+                    });
+                }
+
                 servicios.sort((a, b) => a.orden - b.orden);
                 loading.style.display = "none";
                 servicios.forEach(s => {
