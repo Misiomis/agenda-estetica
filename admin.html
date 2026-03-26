@@ -620,39 +620,14 @@
         const enviarDetalleSesionWhatsApp = async (tel, nombre, fecha, hora, servicio, detalle) => {
             const num = formatearTelefonoWhatsApp(tel);
             if (!num || !detalle) return { ok: false, reason: "missing-data" };
-            const horaStr = (hora || "-").toString().replace(/ hs$/, "");
             try {
-                const resp = await fetch(`https://graph.facebook.com/v18.0/${WA_PHONE_ID}/messages`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${WA_TOKEN}`
-                    },
-                    body: JSON.stringify({
-                        messaging_product: "whatsapp",
-                        to: num,
-                        type: "template",
-                        template: {
-                            name: "resumen_sesion",
-                            language: { code: "es_AR" },
-                            components: [{
-                                type: "body",
-                                parameters: [
-                                    { type: "text", text: nombre || "" },
-                                    { type: "text", text: fecha || "-" },
-                                    { type: "text", text: horaStr },
-                                    { type: "text", text: servicio || "Tratamiento" },
-                                    { type: "text", text: detalle }
-                                ]
-                            }]
-                        }
-                    })
-                });
-                if (!resp.ok) {
-                    const err = await resp.json().catch(() => ({}));
-                    console.error("WA detalle error:", err);
-                    return { ok: false, reason: err?.error?.message || resp.status };
-                }
+                // Armar el mensaje directamente sin template para mayor compatibilidad
+                const dias = ["dom.", "lun.", "mar.", "mié.", "jue.", "vie.", "sáb."];
+                const [y, m, d] = fecha.split('-');
+                const fObj = new Date(y, m - 1, d);
+                const fechaLinda = `${dias[fObj.getDay()]} ${d}/${m}`;
+                const msg = `Hola *${nombre}* 💜%0A%0A✨ *Resumen de tu sesión en Espacio Mimar T*%0A%0A📅 ${fechaLinda}%0A🕒 ${hora}%0A💆 *${servicio || "Tratamiento"}*%0A%0A📝 *Detalles:*%0A${encodeURIComponent(detalle)}%0A%0A¡Gracias por confiar en nosotras! 💚`;
+                window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
                 return { ok: true };
             } catch (error) {
                 console.error("WA detalle exception:", error);
