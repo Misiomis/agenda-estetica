@@ -60,6 +60,11 @@
         .modal-card h3 { margin: 0 0 8px 0; color: #b33a47; font-size: 18px; }
         .modal-card p { margin: 0 0 8px 0; color: #456a5b; font-size: 14px; }
         .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; flex-wrap: wrap; }
+        .modal-card.delicado { max-width: 460px; border-radius: 20px; padding: 18px; background: linear-gradient(180deg, #ffffff 0%, #fffaf8 100%); border: 1px solid #f1d8db; box-shadow: 0 20px 48px rgba(68, 37, 43, 0.2); animation: popInSoft 0.18s ease-out; }
+        .modal-card.delicado h3 { color: #8d3d4a; margin-bottom: 6px; }
+        .modal-card.delicado p { color: #5e4a50; }
+        .modal-card.delicado .modal-actions { margin-top: 14px; }
+        @keyframes popInSoft { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .filtros-advanced { display: grid; grid-template-columns: minmax(190px, 1.3fr) repeat(2, minmax(130px, 1fr)) auto; gap: 8px; margin-bottom: 10px; align-items: center; }
         .select-input { width: 100%; min-height: 40px; padding: 10px 12px; border-radius: 12px; border: 1px solid #d1e7dc; box-sizing: border-box; outline: none; background: #fff; color: var(--texto); }
         .result-summary { font-size: 12px; color: #4c7a66; font-weight: 700; margin: 6px 0 8px; }
@@ -91,6 +96,8 @@
         .btn-confirmar { background: var(--whatsapp); }
         .btn-recordar { background: var(--azul); }
         .btn-cancelar { background: var(--rojo); }
+        .btn-delete-reserva { width: 100%; margin-top: 8px; border: 1px solid #edb7be; background: #fff5f6; color: #a33743; padding: 10px; min-height: 38px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 13px; }
+        .btn-delete-reserva:hover { background: #ffecef; }
 
         .busc-input { width: 100%; min-height: 42px; padding: 10px 12px; border-radius: 12px; border: 1px solid #cfe2d9; margin-bottom: 10px; box-sizing: border-box; outline: none; }
         .tag-fecha { background: #eee; padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 600; color: #666; }
@@ -182,6 +189,17 @@
                 <div class="modal-actions">
                     <button class="btn-mini" onclick="cerrarModalBloqueo()">Volver</button>
                     <button class="btn-mini alerta" onclick="confirmarBloqueoConReserva()">Confirmar bloqueo</button>
+                </div>
+            </div>
+        </div>
+        <div id="confirm-delete-modal" class="modal-overlay" style="display:none;">
+            <div class="modal-card delicado">
+                <h3>Confirmar borrado</h3>
+                <p id="confirm-delete-text-1"></p>
+                <p id="confirm-delete-text-2"></p>
+                <div class="modal-actions">
+                    <button class="btn-mini" onclick="cerrarModalBorradoReserva(false)">Cancelar</button>
+                    <button class="btn-mini alerta" onclick="cerrarModalBorradoReserva(true)">Sí, borrar</button>
                 </div>
             </div>
         </div>
@@ -582,6 +600,7 @@
         let horariosDisponibles = [];
         let bloqueosHorarios = new Map();
         let bloqueoPendienteConReserva = null;
+        let resolverModalBorrado = null;
         let membresiaNormalizadaSesion = false;
 
         const esReservaActiva = (r) => (r?.estado || '').toString().toLowerCase() !== 'cancelado';
@@ -928,6 +947,7 @@
                         <button class="btn-ws btn-recordar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','recordar')">Recordar</button>
                         <button class="btn-ws btn-cancelar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar')">Cancelar</button>
                     </div>
+                    <button class="btn-delete-reserva" onclick="borrarReserva('${r.id}')">Borrar reserva</button>
                     ${tieneNota ? `<button id="btnEnviarResumen-${r.id}" onclick="enviarDetalleManual('${r.id}')" style="width:100%; margin-top:8px; padding:10px; border-radius:10px; border:none; background:#25d366; color:white; font-weight:700; cursor:pointer; font-size:13px">📲 Enviar resumen de sesión</button>` : ''}
                 </div>`;
             }).join('') : '<p style="text-align:center; opacity:0.5">Sin turnos.</p>';
@@ -1133,6 +1153,31 @@
             await bloquearHorario(fecha, hora, true);
         };
 
+        window.cerrarModalBorradoReserva = (confirmado = false) => {
+            const modal = document.getElementById("confirm-delete-modal");
+            if (modal) modal.style.display = "none";
+            if (resolverModalBorrado) {
+                const resolver = resolverModalBorrado;
+                resolverModalBorrado = null;
+                resolver(confirmado);
+            }
+        };
+
+        const pedirConfirmacionBorradoReserva = (reserva) => {
+            const modal = document.getElementById("confirm-delete-modal");
+            const texto1 = document.getElementById("confirm-delete-text-1");
+            const texto2 = document.getElementById("confirm-delete-text-2");
+            if (!modal || !texto1 || !texto2) return Promise.resolve(false);
+
+            texto1.innerText = `Vas a borrar la reserva de ${reserva.nombreLimpio || 'Paciente'}.`;
+            texto2.innerText = `${formatoFechaISO(reserva.fecha)} · ${reserva.hora || '--:--'} hs · Esta acción no se puede deshacer.`;
+            modal.style.display = "flex";
+
+            return new Promise((resolve) => {
+                resolverModalBorrado = resolve;
+            });
+        };
+
         const bloquearHorario = async (fecha, hora, fromConfirm = false) => {
             const key = keyBloqueo(fecha, hora);
             const reserva = todasLasReservas.find(r => esReservaActiva(r) && r.fecha === fecha && normalizarHora(r.hora) === hora);
@@ -1198,6 +1243,40 @@
             } catch (error) {
                 console.error(error);
                 mostrarAviso("❌ No se pudo cancelar el turno");
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
+        window.borrarReserva = async (idReserva) => {
+            const reserva = todasLasReservas.find(r => r.id === idReserva);
+            if (!reserva) {
+                mostrarAviso("⚠️ No encontré la reserva");
+                return;
+            }
+
+            const confirmacion = await pedirConfirmacionBorradoReserva(reserva);
+
+            if (!confirmacion) return;
+
+            try {
+                mostrarLoader(true);
+                await deleteDoc(doc(db, "reservas", idReserva));
+                todasLasReservas = todasLasReservas.filter(r => r.id !== idReserva);
+                actualizarKPIs();
+                poblarServiciosFiltro();
+                renderCalendario();
+
+                if (fechaSeleccionada === reserva.fecha) {
+                    verTurnos(reserva.fecha);
+                } else {
+                    document.getElementById("panelDetalleDia").innerHTML = '';
+                }
+
+                mostrarAviso("✅ Reserva borrada de Firestore");
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo borrar la reserva");
             } finally {
                 mostrarLoader(false);
             }
