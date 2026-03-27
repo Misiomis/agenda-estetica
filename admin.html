@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6f8a6d">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="img/icon-192.png">
     <title>Admin Mimar T | Gestión Total</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
     <style>
@@ -23,6 +26,14 @@
         .btn-nav { padding: 10px 18px; min-height: 40px; border: 1px solid #cfe9dd; background: #fff; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.3s; color: var(--texto); }
         .btn-nav:hover { background: var(--suave); border-color: var(--suave-oscuro); }
         .btn-nav.active { background: #e9f7f0; color: var(--accento-oscuro); border-color: #a9d9c3; }
+        .install-widget-admin { display: none; margin: 10px auto 2px; width: min(100%, 560px); background: linear-gradient(135deg, rgba(245, 251, 247, 0.98) 0%, rgba(238, 248, 242, 0.98) 100%); border: 1px solid rgba(132, 168, 140, 0.32); border-radius: 14px; box-shadow: 0 8px 20px rgba(30, 54, 37, 0.12); overflow: hidden; }
+        .install-widget-admin.show { display: block; animation: popInSoft 0.18s ease-out; }
+        .install-widget-admin .install-inner { padding: 12px; display: grid; gap: 8px; }
+        .install-widget-admin .install-title { margin: 0; color: #2f5a47; font-size: 14px; font-weight: 700; }
+        .install-widget-admin .install-text { margin: 0; color: #4a6f5f; font-size: 12px; }
+        .install-widget-admin .install-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .install-widget-admin .btn-install { flex: 1; min-width: 180px; border: none; border-radius: 10px; padding: 10px 12px; background: linear-gradient(135deg, #7caf93 0%, #4f7f67 100%); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .install-widget-admin .btn-dismiss { border: 1px solid #cfe2d8; border-radius: 10px; padding: 10px 12px; background: #fff; color: #557b6b; font-size: 12px; font-weight: 700; cursor: pointer; }
         .mode-toggle-wrap { margin-top: 10px; }
         .mode-toggle { border: 1px solid #b5dccb; background: #f5fcf8; color: var(--verde-oscuro); border-radius: 999px; padding: 8px 12px; min-height: 36px; font-size: 12px; font-weight: 700; cursor: pointer; }
         .mode-toggle:hover { background: #e8f6ef; }
@@ -219,6 +230,16 @@
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">🧾 Pacientes</button>
                 <button class="btn-nav" id="btn-export" onclick="navegar('export')">📄 Exportar</button>
                 <button class="btn-nav" onclick="cerrarSesion()">Salir</button>
+            </div>
+            <div id="installWidgetAdmin" class="install-widget-admin" aria-live="polite">
+                <div class="install-inner">
+                    <p class="install-title">Instalar Panel Admin</p>
+                    <p id="installTextAdmin" class="install-text">Instalá el panel para abrirlo más rápido desde tu inicio.</p>
+                    <div class="install-actions">
+                        <button id="btnInstallAdminApp" class="btn-install" type="button">Instalar app</button>
+                        <button id="btnDismissAdminInstall" class="btn-dismiss" type="button">Ahora no</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -595,6 +616,119 @@
         };
 
         const CF_RESUMEN_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarResumenSesion";
+        let deferredInstallPromptAdmin = null;
+        let installReminderTimerAdmin = null;
+        const INSTALL_REMINDER_ADMIN_MS = 25000;
+        const installWidgetAdmin = document.getElementById("installWidgetAdmin");
+        const btnInstallAdminApp = document.getElementById("btnInstallAdminApp");
+        const btnDismissAdminInstall = document.getElementById("btnDismissAdminInstall");
+        const installTextAdmin = document.getElementById("installTextAdmin");
+        const esIOSAdmin = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+        const appYaInstaladaAdmin = () => {
+            return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+        };
+
+        const panelAdminVisible = () => {
+            const panel = document.getElementById("admin-content");
+            return panel && panel.style.display !== "none";
+        };
+
+        const puedeMostrarWidgetAdmin = () => {
+            if (appYaInstaladaAdmin()) return false;
+            if (!panelAdminVisible()) return false;
+            return esIOSAdmin || !!deferredInstallPromptAdmin;
+        };
+
+        const mostrarWidgetAdmin = () => {
+            if (!installWidgetAdmin || !puedeMostrarWidgetAdmin()) return;
+            installWidgetAdmin.classList.add("show");
+        };
+
+        const esconderWidgetAdmin = () => {
+            if (!installWidgetAdmin) return;
+            installWidgetAdmin.classList.remove("show");
+        };
+
+        const limpiarInsistenciaAdmin = () => {
+            clearTimeout(installReminderTimerAdmin);
+            installReminderTimerAdmin = null;
+        };
+
+        const programarInsistenciaAdmin = (delay = INSTALL_REMINDER_ADMIN_MS) => {
+            limpiarInsistenciaAdmin();
+            if (!puedeMostrarWidgetAdmin()) return;
+            installReminderTimerAdmin = setTimeout(() => {
+                mostrarWidgetAdmin();
+                programarInsistenciaAdmin(INSTALL_REMINDER_ADMIN_MS);
+            }, delay);
+        };
+
+        const initPwaAdminPrompt = () => {
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker.register("/sw.js").catch((e) => console.error("SW admin error:", e));
+                });
+            }
+
+            window.addEventListener("beforeinstallprompt", (event) => {
+                event.preventDefault();
+                deferredInstallPromptAdmin = event;
+                if (panelAdminVisible()) {
+                    mostrarWidgetAdmin();
+                    programarInsistenciaAdmin(18000);
+                }
+            });
+
+            window.addEventListener("appinstalled", () => {
+                deferredInstallPromptAdmin = null;
+                limpiarInsistenciaAdmin();
+                esconderWidgetAdmin();
+                mostrarAviso("✅ Panel instalado correctamente");
+            });
+
+            btnInstallAdminApp?.addEventListener("click", async () => {
+                if (esIOSAdmin) {
+                    mostrarAviso("📲 En iPhone/iPad: Compartir > Agregar a pantalla de inicio");
+                    programarInsistenciaAdmin(20000);
+                    return;
+                }
+                if (!deferredInstallPromptAdmin) {
+                    mostrarAviso("ℹ️ Cuando el navegador lo habilite, te mostramos instalar");
+                    programarInsistenciaAdmin(15000);
+                    return;
+                }
+                deferredInstallPromptAdmin.prompt();
+                const choice = await deferredInstallPromptAdmin.userChoice;
+                deferredInstallPromptAdmin = null;
+
+                if (choice?.outcome === "accepted") {
+                    limpiarInsistenciaAdmin();
+                    esconderWidgetAdmin();
+                } else {
+                    programarInsistenciaAdmin(10000);
+                }
+            });
+
+            btnDismissAdminInstall?.addEventListener("click", () => {
+                esconderWidgetAdmin();
+                programarInsistenciaAdmin(10000);
+            });
+
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState !== "visible") return;
+                if (!puedeMostrarWidgetAdmin()) return;
+                if (!installWidgetAdmin?.classList.contains("show")) {
+                    mostrarWidgetAdmin();
+                }
+                programarInsistenciaAdmin(20000);
+            });
+
+            if (esIOSAdmin && installTextAdmin) {
+                installTextAdmin.textContent = "En iPhone/iPad: Compartir > Agregar a pantalla de inicio.";
+            }
+        };
+
         let fechaActual = new Date();
         let fechaSeleccionada = "";
         let todasLasReservas = [];
@@ -1841,6 +1975,7 @@
         };
 
         aplicarModoCompactoInicial();
+        initPwaAdminPrompt();
         document.getElementById("userAdmin").value = ADMIN_EMAILS[0];
         iniciarGuardiaAuth();
     </script>
