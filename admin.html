@@ -81,6 +81,7 @@
         .day { padding: 10px 4px; min-height: 42px; border-radius: 12px; font-size: 13px; cursor: pointer; border: 1px solid #dbeee6; background: #ffffff; transition: 0.2s; color: #496b5d; display: flex; align-items: center; justify-content: center; }
         .day:hover { background: #eaf8f1; }
         .day.has-reserva { background: #e6f6ee; border: 1.5px solid var(--verde-oscuro); color: #1f6548; font-weight: 700; }
+        .day.day-closed { background: #fff2f4; border: 1.5px solid #e7b8bf; color: #96404d; }
         .day.selected { background: var(--verde) !important; color: white !important; }
 
         /* CARDS */
@@ -333,7 +334,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc, setDoc, getDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
@@ -389,6 +390,9 @@
         };
         const keyBloqueo = (fecha, hora) => `${fecha}|${hora}`;
         const docIdBloqueo = (fecha, hora) => `block_${fecha}_${hora.replace(':', '-')}`;
+        const HORARIOS_EXTRA_POR_FECHA = {
+            "2026-03-26": ["17:00"]
+        };
 
         const csvEscape = (v) => {
             const limpio = (v ?? "").toString().replace(/\r?\n|\r/g, ' ').trim();
@@ -599,6 +603,7 @@
         let dniClienteCargado = "";
         let horariosDisponibles = [];
         let bloqueosHorarios = new Map();
+        let cierresPorFecha = new Map();
         let bloqueoPendienteConReserva = null;
         let resolverModalBorrado = null;
         let membresiaNormalizadaSesion = false;
@@ -753,11 +758,43 @@
             return map;
         };
 
+        const extraerCierresDiaDesdeFirebase = (snapBloqueos) => {
+            const map = new Map();
+            const regexFecha = /^\d{4}-\d{2}-\d{2}$/;
+
+            (snapBloqueos?.docs || []).forEach((d) => {
+                const data = d.data() || {};
+                const hora = normalizarHora(data.hora || data.hour || data.time || '');
+                if (hora) return;
+
+                const idEsFecha = regexFecha.test(d.id);
+                const fecha = ((data.fecha || '') || (idEsFecha ? d.id : '')).toString();
+                if (!regexFecha.test(fecha)) return;
+
+                const tipo = (data.type || '').toString().toLowerCase();
+                const activo = data.active !== false;
+                const esBloqueo = tipo === 'blocked' || data.blocked === true;
+                if (!activo || !esBloqueo) return;
+
+                map.set(fecha, {
+                    id: d.id,
+                    fecha,
+                    reason: (data.reason || 'Día no disponible').toString()
+                });
+            });
+
+            return map;
+        };
+
         const obtenerHorariosDia = (fecha) => {
             const base = new Set(horariosDisponibles);
             todasLasReservas
                 .filter(r => esReservaActiva(r) && r.fecha === fecha)
                 .map(r => normalizarHora(r.hora))
+                .filter(Boolean)
+                .forEach(h => base.add(h));
+            (HORARIOS_EXTRA_POR_FECHA[fecha] || [])
+                .map(normalizarHora)
                 .filter(Boolean)
                 .forEach(h => base.add(h));
             return [...base].sort((a, b) => a.localeCompare(b));
@@ -778,6 +815,7 @@
 
                 horariosDisponibles = extraerHorariosDesdeFirebase(snapHorarios);
                 bloqueosHorarios = extraerBloqueosDesdeFirebase(snapBloqueos);
+                cierresPorFecha = extraerCierresDiaDesdeFirebase(snapBloqueos);
 
                 const phonePorDNI = new Map();
                 const phonePorNombre = new Map();
@@ -923,6 +961,19 @@
             fechaSeleccionada = f;
             document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
             if(el) el.classList.add('selected');
+
+            const cierreDia = cierresPorFecha.get(f);
+            if (cierreDia) {
+                document.getElementById("panelDetalleDia").innerHTML = `
+                    <div class="empty-state" style="opacity:1; border-style:solid; border-color:#e6c5cb; background:#fff7f8; color:#7f3b48; text-align:left;">
+                        <strong>${formatoFechaISO(f)}</strong><br>
+                        ${escapeHtml(cierreDia.reason || 'No disponible')}
+                    </div>
+                `;
+                mostrarAviso(`⛔ ${formatoFechaISO(f)}`, `${cierreDia.reason || 'No disponible'}`);
+                return;
+            }
+
             const filtrados = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === f).sort((a,b) => a.hora.localeCompare(b.hora));
             const reservasHTML = filtrados.length ? filtrados.map(r => {
                 const tieneNota = !!(r.detalleSesion && r.detalleSesion.trim());
@@ -957,7 +1008,8 @@
             const horariosHTML = horarios.map((hora) => {
                 const reserva = reservasPorHora.get(hora);
                 const bloqueo = bloqueosHorarios.has(keyBloqueo(f, hora));
-                const estado = bloqueo ? '<span class="pill bloqueado">Bloqueado</span>' : (reserva ? '<span class="pill reservado">Reservado</span>' : '<span class="pill disponible">Disponible</span>');
+                const motivoBloqueo = bloqueo ? escapeHtml((bloqueosHorarios.get(keyBloqueo(f, hora))?.reason || 'No disponible')) : '';
+                const estado = bloqueo ? `<span class="pill bloqueado">${motivoBloqueo}</span>` : (reserva ? '<span class="pill reservado">Reservado</span>' : '<span class="pill disponible">Disponible</span>');
                 const label = reserva
                     ? `${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(reserva.servicio || 'Servicio')}`
                     : 'Sin reserva';
@@ -965,6 +1017,10 @@
                 const accionBloqueo = bloqueo
                     ? `<button class="btn-mini" onclick="toggleBloqueoHorario('${f}','${hora}')">Desbloquear</button>`
                     : `<button class="btn-mini alerta" onclick="toggleBloqueoHorario('${f}','${hora}')">Bloquear</button>`;
+
+                const botonRegistrar = (!bloqueo && !reserva)
+                    ? `<button class="btn-mini" onclick="registrarReservaManual('${f}','${hora}')">Registrar</button>`
+                    : '';
 
                 const botonCancelar = (bloqueo && reserva)
                     ? `<button class="btn-mini alerta" onclick="cancelarTurnoYNotificar('${reserva.id}')">Cancelar y notificar</button>`
@@ -974,7 +1030,7 @@
                     <div class="hora-row">
                         <div class="hora-label">${hora}</div>
                         <div class="hora-status">${estado} · ${label}</div>
-                        <div class="hora-actions">${accionBloqueo}${botonCancelar}</div>
+                        <div class="hora-actions">${accionBloqueo}${botonRegistrar}${botonCancelar}</div>
                     </div>
                 `;
             }).join('');
@@ -1136,8 +1192,18 @@
             for (let d = 1; d <= diasMes; d++) {
                 const fStr = `${año}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const tiene = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fStr);
-                const div = document.createElement("div"); div.className = `day ${tiene ? 'has-reserva' : ''}`;
-                div.innerText = d; div.onclick = () => verTurnos(fStr, div); grid.appendChild(div);
+                const cierreDia = cierresPorFecha.get(fStr);
+                const div = document.createElement("div");
+                div.className = `day ${tiene ? 'has-reserva' : ''} ${cierreDia ? 'day-closed' : ''}`.trim();
+                div.innerText = d;
+                div.onclick = () => {
+                    if (cierreDia) {
+                        mostrarAviso(`⛔ ${formatoFechaISO(fStr)}`, `${cierreDia.reason || 'No disponible'}`);
+                        return;
+                    }
+                    verTurnos(fStr, div);
+                };
+                grid.appendChild(div);
             }
         };
 
@@ -1243,6 +1309,73 @@
             } catch (error) {
                 console.error(error);
                 mostrarAviso("❌ No se pudo cancelar el turno");
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
+        window.registrarReservaManual = async (fecha, hora) => {
+            const horaNormalizada = normalizarHora(hora);
+            if (!horaNormalizada) {
+                mostrarAviso("⚠️ Hora inválida");
+                return;
+            }
+
+            const yaExiste = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fecha && normalizarHora(r.hora) === horaNormalizada);
+            if (yaExiste) {
+                mostrarAviso("⚠️ Ese horario ya está reservado");
+                return;
+            }
+
+            const dniIngresado = normalizarDNI(window.prompt(`Ingresá el DNI para registrar en ${formatoFechaISO(fecha)} ${horaNormalizada}`) || "");
+            if (!dniIngresado) return;
+
+            const servicioIngresado = (window.prompt("Servicio a registrar", "Reservar turno sin tratamiento específico") || "").trim();
+            if (!servicioIngresado) {
+                mostrarAviso("⚠️ Ingresá un servicio");
+                return;
+            }
+
+            try {
+                mostrarLoader(true);
+                const refCliente = doc(db, "clients", dniIngresado);
+                const snapCliente = await getDoc(refCliente);
+                if (!snapCliente.exists()) {
+                    mostrarAviso("⚠️ No existe un paciente con ese DNI");
+                    return;
+                }
+
+                const c = snapCliente.data() || {};
+                const nombreCliente = (c.fullName || c.fullLname || c.nombre || c.name || "Paciente").toString().trim();
+                const phoneCliente = normalizarTelefono(c.phone || "");
+
+                const reservaNueva = {
+                    cliente: nombreCliente,
+                    clienteNombre: nombreCliente,
+                    nombre: nombreCliente,
+                    title: nombreCliente,
+                    displayName: nombreCliente,
+                    phone: phoneCliente,
+                    telefono: phoneCliente,
+                    dni: dniIngresado,
+                    servicio: servicioIngresado,
+                    fecha,
+                    hora: horaNormalizada,
+                    estado: "activo",
+                    timestamp: serverTimestamp(),
+                    creadoPor: "admin_manual"
+                };
+
+                const ref = await addDoc(collection(db, "reservas"), reservaNueva);
+                todasLasReservas.push({ id: ref.id, ...reservaNueva, nombreLimpio: nombreCliente });
+
+                actualizarKPIs();
+                poblarServiciosFiltro();
+                verTurnos(fecha, document.querySelector('.day.selected'));
+                mostrarAviso("✅ Reserva creada y guardada en Firestore");
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo registrar la reserva");
             } finally {
                 mostrarLoader(false);
             }
