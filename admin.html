@@ -343,6 +343,23 @@
 
             <div id="sec-export" class="section">
                 <div class="detalle-dia-card">
+                    <h3 style="margin-top:0">⚡ Control Jornada Especial</h3>
+                    <p style="font-size:13px; color:#557b6b; margin:0 0 12px 0;">Activa/desactiva la campaña paralela de jornada. Cuando está activa, los usuarios serán redirigidos automáticamente.</p>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:12px;">
+                        <button class="btn-mini" id="btnJornadaToggle" onclick="toggleJornadaEspecial()">Cargando estado...</button>
+                        <button class="btn-mini" onclick="recargarJornadaStatus()">↻ Recargar</button>
+                    </div>
+                    <div id="jornadaStatusBox" style="background:#f5fcf8; border:1px solid #cfe6da; border-radius:12px; padding:12px; margin-bottom:12px;">
+                        <p style="margin:0 0 8px; font-size:12px; color:#557b6b; font-weight:600;">Estado actual:</p>
+                        <p id="jornadaStatusText" style="margin:0; font-size:13px; color:#2f7c5d; font-weight:700;">Cargando...</p>
+                    </div>
+                    <details style="font-size:12px; color:#556a5f; margin-bottom:12px;">
+                        <summary style="cursor:pointer; font-weight:600; margin-bottom:8px;">Ver configuración actual</summary>
+                        <pre id="jornadaConfigView" style="background:#fff; border:1px solid #e0ede6; border-radius:8px; padding:10px; font-size:11px; overflow-x:auto; margin:0;">Cargando...</pre>
+                    </details>
+                    <p style="font-size:11px; color:#8a7679; margin:0;">Para editar la configuración completa (fechas, servicios, zonas), accedé a Firestore > configuracion > jornadaEspecial</p>
+                </div>
+                <div class="detalle-dia-card">
                     <h3 style="margin-top:0">Reportes de Reservas</h3>
                     <p style="font-size:14px; color:#666">Descarga todas las reservas registradas en formato CSV para abrir en Excel.</p>
                     <button class="btn-export-main" onclick="exportarCSV()">📥 Descargar Todo (.csv)</button>
@@ -416,7 +433,9 @@
         const keyBloqueo = (fecha, hora) => `${fecha}|${hora}`;
         const docIdBloqueo = (fecha, hora) => `block_${fecha}_${hora.replace(':', '-')}`;
         const HORARIOS_EXTRA_POR_FECHA = {
-            "2026-03-26": ["17:00"]
+            "2026-03-26": ["17:00"],
+            "2026-03-28": ["11:00"],
+            "2026-04-28": ["11:00"]
         };
 
         const csvEscape = (v) => {
@@ -938,6 +957,54 @@
             return [...base].sort((a, b) => a.localeCompare(b));
         };
 
+        const claveReservaUnica = (reserva) => {
+            const dni = normalizarDNI(reserva?.dni ?? reserva?.clienteDni ?? reserva?.documento ?? reserva?.document ?? "");
+            const fecha = (reserva?.fecha || "").toString().trim();
+            const hora = normalizarHora(reserva?.hora || "");
+            if (!dni || !fecha || !hora) return "";
+            return `${dni}__${fecha}__${hora}`;
+        };
+
+        const puntajeReserva = (reserva) => {
+            let puntaje = Object.keys(reserva || {}).length;
+            if ((reserva?.detalleSesion || "").trim()) puntaje += 1000;
+            if ((reserva?.phone || "").trim()) puntaje += 25;
+            if ((reserva?.telefono || "").trim()) puntaje += 10;
+            if ((reserva?.clienteNombre || "").trim()) puntaje += 5;
+            if ((reserva?.displayName || "").trim()) puntaje += 2;
+            if ((reserva?.title || "").trim()) puntaje += 2;
+            return puntaje;
+        };
+
+        const limpiarReservasDuplicadas = async (reservas) => {
+            const grupos = new Map();
+            reservas.forEach((reserva) => {
+                if (!esReservaActiva(reserva)) return;
+                const clave = claveReservaUnica(reserva);
+                if (!clave) return;
+                if (!grupos.has(clave)) grupos.set(clave, []);
+                grupos.get(clave).push(reserva);
+            });
+
+            const idsABorrar = new Set();
+
+            grupos.forEach((grupo) => {
+                if (grupo.length <= 1) return;
+                const ordenadas = [...grupo].sort((a, b) => {
+                    const diff = puntajeReserva(b) - puntajeReserva(a);
+                    if (diff !== 0) return diff;
+                    return (a.id || "").localeCompare(b.id || "");
+                });
+                ordenadas.slice(1).forEach((reserva) => idsABorrar.add(reserva.id));
+            });
+
+            if (!idsABorrar.size) return reservas;
+
+            await Promise.all([...idsABorrar].map((idReserva) => deleteDoc(doc(db, "reservas", idReserva))));
+            mostrarAviso(`✅ Se eliminaron ${idsABorrar.size} reserva(s) duplicada(s)`);
+            return reservas.filter((reserva) => !idsABorrar.has(reserva.id));
+        };
+
         async function cargarTodo() {
             mostrarLoader(true);
             try {
@@ -1024,6 +1091,8 @@
                         nombreLimpio
                     };
                 });
+
+                todasLasReservas = await limpiarReservasDuplicadas(todasLasReservas);
 
                 todasLasHistorias = snapH.docs.map(d => {
                     const data = d.data();
@@ -1977,6 +2046,86 @@
             document.getElementById(`sec-${s}`).classList.add('active'); 
             document.getElementById(`btn-${s}`).classList.add('active'); 
         };
+
+        // === FUNCIONES PARA CONTROL DE JORNADA ESPECIAL ===
+        window.recargarJornadaStatus = async () => {
+            try {
+                const snap = await getDoc(doc(db, "configuracion", "jornadaEspecial"));
+                const config = snap.exists() ? snap.data() : null;
+                const btn = document.getElementById("btnJornadaToggle");
+                const statusText = document.getElementById("jornadaStatusText");
+                const configView = document.getElementById("jornadaConfigView");
+
+                if (!config) {
+                    statusText.innerHTML = "⚠️ Documento no existe. Click en el botón para crear e <strong>ACTIVAR</strong>.";
+                    btn.textContent = "✅ Activar (crear doc)";
+                    btn.style.background = "#72bd99";
+                    configView.textContent = "{}";
+                    return;
+                }
+
+                const activa = config.active === true;
+                const color = activa ? "#72bd99" : "#e05252";
+                const label = activa ? "🟢 Desactivar" : "🔴 Activar";
+                btn.textContent = label;
+                btn.style.background = color;
+                
+                const status = activa ? "✅ ACTIVA" : "❌ INACTIVA";
+                const dates = Array.isArray(config.allowedDates) ? config.allowedDates.join(", ") : "No configuradas";
+                const service = config.serviceName || "(no configurado)";
+                statusText.innerHTML = `${status}<br><small style="color:#7a9d93;">Servicio: ${escapeHtml(service)}<br>Fechas: ${escapeHtml(dates)}</small>`;
+                
+                configView.textContent = JSON.stringify(config, null, 2);
+            } catch (err) {
+                console.error("Error al cargar status de jornada:", err);
+                document.getElementById("jornadaStatusText").textContent = "❌ Error al cargar. Verifica Firestore.";
+            }
+        };
+
+        window.toggleJornadaEspecial = async () => {
+            const btn = document.getElementById("btnJornadaToggle");
+            btn.disabled = true;
+            try {
+                const snap = await getDoc(doc(db, "configuracion", "jornadaEspecial"));
+                const config = snap.exists() ? snap.data() : null;
+
+                if (!config) {
+                    // Crear documento con valores por defecto y ACTIVO
+                    await setDoc(doc(db, "configuracion", "jornadaEspecial"), {
+                        active: true,
+                        redirectTo: "serviciosjornada.html",
+                        serviceName: "Jornada Unica de Criolipolisis",
+                        allowedDates: ["2026-04-02"],
+                        zones: ["Abdomen", "Rollito espalda", "Banana subglutea", "Caderas"],
+                        sourceTag: "jornada_especial",
+                        startAt: new Date("2026-03-30"),
+                        endAt: new Date("2026-04-03")
+                    });
+                    mostrarToast("✅ Jornada creada y activada!");
+                } else {
+                    // Toggle el estado active
+                    const nuevoEstado = config.active !== true;
+                    await updateDoc(doc(db, "configuracion", "jornadaEspecial"), {
+                        active: nuevoEstado
+                    });
+                    const msg = nuevoEstado ? "✅ Jornada activada!" : "❌ Jornada desactivada!";
+                    mostrarToast(msg);
+                }
+                
+                await recargarJornadaStatus();
+            } catch (err) {
+                console.error("Error al toggle jornada:", err);
+                mostrarToast("❌ Error al cambiar estado");
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // Cargar status de jornada al iniciar
+        window.addEventListener("load", () => {
+            setTimeout(() => recargarJornadaStatus(), 500);
+        });
+        recargarJornadaStatus();
 
         aplicarModoCompactoInicial();
         initPwaAdminPrompt();

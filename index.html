@@ -413,6 +413,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const JORNADA_CONFIG_DOC = "jornadaEspecial";
 
         const getIngresoErrorMessage = (error) => {
             switch (error?.code) {
@@ -426,6 +427,46 @@
                     return "Error de conexión con la base de datos.";
             }
         };
+
+        const parseCampaignDate = (value) => {
+            if (!value) return null;
+            if (typeof value?.toDate === "function") {
+                return value.toDate();
+            }
+            const dt = new Date(value);
+            return Number.isNaN(dt.getTime()) ? null : dt;
+        };
+
+        let jornadaLoginRedirect = "";
+
+        const cargarContextoJornada = async () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("modo") === "normal") return;
+
+            const forzarJornada = params.get("modo") === "jornada"
+                || params.get("jornada") === "1"
+                || localStorage.getItem("jornadaSource") === "jornada_especial_login";
+            if (forzarJornada) {
+                jornadaLoginRedirect = "serviciosjornada.html";
+                return;
+            }
+
+            try {
+                const snap = await getDoc(doc(db, "configuracion", JORNADA_CONFIG_DOC));
+                if (!snap.exists()) return;
+
+                const cfg = snap.data() || {};
+                if (cfg.active !== true) return;
+
+                jornadaLoginRedirect = "serviciosjornada.html";
+            } catch (error) {
+                console.warn("No se pudo evaluar jornada especial:", error);
+            }
+        };
+
+        await cargarContextoJornada();
+
+        ["jornadaModo", "jornadaAllowedDates", "jornadaSource"].forEach((k) => localStorage.removeItem(k));
 
         document.getElementById("btnIngresar").addEventListener("click", async () => {
             const nombreIngresado = document.getElementById("nombre").value.trim().toLowerCase();
@@ -448,6 +489,12 @@
                     if (cliente.fullName.toLowerCase() === nombreIngresado) {
                         localStorage.setItem("clienteDNI", dniIngresado);
                         localStorage.setItem("clienteNombre", cliente.fullName);
+
+                        if (jornadaLoginRedirect) {
+                            localStorage.setItem("jornadaSource", "jornada_especial_login");
+                            window.location.href = jornadaLoginRedirect;
+                            return;
+                        }
 
                         // --- LÓGICA DE REDIRECCIÓN ACTUALIZADA (Sin consentimiento.html) ---
                         if (!cliente.politicaAceptada) {

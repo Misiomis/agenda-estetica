@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fecha Especial Jornada | Espacio Mimar T</title>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --rojo: #e11d2e;
+            --rojo-oscuro: #9f1120;
+            --arena: #fff7ec;
+            --ink: #2f1f18;
+            --sub: #654f42;
+            --borde: #efd8bb;
+            --font-display: 'Barlow Condensed', sans-serif;
+            --font-body: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: var(--font-body);
+            color: var(--ink);
+            background:
+                radial-gradient(880px 340px at 8% -12%, rgba(255, 79, 96, 0.16), transparent 58%),
+                radial-gradient(700px 300px at 94% 108%, rgba(225, 29, 46, 0.12), transparent 56%),
+                #fffaf4;
+            display: grid;
+            place-items: center;
+            padding: 16px;
+        }
+
+        @keyframes softEntry {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            width: min(760px, 100%);
+            background: linear-gradient(150deg, #fffefb 0%, #fff9f0 100%);
+            border: 1px solid var(--borde);
+            border-radius: 18px;
+            box-shadow: 0 22px 46px rgba(58, 36, 14, 0.12);
+            padding: clamp(18px, 3.2vw, 32px);
+            animation: softEntry 0.55s ease-out both;
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .back-link {
+            text-decoration: none;
+            color: #7a2a33;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 900;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 999px;
+            object-fit: contain;
+            border: 1.5px solid rgba(255, 255, 255, 0.78);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.16);
+        }
+
+        .kicker {
+            margin: 0;
+            color: #8f1c28;
+            font-size: 11px;
+            letter-spacing: 0.19em;
+            text-transform: uppercase;
+            font-weight: 900;
+        }
+
+        .title {
+            margin: 8px 0 8px;
+            font-family: var(--font-display);
+            font-size: clamp(34px, 7.8vw, 62px);
+            line-height: 0.92;
+            letter-spacing: 0.03em;
+            color: #231611;
+        }
+
+        .desc {
+            margin: 0;
+            color: var(--sub);
+            font-size: 14px;
+            line-height: 1.55;
+            font-weight: 600;
+        }
+
+        .date-chip {
+            margin-top: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #ffedd0 0%, #ffd487 100%);
+            color: #3f2508;
+            border: 1px solid #f2c977;
+            border-radius: 999px;
+            padding: 10px 14px;
+            font-weight: 900;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .highlight {
+            margin-top: 16px;
+            background: #fff;
+            border: 1px solid var(--borde);
+            border-left: 5px solid #e11d2e;
+            border-radius: 12px;
+            padding: 12px;
+            color: #523a2e;
+            font-size: 13px;
+            line-height: 1.45;
+            font-weight: 600;
+            animation: softEntry 0.55s ease-out 0.08s both;
+        }
+
+        .actions {
+            margin-top: 18px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-weight: 900;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-primary {
+            color: #fff;
+            background: linear-gradient(135deg, #ff3a4c 0%, #e11d2e 54%, #9f1120 100%);
+            box-shadow: 0 12px 26px rgba(159, 17, 32, 0.26);
+        }
+
+        .btn-secondary {
+            color: #7a2a33;
+            background: #fff;
+            border: 1px solid #efc8b9;
+        }
+
+        .btn:hover { transform: translateY(-1px); }
+
+        .status {
+            margin-top: 10px;
+            min-height: 20px;
+            color: #7b5d47;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        @media (max-width: 520px) {
+            .desc, .highlight { font-size: 12px; }
+            .btn { width: 100%; text-align: center; }
+            .logo { width: 56px; height: 56px; }
+            .top { flex-direction: column-reverse; align-items: flex-start; }
+            .card { padding: 16px 14px; }
+            .date-chip { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <main class="card" aria-label="Acceso a fecha especial de jornada">
+        <div class="top">
+            <a class="back-link" href="serviciosjornada.html">Volver a servicio jornada</a>
+            <img class="logo" src="img/logo2.jpg" alt="Espacio Mimar T">
+        </div>
+
+        <p class="kicker">Jornada Especial</p>
+        <h1 class="title">Fecha Habilitada</h1>
+        <p class="desc">Para esta experiencia reservamos un día exclusivo en agenda, pensado para que puedas elegir tu turno con tranquilidad.</p>
+
+        <div class="date-chip">Jueves 02 de abril de 2026</div>
+
+        <div class="highlight">
+            Esta fecha fue seleccionada especialmente para la jornada. Al continuar, elegís el horario que mejor te quede.
+        </div>
+
+        <div class="actions">
+            <button id="btnContinuar" class="btn btn-primary" type="button">Continuar a seleccionar horario</button>
+            <a class="btn btn-secondary" href="serviciosjornada.html">Volver</a>
+        </div>
+
+        <div id="status" class="status"></div>
+    </main>
+
+    <script>
+        const ALLOWED_DATE = "2026-04-02";
+        const DEFAULT_SERVICE = "Jornada Especial De criolipolisis";
+
+        const statusEl = document.getElementById("status");
+        const btn = document.getElementById("btnContinuar");
+
+        function prepararModoJornada() {
+            localStorage.setItem("jornadaModo", "1");
+            localStorage.setItem("jornadaAllowedDates", JSON.stringify([ALLOWED_DATE]));
+            localStorage.setItem("jornadaSource", "jornada_especial_fechaservicio");
+
+            const servicioActual = (localStorage.getItem("servicioSeleccionado") || "").trim();
+            if (!servicioActual) {
+                localStorage.setItem("servicioSeleccionado", DEFAULT_SERVICE);
+            }
+        }
+
+        btn.addEventListener("click", () => {
+            try {
+                prepararModoJornada();
+                statusEl.textContent = "Perfecto. Estamos abriendo la agenda de esta fecha especial...";
+                window.location.href = "fecha.html?modo=jornada";
+            } catch (error) {
+                console.error(error);
+                statusEl.textContent = "No pudimos abrir esta fecha por ahora. Reintentá en unos segundos.";
+            }
+        });
+    </script>
+</body>
+</html>
