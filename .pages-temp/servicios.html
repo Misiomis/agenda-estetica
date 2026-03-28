@@ -119,6 +119,10 @@
         const SERVICIO_LED_NOMBRE = "Facial LED Regenerativo";
         const SERVICIO_LED_RESUMEN = "Tratamiento no invasivo con cabina LED profesional que estimula colageno y elastina para mejorar firmeza, luminosidad y textura, ayudando tambien en acne, inflamacion, rojeces y manchas. Sesion relajante de 30 minutos, sin dolor ni recuperacion; ideal para piel sensible y resultados progresivos desde la primera aplicacion.";
 
+        const SERVICIO_CORPORAL_NOMBRE = "Sesión Corporal Combinada por Zona";
+        const SERVICIO_CORPORAL_RESUMEN = `Tratamiento integral que combina distintas tecnologías para mejorar la flacidez, celulitis, estrías, retención de líquidos y tono muscular.\nSe trabaja de forma personalizada según la necesidad de la zona, estimulando el colágeno, mejorando la textura de la piel y favoreciendo el drenaje y la activación muscular.\n\n<strong>Importante</strong>\nCada sesión corresponde a una sola zona (abdomen, flancos, glúteos o zona subglútea).\nSi se desean trabajar dos zonas, se deben reservar sesiones adicionales.\n\n<strong>Plan de tratamiento</strong>\nSe recomienda un mínimo de 6 sesiones por zona para lograr resultados visibles y duraderos.`;
+
+
         // LÓGICA DE BÚSQUEDA Y ORDENAMIENTO
         async function ejecutarConsulta(dni) {
             modalBusqueda.style.display = "none";
@@ -219,6 +223,9 @@
                 const yaExisteServicioLED = servicios.some(
                     s => (s.nombre || "").trim().toLowerCase() === SERVICIO_LED_NOMBRE.toLowerCase()
                 );
+                const yaExisteServicioCorporal = servicios.some(
+                    s => (s.nombre || "").trim().toLowerCase() === SERVICIO_CORPORAL_NOMBRE.toLowerCase()
+                );
 
                 if (!yaExisteServicioLED) {
                     const ordenMax = servicios.reduce((max, s) => Math.max(max, Number(s.orden) || 0), 0);
@@ -231,12 +238,25 @@
                     });
                 }
 
+                if (!yaExisteServicioCorporal) {
+                    const ordenMax = servicios.reduce((max, s) => Math.max(max, Number(s.orden) || 0), 0);
+                    servicios.push({
+                        nombre: SERVICIO_CORPORAL_NOMBRE,
+                        duracion: 60,
+                        descripcion: SERVICIO_CORPORAL_RESUMEN,
+                        orden: ordenMax + 1,
+                        activo: true
+                    });
+                }
+
+
                 servicios.sort((a, b) => a.orden - b.orden);
                 loading.style.display = "none";
                 servicios.forEach(s => {
                     const div = document.createElement("div");
                     div.className = "servicio";
-                    div.innerHTML = `<div><h3>${s.nombre}</h3><div class="duracion">${s.duracion} min</div><p>${s.descripcion || ''}</p></div><button class="btn-reservar" data-nombre="${s.nombre}">Reservar Turno</button>`;
+                    const descFormateada = (s.descripcion || '').replace(/\n/g, '<br>');
+                    div.innerHTML = `<div><h3>${s.nombre}</h3><div class="duracion">${s.duracion} min</div><p style="line-height:1.7">${descFormateada}</p></div><button class="btn-reservar" data-nombre="${s.nombre}">Reservar Turno</button>`;
                     contenedor.appendChild(div);
                 });
                 document.querySelectorAll('.btn-reservar').forEach(btn => {

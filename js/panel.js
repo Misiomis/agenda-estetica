@@ -296,15 +296,24 @@ async function reservarTurno(fecha,hora){
         const clienteRef=doc(db,"clients",clientId);
         const clienteSnap=await getDoc(clienteRef);
         const clienteData=clienteSnap.data();
+        const turnoAt = new Date(`${fecha}T${hora}:00-03:00`);
 
         await addDoc(collection(db,"reservas"),{
 
             clientId,
             nombreCliente:clienteData.nombre,
             emailCliente:clienteData.email,
+            telefono: clienteData.telefono || clienteData.phone || "",
             servicio:servicioSeleccionado,
             fecha,
             hora,
+            turnoAt: Number.isNaN(turnoAt.getTime()) ? null : turnoAt,
+            recordatorios: {
+                h48: { enviado: false },
+                h24: { enviado: false },
+                h12: { enviado: false },
+                h6: { enviado: false }
+            },
             timestamp:serverTimestamp()
 
         });

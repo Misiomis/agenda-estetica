@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ingreso | Espacio Mimar</title>
+    <meta name="theme-color" content="#6f8a6d">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="img/icon-192.png">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -226,6 +229,75 @@
             letter-spacing: .2px;
         }
 
+        .install-widget {
+            position: static;
+            width: 100%;
+            background: linear-gradient(135deg, rgba(244, 250, 246, 0.95) 0%, rgba(248, 251, 249, 0.95) 100%);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(132, 168, 140, 0.25);
+            border-radius: 14px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 4px 12px rgba(30, 54, 37, 0.08);
+            z-index: 10;
+            display: none;
+            overflow: hidden;
+            margin: 12px 0 18px 0;
+        }
+
+        .install-widget.show {
+            display: block;
+            animation: riseFade .25s ease both;
+        }
+
+        .install-widget-inner {
+            padding: 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .install-title {
+            margin: 0;
+            color: #355342;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .install-text {
+            margin: 0;
+            color: #567061;
+            font-size: 12px;
+        }
+
+        .install-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .install-actions .btn-install {
+            flex: 1;
+            padding: 12px;
+            border: 0;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: #fff;
+            background: linear-gradient(135deg, #89ab91 0%, #5d7f66 100%);
+            cursor: pointer;
+        }
+
+        .install-actions .btn-dismiss {
+            padding: 12px 14px;
+            border: 1px solid #d5e2d8;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #5f7467;
+            background: #f7fbf8;
+            cursor: pointer;
+        }
+
         @keyframes riseFade {
             0% {
                 opacity: 0;
@@ -296,6 +368,18 @@
 <body>
     <div class="container">
         <img src="img/logo.png" class="logo">
+
+        <div id="installWidget" class="install-widget" aria-live="polite">
+            <div class="install-widget-inner">
+                <p class="install-title">Descargar app</p>
+                <p id="installText" class="install-text">Instala Espacio Mimar T para abrirla rápido desde tu inicio.</p>
+                <div class="install-actions">
+                    <button id="btnInstallApp" class="btn-install" type="button">Instalar</button>
+                    <button id="btnDismissInstall" class="btn-dismiss" type="button">Ahora no</button>
+                </div>
+            </div>
+        </div>
+
         <div class="subtitulo">Estética Avanzada</div>
         
         <div class="profesional-card">
@@ -329,6 +413,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const JORNADA_CONFIG_DOC = "jornadaEspecial";
 
         const getIngresoErrorMessage = (error) => {
             switch (error?.code) {
@@ -342,6 +427,45 @@
                     return "Error de conexión con la base de datos.";
             }
         };
+
+        const parseCampaignDate = (value) => {
+            if (!value) return null;
+            if (typeof value?.toDate === "function") {
+                return value.toDate();
+            }
+            const dt = new Date(value);
+            return Number.isNaN(dt.getTime()) ? null : dt;
+        };
+
+        let jornadaLoginRedirect = "";
+
+        const cargarContextoJornada = async () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("modo") === "normal") return;
+
+            try {
+                const snap = await getDoc(doc(db, "configuracion", JORNADA_CONFIG_DOC));
+                if (!snap.exists()) return;
+
+                const cfg = snap.data() || {};
+                if (cfg.active !== true) return;
+
+                const ahora = new Date();
+                const startAt = parseCampaignDate(cfg.startAt);
+                const endAt = parseCampaignDate(cfg.endAt);
+
+                if (startAt && ahora < startAt) return;
+                if (endAt && ahora > endAt) return;
+
+                jornadaLoginRedirect = "serviciosjornada.html";
+            } catch (error) {
+                console.warn("No se pudo evaluar jornada especial:", error);
+            }
+        };
+
+        await cargarContextoJornada();
+
+        ["jornadaModo", "jornadaAllowedDates", "jornadaSource"].forEach((k) => localStorage.removeItem(k));
 
         document.getElementById("btnIngresar").addEventListener("click", async () => {
             const nombreIngresado = document.getElementById("nombre").value.trim().toLowerCase();
@@ -364,6 +488,12 @@
                     if (cliente.fullName.toLowerCase() === nombreIngresado) {
                         localStorage.setItem("clienteDNI", dniIngresado);
                         localStorage.setItem("clienteNombre", cliente.fullName);
+
+                        if (jornadaLoginRedirect) {
+                            localStorage.setItem("jornadaSource", "jornada_especial_login");
+                            window.location.href = jornadaLoginRedirect;
+                            return;
+                        }
 
                         // --- LÓGICA DE REDIRECCIÓN ACTUALIZADA (Sin consentimiento.html) ---
                         if (!cliente.politicaAceptada) {
@@ -389,6 +519,96 @@
                 errorDiv.style.display = "block";
             }
         });
+
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("/sw.js").catch((e) => console.error("SW error:", e));
+            });
+        }
+
+        let deferredInstallPrompt = null;
+        let installReminderTimer = null;
+        const INSTALL_REMINDER_MS = 25000;
+        const installWidget = document.getElementById("installWidget");
+        const btnInstallApp = document.getElementById("btnInstallApp");
+        const btnDismissInstall = document.getElementById("btnDismissInstall");
+        const installText = document.getElementById("installText");
+        const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+        const appYaInstalada = () => {
+            return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+        };
+
+        const puedeMostrarWidget = () => {
+            if (appYaInstalada()) return false;
+            return esIOS || !!deferredInstallPrompt;
+        };
+
+        const esconderWidget = () => {
+            installWidget?.classList.remove("show");
+        };
+
+        const mostrarWidget = () => {
+            if (!puedeMostrarWidget()) return;
+            installWidget?.classList.add("show");
+        };
+
+        const programarInsistencia = (delay = INSTALL_REMINDER_MS) => {
+            clearTimeout(installReminderTimer);
+            if (!puedeMostrarWidget()) return;
+            installReminderTimer = setTimeout(() => {
+                mostrarWidget();
+                programarInsistencia(INSTALL_REMINDER_MS);
+            }, delay);
+        };
+
+        window.addEventListener("beforeinstallprompt", (event) => {
+            event.preventDefault();
+            deferredInstallPrompt = event;
+            mostrarWidget();
+            programarInsistencia(12000);
+        });
+
+        btnInstallApp?.addEventListener("click", async () => {
+            if (!deferredInstallPrompt) return;
+            deferredInstallPrompt.prompt();
+            const result = await deferredInstallPrompt.userChoice;
+            deferredInstallPrompt = null;
+            esconderWidget();
+
+            if (result?.outcome === "accepted") {
+                clearTimeout(installReminderTimer);
+                return;
+            }
+
+            programarInsistencia(8000);
+        });
+
+        btnDismissInstall?.addEventListener("click", () => {
+            esconderWidget();
+            programarInsistencia(10000);
+        });
+
+        window.addEventListener("appinstalled", () => {
+            clearTimeout(installReminderTimer);
+            esconderWidget();
+        });
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState !== "visible") return;
+            if (!puedeMostrarWidget()) return;
+            if (!installWidget?.classList.contains("show")) {
+                mostrarWidget();
+            }
+            programarInsistencia(20000);
+        });
+
+        if (esIOS && !window.navigator.standalone && installText) {
+            installText.textContent = "En iPhone/iPad: toca Compartir y luego Agregar a pantalla de inicio.";
+            mostrarWidget();
+            if (btnInstallApp) btnInstallApp.style.display = "none";
+            programarInsistencia(15000);
+        }
     </script>
 </body>
 </html>
