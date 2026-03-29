@@ -2,6 +2,24 @@
     const FOOTER_TEXT = "Todos los derechos reservados";
     const BRAND_TEXT = "Espacio Mimar T";
     const STYLE_ID = "shared-site-footer-style";
+    const HOME_PAGES = new Set(["", "index.html"]);
+    const ADMIN_PAGES = new Set(["admin.html"]);
+
+    function getCurrentPage() {
+        return (window.location.pathname.split("/").pop() || "").toLowerCase();
+    }
+
+    function isHomePage() {
+        return HOME_PAGES.has(getCurrentPage());
+    }
+
+    function isAdminPage() {
+        return ADMIN_PAGES.has(getCurrentPage());
+    }
+
+    function isPublicPatientPage() {
+        return !isHomePage() && !isAdminPage();
+    }
 
     function injectStyles() {
         if (document.getElementById(STYLE_ID)) return;
@@ -36,6 +54,53 @@
                 color: #c79ab1;
             }
 
+            .maintenance-shell {
+                width: min(92vw, 540px);
+                margin: 42px auto 0;
+                padding: 28px 22px;
+                text-align: center;
+                border-radius: 24px;
+                background: linear-gradient(155deg, rgba(255,255,255,0.98) 0%, rgba(255,246,251,0.96) 100%);
+                border: 1px solid rgba(232, 201, 217, 0.9);
+                box-shadow: 0 22px 48px rgba(121, 72, 99, 0.12);
+            }
+
+            .maintenance-logo-wrap {
+                width: 112px;
+                height: 112px;
+                margin: 0 auto 18px;
+                border-radius: 999px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: radial-gradient(circle at 30% 30%, #ffffff 0%, #f8edf3 100%);
+                box-shadow: 0 18px 38px rgba(121, 72, 99, 0.14);
+                overflow: hidden;
+            }
+
+            .maintenance-logo {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 999px;
+            }
+
+            .maintenance-title {
+                margin: 0 0 10px;
+                color: #6f3e58;
+                font-size: clamp(28px, 7vw, 36px);
+                line-height: 1;
+                font-weight: 800;
+            }
+
+            .maintenance-copy {
+                margin: 0;
+                color: #735765;
+                font-size: 14px;
+                line-height: 1.6;
+                font-weight: 600;
+            }
+
             @media (max-width: 480px) {
                 .shared-site-footer {
                     margin-top: 22px;
@@ -44,6 +109,11 @@
 
                 .shared-site-footer__text {
                     font-size: 11px;
+                }
+
+                .maintenance-shell {
+                    margin-top: 28px;
+                    padding: 24px 18px;
                 }
             }
         `;
@@ -67,6 +137,23 @@
         ) || document.body;
     }
 
+    function applyMaintenanceHome() {
+        const container = document.querySelector("body > .container") || document.querySelector("body > .page-wrap") || document.body;
+        if (!container || container.dataset.maintenanceApplied === "true") return;
+
+        document.title = "Página en mantenimiento | Espacio Mimar T";
+        container.dataset.maintenanceApplied = "true";
+        container.innerHTML = `
+            <section class="maintenance-shell" aria-label="Página en mantenimiento">
+                <div class="maintenance-logo-wrap">
+                    <img class="maintenance-logo" src="img/logo2.jpg" alt="Espacio Mimar T">
+                </div>
+                <h1 class="maintenance-title">Página en mantenimiento</h1>
+                <p class="maintenance-copy">Estamos realizando ajustes para mejorar la experiencia. Por ahora, el acceso para pacientes se encuentra momentáneamente deshabilitado.</p>
+            </section>
+        `;
+    }
+
     function appendFooter() {
         if (document.querySelector("[data-shared-site-footer]")) return;
 
@@ -86,7 +173,15 @@
         mount.appendChild(footer);
     }
 
+    if (isPublicPatientPage()) {
+        window.location.replace("/index.html");
+        return;
+    }
+
     injectStyles();
+    if (isHomePage()) {
+        applyMaintenanceHome();
+    }
     removeLegacyFooters();
     appendFooter();
 })();
