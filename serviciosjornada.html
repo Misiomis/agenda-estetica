@@ -45,9 +45,10 @@
         .topbar {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             gap: 12px;
             margin-bottom: 12px;
+            position: relative;
         }
 
         .back-link {
@@ -57,6 +58,10 @@
             font-size: 12px;
             letter-spacing: 0.04em;
             text-transform: uppercase;
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
         }
 
         .back-link:hover { text-decoration: underline; }
@@ -148,9 +153,9 @@
         .card-premium {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(145deg, #fff3db 0%, #ffe6f2 48%, #fff7e8 100%);
-            border-color: rgba(227, 193, 126, 0.56);
-            box-shadow: 0 18px 38px rgba(136, 61, 106, 0.14), 0 0 0 1px rgba(255, 232, 188, 0.54) inset;
+            background: linear-gradient(145deg, #fff0d8 0%, #ffd8ea 42%, #ffe9c8 100%);
+            border-color: rgba(214, 130, 172, 0.48);
+            box-shadow: 0 18px 38px rgba(136, 61, 106, 0.16), 0 0 0 1px rgba(255, 232, 188, 0.72) inset;
         }
 
         .card-premium::before {
@@ -158,7 +163,7 @@
             position: absolute;
             inset: -36% auto -36% -28%;
             width: 56%;
-            background: linear-gradient(115deg, transparent 0%, rgba(255, 219, 170, 0.1) 20%, rgba(239, 126, 176, 0.28) 46%, rgba(244, 211, 144, 0.38) 58%, rgba(255, 235, 195, 0.14) 72%, transparent 100%);
+            background: linear-gradient(115deg, transparent 0%, rgba(255, 219, 170, 0.12) 18%, rgba(239, 126, 176, 0.34) 44%, rgba(244, 211, 144, 0.46) 58%, rgba(255, 235, 195, 0.2) 74%, transparent 100%);
             transform: translateX(-130%) skewX(-18deg);
             animation: premiumSweep 5.2s ease-in-out infinite;
             pointer-events: none;
@@ -166,7 +171,7 @@
 
         .premium-kicker {
             margin: 0 0 8px;
-            color: #a1547b;
+            color: #94456e;
             font-size: 10px;
             font-weight: 900;
             letter-spacing: 0.16em;
@@ -203,9 +208,9 @@
             margin: 0;
             padding: 10px 12px 10px 40px;
             border-radius: 12px;
-            border: 1px solid rgba(227, 193, 126, 0.34);
-            background: rgba(255, 252, 246, 0.84);
-            box-shadow: 0 10px 22px rgba(136, 61, 106, 0.08), 0 1px 0 rgba(255,255,255,0.68) inset;
+            border: 1px solid rgba(214, 130, 172, 0.28);
+            background: rgba(255, 251, 247, 0.88);
+            box-shadow: 0 10px 22px rgba(136, 61, 106, 0.1), 0 1px 0 rgba(255,255,255,0.78) inset;
             animation: softRise 0.6s ease-out both;
         }
 
@@ -311,6 +316,14 @@
             border: 1px solid rgba(36, 180, 111, 0.2);
             background: linear-gradient(135deg, rgba(241, 255, 248, 0.96) 0%, rgba(232, 250, 241, 0.96) 100%);
             box-shadow: 0 12px 26px rgba(43, 127, 89, 0.1);
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .alert-contact:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 28px rgba(43, 127, 89, 0.14);
+            border-color: rgba(36, 180, 111, 0.32);
         }
 
         .wa-icon {
@@ -342,21 +355,6 @@
             font-size: 12px;
             line-height: 1.5;
             font-weight: 600;
-        }
-
-        .alert-contact-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 6px;
-            color: #17854d;
-            font-size: 12px;
-            font-weight: 800;
-            text-decoration: none;
-        }
-
-        .alert-contact-link:hover {
-            text-decoration: underline;
         }
 
         @keyframes premiumSweep {
@@ -597,7 +595,8 @@
         @media (max-width: 768px) {
             .info-grid { grid-template-columns: 1fr; }
             .services-showcase-grid { grid-template-columns: 1fr; }
-            .topbar { align-items: flex-start; flex-direction: column-reverse; }
+            .topbar { align-items: center; flex-direction: column-reverse; }
+            .back-link { position: static; transform: none; }
             .logo { width: 58px; height: 58px; }
             .services-showcase-top { align-items: stretch; }
             .services-toggle-btn { width: 100%; }
@@ -612,7 +611,6 @@
             .hero-card { padding: 16px 14px; }
             .back-link { width: 100%; }
             .alert-contact { padding: 12px; }
-            .alert-contact-link { display: inline-flex; }
         }
     </style>
 </head>
@@ -663,7 +661,7 @@
                         <li>Marcapasos u otros dispositivos electr&oacute;nicos implantables.</li>
                         <li>Uso de inyectables para descenso de peso, salvo que cuente con certificado m&eacute;dico que avale el tratamiento.</li>
                     </ul>
-                    <div class="alert-contact">
+                    <a class="alert-contact" href="https://wa.me/5493764291807" target="_blank" rel="noopener" aria-label="Consultar por WhatsApp antes de reservar">
                         <span class="wa-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" role="img" focusable="false">
                                 <path d="M19.05 4.94A9.86 9.86 0 0 0 12.03 2C6.56 2 2.12 6.43 2.12 11.9c0 1.75.46 3.46 1.33 4.96L2 22l5.3-1.39a9.87 9.87 0 0 0 4.72 1.2h.01c5.47 0 9.9-4.43 9.9-9.9 0-2.64-1.03-5.12-2.88-6.97Zm-7.02 15.2h-.01a8.2 8.2 0 0 1-4.18-1.14l-.3-.18-3.15.82.84-3.07-.2-.31a8.2 8.2 0 0 1-1.26-4.36c0-4.52 3.68-8.2 8.21-8.2 2.2 0 4.27.85 5.82 2.41a8.17 8.17 0 0 1 2.4 5.82c0 4.53-3.68 8.21-8.17 8.21Zm4.5-6.15c-.25-.13-1.5-.74-1.73-.82-.23-.08-.4-.13-.57.13-.17.25-.66.82-.8.99-.15.17-.3.19-.56.07-.25-.13-1.08-.4-2.05-1.28-.76-.68-1.27-1.52-1.42-1.78-.15-.25-.02-.39.11-.52.12-.12.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.57-1.38-.78-1.88-.21-.51-.42-.44-.57-.45l-.49-.01c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1s.9 2.43 1.03 2.6c.13.17 1.77 2.7 4.29 3.79.6.26 1.07.42 1.44.54.61.19 1.16.16 1.6.1.49-.07 1.5-.61 1.71-1.2.21-.59.21-1.09.15-1.2-.06-.1-.23-.17-.48-.3Z"/>
@@ -671,9 +669,8 @@
                         </span>
                         <div class="alert-contact-copy">
                             <p>Si ten&eacute;s dudas, consult&aacute; con la profesional antes de reservar.</p>
-                            <a class="alert-contact-link" href="https://wa.me/5493764291807" target="_blank" rel="noopener">WhatsApp 3764 29-1807</a>
                         </div>
-                    </div>
+                    </a>
                 </article>
             </div>
 
