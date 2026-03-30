@@ -3,6 +3,7 @@
     const BRAND_TEXT = "Espacio Mimar T";
     const STYLE_ID = "shared-site-footer-style";
     const ADMIN_PAGES = new Set(["admin.html"]);
+    const MAINTENANCE_MODE_ENABLED = false;
     const MAINTENANCE_PAGE = "jornada.html";
 
     function getCurrentPage() {
@@ -168,12 +169,14 @@
     }
 
     injectStyles();
-    if (!isAdminPage() && !isMaintenancePage()) {
-        window.location.replace(`/${MAINTENANCE_PAGE}`);
-        return;
-    }
-    if (isMaintenancePage()) {
-        applyMaintenancePage();
+    if (MAINTENANCE_MODE_ENABLED) {
+        if (!isAdminPage() && !isMaintenancePage()) {
+            window.location.replace(`/${MAINTENANCE_PAGE}`);
+            return;
+        }
+        if (isMaintenancePage()) {
+            applyMaintenancePage();
+        }
     }
     removeLegacyFooters();
     appendFooter();
