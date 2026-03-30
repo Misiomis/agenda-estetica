@@ -747,27 +747,27 @@
         <div class="hero-overlay" aria-hidden="true"></div>
         <div class="hero-content">
             <img src="img/logo2.jpg" alt="Espacio Mimar T" class="logo-hero">
-            <p class="eyebrow">Tu Momento Mimar</p>
+            <p class="eyebrow">Jornada Profesional</p>
             <h1 class="hero-title">Jornada Única</h1>
-            <p class="hero-subtitle" id="jornadaService">Criolipólisis por zona</p>
+            <p class="hero-subtitle" id="jornadaService">Criolipólisis focalizada por zona</p>
             <div class="hero-zones" id="jornadaZonas">
                 <span class="zone-badge">Abdomen</span>
-                <span class="zone-badge">Rollito espalda</span>
-                <span class="zone-badge">Banana subglútea</span>
+                <span class="zone-badge">Flancos posteriores</span>
+                <span class="zone-badge">Pliegue subglúteo</span>
                 <span class="zone-badge">Caderas</span>
             </div>
             <div class="date-showcase" id="jornadaFechas">Cupos con fecha especial</div>
             <div class="hero-floats" aria-hidden="true">
-                <span class="float-card">Cuidarte te queda hermoso</span>
-                <span class="float-card">Tu cuerpo, tu tiempo</span>
-                <span class="float-card">Sentite linda, por vos</span>
+                <span class="float-card">Atención profesional y personalizada</span>
+                <span class="float-card">Criterio responsable en cada caso</span>
+                <span class="float-card">Reserva con información clara</span>
             </div>
         </div>
     </section>
 
     <section class="service-brief-section" aria-label="Acceso a información completa del servicio">
         <div class="service-brief-wrap">
-            <p class="service-brief-text">Antes de reservar, podés leer con calma todos los cuidados y detalles de la jornada para sentirte acompañada desde el primer paso.</p>
+            <p class="service-brief-text">Antes de reservar, podés revisar con calma las indicaciones, cuidados y alcances de la jornada para avanzar con información clara desde el primer paso.</p>
             <a class="service-brief-link" href="serviciosjornada.html">Ver cuidados y detalles</a>
         </div>
     </section>
@@ -775,7 +775,7 @@
     <section class="trust-strip" aria-label="Información importante antes de reservar">
         <div class="trust-card">
             <h2 class="trust-title">Información clara antes de avanzar</h2>
-            <p class="trust-copy">La idea de esta jornada es que reserves con tranquilidad. No buscamos alarmar: buscamos que tomes la decisión con información profesional, expectativas realistas y la seguridad de que siempre hay evaluación previa cuando hace falta.</p>
+            <p class="trust-copy">Esta jornada está pensada para que reserves con tranquilidad y con información suficiente. El objetivo es que tomes una decisión informada, con expectativas realistas y con la seguridad de que, cuando corresponde, se realiza una evaluación previa.</p>
             <div class="trust-grid">
                 <div class="trust-item">
                     <strong>No invasivo</strong>
@@ -801,8 +801,8 @@
         <div class="form-autofill-banner">Si ya estás <strong>registrada</strong>, al ingresar tu DNI el sistema te reconoce y completa tus datos automáticamente.</div>
         <div class="form-container">
             <div class="form-header">
-                <h2>Elegí tu momento</h2>
-                <p>Completá tus datos en 1 minuto y elegí el horario que más te guste para vos.</p>
+                <h2>Reservá tu lugar</h2>
+                <p>Completá tus datos para acceder a los horarios habilitados de esta jornada.</p>
             </div>
 
             <form id="formJornada" novalidate>
@@ -810,7 +810,7 @@
                     <div class="form-full form-group">
                         <label for="fullName">Nombre y apellido *</label>
                         <input id="fullName" type="text" required>
-                        <div class="field-note">Escribilo tal como aparece en tu documento para que podamos cuidar cada detalle de tu reserva.</div>
+                        <div class="field-note">Ingresalo tal como figura en tu documento para validar correctamente tu reserva.</div>
                     </div>
 
                     <div class="form-group">
@@ -843,7 +843,7 @@
 
                 <button id="btnSubmit" class="submit-btn" type="submit">Continuar y elegir mi horario</button>
                 <div id="status" class="form-status"></div>
-                <div class="form-hint">Si ya estás registrada, actualizamos tus datos automáticamente para que sea más simple.</div>
+                <div class="form-hint">Si ya estás registrada, validamos tus datos automáticamente para agilizar el proceso.</div>
             </form>
         </div>
     </section>
@@ -905,6 +905,33 @@
         function parseArraySafe(value) {
             if (!Array.isArray(value)) return [];
             return value.map((v) => String(v).trim()).filter(Boolean);
+        }
+
+        function formatZoneLabel(rawZone) {
+            const zone = String(rawZone || "").trim();
+            if (!zone) return "";
+
+            const normalized = zone
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-z0-9\s]/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+
+            if (
+                normalized.includes("rollito espalda")
+                || normalized.includes("rollito de espalda")
+                || normalized.includes("rollitos de espalda")
+            ) {
+                return "Flancos posteriores";
+            }
+
+            if (normalized.includes("banana subglutea")) {
+                return "Pliegue subglúteo";
+            }
+
+            return zone;
         }
 
         function getServiceSubtitle(rawServiceName) {
@@ -990,12 +1017,14 @@
 
                 if (Array.isArray(campaignConfig.zones) && campaignConfig.zones.length) {
                     jornadaZonasEl.innerHTML = campaignConfig.zones
+                        .map((z) => formatZoneLabel(z))
+                        .filter(Boolean)
                         .map((z) => `<span class="zone-badge">${z}</span>`)
                         .join("");
                 }
 
                 if (!campaignConfig.active) {
-                    setStatus("La jornada no esta disponible por el momento. Muy pronto vas a verla activa otra vez.");
+                    setStatus("La jornada no está disponible por el momento. Muy pronto volverá a estar activa.");
                     btn.disabled = true;
                 }
             } catch (error) {
@@ -1025,7 +1054,7 @@
 
             if (dniClean.length < 7) {
                 if (lastAutofilledDni) {
-                    setDniHint("Al ingresar tu DNI, completamos tus datos si ya estas registrada.");
+                    setDniHint("Al ingresar tu DNI, validamos tus datos si ya contás con un registro previo.");
                 }
                 lastAutofilledDni = "";
                 if (lockedByExistingClient) {
@@ -1040,7 +1069,7 @@
             try {
                 const clientSnap = await getDoc(doc(db, "clients", dniClean));
                 if (!clientSnap.exists()) {
-                    setDniHint("No encontramos registros previos para este DNI. Completa tus datos y seguimos.");
+                    setDniHint("No encontramos un registro previo con este DNI. Completá tus datos para continuar.");
                     if (lockedByExistingClient) setClientFieldsLocked(false);
                     return;
                 }
@@ -1056,11 +1085,11 @@
                 setClientFieldsLocked(true);
 
                 lastAutofilledDni = dniClean;
-                setDniHint("Ya te encontramos. Tus datos quedaron protegidos para evitar errores.", true);
-                setStatus("Perfecto, tus datos ya estaban guardados. Revisá y continuá cuando quieras.", true);
+                setDniHint("Encontramos tu registro. Tus datos quedan protegidos para evitar inconsistencias.", true);
+                setStatus("Tus datos ya estaban registrados. Revisalos y continuá cuando quieras.", true);
             } catch (error) {
                 console.error("No se pudo autocompletar por DNI:", error);
-                setDniHint("No pudimos validar el DNI ahora. Podés completar todo manualmente.");
+                setDniHint("No pudimos validar el DNI en este momento. Podés completar los datos manualmente.");
                 if (lockedByExistingClient) setClientFieldsLocked(false);
             }
         }
@@ -1098,7 +1127,7 @@
             }
 
             btn.disabled = true;
-            btn.textContent = "Preparando tu acceso...";
+            btn.textContent = "Validando tus datos...";
 
             try {
                 const registroPayload = {
@@ -1143,7 +1172,7 @@
                 localStorage.setItem("jornadaAllowedDates", JSON.stringify(campaignConfig.allowedDates || []));
                 localStorage.setItem("jornadaSource", campaignConfig.sourceTag || "jornada_especial");
 
-                setStatus("Listo, ya esta todo preparado. Te mostramos los detalles de la jornada.", true);
+                setStatus("Tu registro quedó listo. Ahora te mostramos los detalles de la jornada.", true);
                 setTimeout(() => {
                     window.location.href = "serviciosjornada.html";
                 }, 450);
