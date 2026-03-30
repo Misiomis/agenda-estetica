@@ -152,7 +152,7 @@ async function enviarTemplateTurno({ telefono, nombre, servicio, fecha, hora, te
     );
 }
 
-exports.registrarPacienteJornada = functions.https.onRequest(async (req, res) => {
+exports.registrarPacienteJornada = onRequest(async (req, res) => {
 
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");

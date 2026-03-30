@@ -850,7 +850,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, getFirestore, limit, query, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
@@ -958,12 +958,33 @@
             statusEl.classList.toggle("ok", !!ok);
         }
 
-        async function registrarPacienteFallback(payload) {
-            const ref = doc(db, "clients", payload.dni);
-            const snap = await getDoc(ref);
-            if (!snap.exists()) {
-                throw new Error("No pudimos registrar este DNI ahora. Intenta nuevamente en unos minutos.");
+        async function buscarClienteExistentePorDni(dni) {
+            const refDirecta = doc(db, "clients", dni);
+            const snapDirecto = await getDoc(refDirecta);
+            if (snapDirecto.exists()) {
+                return { ref: refDirecta, snap: snapDirecto };
             }
+
+            const legacySnap = await getDocs(query(
+                collection(db, "clients"),
+                where("dni", "==", dni),
+                limit(1)
+            ));
+
+            if (!legacySnap.empty) {
+                return { ref: legacySnap.docs[0].ref, snap: legacySnap.docs[0] };
+            }
+
+            return null;
+        }
+
+        async function registrarPacienteFallback(payload) {
+            const clienteExistente = await buscarClienteExistentePorDni(payload.dni);
+            if (!clienteExistente) {
+                return false;
+            }
+
+            const { ref } = clienteExistente;
 
             const username = String(payload.fullName || "")
                 .toLowerCase()
@@ -992,6 +1013,36 @@
                     lastSignupAt: new Date().toISOString()
                 }
             });
+
+            return true;
+        }
+
+        async function registrarPacienteJornada(payload) {
+            try {
+                const response = await fetch(CF_REGISTRAR, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(result.error || "No se pudo completar el registro");
+                }
+
+                return { source: "cloud" };
+            } catch (cfError) {
+                const msg = String(cfError?.message || "").toLowerCase();
+                const esErrorRed = msg.includes("failed to fetch") || msg.includes("cors") || msg.includes("network");
+                if (!esErrorRed) throw cfError;
+
+                const actualizado = await registrarPacienteFallback(payload);
+                if (actualizado) {
+                    return { source: "fallback" };
+                }
+
+                throw new Error("No pudimos conectar el registro automatico para crear este DNI ahora. Intenta nuevamente en unos minutos.");
+            }
         }
 
         async function loadCampaignConfig() {
@@ -1142,27 +1193,7 @@
                     consentimientoAceptado: true
                 };
 
-                if (!ES_LOCAL) {
-                    try {
-                        const response = await fetch(CF_REGISTRAR, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(registroPayload)
-                        });
-
-                        const result = await response.json().catch(() => ({}));
-                        if (!response.ok) {
-                            throw new Error(result.error || "No se pudo completar el registro");
-                        }
-                    } catch (cfError) {
-                        const msg = String(cfError?.message || "").toLowerCase();
-                        const esErrorRed = msg.includes("failed to fetch") || msg.includes("cors") || msg.includes("network");
-                        if (!esErrorRed) throw cfError;
-                        await registrarPacienteFallback(registroPayload);
-                    }
-                } else {
-                    await registrarPacienteFallback(registroPayload);
-                }
+                await registrarPacienteJornada(registroPayload);
 
                 localStorage.setItem("clienteDNI", dni);
                 localStorage.setItem("clienteNombre", fullName);
