@@ -1222,18 +1222,12 @@
             if(el) el.classList.add('selected');
 
             const cierreDia = cierresPorFecha.get(f);
-            if (cierreDia) {
-                const panelCierre = document.getElementById("panelDetalleDia");
-                panelCierre.innerHTML = `
-                    <div class="empty-state" style="opacity:1; border-style:solid; border-color:#e6c5cb; background:#fff7f8; color:#7f3b48; text-align:left;">
-                        <strong>${formatoFechaISO(f)}</strong><br>
-                        ${escapeHtml(cierreDia.reason || 'No disponible')}
-                    </div>
-                `;
-                setTimeout(() => panelCierre.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
-                mostrarAviso(formatoFechaISO(f), `${cierreDia.reason || 'No disponible'}`);
-                return;
-            }
+            const cierreBannerHTML = cierreDia ? `
+                <div class="empty-state" style="opacity:1; border-style:solid; border-color:#e6c5cb; background:#fff7f8; color:#7f3b48; text-align:left; margin-bottom:10px;">
+                    <strong>${formatoFechaISO(f)}</strong><br>
+                    Día cerrado por calendarExceptions: ${escapeHtml(cierreDia.reason || 'No disponible')}
+                </div>
+            ` : "";
 
             const filtrados = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === f).sort((a,b) => a.hora.localeCompare(b.hora));
             const reservasHTML = filtrados.length ? filtrados.map(r => {
@@ -1305,7 +1299,7 @@
             `;
 
             const panelEl = document.getElementById("panelDetalleDia");
-            panelEl.innerHTML = reservasHTML + gestorHTML;
+            panelEl.innerHTML = cierreBannerHTML + reservasHTML + gestorHTML;
             setTimeout(() => panelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
         };
 
