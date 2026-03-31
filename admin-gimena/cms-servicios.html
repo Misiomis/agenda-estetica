@@ -409,6 +409,15 @@
         import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
+        // Capa 1: acceso solo con URL manual completa (llave en query string).
+        // Si falta o es incorrecta, vuelve al inicio.
+        const ADMIN_ACCESS_KEY = "mimar-gk-2026";
+        const accessKey = new URLSearchParams(window.location.search).get('k');
+        if (accessKey !== ADMIN_ACCESS_KEY) {
+            localStorage.removeItem('gimenaLoggedin');
+            window.location.replace('/');
+        }
+
         const firebaseConfig = {
             apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
             authDomain: "estetica-8d067.firebaseapp.com",
