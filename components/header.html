@@ -1,0 +1,323 @@
+<header class="site-header">
+    <div class="header-container">
+        <div class="header-left">
+            <a href="/" class="logo-link">
+                <img src="/img/logo.png" alt="Espacio Mimar T" class="header-logo">
+            </a>
+        </div>
+        
+        <nav class="header-nav">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/pages/home.html#servicios" class="nav-link">Servicios</a>
+            <a href="/pages/home.html#ubicacion" class="nav-link">Ubicación</a>
+            <a href="/pages/home.html#contacto" class="nav-link">Contacto</a>
+        </nav>
+
+        <div class="header-actions">
+            <div id="headerSessionInfo" style="display: none; display: flex; align-items: center; gap: 12px;">
+                <span class="session-name" id="sessionNameDisplay"></span>
+                <button class="btn-session-exit" id="btnCerrarSesion">Salir</button>
+            </div>
+            <button class="btn-agendar" id="btnAgendar">Agendar</button>
+        </div>
+
+        <button class="menu-toggle" id="menuToggle" aria-label="Menú">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+
+    <nav class="mobile-menu" id="mobileMenu">
+        <a href="/" class="mobile-nav-link">Inicio</a>
+        <a href="/pages/home.html#servicios" class="mobile-nav-link">Servicios</a>
+        <a href="/pages/home.html#ubicacion" class="mobile-nav-link">Ubicación</a>
+        <a href="/pages/home.html#contacto" class="mobile-nav-link">Contacto</a>
+        <button class="btn-agendar-mobile" id="btnAgendarMobile">Agendar Cita</button>
+    </nav>
+</header>
+
+<style>
+:root {
+    --mimar-color-primary: #72bd99;
+    --mimar-color-primary-strong: #4e9d7a;
+    --mimar-color-ink: #2b3934;
+    --mimar-color-surface: #ffffff;
+    --mimar-color-muted: #64706b;
+    --mimar-color-border: #d7e2dc;
+    --mimar-radius-md: 14px;
+    --mimar-shadow-sm: 0 6px 14px rgba(29, 51, 42, 0.08);
+    --mimar-transition-base: 0.24s ease;
+}
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--mimar-color-surface);
+    border-bottom: 1px solid var(--mimar-color-border);
+    box-shadow: var(--mimar-shadow-sm);
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 70px;
+    gap: 30px;
+}
+
+.header-left {
+    flex-shrink: 0;
+}
+
+.logo-link {
+    display: block;
+    text-decoration: none;
+}
+
+.header-logo {
+    height: 45px;
+    width: auto;
+    transition: opacity var(--mimar-transition-base);
+}
+
+.header-logo:hover {
+    opacity: 0.85;
+}
+
+.header-nav {
+    display: flex;
+    gap: 35px;
+    flex: 1;
+    justify-content: center;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: var(--mimar-color-ink);
+    font-size: 15px;
+    font-weight: 500;
+    transition: color var(--mimar-transition-base);
+    letter-spacing: 0.3px;
+}
+
+.nav-link:hover {
+    color: var(--mimar-color-primary);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-shrink: 0;
+}
+
+.session-name {
+    font-size: 13px;
+    color: var(--mimar-color-muted);
+    font-weight: 500;
+}
+
+.btn-session-exit {
+    background: none;
+    border: 1px solid var(--mimar-color-border);
+    color: var(--mimar-color-muted);
+    padding: 8px 14px;
+    border-radius: var(--mimar-radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--mimar-transition-base);
+}
+
+.btn-session-exit:hover {
+    border-color: var(--mimar-color-primary);
+    color: var(--mimar-color-primary);
+}
+
+.btn-agendar {
+    background: linear-gradient(135deg, var(--mimar-color-primary) 0%, var(--mimar-color-primary-strong) 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--mimar-radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--mimar-transition-base), box-shadow var(--mimar-transition-base);
+    white-space: nowrap;
+}
+
+.btn-agendar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(114, 189, 153, 0.25);
+}
+
+.menu-toggle {
+    display: none;
+    flex-direction: column;
+    background: none;
+    border: none;
+    cursor: pointer;
+    gap: 5px;
+    padding: 8px;
+}
+
+.menu-toggle span {
+    width: 25px;
+    height: 2.5px;
+    background: var(--mimar-color-ink);
+    border-radius: 2px;
+    transition: all var(--mimar-transition-base);
+}
+
+.menu-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(10px, 10px);
+}
+
+.menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.menu-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
+}
+
+.mobile-menu {
+    display: none;
+    position: absolute;
+    top: 70px;
+    left: 0;
+    right: 0;
+    background: var(--mimar-color-surface);
+    border-bottom: 1px solid var(--mimar-color-border);
+    flex-direction: column;
+    padding: 20px;
+    gap: 12px;
+}
+
+.mobile-menu.active {
+    display: flex;
+}
+
+.mobile-nav-link {
+    text-decoration: none;
+    color: var(--mimar-color-ink);
+    font-size: 15px;
+    font-weight: 500;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--mimar-color-border);
+}
+
+.btn-agendar-mobile {
+    background: linear-gradient(135deg, var(--mimar-color-primary) 0%, var(--mimar-color-primary-strong) 100%);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: var(--mimar-radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+    .header-container {
+        height: 60px;
+        gap: 15px;
+    }
+
+    .header-nav {
+        display: none;
+    }
+
+    .btn-agendar {
+        display: none;
+    }
+
+    .menu-toggle {
+        display: flex;
+    }
+
+    .header-logo {
+        height: 38px;
+    }
+}
+</style>
+
+<script>
+// Gestionar menú móvil
+const menuToggle = document.getElementById('menuToggle');
+const mobileMenu = document.getElementById('mobileMenu');
+
+if (menuToggle) {
+    menuToggle.addEventListener('click', () => {
+        menuToggle.classList.toggle('active');
+        mobileMenu.classList.toggle('active');
+    });
+}
+
+// Cerrar menú al hacer click en un link
+document.querySelectorAll('.mobile-nav-link, .btn-agendar-mobile').forEach(link => {
+    link.addEventListener('click', () => {
+        menuToggle?.classList.remove('active');
+        mobileMenu?.classList.remove('active');
+    });
+});
+
+// Cerrar menú al hacer scroll
+window.addEventListener('scroll', () => {
+    menuToggle?.classList.remove('active');
+    mobileMenu?.classList.remove('active');
+});
+
+// Gestionar sesión y botones de agendar
+function actualizarHeaderSesion() {
+    const clienteDNI = localStorage.getItem('clienteDNI');
+    const clienteNombre = localStorage.getItem('clienteNombre');
+    const headerSessionInfo = document.getElementById('headerSessionInfo');
+    const sessionNameDisplay = document.getElementById('sessionNameDisplay');
+    const btnAgendar = document.getElementById('btnAgendar');
+    const btnAgendar2 = document.getElementById('btnAgendar');
+    const btnAgendarMobile = document.getElementById('btnAgendarMobile');
+
+    if (clienteDNI && clienteNombre) {
+        // Usuario logueado
+        if (headerSessionInfo) headerSessionInfo.style.display = 'flex';
+        if (sessionNameDisplay) sessionNameDisplay.textContent = clienteNombre;
+        if (btnAgendar) btnAgendar.style.display = 'none';
+    } else {
+        // Usuario no logueado
+        if (headerSessionInfo) headerSessionInfo.style.display = 'none';
+        if (btnAgendar) btnAgendar.style.display = 'block';
+    }
+
+    // Botones de agendar
+    [btnAgendar, btnAgendarMobile].forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', () => {
+                if (clienteDNI) {
+                    window.location.href = '/servicios.html';
+                } else {
+                    window.location.href = '/login.html';
+                }
+            });
+        }
+    });
+}
+
+const btnCerrarSesion = document.getElementById('btnCerrarSesion');
+if (btnCerrarSesion) {
+    btnCerrarSesion.addEventListener('click', () => {
+        localStorage.removeItem('clienteDNI');
+        localStorage.removeItem('clienteNombre');
+        localStorage.removeItem('jornadaModo');
+        window.location.href = '/';
+    });
+}
+
+actualizarHeaderSesion();
+</script>

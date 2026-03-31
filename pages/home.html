@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espacio Mimar T - Estética Avanzada</title>
+    <meta name="description" content="Tratamientos dermoestéticos personalizados con tecnología de punta y respaldo farmacéutico en La Plata.">
+    <meta name="theme-color" content="#72bd99">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/img/icon-192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mimar-color-bg: #f4f7f6;
+            --mimar-color-surface: #ffffff;
+            --mimar-color-primary: #72bd99;
+            --mimar-color-primary-strong: #4e9d7a;
+            --mimar-color-primary-soft: #e8f5ee;
+            --mimar-color-ink: #2b3934;
+            --mimar-color-muted: #64706b;
+            --mimar-color-border: #d7e2dc;
+            --mimar-radius-md: 14px;
+            --mimar-radius-lg: 22px;
+            --mimar-shadow-sm: 0 6px 14px rgba(29, 51, 42, 0.08);
+            --mimar-shadow-md: 0 12px 24px rgba(29, 51, 42, 0.12);
+            --mimar-shadow-lg: 0 22px 48px rgba(29, 51, 42, 0.16);
+            --mimar-transition-base: 0.24s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--mimar-color-bg);
+            color: var(--mimar-color-ink);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* SECCIÓN HERO */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f4f7f6 0%, #e8f5ee 100%);
+            position: relative;
+            overflow: hidden;
+            padding: 0 20px;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 80% 20%, rgba(114, 189, 153, 0.12) 0%, transparent 50%),
+                        radial-gradient(circle at 20% 80%, rgba(78, 157, 122, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 700px;
+            text-align: center;
+            animation: fadeInUp 1s ease both;
+        }
+
+        .hero-subtitle {
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--mimar-color-primary);
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .hero-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(42px, 8vw, 72px);
+            color: var(--mimar-color-ink);
+            margin-bottom: 20px;
+            line-height: 1.1;
+            letter-spacing: -1px;
+        }
+
+        .hero-desc {
+            font-size: 18px;
+            color: var(--mimar-color-muted);
+            margin-bottom: 40px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--mimar-color-primary) 0%, var(--mimar-color-primary-strong) 100%);
+            color: white;
+            border: none;
+            padding: 16px 40px;
+            border-radius: var(--mimar-radius-md);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform var(--mimar-transition-base), box-shadow var(--mimar-transition-base);
+            box-shadow: 0 8px 20px rgba(114, 189, 153, 0.25);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(114, 189, 153, 0.35);
+        }
+
+        .btn-secondary {
+            background: var(--mimar-color-surface);
+            color: var(--mimar-color-primary);
+            border: 2px solid var(--mimar-color-primary);
+            padding: 14px 38px;
+            border-radius: var(--mimar-radius-md);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--mimar-transition-base);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary:hover {
+            background: var(--mimar-color-primary-soft);
+        }
+
+        /* SECCIÓN SERVICIOS */
+        .section {
+            max-width: 1200px;
+            margin: 80px auto 0;
+            padding: 60px 20px;
+            position: relative;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(36px, 6vw, 56px);
+            color: var(--mimar-color-ink);
+            text-align: center;
+            margin-bottom: 15px;
+            letter-spacing: -0.5px;
+        }
+
+        .section-desc {
+            text-align: center;
+            color: var(--mimar-color-muted);
+            font-size: 16px;
+            max-width: 600px;
+            margin: 0 auto 50px;
+        }
+
+        .servicios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .servicio-card {
+            background: var(--mimar-color-surface);
+            border-radius: var(--mimar-radius-lg);
+            padding: 30px;
+            text-align: center;
+            box-shadow: var(--mimar-shadow-sm);
+            transition: all var(--mimar-transition-base);
+            border: 1px solid var(--mimar-color-border);
+            cursor: pointer;
+        }
+
+        .servicio-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--mimar-shadow-lg);
+            border-color: var(--mimar-color-primary);
+        }
+
+        .servicio-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .servicio-card h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            color: var(--mimar-color-ink);
+            margin-bottom: 12px;
+        }
+
+        .servicio-card p {
+            font-size: 14px;
+            color: var(--mimar-color-muted);
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+
+        .servicio-link {
+            color: var(--mimar-color-primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+            transition: color var(--mimar-transition-base);
+        }
+
+        .servicio-link:hover {
+            color: var(--mimar-color-primary-strong);
+        }
+
+        /* SECCIÓN QUIÉNES SOMOS */
+        .quienes-somos {
+            background: linear-gradient(135deg, var(--mimar-color-primary-soft) 0%, #f4f7f6 100%);
+        }
+
+        .quienes-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .quienes-text h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 42px;
+            margin-bottom: 20px;
+            color: var(--mimar-color-ink);
+        }
+
+        .quienes-text p {
+            font-size: 15px;
+            line-height: 1.8;
+            color: var(--mimar-color-muted);
+            margin-bottom: 20px;
+        }
+
+        .gimena-card {
+            background: var(--mimar-color-surface);
+            padding: 30px;
+            border-radius: var(--mimar-radius-lg);
+            text-align: center;
+            box-shadow: var(--mimar-shadow-md);
+            border: 1px solid var(--mimar-color-border);
+        }
+
+        .gimena-card h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            color: var(--mimar-color-ink);
+            margin-bottom: 8px;
+        }
+
+        .gimena-card .titulo {
+            font-size: 14px;
+            color: var(--mimar-color-primary);
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .gimena-card .credentials {
+            font-size: 13px;
+            color: var(--mimar-color-muted);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .gimena-card .descripcion {
+            font-size: 14px;
+            color: var(--mimar-color-muted);
+            font-style: italic;
+            line-height: 1.7;
+        }
+
+        /* SECCIÓN UBICACIÓN */
+        .ubicacion {
+            background: var(--mimar-color-surface);
+        }
+
+        .ubicacion-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+        }
+
+        .mapa-placeholder {
+            background: linear-gradient(135deg, var(--mimar-color-primary-soft) 0%, #f4f7f6 100%);
+            border-radius: var(--mimar-radius-lg);
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: var(--mimar-color-primary);
+        }
+
+        .ubicacion-info h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            margin-bottom: 30px;
+        }
+
+        .info-item {
+            margin-bottom: 25px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--mimar-color-primary);
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: var(--mimar-color-ink);
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        /* SECCIÓN CONTACTO */
+        .contacto {
+            background: linear-gradient(135deg, var(--mimar-color-ink) 0%, #1f2824 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .contacto .section-title {
+            color: white;
+        }
+
+        .contacto .section-desc {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .contacto-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .contacto-link {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(114, 189, 153, 0.4);
+            color: var(--mimar-color-primary);
+            padding: 15px 30px;
+            border-radius: var(--mimar-radius-md);
+            text-decoration: none;
+            transition: all var(--mimar-transition-base);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .contacto-link:hover {
+            background: rgba(114, 189, 153, 0.15);
+            border-color: var(--mimar-color-primary);
+        }
+
+        /* ANIMACIONES */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.8s ease both;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 42px;
+            }
+
+            .hero-desc {
+                font-size: 16px;
+            }
+
+            .section {
+                padding: 40px 20px;
+                margin-top: 40px;
+            }
+
+            .section-title {
+                font-size: 32px;
+                margin-bottom: 20px;
+            }
+
+            .section-desc {
+                font-size: 14px;
+                margin-bottom: 30px;
+            }
+
+            .quienes-content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .ubicacion-content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .mapa-placeholder {
+                height: 300px;
+            }
+
+            .quienes-text h2,
+            .ubicacion-info h3 {
+                font-size: 28px;
+            }
+
+            .servicio-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER (se carga via JavaScript) -->
+    <div id="headerContainer"></div>
+
+    <!-- HERO SECTION -->
+    <section class="hero" id="inicio">
+        <div class="hero-content">
+            <div class="hero-subtitle">Bienvenida a</div>
+            <h1 class="hero-title">Espacio Mimar T</h1>
+            <p class="hero-desc">Tratamientos dermoestéticos personalizados con tecnología avanzada y respaldo farmacéutico</p>
+            <div class="hero-cta">
+                <button class="btn-primary" onclick="document.querySelector('#servicios').scrollIntoView({behavior: 'smooth'})">
+                    Conocer Servicios
+                </button>
+                <button class="btn-secondary" id="btnAgendarHero">
+                    Agendar Cita
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- SERVICIOS PREVIEW -->
+    <section class="section" id="servicios">
+        <h2 class="section-title">Nuestros Servicios</h2>
+        <p class="section-desc">Ofrecemos tratamientos integrales para mejorar tu piel y bienestar</p>
+        
+        <div class="servicios-grid">
+            <div class="servicio-card">
+                <div class="servicio-icon">💡</div>
+                <h3>Facial LED Regenerativo</h3>
+                <p>Tratamiento no invasivo que estimula colágeno y elastina para mejorar firmeza, luminosidad y textura.</p>
+                <a href="#" class="servicio-link">Conocer más →</a>
+            </div>
+
+            <div class="servicio-card">
+                <div class="servicio-icon">✨</div>
+                <h3>Sesión Corporal Combinada</h3>
+                <p>Tecnologías integradas para combatir flacidez, celulitis, estrías y mejorar el tono muscular.</p>
+                <a href="#" class="servicio-link">Conocer más →</a>
+            </div>
+
+            <div class="servicio-card">
+                <div class="servicio-icon">🧴</div>
+                <h3>Consulta Personalizada</h3>
+                <p>Evaluación completa de tu piel y planificación de tratamiento según tus necesidades específicas.</p>
+                <a href="#" class="servicio-link">Conocer más →</a>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="btn-primary" id="btnVerServicios">
+                Ver todos los servicios
+            </button>
+        </div>
+    </section>
+
+    <!-- QUIÉNES SOMOS -->
+    <section class="section quienes-somos" id="quienes">
+        <h2 class="section-title" style="margin-bottom: 50px;">Quiénes Somos</h2>
+        <div class="quienes-content">
+            <div class="quienes-text">
+                <h2>Gimena Knack</h2>
+                <p>Farmacéutica y especialista en Dermatocosmética, con amplia experiencia en tratamientos dermoestéticos personalizados.</p>
+                <p>En Espacio Mimar T disponemos de tecnología de punta combinada con respaldo farmacéutico para ofrecerte resultados visibles y seguros.</p>
+                <p>Cada tratamiento es diseñado específicamente para ti, considerando tu tipo de piel, objetivos y necesidades particulares.</p>
+            </div>
+            <div class="gimena-card">
+                <h3>Gimena Knack</h3>
+                <div class="titulo">Farmacéutica · Dermatocosmiatra</div>
+                <div class="credentials">
+                    MP 1212 · R.C. 2319
+                </div>
+                <p class="descripcion">Tratamientos dermoestéticos personalizados con respaldo farmacéutico y tecnología avanzada para el cuidado integral de la piel</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- UBICACIÓN -->
+    <section class="section ubicacion" id="ubicacion">
+        <h2 class="section-title" style="margin-bottom: 50px;">Ubicación</h2>
+        <div class="ubicacion-content">
+            <div class="mapa-placeholder">
+                🗺️
+            </div>
+            <div class="ubicacion-info">
+                <h3>Visitanos</h3>
+                <div class="info-item">
+                    <div class="info-label">Dirección</div>
+                    <div class="info-value">
+                        Calle Esmeralda 234<br>
+                        La Plata, Buenos Aires<br>
+                        Argentina
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Horarios</div>
+                    <div class="info-value">
+                        Lunes a Viernes: 9:00 - 19:00<br>
+                        Sábados: Consultar<br>
+                        Domingos: Cerrado
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Contacto</div>
+                    <div class="info-value">
+                        <a href="tel:+542216545678" style="color: var(--mimar-color-primary); text-decoration: none; font-weight: 600;">+54 221 654 5678</a><br>
+                        <a href="https://wa.me/542216545678" style="color: var(--mimar-color-primary); text-decoration: none; font-weight: 600;">WhatsApp</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACTO CTA -->
+    <section class="section contacto" id="contacto">
+        <h2 class="section-title">¿Listo para transformar tu piel?</h2>
+        <p class="section-desc">Agenda tu primera consulta hoy y comienza tu viaje hacia la mejor versión de ti mismo</p>
+        <div class="contacto-links">
+            <a href="tel:+542216545678" class="contacto-link">📞 Llamar</a>
+            <a href="https://wa.me/542216545678" class="contacto-link" target="_blank">💬 WhatsApp</a>
+            <button class="contacto-link" id="btnAgendarContacto" style="cursor: pointer;">📅 Agendar Cita</button>
+        </div>
+    </section>
+
+    <!-- FOOTER (se carga via JavaScript) -->
+    <div id="footerContainer"></div>
+
+    <script>
+        // Cargar header y footer dinámicamente
+        async function cargarComponentes() {
+            try {
+                // Cargar header
+                const headerRes = await fetch('/components/header.html');
+                const headerHtml = await headerRes.text();
+                document.getElementById('headerContainer').innerHTML = headerHtml;
+
+                // Cargar footer
+                const footerRes = await fetch('/components/footer.html');
+                const footerHtml = await footerRes.text();
+                document.getElementById('footerContainer').innerHTML = footerHtml;
+
+                // Ejecutar scripts del header (menú móvil, etc)
+                setTimeout(() => {
+                    actualizarHeaderSesion?.();
+                }, 100);
+            } catch (error) {
+                console.error('Error cargando componentes:', error);
+            }
+        }
+
+        cargarComponentes();
+
+        // Botones de agendar
+        function redirigirAgendar() {
+            const clienteDNI = localStorage.getItem('clienteDNI');
+            if (clienteDNI) {
+                window.location.href = '/servicios.html';
+            } else {
+                window.location.href = '/login.html';
+            }
+        }
+
+        document.getElementById('btnAgendarHero')?.addEventListener('click', redirigirAgendar);
+        document.getElementById('btnVerServicios')?.addEventListener('click', redirigirAgendar);
+        document.getElementById('btnAgendarContacto')?.addEventListener('click', redirigirAgendar);
+
+        // Efecto de scroll
+        document.querySelectorAll('[class*="section"]').forEach((section, idx) => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('fade-in');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            });
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>
