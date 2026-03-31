@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería de Servicios - Espacio Mimar T</title>
+    <meta name="description" content="Galería de fotos de nuestros tratamientos dermoestéticos. Facial LED, Sesiones Corporales y más.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://espaciomimart.com/pages/gallery.html">
+    <meta property="og:title" content="Galería de Servicios - Espacio Mimar T">
+    <meta property="og:description" content="Descubre nuestros servicios a través de fotos reales. Antes y después, ambiente, tratamientos.">
+    <meta property="og:image" content="https://espaciomimart.com/img/logo.png">
+    <meta property="og:locale" content="es_AR">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mimar-color-primary: #72bd99;
+            --mimar-color-primary-strong: #4e9d7a;
+            --mimar-color-ink: #2b3934;
+            --mimar-color-bg: #f4f7f6;
+            --mimar-color-surface: #ffffff;
+            --mimar-color-muted: #64706b;
+            --mimar-color-border: #d7e2dc;
+            --mimar-radius-lg: 22px;
+            --mimar-shadow-md: 0 12px 24px rgba(29, 51, 42, 0.12);
+            --mimar-shadow-lg: 0 22px 48px rgba(29, 51, 42, 0.16);
+            --mimar-transition-base: 0.24s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--mimar-color-bg);
+            color: var(--mimar-color-ink);
+            overflow-x: hidden;
+        }
+
+        /* HEADER */
+        #headerContainer {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        /* HERO */
+        .hero {
+            background: linear-gradient(135deg, #f4f7f6 0%, #e8f5ee 100%);
+            padding: 60px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 80% 20%, rgba(114, 189, 153, 0.12) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero-subtitle {
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--mimar-color-primary);
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .hero-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(36px, 6vw, 52px);
+            color: var(--mimar-color-ink);
+            margin-bottom: 15px;
+            line-height: 1.1;
+        }
+
+        .hero-desc {
+            font-size: 16px;
+            color: var(--mimar-color-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* CONTENT */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        .gallery-section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            color: var(--mimar-color-ink);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .gallery-section-desc {
+            text-align: center;
+            color: var(--mimar-color-muted);
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* FILTROS */
+        .filter-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 50px;
+        }
+
+        .filter-btn {
+            padding: 10px 24px;
+            border: 2px solid var(--mimar-color-border);
+            background: var(--mimar-color-surface);
+            color: var(--mimar-color-ink);
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all var(--mimar-transition-base);
+        }
+
+        .filter-btn.active {
+            background: var(--mimar-color-primary);
+            color: white;
+            border-color: var(--mimar-color-primary);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--mimar-color-primary);
+        }
+
+        /* GALLERY GRID */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 60px;
+        }
+
+        .gallery-item {
+            aspect-ratio: 1;
+            border-radius: var(--mimar-radius-lg);
+            overflow: hidden;
+            cursor: pointer;
+            background: var(--mimar-color-surface);
+            box-shadow: 0 6px 16px rgba(29, 51, 42, 0.1);
+            transition: all var(--mimar-transition-base);
+            position: relative;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--mimar-shadow-lg);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform var(--mimar-transition-base);
+        }
+
+        .gallery-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .gallery-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity var(--mimar-transition-base);
+        }
+
+        .gallery-item:hover .gallery-overlay {
+            opacity: 1;
+        }
+
+        .gallery-icon {
+            font-size: 48px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--mimar-color-muted);
+        }
+
+        .no-items {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--mimar-color-muted);
+            background: var(--mimar-color-surface);
+            border-radius: var(--mimar-radius-lg);
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--mimar-color-surface);
+            border-radius: var(--mimar-radius-lg);
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            position: relative;
+            height: 300px;
+            background: var(--mimar-color-bg);
+            overflow: hidden;
+        }
+
+        .modal-header img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--mimar-transition-base);
+        }
+
+        .modal-close:hover {
+            background: white;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .modal-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            color: var(--mimar-color-ink);
+            margin-bottom: 15px;
+        }
+
+        .modal-desc {
+            color: var(--mimar-color-muted);
+            line-height: 1.8;
+            margin-bottom: 30px;
+            font-size: 15px;
+        }
+
+        .modal-cta {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn-agendar {
+            flex: 1;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--mimar-color-primary) 0%, var(--mimar-color-primary-strong) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--mimar-transition-base);
+        }
+
+        .btn-agendar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(114, 189, 153, 0.25);
+        }
+
+        .btn-cerrar {
+            flex: 1;
+            padding: 14px;
+            background: var(--mimar-color-bg);
+            color: var(--mimar-color-ink);
+            border: 1px solid var(--mimar-color-border);
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--mimar-transition-base);
+        }
+
+        .btn-cerrar:hover {
+            background: var(--mimar-color-border);
+        }
+
+        /* FOOTER */
+        #footerContainer {
+            margin-top: 60px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 20px;
+            }
+
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 15px;
+            }
+
+            .modal-header {
+                height: 250px;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
+
+            .modal-title {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div id="headerContainer"></div>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-subtitle">Galería Visual</div>
+            <h1 class="hero-title">Nuestros Tratamientos</h1>
+            <p class="hero-desc">Descubre a través de fotos reales los resultados y ambiente de nuestros servicios</p>
+        </div>
+    </section>
+
+    <!-- GALLERY -->
+    <div class="container">
+        <h2 class="gallery-section-title">Servicios Destacados</h2>
+        <p class="gallery-section-desc">Filtra por tipo de tratamiento para ver más detalles</p>
+
+        <!-- Filtros -->
+        <div class="filter-buttons">
+            <button class="filter-btn active" onclick="filtrarGaleria('todos')">Todos</button>
+            <button class="filter-btn" onclick="filtrarGaleria('facial-led')">Facial LED</button>
+            <button class="filter-btn" onclick="filtrarGaleria('corporal')">Corporal</button>
+            <button class="filter-btn" onclick="filtrarGaleria('ambiente')">Ambiente</button>
+        </div>
+
+        <!-- Gallery Grid -->
+        <div id="galleryGrid" class="gallery-grid">
+            <div class="loading">Cargando galería...</div>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="galleryModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <img id="modalImg" src="" alt="">
+                <button class="modal-close" onclick="cerrarModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h2 class="modal-title" id="modalTitle"></h2>
+                <p class="modal-desc" id="modalDesc"></p>
+                <div class="modal-cta">
+                    <button class="btn-agendar" onclick="irAgendar()">Agendar Cita</button>
+                    <button class="btn-cerrar" onclick="cerrarModal()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div id="footerContainer"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
+            authDomain: "estetica-8d067.firebaseapp.com",
+            projectId: "estetica-8d067",
+            storageBucket: "estetica-8d067.firebasestorage.app",
+            messagingSenderId: "501220214938",
+            appId: "1:501220214938:web:af6e262c23d9a7ea853723"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Datos de ejemplo (placeholder hasta que Gimena suba fotos reales)
+        const serviciosEjemplo = [
+            {
+                id: 1,
+                servicio: 'facial-led',
+                nombre: 'Facial LED Regenerativo',
+                descripcion: 'Tratamiento no invasivo que estimula colágeno y elastina. Mejora firmeza, luminosidad y textura. Ideal para acné, inflamación y manchas.',
+                foto: 'https://images.unsplash.com/photo-1552852081-cfed0c94c0ad?w=500&h=500&fit=crop',
+                tags: ['facial-led', 'todos']
+            },
+            {
+                id: 2,
+                servicio: 'corporal',
+                nombre: 'Sesión Corporal - Abdomen',
+                descripcion: 'Combinación de tecnologías para combatir flacidez y mejorar el tono muscular. Estimula colágeno y mejora la textura de la piel.',
+                foto: 'https://images.unsplash.com/photo-1570172619644-e15faf5ffdf9?w=500&h=500&fit=crop',
+                tags: ['corporal', 'todos']
+            },
+            {
+                id: 3,
+                servicio: 'facial-led',
+                nombre: 'Facial LED - Sesión 2',
+                descripcion: 'Segunda sesión de tratamiento LED para potenciar resultados. Se observan mejoras visibles en iluminación y firmeza.',
+                foto: 'https://images.unsplash.com/photo-1540389949218-a12ce90416b5?w=500&h=500&fit=crop',
+                tags: ['facial-led', 'todos']
+            },
+            {
+                id: 4,
+                servicio: 'ambiente',
+                nombre: 'Nuestro Espacio',
+                descripcion: 'Ambiente profesional y acogedor diseñado para tu comodidad. Tecnología de punta en un espacio tranquilo.',
+                foto: 'https://images.unsplash.com/photo-1576091160550-112173f7f869?w=500&h=500&fit=crop',
+                tags: ['ambiente', 'todos']
+            },
+            {
+                id: 5,
+                servicio: 'corporal',
+                nombre: 'Sesión Corporal - Glúteos',
+                descripcion: 'Tratamiento especializado para gluteos con resultados visibles. Combate flacidez y mejora la definición.',
+                foto: 'https://images.unsplash.com/photo-1552074022-5b02419db467?w=500&h=500&fit=crop',
+                tags: ['corporal', 'todos']
+            },
+            {
+                id: 6,
+                servicio: 'ambiente',
+                nombre: 'Cabina de Tecnología',
+                descripcion: 'Equipamiento profesional de última generación. Garantiza seguridad y resultados óptimos en cada tratamiento.',
+                foto: 'https://images.unsplash.com/photo-1584308666744-24d5f15714ae?w=500&h=500&fit=crop',
+                tags: ['ambiente', 'todos']
+            }
+        ];
+
+        let serviciosActuales = serviciosEjemplo;
+        let modalActual = null;
+
+        // Cargar header y footer
+        async function cargarComponentes() {
+            try {
+                const headerRes = await fetch('/components/header.html');
+                const headerHtml = await headerRes.text();
+                document.getElementById('headerContainer').innerHTML = headerHtml;
+
+                const footerRes = await fetch('/components/footer.html');
+                const footerHtml = await footerRes.text();
+                document.getElementById('footerContainer').innerHTML = footerHtml;
+
+                setTimeout(() => {
+                    actualizarHeaderSesion?.();
+                }, 100);
+            } catch (error) {
+                console.error('Error cargando componentes:', error);
+            }
+        }
+
+        // Renderizar galería
+        function renderizarGaleria() {
+            const grid = document.getElementById('galleryGrid');
+            
+            if (serviciosActuales.length === 0) {
+                grid.innerHTML = '<div class="no-items" style="grid-column: 1/-1;">No hay fotos para este filtro</div>';
+                return;
+            }
+
+            grid.innerHTML = serviciosActuales.map(item => `
+                <div class="gallery-item" onclick="abrirModal(${item.id})">
+                    <img src="${item.foto}" alt="${item.nombre}" loading="lazy">
+                    <div class="gallery-overlay">
+                        <div class="gallery-icon">🔍</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.filtrarGaleria = function(filtro) {
+            // Actualizar botones activos
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Filtrar
+            if (filtro === 'todos') {
+                serviciosActuales = serviciosEjemplo;
+            } else {
+                serviciosActuales = serviciosEjemplo.filter(item => item.tags.includes(filtro));
+            }
+
+            renderizarGaleria();
+        };
+
+        window.abrirModal = function(id) {
+            const item = serviciosEjemplo.find(s => s.id === id);
+            if (!item) return;
+
+            modalActual = item;
+            document.getElementById('modalImg').src = item.foto;
+            document.getElementById('modalTitle').textContent = item.nombre;
+            document.getElementById('modalDesc').textContent = item.descripcion;
+            document.getElementById('galleryModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.cerrarModal = function() {
+            document.getElementById('galleryModal').classList.remove('active');
+            document.body.style.overflow = '';
+            modalActual = null;
+        };
+
+        window.irAgendar = function() {
+            const clienteDNI = localStorage.getItem('clienteDNI');
+            if (clienteDNI) {
+                window.location.href = '/servicios.html';
+            } else {
+                window.location.href = '/login.html';
+            }
+        };
+
+        // Cerrar modal con ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                cerrarModal();
+            }
+        });
+
+        // Cerrar modal al hacer click fuera
+        document.getElementById('galleryModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('galleryModal')) {
+                cerrarModal();
+            }
+        });
+
+        // Inicializar
+        cargarComponentes();
+        renderizarGaleria();
+    </script>
+</body>
+</html>
