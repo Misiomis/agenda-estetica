@@ -101,35 +101,6 @@
             color: var(--muted);
         }
 
-        .toolbar {
-            width: min(1180px, 95vw);
-            margin: 0 auto;
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            transform: translateY(-12px);
-        }
-
-        .btn-outline {
-            border: 1.4px solid var(--primary);
-            color: var(--primary-strong);
-            background: #fff;
-            border-radius: var(--radius-pill);
-            padding: 12px 20px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: transform var(--trans), box-shadow var(--trans), background var(--trans);
-            box-shadow: 0 6px 14px rgba(114, 189, 153, 0.16);
-        }
-
-        .btn-outline:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 22px rgba(114, 189, 153, 0.2);
-            background: #f7fffb;
-        }
-
         .section {
             width: min(1180px, 95vw);
             margin: 26px auto 74px;
@@ -212,6 +183,28 @@
             font-size: 28px;
             line-height: 1.08;
             color: var(--ink);
+        }
+
+        .servicio-head {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 12px;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .servicio-icono {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(145deg, #eef8f2 0%, #e3f3ea 100%);
+            border: 1px solid #d8ebe0;
+            font-size: 24px;
+            line-height: 1;
+            box-shadow: 0 8px 18px rgba(114, 189, 153, 0.12);
+            flex-shrink: 0;
         }
 
         .duracion {
@@ -410,10 +403,6 @@
         </div>
     </section>
 
-    <div class="toolbar reveal" id="toolbarTurnos">
-        <button class="btn-outline" id="btnAbrirBusqueda">Agenda · Mis próximos turnos</button>
-    </div>
-
     <main class="section">
         <div class="section-head reveal">
             <h2>Catálogo de Servicios</h2>
@@ -478,13 +467,6 @@
         const modalBusqueda = document.getElementById("modalBusquedaDNI");
         const modalResultados = document.getElementById("modalCitasCliente");
         const listaResultados = document.getElementById("listaResultadosCitas");
-        const toolbarTurnos = document.getElementById("toolbarTurnos");
-        const dniSesion = localStorage.getItem("clienteDNI");
-        const haySesionCliente = !!(dniSesion && dniSesion !== "null" && dniSesion !== "");
-
-        if (!haySesionCliente && toolbarTurnos) {
-            toolbarTurnos.style.display = "none";
-        }
 
         const SERVICIO_LED_NOMBRE = "Facial LED Regenerativo";
         const SERVICIO_LED_RESUMEN = "Tratamiento no invasivo con cabina LED profesional que estimula colageno y elastina para mejorar firmeza, luminosidad y textura, ayudando tambien en acne, inflamacion, rojeces y manchas. Sesion relajante de 30 minutos, sin dolor ni recuperacion; ideal para piel sensible y resultados progresivos desde la primera aplicacion.";
@@ -494,6 +476,20 @@
 
         const SERVICIO_BRAZOS_NOMBRE = "💎 Reafirmación Integral de Brazos";
         const SERVICIO_BRAZOS_RESUMEN = `Tratamiento orientado a mejorar la flacidez del brazo mediante un abordaje integral que contempla tanto la calidad de la piel como el sosten del tejido.\n\nLa perdida de firmeza puede estar asociada a distintos factores, como el paso del tiempo, cambios de peso o disminucion del tono muscular. Por este motivo, cada caso requiere una evaluacion personalizada para definir la estrategia mas adecuada.\n\nEl objetivo es lograr una mejora progresiva en la firmeza, la textura y el contorno del brazo, respetando siempre las caracteristicas propias de cada piel.\n\n<strong>🎯 Objetivos del tratamiento</strong>\n- Mejorar la firmeza del brazo\n- Optimizar la calidad de la piel\n- Favorecer el sosten del tejido\n- Redefinir el contorno\n- Disminuir la apariencia de flacidez\n\n<strong>⚙️ Modalidad de trabajo</strong>\nEl tratamiento se adapta a cada paciente, pudiendo combinar diferentes abordajes segun la evaluacion profesional, considerando si predomina la flacidez, alteraciones en la calidad de la piel o cambios en el volumen del tejido.\n\n<strong>📅 Plan de tratamiento</strong>\nSe requieren varias sesiones para lograr resultados visibles y sostenidos en el tiempo. La frecuencia y cantidad se definen de manera personalizada segun cada caso.\n\n<strong>⚠️ Consideraciones</strong>\nEste tratamiento no reemplaza procedimientos medicos ni quirurgicos. En casos de flacidez avanzada, los resultados seran progresivos y acordes a las caracteristicas del tejido.\n\n<strong>💬 Enfoque profesional</strong>\nEn Espacio Mimar T trabajamos con un criterio dermocosmiatrico, priorizando la evaluacion individual y la seleccion adecuada de cada protocolo para lograr resultados reales y seguros.`;
+
+        function obtenerEmojiServicio(nombre) {
+            const normalizado = (nombre || "").toLowerCase();
+            if (normalizado.includes("led") || normalizado.includes("facial")) return "✨";
+            if (normalizado.includes("corporal") || normalizado.includes("zona")) return "🌿";
+            if (normalizado.includes("brazo")) return "💎";
+            if (normalizado.includes("limpieza")) return "🫧";
+            if (normalizado.includes("antiage") || normalizado.includes("rejuven")) return "🌸";
+            return "🤍";
+        }
+
+        function limpiarTituloServicio(nombre) {
+            return (nombre || "").replace(/^(\s|[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9])+/, "").trim();
+        }
 
         async function ejecutarConsulta(dni) {
             modalBusqueda.style.display = "none";
@@ -550,13 +546,6 @@
             const nombreDia = dias[fecha.getDay()];
             return `<span class="fecha-tag">${nombreDia} ${day}/${month}</span>`;
         }
-
-        document.getElementById("btnAbrirBusqueda").onclick = () => {
-            const dniGuardado = localStorage.getItem("clienteDNI");
-            if (dniGuardado && dniGuardado !== "null" && dniGuardado !== "") {
-                ejecutarConsulta(dniGuardado);
-            }
-        };
 
         document.getElementById("btnRealizarBusqueda").onclick = () => {
             const dni = document.getElementById("inputDNI").value.trim();
@@ -632,10 +621,17 @@
                     div.className = "servicio reveal";
                     div.style.transitionDelay = `${Math.min(idx * 45, 280)}ms`;
                     const descFormateada = (s.descripcion || "").replace(/\n/g, "<br>");
+                    const tituloLimpio = limpiarTituloServicio(s.nombre);
+                    const emoji = obtenerEmojiServicio(s.nombre);
                     div.innerHTML = `
                         <div>
-                            <h3>${s.nombre}</h3>
-                            <div class="duracion">${s.duracion} min</div>
+                            <div class="servicio-head">
+                                <div class="servicio-icono" aria-hidden="true">${emoji}</div>
+                                <div>
+                                    <h3>${tituloLimpio}</h3>
+                                    <div class="duracion">${s.duracion} min</div>
+                                </div>
+                            </div>
                             <p class="desc">${descFormateada}</p>
                         </div>
                         <button class="btn-reservar" data-nombre="${s.nombre}">Reservar turno</button>
