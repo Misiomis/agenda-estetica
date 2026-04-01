@@ -55,7 +55,6 @@
             background:
                 radial-gradient(circle at 82% 9%, rgba(199, 225, 205, 0.2) 0%, rgba(199, 225, 205, 0) 42%),
                 radial-gradient(circle at 10% 92%, rgba(126, 177, 151, 0.16) 0%, rgba(126, 177, 151, 0) 44%);
-            backdrop-filter: blur(2px);
         }
 
         body::after {
@@ -70,8 +69,7 @@
 
         .container {
             position: relative;
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(13px);
+            background: rgba(255,255,255,0.96);
             padding: 48px 40px;
             border-radius: 30px;
             text-align: center;
@@ -151,6 +149,44 @@
             color: #6f756f;
             line-height: 1.6;
             font-style: italic;
+        }
+
+        .intro-copy {
+            display: grid;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .intro-kicker {
+            font-size: 10px;
+            letter-spacing: 2.2px;
+            text-transform: uppercase;
+            color: #6f8a6d;
+            font-weight: 700;
+        }
+
+        .intro-text {
+            font-size: 13px;
+            color: #5c685d;
+            line-height: 1.6;
+            max-width: 290px;
+            margin: 0 auto;
+        }
+
+        .btn-anchor {
+            width: auto;
+            min-width: 220px;
+            margin: 6px auto 0;
+            padding: 14px 22px;
+            border-radius: 999px;
+            letter-spacing: 1.2px;
+            box-shadow: 0 10px 22px rgba(74, 98, 72, 0.22);
+        }
+
+        .login-stack {
+            margin-top: 36px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(111, 138, 109, 0.18);
         }
 
         h2 {
@@ -243,7 +279,6 @@
             position: static;
             width: 100%;
             background: linear-gradient(135deg, rgba(244, 250, 246, 0.95) 0%, rgba(248, 251, 249, 0.95) 100%);
-            backdrop-filter: blur(8px);
             border: 1px solid rgba(132, 168, 140, 0.25);
             border-radius: 14px;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 4px 12px rgba(30, 54, 37, 0.08);
@@ -334,6 +369,7 @@
             body {
                 background-position: center top;
                 background-size: cover;
+                background-attachment: scroll;
             }
 
             body::before {
@@ -346,7 +382,7 @@
             }
 
             .container {
-                padding: 36px 24px;
+                padding: 34px 22px 24px;
                 border-radius: 24px;
                 width: min(94vw, 420px);
                 margin-top: 0;
@@ -394,6 +430,28 @@
                 font-size: 12px;
             }
 
+            .intro-copy {
+                gap: 9px;
+            }
+
+            .intro-text {
+                max-width: 100%;
+                font-size: 12px;
+            }
+
+            .btn-anchor {
+                width: 100%;
+                min-width: 0;
+                padding: 14px 18px;
+                font-size: 12px;
+                letter-spacing: 1px;
+            }
+
+            .login-stack {
+                margin-top: 26px;
+                padding-top: 22px;
+            }
+
             input,
             button {
                 font-size: 14px;
@@ -410,7 +468,7 @@
         @media (max-width: 420px) {
             .container {
                 width: 96%;
-                padding: 28px 18px;
+                padding: 28px 18px 22px;
                 border-radius: 20px;
             }
 
@@ -436,6 +494,20 @@
             .descripcion {
                 font-size: 11px;
                 line-height: 1.5;
+            }
+
+            .intro-kicker {
+                font-size: 9px;
+                letter-spacing: 1.6px;
+            }
+
+            .intro-text {
+                font-size: 11px;
+            }
+
+            .login-stack {
+                margin-top: 22px;
+                padding-top: 20px;
             }
 
             input {
@@ -532,17 +604,6 @@
     <div class="container">
         <img src="img/logo.png" class="logo">
 
-        <div id="installWidget" class="install-widget" aria-live="polite">
-            <div class="install-widget-inner">
-                <p class="install-title">Descargar app</p>
-                <p id="installText" class="install-text">Instala Espacio Mimar T para abrirla rápido desde tu inicio.</p>
-                <div class="install-actions">
-                    <button id="btnInstallApp" class="btn-install" type="button">Instalar</button>
-                    <button id="btnDismissInstall" class="btn-dismiss" type="button">Ahora no</button>
-                </div>
-            </div>
-        </div>
-
         <div class="subtitulo">Estética Avanzada</div>
         
         <div class="profesional-card">
@@ -552,11 +613,30 @@
             <div class="descripcion">Tratamientos dermoestéticos personalizados con respaldo farmacéutico y tecnología avanzada para el cuidado integral de la piel</div>
         </div>
 
-        <h2>Ingreso de Pacientes</h2>
-        <input id="nombre" placeholder="Nombre + inicial apellido (ej: juan p)">
-        <input id="dni" placeholder="DNI (sin puntos)">
-        <button id="btnIngresar">Iniciar sesión</button>
-        <div id="error" class="error"></div>
+        <div class="intro-copy">
+            <div class="intro-kicker">Turnos y seguimiento online</div>
+            <p class="intro-text">Primero ves la presentación del espacio. El acceso para pacientes queda más abajo, en una segunda sección clara y ordenada.</p>
+            <button id="btnBajarIngreso" class="btn-anchor" type="button">Ingreso de pacientes</button>
+        </div>
+
+        <div id="loginAccess" class="login-stack">
+            <div id="installWidget" class="install-widget" aria-live="polite">
+                <div class="install-widget-inner">
+                    <p class="install-title">Descargar app</p>
+                    <p id="installText" class="install-text">Instala Espacio Mimar T para abrirla rápido desde tu inicio.</p>
+                    <div class="install-actions">
+                        <button id="btnInstallApp" class="btn-install" type="button">Instalar</button>
+                        <button id="btnDismissInstall" class="btn-dismiss" type="button">Ahora no</button>
+                    </div>
+                </div>
+            </div>
+
+            <h2>Ingreso de Pacientes</h2>
+            <input id="nombre" placeholder="Nombre + inicial apellido (ej: juan p)">
+            <input id="dni" placeholder="DNI (sin puntos)">
+            <button id="btnIngresar">Iniciar sesión</button>
+            <div id="error" class="error"></div>
+        </div>
     </div><!-- fin container -->
     </div><!-- fin login-page-container -->
 
@@ -619,6 +699,13 @@
         };
 
         await cargarContextoJornada();
+
+        const btnBajarIngreso = document.getElementById("btnBajarIngreso");
+        const loginAccess = document.getElementById("loginAccess");
+
+        btnBajarIngreso?.addEventListener("click", () => {
+            loginAccess?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
 
         // Limpieza de inputs en tiempo real (Pro UX)
         const inputDni = document.getElementById("dni");
