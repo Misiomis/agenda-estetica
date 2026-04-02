@@ -1371,15 +1371,7 @@ async function cargarHorarios(fecha, fStr){
 
     const nombreDia=["domingo","lunes","martes","miercoles","jueves","viernes","sabado"][fecha.getDay()];
 
-    // Bloquear sábados de marzo/abril excepto el 2026-04-25
-    if(nombreDia === 'sabado' && !EXCEPCIONES_HORARIOS[fStr]){
-        const mes = fecha.getMonth() + 1;
-        const year = fecha.getFullYear();
-        if(year === 2026 && (mes === 3 || mes === 4)){
-            container.innerHTML = "<p style='color:#555;'>Este sábado lo dejamos sin turnos para cuidarte mejor. Elegí otra fecha y te acompañamos.</p>";
-            return;
-        }
-    }
+    // Sábados: mostrar disponibilidad real según configuración y reservas.
 
     const config = CONFIG_DIAS[nombreDia];
     if(!config) { container.innerHTML="<p>Cerrado</p>"; return; }
