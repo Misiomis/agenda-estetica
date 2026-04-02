@@ -409,6 +409,10 @@
             <p>Foco total en información clara, estética premium y acción rápida para reservar.</p>
         </div>
 
+        <div class="section-head reveal" style="margin-top:-6px;margin-bottom:16px;">
+            <button class="btn-buscar" id="btnAbrirBusqueda" style="max-width:340px;">Agenda: Mis próximos turnos</button>
+        </div>
+
         <div id="loading" class="reveal">Cargando experiencias...</div>
         <div class="servicios" id="listaServicios"></div>
     </main>
@@ -467,6 +471,7 @@
         const modalBusqueda = document.getElementById("modalBusquedaDNI");
         const modalResultados = document.getElementById("modalCitasCliente");
         const listaResultados = document.getElementById("listaResultadosCitas");
+        const btnAbrirBusqueda = document.getElementById("btnAbrirBusqueda");
 
         const SERVICIO_LED_NOMBRE = "Facial LED Regenerativo";
         const SERVICIO_LED_RESUMEN = "Tratamiento no invasivo con cabina LED profesional que estimula colageno y elastina para mejorar firmeza, luminosidad y textura, ayudando tambien en acne, inflamacion, rojeces y manchas. Sesion relajante de 30 minutos, sin dolor ni recuperacion; ideal para piel sensible y resultados progresivos desde la primera aplicacion.";
@@ -546,6 +551,17 @@
             const nombreDia = dias[fecha.getDay()];
             return `<span class="fecha-tag">${nombreDia} ${day}/${month}</span>`;
         }
+
+        btnAbrirBusqueda.onclick = () => {
+            const dniGuardado = localStorage.getItem("clienteDNI");
+
+            if (dniGuardado && dniGuardado !== "null" && dniGuardado !== "") {
+                ejecutarConsulta(dniGuardado);
+                return;
+            }
+
+            modalBusqueda.style.display = "flex";
+        };
 
         document.getElementById("btnRealizarBusqueda").onclick = () => {
             const dni = document.getElementById("inputDNI").value.trim();
