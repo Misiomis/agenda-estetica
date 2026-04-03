@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Servicios Premium | Espacio Mimar T</title>
+    <title>Gimena Knack | Servicios premium</title>
     <meta name="description" content="Explora los servicios de Espacio Mimar T con una experiencia visual renovada y profesional.">
     <link rel="stylesheet" href="/mobile-fixes.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -17,6 +17,7 @@
             --ink: #273630;
             --muted: #67736e;
             --border: #d9e5de;
+            --card-gold: rgba(208, 174, 115, 0.34);
             --radius-xl: 28px;
             --radius-lg: 20px;
             --radius-pill: 999px;
@@ -80,9 +81,10 @@
         }
 
         .logo {
-            width: clamp(140px, 25vw, 220px);
+            width: clamp(190px, 34vw, 320px);
             display: block;
-            margin: 0 auto 14px;
+            margin: 0 auto 16px;
+            filter: drop-shadow(0 10px 22px rgba(66, 98, 83, 0.16));
         }
 
         .hero-title {
@@ -113,10 +115,27 @@
 
         .section-head h2 {
             margin: 0;
+            display: inline-block;
+            position: relative;
+            padding: 0 8px 10px;
             font-family: 'Cormorant Garamond', serif;
-            font-size: clamp(36px, 6vw, 52px);
+            font-size: clamp(38px, 6.3vw, 56px);
             font-style: italic;
-            color: var(--ink);
+            color: #24342e;
+            letter-spacing: 0.01em;
+            text-shadow: 0 2px 10px rgba(41, 60, 51, 0.12);
+        }
+
+        .section-head h2::after {
+            content: "";
+            position: absolute;
+            left: 12%;
+            right: 12%;
+            bottom: 0;
+            height: 2px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(197, 166, 109, 0) 0%, rgba(197, 166, 109, 0.7) 50%, rgba(197, 166, 109, 0) 100%);
+            box-shadow: 0 2px 10px rgba(197, 166, 109, 0.28);
         }
 
         .section-head p {
@@ -140,18 +159,37 @@
         }
 
         .servicio {
+            --card-warm: rgba(255, 234, 194, 0.72);
+            --card-cool: rgba(216, 234, 224, 0.74);
             position: relative;
-            background: linear-gradient(165deg, rgba(255,255,255,0.98) 0%, rgba(248,253,250,0.94) 100%);
-            border: 1px solid var(--border);
+            background:
+                radial-gradient(120% 100% at 0% 0%, var(--card-warm) 0%, rgba(255, 234, 194, 0) 56%),
+                radial-gradient(120% 110% at 100% 100%, var(--card-cool) 0%, rgba(216, 234, 224, 0) 62%),
+                linear-gradient(165deg, #fffdf9 0%, #f5faf6 52%, #eef5ef 100%);
+            border: 1px solid var(--card-gold);
             border-radius: var(--radius-lg);
             padding: 22px;
-            box-shadow: var(--shadow-soft);
+            box-shadow:
+                var(--shadow-soft),
+                inset 0 1px 0 rgba(255, 255, 255, 0.78),
+                inset 0 -1px 0 rgba(189, 206, 197, 0.32);
             min-height: 250px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             overflow: hidden;
             transition: transform var(--trans), box-shadow var(--trans), border-color var(--trans);
+        }
+
+        .servicio::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(118deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.03) 48%),
+                repeating-linear-gradient(8deg, rgba(193, 168, 124, 0.05) 0 1px, rgba(255, 255, 255, 0) 1px 8px);
+            opacity: 0.9;
+            pointer-events: none;
         }
 
         .servicio::before {
@@ -169,8 +207,23 @@
 
         .servicio:hover {
             transform: translateY(-7px);
-            border-color: rgba(114, 189, 153, 0.6);
-            box-shadow: var(--shadow-card), var(--glow);
+            border-color: rgba(193, 159, 101, 0.56);
+            box-shadow: var(--shadow-card), 0 0 30px rgba(196, 164, 108, 0.2);
+        }
+
+        .servicio:nth-child(3n + 1) {
+            --card-warm: rgba(255, 233, 192, 0.78);
+            --card-cool: rgba(214, 231, 221, 0.72);
+        }
+
+        .servicio:nth-child(3n + 2) {
+            --card-warm: rgba(255, 226, 180, 0.76);
+            --card-cool: rgba(209, 226, 217, 0.76);
+        }
+
+        .servicio:nth-child(3n) {
+            --card-warm: rgba(255, 240, 208, 0.74);
+            --card-cool: rgba(205, 224, 214, 0.74);
         }
 
         .servicio:hover::before {
@@ -225,7 +278,7 @@
 
         .desc {
             margin: 0;
-            color: #526059;
+            color: #4d5c55;
             line-height: 1.65;
             font-size: 14px;
         }
@@ -389,6 +442,7 @@
         @media (max-width: 768px) {
             .hero { min-height: 34vh; padding-top: 56px; }
             .hero-card { padding: 20px 14px; }
+            .logo { width: clamp(176px, 52vw, 238px); }
             .servicio h3 { font-size: 24px; }
             .section { margin-top: 20px; }
         }
@@ -406,11 +460,10 @@
     <main class="section">
         <div class="section-head reveal">
             <h2>Catálogo de Servicios</h2>
-            <p>Foco total en información clara, estética premium y acción rápida para reservar.</p>
         </div>
 
         <div class="section-head reveal" style="margin-top:-6px;margin-bottom:16px;">
-            <button class="btn-buscar" id="btnAbrirBusqueda" style="max-width:340px;">Agenda: Mis próximos turnos</button>
+            <button class="btn-buscar" id="btnAbrirBusqueda" style="max-width:340px;">Ver mis próximos turnos</button>
         </div>
 
         <div id="loading" class="reveal">Cargando experiencias...</div>

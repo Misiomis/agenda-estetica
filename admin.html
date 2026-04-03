@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#6f8a6d">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="apple-touch-icon" href="img/icon-192.png">
-    <title>Admin Mimar T | Gestión Total</title>
+    <title>Gimena Knack | Admin Mimar T</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
     <style>
         :root { --fondo: #f4fbf7; --texto: #2f5a47; --accento: #4ea37f; --accento-oscuro: #2f7c5d; --verde: #72bd99; --verde-oscuro: #3f8f6f; --azul: #4a90e2; --rojo: #e05252; --whatsapp: #25D366; --suave: #dff3ea; --suave-oscuro: #bfe6d5; --nude: #f7fffb; }
@@ -361,7 +361,7 @@
                 </div>
                 <div class="filtros-advanced" style="grid-template-columns: minmax(180px, 1fr) auto; margin-bottom:12px;">
                     <select id="filtroTipoCliente" class="select-input" onchange="filtrarListadoClientes()">
-                        <option value="todos">Todos los clientes</option>
+                        <option value="todos">Todos los pacientes</option>
                         <option value="membresia">Solo membresía</option>
                         <option value="ocasional">Solo ocasionales</option>
                     </select>
@@ -402,9 +402,9 @@
                     <button class="btn-export-main" onclick="exportarCSV()">Descargar todo (.csv)</button>
                 </div>
                 <div class="detalle-dia-card">
-                    <h3 style="margin-top:0">Reporte de Clientes</h3>
-                    <p style="font-size:14px; color:#666">Exporta todos los clientes con estado de membresía y datos de contacto.</p>
-                    <button class="btn-export-main" onclick="exportarClientesCSV()">Descargar clientes (.csv)</button>
+                    <h3 style="margin-top:0">Reporte de Pacientes</h3>
+                    <p style="font-size:14px; color:#666">Exporta todos los pacientes con estado de membresía y datos de contacto.</p>
+                    <button class="btn-export-main" onclick="exportarClientesCSV()">Descargar pacientes (.csv)</button>
                 </div>
             </div>
         </div>
@@ -1104,7 +1104,7 @@
                     try {
                         const totalNormalizados = await asegurarCampoMembresiaEnFirestore(snapC.docs || []);
                         if (totalNormalizados > 0) {
-                            mostrarAviso(`Membresía normalizada automáticamente en ${totalNormalizados} cliente(s)`);
+                            mostrarAviso(`Membresía normalizada automáticamente en ${totalNormalizados} paciente(s)`);
                         }
                         membresiaNormalizadaSesion = true;
                     } catch (errorNormalizacion) {
@@ -1441,7 +1441,7 @@
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.setAttribute("download", `clientes_mimar_t_${new Date().toLocaleDateString()}.csv`);
+            link.setAttribute("download", `pacientes_mimar_t_${new Date().toLocaleDateString()}.csv`);
             link.click();
         };
 
@@ -1875,12 +1875,12 @@
             }).sort((a, b) => (a.fullName || "").localeCompare(b.fullName || "", 'es'));
 
             if (resumen) {
-                resumen.textContent = `${filtrados.length} cliente(s) · ${filtrados.filter(c => c.membershipActive).length} con membresía activa`;
+                resumen.textContent = `${filtrados.length} paciente(s) · ${filtrados.filter(c => c.membershipActive).length} con membresía activa`;
             }
 
             if (!cont) return;
             if (!filtrados.length) {
-                cont.innerHTML = '<div class="empty-state">No hay clientes para ese filtro.</div>';
+                cont.innerHTML = '<div class="empty-state">No hay pacientes para ese filtro.</div>';
                 return;
             }
 
@@ -1999,7 +1999,7 @@
                 limpiarFormularioCliente();
             } catch (error) {
                 console.error(error);
-                mostrarAviso("No se pudo guardar cliente");
+                mostrarAviso("No se pudo guardar el paciente");
             } finally {
                 mostrarLoader(false);
             }
@@ -2012,7 +2012,7 @@
                 const actualizados = await asegurarCampoMembresiaEnFirestore(snap.docs || []);
 
                 await cargarTodo();
-                mostrarAviso(actualizados ? `Membresía normalizada en ${actualizados} cliente(s)` : "Todos los clientes ya tenían membresía definida");
+                mostrarAviso(actualizados ? `Membresía normalizada en ${actualizados} paciente(s)` : "Todos los pacientes ya tenían membresía definida");
             } catch (error) {
                 console.error(error);
                 mostrarAviso("No se pudo normalizar membresía");
@@ -2028,7 +2028,7 @@
                 const total = (snap.docs || []).length;
 
                 if (!total) {
-                    mostrarAviso("No hay clientes para actualizar");
+                    mostrarAviso("No hay pacientes para actualizar");
                     return;
                 }
 
@@ -2042,7 +2042,7 @@
 
                 await Promise.all(tareas);
                 await cargarTodo();
-                mostrarAviso(`${total} cliente(s) marcados con membresía activa`);
+                mostrarAviso(`${total} paciente(s) marcados con membresía activa`);
             } catch (error) {
                 console.error(error);
                 mostrarAviso("No se pudo aplicar membresía masiva");
@@ -2071,11 +2071,11 @@
                 const [snapActual, snapNuevo] = await Promise.all([getDoc(refActual), getDoc(refNuevo)]);
 
                 if (!snapActual.exists()) {
-                    mostrarAviso("No existe cliente con ese DNI actual");
+                    mostrarAviso("No existe un paciente con ese DNI actual");
                     return;
                 }
                 if (snapNuevo.exists()) {
-                    mostrarAviso("Ya existe un cliente con el nuevo DNI");
+                    mostrarAviso("Ya existe un paciente con el nuevo DNI");
                     return;
                 }
 
@@ -2092,7 +2092,7 @@
                 document.getElementById("cliDni").value = dniNuevo;
                 document.getElementById("cliNuevoDni").value = "";
                 dniClienteCargado = dniNuevo;
-                mostrarAviso("ID de cliente actualizado");
+                mostrarAviso("ID de paciente actualizado");
             } catch (error) {
                 console.error(error);
                 mostrarAviso("No se pudo cambiar el ID");

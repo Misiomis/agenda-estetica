@@ -26,7 +26,7 @@ const clientSnap = await getDoc(clientRef);
 
 if(!clientSnap.exists()){
 
-errorMsg.textContent="Cliente no encontrado.";
+errorMsg.textContent="Paciente no encontrado.";
 return;
 
 }
