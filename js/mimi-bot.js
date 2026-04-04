@@ -144,7 +144,7 @@
       keywords: ['turno', 'reservar', 'reserva', 'agendar', 'agenda', 'cita', 'sacar turno',
                  'pedir turno', 'disponibilidad', 'fecha', 'horario', 'como reservo',
                  'cómo reservo', 'cuando puedo', 'cuándo puedo'],
-      answer: '📅 Podés agendar acá mismo desde la web — el sistema muestra disponibilidad <strong>en tiempo real</strong>. Una vez que elijas el horario, el sistema de Braulio te manda la confirmación por WhatsApp al toque. ¿Necesitás ayuda para empezar?'
+      answer: '📅 Podés agendar acá mismo desde la web — el sistema muestra disponibilidad <strong>en tiempo real</strong>. Una vez que elijas el horario, te llega la confirmación por WhatsApp. ¿Necesitás ayuda para empezar?'
     },
     {
       id: 'sabados',
@@ -419,6 +419,32 @@ POLÍTICA DE TURNOS:
       0%,100% { transform: scale(1); }
       50% { transform: scale(1.18); }
     }
+    /* Saludo: mano levantada al aparecer */
+    @keyframes mimi-wave {
+      0%   { transform: rotate(0deg) scale(1); }
+      15%  { transform: rotate(-12deg) scale(1.08); }
+      30%  { transform: rotate(10deg) scale(1.08); }
+      45%  { transform: rotate(-8deg) scale(1.06); }
+      60%  { transform: rotate(6deg) scale(1.04); }
+      75%  { transform: rotate(-4deg) scale(1.02); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+    #mimi-bubble.mimi-greeting { animation: mimi-wave 1s ease-in-out; }
+    /* Botón cerrar burbuja */
+    #mimi-bubble-dismiss {
+      position: absolute;
+      top: -4px; left: -4px;
+      width: 18px; height: 18px;
+      background: rgba(60,60,60,0.72);
+      border: none; border-radius: 50%;
+      color: #fff; font-size: 10px; font-weight: 800;
+      cursor: pointer; z-index: 2;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+      transition: background .15s;
+    }
+    #mimi-bubble-dismiss:hover { background: rgba(180,40,40,0.85); }
+    }
 
     /* ── Ventana chat ── */
     #mimi-window {
@@ -660,6 +686,7 @@ POLÍTICA DE TURNOS:
           </video>
         </div>
         <div id="mimi-badge">1</div>
+        <button id="mimi-bubble-dismiss" aria-label="Cerrar asistente" title="Cerrar">✕</button>
       </div>
 
       <!-- Ventana chat -->

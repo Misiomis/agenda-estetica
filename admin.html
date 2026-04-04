@@ -322,10 +322,9 @@
                         <option value="">Todos los servicios</option>
                     </select>
                     <select id="filtroOrigen" class="select-input" onchange="filtrarReservasInput()" title="Origen">
-                        <option value="">Todos los origenes</option>
+                        <option value="">Todos los orígenes</option>
                         <option value="jornada">Solo jornada</option>
-                        <option value="normal">Solo normales</option>
-                        <option value="admin">Solo cargadas en admin</option>
+                        <option value="normal">Solo estética</option>
                     </select>
                     <input type="date" id="filtroDesde" class="select-input" onchange="filtrarReservasInput()" title="Desde">
                     <input type="date" id="filtroHasta" class="select-input" onchange="filtrarReservasInput()" title="Hasta">
@@ -828,15 +827,16 @@
             const origen = (r.origen || '').toString().trim().toLowerCase();
             if (origen === 'jornada') return 'jornada';
             if (origen === 'normal') return 'normal';
-            if (origen === 'admin' || origen === 'admin_manual') return 'admin';
+            // compat: registros viejos con origen=admin sin modo especificado
+            if (origen === 'admin' || origen === 'admin_manual') return 'normal';
             const creadoPor = (r.creadoPor || '').toString().trim().toLowerCase();
-            if (creadoPor === 'admin_manual') return 'admin';
+            if (creadoPor === 'admin_manual') return 'normal';
             return 'normal';
         };
         const renderTagOrigen = (r = {}) => {
             const origen = resolverOrigenReserva(r);
-            const labels = { jornada: 'Jornada', normal: 'Normal', admin: 'Admin' };
-            return `<span class="tag-origen ${origen}">${labels[origen] || 'Normal'}</span>`;
+            const labels = { jornada: 'Jornada', normal: 'Estética' };
+            return `<span class="tag-origen ${origen}">${labels[origen] || 'Estética'}</span>`;
         };
 
         const asegurarCampoMembresiaEnFirestore = async (docsClientes = []) => {
@@ -1682,7 +1682,7 @@
                     servicio: servicioIngresado,
                     fecha,
                     hora: horaNormalizada,
-                    origen: "admin",
+                    origen: document.getElementById("btnFlowModeHeader")?.classList.contains("is-jornada") ? "jornada" : "normal",
                     status: "confirmado",
                     estado: "confirmado",
                     reminderSent: false,
