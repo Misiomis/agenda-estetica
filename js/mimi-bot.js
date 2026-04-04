@@ -638,9 +638,9 @@ POLÍTICA DE TURNOS:
 
     @media (max-width: 600px) {
       #mimi-window {
-        top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
-        width: 100% !important; max-height: 100dvh !important; height: 100dvh !important;
-        border-radius: 0 !important;
+        top: auto !important; left: 8px !important; right: 8px !important; bottom: 80px !important;
+        width: calc(100vw - 16px) !important; max-height: 78dvh !important; height: 78dvh !important;
+        border-radius: 18px !important;
       }
       #mimi-bubble { right: 12px; bottom: 16px; width: 60px; height: 60px; }
     }
@@ -735,7 +735,10 @@ POLÍTICA DE TURNOS:
     function toggle() {
       open = !open;
       win.classList.toggle('mimi-hidden', !open);
-      // En móvil: bloquear scroll del fondo para que el contenido de la página no se vea
+      // Ocultar burbuja cuando el chat está abierto (no tapa el botón enviar)
+      bubble.style.opacity = open ? '0' : '';
+      bubble.style.pointerEvents = open ? 'none' : '';
+      // En móvil: bloquear scroll del fondo
       if (window.innerWidth <= 600) {
         document.body.style.overflow = open ? 'hidden' : '';
       }
