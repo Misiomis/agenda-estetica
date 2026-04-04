@@ -350,6 +350,113 @@ POLÍTICA DE TURNOS:
     return e ? e.answer : FALLBACK;
   }
 
+  // ── MODO ADMIN: acceso en vivo a datos del panel ─────────
+  const esAdmin = window.location.pathname.includes('admin') || !!window.MIMI_ADMIN_DATA;
+
+  const ADMIN_QR = [
+    { label: '📅 Turnos de hoy',         query: 'turnos de hoy' },
+    { label: '🔔 Sin recordatorio',       query: 'recordatorios pendientes' },
+    { label: '📆 Próximos 7 días',        query: 'proximos 7 dias' },
+    { label: '🔍 Buscar paciente',        query: '__buscar__' },
+  ];
+
+  function fmtFechaBonita(iso) {
+    if (!iso) return '—';
+    const [y, m, d] = iso.split('-');
+    const labels = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    try { return `${labels[new Date(iso + 'T12:00:00').getDay()]} ${d}/${m}`; } catch { return `${d}/${m}`; }
+  }
+
+  function adminNombreReserva(r) {
+    return (r.cliente || r.clienteNombre || r.nombre || r.displayName || 'Paciente').toString().trim();
+  }
+
+  function adminBuscarPorNombre(query) {
+    const ad = window.MIMI_ADMIN_DATA;
+    if (!ad) return [];
+    const q = normalize(query);
+    return ad.getReservas()
+      .filter(r => ad.esActiva(r) && normalize(adminNombreReserva(r)).includes(q))
+      .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
+  }
+
+  function renderAdminCards(lista, titulo) {
+    if (!lista.length)
+      return `<strong>${titulo}</strong><br><br><em style="color:#888;font-size:13px;">No encontré reservas.</em>`;
+    const MAX = 7;
+    const mostrar = lista.slice(0, MAX);
+    let html = `<strong>${titulo}</strong> — ${lista.length} turno${lista.length !== 1 ? 's' : ''}<br><br>`;
+    mostrar.forEach(r => {
+      const nombre = adminNombreReserva(r);
+      const phone  = (r.phone || r.telefono || '').toString().trim();
+      const rem    = r.reminderSent
+        ? '<span style="color:#2f7c5d;font-size:12px;">✅ Recordatorio enviado</span>'
+        : '<span style="color:#b07000;font-size:12px;">⏳ Sin recordatorio</span>';
+      html += `<div style="margin:0 0 7px;padding:8px 10px;background:#f0f9f4;border-radius:10px;font-size:13px;line-height:1.55;border-left:3px solid #7caf93;">` +
+        `<b>${escapeHtml(nombre)}</b><br>` +
+        `📅 ${fmtFechaBonita(r.fecha)} · ${r.hora}` +
+        (r.servicio ? `<br>🌿 ${escapeHtml(r.servicio)}` : '') +
+        (phone     ? `<br>📱 ${escapeHtml(phone)}`    : '') +
+        `<br>${rem}</div>`;
+    });
+    if (lista.length > MAX)
+      html += `<em style="color:#888;font-size:12px;">+${lista.length - MAX} más. Usá el panel para verlos todos.</em>`;
+    return html;
+  }
+
+  function handleAdminQuery(text) {
+    const ad = window.MIMI_ADMIN_DATA;
+    if (!ad) return null;
+    const q        = normalize(text);
+    const hoy      = ad.fechaHoy();
+    const reservas = ad.getReservas();
+
+    // Turnos de hoy
+    if (q.match(/\bhoy\b/) || q.includes('turno hoy') || q.includes('reserva hoy')) {
+      const lista = reservas.filter(r => ad.esActiva(r) && r.fecha === hoy)
+        .sort((a, b) => a.hora.localeCompare(b.hora));
+      return renderAdminCards(lista, `📅 Turnos de hoy (${fmtFechaBonita(hoy)})`);
+    }
+    // Recordatorios
+    if (q.includes('recordatorio') || q.includes('sin recordatorio') || q.includes('reminder') ||
+        (q.includes('pendiente') && !q.match(/turno|reserva/))) {
+      const lista = reservas.filter(r => ad.esActiva(r) && !r.reminderSent && r.fecha >= hoy)
+        .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
+      return renderAdminCards(lista, '🔔 Pacientes sin recordatorio');
+    }
+    // Próximos N días
+    if (q.match(/proxim[ao]/) || q.includes('semana') || q.includes('7 dia') || q.includes('proximos')) {
+      const matchD = q.match(/(\d+)\s*d[íi]a/);
+      const dias   = matchD ? parseInt(matchD[1]) : 7;
+      const lim    = new Date(hoy + 'T12:00:00');
+      lim.setDate(lim.getDate() + dias);
+      const limISO = lim.toISOString().split('T')[0];
+      const lista  = reservas.filter(r => ad.esActiva(r) && r.fecha >= hoy && r.fecha <= limISO)
+        .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
+      return renderAdminCards(lista, `📆 Próximos ${dias} días`);
+    }
+    // Fecha dd/mm
+    const mf = text.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/);
+    if (mf) {
+      const d = mf[1].padStart(2,'0'), m = mf[2].padStart(2,'0');
+      const y = mf[3] ? (mf[3].length === 2 ? '20' + mf[3] : mf[3]) : hoy.split('-')[0];
+      const fISO = `${y}-${m}-${d}`;
+      const lista = reservas.filter(r => ad.esActiva(r) && r.fecha === fISO)
+        .sort((a, b) => a.hora.localeCompare(b.hora));
+      return renderAdminCards(lista, `📅 Turnos del ${d}/${m}/${y}`);
+    }
+    // Nombre explícito
+    const mn = text.match(/(?:turnos?\s+de|ver\s+turnos?\s+de|buscar|paciente|reservas?\s+de)\s+(.+)/i);
+    if (mn) return renderAdminCards(adminBuscarPorNombre(mn[1].trim()), `🔍 Turnos de "${mn[1].trim()}"`);
+    // Texto corto que parece un nombre
+    const tl = text.trim();
+    if (tl.length >= 3 && tl.length <= 28 && /^[a-záéíóúüñ\s]+$/i.test(tl)) {
+      const lista = adminBuscarPorNombre(tl);
+      if (lista.length) return renderAdminCards(lista, `🔍 Turnos de "${tl}"`);
+    }
+    return null;
+  }
+
   // ── Estilos ───────────────────────────────────────────────
   const CSS = `
     #mimi-root * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', 'Montserrat', sans-serif; }
@@ -816,7 +923,8 @@ POLÍTICA DE TURNOS:
     function renderQuickReplies() {
       qSection.innerHTML = '';
       removeSuggestPill();
-      QUICK_REPLIES.forEach(qr => {
+      const lista = esAdmin ? ADMIN_QR : QUICK_REPLIES;
+      lista.forEach(qr => {
         const btn = document.createElement('button');
         btn.className = 'mimi-qr';
         btn.textContent = qr.label;
@@ -824,7 +932,15 @@ POLÍTICA DE TURNOS:
           qSection.innerHTML = '';
           removeSuggestPill();
           addMsg(qr.label, 'user');
-          respondWithId(qr.id);
+          if (esAdmin) {
+            if (qr.query === '__buscar__') {
+              addMsg('Escribime el nombre de la paciente y te busco todos sus turnos. 🔍', 'bot');
+            } else {
+              respondToText(qr.query);
+            }
+          } else {
+            respondWithId(qr.id);
+          }
         });
         qSection.appendChild(btn);
       });
@@ -857,7 +973,6 @@ POLÍTICA DE TURNOS:
 
     // ── Responder a texto libre ──
     async function respondToText(text) {
-      // Mostrar typing mientras espera
       const typingEl = document.createElement('div');
       typingEl.className = 'mimi-typing';
       typingEl.id = 'mimi-typing-indicator';
@@ -867,8 +982,14 @@ POLÍTICA DE TURNOS:
 
       let answer = null;
 
-      // 1. Intentar Gemini
-      if (GEMINI_KEY) {
+      // 0. Modo admin: consultar datos del panel (NO sale a Gemini)
+      if (esAdmin && window.MIMI_ADMIN_DATA) {
+        await new Promise(r => setTimeout(r, 420));
+        answer = handleAdminQuery(text);
+      }
+
+      // 1. Si no respondió admin, intentar Gemini
+      if (!answer && GEMINI_KEY) {
         answer = await askGemini(text);
       }
 
@@ -881,16 +1002,19 @@ POLÍTICA DE TURNOS:
       typingEl.remove();
 
       if (!answer) {
-        await addMsg('No encontré info exacta sobre eso, pero puedo ayudarte con cualquiera de estos temas: 👇', 'bot');
+        if (esAdmin) {
+          await addMsg('No encontré eso. Podés escribirme el nombre de una paciente, pedirme los turnos de hoy, recordatorios pendientes o los próximos 7 días. 📋', 'bot');
+        } else {
+          await addMsg('No encontré info exacta sobre eso, pero puedo ayudarte con cualquiera de estos temas: 👇', 'bot');
+        }
         renderQuickReplies();
       } else {
         await addMsg(answer, 'bot');
-        showSuggestPill();
+        esAdmin ? renderQuickReplies() : showSuggestPill();
       }
     }
 
     // ── Saludo inicial ──
-    const esAdmin = window.location.pathname.includes('admin');
     async function greetUser() {
       if (esAdmin) {
         await addMsg('¡Hola <strong>Gime</strong>! 👑✨', 'bot', 200);

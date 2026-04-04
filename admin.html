@@ -822,6 +822,12 @@
                 .filter(Boolean);
             return !estados.includes('cancelado');
         };
+        // ── Datos en vivo para Mimi Admin ──
+        window.MIMI_ADMIN_DATA = {
+            getReservas: () => todasLasReservas,
+            fechaHoy:    () => fechaHoyISO(),
+            esActiva:    (r) => esReservaActiva(r)
+        };
         const resolverMembresiaActiva = (c = {}) => c.membershipActive === true || c.membresia === true;
         const resolverOrigenReserva = (r = {}) => {
             const origen = (r.origen || '').toString().trim().toLowerCase();
