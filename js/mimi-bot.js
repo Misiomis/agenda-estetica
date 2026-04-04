@@ -223,11 +223,102 @@
                  'uñas', 'manicura', 'pedicura', 'nail', 'masajes', 'masaje',
                  'botox', 'relleno', 'inyectable', 'cirugia', 'cirugía'],
       answer: 'En Espacio Mimar T nos especializamos en <strong>estética facial y corporal avanzada</strong> con base dermocosmiátrica. Los servicios de depilación, uñas, inyectables y cirugías no se ofrecen. ¿Querés que te cuente sobre alguno de nuestros tratamientos?'
+    },
+
+    // ── AFIRMACIONES / NEGACIONES / RESPUESTAS CORTAS ───────
+    {
+      id: 'afirmacion',
+      keywords: ['si', 'sí', 'dale', 'claro', 'obvio', 'por supuesto', 'va', 'ok',
+                 'okay', 'bueno', 'perfecto', 'genial', 'copado', 'copada', 'quiero',
+                 'me interesa', 'contame', 'quisiera', 'me gustaria', 'me gustaría', 'adelante'],
+      answer: '¡Perfecto! 🌿 Para dar el primer paso, escribile a <strong>Gimena por WhatsApp</strong> usando el botón <strong>"Quiero ser paciente"</strong> en la página principal. Ella te explica todo y te da el alta en el sistema para que puedas reservar. ¿Querés saber algo más mientras tanto?'
+    },
+    {
+      id: 'negacion',
+      keywords: ['no gracias', 'por ahora no', 'no necesito', 'no quiero',
+                 'listo', 'hasta luego', 'chau', 'bye', 'adios', 'adiós'],
+      answer: '¡Cuando quieras, acá voy a estar! 🌿 Recordá que podés reservar tu turno directamente desde la web en cualquier momento. ¡Que tengas un lindo día!'
+    },
+    {
+      id: 'gracias',
+      keywords: ['gracias', 'muchas gracias', 'grax', 'gracias mimi', 'thank you', 'thanks'],
+      answer: '¡De nada! Es un placer ayudarte. 🌿 Si tenés alguna otra consulta sobre los servicios o tu turno, acá estoy. ¡Que te mimen mucho!'
     }
 
   ];
 
-  const FALLBACK = 'No tengo información específica sobre eso. 🌿 Te recomiendo consultarle directamente a <strong>Gimena por WhatsApp</strong> para que te pueda orientar mejor. ¿Te ayudo con algo más?';
+  const FALLBACK = '__FALLBACK__';
+
+  // ── Gemini ────────────────────────────────────────────────
+  const GEMINI_KEY = (typeof window !== 'undefined' && window.MIMI_GEMINI_KEY) || 'AIzaSyALuNcwC2OY4ymdNPNsuNuktlbMVzk62yU';
+  const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+
+  const SYSTEM_PROMPT = `Sos Mimi, la asistente virtual de Espacio Mimar T, un centro de estética avanzada ubicado en Comandante Andresito, Misiones, Argentina.
+Fuiste creada en abril de 2026 por Braulio V., el desarrollador de la web.
+Sos sofisticada, amable, usás voseo argentino con elegancia. Sos hincha de Boca Juniors ("el más grande, obviamente").
+
+REGLAS ESTRICTAS — NUNCA las rompas:
+1. SOLO respondés preguntas relacionadas con Espacio Mimar T: servicios, turnos, precios, Gimena, la web, cómo reservar.
+2. Si alguien pregunta algo ajeno (política, deportes en general, recetas, otros negocios, etc.), respondés amablemente que solo podés ayudar con temas de Espacio Mimar T y ofrecés redirigir.
+3. Nunca inventés precios exactos. Siempre decís que los precios se definen en la evaluación con Gimena.
+4. Nunca inventés horarios específicos. Siempre mandás a ver el calendario de la web.
+5. Respondés siempre en español rioplatense con voseo.
+6. Respuestas cortas y directas. Máximo 3-4 oraciones salvo que sea la lista de servicios.
+7. Usás emojis con moderación, de forma elegante.
+
+INFORMACIÓN OFICIAL DE ESPACIO MIMAR T:
+- Profesional: Gimena Knack, Farmacéutica (Matrícula Provincial 1212) y Dermatocosmiatra (Registro Cosmiátrico 2319)
+- Ubicación: Comandante Andresito, Misiones, Argentina
+- Web: espaciomimart.com
+- WhatsApp: +54 9 3764 291807
+- Para ser paciente nueva: contactar por WhatsApp con el botón "Quiero ser paciente" en la web
+- Para ingresar al sistema: Nombre + inicial del apellido y DNI sin puntos
+
+SERVICIOS (8 en total):
+1. Consulta — Evaluación profesional y plan estético personalizado
+2. Tratamiento Facial — Acné, manchas, cicatrices (60 min)
+3. Tratamientos Corporales — Celulitis, flacidez, contorno (60 min)
+4. Tratamiento Manchas Corporales — Unificación del tono (60 min)
+5. Tonificación Muscular MioUp — Tecnología electromagnética (30 min)
+6. Lipocell Cryo 360 — Criolipólisis con frío (60 min)
+7. Hidratación y Revitalización de Labios — Ácido hialurónico (60 min)
+8. Facial LED Regenerativo — Colágeno y elastina (30 min)
+
+POLÍTICA DE TURNOS:
+- Reserva online desde la web en tiempo real
+- Confirmación automática por WhatsApp
+- Cancelación con mínimo 48 horas de anticipación
+- Cancelación tarde o inasistencia = turno utilizado`;
+
+  const chatHistory = [];
+
+  async function askGemini(userText) {
+    if (!GEMINI_KEY) return null;
+    chatHistory.push({ role: 'user', parts: [{ text: userText }] });
+    const body = {
+      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: chatHistory,
+      generationConfig: { temperature: 0.4, maxOutputTokens: 300 }
+    };
+    try {
+      const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+      if (reply) chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+      // Mantener historial acotado (últimos 10 turnos)
+      if (chatHistory.length > 20) chatHistory.splice(0, 2);
+      return reply;
+    } catch (e) {
+      console.warn('Gemini error, usando KB:', e);
+      chatHistory.pop(); // sacar el mensaje que no se procesó
+      return null;
+    }
+  }
 
   const QUICK_REPLIES = [
     { label: '¿Qué servicios tienen?', id: 'todos_servicios' },
@@ -736,11 +827,36 @@
 
     // ── Responder a texto libre ──
     async function respondToText(text) {
-      const answer = findAnswer(text);
-      await showTyping(800 + Math.random() * 400);
-      await addMsg(answer, 'bot');
-      // Tras texto libre NO vuelven automáticamente — muestra el pill
-      showSuggestPill();
+      // Mostrar typing mientras espera
+      const typingEl = document.createElement('div');
+      typingEl.className = 'mimi-typing';
+      typingEl.id = 'mimi-typing-indicator';
+      typingEl.innerHTML = '<span></span><span></span><span></span>';
+      msgs.appendChild(typingEl);
+      msgs.scrollTop = msgs.scrollHeight;
+
+      let answer = null;
+
+      // 1. Intentar Gemini
+      if (GEMINI_KEY) {
+        answer = await askGemini(text);
+      }
+
+      // 2. Fallback al KB local
+      if (!answer) {
+        const kb = findAnswer(text);
+        answer = (kb === '__FALLBACK__') ? null : kb;
+      }
+
+      typingEl.remove();
+
+      if (!answer) {
+        await addMsg('No encontré info exacta sobre eso, pero puedo ayudarte con cualquiera de estos temas: 👇', 'bot');
+        renderQuickReplies();
+      } else {
+        await addMsg(answer, 'bot');
+        showSuggestPill();
+      }
     }
 
     // ── Saludo inicial ──
