@@ -558,8 +558,9 @@ POLÍTICA DE TURNOS:
       position: fixed;
       bottom: 104px;
       right: 20px;
-      width: min(360px, calc(100vw - 32px));
-      max-height: min(530px, calc(100dvh - 130px));
+      width: min(380px, calc(100vw - 32px));
+      height: min(560px, calc(100dvh - 130px));
+      max-height: min(560px, calc(100dvh - 130px));
       background: #fff;
       border-radius: 22px;
       box-shadow: 0 24px 64px rgba(28,46,34,0.18), 0 4px 16px rgba(0,0,0,0.1);
@@ -652,10 +653,13 @@ POLÍTICA DE TURNOS:
 
     /* ── Mensajes ── */
     #mimi-messages {
-      flex: 1; overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
       padding: 16px 14px 8px;
       display: flex; flex-direction: column; gap: 10px;
       scroll-behavior: smooth;
+      overscroll-behavior: contain;
     }
     #mimi-messages::-webkit-scrollbar { width: 4px; }
     #mimi-messages::-webkit-scrollbar-track { background: transparent; }
