@@ -5,14 +5,7 @@
 
 (function () {
   'use strict';
-  // ── Configuración externa (opcional, definir antes de cargar el script) ──
-  const MIMI_CFG = (typeof window !== 'undefined' && window.MIMI_CONFIG) ? window.MIMI_CONFIG : {};
-  const AVATAR_SRC   = MIMI_CFG.avatar || 'img/mimi-avatar.png';
-  const LOGO_MODE    = !!MIMI_CFG.avatar; // modo logo: contain + centrado
-  const AVATAR_FIT   = LOGO_MODE ? 'contain' : 'cover';
-  const AVATAR_POS   = LOGO_MODE ? '50% 50%' : '50% 15%';
-  const AVATAR_BG    = LOGO_MODE ? '#fff' : '#e8f2e8';
-  const AVATAR_PAD   = LOGO_MODE ? 'padding: 5px;' : '';
+
   // ── Base de conocimiento de Mimi ──────────────────────────
   const KB = [
 
@@ -242,15 +235,14 @@
       inset: 0;
       border-radius: 50%;
       overflow: hidden;
-      background: ${AVATAR_BG};
+      background: #e8f2e8;
     }
     #mimi-bubble-fallback img {
       width: 100%;
       height: 100%;
-      object-fit: ${AVATAR_FIT};
-      object-position: ${AVATAR_POS};
+      object-fit: cover;
+      object-position: 50% 15%;
       pointer-events: none;
-      ${AVATAR_PAD}
     }
     #mimi-bubble-fallback.mimi-video-ok { display: none; }
     #mimi-vid-bubble.mimi-video-ok { display: block; }
@@ -320,15 +312,14 @@
       inset: 0;
       border-radius: 50%;
       overflow: hidden;
-      background: ${AVATAR_BG};
+      background: #e8f2e8;
     }
     #mimi-avatar-fallback img {
       width: 100%;
       height: 100%;
-      object-fit: ${AVATAR_FIT};
-      object-position: ${AVATAR_POS};
+      object-fit: cover;
+      object-position: 50% 15%;
       pointer-events: none;
-      ${AVATAR_PAD}
     }
     #mimi-avatar-fallback.mimi-video-ok { display: none; }
     #mimi-avatar-vid.mimi-video-ok { display: block; }
@@ -508,7 +499,7 @@
       <!-- Burbuja flotante -->
       <div id="mimi-bubble" role="button" aria-label="Abrir asistente Mimi" tabindex="0">
         <div id="mimi-bubble-inner">
-          <div id="mimi-bubble-fallback"><img src="${AVATAR_SRC}" alt="Mimi"></div>
+          <div id="mimi-bubble-fallback"><img src="img/mimi-avatar.png" alt="Mimi"></div>
           <video id="mimi-vid-bubble" autoplay loop muted playsinline>
             <source src="img/Bot.mp4" type="video/mp4">
           </video>
@@ -520,7 +511,7 @@
       <div id="mimi-window" class="mimi-hidden" role="dialog" aria-label="Chat con Mimi">
         <div id="mimi-header">
           <div id="mimi-avatar-small">
-            <div id="mimi-avatar-fallback"><img src="${AVATAR_SRC}" alt="Mimi"></div>
+            <div id="mimi-avatar-fallback"><img src="img/mimi-avatar.png" alt="Mimi"></div>
             <video id="mimi-avatar-vid" autoplay loop muted playsinline>
               <source src="img/Bot.mp4" type="video/mp4">
             </video>
