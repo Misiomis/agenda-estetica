@@ -653,9 +653,12 @@ POLÍTICA DE TURNOS:
 
     /* ── Mensajes ── */
     #mimi-messages {
-      flex: 1;
+      flex: 1 1 0%;
       min-height: 0;
+      height: 0;
       overflow-y: auto;
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
       padding: 16px 14px 8px;
       display: flex; flex-direction: column; gap: 10px;
       scroll-behavior: smooth;
@@ -796,13 +799,14 @@ POLÍTICA DE TURNOS:
     @keyframes mimi-fade-in { from { opacity:0; } to { opacity:1; } }
 
     @media (max-width: 700px) {
-      /* Móvil: modal con insets explícitos — el navegador calcula el alto y el scroll funciona */
-      #mimi-window {
+      /* Móvil: modal limpio con caja fija y scroll interno real */
+      #mimi-window,
+      #mimi-root.mimi-is-admin #mimi-window {
         position: fixed !important;
-        top: 10dvh !important;
+        top: 56px !important;
         left: 12px !important;
         right: 12px !important;
-        bottom: 10dvh !important;
+        bottom: 18px !important;
         width: auto !important;
         height: auto !important;
         max-height: none !important;
@@ -810,17 +814,38 @@ POLÍTICA DE TURNOS:
         transform-origin: center center !important;
         border-radius: 22px !important;
         z-index: 9998 !important;
+        overflow: hidden !important;
       }
-      #mimi-window.mimi-hidden {
+      #mimi-window.mimi-hidden,
+      #mimi-root.mimi-is-admin #mimi-window.mimi-hidden {
         transform: scale(.88) !important;
         opacity: 0 !important;
         pointer-events: none !important;
       }
       #mimi-messages {
-        -webkit-overflow-scrolling: touch !important;
+        padding-bottom: 14px !important;
       }
-      /* Burbuja siempre visible en la esquina */
-      #mimi-bubble { right: 14px !important; bottom: 18px !important; width: 60px !important; height: 60px !important; opacity: 1 !important; pointer-events: auto !important; }
+      #mimi-quick {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 12px;
+        scrollbar-width: none;
+      }
+      #mimi-quick::-webkit-scrollbar {
+        display: none;
+      }
+      .mimi-qr {
+        flex: 0 0 auto;
+      }
+      #mimi-input-row {
+        padding-bottom: 16px;
+      }
+      #mimi-bubble {
+        right: 14px !important;
+        bottom: 18px !important;
+        width: 60px !important;
+        height: 60px !important;
+      }
     }
   `;
 
@@ -938,17 +963,13 @@ POLÍTICA DE TURNOS:
       const overlay  = document.getElementById('mimi-overlay');
       win.classList.toggle('mimi-hidden', !open);
       if (overlay) overlay.classList.toggle('mimi-show', open);
-      // En móvil: modal centrado, burbuja SIEMPRE visible
+      // En móvil: bloquear fondo, pero el scroll queda dentro del chat
       if (isMobile) {
         document.body.style.overflow = open ? 'hidden' : '';
-        // La burbuja queda visible como botón de cierre alternativo
-        bubble.style.opacity = '';
-        bubble.style.pointerEvents = '';
-      } else {
-        // Desktop: ocultar burbuja cuando el chat está abierto
-        bubble.style.opacity = open ? '0' : '';
-        bubble.style.pointerEvents = open ? 'none' : '';
       }
+      // Mantener el recuadro limpio: la burbuja se oculta mientras el chat está abierto
+      bubble.style.opacity = open ? '0' : '';
+      bubble.style.pointerEvents = open ? 'none' : '';
       if (open) {
         badge.style.display = 'none';
         if (firstOpen) { firstOpen = false; greetUser(); }
