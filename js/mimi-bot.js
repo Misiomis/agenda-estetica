@@ -773,25 +773,50 @@ POLÍTICA DE TURNOS:
     }
     #mimi-send:hover { transform: scale(1.08); filter: brightness(1.1); }
 
-    /* ── Override admin ── */
+    /* ── Override admin desktop ── */
     #mimi-root.mimi-is-admin #mimi-window {
       right: 16px !important;
       bottom: 96px !important;
-      /* top se setea por JS según el header real */
       height: auto !important;
       max-height: none !important;
     }
 
-    @media (max-width: 600px) {
+    /* ── Overlay para móvil ── */
+    #mimi-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 30, 20, 0.45);
+      z-index: 9997;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      animation: mimi-fade-in .2s ease;
+    }
+    #mimi-overlay.mimi-show { display: block; }
+    @keyframes mimi-fade-in { from { opacity:0; } to { opacity:1; } }
+
+    @media (max-width: 700px) {
+      /* En móvil: modal centrado en pantalla */
       #mimi-window {
-        top: auto !important; left: 8px !important; right: 8px !important; bottom: 80px !important;
-        width: calc(100vw - 16px) !important; max-height: 78dvh !important; height: 78dvh !important;
-        border-radius: 18px !important;
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        right: auto !important;
+        bottom: auto !important;
+        transform: translate(-50%, -50%) !important;
+        width: calc(100vw - 28px) !important;
+        height: min(82dvh, 640px) !important;
+        max-height: min(82dvh, 640px) !important;
+        border-radius: 22px !important;
+        z-index: 9998 !important;
       }
-      #mimi-root.mimi-is-admin #mimi-window {
-        bottom: 88px !important;
+      #mimi-window.mimi-hidden {
+        transform: translate(-50%, -50%) scale(.85) !important;
+        opacity: 0;
+        pointer-events: none;
       }
-      #mimi-bubble { right: 12px; bottom: 16px; width: 60px; height: 60px; }
+      /* Burbuja siempre visible en la esquina */
+      #mimi-bubble { right: 14px !important; bottom: 18px !important; width: 60px !important; height: 60px !important; opacity: 1 !important; pointer-events: auto !important; }
     }
   `;
 
@@ -799,6 +824,7 @@ POLÍTICA DE TURNOS:
   const HTML = `
     <div id="mimi-root">
       <style>${CSS}</style>
+      <div id="mimi-overlay"></div>
 
       <!-- Burbuja flotante -->
       <div id="mimi-bubble" role="button" aria-label="Abrir asistente Mimi" tabindex="0">
@@ -852,17 +878,17 @@ POLÍTICA DE TURNOS:
 
     const root  = document.getElementById('mimi-root');
 
-    // En admin: marcar el root y fijar top dinámicamente bajo el header sticky
+    // En admin desktop: marcar root y fijar top dinámicamente bajo el header sticky
     if (esAdmin) {
       root.classList.add('mimi-is-admin');
       const adjustAdminTop = () => {
+        if (window.innerWidth <= 700) return; // en móvil es modal centrado, no necesita top
         const winEl  = document.getElementById('mimi-window');
         if (!winEl) return;
         const header = document.querySelector('.header') || document.querySelector('header');
         const topOffset = header ? Math.round(header.getBoundingClientRect().bottom + 8) : 90;
         winEl.style.top = topOffset + 'px';
       };
-      // Esperar que el header esté renderizado
       setTimeout(adjustAdminTop, 100);
       window.addEventListener('resize', adjustAdminTop);
     }
@@ -875,6 +901,9 @@ POLÍTICA DE TURNOS:
     const input   = document.getElementById('mimi-input');
     const sendBtn = document.getElementById('mimi-send');
     const closeBtn= document.getElementById('mimi-close');
+
+    // Cerrar al tocar el overlay
+    document.getElementById('mimi-overlay')?.addEventListener('click', () => { if (open) toggle(); });
 
     // ── Detectar si el video carga y hacer swap visual ──
     const vidBubble = document.getElementById('mimi-vid-bubble');
@@ -901,13 +930,20 @@ POLÍTICA DE TURNOS:
     // ── Abrir / cerrar ──
     function toggle() {
       open = !open;
+      const isMobile = window.innerWidth <= 700;
+      const overlay  = document.getElementById('mimi-overlay');
       win.classList.toggle('mimi-hidden', !open);
-      // Ocultar burbuja cuando el chat está abierto (no tapa el botón enviar)
-      bubble.style.opacity = open ? '0' : '';
-      bubble.style.pointerEvents = open ? 'none' : '';
-      // En móvil: bloquear scroll del fondo
-      if (window.innerWidth <= 600) {
+      if (overlay) overlay.classList.toggle('mimi-show', open);
+      // En móvil: modal centrado, burbuja SIEMPRE visible
+      if (isMobile) {
         document.body.style.overflow = open ? 'hidden' : '';
+        // La burbuja queda visible como botón de cierre alternativo
+        bubble.style.opacity = '';
+        bubble.style.pointerEvents = '';
+      } else {
+        // Desktop: ocultar burbuja cuando el chat está abierto
+        bubble.style.opacity = open ? '0' : '';
+        bubble.style.pointerEvents = open ? 'none' : '';
       }
       if (open) {
         badge.style.display = 'none';
