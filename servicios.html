@@ -41,6 +41,28 @@
         .turno-item b { color: #2c3e3a; display: block; font-size: 17px; margin-bottom: 6px; font-family: 'Playfair Display', serif; }
         .turno-item .fecha-tag { display: inline-block; background: #e8f5ee; color: var(--verde-oscuro); padding: 4px 12px; border-radius: 8px; font-weight: 700; font-size: 14px; text-transform: capitalize; margin-right: 10px; }
         .turno-item .hora-tag { color: #666; font-weight: 500; font-size: 14px; }
+        .turno-item.turno-cancelado { border-left-color: #c98d96; background: #fff9fa; }
+        .turno-headline { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+        .estado-tag { display:inline-flex; align-items:center; justify-content:center; padding:5px 12px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; }
+        .estado-tag.confirmado { background:#e8f5ee; color:#2f7c5d; }
+        .estado-tag.cancelado { background:#fdecef; color:#a64b58; }
+        .turno-meta { margin-top:10px; font-size:13px; color:#5b6d67; line-height:1.5; }
+        .turno-meta strong { color:#3b534a; }
+        .turno-actions { margin-top:14px; display:grid; gap:10px; }
+        .btn-turno-cancelar { border:none; border-radius:14px; padding:12px 14px; cursor:pointer; font-weight:700; font-family:inherit; font-size:14px; transition:.2s ease; }
+        .btn-turno-cancelar.primario { background:#d86e7d; color:#fff; box-shadow:0 8px 18px rgba(216,110,125,.22); }
+        .btn-turno-cancelar.primario:hover:not(:disabled) { transform:translateY(-1px); }
+        .btn-turno-cancelar.secundario { background:#f4f4f4; color:#55625d; }
+        .btn-turno-cancelar:disabled { opacity:.7; cursor:not-allowed; }
+        .turno-cancel-box { background:#f8fbf9; border:1px solid #dbe8e1; border-radius:18px; padding:14px; }
+        .turno-cancel-box label { display:block; font-size:13px; font-weight:600; color:#406255; margin-bottom:8px; }
+        .turno-cancel-box textarea { width:100%; min-height:92px; resize:vertical; border:1px solid #d3e4db; border-radius:14px; padding:12px; box-sizing:border-box; font-family:inherit; font-size:14px; color:#2f413b; background:#fff; }
+        .turno-cancel-box-actions { display:grid; gap:8px; margin-top:10px; }
+        .turnos-feedback { display:none; margin:0 0 14px; padding:12px 14px; border-radius:14px; font-size:13px; text-align:left; }
+        .turnos-feedback.show { display:block; }
+        .turnos-feedback.info { background:#eef7f2; color:#3d6252; border:1px solid #d5e9de; }
+        .turnos-feedback.success { background:#edf8f0; color:#2f7c5d; border:1px solid #cfe7d7; }
+        .turnos-feedback.error { background:#fff1f3; color:#9b4e5a; border:1px solid #f2d3d8; }
 
         .btn-buscar { background: var(--verde-oscuro); color: white; border: none; padding: 16px; width: 100%; border-radius: 18px; font-weight: 600; font-size: 16px; cursor: pointer; }
         .footer { margin-top: 40px; font-size: 11px; color: #999; padding: 30px 0; text-align: center; border-top: 1px solid #e0e6e4; }
@@ -77,6 +99,7 @@
         <div class="modal-card">
             <h2>Tus Turnos</h2>
             <p style="font-size: 14px; color: #888; margin-bottom: 20px;">Agenda en Espacio Mimar-T</p>
+            <div id="turnosFeedback" class="turnos-feedback" aria-live="polite"></div>
             <div id="listaResultadosCitas" style="margin-top: 10px; max-height: 450px; overflow-y: auto; padding-right: 5px;"></div>
             <button id="btnCerrarMisCitas" style="background:#f4f4f4; border:none; color:#555; padding: 16px; width: 100%; border-radius: 18px; margin-top:20px; cursor:pointer; font-weight: 600;">Cerrar</button>
         </div>
@@ -98,6 +121,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const CF_CANCELACION_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/cancelarReservaPaciente";
 
         const limpiarSesionYSalir = () => {
             localStorage.removeItem("clienteDNI");
@@ -153,12 +177,119 @@
         const modalBusqueda = document.getElementById("modalBusquedaDNI");
         const modalResultados = document.getElementById("modalCitasCliente");
         const listaResultados = document.getElementById("listaResultadosCitas");
+        const turnosFeedback = document.getElementById("turnosFeedback");
         const btnAbrirBusqueda = document.getElementById("btnAbrirBusqueda");
         const dniSesion = localStorage.getItem("clienteDNI");
+        const nombreSesion = (localStorage.getItem("clienteNombre") || "").trim();
         const haySesionCliente = !!(dniSesion && dniSesion !== "null" && dniSesion !== "");
+        const fechaTurnoFormatter = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", year: "numeric" });
+        let turnosConsultados = [];
+        let dniConsultaActual = "";
+        let cancelacionTurnoActivaId = "";
+        let cancelandoReservaId = "";
 
         if (!haySesionCliente && btnAbrirBusqueda) {
             btnAbrirBusqueda.style.display = "none";
+        }
+
+        const escapeHtml = (value) => String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
+        const obtenerEstadoTurno = (turno = {}) => {
+            const estados = [turno.estado, turno.status]
+                .map((value) => (value || "").toString().trim().toLowerCase())
+                .filter(Boolean);
+
+            return estados.includes("cancelado") ? "cancelado" : "confirmado";
+        };
+
+        const obtenerMotivoCancelacion = (turno = {}) => String(
+            turno.motivoCancelacion
+            || turno.motivoCancelado
+            || turno.cancelReason
+            || turno.cancellationReason
+            || ""
+        ).trim();
+
+        const setTurnosFeedback = (message = "", type = "info") => {
+            if (!turnosFeedback) return;
+            if (!message) {
+                turnosFeedback.textContent = "";
+                turnosFeedback.className = "turnos-feedback";
+                return;
+            }
+
+            turnosFeedback.textContent = message;
+            turnosFeedback.className = `turnos-feedback show ${type}`;
+        };
+
+        const formatearFechaTexto = (fechaStr) => {
+            if (!fechaStr) return "Fecha a confirmar";
+            const [year, month, day] = fechaStr.split("-").map(Number);
+            const fecha = new Date(year, month - 1, day);
+            if (Number.isNaN(fecha.getTime())) return fechaStr;
+            return fechaTurnoFormatter.format(fecha);
+        };
+
+        const puedeCancelarTurno = (turno = {}) => {
+            if (!haySesionCliente || !dniSesion || !nombreSesion) return false;
+            if ((dniConsultaActual || "") !== dniSesion) return false;
+            return obtenerEstadoTurno(turno) === "confirmado";
+        };
+
+        function renderTurnosConsultados() {
+            if (!turnosConsultados.length) {
+                listaResultados.innerHTML = "<p style='color:#999; padding: 30px;'>No tenés turnos próximos agendados.</p>";
+                return;
+            }
+
+            listaResultados.innerHTML = turnosConsultados.map((turno) => {
+                const estado = obtenerEstadoTurno(turno);
+                const estaAbierto = cancelacionTurnoActivaId === turno.id;
+                const estaCancelando = cancelandoReservaId === turno.id;
+                const motivo = obtenerMotivoCancelacion(turno);
+                const detalleCancelacion = estado === "cancelado"
+                    ? `<div class="turno-meta"><strong>Estado:</strong> Cancelado</div>
+                       <div class="turno-meta"><strong>Motivo:</strong> ${escapeHtml(motivo || "Cancelado por el paciente")}</div>
+                       <div class="turno-meta">Este horario ya quedó liberado para que otra persona pueda reservarlo.</div>`
+                    : "";
+
+                const accionesCancelacion = puedeCancelarTurno(turno)
+                    ? `
+                        <div class="turno-actions">
+                            ${estaAbierto ? `
+                                <div class="turno-cancel-box">
+                                    <label for="motivoCancelacion-${turno.id}">Motivo de cancelación</label>
+                                    <textarea id="motivoCancelacion-${turno.id}" placeholder="Contanos brevemente por qué necesitás cancelar este turno."></textarea>
+                                    <div class="turno-cancel-box-actions">
+                                        <button class="btn-turno-cancelar primario" onclick="confirmarCancelacionTurno('${turno.id}')" ${estaCancelando ? "disabled" : ""}>${estaCancelando ? "Cancelando..." : "Confirmar cancelación"}</button>
+                                        <button class="btn-turno-cancelar secundario" onclick="cerrarCancelacionTurno()" ${estaCancelando ? "disabled" : ""}>Volver</button>
+                                    </div>
+                                </div>
+                            ` : `
+                                <button class="btn-turno-cancelar primario" onclick="abrirCancelacionTurno('${turno.id}')">Cancelar este turno</button>
+                            `}
+                        </div>
+                    `
+                    : "";
+
+                return `
+                    <div class="turno-item ${estado === "cancelado" ? "turno-cancelado" : ""}">
+                        <div class="turno-headline">
+                            <span class="estado-tag ${estado}">${estado === "cancelado" ? "Cancelado" : "Confirmado"}</span>
+                        </div>
+                        <b>${escapeHtml(turno.servicio || "Servicio")}</b>
+                        ${formatearFechaPro(turno.fecha)}
+                        <span class="hora-tag">Hora: ${escapeHtml(turno.hora || "--:--")}</span>
+                        ${detalleCancelacion}
+                        ${accionesCancelacion}
+                    </div>
+                `;
+            }).join("");
         }
 
         const SERVICIO_LED_NOMBRE = "Facial LED Regenerativo";
@@ -188,6 +319,11 @@
         // LÓGICA DE BÚSQUEDA Y ORDENAMIENTO
         async function ejecutarConsulta(dni) {
             modalBusqueda.style.display = "none";
+            dniConsultaActual = (dni || "").trim();
+            cancelacionTurnoActivaId = "";
+            cancelandoReservaId = "";
+            turnosConsultados = [];
+            setTurnosFeedback("");
             listaResultados.innerHTML = "<p>Buscando tus turnos...</p>";
             modalResultados.style.display = "flex";
 
@@ -196,6 +332,7 @@
                 const querySnapshot = await getDocs(q);
                 
                 if (querySnapshot.empty) {
+                    turnosConsultados = [];
                     listaResultados.innerHTML = "<p style='color:#999; padding: 30px;'>No hay turnos registrados con este DNI.</p>";
                 } else {
                     const hoy = new Date().toISOString().split('T')[0];
@@ -205,7 +342,7 @@
                         const data = doc.data();
                         // Solo mostramos turnos de hoy en adelante
                         if (data.fecha >= hoy) {
-                            turnos.push(data);
+                            turnos.push({ id: doc.id, ...data });
                         }
                     });
 
@@ -218,21 +355,13 @@
                     });
 
                     if (turnos.length === 0) {
+                        turnosConsultados = [];
                         listaResultados.innerHTML = "<p style='color:#999; padding: 30px;'>No tenés turnos próximos agendados.</p>";
                         return;
                     }
 
-                    let html = "";
-                    turnos.forEach(r => {
-                        html += `
-                            <div class="turno-item">
-                                <b>${r.servicio}</b>
-                                ${formatearFechaPro(r.fecha)}
-                                <span class="hora-tag">Hora: ${r.hora}</span>
-                            </div>
-                        `;
-                    });
-                    listaResultados.innerHTML = html;
+                    turnosConsultados = turnos;
+                    renderTurnosConsultados();
                 }
             } catch (e) {
                 console.error(e);
@@ -242,12 +371,77 @@
 
         // Función para formatear fecha visualmente
         function formatearFechaPro(fechaStr) {
-            const dias = ["dom.", "lun.", "mar.", "mie.", "jue.", "vie.", "sab."];
-            const [year, month, day] = fechaStr.split('-');
-            const fecha = new Date(year, month - 1, day);
-            const nombreDia = dias[fecha.getDay()];
-            return `<span class="fecha-tag">${nombreDia} ${day}/${month}</span>`;
+            return `<span class="fecha-tag">${escapeHtml(formatearFechaTexto(fechaStr))}</span>`;
         }
+
+        window.abrirCancelacionTurno = (turnoId) => {
+            cancelacionTurnoActivaId = turnoId;
+            setTurnosFeedback("");
+            renderTurnosConsultados();
+        };
+
+        window.cerrarCancelacionTurno = () => {
+            cancelacionTurnoActivaId = "";
+            cancelandoReservaId = "";
+            renderTurnosConsultados();
+        };
+
+        window.confirmarCancelacionTurno = async (turnoId) => {
+            const turno = turnosConsultados.find((item) => item.id === turnoId);
+            const motivoEl = document.getElementById(`motivoCancelacion-${turnoId}`);
+            const motivo = (motivoEl?.value || "").trim();
+
+            if (!turno) {
+                setTurnosFeedback("No encontramos ese turno para cancelarlo.", "error");
+                return;
+            }
+
+            if (motivo.length < 8) {
+                setTurnosFeedback("Escribí un motivo un poco más claro para poder cancelar el turno.", "error");
+                motivoEl?.focus();
+                return;
+            }
+
+            cancelandoReservaId = turnoId;
+            setTurnosFeedback("");
+            renderTurnosConsultados();
+
+            try {
+                const response = await fetch(CF_CANCELACION_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        reservaId: turnoId,
+                        dni: dniConsultaActual,
+                        nombre: nombreSesion,
+                        motivo
+                    })
+                });
+
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(result.error || "No se pudo cancelar el turno.");
+                }
+
+                turnosConsultados = turnosConsultados.map((item) => item.id === turnoId ? {
+                    ...item,
+                    status: "cancelado",
+                    estado: "cancelado",
+                    canceladoPor: result.reserva?.canceladoPor || "paciente",
+                    motivoCancelacion: result.reserva?.motivoCancelacion || motivo
+                } : item);
+
+                cancelacionTurnoActivaId = "";
+                cancelandoReservaId = "";
+                renderTurnosConsultados();
+                setTurnosFeedback(`Tu turno del ${formatearFechaTexto(turno.fecha)} a las ${turno.hora} quedó cancelado. El horario ya se liberó para otra persona.`, "success");
+            } catch (error) {
+                console.error(error);
+                cancelandoReservaId = "";
+                renderTurnosConsultados();
+                setTurnosFeedback(error.message || "No se pudo cancelar el turno en este momento.", "error");
+            }
+        };
 
         // CONTROL DE BOTÓN PRINCIPAL (CON AUTO-DETECCIÓN DE SESIÓN)
         document.getElementById("btnAbrirBusqueda").onclick = () => {

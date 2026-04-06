@@ -28,6 +28,16 @@ function normalizarNombreUsuario(rawName) {
         .replace(/\s+/g, ".");
 }
 
+function normalizarTextoComparacion(rawValue) {
+    return String(rawValue || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .trim()
+        .replace(/\s+/g, " ");
+}
+
 function normalizarTelefonoAR(rawPhone) {
     let cleanPhone = (rawPhone || "").toString().replace(/\D/g, "");
     if (!cleanPhone) return "";
@@ -594,6 +604,119 @@ exports.enviarConfirmacionTurno = onRequest(async (req, res) => {
             detalles: error.response ? error.response.data : error.message,
             balanceUpdated,
             warnings
+        });
+    }
+});
+
+exports.cancelarReservaPaciente = onRequest(async (req, res) => {
+
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+        return res.status(204).send("");
+    }
+
+    if (req.method !== "POST") {
+        return res.status(405).json({ error: "Metodo no permitido" });
+    }
+
+    try {
+        const {
+            reservaId,
+            dni,
+            nombre,
+            motivo
+        } = req.body || {};
+
+        const reservaIdNormalizado = String(reservaId || "").trim();
+        const dniNormalizado = normalizarDni(dni);
+        const nombreNormalizado = normalizarTextoComparacion(nombre);
+        const motivoLimpio = String(motivo || "")
+            .replace(/[\r\n]+/g, " ")
+            .replace(/\s{2,}/g, " ")
+            .trim();
+
+        if (!reservaIdNormalizado || !dniNormalizado || !nombreNormalizado) {
+            return res.status(400).json({ error: "Faltan datos para validar la cancelacion." });
+        }
+
+        if (motivoLimpio.length < 8) {
+            return res.status(400).json({ error: "Es necesario indicar un motivo de al menos 8 caracteres." });
+        }
+
+        const reservaRef = db.collection("reservas").doc(reservaIdNormalizado);
+        const reservaSnap = await reservaRef.get();
+
+        if (!reservaSnap.exists) {
+            return res.status(404).json({ error: "No encontramos la reserva indicada." });
+        }
+
+        const reserva = reservaSnap.data() || {};
+        const dniReserva = normalizarDni(reserva.dni);
+        if (!dniReserva || dniReserva !== dniNormalizado) {
+            return res.status(403).json({ error: "La reserva no corresponde al paciente indicado." });
+        }
+
+        const nombreReserva = normalizarTextoComparacion(obtenerNombreReserva(reserva));
+        let nombreValido = nombreReserva === nombreNormalizado;
+
+        if (!nombreValido) {
+            const clienteDoc = await buscarClientePorDni(dniNormalizado);
+            if (clienteDoc?.exists) {
+                const cliente = clienteDoc.data() || {};
+                const nombreCliente = normalizarTextoComparacion(cliente.fullName || cliente.nombre || "");
+                nombreValido = nombreCliente === nombreNormalizado;
+            }
+        }
+
+        if (!nombreValido) {
+            return res.status(403).json({ error: "No pudimos validar la identidad del paciente para cancelar este turno." });
+        }
+
+        if (obtenerEstadoReserva(reserva) === "cancelado") {
+            return res.status(200).json({
+                status: "already_cancelled",
+                slotReleased: true,
+                reserva: {
+                    id: reservaSnap.id,
+                    fecha: reserva.fecha || "",
+                    hora: reserva.hora || "",
+                    servicio: reserva.servicio || "",
+                    estado: "cancelado",
+                    motivoCancelacion: reserva.motivoCancelacion || motivoLimpio
+                }
+            });
+        }
+
+        await reservaRef.update({
+            status: "cancelado",
+            estado: "cancelado",
+            canceladoPor: "paciente",
+            motivoCancelacion: motivoLimpio,
+            canceladoAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        return res.status(200).json({
+            status: "cancelled",
+            slotReleased: true,
+            reserva: {
+                id: reservaSnap.id,
+                fecha: reserva.fecha || "",
+                hora: reserva.hora || "",
+                servicio: reserva.servicio || "",
+                estado: "cancelado",
+                motivoCancelacion: motivoLimpio,
+                canceladoPor: "paciente"
+            }
+        });
+    } catch (error) {
+        console.error("cancelarReservaPaciente error:", error);
+        return res.status(500).json({
+            error: "No se pudo cancelar el turno en este momento.",
+            detalles: error.message || "Error interno"
         });
     }
 });
