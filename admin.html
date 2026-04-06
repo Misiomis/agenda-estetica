@@ -122,7 +122,7 @@
         .btn-delete-reserva:hover { background: #ffecef; }
 
         .busc-input { width: 100%; min-height: 42px; padding: 10px 12px; border-radius: 12px; border: 1px solid #cfe2d9; margin-bottom: 10px; box-sizing: border-box; outline: none; }
-        .tag-fecha { background: #eee; padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 600; color: #666; }
+        .tag-fecha { display: inline-block; background: #eef7f2; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #466a5b; line-height: 1.35; white-space: normal; max-width: 100%; margin-bottom: 6px; }
         .tag-origen { display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:0.03em; text-transform:uppercase; }
         .tag-origen.jornada { background:#fff0f2; color:#b53345; border:1px solid #f2b7bf; }
         .tag-origen.normal { background:#edf8f3; color:#2f7c5d; border:1px solid #b7dfcc; }
@@ -275,7 +275,6 @@
                 <button class="btn-nav" id="btn-buscar" onclick="navegar('buscar')">Buscar</button>
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">Pacientes</button>
                 <button class="btn-nav" id="btn-export" onclick="navegar('export')">Exportar</button>
-                <button class="btn-nav" onclick="descargarWidget()">⬇ Widget</button>
                 <button class="btn-nav" onclick="cerrarSesion()">Salir</button>
             </div>
             <div class="flow-switch-shortcut">
@@ -410,18 +409,20 @@
                 </div>
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0">Reportes de Reservas</h3>
-                    <p style="font-size:14px; color:#666">Descarga todas las reservas registradas en formato CSV para abrir en Excel.</p>
-                    <button class="btn-export-main" onclick="exportarCSV()">Descargar todo (.csv)</button>
+                    <p style="font-size:14px; color:#666">Descarga todas las reservas en PDF, ordenadas por fecha y acomodadas en dos columnas para ahorrar hojas.</p>
+                    <button class="btn-export-main" onclick="exportarReservasPDF()">Descargar reservas (.pdf)</button>
                 </div>
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0">Reporte de Pacientes</h3>
-                    <p style="font-size:14px; color:#666">Exporta todos los pacientes con estado de membresía y datos de contacto.</p>
-                    <button class="btn-export-main" onclick="exportarClientesCSV()">Descargar pacientes (.csv)</button>
+                    <p style="font-size:14px; color:#666">Exporta todos los pacientes en PDF con datos de contacto y estado de membresía.</p>
+                    <button class="btn-export-main" onclick="exportarPacientesPDF()">Descargar pacientes (.pdf)</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -453,11 +454,44 @@
             };
         };
 
-        const formatoFechaISO = (f) => {
-            if (!f) return "";
-            const [y, m, d] = f.split('-');
-            return `${d}/${m}/${y}`;
+        const DATE_LOCALE = 'es-AR';
+        const dateLongFormatter = new Intl.DateTimeFormat(DATE_LOCALE, {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+
+        const esFechaISO = (value) => /^\d{4}-\d{2}-\d{2}$/.test((value || '').toString().trim());
+
+        const parsearFecha = (value) => {
+            if (!value) return null;
+
+            if (value instanceof Date) {
+                return Number.isNaN(value.getTime()) ? null : value;
+            }
+
+            if (typeof value === 'object' && typeof value.seconds === 'number') {
+                const fechaDesdeTimestamp = new Date(value.seconds * 1000);
+                return Number.isNaN(fechaDesdeTimestamp.getTime()) ? null : fechaDesdeTimestamp;
+            }
+
+            if (typeof value === 'string' && esFechaISO(value)) {
+                const [year, month, day] = value.split('-').map(Number);
+                const fechaLocal = new Date(year, month - 1, day);
+                return Number.isNaN(fechaLocal.getTime()) ? null : fechaLocal;
+            }
+
+            const fecha = new Date(value);
+            return Number.isNaN(fecha.getTime()) ? null : fecha;
         };
+
+        const formatoFechaVisible = (value) => {
+            const fecha = parsearFecha(value);
+            if (!fecha) return (value || '').toString();
+            return dateLongFormatter.format(fecha);
+        };
+
+        const formatoFechaISO = (f) => formatoFechaVisible(f);
 
         const normalizarDNI = (v) => (v ?? "").toString().replace(/\D/g, '');
         const normalizarNombreKey = (v) => borrarEtiquetaDNI(v || "").toLowerCase().replace(/\s+/g, ' ').trim();
@@ -550,10 +584,16 @@
 
         const formatearCampo = (key, value) => {
             if (value === undefined || value === null || value === '') return '';
+            if (Array.isArray(value)) {
+                return escapeHtml(value.map((item) => esFechaISO(item) ? formatoFechaVisible(item) : String(item ?? '')).join(', '));
+            }
+            if (typeof value === 'string' && esFechaISO(value)) {
+                return escapeHtml(formatoFechaVisible(value));
+            }
             if (typeof value === 'string') return escapeHtml(value);
-            if (value instanceof Date) return value.toLocaleDateString('es-AR');
+            if (value instanceof Date) return escapeHtml(formatoFechaVisible(value));
             if (typeof value === 'object' && value.seconds) {
-                return new Date(value.seconds * 1000).toLocaleDateString('es-AR');
+                return escapeHtml(formatoFechaVisible(value));
             }
             return escapeHtml(String(value));
         };
@@ -880,7 +920,7 @@
             if (!num || !detalle) return { ok: false, reason: "missing-data" };
             try {
                 const [yy, mm, dd] = (fecha || "").split("-");
-                const fechaPlantilla = (yy && mm && dd) ? `${dd}/${mm}/${yy}` : (fecha || "Fecha a confirmar");
+                const fechaPlantilla = (yy && mm && dd) ? formatoFechaVisible(`${yy}-${mm}-${dd}`) : (fecha ? formatoFechaVisible(fecha) : "Fecha a confirmar");
                 const horaPlantilla = (hora || "").toString().replace(/\s*hs\s*$/i, "").trim() || "Horario a confirmar";
                 const nombrePlantilla = (nombre || "Paciente").toString().trim().slice(0, 60);
                 const servicioPlantilla = (servicio || "Tratamiento").toString().trim().slice(0, 80);
@@ -1222,7 +1262,7 @@
                                 parameters: [
                                     { type: "text", text: nombre },
                                     { type: "text", text: servicio || "Tratamiento" },
-                                    { type: "text", text: fecha },
+                                    { type: "text", text: formatoFechaVisible(fecha) || fecha },
                                     { type: "text", text: horaConSufijo }
                                 ]
                             }]
@@ -1426,49 +1466,183 @@
 
         window.filtrarHistoriasInput = debounce(() => window.filtrarHistorias(), 200);
 
-        window.exportarCSV = () => {
-            let csv = "Fecha,Hora,Nombre,Servicio,Telefono,Nota\n";
-            todasLasReservas.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).forEach(r => {
-                const row = [
-                    r.fecha,
-                    r.hora,
-                    r.nombreLimpio,
-                    r.servicio,
-                    r.phone || '',
-                    r.detalleSesion || ''
-                ].map(csvEscape).join(',');
-                csv += `${row}\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.setAttribute("download", `reservas_mimar_t_${new Date().toLocaleDateString()}.csv`);
-            link.click();
+        const getPdfTools = () => {
+            const jsPDF = window.jspdf?.jsPDF;
+            if (!jsPDF) {
+                mostrarAviso("No se pudo cargar el generador de PDF");
+                return null;
+            }
+
+            const runAutoTable = (docPdf, options) => {
+                if (typeof docPdf.autoTable === 'function') {
+                    docPdf.autoTable(options);
+                    return true;
+                }
+                if (typeof window.autoTable === 'function') {
+                    window.autoTable(docPdf, options);
+                    return true;
+                }
+                mostrarAviso("No se pudo cargar la tabla del PDF");
+                return false;
+            };
+
+            return { jsPDF, runAutoTable };
         };
 
-        window.exportarClientesCSV = () => {
-            let csv = "DNI,Nombre,Telefono,Email,Usuario,Activo,TipoCliente,MembresiaActiva,HoursBalance\n";
-            const clientesOrdenados = [...todasLosPacientes].sort((a, b) => (a.fullName || "").localeCompare(b.fullName || "", 'es'));
-            clientesOrdenados.forEach((c) => {
-                const row = [
-                    c.dni || "",
-                    c.fullName || "",
-                    c.phone || "",
-                    c.email || "",
-                    c.username || "",
-                    c.active === false ? "No" : "Si",
-                    c.membershipActive ? "Membresia" : "Ocasional",
-                    c.membershipActive ? "true" : "false",
-                    c.hoursBalance ?? 0
-                ].map(csvEscape).join(',');
-                csv += `${row}\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.setAttribute("download", `pacientes_mimar_t_${new Date().toLocaleDateString()}.csv`);
-            link.click();
+        const limpiarTextoPdf = (value) => (value ?? '')
+            .toString()
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+
+        const resumenReservaPdf = (reserva) => {
+            if (!reserva) return '';
+
+            const origen = resolverOrigenReserva(reserva) === 'jornada' ? 'Jornada' : 'Normal';
+            const nota = limpiarTextoPdf(reserva.detalleSesion) || 'Sin nota';
+
+            return [
+                `Fecha: ${formatoFechaVisible(reserva.fecha)}`,
+                `Hora: ${reserva.hora || '--:--'} hs`,
+                `Paciente: ${limpiarTextoPdf(reserva.nombreLimpio || 'Sin nombre')}`,
+                `Servicio: ${limpiarTextoPdf(reserva.servicio || 'Servicio')}`,
+                `Teléfono: ${limpiarTextoPdf(reserva.phone || 'Sin teléfono')}`,
+                `Origen: ${origen}`,
+                `Nota: ${nota}`
+            ].join('\n');
         };
+
+        const reservarFilasPdf = (reservasOrdenadas) => {
+            const filas = [];
+            for (let index = 0; index < reservasOrdenadas.length; index += 2) {
+                filas.push([
+                    resumenReservaPdf(reservasOrdenadas[index]),
+                    reservasOrdenadas[index + 1] ? resumenReservaPdf(reservasOrdenadas[index + 1]) : ''
+                ]);
+            }
+            return filas;
+        };
+
+        window.exportarReservasPDF = () => {
+            const tools = getPdfTools();
+            if (!tools) return;
+
+            const { jsPDF, runAutoTable } = tools;
+            const reservasOrdenadas = [...todasLasReservas].sort((a, b) => {
+                const porFecha = (a.fecha || '').localeCompare(b.fecha || '');
+                if (porFecha !== 0) return porFecha;
+                return (a.hora || '').localeCompare(b.hora || '');
+            });
+
+            const docPdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            docPdf.setTextColor(47, 90, 71);
+            docPdf.setFont('helvetica', 'bold');
+            docPdf.setFontSize(16);
+            docPdf.text('Reporte de reservas', 14, 16);
+            docPdf.setFont('helvetica', 'normal');
+            docPdf.setFontSize(9.5);
+            docPdf.text(`Generado el ${formatoFechaVisible(fechaHoyISO())}`, 14, 22);
+            docPdf.text(`Total de reservas: ${reservasOrdenadas.length}`, 14, 27);
+
+            if (!reservasOrdenadas.length) {
+                docPdf.text('No hay reservas para exportar.', 14, 36);
+                docPdf.save(`reservas_mimar_t_${fechaHoyISO()}.pdf`);
+                return;
+            }
+
+            const pudoRenderizar = runAutoTable(docPdf, {
+                startY: 32,
+                showHead: 'never',
+                theme: 'grid',
+                body: reservarFilasPdf(reservasOrdenadas),
+                margin: { top: 32, right: 14, bottom: 12, left: 14 },
+                styles: {
+                    font: 'helvetica',
+                    fontSize: 9,
+                    textColor: [47, 90, 71],
+                    lineColor: [207, 233, 221],
+                    lineWidth: 0.2,
+                    cellPadding: 3.2,
+                    overflow: 'linebreak',
+                    valign: 'top'
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 253, 251]
+                },
+                columnStyles: {
+                    0: { cellWidth: 133 },
+                    1: { cellWidth: 133 }
+                }
+            });
+
+            if (!pudoRenderizar) return;
+            docPdf.save(`reservas_mimar_t_${fechaHoyISO()}.pdf`);
+        };
+
+        window.exportarPacientesPDF = () => {
+            const tools = getPdfTools();
+            if (!tools) return;
+
+            const { jsPDF, runAutoTable } = tools;
+            const clientesOrdenados = [...todasLosPacientes].sort((a, b) => (a.fullName || '').localeCompare(b.fullName || '', 'es'));
+
+            const docPdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            docPdf.setTextColor(47, 90, 71);
+            docPdf.setFont('helvetica', 'bold');
+            docPdf.setFontSize(16);
+            docPdf.text('Reporte de pacientes', 14, 16);
+            docPdf.setFont('helvetica', 'normal');
+            docPdf.setFontSize(9.5);
+            docPdf.text(`Generado el ${formatoFechaVisible(fechaHoyISO())}`, 14, 22);
+            docPdf.text(`Total de pacientes: ${clientesOrdenados.length}`, 14, 27);
+
+            if (!clientesOrdenados.length) {
+                docPdf.text('No hay pacientes para exportar.', 14, 36);
+                docPdf.save(`pacientes_mimar_t_${fechaHoyISO()}.pdf`);
+                return;
+            }
+
+            const pudoRenderizar = runAutoTable(docPdf, {
+                startY: 32,
+                head: [["DNI", "Paciente", "Teléfono", "Email", "Usuario", "Activo", "Tipo", "Horas"]],
+                body: clientesOrdenados.map((c) => [
+                    c.dni || '',
+                    c.fullName || '',
+                    c.phone || '',
+                    c.email || '',
+                    c.username || '',
+                    c.active === false ? 'No' : 'Si',
+                    c.membershipActive ? 'Membresía' : 'Ocasional',
+                    String(c.hoursBalance ?? 0)
+                ]),
+                margin: { top: 32, right: 14, bottom: 12, left: 14 },
+                styles: {
+                    font: 'helvetica',
+                    fontSize: 8,
+                    textColor: [47, 90, 71],
+                    lineColor: [207, 233, 221],
+                    lineWidth: 0.2,
+                    cellPadding: 2.2,
+                    overflow: 'linebreak',
+                    valign: 'middle'
+                },
+                headStyles: {
+                    fillColor: [63, 143, 111],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold'
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 253, 251]
+                }
+            });
+
+            if (!pudoRenderizar) return;
+            docPdf.save(`pacientes_mimar_t_${fechaHoyISO()}.pdf`);
+        };
+
+        window.exportarCSV = window.exportarReservasPDF;
+        window.exportarClientesCSV = window.exportarPacientesPDF;
 
         window.renderCalendario = () => {
             const grid = document.getElementById("calendarGrid");
@@ -2223,7 +2397,9 @@
                 setFlowModeButtons(flowMode);
                 
                 const status = activa ? "ACTIVA" : "INACTIVA";
-                const dates = Array.isArray(config.allowedDates) ? config.allowedDates.join(", ") : "No configuradas";
+                const dates = Array.isArray(config.allowedDates) && config.allowedDates.length
+                    ? config.allowedDates.map((date) => formatoFechaVisible(date)).join(", ")
+                    : "No configuradas";
                 const service = config.serviceName || "(no configurado)";
                 statusText.innerHTML = `${status}<br><small style="color:#7a9d93;">Servicio: ${escapeHtml(service)}<br>Fechas: ${escapeHtml(dates)}</small>`;
                 flowStatusText.innerHTML = flowMode === "jornada"
