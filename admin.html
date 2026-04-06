@@ -522,6 +522,9 @@
             "2026-04-22": ["21:00"],
             "2026-04-28": ["11:00"]
         };
+        const HORARIOS_OVERRIDE_POR_FECHA = {
+            "2026-04-10": ["08:00", "09:00", "10:00", "11:00", "12:00"]
+        };
 
         const csvEscape = (v) => {
             const limpio = (v ?? "").toString().replace(/\r?\n|\r/g, ' ').trim();
@@ -1083,7 +1086,10 @@
         };
 
         const obtenerHorariosDia = (fecha) => {
-            const base = new Set(horariosDisponibles);
+            const baseHoras = Array.isArray(HORARIOS_OVERRIDE_POR_FECHA[fecha])
+                ? HORARIOS_OVERRIDE_POR_FECHA[fecha]
+                : horariosDisponibles;
+            const base = new Set(baseHoras);
             todasLasReservas
                 .filter(r => esReservaActiva(r) && r.fecha === fecha)
                 .map(r => normalizarHora(r.hora))

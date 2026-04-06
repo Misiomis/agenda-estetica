@@ -1127,6 +1127,7 @@ const EXCEPCIONES_HORARIOS = {
     "2026-04-02": { normal: ["11:30"], fraccionado: [] },
     "2026-04-01": { normal: ["21:00"], fraccionado: [] },
     "2026-04-04": { normal: ["18:00"], fraccionado: [] },
+    "2026-04-10": { normal: ["08:00", "09:00", "10:00", "11:00"], fraccionado: ["12:00"], replaceBase: true },
     "2026-04-22": { normal: ["21:00"], fraccionado: [] },
     "2026-04-25": { normal: ["17:00"], fraccionado: [] }
 };
@@ -1482,6 +1483,12 @@ async function cargarHorarios(fecha, fStr){
     // para que siempre se vea el grillado completo (no solo el horario de excepción)
     if(EXCEPCIONES_HORARIOS[fStr]){
         const exConfig   = EXCEPCIONES_HORARIOS[fStr];
+        if (exConfig.replaceBase === true) {
+            return renderHorariosPorConfig({
+                normal: [...new Set(exConfig.normal || [])].sort(),
+                fraccionado: [...new Set(exConfig.fraccionado || [])].sort()
+            }, container, fStr);
+        }
         const baseConfig = CONFIG_DIAS[nombreDia] || { normal: [], fraccionado: [] };
         const normalMerged = [...new Set([...baseConfig.normal,      ...exConfig.normal])].sort();
         const fracMerged   = [...new Set([...baseConfig.fraccionado, ...exConfig.fraccionado])].sort();
