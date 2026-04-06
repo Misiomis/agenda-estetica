@@ -122,6 +122,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const CF_CANCELACION_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/cancelarReservaPaciente";
+        const WHATSAPP_GIMENA_NUMERO = "5493764291807";
 
         const limpiarSesionYSalir = () => {
             localStorage.removeItem("clienteDNI");
@@ -235,6 +236,25 @@
             return fechaTurnoFormatter.format(fecha);
         };
 
+        const construirWhatsAppCancelacionUrl = (turno = {}, motivo = "") => {
+            const fechaTexto = formatearFechaTexto(turno.fecha || "");
+            const horaTexto = (turno.hora || "").toString().trim() || "horario a confirmar";
+            const motivoTexto = (motivo || obtenerMotivoCancelacion(turno) || "motivo personal")
+                .toString()
+                .replace(/\s+/g, " ")
+                .trim();
+            const mensaje = `Hola Gime, tuve que cancelar mi turno por ${motivoTexto}. Era para el ${fechaTexto} a las ${horaTexto}.`;
+            return `https://wa.me/${WHATSAPP_GIMENA_NUMERO}?text=${encodeURIComponent(mensaje)}`;
+        };
+
+        const abrirWhatsAppCancelacion = (turno = {}, motivo = "") => {
+            const url = construirWhatsAppCancelacionUrl(turno, motivo);
+            const popup = window.open(url, "_blank", "noopener");
+            if (!popup) {
+                window.location.href = url;
+            }
+        };
+
         const puedeCancelarTurno = (turno = {}) => {
             if (!haySesionCliente || !dniSesion || !nombreSesion) return false;
             if ((dniConsultaActual || "") !== dniSesion) return false;
@@ -252,10 +272,15 @@
                 const estaAbierto = cancelacionTurnoActivaId === turno.id;
                 const estaCancelando = cancelandoReservaId === turno.id;
                 const motivo = obtenerMotivoCancelacion(turno);
+                const canceladoPorPaciente = (turno.canceladoPor || "").toString().trim().toLowerCase() === "paciente";
                 const detalleCancelacion = estado === "cancelado"
                     ? `<div class="turno-meta"><strong>Estado:</strong> Cancelado</div>
                        <div class="turno-meta"><strong>Motivo:</strong> ${escapeHtml(motivo || "Cancelado por el paciente")}</div>
                        <div class="turno-meta">Este horario ya quedó liberado para que otra persona pueda reservarlo.</div>`
+                    : "";
+
+                const botonNotificar = estado === "cancelado" && (canceladoPorPaciente || motivo)
+                    ? `<div class="turno-actions"><button class="btn-turno-cancelar secundario" onclick="notificarEspacioMimarT('${turno.id}')">Notificar a Espacio Mimar T</button></div>`
                     : "";
 
                 const accionesCancelacion = puedeCancelarTurno(turno)
@@ -287,6 +312,7 @@
                         <span class="hora-tag">Hora: ${escapeHtml(turno.hora || "--:--")}</span>
                         ${detalleCancelacion}
                         ${accionesCancelacion}
+                        ${botonNotificar}
                     </div>
                 `;
             }).join("");
@@ -386,6 +412,16 @@
             renderTurnosConsultados();
         };
 
+        window.notificarEspacioMimarT = (turnoId) => {
+            const turno = turnosConsultados.find((item) => item.id === turnoId);
+            if (!turno) {
+                setTurnosFeedback("No encontramos el turno para abrir WhatsApp.", "error");
+                return;
+            }
+
+            abrirWhatsAppCancelacion(turno, obtenerMotivoCancelacion(turno));
+        };
+
         window.confirmarCancelacionTurno = async (turnoId) => {
             const turno = turnosConsultados.find((item) => item.id === turnoId);
             const motivoEl = document.getElementById(`motivoCancelacion-${turnoId}`);
@@ -434,7 +470,8 @@
                 cancelacionTurnoActivaId = "";
                 cancelandoReservaId = "";
                 renderTurnosConsultados();
-                setTurnosFeedback(`Tu turno del ${formatearFechaTexto(turno.fecha)} a las ${turno.hora} quedó cancelado. El horario ya se liberó para otra persona.`, "success");
+                setTurnosFeedback(`Tu turno del ${formatearFechaTexto(turno.fecha)} a las ${turno.hora} quedó cancelado. El horario ya se liberó y abrimos WhatsApp para avisarle a Espacio Mimar T.`, "success");
+                abrirWhatsAppCancelacion(turno, result.reserva?.motivoCancelacion || motivo);
             } catch (error) {
                 console.error(error);
                 cancelandoReservaId = "";
