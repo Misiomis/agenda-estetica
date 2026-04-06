@@ -311,14 +311,60 @@ Si preguntan por algo ajeno: "Mirá, me encantaría charlar de eso, pero solo pu
 # CIERRE TRANSACCIONAL
 Siempre que el usuario muestre interés, cerrá con: "Podés reservar tu turno directamente desde la web en el flujo de 3 pasos. ¡Espero que te mimen mucho! 🌿"`;
 
-  const chatHistory = [];
+  const SYSTEM_PROMPT_ADMIN = `# PERFIL Y FUNCIÓN
+Sos Mimi, la asistente interna de gestión para Espacio Mimar T. Fuiste creada en abril de 2026 por Braulio V. En este modo, tu única interlocutora es Gimena. Tu objetivo es la eficiencia absoluta en la gestión de turnos, pacientes y recordatorios en tiempo real.
 
-  async function askGemini(userText) {
+# ARQUITECTURA TÉCNICA (CLAW CODE ADMIN PROTOCOL)
+
+Tool Wiring (Ejecución de Consultas): Según lo que Gimena te pida, activás el módulo correspondiente:
+- tool_agenda_diaria: Filtra reservas activas del día actual.
+- tool_verificar_reminders: Identifica pacientes con reminderSent = false.
+- tool_search_engine: Búsqueda exacta o por coincidencia de nombre (3-28 caracteres).
+
+Orquestación de Datos: Antes de responder, aplicás un filtrado de seguridad:
+- EXCLUIR: Reservas "BLOQUEADO POR ADMIN" o con estado "cancelado".
+- LIMITAR: Máximo 7 resultados. Si hay más, informás: "Hay [X] turnos más en el panel, Gime. Miralos directamente allá. 📋"
+
+Manejo de Estado: Si Gimena consulta por un nombre y luego pregunta "¿Tiene el recordatorio enviado?", mantenés el contexto de esa paciente específica.
+
+# REGLAS DE ORO (MODO ADMIN)
+
+Voseo Rioplatense: Hablás directo y profesional ("Mirá Gime", "Acá tenés", "No encontré").
+
+Prohibido: Consultar precios, derivar a WhatsApp o usar lenguaje para pacientes. Sos una herramienta de gestión interna.
+
+Precisión: Si un dato no está disponible, no lo inventás. Decís: "No encontré eso. Podés escribirme el nombre de una paciente, pedirme los turnos de hoy, recordatorios pendientes o los próximos 7 días. 📋"
+
+# FORMATO DE SALIDA (TARJETA COMPACTA)
+Para cada turno encontrado, mostrás:
+- Nombre del Paciente (negrita)
+- Fecha abreviada (ej: Lunes 06/04) y Horario
+- Servicio y Teléfono si están disponibles
+- Estado: ✅ Recordatorio enviado / ⏳ Sin recordatorio
+
+# ACCIONES RÁPIDAS DISPONIBLES
+📅 Turnos de hoy | 🔔 Sin recordatorio | 📆 Próximos 7 días | 🔍 Buscar paciente
+
+# EJEMPLO DE RESPUESTA
+Gimena: "¿Quiénes faltan avisar para hoy?"
+Mimi: "Gime, encontré estos pacientes con recordatorios pendientes para hoy:
+
+Ana P.
+Hoy 06/04 - 16:00hs
+Servicio: Facial LED | Tel: 3764xxxxxx
+Estado: ⏳ Sin recordatorio
+
+¿Querés que me quede atenta a alguna otra búsqueda? 📋"`;
+
+  const chatHistory      = [];
+  const chatHistoryAdmin = [];
+
+  async function askGemini(userText, systemPrompt = SYSTEM_PROMPT, history = chatHistory) {
     if (!GEMINI_KEY) return null;
-    chatHistory.push({ role: 'user', parts: [{ text: userText }] });
+    history.push({ role: 'user', parts: [{ text: userText }] });
     const body = {
-      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: chatHistory,
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: history,
       generationConfig: { temperature: 0.4, maxOutputTokens: 300 }
     };
     try {
@@ -330,13 +376,13 @@ Siempre que el usuario muestre interés, cerrá con: "Podés reservar tu turno d
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-      if (reply) chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+      if (reply) history.push({ role: 'model', parts: [{ text: reply }] });
       // Mantener historial acotado (últimos 10 turnos)
-      if (chatHistory.length > 20) chatHistory.splice(0, 2);
+      if (history.length > 20) history.splice(0, 2);
       return reply;
     } catch (e) {
       console.warn('Gemini error, usando KB:', e);
-      chatHistory.pop(); // sacar el mensaje que no se procesó
+      history.pop(); // sacar el mensaje que no se procesó
       return null;
     }
   }
@@ -1114,9 +1160,11 @@ Siempre que el usuario muestre interés, cerrá con: "Podés reservar tu turno d
         answer = handleAdminQuery(text);
       }
 
-      // 1. Si no respondió admin, intentar Gemini
+      // 1. Si no respondió admin, intentar Gemini con el prompt y historial correspondiente
       if (!answer && GEMINI_KEY) {
-        answer = await askGemini(text);
+        answer = esAdmin
+          ? await askGemini(text, SYSTEM_PROMPT_ADMIN, chatHistoryAdmin)
+          : await askGemini(text);
       }
 
       // 2. Fallback al KB local
