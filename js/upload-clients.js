@@ -1,5 +1,4 @@
-import { db } from "./firebase.js";
-import { writeBatch, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db, writeBatch, doc } from "./firebase-web.js";
 
 async function uploadClientsBatch() {
   try {

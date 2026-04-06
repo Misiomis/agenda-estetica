@@ -150,11 +150,11 @@
         .aviso-mio,
         .calendario,
         .card-recommendations{
-            background:rgba(255,255,255,0.94);
+            background:rgba(255,255,255,0.86);
             border-radius:var(--radius-xl);
             border:1px solid rgba(90,144,119,0.16);
             box-shadow:var(--card-shadow);
-            backdrop-filter:blur(2px);
+            backdrop-filter:blur(10px);
         }
 
         .aviso-mio{
@@ -982,6 +982,8 @@
             .aviso-mio {
                 border-radius: 20px;
                 padding: 16px;
+                background: rgba(255,255,255,0.97);
+                backdrop-filter: blur(4px);
             }
 
             .dia {
@@ -1023,11 +1025,13 @@
             .grid { gap: 6px; }
             .dia { min-height: 38px; font-size: 12px; }
             .hora { font-size: 13px; padding: 11px 8px; }
+            .horarios { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             #mes { font-size: 14px; }
             .floating-warning-track { animation-duration: 34s; }
             .aviso-mio,
             .calendario,
             .card-recommendations {
+                background: rgba(255,255,255,0.98);
                 backdrop-filter:none;
             }
         }
@@ -1102,12 +1106,7 @@
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-
-const firebaseConfig={ projectId:"estetica-8d067", apiKey:"AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew" };
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
+import { db, doc, getDoc, collection, query, where, getDocs } from "/js/firebase-web.js";
 
 const CONFIG_DIAS = {
     "lunes": { normal: ["16:00", "17:00", "18:00", "19:00"], fraccionado: ["20:00", "20:30"] },

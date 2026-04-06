@@ -1,14 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
-    projectId: "estetica-8d067",
-    appId: "1:774341571551:web:863e0e7a2b2923057e4e4a"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+import { db, collection, onSnapshot, doc, updateDoc, getDocs } from "./firebase-web.js";
 
 let reservas = [];
 let diccionarioClientes = {};

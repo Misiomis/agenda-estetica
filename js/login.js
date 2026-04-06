@@ -1,5 +1,4 @@
-import { db } from "./firebase.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db, doc, getDoc } from "./firebase-web.js";
 
 const form = document.getElementById("loginForm");
 const errorMsg = document.getElementById("errorMsg");

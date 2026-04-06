@@ -66,6 +66,52 @@
 
         .btn-buscar { background: var(--verde-oscuro); color: white; border: none; padding: 16px; width: 100%; border-radius: 18px; font-weight: 600; font-size: 16px; cursor: pointer; }
         .footer { margin-top: 40px; font-size: 11px; color: #999; padding: 30px 0; text-align: center; border-top: 1px solid #e0e6e4; }
+
+        @media (min-width: 1024px) {
+            .modal-overlay {
+                background: rgba(16, 26, 23, 0.52);
+                backdrop-filter: blur(14px);
+            }
+
+            .modal-card {
+                background: rgba(255, 255, 255, 0.92);
+                backdrop-filter: blur(14px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero { height: 176px; }
+            .hero h1 { font-size: 34px; letter-spacing: 1px; }
+            .container { width: min(100%, 100% - 24px); padding: 0 0 40px; }
+            .logo { width: min(72vw, 238px); margin-top: -28px; padding: 10px 18px; border-radius: 18px; }
+            .servicios { grid-template-columns: 1fr; gap: 14px; }
+            .servicio { min-height: 220px; padding: 20px; }
+            .modal-overlay {
+                align-items: flex-end;
+                background: rgba(17, 24, 22, 0.66);
+                backdrop-filter: blur(6px);
+            }
+            .modal-card {
+                max-width: 100%;
+                max-height: min(82dvh, 760px);
+                padding: 24px 18px 18px;
+                border-radius: 28px 28px 22px 22px;
+                background: rgba(255, 255, 255, 0.97);
+            }
+            .btn-mis-citas,
+            .btn-buscar,
+            .btn-reservar,
+            #btnCerrarMisCitas {
+                min-height: 48px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero { height: 160px; }
+            .hero h1 { font-size: 30px; }
+            .turno-item { padding: 16px; }
+            .modal-card h2 { font-size: 26px; }
+        }
     </style>
     <link rel="stylesheet" href="/pro-theme.css"></head>
 
@@ -100,27 +146,13 @@
             <h2>Tus Turnos</h2>
             <p style="font-size: 14px; color: #888; margin-bottom: 20px;">Agenda en Espacio Mimar-T</p>
             <div id="turnosFeedback" class="turnos-feedback" aria-live="polite"></div>
-            <div id="listaResultadosCitas" style="margin-top: 10px; max-height: 450px; overflow-y: auto; padding-right: 5px;"></div>
+            <div id="listaResultadosCitas" style="margin-top: 10px; max-height: min(52dvh, 450px); overflow-y: auto; padding-right: 5px;"></div>
             <button id="btnCerrarMisCitas" style="background:#f4f4f4; border:none; color:#555; padding: 16px; width: 100%; border-radius: 18px; margin-top:20px; cursor:pointer; font-weight: 600;">Cerrar</button>
         </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
-            authDomain: "estetica-8d067.firebaseapp.com",
-            projectId: "estetica-8d067",
-            storageBucket: "estetica-8d067.firebasestorage.app",
-            messagingSenderId: "501220214938",
-            appId: "1:501220214938:web:af6e262c23d9a7ea853723",
-            measurementId: "G-J4NH9ENVYL"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db, collection, getDocs, query, where, doc, getDoc } from "/js/firebase-web.js";
         const CF_CANCELACION_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/cancelarReservaPaciente";
         const WHATSAPP_GIMENA_NUMERO = "5493764291807";
 

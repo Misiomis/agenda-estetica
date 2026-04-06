@@ -148,6 +148,37 @@
             box-shadow: none;
             border: 1px solid #f0d1d5;
         }
+
+        @media (min-width: 1024px) {
+            .card,
+            .modal-card {
+                background: rgba(255, 255, 255, 0.9);
+                backdrop-filter: blur(14px);
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                align-items: stretch;
+                padding: 14px;
+            }
+
+            .card {
+                margin: auto;
+                padding: 20px 16px;
+                border-radius: 18px;
+                background: rgba(255, 255, 255, 0.97);
+            }
+
+            #modalOk {
+                align-items: flex-end;
+            }
+
+            .modal-card {
+                border-radius: 24px 24px 18px 18px;
+                padding: 18px;
+            }
+        }
     </style>
     <link rel="stylesheet" href="/pro-theme.css"></head>
 <body>
@@ -177,16 +208,7 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            projectId: "estetica-8d067",
-            apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db, collection, addDoc, doc, getDoc } from "/js/firebase-web.js";
 
         const CF_CONFIRM_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarConfirmacionTurno";
 
@@ -205,9 +227,17 @@
         const statusEl = document.getElementById("status");
         const btnConfirmar = document.getElementById("btnConfirmar");
 
+        const formatearFechaVisible = (fecha) => {
+            if (!fecha) return fecha;
+            const [year, month, day] = fecha.split("-").map(Number);
+            const parsed = new Date(year, (month || 1) - 1, day || 1);
+            if (Number.isNaN(parsed.getTime())) return fecha;
+            return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", year: "numeric" }).format(parsed);
+        };
+
         txtNombre.innerText = nombreLs;
         txtServicio.innerText = servicioLs;
-        txtFecha.innerText = fechaLs;
+        txtFecha.innerText = formatearFechaVisible(fechaLs);
         txtHora.innerText = horaLs;
 
         const parseTelefonos = (raw) => {

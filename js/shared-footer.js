@@ -10,11 +10,6 @@
     const FLOW_NORMAL_LANDING = "index.html";
     const FLOW_JORNADA_LANDING = "jornada.html";
     const FLOW_APP_NAME = "shared-footer-router";
-    const firebaseConfig = {
-        apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
-        authDomain: "estetica-8d067.firebaseapp.com",
-        projectId: "estetica-8d067"
-    };
 
     function getCurrentPage() {
         return (window.location.pathname.split("/").pop() || FLOW_NORMAL_LANDING).toLowerCase();
@@ -51,10 +46,7 @@
 
     async function loadFlowMode() {
         try {
-            const [{ initializeApp, getApp }, { getFirestore, doc, getDoc }] = await Promise.all([
-                import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
-                import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
-            ]);
+            const { firebaseConfig, initializeApp, getApp, getFirestore, doc, getDoc } = await import("/js/firebase-web.js");
 
             let app;
             try {

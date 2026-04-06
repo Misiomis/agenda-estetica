@@ -1,7 +1,4 @@
-import { db } from "./firebase.js";
-import {
-  collection, getDocs, getDoc, doc, query, where, addDoc, setDoc, serverTimestamp, updateDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db, collection, getDocs, getDoc, doc, query, where, addDoc, setDoc, serverTimestamp, updateDoc } from "./firebase-web.js";
 
 /* ===============================
 ELEMENTOS DOM
