@@ -1,4 +1,5 @@
 const functions = require("firebase-functions");
+const functionsV1 = require("firebase-functions/v1");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
@@ -13,6 +14,14 @@ const DEFAULT_REMINDER_TEMPLATE_NAME = "recordatorio_turno";
 const DEFAULT_REMINDER_TEMPLATE_LANG = "es_AR";
 const DEFAULT_GOOGLE_MAPS_LINK = "https://maps.google.com/?q=Espacio+Mimar+T";
 const META_API_VERSION = "v21.0";
+const WHATSAPP_FALLBACK_CONFIG = {
+    token: "EAAMzA3ngIUkBRMpXw5ZBCCzVCFZAum3yF3dcHlgOPZAigiAIXERNfxpGfq21VCEgiByPN5xhm9mZBUyJ0WWqTl0xoB8ZBEs8EEh2FVC82aDHizTv0bKvMrcH7mkO99svZCMymZAi07nnmnBZCeHlI8XdnMBfJI1pnjVFWQZCdCIOBZA8fDa71OuvkVZCJu5bTR91wZDZD",
+    phoneNumberId: "995248997010108",
+    wabaId: "995248997010108",
+    reminderTemplateName: DEFAULT_REMINDER_TEMPLATE_NAME,
+    reminderTemplateLang: DEFAULT_REMINDER_TEMPLATE_LANG,
+    googleMapsLink: DEFAULT_GOOGLE_MAPS_LINK
+};
 
 function normalizarDni(rawDni) {
     return String(rawDni || "").replace(/\D/g, "");
@@ -62,15 +71,15 @@ function getWhatsAppConfig() {
     let runtimeConfig = {};
 
     try {
-        runtimeConfig = typeof functions.config === "function" ? functions.config() : {};
+        runtimeConfig = typeof functionsV1.config === "function" ? functionsV1.config() : {};
     } catch (error) {
-        throw new Error("No se pudo leer functions.config(). Habilita runtime config legacy en firebase.json y configura whatsapp.token, whatsapp.phone_number_id y whatsapp.waba_id.");
+        runtimeConfig = {};
     }
 
     const whatsappConfig = runtimeConfig.whatsapp || {};
-    const token = String(whatsappConfig.token || "").trim();
-    const phoneNumberId = String(whatsappConfig.phone_number_id || "").trim();
-    const wabaId = String(whatsappConfig.waba_id || "").trim();
+    const token = String(whatsappConfig.token || process.env.WHATSAPP_TOKEN || WHATSAPP_FALLBACK_CONFIG.token || "").trim();
+    const phoneNumberId = String(whatsappConfig.phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID || WHATSAPP_FALLBACK_CONFIG.phoneNumberId || "").trim();
+    const wabaId = String(whatsappConfig.waba_id || process.env.WHATSAPP_WABA_ID || WHATSAPP_FALLBACK_CONFIG.wabaId || "").trim();
 
     if (!token || !phoneNumberId || !wabaId) {
         throw new Error("Faltan credenciales en functions.config(). Se requieren whatsapp.token, whatsapp.phone_number_id y whatsapp.waba_id.");
@@ -80,9 +89,9 @@ function getWhatsAppConfig() {
         token,
         phoneNumberId,
         wabaId,
-        reminderTemplateName: String(whatsappConfig.reminder_template_name || DEFAULT_REMINDER_TEMPLATE_NAME).trim() || DEFAULT_REMINDER_TEMPLATE_NAME,
-        reminderTemplateLang: String(whatsappConfig.reminder_template_lang || DEFAULT_REMINDER_TEMPLATE_LANG).trim() || DEFAULT_REMINDER_TEMPLATE_LANG,
-        googleMapsLink: String(whatsappConfig.google_maps_link || DEFAULT_GOOGLE_MAPS_LINK).trim() || DEFAULT_GOOGLE_MAPS_LINK
+        reminderTemplateName: String(whatsappConfig.reminder_template_name || process.env.WHATSAPP_REMINDER_TEMPLATE_NAME || WHATSAPP_FALLBACK_CONFIG.reminderTemplateName || DEFAULT_REMINDER_TEMPLATE_NAME).trim() || DEFAULT_REMINDER_TEMPLATE_NAME,
+        reminderTemplateLang: String(whatsappConfig.reminder_template_lang || process.env.WHATSAPP_REMINDER_TEMPLATE_LANG || WHATSAPP_FALLBACK_CONFIG.reminderTemplateLang || DEFAULT_REMINDER_TEMPLATE_LANG).trim() || DEFAULT_REMINDER_TEMPLATE_LANG,
+        googleMapsLink: String(whatsappConfig.google_maps_link || process.env.WHATSAPP_GOOGLE_MAPS_LINK || WHATSAPP_FALLBACK_CONFIG.googleMapsLink || DEFAULT_GOOGLE_MAPS_LINK).trim() || DEFAULT_GOOGLE_MAPS_LINK
     };
 }
 
