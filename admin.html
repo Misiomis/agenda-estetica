@@ -733,6 +733,7 @@
         };
 
         const CF_RESUMEN_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarResumenSesion";
+        const CF_CONFIRMACION_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarConfirmacionTurno";
         let deferredInstallPromptAdmin = null;
         let installReminderTimerAdmin = null;
         const INSTALL_REMINDER_ADMIN_MS = 25000;
@@ -955,49 +956,25 @@
                     .trim()
                     .slice(0, 900);
 
-                const bodyBase = {
-                    messaging_product: "whatsapp",
-                    to: num,
-                    type: "template",
-                    template: {
-                        name: "resumen_sesion",
-                        language: { code: "es_AR" },
-                        components: [{
-                            type: "body",
-                            parameters: [
-                                { type: "text", text: nombrePlantilla },
-                                { type: "text", text: fechaPlantilla },
-                                { type: "text", text: horaPlantilla },
-                                { type: "text", text: servicioPlantilla },
-                                { type: "text", text: detallePlantilla || "Sin detalles" }
-                            ]
-                        }]
-                    }
-                };
-
-                let resp = await fetch(`https://graph.facebook.com/v18.0/${WA_PHONE_ID}/messages`, {
+                let resp = await fetch(CF_RESUMEN_URL, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${WA_TOKEN}` },
-                    body: JSON.stringify(bodyBase)
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        tel: num,
+                        nombre: nombrePlantilla,
+                        fecha,
+                        sesiones: [{
+                            hora: horaPlantilla,
+                            servicio: servicioPlantilla,
+                            detalle: detallePlantilla || "Sin detalles"
+                        }]
+                    })
                 });
 
                 if (!resp.ok) {
                     const errPrimerIntento = await resp.json().catch(() => ({}));
-                    const codigoError = errPrimerIntento?.error?.code;
-                    const mensajeError = (errPrimerIntento?.error?.message || "").toString();
-                    const reintentarIdioma = codigoError === 132018 || /parameter|language/i.test(mensajeError);
-
-                    if (reintentarIdioma) {
-                        bodyBase.template.language.code = "es";
-                        resp = await fetch(`https://graph.facebook.com/v18.0/${WA_PHONE_ID}/messages`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${WA_TOKEN}` },
-                            body: JSON.stringify(bodyBase)
-                        });
-                    } else {
-                        console.error("WA resumen error:", errPrimerIntento);
-                        return { ok: false, reason: errPrimerIntento?.error?.message || `HTTP ${resp.status}` };
-                    }
+                    console.error("WA resumen error:", errPrimerIntento);
+                    return { ok: false, reason: errPrimerIntento?.error || errPrimerIntento?.detalles || `HTTP ${resp.status}` };
                 }
 
                 if (resp.ok) return { ok: true };
@@ -1266,42 +1243,34 @@
             }
         }
 
-        const WA_TOKEN = "EAAMzA3ngIUkBRMpXw5ZBCCzVCFZAum3yF3dcHlgOPZAigiAIXERNfxpGfq21VCEgiByPN5xhm9mZBUyJ0WWqTl0xoB8ZBEs8EEh2FVC82aDHizTv0bKvMrcH7mkO99svZCMymZAi07nnmnBZCeHlI8XdnMBfJI1pnjVFWQZCdCIOBZA8fDa71OuvkVZCJu5bTR91wZDZD";
-        const WA_PHONE_ID = "995248997010108";
-
         window.enviarW = async (tel, nombre, fecha, hora, servicio, accion) => {
             const num = (tel || "").toString().trim();
             if (!num) { mostrarAviso("Sin teléfono registrado"); return; }
-            const horaConSufijo = hora.includes("hs") ? hora : hora + " hs";
             try {
-                const resp = await fetch(`https://graph.facebook.com/v18.0/${WA_PHONE_ID}/messages`, {
+                const resp = await fetch(CF_CONFIRMACION_URL, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${WA_TOKEN}` },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        messaging_product: "whatsapp",
-                        to: num,
-                        type: "template",
-                        template: {
-                            name: "turno_confirmado",
-                            language: { code: "en" },
-                            components: [{
-                                type: "body",
-                                parameters: [
-                                    { type: "text", text: nombre },
-                                    { type: "text", text: servicio || "Tratamiento" },
-                                    { type: "text", text: formatoFechaVisible(fecha) || fecha },
-                                    { type: "text", text: horaConSufijo }
-                                ]
-                            }]
-                        }
+                        telefono: num,
+                        nombre,
+                        servicio: servicio || "Tratamiento",
+                        fecha,
+                        hora,
+                        descontarBalance: false,
+                        omitirWhatsapp: false
                     })
                 });
                 if (resp.ok) {
-                    mostrarAviso(`WhatsApp enviado a ${nombre}`);
+                    const etiqueta = accion === 'recordar'
+                        ? 'Recordatorio'
+                        : accion === 'cancelar'
+                            ? 'Mensaje'
+                            : 'WhatsApp';
+                    mostrarAviso(`${etiqueta} enviado a ${nombre}`);
                 } else {
                     const err = await resp.json().catch(() => ({}));
                     console.error("WA error:", err);
-                    mostrarAviso(`Error: ${err?.error?.message || resp.status}`);
+                    mostrarAviso(`Error: ${err?.error || err?.detalles || resp.status}`);
                 }
             } catch (e) {
                 console.error("WA exception:", e);

@@ -79,7 +79,7 @@ button {
     input[type="submit"],
     input[type="button"],
     a.btn {
-        min-height: 44px;
+        min-height: 48px;
     }
 
     input,
@@ -105,13 +105,16 @@ button {
     .modal-mimar,
     #modalConfirmado,
     #modalOk {
-        padding: 14px;
+        padding-top: max(14px, env(safe-area-inset-top));
+        padding-right: max(14px, env(safe-area-inset-right));
+        padding-bottom: max(14px, env(safe-area-inset-bottom));
+        padding-left: max(14px, env(safe-area-inset-left));
     }
 }
 
 @media (max-width: 560px) {
     body {
-        font-size: 15px;
+        font-size: 16px;
         line-height: 1.4;
     }
 
@@ -149,10 +152,15 @@ button {
         border-radius: 0;
     }
 
+    .hero img,
+    .banner img {
+        max-height: clamp(160px, 24vh, 220px);
+    }
+
     .mes button,
     .floating-warning-close {
-        min-height: 40px;
-        min-width: 40px;
+        min-height: 48px;
+        min-width: 48px;
     }
 
     .slots,
