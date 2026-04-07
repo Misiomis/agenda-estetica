@@ -248,6 +248,7 @@
   ];
 
   const FALLBACK = '__FALLBACK__';
+  const MIMI_DISMISSED_KEY = 'mimiBubbleDismissedV1';
 
   // ── Gemini ────────────────────────────────────────────────
   const GEMINI_KEY = (typeof window !== 'undefined' && window.MIMI_GEMINI_KEY) || 'AIzaSyALuNcwC2OY4ymdNPNsuNuktlbMVzk62yU';
@@ -273,6 +274,8 @@ Sos Mimi, la unidad de inteligencia operativa de Espacio Mimar T. Atendés pacie
 - Si la disponibilidad o el estado del paciente no están claros, pedí fecha o DNI.
 - Si el usuario consulta por depilación, láser, cera, uñas, masajes o inyectables, redirigilo a los 8 servicios oficiales.
 - Si hay un retraso técnico, explicalo con calma y sin alarmar.
+- Detectá errores ortográficos razonables y no pierdas el foco por eso.
+- Actuá como una secretaria excelente: cálida, resolutiva y orientada a cerrar el siguiente paso.
 - Máximo 3 o 4 oraciones por respuesta.
 
 # INFORMACIÓN OFICIAL
@@ -292,6 +295,14 @@ Cancelación: mínimo 48 horas antes, con motivo desde la web.
 6. Lipocell Cryo 360.
 7. Hidratación y Revitalización de Labios.
 8. Facial LED Regenerativo.
+
+# MAPA DEL SITIO
+- index.html: ingreso de paciente.
+- servicios.html y servicios-pro.html: catálogo, consulta y cancelación.
+- fecha.html: selección de fecha y hora.
+- confirmar.html: confirmación final del turno.
+- politica.html: política de cancelación.
+- historia.html: acceso a la historia del paciente.
 
 # ESTILO DE SALIDA
 Respondé como alguien que acompaña y empuja el siguiente paso. Cerrá con acción concreta cuando tenga sentido: seguir al paso que toca, revisar agenda o escribir a Gimena.`;
@@ -373,12 +384,12 @@ Estado: ⏳ Sin recordatorio
   }
 
   const QUICK_REPLIES = [
-    { label: '¿Qué servicios tienen?', id: 'todos_servicios' },
-    { label: 'Facial LED Regenerativo', id: 'led' },
-    { label: 'MioUp / Corporal', id: 'mioUp' },
-    { label: '¿Cómo reservo turno?', id: 'turno' },
-    { label: '¿Cómo confirmo mi turno?', id: 'confirmacion' },
-    { label: '¿Cuánto sale?', id: 'precios' },
+    { label: 'Buscame el primer hueco', query: 'Buscame el primer hueco disponible' },
+    { label: 'Ya soy paciente', query: 'Ya soy paciente' },
+    { label: 'Quiero reservar', query: 'Quiero reservar un turno' },
+    { label: 'Facial LED esta semana', query: 'Buscame un hueco para Facial LED esta semana' },
+    { label: 'Necesito cancelar', query: 'Necesito cancelar un turno' },
+    { label: '¿Qué servicios tienen?', query: 'Qué servicios tienen' },
   ];
 
   // ── Utilidades ────────────────────────────────────────────
@@ -435,7 +446,12 @@ Estado: ⏳ Sin recordatorio
 - DNI en sesión: ${dni || 'no'}
 - Servicio seleccionado: ${servicio || 'no'}
 - Fecha seleccionada: ${fecha || 'no'}
-- Hora seleccionada: ${hora || 'no'}`;
+- Hora seleccionada: ${hora || 'no'}
+
+# CONSIGNA DE EJECUCIÓN
+- Si la persona quiere turnos, actuá como secretaria y concretá el siguiente paso.
+- Si hay errores de tipeo, interpretalos con criterio y seguí ayudando.
+- No te disperses en charla general cuando el objetivo sea reservar, reprogramar o encontrar huecos.`;
   }
 
   async function runPatientOperationalReply(text) {
@@ -577,7 +593,8 @@ Estado: ⏳ Sin recordatorio
     #mimi-root * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', 'Montserrat', sans-serif; }
     #mimi-bubble,
     #mimi-window,
-    #mimi-overlay {
+    #mimi-overlay,
+    #mimi-restore {
       pointer-events: auto;
     }
 
@@ -671,6 +688,41 @@ Estado: ⏳ Sin recordatorio
       transition: background .15s;
     }
     #mimi-bubble-dismiss:hover { background: rgba(180,40,40,0.85); }
+
+    #mimi-restore {
+      position: fixed;
+      right: 18px;
+      bottom: 22px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 14px;
+      border: 1px solid rgba(96, 132, 103, 0.18);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.94);
+      color: #2f5540;
+      font-size: 12.5px;
+      font-weight: 700;
+      box-shadow: 0 10px 24px rgba(28,46,34,0.12);
+      cursor: pointer;
+      z-index: 9999;
+      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    #mimi-restore:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px rgba(28,46,34,0.18);
+      background: rgba(255,255,255,0.98);
+    }
+    #mimi-root.mimi-dismissed #mimi-bubble,
+    #mimi-root.mimi-dismissed #mimi-window {
+      display: none !important;
+    }
+    #mimi-root.mimi-dismissed #mimi-restore {
+      display: inline-flex;
+    }
 
     /* ── Ventana chat ── */
     #mimi-window {
@@ -919,8 +971,8 @@ Estado: ⏳ Sin recordatorio
       #mimi-root.mimi-is-admin #mimi-window {
         position: fixed !important;
         top: auto !important;
-        left: auto !important;
-        right: 12px !important;
+        left: 50% !important;
+        right: auto !important;
         bottom: calc(env(safe-area-inset-bottom, 0px) + 88px) !important;
         width: min(340px, calc(100vw - 24px)) !important;
         max-width: calc(100vw - 24px) !important;
@@ -928,14 +980,15 @@ Estado: ⏳ Sin recordatorio
         max-height: calc(100dvh - 116px) !important;
         display: flex !important;
         flex-direction: column !important;
-        transform-origin: bottom right !important;
+        transform: translateX(-50%) !important;
+        transform-origin: bottom center !important;
         border-radius: 18px !important;
         z-index: 9998 !important;
         overflow: hidden !important;
       }
       #mimi-window.mimi-hidden,
       #mimi-root.mimi-is-admin #mimi-window.mimi-hidden {
-        transform: scale(.92) translateY(12px) !important;
+        transform: translateX(-50%) scale(.92) translateY(12px) !important;
         opacity: 0 !important;
         pointer-events: none !important;
       }
@@ -975,6 +1028,17 @@ Estado: ⏳ Sin recordatorio
         width: 60px !important;
         height: 60px !important;
       }
+      #mimi-restore {
+        left: 50% !important;
+        right: auto !important;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
+        transform: translateX(-50%);
+        min-height: 40px;
+        padding: 0 16px;
+      }
+      #mimi-restore:hover {
+        transform: translateX(-50%);
+      }
     }
   `;
 
@@ -995,6 +1059,8 @@ Estado: ⏳ Sin recordatorio
         <div id="mimi-badge">1</div>
         <button id="mimi-bubble-dismiss" aria-label="Cerrar asistente" title="Cerrar">✕</button>
       </div>
+
+      <button id="mimi-restore" aria-label="Volver a mostrar a Mimi" title="Mostrar Mimi">Mostrar Mimi</button>
 
       <!-- Ventana chat -->
       <div id="mimi-window" class="mimi-hidden" role="dialog" aria-label="Chat con Mimi">
@@ -1049,6 +1115,8 @@ Estado: ⏳ Sin recordatorio
     const input   = document.getElementById('mimi-input');
     const sendBtn = document.getElementById('mimi-send');
     const closeBtn= document.getElementById('mimi-close');
+    const dismissBtn = document.getElementById('mimi-bubble-dismiss');
+    const restoreBtn = document.getElementById('mimi-restore');
 
     // Cerrar al tocar el overlay
     document.getElementById('mimi-overlay')?.addEventListener('click', () => { if (open) toggle(); });
@@ -1075,8 +1143,33 @@ Estado: ⏳ Sin recordatorio
     let open = false;
     let firstOpen = true;
 
+    function isDismissed() {
+      return localStorage.getItem(MIMI_DISMISSED_KEY) === '1';
+    }
+
+    function applyDismissedState(value) {
+      root.classList.toggle('mimi-dismissed', value);
+      if (value) {
+        open = false;
+        win.classList.add('mimi-hidden');
+        bubble.style.opacity = '';
+        bubble.style.pointerEvents = '';
+        if (badge) badge.style.display = 'none';
+        localStorage.setItem(MIMI_DISMISSED_KEY, '1');
+        return;
+      }
+
+      localStorage.removeItem(MIMI_DISMISSED_KEY);
+      bubble.style.opacity = '';
+      bubble.style.pointerEvents = '';
+      if (badge && firstOpen) badge.style.display = '';
+    }
+
+    applyDismissedState(isDismissed());
+
     // ── Abrir / cerrar ──
     function toggle() {
+      if (root.classList.contains('mimi-dismissed')) return;
       open = !open;
       const overlay  = document.getElementById('mimi-overlay');
       win.classList.toggle('mimi-hidden', !open);
@@ -1094,6 +1187,15 @@ Estado: ⏳ Sin recordatorio
     bubble.addEventListener('click', toggle);
     bubble.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') toggle(); });
     closeBtn.addEventListener('click', toggle);
+    dismissBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      applyDismissedState(true);
+    });
+    restoreBtn?.addEventListener('click', () => {
+      applyDismissedState(false);
+      toggle();
+    });
 
     // ── Cerrar con Escape ──
     document.addEventListener('keydown', e => {
@@ -1147,7 +1249,7 @@ Estado: ⏳ Sin recordatorio
               respondToText(qr.query);
             }
           } else {
-            respondWithId(qr.id);
+            respondToText(qr.query || qr.label);
           }
         });
         qSection.appendChild(btn);
