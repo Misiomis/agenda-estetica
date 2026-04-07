@@ -253,63 +253,48 @@
   const GEMINI_KEY = (typeof window !== 'undefined' && window.MIMI_GEMINI_KEY) || 'AIzaSyALuNcwC2OY4ymdNPNsuNuktlbMVzk62yU';
   const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
-  const SYSTEM_PROMPT = `# ROL E IDENTIDAD
-Sos Mimi, la asistente virtual de "Espacio Mimar T" (Comandante Andresito, Misiones). Creada en abril de 2026 por Braulio V. Sos sofisticada, amable y usás voseo argentino con elegancia. Sos hincha de Boca Juniors ("el más grande, obviamente" 💙💛💙).
+  const SYSTEM_PROMPT = `# PERFIL
+Sos Mimi, la unidad de inteligencia operativa de Espacio Mimar T. Atendés pacientes con voseo rioplatense, tono elegante, concreto y orientado a acción. No sos una FAQ pasiva: analizás intención, contexto y paso actual antes de responder.
 
-# ARQUITECTURA DE PENSAMIENTO (CLAW CODE PROTOCOL)
+# PRIORIDAD OPERATIVA
+1. Detectá la intención principal del usuario.
+2. Revisá el estado actual del flujo web: Paso 1 (identificación), Paso 2 (fecha y hora), Paso 3 (confirmación).
+3. Si falta información crítica, pedila sin inventar.
+4. Si el sistema ya resolvió una herramienta real, apoyate en ese resultado y no lo contradigas.
 
-Manejo de Estado (Session Handling): Recordá el contexto. Si el cliente pregunta por "Facial LED" y después dice "¿Cuánto dura?", respondé "Ese tratamiento dura 30 minutos" sin pedir que repita el servicio.
+# HERRAMIENTAS REALES DISPONIBLES EN EL SISTEMA
+- check_patient_status(dni): valida si el DNI ya existe como paciente.
+- get_availability(fecha, servicio): consulta la agenda real en Firebase y devuelve huecos disponibles.
+- calc_session_logic(servicio): devuelve duración y preparación general si está cargada.
+- send_whatsapp_template(template_id, runtime): solo puede reintentarse cuando el flujo ya está en Paso 3 con contexto completo.
 
-Orquestación de Pasos: Tu objetivo técnico es guiar al usuario a través del flujo Paso 1 (Identificación) → Paso 2 (Calendario) → Paso 3 (Confirmación).
+# REGLAS DURAS
+- No inventes horarios, precios ni resultados clínicos.
+- Si la disponibilidad o el estado del paciente no están claros, pedí fecha o DNI.
+- Si el usuario consulta por depilación, láser, cera, uñas, masajes o inyectables, redirigilo a los 8 servicios oficiales.
+- Si hay un retraso técnico, explicalo con calma y sin alarmar.
+- Máximo 3 o 4 oraciones por respuesta.
 
-Tool Wiring (Acciones):
-- Si es paciente nueva: Derivá al botón "Quiero ser paciente" (WhatsApp).
-- Si es paciente registrada: Derivá a espaciomimart.com para iniciar el Paso 1 (Nombre + inicial y DNI).
-- Si hay problemas técnicos: Derivá a Braulio V. (wa.me/5493757671229).
-
-# REGLAS ESTRICTAS (HARD LIMITS)
-
-PROHIBIDO: Hablar de depilación, láser, cera, uñas, masajes o inyectables. Si preguntan, desviá amablemente a los 8 servicios oficiales.
-
-SIN INVENTAR: No des precios exactos (se definen en la evaluación con Gimena) ni horarios (ver disponibilidad en tiempo real en la web).
-
-ESTILO: Máximo 3-4 oraciones. Español rioplatense. Emojis elegantes y moderados.
-
-# BASE DE CONOCIMIENTO (OFICIAL)
-
+# INFORMACIÓN OFICIAL
 Profesional: Gimena Knack (Farmacéutica MP 1212 / Dermatocosmiatra RC 2319).
-Ubicación: Comandante Andresito, Misiones, Argentina.
-Web: espaciomimart.com — WhatsApp: +54 9 3764 291807.
-Para ser paciente nueva: contactar por WhatsApp usando el botón "Quiero ser paciente" en la web.
-Para ingresar al sistema: Nombre + inicial del apellido (ej: "juan p") y DNI sin puntos. Sin contraseñas.
+Ubicación: Comandante Andresito, Misiones.
+Ingreso al sistema: nombre + inicial del apellido y DNI sin puntos.
+Pacientes nuevas: botón "Quiero ser paciente" en la web.
+Reserva: Paso 1 -> Paso 2 -> Paso 3, con confirmación automática por WhatsApp.
+Cancelación: mínimo 48 horas antes, con motivo desde la web.
 
-Servicios (8 en total):
-1. Consulta — Evaluación profesional y plan estético personalizado (punto de partida ideal)
-2. Tratamiento Facial — Acné, manchas, cicatrices (60 min)
-3. Tratamientos Corporales — Celulitis, flacidez, contorno (60 min)
-4. Tratamiento Manchas Corporales — Unificación del tono, renovación cutánea (60 min)
-5. Tonificación Muscular MioUp — Tecnología electromagnética, firmeza y definición sin esfuerzo (30 min)
-6. Lipocell Cryo 360 — Criolipólisis no invasiva con frío controlado (60 min)
-7. Hidratación y Revitalización de Labios — Ácido hialurónico, resultado desde la primera sesión (60 min)
-8. Facial LED Regenerativo — Colágeno y elastina, sin dolor, ideal para piel sensible (30 min)
+# SERVICIOS OFICIALES
+1. Consulta.
+2. Tratamiento Facial.
+3. Tratamientos Corporales.
+4. Tratamiento Manchas Corporales.
+5. Tonificación Muscular MioUp.
+6. Lipocell Cryo 360.
+7. Hidratación y Revitalización de Labios.
+8. Facial LED Regenerativo.
 
-Política de turnos:
-- Reserva online en tiempo real. Confirmación automática por WhatsApp.
-- Cancelación con mínimo 48 horas de anticipación. Cancelación tarde o inasistencia = turno utilizado.
-- El paciente puede cancelar desde la web, justificando el motivo.
-
-Lo que NO se hace: depilación, láser, cera, uñas, manicura, pedicura, masajes, bótox, rellenos inyectables, cirugías.
-
-# PROTOCOLO DE RESPUESTA (EJEMPLOS)
-
-Saludo: "¡Hola! Soy Mimi 🌿, la asistente virtual de Espacio Mimar T. Estoy radiante y con muchas ganas de ayudarte a reservar tu momento de relax. ¿En qué te puedo ayudar?"
-
-Si preguntan por el sistema: "Para ingresar y ver tus turnos, solo necesitás tu nombre con la inicial de tu apellido y tu DNI sin puntos. ¡Es súper fácil y sin contraseñas!"
-
-Si preguntan por algo ajeno: "Mirá, me encantaría charlar de eso, pero solo puedo ayudarte con temas de Espacio Mimar T. ¿Te gustaría conocer nuestros tratamientos faciales o reservar un turno?"
-
-# CIERRE TRANSACCIONAL
-Siempre que el usuario muestre interés, cerrá con: "Podés reservar tu turno directamente desde la web en el flujo de 3 pasos. ¡Espero que te mimen mucho! 🌿"`;
+# ESTILO DE SALIDA
+Respondé como alguien que acompaña y empuja el siguiente paso. Cerrá con acción concreta cuando tenga sentido: seguir al paso que toca, revisar agenda o escribir a Gimena.`;
 
   const SYSTEM_PROMPT_ADMIN = `# PERFIL Y FUNCIÓN
 Sos Mimi, la asistente interna de gestión para Espacio Mimar T. Fuiste creada en abril de 2026 por Braulio V. En este modo, tu única interlocutora es Gimena. Tu objetivo es la eficiencia absoluta en la gestión de turnos, pacientes y recordatorios en tiempo real.
@@ -419,6 +404,62 @@ Estado: ⏳ Sin recordatorio
 
   // ── MODO ADMIN: acceso en vivo a datos del panel ─────────
   const esAdmin = window.location.pathname.includes('admin') || !!window.MIMI_ADMIN_DATA;
+  let mimiToolsPromise = null;
+
+  function getMimiToolsModule() {
+    if (!mimiToolsPromise) {
+      mimiToolsPromise = import('/js/mimi-tools.js').catch((error) => {
+        console.warn('No pude cargar mimi-tools:', error);
+        mimiToolsPromise = null;
+        return null;
+      });
+    }
+    return mimiToolsPromise;
+  }
+
+  function buildPatientSystemPrompt() {
+    const dni = (localStorage.getItem('clienteDNI') || '').trim();
+    const nombre = (localStorage.getItem('clienteNombre') || '').trim();
+    const servicio = (localStorage.getItem('servicioSeleccionado') || '').trim();
+    const fecha = (localStorage.getItem('fechaSeleccionada') || '').trim();
+    const hora = (localStorage.getItem('horaSeleccionada') || '').trim();
+    const paso = (!dni || !nombre) ? 'Paso 1' : (fecha && hora ? 'Paso 3' : 'Paso 2');
+    const pagina = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
+
+    return `${SYSTEM_PROMPT}
+
+# CONTEXTO VIVO DEL SITIO
+- Paso actual: ${paso}
+- Página actual: ${pagina}
+- Paciente identificado: ${nombre || 'no'}
+- DNI en sesión: ${dni || 'no'}
+- Servicio seleccionado: ${servicio || 'no'}
+- Fecha seleccionada: ${fecha || 'no'}
+- Hora seleccionada: ${hora || 'no'}`;
+  }
+
+  async function runPatientOperationalReply(text) {
+    const mimiTools = await getMimiToolsModule();
+    if (!mimiTools?.runPatientOrchestration) return null;
+    try {
+      const result = await mimiTools.runPatientOrchestration(text);
+      return result?.reply || null;
+    } catch (error) {
+      console.warn('Mimi operational reply error:', error);
+      return null;
+    }
+  }
+
+  async function getPatientResumeIntro() {
+    const mimiTools = await getMimiToolsModule();
+    if (!mimiTools?.getPatientResumeMessage) return '';
+    try {
+      return mimiTools.getPatientResumeMessage() || '';
+    } catch (error) {
+      console.warn('Mimi resume intro error:', error);
+      return '';
+    }
+  }
 
   const ADMIN_QR = [
     { label: '📅 Turnos de hoy',         query: 'turnos de hoy' },
@@ -526,7 +567,19 @@ Estado: ⏳ Sin recordatorio
 
   // ── Estilos ───────────────────────────────────────────────
   const CSS = `
+    #mimi-root {
+      position: fixed;
+      inset: 0;
+      z-index: 9997;
+      pointer-events: none;
+      isolation: isolate;
+    }
     #mimi-root * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', 'Montserrat', sans-serif; }
+    #mimi-bubble,
+    #mimi-window,
+    #mimi-overlay {
+      pointer-events: auto;
+    }
 
     /* ── Botón flotante ── */
     #mimi-bubble {
@@ -618,27 +671,29 @@ Estado: ⏳ Sin recordatorio
       transition: background .15s;
     }
     #mimi-bubble-dismiss:hover { background: rgba(180,40,40,0.85); }
-    }
 
     /* ── Ventana chat ── */
     #mimi-window {
       position: fixed;
-      bottom: 104px;
-      right: 20px;
-      width: min(380px, calc(100vw - 32px));
-      height: min(560px, calc(100dvh - 130px));
-      max-height: min(560px, calc(100dvh - 130px));
+      right: 18px;
+      bottom: 106px;
+      width: min(360px, calc(100vw - 28px));
+      max-width: calc(100vw - 28px);
+      height: min(520px, calc(100dvh - 128px));
+      max-height: calc(100dvh - 128px);
       background: #fff;
-      border-radius: 22px;
-      box-shadow: 0 24px 64px rgba(28,46,34,0.18), 0 4px 16px rgba(0,0,0,0.1);
+      border-radius: 20px;
+      border: 1px solid rgba(96, 132, 103, 0.12);
+      box-shadow: 0 18px 54px rgba(28,46,34,0.18), 0 6px 20px rgba(0,0,0,0.11);
       display: flex; flex-direction: column;
       z-index: 9998;
       overflow: hidden;
       transform-origin: bottom right;
       transition: transform .28s cubic-bezier(.34,1.56,.64,1), opacity .22s;
+      will-change: transform, opacity;
     }
     #mimi-window.mimi-hidden {
-      transform: scale(.7) translateY(20px);
+      transform: scale(.92) translateY(14px);
       opacity: 0;
       pointer-events: none;
     }
@@ -845,49 +900,42 @@ Estado: ⏳ Sin recordatorio
 
     /* ── Override admin desktop ── */
     #mimi-root.mimi-is-admin #mimi-window {
-      right: 16px !important;
-      bottom: 96px !important;
-      height: auto !important;
-      max-height: none !important;
+      width: min(392px, calc(100vw - 28px));
     }
 
-    /* ── Overlay para móvil ── */
+    /* ── Overlay desactivado: chat flotante, no modal ── */
     #mimi-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(15, 30, 20, 0.45);
-      z-index: 9997;
-      backdrop-filter: blur(2px);
-      -webkit-backdrop-filter: blur(2px);
-      animation: mimi-fade-in .2s ease;
+      background: transparent;
+      pointer-events: none;
     }
-    #mimi-overlay.mimi-show { display: block; }
-    @keyframes mimi-fade-in { from { opacity:0; } to { opacity:1; } }
+    #mimi-overlay.mimi-show { display: none; }
 
     @media (max-width: 700px) {
-      /* Móvil: modal estable con grid para evitar cortes arriba/abajo */
+      /* Móvil: recuadro compacto por encima de la burbuja */
       #mimi-window,
       #mimi-root.mimi-is-admin #mimi-window {
         position: fixed !important;
-        top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
-        left: 10px !important;
-        right: 10px !important;
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
-        width: auto !important;
-        height: auto !important;
-        max-height: none !important;
-        display: grid !important;
-        grid-template-rows: auto minmax(0, 1fr) auto auto !important;
-        transform: none !important;
-        transform-origin: center center !important;
-        border-radius: 20px !important;
+        top: auto !important;
+        left: auto !important;
+        right: 12px !important;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 88px) !important;
+        width: min(340px, calc(100vw - 24px)) !important;
+        max-width: calc(100vw - 24px) !important;
+        height: min(470px, calc(100dvh - 116px)) !important;
+        max-height: calc(100dvh - 116px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        transform-origin: bottom right !important;
+        border-radius: 18px !important;
         z-index: 9998 !important;
         overflow: hidden !important;
       }
       #mimi-window.mimi-hidden,
       #mimi-root.mimi-is-admin #mimi-window.mimi-hidden {
-        transform: scale(.96) translateY(8px) !important;
+        transform: scale(.92) translateY(12px) !important;
         opacity: 0 !important;
         pointer-events: none !important;
       }
@@ -915,8 +963,11 @@ Estado: ⏳ Sin recordatorio
         flex: 0 0 auto;
       }
       #mimi-input-row {
-        padding: 10px 12px calc(env(safe-area-inset-bottom, 0px) + 14px) !important;
+        padding: 10px 12px calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
         background: #fff;
+      }
+      #mimi-input {
+        font-size: 16px !important;
       }
       #mimi-bubble {
         right: 14px !important;
@@ -985,19 +1036,9 @@ Estado: ⏳ Sin recordatorio
 
     const root  = document.getElementById('mimi-root');
 
-    // En admin desktop: marcar root y fijar top dinámicamente bajo el header sticky
+    // En admin mantenemos el mismo widget compacto, solo con un poco más de ancho
     if (esAdmin) {
       root.classList.add('mimi-is-admin');
-      const adjustAdminTop = () => {
-        if (window.innerWidth <= 700) return; // en móvil es modal centrado, no necesita top
-        const winEl  = document.getElementById('mimi-window');
-        if (!winEl) return;
-        const header = document.querySelector('.header') || document.querySelector('header');
-        const topOffset = header ? Math.round(header.getBoundingClientRect().bottom + 8) : 90;
-        winEl.style.top = topOffset + 'px';
-      };
-      setTimeout(adjustAdminTop, 100);
-      window.addEventListener('resize', adjustAdminTop);
     }
 
     const bubble  = document.getElementById('mimi-bubble');
@@ -1037,14 +1078,9 @@ Estado: ⏳ Sin recordatorio
     // ── Abrir / cerrar ──
     function toggle() {
       open = !open;
-      const isMobile = window.innerWidth <= 700;
       const overlay  = document.getElementById('mimi-overlay');
       win.classList.toggle('mimi-hidden', !open);
       if (overlay) overlay.classList.toggle('mimi-show', open);
-      // En móvil: bloquear fondo, pero el scroll queda dentro del chat
-      if (isMobile) {
-        document.body.style.overflow = open ? 'hidden' : '';
-      }
       // Mantener el recuadro limpio: la burbuja se oculta mientras el chat está abierto
       bubble.style.opacity = open ? '0' : '';
       bubble.style.pointerEvents = open ? 'none' : '';
@@ -1160,14 +1196,19 @@ Estado: ⏳ Sin recordatorio
         answer = handleAdminQuery(text);
       }
 
-      // 1. Si no respondió admin, intentar Gemini con el prompt y historial correspondiente
+      // 1. Modo paciente: intentar primero la capa operativa real
+      if (!answer && !esAdmin) {
+        answer = await runPatientOperationalReply(text);
+      }
+
+      // 2. Si no respondió nada operativo, intentar Gemini con el prompt y el historial correspondiente
       if (!answer && GEMINI_KEY) {
         answer = esAdmin
           ? await askGemini(text, SYSTEM_PROMPT_ADMIN, chatHistoryAdmin)
-          : await askGemini(text);
+          : await askGemini(text, buildPatientSystemPrompt(), chatHistory);
       }
 
-      // 2. Fallback al KB local
+      // 3. Fallback al KB local
       if (!answer) {
         const kb = findAnswer(text);
         answer = (kb === '__FALLBACK__') ? null : kb;
@@ -1196,6 +1237,11 @@ Estado: ⏳ Sin recordatorio
         await addMsg('Soy <strong>Mimi</strong>, tu asistente personal. Estoy acá para ayudarte con la administración de tu estética: podés preguntarme por turnos de pacientes, recordatorios, lo que necesites. 🌿', 'bot');
       } else {
         await addMsg('¡Hola! Soy <strong>Mimi</strong> 🌿, tu asistente de <strong>Espacio Mimar T</strong>. ¿En qué te puedo ayudar hoy?', 'bot', 200);
+        const resume = await getPatientResumeIntro();
+        if (resume) {
+          await showTyping(500);
+          await addMsg(resume, 'bot');
+        }
       }
       renderQuickReplies();
     }
