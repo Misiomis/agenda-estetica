@@ -900,6 +900,36 @@
 
         const esReservaPacienteExportable = (r = {}) => esReservaActiva(r) && !esReservaBloqueoAdmin(r);
 
+        const ANIO_RESERVAS_PDF = Number.parseInt((fechaHoyISO() || '').slice(0, 4), 10) || new Date().getFullYear();
+        const PERIODOS_RESERVAS_PDF = new Set([`${ANIO_RESERVAS_PDF}-04`, `${ANIO_RESERVAS_PDF}-05`]);
+        const ETIQUETA_PERIODO_RESERVAS_PDF = `abril y mayo ${ANIO_RESERVAS_PDF}`;
+
+        const esReservaDeBraulioV = (r = {}) => {
+            const candidatos = [
+                r.nombreLimpio,
+                r.clienteNombre,
+                r.nombre,
+                r.cliente,
+                r.displayName,
+                r.title
+            ].filter(Boolean);
+
+            return candidatos.some((value) => {
+                const nombreNormalizado = normalizarNombreKey(value).replace(/[^a-z0-9]+/g, ' ').trim();
+                const username = generarUsername(value);
+                return nombreNormalizado === 'braulio v'
+                    || nombreNormalizado.replace(/\s+/g, '') === 'brauliov'
+                    || username === 'braulio.v';
+            });
+        };
+
+        const esReservaPeriodoPdf = (r = {}) => PERIODOS_RESERVAS_PDF.has(((r.fecha || '').toString().trim()).slice(0, 7));
+
+        const esReservaExportablePdf = (r = {}) =>
+            esReservaPacienteExportable(r)
+            && esReservaPeriodoPdf(r)
+            && !esReservaDeBraulioV(r);
+
         const asegurarCampoMembresiaEnFirestore = async (docsClientes = []) => {
             const pendientes = [];
             docsClientes.forEach((d) => {
@@ -930,12 +960,18 @@
             return limpio;
         };
 
+        const extraerMensajeErrorWhatsApp = (payload = {}, fallback = "Error desconocido") => {
+            if (typeof payload?.detalles === "string" && payload.detalles.trim()) return payload.detalles.trim();
+            if (typeof payload?.error === "string" && payload.error.trim()) return payload.error.trim();
+            if (payload?.detalles?.error?.message) return String(payload.detalles.error.message).trim();
+            if (payload?.error?.message) return String(payload.error.message).trim();
+            return fallback;
+        };
+
         const enviarDetalleSesionWhatsApp = async (tel, nombre, fecha, hora, servicio, detalle) => {
             const num = formatearTelefonoWhatsApp(tel);
             if (!num || !detalle) return { ok: false, reason: "missing-data" };
             try {
-                const [yy, mm, dd] = (fecha || "").split("-");
-                const fechaPlantilla = (yy && mm && dd) ? formatoFechaVisible(`${yy}-${mm}-${dd}`) : (fecha ? formatoFechaVisible(fecha) : "Fecha a confirmar");
                 const horaPlantilla = (hora || "").toString().replace(/\s*hs\s*$/i, "").trim() || "Horario a confirmar";
                 const nombrePlantilla = (nombre || "Paciente").toString().trim().slice(0, 60);
                 const servicioPlantilla = (servicio || "Tratamiento").toString().trim().slice(0, 80);
@@ -961,17 +997,18 @@
                     })
                 });
 
+                const data = await resp.json().catch(() => ({}));
+
                 if (!resp.ok) {
-                    const errPrimerIntento = await resp.json().catch(() => ({}));
-                    console.error("WA resumen error:", errPrimerIntento);
-                    return { ok: false, reason: errPrimerIntento?.error || errPrimerIntento?.detalles || `HTTP ${resp.status}` };
+                    console.error("WA resumen error:", data);
+                    return { ok: false, reason: extraerMensajeErrorWhatsApp(data, `HTTP ${resp.status}`) };
                 }
 
-                if (resp.ok) return { ok: true };
+                if (data?.whatsappSent === false) {
+                    return { ok: false, reason: extraerMensajeErrorWhatsApp(data, "WhatsApp no enviado") };
+                }
 
-                const err = await resp.json().catch(() => ({}));
-                console.error("WA resumen error:", err);
-                return { ok: false, reason: err?.error?.message || `HTTP ${resp.status}` };
+                return { ok: true, data };
             } catch (error) {
                 console.error("WA detalle exception:", error);
                 return { ok: false, reason: error?.message || "network-error" };
@@ -983,9 +1020,10 @@
             if (!r) return;
             const nota = (document.getElementById(`n-${id}`)?.value || r.detalleSesion || "").trim();
             if (!nota) { mostrarAviso("Escribí el detalle de la sesión primero"); return; }
-            if (!r.phone) { mostrarAviso("Sin teléfono registrado"); return; }
+            const telefonoDestino = r.phone || r.telefono || r.whatsapp || "";
+            if (!telefonoDestino) { mostrarAviso("Sin teléfono registrado"); return; }
             mostrarAviso("Enviando resumen...");
-            const result = await enviarDetalleSesionWhatsApp(r.phone, r.nombreLimpio, r.fecha, r.hora, r.servicio, nota);
+            const result = await enviarDetalleSesionWhatsApp(telefonoDestino, r.nombreLimpio, r.fecha, r.hora, r.servicio, nota);
             mostrarAviso(result.ok ? `Resumen enviado a ${r.nombreLimpio}` : `Error: ${result.reason}`);
         };
 
@@ -1260,7 +1298,7 @@
                 } else {
                     const err = await resp.json().catch(() => ({}));
                     console.error("WA error:", err);
-                    mostrarAviso(`Error: ${err?.error || err?.detalles || resp.status}`);
+                    mostrarAviso(`Error: ${extraerMensajeErrorWhatsApp(err, String(resp.status))}`);
                 }
             } catch (e) {
                 console.error("WA exception:", e);
@@ -1482,33 +1520,28 @@
             .replace(/\n{3,}/g, '\n\n')
             .trim();
 
-        const resumenReservaPdf = (reserva) => {
-            if (!reserva) return '';
+        const datePdfFormatter = new Intl.DateTimeFormat(DATE_LOCALE, {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
 
-            const origen = resolverOrigenReserva(reserva) === 'jornada' ? 'Jornada' : 'Normal';
-            const nota = limpiarTextoPdf(reserva.detalleSesion) || 'Sin nota';
-
-            return [
-                `Fecha: ${formatoFechaVisible(reserva.fecha)}`,
-                `Hora: ${reserva.hora || '--:--'} hs`,
-                `Paciente: ${limpiarTextoPdf(reserva.nombreLimpio || 'Sin nombre')}`,
-                `Servicio: ${limpiarTextoPdf(reserva.servicio || 'Servicio')}`,
-                `Teléfono: ${limpiarTextoPdf(reserva.phone || 'Sin teléfono')}`,
-                `Origen: ${origen}`,
-                `Nota: ${nota}`
-            ].join('\n');
+        const capitalizarTexto = (value) => {
+            const texto = (value || '').toString().trim();
+            return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : '';
         };
 
-        const reservarFilasPdf = (reservasOrdenadas) => {
-            const filas = [];
-            for (let index = 0; index < reservasOrdenadas.length; index += 2) {
-                filas.push([
-                    resumenReservaPdf(reservasOrdenadas[index]),
-                    reservasOrdenadas[index + 1] ? resumenReservaPdf(reservasOrdenadas[index + 1]) : ''
-                ]);
-            }
-            return filas;
+        const formatoFechaReservaPdf = (value) => {
+            const fecha = parsearFecha(value);
+            if (!fecha) return limpiarTextoPdf(value || 'Sin fecha');
+            return capitalizarTexto(datePdfFormatter.format(fecha));
         };
+
+        const filasReservasPdf = (reservasOrdenadas) => reservasOrdenadas.map((reserva) => [
+            formatoFechaReservaPdf(reserva.fecha),
+            limpiarTextoPdf(reserva.servicio || 'Servicio a tratar') || 'Servicio a tratar'
+        ]);
 
         window.exportarReservasPDF = () => {
             const tools = getPdfTools();
@@ -1516,56 +1549,64 @@
 
             const { jsPDF, runAutoTable } = tools;
             const reservasOrdenadas = todasLasReservas
-                .filter((reserva) => esReservaPacienteExportable(reserva))
+                .filter((reserva) => esReservaExportablePdf(reserva))
                 .sort((a, b) => {
                 const porFecha = (a.fecha || '').localeCompare(b.fecha || '');
                 if (porFecha !== 0) return porFecha;
                 return (a.hora || '').localeCompare(b.hora || '');
                 });
 
-            const docPdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const docPdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             docPdf.setTextColor(47, 90, 71);
             docPdf.setFont('helvetica', 'bold');
             docPdf.setFontSize(16);
             docPdf.text('Reporte de reservas', 14, 16);
             docPdf.setFont('helvetica', 'normal');
             docPdf.setFontSize(9.5);
-            docPdf.text(`Generado el ${formatoFechaVisible(fechaHoyISO())}`, 14, 22);
-            docPdf.text(`Total de reservas: ${reservasOrdenadas.length}`, 14, 27);
+            docPdf.text(`Periodo: ${ETIQUETA_PERIODO_RESERVAS_PDF}`, 14, 22);
+            docPdf.text(`Generado el ${formatoFechaVisible(fechaHoyISO())}`, 14, 27);
+            docPdf.text(`Total de reservas: ${reservasOrdenadas.length}`, 14, 32);
 
             if (!reservasOrdenadas.length) {
-                docPdf.text('No hay reservas para exportar.', 14, 36);
-                docPdf.save(`reservas_mimar_t_${fechaHoyISO()}.pdf`);
+                docPdf.text(`No hay reservas de ${ETIQUETA_PERIODO_RESERVAS_PDF} para exportar.`, 14, 41);
+                docPdf.save(`reservas_abril_mayo_${ANIO_RESERVAS_PDF}_${fechaHoyISO()}.pdf`);
                 return;
             }
 
             const pudoRenderizar = runAutoTable(docPdf, {
-                startY: 32,
-                showHead: 'never',
+                startY: 37,
                 theme: 'grid',
-                body: reservarFilasPdf(reservasOrdenadas),
-                margin: { top: 32, right: 14, bottom: 12, left: 14 },
+                head: [['Fecha', 'Servicio a tratar']],
+                body: filasReservasPdf(reservasOrdenadas),
+                margin: { top: 37, right: 14, bottom: 12, left: 14 },
                 styles: {
                     font: 'helvetica',
-                    fontSize: 9,
+                    fontSize: 10,
                     textColor: [47, 90, 71],
                     lineColor: [207, 233, 221],
-                    lineWidth: 0.2,
-                    cellPadding: 3.2,
+                    lineWidth: 0.15,
+                    cellPadding: 3.5,
                     overflow: 'linebreak',
                     valign: 'top'
+                },
+                headStyles: {
+                    fillColor: [47, 90, 71],
+                    textColor: [255, 255, 255],
+                    font: 'helvetica',
+                    fontStyle: 'bold',
+                    halign: 'left'
                 },
                 alternateRowStyles: {
                     fillColor: [248, 253, 251]
                 },
                 columnStyles: {
-                    0: { cellWidth: 133 },
-                    1: { cellWidth: 133 }
+                    0: { cellWidth: 78 },
+                    1: { cellWidth: 104 }
                 }
             });
 
             if (!pudoRenderizar) return;
-            docPdf.save(`reservas_mimar_t_${fechaHoyISO()}.pdf`);
+            docPdf.save(`reservas_abril_mayo_${ANIO_RESERVAS_PDF}_${fechaHoyISO()}.pdf`);
         };
 
         window.exportarPacientesPDF = () => {
