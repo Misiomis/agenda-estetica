@@ -265,7 +265,7 @@ Sos Mimi, la unidad de inteligencia operativa de Espacio Mimar T. Atendés pacie
 
 # HERRAMIENTAS REALES DISPONIBLES EN EL SISTEMA
 - check_patient_status(dni): valida si el DNI ya existe como paciente.
-- get_availability(fecha, servicio): consulta la agenda real en Firebase y devuelve huecos disponibles.
+- get_availability(fecha, servicio): consulta la agenda real en Firebase y devuelve horarios disponibles.
 - calc_session_logic(servicio): devuelve duración y preparación general si está cargada.
 - send_whatsapp_template(template_id, runtime): solo puede reintentarse cuando el flujo ya está en Paso 3 con contexto completo.
 
@@ -384,10 +384,10 @@ Estado: ⏳ Sin recordatorio
   }
 
   const QUICK_REPLIES = [
-    { label: 'Buscame el primer hueco', query: 'Buscame el primer hueco disponible' },
+    { label: 'Primer horario disponible', query: 'Buscame el primer horario disponible' },
     { label: 'Ya soy paciente', query: 'Ya soy paciente' },
     { label: 'Quiero reservar', query: 'Quiero reservar un turno' },
-    { label: 'Facial LED esta semana', query: 'Buscame un hueco para Facial LED esta semana' },
+    { label: 'Facial LED esta semana', query: 'Buscame un horario para Facial LED esta semana' },
     { label: 'Necesito cancelar', query: 'Necesito cancelar un turno' },
     { label: '¿Qué servicios tienen?', query: 'Qué servicios tienen' },
   ];
@@ -451,7 +451,7 @@ Estado: ⏳ Sin recordatorio
 # CONSIGNA DE EJECUCIÓN
 - Si la persona quiere turnos, actuá como secretaria y concretá el siguiente paso.
 - Si hay errores de tipeo, interpretalos con criterio y seguí ayudando.
-- No te disperses en charla general cuando el objetivo sea reservar, reprogramar o encontrar huecos.`;
+- No te disperses en charla general cuando el objetivo sea reservar, reprogramar o encontrar horarios disponibles.`;
   }
 
   async function runPatientOperationalReply(text) {
@@ -589,6 +589,7 @@ Estado: ⏳ Sin recordatorio
       z-index: 9997;
       pointer-events: none;
       isolation: isolate;
+      --mimi-avatar-focus-y: 12%;
     }
     #mimi-root * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', 'Montserrat', sans-serif; }
     #mimi-bubble,
@@ -613,20 +614,15 @@ Estado: ⏳ Sin recordatorio
     }
     #mimi-bubble:hover { transform: scale(1.09); }
     #mimi-bubble-inner {
-      width: 70px; height: 70px;
+      width: 100%; height: 100%;
+      aspect-ratio: 1 / 1;
+      --mimi-avatar-scale: 1.18;
       border-radius: 50%;
       overflow: hidden;
       box-shadow: 0 8px 32px rgba(95,130,95,0.5), 0 2px 8px rgba(0,0,0,0.2);
       border: 3px solid #fff;
       background: linear-gradient(145deg, #a8c9a0 0%, #5d8c6a 100%);
       position: relative;
-    }
-    #mimi-bubble-inner video {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      border-radius: 50%;
-      pointer-events: none;
-      display: block;
     }
     /* Avatar imagen del personaje */
     #mimi-bubble-fallback {
@@ -636,12 +632,20 @@ Estado: ⏳ Sin recordatorio
       overflow: hidden;
       background: #e8f2e8;
     }
-    #mimi-bubble-fallback img {
+    #mimi-bubble-inner video,
+    #mimi-bubble-fallback img,
+    #mimi-avatar-small video,
+    #mimi-avatar-fallback img {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: 50% 15%;
+      object-position: 50% var(--mimi-avatar-focus-y);
+      transform: scale(var(--mimi-avatar-scale, 1));
+      transform-origin: center 24%;
       pointer-events: none;
+      display: block;
     }
     #mimi-bubble-fallback.mimi-video-ok { display: none; }
     #mimi-vid-bubble.mimi-video-ok { display: block; }
@@ -759,16 +763,13 @@ Estado: ⏳ Sin recordatorio
     }
     #mimi-avatar-small {
       width: 48px; height: 48px;
+      aspect-ratio: 1 / 1;
+      --mimi-avatar-scale: 1.14;
       border-radius: 50%; overflow: hidden;
       border: 2.5px solid rgba(255,255,255,0.9);
       flex-shrink: 0;
       background: linear-gradient(145deg, #a8c9a0 0%, #5d8c6a 100%);
       position: relative;
-    }
-    #mimi-avatar-small video {
-      width: 100%; height: 100%;
-      object-fit: cover; pointer-events: none;
-      display: block;
     }
     #mimi-avatar-fallback {
       position: absolute;
@@ -776,13 +777,6 @@ Estado: ⏳ Sin recordatorio
       border-radius: 50%;
       overflow: hidden;
       background: #e8f2e8;
-    }
-    #mimi-avatar-fallback img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: 50% 15%;
-      pointer-events: none;
     }
     #mimi-avatar-fallback.mimi-video-ok { display: none; }
     #mimi-avatar-vid.mimi-video-ok { display: block; }
@@ -966,6 +960,9 @@ Estado: ⏳ Sin recordatorio
     #mimi-overlay.mimi-show { display: none; }
 
     @media (max-width: 700px) {
+      #mimi-root {
+        --mimi-avatar-focus-y: 10%;
+      }
       /* Móvil: recuadro compacto por encima de la burbuja */
       #mimi-window,
       #mimi-root.mimi-is-admin #mimi-window {
@@ -1027,6 +1024,12 @@ Estado: ⏳ Sin recordatorio
         bottom: calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
         width: 60px !important;
         height: 60px !important;
+      }
+      #mimi-bubble-inner {
+        --mimi-avatar-scale: 1.28;
+      }
+      #mimi-avatar-small {
+        --mimi-avatar-scale: 1.2;
       }
       #mimi-restore {
         left: 50% !important;

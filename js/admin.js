@@ -264,6 +264,42 @@ window.cambiarMes = (n) => {
     renderCalendario(); 
 };
 
+
+// --- BUSCADOR DE SERVICIOS REALIZADOS (solo fechas pasadas) ---
+window.buscarServiciosRealizadosInput = function() {
+    const input = document.getElementById('inpBuscadorRealizados');
+    const cont = document.getElementById('contenedorServiciosRealizados');
+    const filtro = (input.value || '').toLowerCase().trim();
+    if (!filtro) {
+        cont.innerHTML = '<div class="empty-state">Escribe el nombre o parte del nombre de la paciente...</div>';
+        return;
+    }
+    // Solo fechas pasadas (hoy o antes)
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+    const lista = reservas.filter(r => {
+        const nombre = (r.nombreFinal || '').toLowerCase();
+        const fechaObj = parsearFecha(r.fecha);
+        return nombre.includes(filtro) && fechaObj && fechaObj <= hoy;
+    }).sort((a,b) => parsearFecha(b.fecha) - parsearFecha(a.fecha));
+
+    if (!lista.length) {
+        cont.innerHTML = '<div class="empty-state">No se encontraron sesiones pasadas para ese nombre.</div>';
+        return;
+    }
+    cont.innerHTML = lista.map(r => `
+        <div class="detalle-dia-card" style="margin-bottom:10px;">
+            <b>${escapeHtml(r.nombreFinal)}</b> <span class="tag-fecha">${escapeHtml(r.fecha)} ${escapeHtml(r.hora || '')}</span><br>
+            <span style="color:#4a7c6a; font-weight:600">${escapeHtml(r.servicio || 'Tratamiento')}</span>
+            <div style="margin-top:7px;">
+                <b>Nota:</b> <span>${escapeHtml(r.detalleSesion || '(sin nota)')}</span>
+                <button class="btn-mini" style="margin-left:10px;" onclick="window.activarEdicionNota('${r.id}')">Editar</button>
+            </div>
+        </div>
+    `).join('');
+};
+// --- FIN BUSCADOR DE SERVICIOS REALIZADOS ---
+
 function obtenerNombreMes(m) { 
     return ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][m]; 
 }

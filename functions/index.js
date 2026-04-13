@@ -12,6 +12,8 @@ const db = admin.firestore();
 const ARGENTINA_TIME_ZONE = "America/Argentina/Buenos_Aires";
 const DEFAULT_REMINDER_TEMPLATE_NAME = "recordatorio_turno";
 const DEFAULT_REMINDER_TEMPLATE_LANG = "es_AR";
+const DEFAULT_SUMMARY_TEMPLATE_NAME = "resumen_sesion";
+const DEFAULT_SUMMARY_TEMPLATE_LANG = "es_AR";
 const DEFAULT_GOOGLE_MAPS_LINK = "https://maps.google.com/?q=Espacio+Mimar+T";
 const META_API_VERSION = "v21.0";
 const WHATSAPP_FALLBACK_CONFIG = {
@@ -20,6 +22,8 @@ const WHATSAPP_FALLBACK_CONFIG = {
     wabaId: "995248997010108",
     reminderTemplateName: DEFAULT_REMINDER_TEMPLATE_NAME,
     reminderTemplateLang: DEFAULT_REMINDER_TEMPLATE_LANG,
+    summaryTemplateName: DEFAULT_SUMMARY_TEMPLATE_NAME,
+    summaryTemplateLang: DEFAULT_SUMMARY_TEMPLATE_LANG,
     googleMapsLink: DEFAULT_GOOGLE_MAPS_LINK
 };
 
@@ -91,6 +95,8 @@ function getWhatsAppConfig() {
         wabaId,
         reminderTemplateName: String(whatsappConfig.reminder_template_name || process.env.WHATSAPP_REMINDER_TEMPLATE_NAME || WHATSAPP_FALLBACK_CONFIG.reminderTemplateName || DEFAULT_REMINDER_TEMPLATE_NAME).trim() || DEFAULT_REMINDER_TEMPLATE_NAME,
         reminderTemplateLang: String(whatsappConfig.reminder_template_lang || process.env.WHATSAPP_REMINDER_TEMPLATE_LANG || WHATSAPP_FALLBACK_CONFIG.reminderTemplateLang || DEFAULT_REMINDER_TEMPLATE_LANG).trim() || DEFAULT_REMINDER_TEMPLATE_LANG,
+        summaryTemplateName: String(whatsappConfig.summary_template_name || process.env.WHATSAPP_SUMMARY_TEMPLATE_NAME || WHATSAPP_FALLBACK_CONFIG.summaryTemplateName || DEFAULT_SUMMARY_TEMPLATE_NAME).trim() || DEFAULT_SUMMARY_TEMPLATE_NAME,
+        summaryTemplateLang: String(whatsappConfig.summary_template_lang || process.env.WHATSAPP_SUMMARY_TEMPLATE_LANG || WHATSAPP_FALLBACK_CONFIG.summaryTemplateLang || DEFAULT_SUMMARY_TEMPLATE_LANG).trim() || DEFAULT_SUMMARY_TEMPLATE_LANG,
         googleMapsLink: String(whatsappConfig.google_maps_link || process.env.WHATSAPP_GOOGLE_MAPS_LINK || WHATSAPP_FALLBACK_CONFIG.googleMapsLink || DEFAULT_GOOGLE_MAPS_LINK).trim() || DEFAULT_GOOGLE_MAPS_LINK
     };
 }
@@ -407,6 +413,87 @@ async function enviarTemplateRecordatorioTurno({ telefono, nombrePaciente, fecha
         ],
         whatsappConfig: config
     });
+}
+
+function sanitizarTextoResumen(value, maxLength, fallback = "") {
+    const text = String(value || "")
+        .replace(/[\r\n]+/g, " ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+
+    if (!text) return fallback;
+    return text.slice(0, maxLength);
+}
+
+function formatearFechaResumen(fecha) {
+    const [year, month, day] = String(fecha || "").split("-");
+    if (year && month && day) {
+        return `${day}/${month}/${year}`;
+    }
+    return sanitizarTextoResumen(fecha, 40, "Fecha a confirmar");
+}
+
+function construirParametrosResumenSesion({ nombre, fecha, sesiones }) {
+    const sesionesNormalizadas = (Array.isArray(sesiones) ? sesiones : [])
+        .map((sesion = {}) => ({
+            hora: sanitizarTextoResumen(limpiarHora(sesion.hora) || sesion.hora, 40, "Horario a confirmar"),
+            servicio: sanitizarTextoResumen(sesion.servicio, 80, "Tratamiento"),
+            detalle: sanitizarTextoResumen(sesion.detalle, 900, "Sin detalles")
+        }))
+        .filter((sesion) => sesion.hora || sesion.servicio || sesion.detalle);
+
+    if (!sesionesNormalizadas.length) {
+        throw new Error("No hay sesiones válidas para enviar");
+    }
+
+    const [primeraSesion, ...sesionesRestantes] = sesionesNormalizadas;
+    const detalleCompuesto = sesionesRestantes.length
+        ? sanitizarTextoResumen(
+            sesionesNormalizadas.map((sesion) => `${sesion.hora} - ${sesion.servicio}: ${sesion.detalle}`).join(" | "),
+            900,
+            primeraSesion.detalle
+        )
+        : primeraSesion.detalle;
+
+    return [
+        { placeholder: "{{1}} nombre", value: sanitizarTextoResumen(nombre, 60, "Paciente") },
+        { placeholder: "{{2}} fecha", value: formatearFechaResumen(fecha) },
+        { placeholder: "{{3}} hora", value: sesionesRestantes.length ? "Varios horarios" : primeraSesion.hora },
+        { placeholder: "{{4}} servicio", value: sesionesRestantes.length ? sanitizarTextoResumen(`${primeraSesion.servicio} y ${sesionesRestantes.length} más`, 80, primeraSesion.servicio) : primeraSesion.servicio },
+        { placeholder: "{{5}} detalle", value: detalleCompuesto }
+    ];
+}
+
+async function enviarTemplateResumenSesion({ telefono, nombre, fecha, sesiones, whatsappConfig = null }) {
+    const config = whatsappConfig || getWhatsAppConfig();
+    const bodyParameters = construirParametrosResumenSesion({ nombre, fecha, sesiones });
+    const summaryTemplateLang = config.summaryTemplateLang || DEFAULT_SUMMARY_TEMPLATE_LANG;
+
+    try {
+        return await enviarTemplateWhatsApp({
+            telefono,
+            templateName: config.summaryTemplateName,
+            templateLang: summaryTemplateLang,
+            bodyParameters,
+            whatsappConfig: config
+        });
+    } catch (error) {
+        const codigoError = Number(error?.response?.data?.error?.code || 0);
+        const mensajeError = String(error?.response?.data?.error?.message || error?.message || "");
+        const reintentarIdioma = summaryTemplateLang.toLowerCase() !== "es" && (codigoError === 132018 || /parameter|language/i.test(mensajeError));
+
+        if (!reintentarIdioma) {
+            throw error;
+        }
+
+        return enviarTemplateWhatsApp({
+            telefono,
+            templateName: config.summaryTemplateName,
+            templateLang: "es",
+            bodyParameters,
+            whatsappConfig: config
+        });
+    }
 }
 
 exports.registrarPacienteJornada = onRequest(async (req, res) => {
@@ -880,7 +967,7 @@ exports.enviarRecordatoriosTurnos = onSchedule(
 // enviarResumenSesion: envía por WhatsApp el detalle de lo realizado ese día
 // Body esperado: { tel, nombre, fecha, sesiones: [{ hora, servicio, detalle }] }
 // ─────────────────────────────────────────────────────────────────────────────
-exports.enviarResumenSesion = onRequest(async (req, res) => {
+exports.enviarResumenSesion = onRequest({ invoker: "public" }, async (req, res) => {
 
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -888,47 +975,27 @@ exports.enviarResumenSesion = onRequest(async (req, res) => {
     if (req.method === "OPTIONS") return res.status(204).send("");
 
     try {
-        const { tel, nombre, fecha, sesiones } = req.body;
+        const { tel, nombre, fecha, sesiones } = req.body || {};
 
         if (!tel || !nombre || !fecha || !sesiones || !sesiones.length) {
             return res.status(400).json({ error: "Faltan campos obligatorios." });
         }
-
-        // Formatear número argentino
-        let cleanPhone = tel.toString().replace(/\D/g, "");
-        if (!cleanPhone.startsWith("54")) cleanPhone = "549" + cleanPhone;
-
-        // Armar cuerpo del mensaje
-        const dias = ["Dom.", "Lun.", "Mar.", "Mié.", "Jue.", "Vie.", "Sáb."];
-        const [y, m, d] = fecha.split("-");
-        const fObj = new Date(Number(y), Number(m) - 1, Number(d));
-        const fechaLinda = `${dias[fObj.getDay()]} ${d}/${m}/${y}`;
-
-        let lineasSesiones = sesiones.map(s =>
-            `🕒 *${s.hora} hs* — _${s.servicio || "Tratamiento"}_\n${s.detalle ? `   📝 ${s.detalle}` : ""}`
-        ).join("\n\n");
-
-        const mensaje = `Hola *${nombre}* 😊\n\nAquí va el resumen de tu sesión del *${fechaLinda}* en *Espacio Mimar T*:\n\n${lineasSesiones}\n\n¡Muchas gracias por tu visita! 💚\nNos vemos pronto ✨`;
-
         const whatsappConfig = getWhatsAppConfig();
+        const envio = await enviarTemplateResumenSesion({
+            telefono: tel,
+            nombre,
+            fecha,
+            sesiones,
+            whatsappConfig
+        });
 
-        await axios.post(
-            buildWhatsAppMessagesUrl(whatsappConfig.phoneNumberId),
-            {
-                messaging_product: "whatsapp",
-                to: cleanPhone,
-                type: "text",
-                text: { body: mensaje }
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${whatsappConfig.token}`,
-                    "Content-Type": "application/json"
-                }
-            }
-        );
-
-        return res.status(200).json({ status: "enviado" });
+        return res.status(200).json({
+            status: "enviado",
+            whatsappSent: true,
+            templateName: whatsappConfig.summaryTemplateName,
+            templateLang: envio?.meta?.templateLang || whatsappConfig.summaryTemplateLang,
+            data: envio?.response?.data || null
+        });
 
     } catch (error) {
         console.error("enviarResumenSesion error:", error.response?.data || error.message);

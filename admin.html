@@ -198,6 +198,12 @@
     </style>
 </head>
 <body>
+    <!-- Widget fijo de descarga de la app para admin -->
+    <div class="admin-app-download-widget" style="background:#f5f5f5;padding:1em;border-radius:8px;margin:1em 0 18px 0;text-align:center;max-width:400px;margin-left:auto;margin-right:auto;box-shadow:0 2px 12px rgba(60,90,80,0.07);">
+        <h3 style="margin-top:0;">Descargá la App de Espacio Mimar T</h3>
+        <img src="img/panel.png" alt="Panel App" style="width:120px;margin-bottom:0.7em;display:block;margin-left:auto;margin-right:auto;">
+        <a href="https://tusitio.com/app.apk" class="btn-descargar-app" style="display:inline-block;padding:0.7em 1.2em;background:#4caf50;color:#fff;border-radius:4px;text-decoration:none;font-weight:bold;font-size:1.1em;">Descargar App</a>
+    </div>
 
     <div id="login-overlay">
         <div class="login-box">
@@ -273,6 +279,8 @@
                 <button class="btn-nav active" id="btn-agenda" onclick="navegar('agenda')">Agenda</button>
                 <button class="btn-nav" id="btn-historias" onclick="navegar('historias')">Historias</button>
                 <button class="btn-nav" id="btn-buscar" onclick="navegar('buscar')">Buscar</button>
+                <button class="btn-nav" id="btn-buscador-sesiones" onclick="navegar('buscador-sesiones')">Buscador de sesiones</button>
+                <button class="btn-nav" id="btn-detalle-sesiones" onclick="mostrarDetalleSesiones()">Detalle de sesiones</button>
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">Pacientes</button>
                 <button class="btn-nav" id="btn-export" onclick="navegar('export')">Exportar</button>
                 <button class="btn-nav" onclick="cerrarSesion()">Salir</button>
@@ -282,7 +290,16 @@
             </div>
         </div>
 
-        <div class="container">
+            <div class="container">
+                            <!-- Buscador de sesiones por paciente (nuevo) -->
+                            <div id="sec-buscador-sesiones" class="section">
+                                <div class="detalle-dia-card buscador-sesiones-card" style="margin-bottom:18px; box-shadow:0 6px 24px rgba(76,144,226,0.10); border-radius:22px; border-top:6px solid var(--azul);">
+                                    <h3 style="margin-top:0; color:var(--azul); font-family:'Playfair Display',serif; font-size:1.35em; letter-spacing:0.01em;">Buscador de sesiones</h3>
+                                    <input type="text" class="busc-input buscador-sesiones-input" id="inpBuscadorSesiones" placeholder="Nombre del paciente..." oninput="buscarSesionesPorNombreInput()" style="font-size:1.1em; border:2px solid #b7d6f7; margin-bottom:14px; border-radius:14px;">
+                                    <div id="contenedorSesionesBuscadas" style="margin-top:10px;"></div>
+                                    <div class="cliente-help" style="margin-top:14px; color:#4a90e2; font-size:13px; background:#f5faff; border-radius:10px; padding:8px 12px;">Busca todas las sesiones con nota asociada para un paciente. Escribí al menos 2 letras del nombre.</div>
+                                </div>
+                            </div>
             <div id="sec-agenda" class="section active">
                 <div class="mode-toggle-wrap">
                     <button id="btnCompactMode" class="mode-toggle" onclick="toggleCompactMode()">Modo compacto: OFF</button>
@@ -331,6 +348,13 @@
                 </div>
                 <div id="resumenBusqueda" class="result-summary"></div>
                 <div id="contenedorBusqueda"></div>
+
+                    <!-- NUEVO: Buscador de servicios realizados (solo fechas pasadas) -->
+                    <div class="detalle-dia-card" style="margin-top:24px;">
+                        <h3 style="margin-top:0">Servicios realizados por paciente</h3>
+                        <input type="text" class="busc-input" id="inpBuscadorRealizados" placeholder="Buscar paciente..." oninput="buscarServiciosRealizadosInput()">
+                        <div id="contenedorServiciosRealizados"></div>
+                    </div>
             </div>
 
             <div id="sec-clientes" class="section">
@@ -422,6 +446,47 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+            // Navegación entre secciones
+            window.navegar = (seccion) => {
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
+                const sec = document.getElementById(`sec-${seccion}`);
+                const btn = document.getElementById(`btn-${seccion}`);
+                if (sec) sec.classList.add('active');
+                if (btn) btn.classList.add('active');
+            };
+
+            // Buscador de sesiones con nota
+            window.buscarSesionesPorNombreInput = debounce(() => {
+                const txt = document.getElementById('inpBuscadorSesiones').value.trim().toLowerCase();
+                const contenedor = document.getElementById('contenedorSesionesBuscadas');
+                if (txt.length < 2) {
+                    contenedor.innerHTML = '<div class="empty-state">Escribí al menos 2 letras del nombre.</div>';
+                    return;
+                }
+                // Buscar en todasLasReservas las que tengan nota y coincidan con el nombre
+                const resultados = todasLasReservas.filter(r => {
+                    const nombre = (r.nombreLimpio || '').toLowerCase();
+                    const tieneNota = !!(r.detalleSesion && r.detalleSesion.trim());
+                    return tieneNota && nombre.includes(txt);
+                });
+                if (!resultados.length) {
+                    contenedor.innerHTML = '<div class="empty-state">No se encontraron sesiones con nota para ese nombre.</div>';
+                    return;
+                }
+                contenedor.innerHTML = resultados.map(r => `
+                    <div class="detalle-dia-card buscador-sesion-resultado" style="border-top:5px solid var(--azul); border-radius:18px; margin-bottom:14px; box-shadow:0 2px 12px rgba(76,144,226,0.07);">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px; flex-wrap:wrap;">
+                            <span class="tag-fecha" style="background:#eaf3ff; color:#3571b8; font-weight:800;">${formatoFechaISO(r.fecha)}</span>
+                            <span style="font-size:13px; color:#4a90e2; font-weight:700;">${escapeHtml(r.hora || '--:--')} hs</span>
+                        </div>
+                        <div style="font-size:1.13em; font-weight:700; color:#2f5a47; margin-bottom:2px;">${escapeHtml(r.nombreLimpio)}</div>
+                        <div style="font-size:13px; color:#3571b8; margin-bottom:6px;">${escapeHtml(r.servicio || 'Servicio')}</div>
+                        <div style="font-size:12px; color:#6a8e7f; margin-bottom:7px;">${escapeHtml((r.phone || 'Sin teléfono').toString())}</div>
+                        <div style="margin-top:4px; background:#f5faff; border:1px solid #b7d6f7; border-radius:10px; padding:10px 12px; font-size:14px; color:#2f5a47; white-space:pre-wrap;">${escapeHtml(r.detalleSesion)}</div>
+                    </div>
+                `).join('');
+            }, 200);
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
     <script type="module">
         import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp } from "/js/firebase-web.js";
@@ -2558,5 +2623,11 @@
     <script src="/js/shared-footer.js"></script>
     <script src="/js/mimi-bot.js?v=20260405-4"></script>
 </body>
+    <!-- Widget de descarga de la app para admin -->
+    <div class="admin-app-download-widget" style="background:#f5f5f5;padding:1em;border-radius:8px;margin:1em 0;text-align:center;max-width:400px;margin-left:auto;margin-right:auto;">
+        <h3 style="margin-top:0;">Descargá la App de Espacio Mimar T</h3>
+        <img src="/img/panel.png" alt="Panel App" style="width:120px;margin-bottom:0.7em;display:block;margin-left:auto;margin-right:auto;">
+        <a href="https://tusitio.com/app.apk" class="btn-descargar-app" style="display:inline-block;padding:0.7em 1.2em;background:#4caf50;color:#fff;border-radius:4px;text-decoration:none;font-weight:bold;font-size:1.1em;">Descargar App</a>
+    </div>
 </html>
 
