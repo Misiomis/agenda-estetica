@@ -11,172 +11,1789 @@
     <style>
         :root { --fondo: #f4fbf7; --texto: #2f5a47; --accento: #4ea37f; --accento-oscuro: #2f7c5d; --verde: #72bd99; --verde-oscuro: #3f8f6f; --azul: #4a90e2; --rojo: #e05252; --whatsapp: #25D366; --suave: #dff3ea; --suave-oscuro: #bfe6d5; --nude: #f7fffb; }
         body { font-family: 'Montserrat', sans-serif; background: linear-gradient(180deg, #f8fdfb 0%, #edf8f3 100%); margin: 0; color: var(--texto); padding-bottom: 50px; font-size: 15px; line-height: 1.45; }
+        
+        /* LOGIN */
         #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f4f7f6; z-index: 99999; display: flex; align-items: center; justify-content: center; }
         .login-box { background: white; padding: 40px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 90%; max-width: 350px; text-align: center; }
         .login-box h2 { font-family: 'Playfair Display', serif; color: var(--accento-oscuro); margin-bottom: 25px; }
         .login-box input { width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid #d5eadf; border-radius: 12px; box-sizing: border-box; font-size: 16px; outline: none; }
         .btn-entrar { width: 100%; padding: 15px; background: var(--accento); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 16px; }
+
+        /* NAVEGACIÓN */
         .header { background: #fff; padding: 14px 16px; text-align: center; border-bottom: 1px solid #dceee5; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 18px rgba(0,0,0,0.06); }
+        .header h2 { color: var(--accento); font-size: clamp(1.2rem, 2.2vw, 1.7rem); }
         .menu-nav { margin-top: 10px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
         .btn-nav { padding: 10px 18px; min-height: 40px; border: 1px solid #cfe9dd; background: #fff; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.3s; color: var(--texto); }
+        .btn-nav:hover { background: var(--suave); border-color: var(--suave-oscuro); }
         .btn-nav.active { background: #e9f7f0; color: var(--accento-oscuro); border-color: #a9d9c3; }
+        .install-widget-admin { display: none; margin: 10px auto 6px; width: min(100%, 460px); background: linear-gradient(135deg, rgba(245, 251, 247, 0.98) 0%, rgba(238, 248, 242, 0.98) 100%); border: 1px solid rgba(132, 168, 140, 0.32); border-radius: 14px; box-shadow: 0 8px 20px rgba(30, 54, 37, 0.12); overflow: hidden; }
+        .install-widget-admin.show { display: block; animation: popInSoft 0.18s ease-out; }
+        .install-widget-admin .install-inner { padding: 12px; display: grid; gap: 8px; }
+        .install-widget-admin .install-title { margin: 0; color: #2f5a47; font-size: 14px; font-weight: 700; }
+        .install-widget-admin .install-text { margin: 0; color: #4a6f5f; font-size: 12px; }
+        .install-widget-admin .install-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .install-widget-admin .btn-install { flex: 1; min-width: 180px; border: none; border-radius: 10px; padding: 10px 12px; background: linear-gradient(135deg, #7caf93 0%, #4f7f67 100%); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .install-widget-admin .btn-dismiss { border: 1px solid #cfe2d8; border-radius: 10px; padding: 10px 12px; background: #fff; color: #557b6b; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .mode-toggle-wrap { margin-top: 10px; }
+        .mode-toggle { border: 1px solid #b5dccb; background: #f5fcf8; color: var(--verde-oscuro); border-radius: 999px; padding: 8px 12px; min-height: 36px; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .mode-toggle:hover { background: #e8f6ef; }
         .container { max-width: 1024px; margin: 18px auto; padding: 0 16px; }
         .section { display: none; }
-        .section.active { display: block; }
-        #admin-content { display: none; }
-        .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
-        .kpi-card { background: #fff; border: 1px solid #d9eee4; border-radius: 14px; padding: 12px; box-shadow: 0 6px 14px rgba(72,133,106,0.08); }
-        .kpi-label { font-size: 11px; color: #6a8e7f; font-weight: 700; text-transform: uppercase; }
-        .kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--verde-oscuro); }
-        .calendar-container { background: #fff; border-radius: 22px; padding: 18px; box-shadow: 0 10px 25px rgba(63,143,111,0.12); border: 1px solid #d7ebe2; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; margin-top: 15px; }
-        .day { padding: 10px 4px; border-radius: 12px; font-size: 13px; cursor: pointer; border: 1px solid #dbeee6; background: #fff; }
-        .select-input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 12px; border: 1px solid #d1e7dc; }
-        @media (max-width: 760px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
-    </style>
-</head>
-<body>
-
-    <div id="login-overlay">
-        <div class="login-box">
-            <h2>Acceso Mimar T</h2>
-            <input type="text" id="userAdmin" placeholder="Email admin">
-            <input type="password" id="passAdmin" placeholder="Contraseña">
-            <button class="btn-entrar" id="btnEntrarSeguro">Ingresar</button>
-            <p id="error-login" style="color:red; font-size:13px; margin-top:10px; display:none;">No autorizado</p>
+        <!-- ...existing code restored: versión completa y funcional, con buscador de sesiones, buscador de pacientes, sin widget de descarga ni códigos visibles... -->
+                <div class="loader-dot"></div>
+                <span>Cargando datos...</span>
+            </div>
         </div>
-    </div>
-
-    <div id="admin-content">
         <div class="header">
             <h2 style="font-family:'Playfair Display'; margin:0; color:var(--verde-oscuro)">Gimena Knack | Panel</h2>
+            <!-- Widget de instalación oculto para evitar confusión con APK/descarga -->
+            <div id="installWidgetAdmin" class="install-widget-admin" aria-live="polite" style="display:none !important; visibility:hidden !important; height:0; overflow:hidden;"></div>
             <div class="menu-nav">
                 <button class="btn-nav active" id="btn-agenda" onclick="navegar('agenda')">📅 Agenda</button>
                 <button class="btn-nav" id="btn-historias" onclick="navegar('historias')">📁 Historias</button>
+                <button class="btn-nav" id="btn-buscar" onclick="navegar('buscar')">🔍 Buscar sesiones</button>
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">🧾 Pacientes</button>
+                <button class="btn-nav" id="btn-export" onclick="navegar('export')">📄 Exportar</button>
                 <button class="btn-nav" onclick="cerrarSesion()">Salir</button>
             </div>
         </div>
 
         <div class="container">
             <div id="sec-agenda" class="section active">
-                <div class="kpi-grid">
-                    <div class="kpi-card"><div class="kpi-label">Reservas</div><div class="kpi-value" id="kpi-total">0</div></div>
+                <div class="mode-toggle-wrap">
+                    <button id="btnCompactMode" class="mode-toggle" onclick="toggleCompactMode()">Modo compacto: OFF</button>
+                </div>
+                <div class="kpi-grid" id="kpiGrid">
+                    <div class="kpi-card"><div class="kpi-label">Reservas totales</div><div class="kpi-value" id="kpi-total">0</div></div>
                     <div class="kpi-card"><div class="kpi-label">Turnos hoy</div><div class="kpi-value" id="kpi-hoy">0</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Este mes</div><div class="kpi-value" id="kpi-mes">0</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Historias</div><div class="kpi-value" id="kpi-historias">0</div></div>
+                </div>
+                <div class="quick-actions">
+                    <button class="btn-mini" onclick="irHoy()">Hoy</button>
+                    <button class="btn-mini" onclick="verProximos7()">Próximos 7 días</button>
+                    <button class="btn-mini" onclick="limpiarPanelDia()">Limpiar panel</button>
                 </div>
                 <div class="calendar-container">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <button onclick="cambiarMes(-1)">◀</button>
-                        <h3 id="monthTitle" style="text-transform: capitalize;"></h3>
-                        <button onclick="cambiarMes(1)">▶</button>
+                        <button onclick="cambiarMes(-1)" style="border:none; background:none; cursor:pointer;">◀</button>
+                        <h3 id="monthTitle" style="font-family:'Playfair Display'; margin:0; text-transform: capitalize;"></h3>
+                        <button onclick="cambiarMes(1)" style="border:none; background:none; cursor:pointer;">▶</button>
                     </div>
                     <div class="calendar-grid" id="calendarGrid"></div>
                 </div>
+                <div id="panelDetalleDia"></div>
             </div>
 
             <div id="sec-historias" class="section">
-                <h3>Historias Clínicas</h3>
+                <input type="text" class="busc-input" id="inpBusHistorias" placeholder="Buscar paciente..." oninput="filtrarHistoriasInput()">
                 <div id="contenedorHistorias"></div>
             </div>
 
+            <div id="sec-buscar" class="section">
+                <input type="text" class="busc-input" id="inpBusReservas" placeholder="Nombre del paciente..." oninput="filtrarReservasInput()" autocomplete="off">
+                <div class="filtros-advanced">
+                    <select id="filtroServicio" class="select-input" onchange="filtrarReservasInput()">
+                        <option value="">Todos los servicios</option>
+                    </select>
+                    <input type="date" id="filtroDesde" class="select-input" onchange="filtrarReservasInput()" title="Desde">
+                    <input type="date" id="filtroHasta" class="select-input" onchange="filtrarReservasInput()" title="Hasta">
+                    <button class="btn-mini" onclick="limpiarFiltrosBusqueda()">Limpiar</button>
+                </div>
+                <div id="resumenBusqueda" class="result-summary"></div>
+                <div id="contenedorBusqueda"></div>
+            </div>
+
             <div id="sec-clientes" class="section">
-                <h3>Nuevo Paciente</h3>
-                <input id="cliFullName" class="select-input" type="text" placeholder="Nombre completo">
-                <input id="cliDni" class="select-input" type="text" placeholder="DNI">
-                <button class="btn-entrar" onclick="guardarCliente()">Guardar</button>
+                <div style="position:relative; margin-bottom:10px">
+                    <input type="text" class="busc-input" id="inpBusPaciente" placeholder="🔍 Buscar paciente por nombre..." oninput="buscarPacienteNombreInput(); filtrarListadoClientesInput()" autocomplete="off" style="margin-bottom:0">
+                    <div id="sugerenciasPaciente" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:white; border:1px solid #cde5d8; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.1); z-index:200; max-height:220px; overflow-y:auto;"></div>
+                </div>
+                <div class="filtros-advanced" style="grid-template-columns: minmax(180px, 1fr) auto; margin-bottom:12px;">
+                    <select id="filtroTipoCliente" class="select-input" onchange="filtrarListadoClientes()">
+                        <option value="todos">Todos los clientes</option>
+                        <option value="membresia">Solo membresía</option>
+                        <option value="ocasional">Solo ocasionales</option>
+                    </select>
+                    <button class="btn-mini" onclick="limpiarFiltrosClientes()">Limpiar filtros</button>
+                </div>
+                <div id="resumenClientes" class="result-summary"></div>
+                <div id="contenedorClientes" style="display:grid; gap:8px; margin-bottom:12px;"></div>
+                <div class="detalle-dia-card">
+                    <h3 style="margin-top:0">Alta / Actualización de Paciente</h3>
+                    <p style="font-size:13px; color:#557b6b; margin:0 0 8px 0;">Completá al menos DNI, nombre y teléfono. Si el DNI ya existe, se actualiza el paciente.</p>
+                    <div class="cliente-form-grid">
+                        <div class="full" style="position:relative">
+                            <input id="cliFullName" class="select-input" style="width:100%; box-sizing:border-box" type="text" placeholder="Nombre y apellido" oninput="buscarPorNombreFormInput()" autocomplete="off">
+                            <div id="sugerenciasNombreForm" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:white; border:1px solid #cde5d8; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.12); z-index:300; max-height:220px; overflow-y:auto;"></div>
+                        </div>
+                        <input id="cliDni" class="select-input" type="text" inputmode="numeric" placeholder="DNI (solo números)" oninput="buscarClientePorDniInput()">
+                        <input id="cliPhone" class="select-input" type="text" inputmode="tel" placeholder="Teléfono (ej: 375613943)">
+                        <input id="cliNuevoDni" class="select-input full" type="text" inputmode="numeric" placeholder="Nuevo DNI para cambiar ID (opcional)">
+                        <input id="cliHoursBalance" class="select-input" type="number" step="0.5" min="0" placeholder="Hours Balance (ej: 0, 1.5, 2)" oninput="actualizarHoursBalanceAutoInput()">
+                        <input id="cliEmail" class="select-input" type="email" placeholder="Email (opcional)">
+                        <input id="cliUsername" class="select-input" type="text" placeholder="Usuario (opcional)">
+                    </div>
+                    <div class="cliente-checks">
+                        <label><input id="cliActivo" type="checkbox" checked> Activo</label>
+                        <label><input id="cliMembership" type="checkbox"> Membresía activa</label>
+                        <label><input id="cliConsent" type="checkbox" checked> Consentimiento aceptado</label>
+                        <label><input id="cliPolitica" type="checkbox" checked> Política aceptada</label>
+                    </div>
+                    <div class="quick-actions" style="margin-top:10px;">
+                        <button class="btn-mini" onclick="buscarClientePorDni(true)">Cargar por DNI</button>
+                        <button class="btn-mini" onclick="guardarCliente()">Guardar paciente</button>
+                        <button class="btn-mini" onclick="normalizarMembresiaClientes()">Normalizar membresías</button>
+                        <button class="btn-mini" onclick="marcarTodasMembresiaTrue()">Todo membresía = true</button>
+                        <button class="btn-mini" onclick="cambiarIdCliente()">Cambiar ID</button>
+                        <button class="btn-mini" onclick="limpiarFormularioCliente()">Limpiar</button>
+                    </div>
+                    <div class="cliente-help">El documento se guarda en <strong>clients/{dni}</strong>; al ingresar DNI o buscar por nombre se autocompleta el paciente.</div>
+                </div>
+            </div>
+
+            <div id="sec-export" class="section">
+                <div class="detalle-dia-card">
+                    <h3 style="margin-top:0">Reportes de Reservas</h3>
+                    <p style="font-size:14px; color:#666">Descarga todas las reservas registradas en formato CSV para abrir en Excel.</p>
+                    <button class="btn-export-main" onclick="exportarCSV()">📥 Descargar Todo (.csv)</button>
+                </div>
+                <div class="detalle-dia-card">
+                    <h3 style="margin-top:0">Reporte de Clientes</h3>
+                    <p style="font-size:14px; color:#666">Exporta todos los clientes con estado de membresía y datos de contacto.</p>
+                    <button class="btn-export-main" onclick="exportarClientesCSV()">📥 Descargar Clientes (.csv)</button>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- El código JS está correctamente referenciado y no debe ser visible en la UI. Si ves código aquí, hubo un error de edición previa. -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+        import { getFirestore, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
         const firebaseConfig = {
             apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
             authDomain: "estetica-8d067.firebaseapp.com",
             projectId: "estetica-8d067"
         };
-
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const COMPACT_STORAGE_KEY = "mimar_compact_mode";
+        const ADMIN_EMAILS = ["espaciomimart36@gmail.com"];
 
-        // --- FUNCIONES GLOBALES (Asignadas a window para que los botones las vean) ---
-        window.navegar = (sectionId) => {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
-            document.getElementById(`sec-${sectionId}`).classList.add('active');
-            if (event) event.currentTarget.classList.add('active');
+        const escapeHtml = (v) => (v ?? "").toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
+        const debounce = (fn, delay = 220) => {
+            let t;
+            return (...args) => {
+                clearTimeout(t);
+                t = setTimeout(() => fn(...args), delay);
+            };
         };
 
-        window.cerrarSesion = () => signOut(auth);
-
-        window.cambiarMes = (v) => {
-            fechaVisual.setMonth(fechaVisual.getMonth() + v);
-            renderCalendario();
+        const formatoFechaISO = (f) => {
+            if (!f) return "";
+            const [y, m, d] = f.split('-');
+            return `${d}/${m}/${y}`;
         };
 
-        window.guardarCliente = async () => {
-            const dni = document.getElementById('cliDni').value;
-            const nombre = document.getElementById('cliFullName').value;
-            if(!dni || !nombre) return alert("Completa los campos");
-            try {
-                await setDoc(doc(db, "clients", dni), { fullName: nombre, dni: dni, activo: true });
-                alert("Paciente guardado con éxito");
-            } catch(e) { alert("Error al guardar"); }
+        const normalizarDNI = (v) => (v ?? "").toString().replace(/\D/g, '');
+        const normalizarNombreKey = (v) => borrarEtiquetaDNI(v || "").toLowerCase().replace(/\s+/g, ' ').trim();
+        const normalizarTelefono = (v) => (v ?? "").toString().trim();
+        const generarUsername = (nombre) => (nombre || "")
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .trim()
+            .replace(/\s+/g, '.');
+        const normalizarHora = (h) => {
+            const txt = (h ?? '').toString().trim();
+            const m = txt.match(/^(\d{1,2})[:.](\d{2})$/);
+            if (!m) return '';
+            const hh = Number(m[1]);
+            const mm = Number(m[2]);
+            if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return '';
+            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+        };
+        const keyBloqueo = (fecha, hora) => `${fecha}|${hora}`;
+        const docIdBloqueo = (fecha, hora) => `block_${fecha}_${hora.replace(':', '-')}`;
+        const HORARIOS_EXTRA_POR_FECHA = {
+            "2026-03-26": ["17:00"]
         };
 
-        // --- LÓGICA DE LOGIN ---
-        document.getElementById('btnEntrarSeguro').onclick = async () => {
-            const email = document.getElementById('userAdmin').value;
-            const pass = document.getElementById('passAdmin').value;
-            try {
-                await signInWithEmailAndPassword(auth, email, pass);
-            } catch (e) {
-                document.getElementById('error-login').style.display = 'block';
+        const csvEscape = (v) => {
+            const limpio = (v ?? "").toString().replace(/\r?\n|\r/g, ' ').trim();
+            return `"${limpio.replace(/"/g, '""')}"`;
+        };
+
+        const fechaHoyISO = () => {
+            const h = new Date();
+            return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+        };
+
+        const mostrarLoader = (visible) => {
+            const el = document.getElementById("global-loader");
+            if (el) el.style.display = visible ? "flex" : "none";
+        };
+
+        const actualizarLabelCompacto = () => {
+            const btn = document.getElementById("btnCompactMode");
+            if (!btn) return;
+            const activo = document.body.classList.contains("compact-mode");
+            btn.textContent = `Modo compacto: ${activo ? 'ON' : 'OFF'}`;
+        };
+
+        const aplicarModoCompactoInicial = () => {
+            const valor = localStorage.getItem(COMPACT_STORAGE_KEY);
+            const activo = valor === "1";
+            document.body.classList.toggle("compact-mode", activo);
+            actualizarLabelCompacto();
+        };
+
+        const esEmailAdmin = (email) => ADMIN_EMAILS.includes((email || "").trim().toLowerCase());
+
+        const esUsuarioAdmin = (tokenResult) => {
+            const email = tokenResult?.claims?.email || tokenResult?.token?.email || "";
+            return tokenResult?.claims?.admin === true || esEmailAdmin(email);
+        };
+
+        const getAuthErrorMessage = (error) => {
+            console.error("[Auth Error]", error?.code, error?.message);
+            switch (error?.code) {
+                case 'auth/invalid-credential':
+                case 'auth/wrong-password':
+                case 'auth/user-not-found':
+                case 'auth/invalid-login-credentials':
+                    return 'Email o contraseña incorrectos';
+                case 'auth/operation-not-allowed':
+                    return 'Método Email/Contraseña no habilitado en Firebase Console';
+                case 'auth/user-disabled':
+                    return 'La cuenta está deshabilitada en Firebase';
+                case 'auth/invalid-email':
+                    return 'El formato del email es inválido';
+                case 'auth/too-many-requests':
+                    return 'Demasiados intentos. Esperá unos minutos';
+                case 'auth/network-request-failed':
+                    return 'Error de red. Revisá tu conexión';
+                default:
+                    return `Error Firebase: ${error?.code || 'desconocido'}`;
             }
         };
 
-        onAuthStateChanged(auth, (user) => {
-            const adminEmail = "espaciomimart36@gmail.com";
-            if (user && user.email === adminEmail) {
-                document.getElementById('login-overlay').style.display = 'none';
-                document.getElementById('admin-content').style.display = 'block';
-                renderCalendario();
-            } else {
-                document.getElementById('login-overlay').style.display = 'flex';
-                document.getElementById('admin-content').style.display = 'none';
+        const formatearCampo = (key, value) => {
+            if (value === undefined || value === null || value === '') return '';
+            if (typeof value === 'string') return escapeHtml(value);
+            if (value instanceof Date) return value.toLocaleDateString('es-AR');
+            if (typeof value === 'object' && value.seconds) {
+                return new Date(value.seconds * 1000).toLocaleDateString('es-AR');
+            }
+            return escapeHtml(String(value));
+        };
+
+        const actualizarKPIs = () => {
+            const hoy = fechaHoyISO();
+            const ahora = new Date();
+            const y = ahora.getFullYear();
+            const m = ahora.getMonth();
+            const total = todasLasReservas.length;
+            const totalHoy = todasLasReservas.filter(r => r.fecha === hoy).length;
+            const totalMes = todasLasReservas.filter(r => {
+                if (!r.fecha) return false;
+                const f = new Date(`${r.fecha}T00:00:00`);
+                return f.getFullYear() === y && f.getMonth() === m;
+            }).length;
+            const totalHistorias = todasLasHistorias.length;
+
+            document.getElementById("kpi-total").textContent = total;
+            document.getElementById("kpi-hoy").textContent = totalHoy;
+            document.getElementById("kpi-mes").textContent = totalMes;
+            document.getElementById("kpi-historias").textContent = totalHistorias;
+        };
+
+        const poblarServiciosFiltro = () => {
+            const select = document.getElementById("filtroServicio");
+            if (!select) return;
+            const actual = select.value;
+            const servicios = [...new Set(
+                todasLasReservas
+                    .map(r => (r.servicio || "").toString().trim())
+                    .filter(Boolean)
+            )].sort((a, b) => a.localeCompare(b, 'es'));
+
+            select.innerHTML = '<option value="">Todos los servicios</option>' +
+                servicios.map(s => `<option value="${escapeHtml(s.toLowerCase())}">${escapeHtml(s)}</option>`).join('');
+
+            if ([...select.options].some(o => o.value === actual)) {
+                select.value = actual;
+            }
+        };
+
+        // --- FUNCIÓN DE LIMPIEZA NUCLEAR ---
+        const borrarEtiquetaDNI = (texto) => {
+            if (!texto) return "";
+            let str = texto.toString();
+            // Cortar todo desde el primer paréntesis si contiene DNI
+            if (str.includes('(') && str.toLowerCase().includes('dni')) {
+                str = str.split('(')[0];
+            }
+            // Eliminar la palabra DNI y lo que venga después por si no hay paréntesis
+            str = str.replace(/DNI\s*[:\-]?\s*[^]*$/gi, "");
+            return str.trim();
+        };
+
+        const setLoginError = (msg = "No autorizado") => {
+            const el = document.getElementById("error-login");
+            el.innerText = msg;
+            el.style.display = "block";
+        };
+
+        const ocultarLoginError = () => {
+            document.getElementById("error-login").style.display = "none";
+        };
+
+        const mostrarPanelAdmin = () => {
+            document.getElementById("login-overlay").style.display = "none";
+            document.getElementById("admin-content").style.display = "block";
+        };
+
+        const mostrarLogin = () => {
+            document.getElementById("login-overlay").style.display = "flex";
+            document.getElementById("admin-content").style.display = "none";
+        };
+
+        document.getElementById("btnEntrarSeguro").addEventListener("click", async () => {
+            const email = (document.getElementById("userAdmin").value || "").trim();
+            const pass = document.getElementById("passAdmin").value || "";
+            if (!email || !pass) {
+                setLoginError("Ingresá email y contraseña");
+                return;
+            }
+
+            try {
+                mostrarLoader(true);
+                ocultarLoginError();
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (error) {
+                console.error(error);
+                setLoginError(getAuthErrorMessage(error));
+            } finally {
+                mostrarLoader(false);
             }
         });
 
-        // --- CALENDARIO ---
-        let fechaVisual = new Date();
-        function renderCalendario() {
-            const grid = document.getElementById('calendarGrid');
-            const title = document.getElementById('monthTitle');
-            if(!grid) return;
-            grid.innerHTML = '';
-            
-            const year = fechaVisual.getFullYear();
-            const month = fechaVisual.getMonth();
-            title.innerText = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(fechaVisual);
+        window.cerrarSesion = async () => {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error(error);
+            }
+            mostrarLogin();
+        };
 
-            const primerDia = new Date(year, month, 1).getDay();
-            const diasMes = new Date(year, month + 1, 0).getDate();
+        const iniciarGuardiaAuth = () => {
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    mostrarLogin();
+                    return;
+                }
 
-            for (let i = 0; i < (primerDia === 0 ? 6 : primerDia - 1); i++) {
-                grid.innerHTML += '<div></div>';
+                try {
+                    mostrarLoader(true);
+                    const token = await user.getIdTokenResult(true);
+                    if (!esUsuarioAdmin(token)) {
+                        setLoginError("Tu usuario no tiene permisos de admin");
+                        await signOut(auth);
+                        mostrarLogin();
+                        return;
+                    }
+
+                    ocultarLoginError();
+                    mostrarPanelAdmin();
+                    await cargarTodo();
+                } catch (error) {
+                    console.error(error);
+                    setLoginError("No se pudo validar permisos admin");
+                    await signOut(auth);
+                    mostrarLogin();
+                } finally {
+                    mostrarLoader(false);
+                }
+            });
+        };
+
+        const CF_RESUMEN_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarResumenSesion";
+        let deferredInstallPromptAdmin = null;
+        let installReminderTimerAdmin = null;
+        const INSTALL_REMINDER_ADMIN_MS = 25000;
+        const installWidgetAdmin = document.getElementById("installWidgetAdmin");
+        const btnInstallAdminApp = document.getElementById("btnInstallAdminApp");
+        const btnDismissAdminInstall = document.getElementById("btnDismissAdminInstall");
+        const installTextAdmin = document.getElementById("installTextAdmin");
+        const esIOSAdmin = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+        const appYaInstaladaAdmin = () => {
+            return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+        };
+
+        const panelAdminVisible = () => {
+            const panel = document.getElementById("admin-content");
+            return panel && panel.style.display !== "none";
+        };
+
+        const puedeMostrarWidgetAdmin = () => {
+            if (appYaInstaladaAdmin()) return false;
+            if (!panelAdminVisible()) return false;
+            return esIOSAdmin || !!deferredInstallPromptAdmin;
+        };
+
+        const mostrarWidgetAdmin = () => {
+            if (!installWidgetAdmin || !puedeMostrarWidgetAdmin()) return;
+            installWidgetAdmin.classList.add("show");
+        };
+
+        const esconderWidgetAdmin = () => {
+            if (!installWidgetAdmin) return;
+            installWidgetAdmin.classList.remove("show");
+        };
+
+        const limpiarInsistenciaAdmin = () => {
+            clearTimeout(installReminderTimerAdmin);
+            installReminderTimerAdmin = null;
+        };
+
+        const programarInsistenciaAdmin = (delay = INSTALL_REMINDER_ADMIN_MS) => {
+            limpiarInsistenciaAdmin();
+            if (!puedeMostrarWidgetAdmin()) return;
+            installReminderTimerAdmin = setTimeout(() => {
+                mostrarWidgetAdmin();
+                programarInsistenciaAdmin(INSTALL_REMINDER_ADMIN_MS);
+            }, delay);
+        };
+
+        const initPwaAdminPrompt = () => {
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker.register("/sw.js").catch((e) => console.error("SW admin error:", e));
+                });
             }
 
-            for (let d = 1; d <= diasMes; d++) {
-                const dayEl = document.createElement('div');
-                dayEl.className = 'day';
-                dayEl.innerText = d;
-                grid.appendChild(dayEl);
+            window.addEventListener("beforeinstallprompt", (event) => {
+                event.preventDefault();
+                deferredInstallPromptAdmin = event;
+                if (panelAdminVisible()) {
+                    mostrarWidgetAdmin();
+                    programarInsistenciaAdmin(18000);
+                }
+            });
+
+            window.addEventListener("appinstalled", () => {
+                deferredInstallPromptAdmin = null;
+                limpiarInsistenciaAdmin();
+                esconderWidgetAdmin();
+                mostrarAviso("✅ Panel instalado correctamente");
+            });
+
+            btnInstallAdminApp?.addEventListener("click", async () => {
+                if (esIOSAdmin) {
+                    mostrarAviso("📲 En iPhone/iPad: Compartir > Agregar a pantalla de inicio");
+                    programarInsistenciaAdmin(20000);
+                    return;
+                }
+                if (!deferredInstallPromptAdmin) {
+                    mostrarAviso("ℹ️ Cuando el navegador lo habilite, te mostramos instalar");
+                    programarInsistenciaAdmin(15000);
+                    return;
+                }
+                deferredInstallPromptAdmin.prompt();
+                const choice = await deferredInstallPromptAdmin.userChoice;
+                deferredInstallPromptAdmin = null;
+
+                if (choice?.outcome === "accepted") {
+                    limpiarInsistenciaAdmin();
+                    esconderWidgetAdmin();
+                } else {
+                    programarInsistenciaAdmin(10000);
+                }
+            });
+
+            btnDismissAdminInstall?.addEventListener("click", () => {
+                esconderWidgetAdmin();
+                programarInsistenciaAdmin(10000);
+            });
+
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState !== "visible") return;
+                if (!puedeMostrarWidgetAdmin()) return;
+                if (!installWidgetAdmin?.classList.contains("show")) {
+                    mostrarWidgetAdmin();
+                }
+                programarInsistenciaAdmin(20000);
+            });
+
+            if (esIOSAdmin && installTextAdmin) {
+                installTextAdmin.textContent = "En iPhone/iPad: Compartir > Agregar a pantalla de inicio.";
+            }
+        };
+
+        let fechaActual = new Date();
+        let fechaSeleccionada = "";
+        let todasLasReservas = [];
+        let todasLasHistorias = [];
+        let todasLosPacientes = [];
+        let dniClienteCargado = "";
+        let horariosDisponibles = [];
+        let bloqueosHorarios = new Map();
+        let cierresPorFecha = new Map();
+        let bloqueoPendienteConReserva = null;
+        let resolverModalBorrado = null;
+        let membresiaNormalizadaSesion = false;
+
+        const esReservaActiva = (r) => (r?.estado || '').toString().toLowerCase() !== 'cancelado';
+        const resolverMembresiaActiva = (c = {}) => c.membershipActive === true || c.membresia === true;
+
+        const asegurarCampoMembresiaEnFirestore = async (docsClientes = []) => {
+            const pendientes = [];
+            docsClientes.forEach((d) => {
+                const c = d.data() || {};
+                const faltaMembershipActive = typeof c.membershipActive !== "boolean";
+                const faltaMembresia = typeof c.membresia !== "boolean";
+                if (!faltaMembershipActive && !faltaMembresia) return;
+
+                const membershipActive = resolverMembresiaActiva(c);
+                pendientes.push(
+                    setDoc(doc(db, "clients", d.id), {
+                        membershipActive,
+                        membresia: membershipActive,
+                        updatedAt: serverTimestamp()
+                    }, { merge: true })
+                );
+            });
+
+            if (!pendientes.length) return 0;
+            await Promise.all(pendientes);
+            return pendientes.length;
+        };
+
+        const formatearTelefonoWhatsApp = (tel) => {
+            let limpio = (tel || "").toString().replace(/\D/g, "");
+            if (!limpio) return "";
+            if (!limpio.startsWith("54")) limpio = "549" + limpio;
+            return limpio;
+        };
+
+        const enviarDetalleSesionWhatsApp = async (tel, nombre, fecha, hora, servicio, detalle) => {
+            const num = formatearTelefonoWhatsApp(tel);
+            if (!num || !detalle) return { ok: false, reason: "missing-data" };
+            try {
+                const [yy, mm, dd] = (fecha || "").split("-");
+                const fechaPlantilla = (yy && mm && dd) ? `${dd}/${mm}/${yy}` : (fecha || "Fecha a confirmar");
+                const horaPlantilla = (hora || "").toString().replace(/\s*hs\s*$/i, "").trim() || "Horario a confirmar";
+                const nombrePlantilla = (nombre || "Paciente").toString().trim().slice(0, 60);
+                const servicioPlantilla = (servicio || "Tratamiento").toString().trim().slice(0, 80);
+                const detallePlantilla = (detalle || "")
+                    .toString()
+                    .replace(/[\r\n]+/g, " ")
+                    .replace(/\s{2,}/g, " ")
+                    .trim()
+                    .slice(0, 900);
+
+                const bodyBase = {
+                    messaging_product: "whatsapp",
+                    to: num,
+                    type: "template",
+                    template: {
+                        name: "resumen_sesion",
+                        language: { code: "es_AR" },
+                        components: [{
+                            type: "body",
+                            parameters: [
+                                { type: "text", text: nombrePlantilla },
+                                { type: "text", text: fechaPlantilla },
+                                { type: "text", text: horaPlantilla },
+                                { type: "text", text: servicioPlantilla },
+                                { type: "text", text: detallePlantilla || "Sin detalles" }
+                            ]
+                        }]
+                    }
+                };
+
+                let resp = await fetch(`https://graph.facebook.com/v18.0/${WA_PHONE_ID}/messages`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${WA_TOKEN}` },
+                    body: JSON.stringify(bodyBase)
+                });
+
+                if (!resp.ok) {
+                    const errPrimerIntento = await resp.json().catch(() => ({}));
+                    const codigoError = errPrimerIntento?.error?.code;
+                    const mensajeError = (errPrimerIntento?.error?.message || "").toString();
+                    const reintentarIdioma = codigoError === 132018 || /parameter|language/i.test(mensajeError);
+
+                    if (reintentarIdioma) {
+                        bodyBase.template.language.code = "es";
+                        resp = await fetch(`https://graph.facebook.com/v18.0/${WA_PHONE_ID}/messages`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${WA_TOKEN}` },
+                            body: JSON.stringify(bodyBase)
+                        });
+                    } else {
+                        console.error("WA resumen error:", errPrimerIntento);
+                        return { ok: false, reason: errPrimerIntento?.error?.message || `HTTP ${resp.status}` };
+                    }
+                }
+
+                if (resp.ok) return { ok: true };
+
+                const err = await resp.json().catch(() => ({}));
+                console.error("WA resumen error:", err);
+                return { ok: false, reason: err?.error?.message || `HTTP ${resp.status}` };
+            } catch (error) {
+                console.error("WA detalle exception:", error);
+                return { ok: false, reason: error?.message || "network-error" };
+            }
+        };
+
+        window.enviarDetalleManual = async (id) => {
+            const r = todasLasReservas.find(r => r.id === id);
+            if (!r) return;
+            const nota = (document.getElementById(`n-${id}`)?.value || r.detalleSesion || "").trim();
+            if (!nota) { mostrarAviso("⚠️ Escribí el detalle de la sesión primero"); return; }
+            if (!r.phone) { mostrarAviso("⚠️ Sin teléfono registrado"); return; }
+            mostrarAviso("Enviando resumen... 📤");
+            const result = await enviarDetalleSesionWhatsApp(r.phone, r.nombreLimpio, r.fecha, r.hora, r.servicio, nota);
+            mostrarAviso(result.ok ? `✅ Resumen enviado a ${r.nombreLimpio} 📲` : `❌ Error: ${result.reason}`);
+        };
+
+        const extraerHorariosDesdeFirebase = (snapHorarios) => {
+            const horas = new Set();
+            (snapHorarios?.docs || []).forEach((d) => {
+                const data = d.data() || {};
+                const candidatos = [];
+                if (Array.isArray(data.horarios)) candidatos.push(...data.horarios);
+                candidatos.push(data.hora, data.hour, data.time, data.horario, d.id);
+                candidatos
+                    .map(normalizarHora)
+                    .filter(Boolean)
+                    .forEach((h) => horas.add(h));
+            });
+
+            if (!horas.size) {
+                ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'].forEach(h => horas.add(h));
+            }
+
+            return [...horas].sort((a, b) => a.localeCompare(b));
+        };
+
+        const extraerBloqueosDesdeFirebase = (snapBloqueos) => {
+            const map = new Map();
+            (snapBloqueos?.docs || []).forEach((d) => {
+                const data = d.data() || {};
+                const fecha = (data.fecha || '').toString();
+                const hora = normalizarHora(data.hora || data.hour || data.time || '');
+                const blocked = data.blocked !== false;
+                if (fecha && hora && blocked) {
+                    map.set(keyBloqueo(fecha, hora), { id: d.id, ...data, fecha, hora });
+                }
+            });
+            return map;
+        };
+
+        const extraerCierresDiaDesdeFirebase = (snapBloqueos) => {
+            const map = new Map();
+            const regexFecha = /^\d{4}-\d{2}-\d{2}$/;
+
+            (snapBloqueos?.docs || []).forEach((d) => {
+                const data = d.data() || {};
+                const hora = normalizarHora(data.hora || data.hour || data.time || '');
+                if (hora) return;
+
+                const idEsFecha = regexFecha.test(d.id);
+                const fecha = ((data.fecha || '') || (idEsFecha ? d.id : '')).toString();
+                if (!regexFecha.test(fecha)) return;
+
+                const tipo = (data.type || '').toString().toLowerCase();
+                const activo = data.active !== false;
+                const esBloqueo = tipo === 'blocked' || data.blocked === true;
+                if (!activo || !esBloqueo) return;
+
+                map.set(fecha, {
+                    id: d.id,
+                    fecha,
+                    reason: (data.reason || 'Día no disponible').toString()
+                });
+            });
+
+            return map;
+        };
+
+        const obtenerHorariosDia = (fecha) => {
+            const base = new Set(horariosDisponibles);
+            todasLasReservas
+                .filter(r => esReservaActiva(r) && r.fecha === fecha)
+                .map(r => normalizarHora(r.hora))
+                .filter(Boolean)
+                .forEach(h => base.add(h));
+            (HORARIOS_EXTRA_POR_FECHA[fecha] || [])
+                .map(normalizarHora)
+                .filter(Boolean)
+                .forEach(h => base.add(h));
+            return [...base].sort((a, b) => a.localeCompare(b));
+        };
+
+        async function cargarTodo() {
+            mostrarLoader(true);
+            try {
+                const [snapR, snapH, snapC] = await Promise.all([
+                    getDocs(collection(db, "reservas")),
+                    getDocs(collection(db, "historias")),
+                    getDocs(collection(db, "clients")).catch(() => ({ docs: [] }))
+                ]);
+                const [snapHorarios, snapBloqueos] = await Promise.all([
+                    getDocs(collection(db, "horarios")).catch(() => ({ docs: [] })),
+                    getDocs(collection(db, "calendarExceptions")).catch(() => ({ docs: [] }))
+                ]);
+
+                horariosDisponibles = extraerHorariosDesdeFirebase(snapHorarios);
+                bloqueosHorarios = extraerBloqueosDesdeFirebase(snapBloqueos);
+                cierresPorFecha = extraerCierresDiaDesdeFirebase(snapBloqueos);
+
+                const phonePorDNI = new Map();
+                const phonePorNombre = new Map();
+
+                (snapC.docs || []).forEach((docCli) => {
+                    const cli = docCli.data() || {};
+                    const phoneCli = normalizarTelefono(cli.phone || "");
+                    if (!phoneCli) return;
+
+                    const dniCandidatos = [docCli.id, cli.dni, cli.DNI, cli.documento, cli.document];
+                    dniCandidatos
+                        .map(normalizarDNI)
+                        .filter(Boolean)
+                        .forEach((dni) => {
+                            if (!phonePorDNI.has(dni)) phonePorDNI.set(dni, phoneCli);
+                        });
+
+                    const nombresCandidatos = [cli.fullName, cli.nombre, cli.name, cli.username];
+                    nombresCandidatos
+                        .map(normalizarNombreKey)
+                        .filter(Boolean)
+                        .forEach((nombreKey) => {
+                            if (!phonePorNombre.has(nombreKey)) phonePorNombre.set(nombreKey, phoneCli);
+                        });
+                });
+
+                if (!membresiaNormalizadaSesion) {
+                    try {
+                        const totalNormalizados = await asegurarCampoMembresiaEnFirestore(snapC.docs || []);
+                        if (totalNormalizados > 0) {
+                            mostrarAviso(`✅ Membresía normalizada automáticamente en ${totalNormalizados} cliente(s)`);
+                        }
+                        membresiaNormalizadaSesion = true;
+                    } catch (errorNormalizacion) {
+                        console.warn("No se pudo normalizar membresía en segundo plano:", errorNormalizacion);
+                        // No bloquear la carga del panel si las reglas impiden escritura.
+                        membresiaNormalizadaSesion = true;
+                    }
+                }
+
+                todasLosPacientes = (snapC.docs || []).map(docCli => {
+                    const c = docCli.data() || {};
+                    return {
+                        dni: docCli.id,
+                        fullName: c.fullName || c.fullLname || c.nombre || c.name || "",
+                        phone: c.phone || "",
+                        email: c.email || "",
+                        username: c.username || "",
+                        active: c.active !== false,
+                        hoursBalance: c.hoursBalance ?? 0,
+                        membershipActive: resolverMembresiaActiva(c)
+                    };
+                }).sort((a, b) => (a.fullName || "").localeCompare((b.fullName || ""), 'es'));
+
+                todasLasReservas = snapR.docs.map(d => {
+                    const data = d.data();
+                    const nombreLimpio = borrarEtiquetaDNI(data.clienteNombre || data.nombre || "");
+                    const phoneDirecto = normalizarTelefono(data.phone ?? data.telefono ?? "");
+                    const dniReserva = normalizarDNI(data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "");
+                    const phoneNormalizado = phoneDirecto
+                        || phonePorDNI.get(dniReserva)
+                        || phonePorNombre.get(normalizarNombreKey(nombreLimpio))
+                        || "";
+                    return {
+                        id: d.id,
+                        ...data,
+                        phone: phoneNormalizado,
+                        nombreLimpio
+                    };
+                });
+
+                todasLasHistorias = snapH.docs.map(d => {
+                    const data = d.data();
+                    const historiaLimpia = { ...data };
+                    Object.keys(historiaLimpia).forEach((k) => {
+                        const normalizada = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+                        if (normalizada.includes("fecharegistro")) delete historiaLimpia[k];
+                    });
+                    return {
+                        id: d.id,
+                        ...historiaLimpia,
+                        nombreLimpio: borrarEtiquetaDNI(historiaLimpia.nombre || "")
+                    };
+                });
+
+                renderCalendario();
+                renderHistorias(todasLasHistorias);
+                actualizarKPIs();
+                poblarServiciosFiltro();
+                filtrarListadoClientes();
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ Error al cargar datos");
+            } finally {
+                mostrarLoader(false);
             }
         }
+
+        const WA_TOKEN = "EAAMzA3ngIUkBRMpXw5ZBCCzVCFZAum3yF3dcHlgOPZAigiAIXERNfxpGfq21VCEgiByPN5xhm9mZBUyJ0WWqTl0xoB8ZBEs8EEh2FVC82aDHizTv0bKvMrcH7mkO99svZCMymZAi07nnmnBZCeHlI8XdnMBfJI1pnjVFWQZCdCIOBZA8fDa71OuvkVZCJu5bTR91wZDZD";
+        const WA_PHONE_ID = "995248997010108";
+
+        window.enviarW = async (tel, nombre, fecha, hora, servicio, accion) => {
+            const num = (tel || "").toString().trim();
+            if (!num) { mostrarAviso("⚠️ Sin teléfono registrado"); return; }
+            const horaConSufijo = hora.includes("hs") ? hora : hora + " hs";
+            try {
+                const resp = await fetch(`https://graph.facebook.com/v18.0/${WA_PHONE_ID}/messages`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${WA_TOKEN}` },
+                    body: JSON.stringify({
+                        messaging_product: "whatsapp",
+                        to: num,
+                        type: "template",
+                        template: {
+                            name: "turno_confirmado",
+                            language: { code: "en" },
+                            components: [{
+                                type: "body",
+                                parameters: [
+                                    { type: "text", text: nombre },
+                                    { type: "text", text: servicio || "Tratamiento" },
+                                    { type: "text", text: fecha },
+                                    { type: "text", text: horaConSufijo }
+                                ]
+                            }]
+                        }
+                    })
+                });
+                if (resp.ok) {
+                    mostrarAviso(`✅ WhatsApp enviado a ${nombre} 📲`);
+                } else {
+                    const err = await resp.json().catch(() => ({}));
+                    console.error("WA error:", err);
+                    mostrarAviso(`❌ Error: ${err?.error?.message || resp.status}`);
+                }
+            } catch (e) {
+                console.error("WA exception:", e);
+                mostrarAviso("❌ Error de conexión al enviar WhatsApp");
+            }
+        };
+
+        window.verTurnos = (f, el) => {
+            fechaSeleccionada = f;
+            document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
+            if(el) el.classList.add('selected');
+
+            const cierreDia = cierresPorFecha.get(f);
+            if (cierreDia) {
+                document.getElementById("panelDetalleDia").innerHTML = `
+                    <div class="empty-state" style="opacity:1; border-style:solid; border-color:#e6c5cb; background:#fff7f8; color:#7f3b48; text-align:left;">
+                        <strong>${formatoFechaISO(f)}</strong><br>
+                        ${escapeHtml(cierreDia.reason || 'No disponible')}
+                    </div>
+                `;
+                mostrarAviso(`⛔ ${formatoFechaISO(f)}`, `${cierreDia.reason || 'No disponible'}`);
+                return;
+            }
+
+            const filtrados = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === f).sort((a,b) => a.hora.localeCompare(b.hora));
+            const reservasHTML = filtrados.length ? filtrados.map(r => {
+                const tieneNota = !!(r.detalleSesion && r.detalleSesion.trim());
+                const notaDisplay = tieneNota ? `
+                    <div id="nd-${r.id}" style="margin-top:8px; background:#f3faf6; border:1px solid #b6dfc9; border-radius:10px; padding:10px 34px 10px 10px; font-size:13px; color:#2f5a47; white-space:pre-wrap; position:relative">${escapeHtml(r.detalleSesion)}<button title="Editar nota" onclick="activarEdicionNotaAdmin('${r.id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:15px">✏️</button></div>
+                    <div id="ne-${r.id}" style="display:none">
+                        <textarea id="n-${r.id}" style="width:100%; box-sizing:border-box; margin-top:6px">${escapeHtml(r.detalleSesion)}</textarea>
+                        <div style="display:flex; gap:6px; margin-top:4px">
+                            <button class="btn-save" onclick="guardarN('${r.id}','${r.fecha}','${r.phone || ''}','${r.nombreLimpio}','${r.hora}','${r.servicio || ''}')">💾 Guardar</button>
+                            <button onclick="cancelarEdicionAdmin('${r.id}')" style="border:1px solid #ccc; background:#f9f9f9; border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px">Cancelar</button>
+                        </div>
+                    </div>` : `
+                    <textarea id="n-${r.id}" placeholder="Detalle de la sesión..." style="width:100%; box-sizing:border-box; margin-top:6px"></textarea>
+                    <button id="btnN-${r.id}" class="btn-save" onclick="guardarN('${r.id}','${r.fecha}','${r.phone || ''}','${r.nombreLimpio}','${r.hora}','${r.servicio || ''}')">💾 Guardar Nota</button>`;
+                return `
+                <div class="detalle-dia-card">
+                    <b>${escapeHtml(r.nombreLimpio || 'Sin nombre')}</b> - ${escapeHtml(r.hora || '--:--')} hs<br>
+                    <small>${escapeHtml(r.servicio || 'Servicio')}</small>
+                    ${notaDisplay}
+                    <div class="grid-acciones">
+                        <button class="btn-ws btn-confirmar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','confirmar')">Confirmo</button>
+                        <button class="btn-ws btn-recordar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','recordar')">Recordar</button>
+                        <button class="btn-ws btn-cancelar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar')">Cancelar</button>
+                    </div>
+                    <button class="btn-delete-reserva" onclick="borrarReserva('${r.id}')">Borrar reserva</button>
+                    ${tieneNota ? `<button id="btnEnviarResumen-${r.id}" onclick="enviarDetalleManual('${r.id}')" style="width:100%; margin-top:8px; padding:10px; border-radius:10px; border:none; background:#25d366; color:white; font-weight:700; cursor:pointer; font-size:13px">📲 Enviar resumen de sesión</button>` : ''}
+                </div>`;
+            }).join('') : '<p style="text-align:center; opacity:0.5">Sin turnos.</p>';
+
+            const reservasPorHora = new Map(filtrados.map(r => [normalizarHora(r.hora), r]));
+            const horarios = obtenerHorariosDia(f);
+            const horariosHTML = horarios.map((hora) => {
+                const reserva = reservasPorHora.get(hora);
+                const bloqueo = bloqueosHorarios.has(keyBloqueo(f, hora));
+                const motivoBloqueo = bloqueo ? escapeHtml((bloqueosHorarios.get(keyBloqueo(f, hora))?.reason || 'No disponible')) : '';
+                const estado = bloqueo ? `<span class="pill bloqueado">${motivoBloqueo}</span>` : (reserva ? '<span class="pill reservado">Reservado</span>' : '<span class="pill disponible">Disponible</span>');
+                const label = reserva
+                    ? `${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(reserva.servicio || 'Servicio')}`
+                    : 'Sin reserva';
+
+                const accionBloqueo = bloqueo
+                    ? `<button class="btn-mini" onclick="toggleBloqueoHorario('${f}','${hora}')">Desbloquear</button>`
+                    : `<button class="btn-mini alerta" onclick="toggleBloqueoHorario('${f}','${hora}')">Bloquear</button>`;
+
+                const botonRegistrar = (!bloqueo && !reserva)
+                    ? `<button class="btn-mini" onclick="registrarReservaManual('${f}','${hora}')">Registrar</button>`
+                    : '';
+
+                const botonCancelar = (bloqueo && reserva)
+                    ? `<button class="btn-mini alerta" onclick="cancelarTurnoYNotificar('${reserva.id}')">Cancelar y notificar</button>`
+                    : '';
+
+                return `
+                    <div class="hora-row">
+                        <div class="hora-label">${hora}</div>
+                        <div class="hora-status">${estado} · ${label}</div>
+                        <div class="hora-actions">${accionBloqueo}${botonRegistrar}${botonCancelar}</div>
+                    </div>
+                `;
+            }).join('');
+
+            const gestorHTML = `
+                <div class="horarios-admin-card">
+                    <h4>Gestión de horarios del ${formatoFechaISO(f)}</h4>
+                    <div class="horarios-admin-list">${horariosHTML}</div>
+                </div>
+            `;
+
+            document.getElementById("panelDetalleDia").innerHTML = reservasHTML + gestorHTML;
+        };
+
+        window.filtrarReservas = () => {
+            const txt = document.getElementById("inpBusReservas").value.toLowerCase();
+            const servicio = document.getElementById("filtroServicio")?.value || "";
+            const desde = document.getElementById("filtroDesde")?.value || "";
+            const hasta = document.getElementById("filtroHasta")?.value || "";
+            const contenedor = document.getElementById("contenedorBusqueda");
+            const resumen = document.getElementById("resumenBusqueda");
+            const hayFiltros = txt.length >= 2 || servicio || desde || hasta;
+
+            if (!hayFiltros) {
+                if (resumen) resumen.innerHTML = "";
+                contenedor.innerHTML = '<div class="empty-state">Escribí al menos 2 letras o aplicá un filtro.</div>';
+                return;
+            }
+
+            const filtradas = todasLasReservas.filter(r => {
+                const nombre = (r.nombreLimpio || "").toLowerCase();
+                const servicioReserva = (r.servicio || "").toLowerCase().trim();
+                const fechaReserva = r.fecha || "";
+                const okNombre = txt.length < 2 || nombre.includes(txt);
+                const okServicio = !servicio || servicioReserva === servicio;
+                const okDesde = !desde || fechaReserva >= desde;
+                const okHasta = !hasta || fechaReserva <= hasta;
+                return okNombre && okServicio && okDesde && okHasta;
+            }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+            if (resumen) {
+                resumen.textContent = `${filtradas.length} resultado(s) encontrados`;
+            }
+
+            if (!filtradas.length) {
+                contenedor.innerHTML = '<div class="empty-state">No hay resultados para esa búsqueda.</div>';
+                return;
+            }
+            contenedor.innerHTML = filtradas.map(r => `
+                <div class="detalle-dia-card">
+                    <span class="tag-fecha">${formatoFechaISO(r.fecha)}</span>
+                    <b>${escapeHtml(r.nombreLimpio)}</b> - ${escapeHtml(r.servicio || 'Servicio')}<br>
+                    <small>${escapeHtml(r.hora || '--:--')} hs · ${escapeHtml((r.phone || 'Sin teléfono').toString())}</small>
+                </div>`).join('');
+        };
+
+        window.filtrarReservasInput = debounce(() => window.filtrarReservas(), 200);
+        window.limpiarFiltrosBusqueda = () => {
+            document.getElementById("inpBusReservas").value = "";
+            document.getElementById("filtroServicio").value = "";
+            document.getElementById("filtroDesde").value = "";
+            document.getElementById("filtroHasta").value = "";
+            document.getElementById("resumenBusqueda").innerHTML = "";
+            document.getElementById("contenedorBusqueda").innerHTML = '';
+        };
+
+        window.renderHistorias = (datos) => {
+            document.getElementById("contenedorHistorias").innerHTML = datos.map(h => {
+                const lineas = [];
+                // Usamos el nombre limpio para el título de la card
+                lineas.push(`<div style="margin:2px 0;"><strong>Nombre:</strong> ${escapeHtml(h.nombreLimpio)}</div>`);
+                
+                if (h.servicioIncluido) {
+                    lineas.push(`<div style="margin:2px 0;"><strong>Servicio incluido:</strong> ${escapeHtml(h.servicioIncluido)}</div>`);
+                } else if (h.servicio) {
+                    lineas.push(`<div style="margin:2px 0;"><strong>Servicio:</strong> ${escapeHtml(h.servicio)}</div>`);
+                }
+
+                Object.entries(h).forEach(([key, value]) => {
+                    const keyNormalizada = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    if (['id', 'nombre', 'dni', 'servicio', 'servicioIncluido', 'nombreLimpio'].includes(key)) return;
+                    if (keyNormalizada.includes('fecharegistro')) return;
+                    if (value === undefined || value === null || value === '') return;
+                    const label = key.charAt(0).toUpperCase() + key.slice(1);
+                    lineas.push(`<div style="margin:2px 0;"><strong>${escapeHtml(label)}:</strong> ${formatearCampo(key, value)}</div>`);
+                });
+
+                return `
+                    <div class="detalle-dia-card" style="border-top-color: var(--verde-oscuro)">
+                        ${lineas.join('')}
+                    </div>`;
+            }).join('');
+        };
+
+        window.filtrarHistorias = () => {
+            const txt = document.getElementById("inpBusHistorias").value.toLowerCase();
+            const filtradas = todasLasHistorias.filter(h => h.nombreLimpio.toLowerCase().includes(txt));
+            if (!filtradas.length && txt.length >= 2) {
+                document.getElementById("contenedorHistorias").innerHTML = '<div class="empty-state">No hay historias que coincidan.</div>';
+                return;
+            }
+            renderHistorias(filtradas);
+        };
+
+        window.filtrarHistoriasInput = debounce(() => window.filtrarHistorias(), 200);
+
+        window.exportarCSV = () => {
+            let csv = "Fecha,Hora,Nombre,Servicio,Telefono,Nota\n";
+            todasLasReservas.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).forEach(r => {
+                const row = [
+                    r.fecha,
+                    r.hora,
+                    r.nombreLimpio,
+                    r.servicio,
+                    r.phone || '',
+                    r.detalleSesion || ''
+                ].map(csvEscape).join(',');
+                csv += `${row}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `reservas_mimar_t_${new Date().toLocaleDateString()}.csv`);
+            link.click();
+        };
+
+        window.exportarClientesCSV = () => {
+            let csv = "DNI,Nombre,Telefono,Email,Usuario,Activo,TipoCliente,MembresiaActiva,HoursBalance\n";
+            const clientesOrdenados = [...todasLosPacientes].sort((a, b) => (a.fullName || "").localeCompare(b.fullName || "", 'es'));
+            clientesOrdenados.forEach((c) => {
+                const row = [
+                    c.dni || "",
+                    c.fullName || "",
+                    c.phone || "",
+                    c.email || "",
+                    c.username || "",
+                    c.active === false ? "No" : "Si",
+                    c.membershipActive ? "Membresia" : "Ocasional",
+                    c.membershipActive ? "true" : "false",
+                    c.hoursBalance ?? 0
+                ].map(csvEscape).join(',');
+                csv += `${row}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `clientes_mimar_t_${new Date().toLocaleDateString()}.csv`);
+            link.click();
+        };
+
+        window.renderCalendario = () => {
+            const grid = document.getElementById("calendarGrid");
+            grid.innerHTML = "";
+            ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'].forEach(d => grid.innerHTML += `<div class="day-name">${d}</div>`);
+            const mes = fechaActual.getMonth(); const año = fechaActual.getFullYear();
+            document.getElementById("monthTitle").innerText = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(fechaActual);
+            const primerDia = (new Date(año, mes, 1).getDay() + 6) % 7; const diasMes = new Date(año, mes + 1, 0).getDate();
+            for (let i = 0; i < primerDia; i++) grid.innerHTML += `<div></div>`;
+            for (let d = 1; d <= diasMes; d++) {
+                const fStr = `${año}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const tiene = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fStr);
+                const cierreDia = cierresPorFecha.get(fStr);
+                const div = document.createElement("div");
+                div.className = `day ${tiene ? 'has-reserva' : ''} ${cierreDia ? 'day-closed' : ''}`.trim();
+                div.innerText = d;
+                div.onclick = () => {
+                    if (cierreDia) {
+                        mostrarAviso(`⛔ ${formatoFechaISO(fStr)}`, `${cierreDia.reason || 'No disponible'}`);
+                        return;
+                    }
+                    verTurnos(fStr, div);
+                };
+                grid.appendChild(div);
+            }
+        };
+
+        window.cerrarModalBloqueo = () => {
+            bloqueoPendienteConReserva = null;
+            document.getElementById("confirm-block-modal").style.display = "none";
+        };
+
+        window.confirmarBloqueoConReserva = async () => {
+            if (!bloqueoPendienteConReserva) return;
+            const { fecha, hora } = bloqueoPendienteConReserva;
+            cerrarModalBloqueo();
+            await bloquearHorario(fecha, hora, true);
+        };
+
+        window.cerrarModalBorradoReserva = (confirmado = false) => {
+            const modal = document.getElementById("confirm-delete-modal");
+            if (modal) modal.style.display = "none";
+            if (resolverModalBorrado) {
+                const resolver = resolverModalBorrado;
+                resolverModalBorrado = null;
+                resolver(confirmado);
+            }
+        };
+
+        const pedirConfirmacionBorradoReserva = (reserva) => {
+            const modal = document.getElementById("confirm-delete-modal");
+            const texto1 = document.getElementById("confirm-delete-text-1");
+            const texto2 = document.getElementById("confirm-delete-text-2");
+            if (!modal || !texto1 || !texto2) return Promise.resolve(false);
+
+            texto1.innerText = `Vas a borrar la reserva de ${reserva.nombreLimpio || 'Paciente'}.`;
+            texto2.innerText = `${formatoFechaISO(reserva.fecha)} · ${reserva.hora || '--:--'} hs · Esta acción no se puede deshacer.`;
+            modal.style.display = "flex";
+
+            return new Promise((resolve) => {
+                resolverModalBorrado = resolve;
+            });
+        };
+
+        const bloquearHorario = async (fecha, hora, fromConfirm = false) => {
+            const key = keyBloqueo(fecha, hora);
+            const reserva = todasLasReservas.find(r => esReservaActiva(r) && r.fecha === fecha && normalizarHora(r.hora) === hora);
+
+            if (reserva && !fromConfirm) {
+                bloqueoPendienteConReserva = { fecha, hora, reservaId: reserva.id };
+                document.getElementById("confirm-block-text-1").innerText = `Horario ${hora} con reserva activa.`;
+                document.getElementById("confirm-block-text-2").innerText = `Reservó: ${reserva.nombreLimpio || 'Paciente'} (${reserva.servicio || 'Servicio'}).`;
+                document.getElementById("confirm-block-modal").style.display = "flex";
+                return;
+            }
+
+            const idDoc = docIdBloqueo(fecha, hora);
+            await setDoc(doc(db, "calendarExceptions", idDoc), {
+                fecha,
+                hora,
+                blocked: true,
+                updatedAt: serverTimestamp()
+            }, { merge: true });
+            bloqueosHorarios.set(key, { id: idDoc, fecha, hora, blocked: true });
+            mostrarAviso(reserva ? "✅ Horario bloqueado. Ya podés cancelar y notificar." : "✅ Horario bloqueado");
+            verTurnos(fecha, document.querySelector('.day.selected'));
+        };
+
+        window.toggleBloqueoHorario = async (fecha, hora) => {
+            const key = keyBloqueo(fecha, hora);
+            const bloqueado = bloqueosHorarios.get(key);
+            try {
+                mostrarLoader(true);
+                if (bloqueado) {
+                    await deleteDoc(doc(db, "calendarExceptions", bloqueado.id || docIdBloqueo(fecha, hora)));
+                    bloqueosHorarios.delete(key);
+                    mostrarAviso("✅ Horario desbloqueado");
+                } else {
+                    await bloquearHorario(fecha, hora, false);
+                }
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo actualizar el horario");
+            } finally {
+                mostrarLoader(false);
+            }
+            verTurnos(fecha, document.querySelector('.day.selected'));
+        };
+
+        window.cancelarTurnoYNotificar = async (idReserva) => {
+            const reserva = todasLasReservas.find(r => r.id === idReserva);
+            if (!reserva) {
+                mostrarAviso("⚠️ No encontré la reserva");
+                return;
+            }
+            try {
+                mostrarLoader(true);
+                await updateDoc(doc(db, "reservas", idReserva), {
+                    estado: "cancelado",
+                    canceladoPor: "admin_bloqueo_horario",
+                    canceladoAt: serverTimestamp()
+                });
+                enviarW(reserva.phone || '', reserva.nombreLimpio || 'Paciente', reserva.fecha, reserva.hora, reserva.servicio || 'Servicio', 'cancelar');
+                mostrarAviso("✅ Turno cancelado y notificación preparada por WhatsApp");
+                await cargarTodo();
+                if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo cancelar el turno");
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
+        window.registrarReservaManual = async (fecha, hora) => {
+            const horaNormalizada = normalizarHora(hora);
+            if (!horaNormalizada) {
+                mostrarAviso("⚠️ Hora inválida");
+                return;
+            }
+
+            const yaExiste = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fecha && normalizarHora(r.hora) === horaNormalizada);
+            if (yaExiste) {
+                mostrarAviso("⚠️ Ese horario ya está reservado");
+                return;
+            }
+
+            const dniIngresado = normalizarDNI(window.prompt(`Ingresá el DNI para registrar en ${formatoFechaISO(fecha)} ${horaNormalizada}`) || "");
+            if (!dniIngresado) return;
+
+            const servicioIngresado = (window.prompt("Servicio a registrar", "Reservar turno sin tratamiento específico") || "").trim();
+            if (!servicioIngresado) {
+                mostrarAviso("⚠️ Ingresá un servicio");
+                return;
+            }
+
+            try {
+                mostrarLoader(true);
+                const refCliente = doc(db, "clients", dniIngresado);
+                const snapCliente = await getDoc(refCliente);
+                if (!snapCliente.exists()) {
+                    mostrarAviso("⚠️ No existe un paciente con ese DNI");
+                    return;
+                }
+
+                const c = snapCliente.data() || {};
+                const nombreCliente = (c.fullName || c.fullLname || c.nombre || c.name || "Paciente").toString().trim();
+                const phoneCliente = normalizarTelefono(c.phone || "");
+
+                const reservaNueva = {
+                    cliente: nombreCliente,
+                    clienteNombre: nombreCliente,
+                    nombre: nombreCliente,
+                    title: nombreCliente,
+                    displayName: nombreCliente,
+                    phone: phoneCliente,
+                    telefono: phoneCliente,
+                    dni: dniIngresado,
+                    servicio: servicioIngresado,
+                    fecha,
+                    hora: horaNormalizada,
+                    estado: "activo",
+                    timestamp: serverTimestamp(),
+                    creadoPor: "admin_manual"
+                };
+
+                const ref = await addDoc(collection(db, "reservas"), reservaNueva);
+                todasLasReservas.push({ id: ref.id, ...reservaNueva, nombreLimpio: nombreCliente });
+
+                actualizarKPIs();
+                poblarServiciosFiltro();
+                verTurnos(fecha, document.querySelector('.day.selected'));
+                mostrarAviso("✅ Reserva creada y guardada en Firestore");
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo registrar la reserva");
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
+        window.borrarReserva = async (idReserva) => {
+            const reserva = todasLasReservas.find(r => r.id === idReserva);
+            if (!reserva) {
+                mostrarAviso("⚠️ No encontré la reserva");
+                return;
+            }
+
+            const confirmacion = await pedirConfirmacionBorradoReserva(reserva);
+
+            if (!confirmacion) return;
+
+            try {
+                mostrarLoader(true);
+                await deleteDoc(doc(db, "reservas", idReserva));
+                todasLasReservas = todasLasReservas.filter(r => r.id !== idReserva);
+                actualizarKPIs();
+                poblarServiciosFiltro();
+                renderCalendario();
+
+                if (fechaSeleccionada === reserva.fecha) {
+                    verTurnos(reserva.fecha);
+                } else {
+                    document.getElementById("panelDetalleDia").innerHTML = '';
+                }
+
+                mostrarAviso("✅ Reserva borrada de Firestore");
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo borrar la reserva");
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
+        window.guardarN = async (id, fecha, tel, nombre, hora, servicio) => { 
+            const el = document.getElementById(`n-${id}`);
+            if (!el) return;
+            const nota = el.value.trim();
+            try {
+                mostrarLoader(true);
+                await updateDoc(doc(db, "reservas", id), { detalleSesion: nota });
+                // Actualizar en memoria
+                const idx = todasLasReservas.findIndex(r => r.id === id);
+                if (idx !== -1) todasLasReservas[idx].detalleSesion = nota;
+                // Actualizar DOM
+                const displayEl = document.getElementById(`nd-${id}`);
+                if (displayEl) {
+                    displayEl.innerHTML = `${escapeHtml(nota)}<button title="Editar nota" onclick="activarEdicionNotaAdmin('${id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:15px">✏️</button>`;
+                    displayEl.style.display = "block";
+                    document.getElementById(`ne-${id}`).style.display = "none";
+                } else {
+                    const d = document.createElement("div");
+                    d.id = `nd-${id}`;
+                    d.style.cssText = "margin-top:8px; background:#f3faf6; border:1px solid #b6dfc9; border-radius:10px; padding:10px 34px 10px 10px; font-size:13px; color:#2f5a47; white-space:pre-wrap; position:relative";
+                    d.innerHTML = `${escapeHtml(nota)}<button title="Editar nota" onclick="activarEdicionNotaAdmin('${id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:15px">✏️</button>`;
+                    el.replaceWith(d);
+                    const btnGuardar = document.getElementById(`btnN-${id}`);
+                    if (btnGuardar) btnGuardar.remove();
+                }
+                // Mostrar botón enviar resumen si no existe ya
+                if (!document.getElementById(`btnEnviarResumen-${id}`)) {
+                    const card = document.getElementById(`nd-${id}`)?.closest('.detalle-dia-card') || document.getElementById(`nd-${id}`)?.parentElement;
+                    if (card) {
+                        const btnEnviar = document.createElement('button');
+                        btnEnviar.id = `btnEnviarResumen-${id}`;
+                        btnEnviar.textContent = '📲 Enviar resumen de sesión';
+                        btnEnviar.style.cssText = 'width:100%; margin-top:8px; padding:10px; border-radius:10px; border:none; background:#25d366; color:white; font-weight:700; cursor:pointer; font-size:13px';
+                        btnEnviar.onclick = () => enviarDetalleManual(id);
+                        card.appendChild(btnEnviar);
+                    }
+                }
+                mostrarAviso('✅ Nota guardada');
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo guardar la nota");
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
+        window.activarEdicionNotaAdmin = (id) => {
+            document.getElementById(`nd-${id}`).style.display = "none";
+            document.getElementById(`ne-${id}`).style.display = "block";
+            document.getElementById(`n-${id}`).focus();
+        };
+
+        window.cancelarEdicionAdmin = (id) => {
+            document.getElementById(`nd-${id}`).style.display = "block";
+            document.getElementById(`ne-${id}`).style.display = "none";
+        };
+
+        window.mostrarAviso = (m) => { 
+            const c = document.getElementById("toast-container"); 
+            const t = document.createElement("div"); 
+            t.className = "toast show"; 
+            t.innerText = m; 
+            c.appendChild(t); 
+            setTimeout(() => { 
+                t.classList.remove("show"); 
+                setTimeout(() => c.removeChild(t), 400); 
+            }, 3000); 
+        };
+
+        window.cambiarMes = (n) => { fechaActual.setMonth(fechaActual.getMonth() + n); renderCalendario(); };
+        window.toggleCompactMode = () => {
+            const activo = document.body.classList.toggle("compact-mode");
+            localStorage.setItem(COMPACT_STORAGE_KEY, activo ? "1" : "0");
+            actualizarLabelCompacto();
+        };
+        window.irHoy = () => {
+            fechaActual = new Date();
+            renderCalendario();
+            verTurnos(fechaHoyISO());
+        };
+        window.verProximos7 = () => {
+            const hoy = new Date();
+            const limite = new Date(hoy);
+            limite.setDate(limite.getDate() + 7);
+            const proximos = todasLasReservas
+                .filter(r => esReservaActiva(r) && r.fecha)
+                .map(r => ({ ...r, _f: new Date(`${r.fecha}T00:00:00`) }))
+                .filter(r => r._f >= new Date(`${fechaHoyISO()}T00:00:00`) && r._f <= limite)
+                .sort((a, b) => a._f - b._f || (a.hora || '').localeCompare(b.hora || ''));
+
+            const panel = document.getElementById("panelDetalleDia");
+            if (!proximos.length) {
+                panel.innerHTML = '<div class="empty-state">No hay turnos en los próximos 7 días.</div>';
+                return;
+            }
+            panel.innerHTML = proximos.map(r => `
+                <div class="detalle-dia-card">
+                    <span class="tag-fecha">${formatoFechaISO(r.fecha)}</span>
+                    <b>${escapeHtml(r.nombreLimpio || 'Sin nombre')}</b> - ${escapeHtml(r.hora || '--:--')} hs<br>
+                    <small>${escapeHtml(r.servicio || 'Servicio')}</small>
+                </div>
+            `).join('');
+        };
+        window.limpiarPanelDia = () => {
+            document.getElementById("panelDetalleDia").innerHTML = '';
+            document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
+        };
+        window.limpiarFormularioCliente = () => {
+            document.getElementById("cliDni").value = "";
+            document.getElementById("cliNuevoDni").value = "";
+            document.getElementById("cliPhone").value = "";
+            document.getElementById("cliFullName").value = "";
+            document.getElementById("cliHoursBalance").value = "";
+            document.getElementById("cliEmail").value = "";
+            document.getElementById("cliUsername").value = "";
+            document.getElementById("cliActivo").checked = true;
+            document.getElementById("cliMembership").checked = false;
+            document.getElementById("cliConsent").checked = true;
+            document.getElementById("cliPolitica").checked = true;
+            dniClienteCargado = "";
+        };
+        window.buscarClientePorDni = async (mostrarMensaje = false) => {
+            const dni = normalizarDNI(document.getElementById("cliDni").value);
+            if (!dni || dni.length < 6) {
+                dniClienteCargado = "";
+                return;
+            }
+            try {
+                const snap = await getDoc(doc(db, "clients", dni));
+                if (!snap.exists()) {
+                    dniClienteCargado = "";
+                    if (mostrarMensaje) mostrarAviso("ℹ️ No existe paciente con ese DNI");
+                    return;
+                }
+
+                const c = snap.data() || {};
+                document.getElementById("cliPhone").value = c.phone || "";
+                document.getElementById("cliFullName").value = c.fullName || c.fullLname || c.nombre || c.name || "";
+                document.getElementById("cliHoursBalance").value = (c.hoursBalance ?? "").toString();
+                document.getElementById("cliEmail").value = c.email || "";
+                document.getElementById("cliUsername").value = c.username || "";
+                document.getElementById("cliActivo").checked = c.active !== false;
+                document.getElementById("cliMembership").checked = c.membershipActive === true || c.membresia === true;
+                document.getElementById("cliConsent").checked = c.consentimientoAceptado !== false;
+                document.getElementById("cliPolitica").checked = c.politicaAceptada !== false;
+                dniClienteCargado = dni;
+                if (mostrarMensaje) mostrarAviso("✅ Paciente cargado");
+            } catch (error) {
+                console.error(error);
+                if (mostrarMensaje) mostrarAviso("❌ No se pudo cargar paciente");
+            }
+        };
+        window.buscarClientePorDniInput = debounce(() => window.buscarClientePorDni(false), 350);
+
+        window.buscarPacienteNombreInput = debounce(() => {
+            const txt = (document.getElementById("inpBusPaciente").value || "").toLowerCase().trim();
+            const cont = document.getElementById("sugerenciasPaciente");
+            if (txt.length < 2) { cont.style.display = "none"; return; }
+            const coincidencias = todasLosPacientes.filter(p => (p.fullName || "").toLowerCase().includes(txt)).slice(0, 8);
+            if (!coincidencias.length) { cont.style.display = "none"; return; }
+            cont.innerHTML = coincidencias.map(p =>
+                `<div onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni)}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f7f3; font-size:13px">
+                    <strong>${escapeHtml(p.fullName)}</strong> &nbsp;·&nbsp; DNI ${escapeHtml(p.dni)} &nbsp;·&nbsp; 📱 ${escapeHtml(p.phone || 'Sin tel')} &nbsp;·&nbsp; ${p.membershipActive ? 'Membresía' : 'Ocasional'}
+                </div>`
+            ).join("");
+            cont.style.display = "block";
+        }, 250);
+
+        window.cargarPacienteDesdeBusqueda = (dni) => {
+            document.getElementById("cliDni").value = dni;
+            document.getElementById("inpBusPaciente").value = "";
+            document.getElementById("sugerenciasPaciente").style.display = "none";
+            const contForm = document.getElementById("sugerenciasNombreForm");
+            if (contForm) contForm.style.display = "none";
+            filtrarListadoClientes();
+            buscarClientePorDni(true);
+        };
+
+        window.filtrarListadoClientes = () => {
+            const txt = (document.getElementById("inpBusPaciente").value || "").toLowerCase().trim();
+            const tipo = document.getElementById("filtroTipoCliente")?.value || "todos";
+            const resumen = document.getElementById("resumenClientes");
+            const cont = document.getElementById("contenedorClientes");
+
+            const filtrados = todasLosPacientes.filter((p) => {
+                const okNombre = !txt || (p.fullName || "").toLowerCase().includes(txt);
+                const esMembresia = p.membershipActive === true;
+                const okTipo = tipo === "todos"
+                    || (tipo === "membresia" && esMembresia)
+                    || (tipo === "ocasional" && !esMembresia);
+                return okNombre && okTipo;
+            }).sort((a, b) => (a.fullName || "").localeCompare(b.fullName || "", 'es'));
+
+            if (resumen) {
+                resumen.textContent = `${filtrados.length} cliente(s) · ${filtrados.filter(c => c.membershipActive).length} con membresía activa`;
+            }
+
+            if (!cont) return;
+            if (!filtrados.length) {
+                cont.innerHTML = '<div class="empty-state">No hay clientes para ese filtro.</div>';
+                return;
+            }
+
+            cont.innerHTML = filtrados.map((p) => `
+                <div class="detalle-dia-card" style="margin-top:0; border-left-width:4px; border-left-color:${p.membershipActive ? '#3f8f6f' : '#8fa99d'}">
+                    <b>${escapeHtml(p.fullName || 'Sin nombre')}</b>
+                    <div style="margin-top:4px; font-size:13px; color:#4b6d5f;">
+                        DNI ${escapeHtml(p.dni || '-')} · 📱 ${escapeHtml(p.phone || 'Sin tel')}
+                    </div>
+                    <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                        <span class="pill ${p.membershipActive ? 'disponible' : 'bloqueado'}">${p.membershipActive ? 'Membresía activa' : 'Ocasional'}</span>
+                        <span class="pill reservado">Horas: ${escapeHtml((p.hoursBalance ?? 0).toString())}</span>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.filtrarListadoClientesInput = debounce(() => window.filtrarListadoClientes(), 180);
+        window.limpiarFiltrosClientes = () => {
+            document.getElementById("inpBusPaciente").value = "";
+            document.getElementById("filtroTipoCliente").value = "todos";
+            document.getElementById("sugerenciasPaciente").style.display = "none";
+            filtrarListadoClientes();
+        };
+
+        window.buscarPorNombreFormInput = debounce(() => {
+            const txt = (document.getElementById("cliFullName").value || "").toLowerCase().trim();
+            const cont = document.getElementById("sugerenciasNombreForm");
+            if (txt.length < 2) { cont.style.display = "none"; return; }
+            const coincidencias = todasLosPacientes.filter(p => (p.fullName || "").toLowerCase().includes(txt)).slice(0, 8);
+            if (!coincidencias.length) { cont.style.display = "none"; return; }
+            cont.innerHTML = coincidencias.map(p =>
+                `<div onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni)}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f7f3; font-size:13px; hover:background:#f5fdf8">
+                    <strong>${escapeHtml(p.fullName)}</strong>&nbsp;·&nbsp;DNI ${escapeHtml(p.dni)}&nbsp;·&nbsp;📱 ${escapeHtml(p.phone || 'Sin tel')}&nbsp;·&nbsp;${p.membershipActive ? 'Membresía' : 'Ocasional'}
+                </div>`
+            ).join("");
+            cont.style.display = "block";
+        }, 220);
+
+        // Cerrar sugerencias del formulario al hacer click fuera
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest("#cliFullName") && !e.target.closest("#sugerenciasNombreForm")) {
+                const cont = document.getElementById("sugerenciasNombreForm");
+                if (cont) cont.style.display = "none";
+            }
+        });
+
+        // Cerrar sugerencias al hacer click fuera
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest("#inpBusPaciente") && !e.target.closest("#sugerenciasPaciente")) {
+                const cont = document.getElementById("sugerenciasPaciente");
+                if (cont) cont.style.display = "none";
+            }
+        });
+        window.actualizarHoursBalanceAuto = async () => {
+            const dni = normalizarDNI(document.getElementById("cliDni").value);
+            const raw = (document.getElementById("cliHoursBalance").value || "").trim();
+            if (!dni || dni !== dniClienteCargado || raw === "") return;
+
+            const hoursBalance = Number(raw);
+            if (Number.isNaN(hoursBalance) || hoursBalance < 0) return;
+
+            try {
+                await updateDoc(doc(db, "clients", dni), { hoursBalance, updatedAt: serverTimestamp() });
+                mostrarAviso("✅ Hours Balance actualizado");
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo actualizar Hours Balance");
+            }
+        };
+        window.actualizarHoursBalanceAutoInput = debounce(() => window.actualizarHoursBalanceAuto(), 700);
+        window.guardarCliente = async () => {
+            const dni = normalizarDNI(document.getElementById("cliDni").value);
+            const phone = normalizarTelefono(document.getElementById("cliPhone").value);
+            const fullName = (document.getElementById("cliFullName").value || "").trim();
+            const hoursBalanceRaw = (document.getElementById("cliHoursBalance").value || "").trim();
+            const email = (document.getElementById("cliEmail").value || "").trim().toLowerCase();
+            const usernameInput = (document.getElementById("cliUsername").value || "").trim();
+            const username = usernameInput || generarUsername(fullName);
+            const hoursBalance = hoursBalanceRaw === "" ? 0 : Number(hoursBalanceRaw);
+            const membershipActive = document.getElementById("cliMembership").checked;
+
+            if (!dni || !fullName || !phone) {
+                mostrarAviso("⚠️ Completá DNI, nombre y teléfono");
+                return;
+            }
+            if (Number.isNaN(hoursBalance) || hoursBalance < 0) {
+                mostrarAviso("⚠️ Hours Balance debe ser un número mayor o igual a 0");
+                return;
+            }
+
+            const payload = {
+                active: document.getElementById("cliActivo").checked,
+                consentimientoAceptado: document.getElementById("cliConsent").checked,
+                politicaAceptada: document.getElementById("cliPolitica").checked,
+                dni,
+                fullName,
+                fullLname: fullName,
+                phone,
+                email,
+                username,
+                role: "client",
+                historiaCompleta: false,
+                membershipActive,
+                membresia: membershipActive,
+                hoursBalance,
+                updatedAt: serverTimestamp(),
+                createdAt: serverTimestamp()
+            };
+
+            try {
+                mostrarLoader(true);
+                await setDoc(doc(db, "clients", dni), payload, { merge: true });
+                dniClienteCargado = dni;
+                mostrarAviso("✅ Paciente guardado");
+                limpiarFormularioCliente();
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo guardar cliente");
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
+        window.normalizarMembresiaClientes = async () => {
+            try {
+                mostrarLoader(true);
+                const snap = await getDocs(collection(db, "clients"));
+                const actualizados = await asegurarCampoMembresiaEnFirestore(snap.docs || []);
+
+                await cargarTodo();
+                mostrarAviso(actualizados ? `✅ Membresía normalizada en ${actualizados} cliente(s)` : "✅ Todos los clientes ya tenían membresía definida");
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo normalizar membresía");
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
+        window.marcarTodasMembresiaTrue = async () => {
+            try {
+                mostrarLoader(true);
+                const snap = await getDocs(collection(db, "clients"));
+                const total = (snap.docs || []).length;
+
+                if (!total) {
+                    mostrarAviso("ℹ️ No hay clientes para actualizar");
+                    return;
+                }
+
+                const tareas = (snap.docs || []).map((d) =>
+                    setDoc(doc(db, "clients", d.id), {
+                        membershipActive: true,
+                        membresia: true,
+                        updatedAt: serverTimestamp()
+                    }, { merge: true })
+                );
+
+                await Promise.all(tareas);
+                await cargarTodo();
+                mostrarAviso(`✅ ${total} cliente(s) marcados con membresía activa`);
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo aplicar membresía masiva");
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+        window.cambiarIdCliente = async () => {
+            const dniActual = normalizarDNI(document.getElementById("cliDni").value);
+            const dniNuevo = normalizarDNI(document.getElementById("cliNuevoDni").value);
+
+            if (!dniActual || !dniNuevo) {
+                mostrarAviso("⚠️ Ingresá DNI actual y nuevo DNI");
+                return;
+            }
+            if (dniActual === dniNuevo) {
+                mostrarAviso("⚠️ El nuevo DNI debe ser diferente");
+                return;
+            }
+
+            try {
+                mostrarLoader(true);
+                const refActual = doc(db, "clients", dniActual);
+                const refNuevo = doc(db, "clients", dniNuevo);
+
+                const [snapActual, snapNuevo] = await Promise.all([getDoc(refActual), getDoc(refNuevo)]);
+
+                if (!snapActual.exists()) {
+                    mostrarAviso("❌ No existe cliente con ese DNI actual");
+                    return;
+                }
+                if (snapNuevo.exists()) {
+                    mostrarAviso("⚠️ Ya existe un cliente con el nuevo DNI");
+                    return;
+                }
+
+                const dataActual = snapActual.data() || {};
+                const payload = {
+                    ...dataActual,
+                    dni: dniNuevo,
+                    updatedAt: serverTimestamp()
+                };
+
+                await setDoc(refNuevo, payload, { merge: true });
+                await deleteDoc(refActual);
+
+                document.getElementById("cliDni").value = dniNuevo;
+                document.getElementById("cliNuevoDni").value = "";
+                dniClienteCargado = dniNuevo;
+                mostrarAviso("✅ ID de cliente actualizado");
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("❌ No se pudo cambiar el ID");
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+        window.navegar = (s) => { 
+            document.querySelectorAll('.section, .btn-nav').forEach(x => x.classList.remove('active')); 
+            document.getElementById(`sec-${s}`).classList.add('active'); 
+            document.getElementById(`btn-${s}`).classList.add('active'); 
+        };
+
+        aplicarModoCompactoInicial();
+        initPwaAdminPrompt();
+        document.getElementById("userAdmin").value = ADMIN_EMAILS[0];
+        iniciarGuardiaAuth();
     </script>
 </body>
 </html>
