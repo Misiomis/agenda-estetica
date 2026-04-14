@@ -294,12 +294,7 @@
             </div>
 
             <div id="sec-sesiones" class="section">
-                <input type="text" class="busc-input" id="inpBusSesiones" placeholder="Buscar en notas o nombre paciente..." oninput="filtrarSesionesInput()">
-                <div class="filtros-advanced">
-                    <input type="date" id="filtroSesionesDesde" class="select-input" onchange="filtrarSesionesInput()" title="Desde fecha">
-                    <input type="date" id="filtroSesionesHasta" class="select-input" onchange="filtrarSesionesInput()" title="Hasta fecha">
-                    <button class="btn-mini" onclick="limpiarFiltrosSesiones()">Limpiar filtros</button>
-                </div>
+                <input type="text" class="busc-input" id="inpBusSesiones" placeholder="Escribí el nombre del paciente..." oninput="filtrarSesionesInput()">
                 <div id="resumenSesiones" class="result-summary"></div>
                 <div id="contenedorSesiones" style="display:grid; gap:8px; margin-bottom:12px;"></div>
             </div>
@@ -2063,25 +2058,18 @@
 
         window.filtrarSesionesInput = debounce(() => {
             const txt = (document.getElementById("inpBusSesiones").value || "").toLowerCase().trim();
-            const desde = document.getElementById("filtroSesionesDesde").value;
-            const hasta = document.getElementById("filtroSesionesHasta").value;
             const resumen = document.getElementById("resumenSesiones");
             const cont = document.getElementById("contenedorSesiones");
 
             const filtradas = todasLasHistorias.filter((h) => {
-                const okTxt = !txt 
-                    || (h.nombre || "").toLowerCase().includes(txt)
-                    || (h.servicio || "").toLowerCase().includes(txt)
-                    || (h.notas || "").toLowerCase().includes(txt);
-
-                let okFecha = true;
-                if (h.fecha) {
-                    if (desde) okFecha = okFecha && h.fecha >= desde;
-                    if (hasta) okFecha = okFecha && h.fecha <= hasta;
-                }
-
-                return okTxt && okFecha;
-            }).sort((a, b) => (b.fecha || '0').localeCompare(a.fecha || '0'));
+                if (!txt) return true;
+                return (h.nombre || "").toLowerCase().includes(txt);
+            }).sort((a, b) => {
+                // Newest first, including time if available
+                const dateA = new Date(`${a.fecha || '0000-00-00'} ${a.hora || '00:00'}`);
+                const dateB = new Date(`${b.fecha || '0000-00-00'} ${b.hora || '00:00'}`);
+                return dateB - dateA;
+            });
 
             if (resumen) {
                 resumen.textContent = `${filtradas.length} sesión(es) encontrada(s)`;
@@ -2089,32 +2077,31 @@
 
             if (!cont) return;
             if (!filtradas.length) {
-                cont.innerHTML = '<div class="empty-state">No hay sesiones para estos filtros.</div>';
+                cont.innerHTML = '<div class="empty-state">No hay sesiones para este paciente.</div>';
                 return;
             }
 
             cont.innerHTML = filtradas.map((h) => `
                 <div class="detalle-dia-card" style="margin-top:0;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                        <span class="tag-fecha">${formatoFechaISO(h.fecha)} ${h.hora ? ` ${h.hora}` : ''}</span>
                         <b>${escapeHtml(h.nombre || 'Sin nombre')}</b>
-                        <span class="tag-fecha">${formatoFechaISO(h.fecha)}</span>
                     </div>
                     <div style="margin-top:4px; font-size:13px; color:#4b6d5f;">
                         <strong>${escapeHtml(h.servicio || 'Servicio no especificado')}</strong>
                     </div>
-                    ${h.notas ? `
                     <div style="margin-top:8px; background:#f3faf6; border:1px solid #b6dfc9; border-radius:10px; padding:10px; font-size:13px; color:#2f5a47; white-space:pre-wrap;">
-                        ${escapeHtml(h.notas)}
+                        ${Object.entries(h).filter(([k,v]) => 
+                            !['id','timestamp','updatedAt'].includes(k) && v && typeof v !== 'object'
+                        ).map(([k,v]) => `<div><strong>${k}</strong>: ${escapeHtml(v)}</div>`).join('')}
+                        ${h.notas ? `<hr style="margin:8px 0; border:0; border-top:1px solid #b6dfc9;"><div>${escapeHtml(h.notas)}</div>` : ''}
                     </div>
-                    ` : ''}
                 </div>
             `).join('');
-        }, 200);
+        }, 150);
 
         window.limpiarFiltrosSesiones = () => {
             document.getElementById("inpBusSesiones").value = "";
-            document.getElementById("filtroSesionesDesde").value = "";
-            document.getElementById("filtroSesionesHasta").value = "";
             filtrarSesionesInput();
         };
 
