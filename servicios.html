@@ -14,13 +14,9 @@
         .hero { width: 100%; height: 200px; background: url("img/cabina.jpeg") center center/cover no-repeat; display: flex; align-items: center; justify-content: center; position: relative; }
         .hero::after { content: ""; position: absolute; inset: 0; background: rgba(44, 62, 58, 0.3); }
         .hero h1 { position: relative; z-index: 1; font-family: 'Playfair Display', serif; color: white; font-size: 38px; letter-spacing: 2px; margin: 0; text-shadow: 0 4px 10px rgba(0,0,0,0.3); text-align: center; padding: 0 15px; }
-        .container { width: 95%; max-width: 1200px; margin: auto; padding: 0 15px 60px 15px; text-align: center; }
         .logo { width: 280px; max-width: 85%; margin: -40px auto 10px auto; background: rgba(255, 255, 255, 0.98); padding: 12px 25px; border-radius: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; z-index: 10; display: block; }
-        
-        .btn-mis-citas { background: white; border: 1.5px solid var(--verde-mimar); color: var(--verde-oscuro); padding: 10px 25px; border-radius: 50px; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 25px; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(114, 189, 153, 0.15); }
 
         #loading { padding: 40px; color: var(--verde-oscuro); font-weight: 500; }
-        .servicios { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 10px; }
         .servicio { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 6px 20px rgba(0,0,0,0.04); display: flex; flex-direction: column; justify-content: space-between; min-height: 250px; text-align: left; border: 1px solid #f0f0f0; }
         .servicio-media { margin: -10px -10px 16px; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 26px rgba(30, 48, 37, 0.14); aspect-ratio: 16 / 10; background: linear-gradient(135deg, #eef6f0 0%, #f8fbf8 100%); }
         .servicio-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -28,45 +24,6 @@
         .servicio-head { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; margin-bottom: 12px; }
         .servicio-icono { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: linear-gradient(145deg, #eef8f2 0%, #e3f3ea 100%); border: 1px solid #d8ebe0; font-size: 22px; line-height: 1; box-shadow: 0 8px 18px rgba(114, 189, 153, 0.12); }
         .btn-reservar { margin-top: 20px; background: var(--verde-mimar); color: white; border: none; padding: 15px; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600; width: 100%; }
-
-        /* MODALES */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); display: none; justify-content: center; align-items: center; z-index: 9999; padding: 15px; }
-        .modal-card { background: white; padding: 40px 30px; border-radius: 35px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; text-align: center; box-shadow: 0 30px 70px rgba(0,0,0,0.25); position: relative; animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        
-        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-
-        .modal-card h2 { font-family: 'Playfair Display', serif; color: var(--verde-oscuro); margin: 0 0 10px 0; font-size: 30px; }
-        .input-dni { width: 100%; padding: 18px; border-radius: 18px; border: 2px solid #eee; font-family: inherit; font-size: 18px; text-align: center; margin: 15px 0; outline: none; transition: 0.3s; }
-        .input-dni:focus { border-color: var(--verde-mimar); background: #f0fef7; }
-
-        .turno-item { text-align: left; background: #fff; padding: 18px; border-radius: 22px; margin-bottom: 15px; border: 1px solid #f0f0f0; border-left: 6px solid var(--verde-mimar); box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-        .turno-item b { color: #2c3e3a; display: block; font-size: 17px; margin-bottom: 6px; font-family: 'Playfair Display', serif; }
-        .turno-item .fecha-tag { display: inline-block; background: #e8f5ee; color: var(--verde-oscuro); padding: 4px 12px; border-radius: 8px; font-weight: 700; font-size: 14px; text-transform: capitalize; margin-right: 10px; }
-        .turno-item .hora-tag { color: #666; font-weight: 500; font-size: 14px; }
-        .turno-item.turno-cancelado { border-left-color: #c98d96; background: #fff9fa; }
-        .turno-headline { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
-        .estado-tag { display:inline-flex; align-items:center; justify-content:center; padding:5px 12px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; }
-        .estado-tag.confirmado { background:#e8f5ee; color:#2f7c5d; }
-        .estado-tag.cancelado { background:#fdecef; color:#a64b58; }
-        .turno-meta { margin-top:10px; font-size:13px; color:#5b6d67; line-height:1.5; }
-        .turno-meta strong { color:#3b534a; }
-        .turno-actions { margin-top:14px; display:grid; gap:10px; }
-        .btn-turno-cancelar { border:none; border-radius:14px; padding:12px 14px; cursor:pointer; font-weight:700; font-family:inherit; font-size:14px; transition:.2s ease; }
-        .btn-turno-cancelar.primario { background:#d86e7d; color:#fff; box-shadow:0 8px 18px rgba(216,110,125,.22); }
-        .btn-turno-cancelar.primario:hover:not(:disabled) { transform:translateY(-1px); }
-        .btn-turno-cancelar.secundario { background:#f4f4f4; color:#55625d; }
-        .btn-turno-cancelar:disabled { opacity:.7; cursor:not-allowed; }
-        .turno-cancel-box { background:#f8fbf9; border:1px solid #dbe8e1; border-radius:18px; padding:14px; }
-        .turno-cancel-box label { display:block; font-size:13px; font-weight:600; color:#406255; margin-bottom:8px; }
-        .turno-cancel-box textarea { width:100%; min-height:92px; resize:vertical; border:1px solid #d3e4db; border-radius:14px; padding:12px; box-sizing:border-box; font-family:inherit; font-size:14px; color:#2f413b; background:#fff; }
-        .turno-cancel-box-actions { display:grid; gap:8px; margin-top:10px; }
-        .turnos-feedback { display:none; margin:0 0 14px; padding:12px 14px; border-radius:14px; font-size:13px; text-align:left; }
-        .turnos-feedback.show { display:block; }
-        .turnos-feedback.info { background:#eef7f2; color:#3d6252; border:1px solid #d5e9de; }
-        .turnos-feedback.success { background:#edf8f0; color:#2f7c5d; border:1px solid #cfe7d7; }
-        .turnos-feedback.error { background:#fff1f3; color:#9b4e5a; border:1px solid #f2d3d8; }
-
-        .btn-buscar { background: var(--verde-oscuro); color: white; border: none; padding: 16px; width: 100%; border-radius: 18px; font-weight: 600; font-size: 16px; cursor: pointer; }
         .footer { margin-top: 40px; font-size: 11px; color: #999; padding: 30px 0; text-align: center; border-top: 1px solid #e0e6e4; }
 
         @media (min-width: 1024px) {
@@ -84,7 +41,7 @@
         @media (max-width: 768px) {
             .hero { height: 176px; }
             .hero h1 { font-size: 34px; letter-spacing: 1px; }
-            .container { width: min(100%, 100% - 24px); padding: 0 0 40px; }
+            .container { width: min(100%, 100% - 24px); padding: 0 0 40px; text-align: center; }
             .logo { width: min(72vw, 238px); margin-top: -28px; padding: 10px 18px; border-radius: 18px; }
             .servicios { grid-template-columns: 1fr; gap: 14px; }
             .servicio { min-height: 220px; padding: 20px; }
@@ -100,12 +57,6 @@
                 padding: 24px 18px 18px;
                 border-radius: 28px 28px 22px 22px;
                 background: rgba(255, 255, 255, 0.97);
-            }
-            .btn-mis-citas,
-            .btn-buscar,
-            .btn-reservar,
-            #btnCerrarMisCitas {
-                min-height: 48px;
             }
         }
 
@@ -125,244 +76,16 @@
 
     <div class="container">
         <img src="img/logo.png" class="logo">
-        <button class="btn-mis-citas" id="btnAbrirBusqueda">
-            Ver mis próximos turnos
-        </button>
         <div id="loading">Cargando experiencias...</div>
         <div class="servicios" id="listaServicios"></div>
     </div>
 
-    <!-- Modal 1: Pedir DNI (Solo si no hay sesión) -->
-    <div id="modalBusquedaDNI" class="modal-overlay">
-        <div class="modal-card">
-            <h2>Consultar Turnos</h2>
-            <p style="color: #666; margin-bottom: 5px;">Ingresa tu DNI para ver tus reservas</p>
-            <input type="number" id="inputDNI" class="input-dni" placeholder="Ej: 35123456" inputmode="numeric">
-            <button class="btn-buscar" id="btnRealizarBusqueda">Buscar mis turnos</button>
-            <button onclick="cerrarModalBusqueda()" style="background:none; border:none; color:#999; margin-top:20px; cursor:pointer; font-size:14px; text-decoration: underline;">Volver a Servicios</button>
-        </div>
-    </div>
-
-    <!-- Modal 2: Mostrar Resultados -->
-    <div id="modalCitasCliente" class="modal-overlay">
-        <div class="modal-card">
-            <h2>Tus Turnos</h2>
-            <p style="font-size: 14px; color: #888; margin-bottom: 20px;">Agenda en Espacio Mimar-T</p>
-            <div id="turnosFeedback" class="turnos-feedback" aria-live="polite"></div>
-            <div id="listaResultadosCitas" style="margin-top: 10px; max-height: min(52dvh, 450px); overflow-y: auto; padding-right: 5px;"></div>
-            <button id="btnCerrarMisCitas" style="background:#f4f4f4; border:none; color:#555; padding: 16px; width: 100%; border-radius: 18px; margin-top:20px; cursor:pointer; font-weight: 600;">Cerrar</button>
-        </div>
-    </div>
-
     <script type="module">
-        import { db, collection, getDocs, query, where, doc, getDoc } from "/js/firebase-web.js";
-        const CF_CANCELACION_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/cancelarReservaPaciente";
-        const WHATSAPP_GIMENA_NUMERO = "5493764291807";
-
-        const limpiarSesionYSalir = () => {
-            localStorage.removeItem("clienteDNI");
-            localStorage.removeItem("clienteNombre");
-            localStorage.removeItem("servicioSeleccionado");
-            window.location.href = "/";
-        };
-
-        async function validarAccesoCliente() {
-            const dniSesion = localStorage.getItem("clienteDNI");
-            const nombreSesion = (localStorage.getItem("clienteNombre") || "").trim().toLowerCase();
-
-            if (!dniSesion || dniSesion === "null" || !nombreSesion) {
-                limpiarSesionYSalir();
-                return false;
-            }
-
-            try {
-                const clienteSnap = await getDoc(doc(db, "clients", dniSesion));
-                if (!clienteSnap.exists()) {
-                    limpiarSesionYSalir();
-                    return false;
-                }
-
-                const nombreDb = (clienteSnap.data()?.fullName || "").trim().toLowerCase();
-                if (!nombreDb || nombreDb !== nombreSesion) {
-                    limpiarSesionYSalir();
-                    return false;
-                }
-
-                return true;
-            } catch (error) {
-                // Error de red (móvil inestable): NO borrar sesión ni redirigir.
-                // El usuario ya fue validado en el login; dejar pasar.
-                console.warn("Validación Firestore falló por red, continuando con sesión guardada:", error?.code || error?.message);
-                return true;
-            }
-        }
-
-        const getServiciosErrorMessage = (error) => {
-            switch (error?.code) {
-                case "permission-denied":
-                    return "Acceso bloqueado por reglas de Firestore en reservas.";
-                case "unavailable":
-                    return "Servicio no disponible. Intentá de nuevo en unos segundos.";
-                default:
-                    return "Error al conectar con la base de datos.";
-            }
-        };
+        import { db, collection, getDocs } from "/js/firebase-web.js";
         
         const contenedor = document.getElementById("listaServicios");
         const loading = document.getElementById("loading");
-        const modalBusqueda = document.getElementById("modalBusquedaDNI");
-        const modalResultados = document.getElementById("modalCitasCliente");
-        const listaResultados = document.getElementById("listaResultadosCitas");
-        const turnosFeedback = document.getElementById("turnosFeedback");
-        const btnAbrirBusqueda = document.getElementById("btnAbrirBusqueda");
-        const dniSesion = localStorage.getItem("clienteDNI");
-        const nombreSesion = (localStorage.getItem("clienteNombre") || "").trim();
-        const haySesionCliente = !!(dniSesion && dniSesion !== "null" && dniSesion !== "");
-        const fechaTurnoFormatter = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", year: "numeric" });
-        let turnosConsultados = [];
-        let dniConsultaActual = "";
-        let cancelacionTurnoActivaId = "";
-        let cancelandoReservaId = "";
-
-        if (!haySesionCliente && btnAbrirBusqueda) {
-            btnAbrirBusqueda.style.display = "none";
-        }
-
-        const escapeHtml = (value) => String(value ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/\"/g, "&quot;")
-            .replace(/'/g, "&#39;");
-
-        const limpiarNombrePaciente = (value) => String(value ?? "")
-            .replace(/\(.*?dni.*?\)/ig, "")
-            .replace(/dni\s*[:\-]?\s*.*$/ig, "")
-            .replace(/\s+/g, " ")
-            .trim();
-
-        const obtenerEstadoTurno = (turno = {}) => {
-            const estados = [turno.estado, turno.status]
-                .map((value) => (value || "").toString().trim().toLowerCase())
-                .filter(Boolean);
-
-            return estados.includes("cancelado") ? "cancelado" : "confirmado";
-        };
-
-        const obtenerMotivoCancelacion = (turno = {}) => String(
-            turno.motivoCancelacion
-            || turno.motivoCancelado
-            || turno.cancelReason
-            || turno.cancellationReason
-            || ""
-        ).trim();
-
-        const setTurnosFeedback = (message = "", type = "info") => {
-            if (!turnosFeedback) return;
-            if (!message) {
-                turnosFeedback.textContent = "";
-                turnosFeedback.className = "turnos-feedback";
-                return;
-            }
-
-            turnosFeedback.textContent = message;
-            turnosFeedback.className = `turnos-feedback show ${type}`;
-        };
-
-        const formatearFechaTexto = (fechaStr) => {
-            if (!fechaStr) return "Fecha a confirmar";
-            const [year, month, day] = fechaStr.split("-").map(Number);
-            const fecha = new Date(year, month - 1, day);
-            if (Number.isNaN(fecha.getTime())) return fechaStr;
-            return fechaTurnoFormatter.format(fecha);
-        };
-
-        const construirWhatsAppCancelacionUrl = (turno = {}, motivo = "") => {
-            const fechaTexto = formatearFechaTexto(turno.fecha || "");
-            const horaTexto = (turno.hora || "").toString().trim() || "horario a confirmar";
-            const nombrePaciente = limpiarNombrePaciente(nombreSesion || turno.clienteNombre || turno.nombre || turno.cliente || "paciente");
-            const motivoTexto = (motivo || obtenerMotivoCancelacion(turno) || "motivo personal")
-                .toString()
-                .replace(/\*/g, "")
-                .replace(/\s+/g, " ")
-                .trim();
-            const mensaje = `Hola Gime, soy ${nombrePaciente || "paciente"}. Tuve que cancelar mi turno por *${motivoTexto}*. Era para el ${fechaTexto} a las ${horaTexto}.`;
-            return `https://wa.me/${WHATSAPP_GIMENA_NUMERO}?text=${encodeURIComponent(mensaje)}`;
-        };
-
-        const abrirWhatsAppCancelacion = (turno = {}, motivo = "") => {
-            const url = construirWhatsAppCancelacionUrl(turno, motivo);
-            const popup = window.open(url, "_blank", "noopener");
-            if (!popup) {
-                window.location.href = url;
-            }
-        };
-
-        const puedeCancelarTurno = (turno = {}) => {
-            if (!haySesionCliente || !dniSesion || !nombreSesion) return false;
-            if ((dniConsultaActual || "") !== dniSesion) return false;
-            return obtenerEstadoTurno(turno) === "confirmado";
-        };
-
-        function renderTurnosConsultados() {
-            if (!turnosConsultados.length) {
-                listaResultados.innerHTML = "<p style='color:#999; padding: 30px;'>No tenés turnos próximos agendados.</p>";
-                return;
-            }
-
-            listaResultados.innerHTML = turnosConsultados.map((turno) => {
-                const estado = obtenerEstadoTurno(turno);
-                const estaAbierto = cancelacionTurnoActivaId === turno.id;
-                const estaCancelando = cancelandoReservaId === turno.id;
-                const motivo = obtenerMotivoCancelacion(turno);
-                const canceladoPorPaciente = (turno.canceladoPor || "").toString().trim().toLowerCase() === "paciente";
-                const detalleCancelacion = estado === "cancelado"
-                    ? `<div class="turno-meta"><strong>Estado:</strong> Cancelado</div>
-                       <div class="turno-meta"><strong>Motivo:</strong> ${escapeHtml(motivo || "Cancelado por el paciente")}</div>
-                       <div class="turno-meta">Este horario ya quedó liberado para que otra persona pueda reservarlo.</div>`
-                    : "";
-
-                const botonNotificar = estado === "cancelado" && (canceladoPorPaciente || motivo)
-                    ? `<div class="turno-actions"><button class="btn-turno-cancelar secundario" onclick="notificarEspacioMimarT('${turno.id}')">Notificar a Espacio Mimar T</button></div>`
-                    : "";
-
-                const accionesCancelacion = puedeCancelarTurno(turno)
-                    ? `
-                        <div class="turno-actions">
-                            ${estaAbierto ? `
-                                <div class="turno-cancel-box">
-                                    <label for="motivoCancelacion-${turno.id}">Motivo de cancelación</label>
-                                    <textarea id="motivoCancelacion-${turno.id}" placeholder="Contanos brevemente por qué necesitás cancelar este turno."></textarea>
-                                    <div class="turno-cancel-box-actions">
-                                        <button class="btn-turno-cancelar primario" onclick="confirmarCancelacionTurno('${turno.id}')" ${estaCancelando ? "disabled" : ""}>${estaCancelando ? "Cancelando..." : "Confirmar cancelación"}</button>
-                                        <button class="btn-turno-cancelar secundario" onclick="cerrarCancelacionTurno()" ${estaCancelando ? "disabled" : ""}>Volver</button>
-                                    </div>
-                                </div>
-                            ` : `
-                                <button class="btn-turno-cancelar primario" onclick="abrirCancelacionTurno('${turno.id}')">Cancelar este turno</button>
-                            `}
-                        </div>
-                    `
-                    : "";
-
-                return `
-                    <div class="turno-item ${estado === "cancelado" ? "turno-cancelado" : ""}">
-                        <div class="turno-headline">
-                            <span class="estado-tag ${estado}">${estado === "cancelado" ? "Cancelado" : "Confirmado"}</span>
-                        </div>
-                        <b>${escapeHtml(turno.servicio || "Servicio")}</b>
-                        ${formatearFechaPro(turno.fecha)}
-                        <span class="hora-tag">Hora: ${escapeHtml(turno.hora || "--:--")}</span>
-                        ${detalleCancelacion}
-                        ${accionesCancelacion}
-                        ${botonNotificar}
-                    </div>
-                `;
-            }).join("");
-        }
-
         const SERVICIO_LED_NOMBRE = "Facial LED Regenerativo";
-        const SERVICIO_LED_RESUMEN = "Tratamiento no invasivo con cabina LED profesional que estimula colágeno y elastina para mejorar firmeza, luminosidad y textura, ayudando también en acné, inflamación, rojeces y manchas. Sesión relajante de 30 minutos, sin dolor ni recuperación; ideal para piel sensible y resultados progresivos desde la primera aplicación.";
 
         const SERVICIO_CORPORAL_NOMBRE = "Sesión Corporal Combinada por Zona";
         const SERVICIO_CORPORAL_RESUMEN = `Tratamiento integral que combina distintas tecnologías para mejorar la flacidez, celulitis, estrías, retención de líquidos y tono muscular.\nSe trabaja de forma personalizada según la necesidad de la zona, estimulando el colágeno, mejorando la textura de la piel y favoreciendo el drenaje y la activación muscular.\n\n<strong>Importante</strong>\nCada sesión corresponde a una sola zona (abdomen, flancos, glúteos o zona subglútea).\nSi se desean trabajar dos zonas, se deben reservar sesiones adicionales.\n\n<strong>Plan de tratamiento</strong>\nSe recomienda un mínimo de 6 sesiones por zona para lograr resultados visibles y duraderos.`;
@@ -393,168 +116,8 @@
             return "";
         }
 
-
-        // LÓGICA DE BÚSQUEDA Y ORDENAMIENTO
-        async function ejecutarConsulta(dni) {
-            modalBusqueda.style.display = "none";
-            dniConsultaActual = (dni || "").trim();
-            cancelacionTurnoActivaId = "";
-            cancelandoReservaId = "";
-            turnosConsultados = [];
-            setTurnosFeedback("");
-            listaResultados.innerHTML = "<p>Buscando tus turnos...</p>";
-            modalResultados.style.display = "flex";
-
-            try {
-                const q = query(collection(db, "reservas"), where("dni", "==", dni));
-                const querySnapshot = await getDocs(q);
-                
-                if (querySnapshot.empty) {
-                    turnosConsultados = [];
-                    listaResultados.innerHTML = "<p style='color:#999; padding: 30px;'>No hay turnos registrados con este DNI.</p>";
-                } else {
-                    const hoy = new Date().toISOString().split('T')[0];
-                    let turnos = [];
-
-                    querySnapshot.forEach((doc) => {
-                        const data = doc.data();
-                        // Solo mostramos turnos de hoy en adelante
-                        if (data.fecha >= hoy) {
-                            turnos.push({ id: doc.id, ...data });
-                        }
-                    });
-
-                    // ORDENAMIENTO CRONOLÓGICO: Más próximo primero
-                    turnos.sort((a, b) => {
-                        if (a.fecha !== b.fecha) {
-                            return a.fecha.localeCompare(b.fecha); // Compara AAAA-MM-DD
-                        }
-                        return a.hora.localeCompare(b.hora); // Si es el mismo día, ordena por hora
-                    });
-
-                    if (turnos.length === 0) {
-                        turnosConsultados = [];
-                        listaResultados.innerHTML = "<p style='color:#999; padding: 30px;'>No tenés turnos próximos agendados.</p>";
-                        return;
-                    }
-
-                    turnosConsultados = turnos;
-                    renderTurnosConsultados();
-                }
-            } catch (e) {
-                console.error(e);
-                listaResultados.innerHTML = `<p>${getServiciosErrorMessage(e)}</p>`;
-            }
-        }
-
-        // Función para formatear fecha visualmente
-        function formatearFechaPro(fechaStr) {
-            return `<span class="fecha-tag">${escapeHtml(formatearFechaTexto(fechaStr))}</span>`;
-        }
-
-        window.abrirCancelacionTurno = (turnoId) => {
-            cancelacionTurnoActivaId = turnoId;
-            setTurnosFeedback("");
-            renderTurnosConsultados();
-        };
-
-        window.cerrarCancelacionTurno = () => {
-            cancelacionTurnoActivaId = "";
-            cancelandoReservaId = "";
-            renderTurnosConsultados();
-        };
-
-        window.notificarEspacioMimarT = (turnoId) => {
-            const turno = turnosConsultados.find((item) => item.id === turnoId);
-            if (!turno) {
-                setTurnosFeedback("No encontramos el turno para abrir WhatsApp.", "error");
-                return;
-            }
-
-            abrirWhatsAppCancelacion(turno, obtenerMotivoCancelacion(turno));
-        };
-
-        window.confirmarCancelacionTurno = async (turnoId) => {
-            const turno = turnosConsultados.find((item) => item.id === turnoId);
-            const motivoEl = document.getElementById(`motivoCancelacion-${turnoId}`);
-            const motivo = (motivoEl?.value || "").trim();
-
-            if (!turno) {
-                setTurnosFeedback("No encontramos ese turno para cancelarlo.", "error");
-                return;
-            }
-
-            if (motivo.length < 8) {
-                setTurnosFeedback("Escribí un motivo un poco más claro para poder cancelar el turno.", "error");
-                motivoEl?.focus();
-                return;
-            }
-
-            cancelandoReservaId = turnoId;
-            setTurnosFeedback("");
-            renderTurnosConsultados();
-
-            try {
-                const response = await fetch(CF_CANCELACION_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        reservaId: turnoId,
-                        dni: dniConsultaActual,
-                        nombre: nombreSesion,
-                        motivo
-                    })
-                });
-
-                const result = await response.json().catch(() => ({}));
-                if (!response.ok) {
-                    throw new Error(result.error || "No se pudo cancelar el turno.");
-                }
-
-                turnosConsultados = turnosConsultados.map((item) => item.id === turnoId ? {
-                    ...item,
-                    status: "cancelado",
-                    estado: "cancelado",
-                    canceladoPor: result.reserva?.canceladoPor || "paciente",
-                    motivoCancelacion: result.reserva?.motivoCancelacion || motivo
-                } : item);
-
-                cancelacionTurnoActivaId = "";
-                cancelandoReservaId = "";
-                renderTurnosConsultados();
-                setTurnosFeedback(`Tu turno del ${formatearFechaTexto(turno.fecha)} a las ${turno.hora} quedó cancelado. El horario ya se liberó y abrimos WhatsApp para avisarle a Espacio Mimar T.`, "success");
-                abrirWhatsAppCancelacion(turno, result.reserva?.motivoCancelacion || motivo);
-            } catch (error) {
-                console.error(error);
-                cancelandoReservaId = "";
-                renderTurnosConsultados();
-                setTurnosFeedback(error.message || "No se pudo cancelar el turno en este momento.", "error");
-            }
-        };
-
-        // CONTROL DE BOTÓN PRINCIPAL (CON AUTO-DETECCIÓN DE SESIÓN)
-        document.getElementById("btnAbrirBusqueda").onclick = () => {
-            const dniGuardado = localStorage.getItem("clienteDNI");
-
-            if (dniGuardado && dniGuardado !== "null" && dniGuardado !== "") {
-                ejecutarConsulta(dniGuardado);
-            }
-        };
-
-        // Búsqueda manual desde el modal
-        document.getElementById("btnRealizarBusqueda").onclick = () => {
-            const dni = document.getElementById("inputDNI").value.trim();
-            if (dni) ejecutarConsulta(dni);
-        };
-
-        window.cerrarModalBusqueda = () => modalBusqueda.style.display = "none";
-        document.getElementById("btnCerrarMisCitas").onclick = () => modalResultados.style.display = "none";
-
         // Carga inicial de servicios
         async function cargarServicios() {
-            const accesoValido = await validarAccesoCliente();
-            if (!accesoValido) return;
-
             try {
                 const snapshot = await getDocs(collection(db, "services"));
                 let servicios = [];
@@ -617,7 +180,7 @@
                     const emoji = obtenerEmojiServicio(s.nombre);
                     const imagenServicio = obtenerImagenServicio(s.nombre);
                     const bloqueImagen = imagenServicio ? `<div class="servicio-media"><img src="${imagenServicio}" alt="${tituloLimpio}"></div>` : "";
-                    div.innerHTML = `<div>${bloqueImagen}<div class="servicio-head"><div class="servicio-icono" aria-hidden="true">${emoji}</div><div><h3>${tituloLimpio}</h3><div class="duracion">${s.duracion} min</div></div></div><p style="line-height:1.7">${descFormateada}</p></div><button class="btn-reservar" data-nombre="${s.nombre}">Reservar Turno</button>`;
+                    div.innerHTML = `<div>${bloqueImagen}<div class="servicio-head"><div class="servicio-icono" aria-hidden="true">${emoji}</div><div><h3>${tituloLimpio}</h3><div class="duracion">${s.duracion} min</div></div></div><p>${descFormateada}</p></div><button class="btn-reservar" data-nombre="${s.nombre}">Reservar Turno</button>`;
                     contenedor.appendChild(div);
                 });
                 document.querySelectorAll('.btn-reservar').forEach(btn => {
@@ -638,7 +201,3 @@
     <script src="/js/mimi-bot.js"></script>
 </body>
 </html>
-
-
-
-
