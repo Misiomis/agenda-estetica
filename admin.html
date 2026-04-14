@@ -240,6 +240,7 @@
                 <button class="btn-nav active" id="btn-agenda" onclick="navegar('agenda')">📅 Agenda</button>
                 <button class="btn-nav" id="btn-historias" onclick="navegar('historias')">📁 Historias</button>
                 <button class="btn-nav" id="btn-buscar" onclick="navegar('buscar')">🔍 Buscar</button>
+                <button class="btn-nav" id="btn-sesiones" onclick="navegar('sesiones')">📁 Buscador de sesiones</button>
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">🧾 Pacientes</button>
                 <button class="btn-nav" id="btn-export" onclick="navegar('export')">📄 Exportar</button>
                 <button class="btn-nav" onclick="cerrarSesion()">Salir</button>
@@ -290,6 +291,17 @@
                 </div>
                 <div id="resumenBusqueda" class="result-summary"></div>
                 <div id="contenedorBusqueda"></div>
+            </div>
+
+            <div id="sec-sesiones" class="section">
+                <input type="text" class="busc-input" id="inpBusSesiones" placeholder="Buscar en notas o nombre paciente..." oninput="filtrarSesionesInput()">
+                <div class="filtros-advanced">
+                    <input type="date" id="filtroSesionesDesde" class="select-input" onchange="filtrarSesionesInput()" title="Desde fecha">
+                    <input type="date" id="filtroSesionesHasta" class="select-input" onchange="filtrarSesionesInput()" title="Hasta fecha">
+                    <button class="btn-mini" onclick="limpiarFiltrosSesiones()">Limpiar filtros</button>
+                </div>
+                <div id="resumenSesiones" class="result-summary"></div>
+                <div id="contenedorSesiones" style="display:grid; gap:8px; margin-bottom:12px;"></div>
             </div>
 
             <div id="sec-clientes" class="section">
@@ -2043,6 +2055,67 @@
             document.querySelectorAll('.section, .btn-nav').forEach(x => x.classList.remove('active')); 
             document.getElementById(`sec-${s}`).classList.add('active'); 
             document.getElementById(`btn-${s}`).classList.add('active'); 
+
+            if (s === 'sesiones') {
+                filtrarSesionesInput();
+            }
+        };
+
+        window.filtrarSesionesInput = debounce(() => {
+            const txt = (document.getElementById("inpBusSesiones").value || "").toLowerCase().trim();
+            const desde = document.getElementById("filtroSesionesDesde").value;
+            const hasta = document.getElementById("filtroSesionesHasta").value;
+            const resumen = document.getElementById("resumenSesiones");
+            const cont = document.getElementById("contenedorSesiones");
+
+            const filtradas = todasLasHistorias.filter((h) => {
+                const okTxt = !txt 
+                    || (h.nombre || "").toLowerCase().includes(txt)
+                    || (h.servicio || "").toLowerCase().includes(txt)
+                    || (h.notas || "").toLowerCase().includes(txt);
+
+                let okFecha = true;
+                if (h.fecha) {
+                    if (desde) okFecha = okFecha && h.fecha >= desde;
+                    if (hasta) okFecha = okFecha && h.fecha <= hasta;
+                }
+
+                return okTxt && okFecha;
+            }).sort((a, b) => (b.fecha || '0').localeCompare(a.fecha || '0'));
+
+            if (resumen) {
+                resumen.textContent = `${filtradas.length} sesión(es) encontrada(s)`;
+            }
+
+            if (!cont) return;
+            if (!filtradas.length) {
+                cont.innerHTML = '<div class="empty-state">No hay sesiones para estos filtros.</div>';
+                return;
+            }
+
+            cont.innerHTML = filtradas.map((h) => `
+                <div class="detalle-dia-card" style="margin-top:0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                        <b>${escapeHtml(h.nombre || 'Sin nombre')}</b>
+                        <span class="tag-fecha">${formatoFechaISO(h.fecha)}</span>
+                    </div>
+                    <div style="margin-top:4px; font-size:13px; color:#4b6d5f;">
+                        <strong>${escapeHtml(h.servicio || 'Servicio no especificado')}</strong>
+                    </div>
+                    ${h.notas ? `
+                    <div style="margin-top:8px; background:#f3faf6; border:1px solid #b6dfc9; border-radius:10px; padding:10px; font-size:13px; color:#2f5a47; white-space:pre-wrap;">
+                        ${escapeHtml(h.notas)}
+                    </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }, 200);
+
+        window.limpiarFiltrosSesiones = () => {
+            document.getElementById("inpBusSesiones").value = "";
+            document.getElementById("filtroSesionesDesde").value = "";
+            document.getElementById("filtroSesionesHasta").value = "";
+            filtrarSesionesInput();
         };
 
         // === FUNCIONES PARA CONTROL DE JORNADA ESPECIAL ===
