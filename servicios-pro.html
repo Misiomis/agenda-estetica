@@ -152,6 +152,150 @@
             font-weight: 600;
         }
 
+        .kit-cta {
+            margin: 0 auto 20px;
+            padding: 18px 20px;
+            border-radius: 24px;
+            background:
+                radial-gradient(circle at top right, rgba(255, 90, 67, 0.1), rgba(255, 90, 67, 0) 30%),
+                linear-gradient(145deg, rgba(255, 252, 248, 0.98) 0%, rgba(244, 249, 245, 0.96) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.82);
+            box-shadow: 0 20px 34px rgba(28, 45, 36, 0.1);
+            text-align: left;
+        }
+
+        .kit-cta.hidden {
+            display: none;
+        }
+
+        .kit-cta-kicker {
+            margin: 0 0 6px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #7f6b62;
+        }
+
+        .kit-cta-title {
+            margin: 0;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(28px, 4vw, 40px);
+            line-height: 0.98;
+            color: var(--ink);
+        }
+
+        .kit-cta-copy {
+            margin: 10px 0 0;
+            max-width: 720px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #5c6b64;
+        }
+
+        .kit-cta-actions {
+            margin-top: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-kit {
+            border: none;
+            border-radius: 999px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #ff5a43 0%, #d62020 52%, #7d0f16 100%);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 16px 28px rgba(173, 23, 23, 0.22);
+        }
+
+        .kit-cta-note {
+            font-size: 12px;
+            color: #738178;
+            font-weight: 600;
+        }
+
+        .kit-request-grid {
+            display: grid;
+            gap: 12px;
+            margin: 14px 0 0;
+        }
+
+        .kit-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid #dfeae4;
+            background: #fff;
+        }
+
+        .kit-option input {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            accent-color: #d62020;
+        }
+
+        .kit-option span {
+            font-size: 14px;
+            color: #43544b;
+            font-weight: 600;
+        }
+
+        .kit-textarea {
+            width: 100%;
+            min-height: 120px;
+            margin-top: 14px;
+            padding: 14px;
+            border-radius: 16px;
+            border: 1.5px solid #dfe9e4;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 14px;
+            color: #33453d;
+            background: #fff;
+        }
+
+        .kit-form-note {
+            margin: 10px 0 0;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #7b8781;
+        }
+
+        .kit-feedback {
+            display: none;
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .kit-feedback.show {
+            display: block;
+        }
+
+        .kit-feedback.error {
+            background: #fff1f3;
+            color: #9b4e5a;
+            border: 1px solid #f2d3d8;
+        }
+
+        .kit-feedback.success {
+            background: #edf8f0;
+            color: #2f7c5d;
+            border: 1px solid #cfe7d7;
+        }
+
         .servicios {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -675,6 +819,16 @@
             <button class="btn-buscar" id="btnAbrirBusqueda" style="max-width:340px;">Ver mis próximos turnos</button>
         </div>
 
+        <div id="kitCta" class="kit-cta reveal hidden">
+            <p class="kit-cta-kicker">Rutina en casa</p>
+            <h3 class="kit-cta-title">Quiero que Gimena prepare mi kit facial domiciliario</h3>
+            <p class="kit-cta-copy">Si querés, podés pedir tu kit para el cuidado en casa y contarnos brevemente cómo sentís tu piel. Gimena lo revisa, lo arma de manera personalizada y después te avisa cuando esté listo.</p>
+            <div class="kit-cta-actions">
+                <button id="btnAbrirKitFacial" class="btn-kit" type="button">Solicitar mi kit</button>
+                <span class="kit-cta-note">Disponible únicamente para pacientes con sesión iniciada.</span>
+            </div>
+        </div>
+
         <div id="loading" class="reveal">Cargando experiencias...</div>
         <div class="servicios" id="listaServicios"></div>
     </main>
@@ -701,8 +855,28 @@
         </div>
     </div>
 
+    <div id="modalKitFacial" class="modal-overlay">
+        <div class="modal-card">
+            <h2>Kit facial domiciliario</h2>
+            <p style="font-size:13px;color:#7b8680;margin:0 0 10px;">Elegí lo que te gustaría incluir y dejale a Gimena una breve descripción de tu piel para que pueda prepararlo con criterio profesional.</p>
+            <div class="kit-request-grid">
+                <label class="kit-option"><input type="checkbox" value="Leche de limpieza"> <span>Leche de limpieza</span></label>
+                <label class="kit-option"><input type="checkbox" value="Gel de limpieza"> <span>Gel de limpieza</span></label>
+                <label class="kit-option"><input type="checkbox" value="Tónico calmante"> <span>Tónico calmante</span></label>
+                <label class="kit-option"><input type="checkbox" value="Crema / Gel regeneradora hidratante"> <span>Crema / Gel regeneradora hidratante</span></label>
+            </div>
+            <textarea id="kitDescripcionPiel" class="kit-textarea" placeholder="Contanos brevemente cómo está tu piel, qué estás sintiendo o qué te gustaría mejorar."></textarea>
+            <p class="kit-form-note">Tu pedido le va a llegar a Gimena con tu nombre, DNI y teléfono para que después pueda avisarte cuando esté listo.</p>
+            <div id="kitFeedback" class="kit-feedback" aria-live="polite"></div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;">
+                <button id="btnEnviarKitFacial" class="btn-buscar" type="button" style="flex:1;">Enviar pedido</button>
+                <button id="btnCerrarKitFacial" class="btn-cerrar" type="button" style="flex:1;">Volver</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
-        import { db, collection, getDocs, query, where, doc, getDoc } from "/js/firebase-web.js";
+        import { db, collection, getDocs, query, where, doc, getDoc, addDoc } from "/js/firebase-web.js";
         const CF_CANCELACION_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/cancelarReservaPaciente";
         const WHATSAPP_GIMENA_NUMERO = "5493764291807";
 
@@ -721,9 +895,16 @@
         const loading = document.getElementById("loading");
         const modalBusqueda = document.getElementById("modalBusquedaDNI");
         const modalResultados = document.getElementById("modalCitasCliente");
+        const modalKitFacial = document.getElementById("modalKitFacial");
         const listaResultados = document.getElementById("listaResultadosCitas");
         const turnosFeedback = document.getElementById("turnosFeedback");
         const btnAbrirBusqueda = document.getElementById("btnAbrirBusqueda");
+        const btnAbrirKitFacial = document.getElementById("btnAbrirKitFacial");
+        const btnEnviarKitFacial = document.getElementById("btnEnviarKitFacial");
+        const btnCerrarKitFacial = document.getElementById("btnCerrarKitFacial");
+        const kitFeedback = document.getElementById("kitFeedback");
+        const kitDescripcionPiel = document.getElementById("kitDescripcionPiel");
+        const kitCta = document.getElementById("kitCta");
         const dniSesion = localStorage.getItem("clienteDNI");
         const nombreSesion = (localStorage.getItem("clienteNombre") || "").trim();
         const haySesionCliente = !!(dniSesion && dniSesion !== "null" && dniSesion !== "" && nombreSesion);
@@ -732,6 +913,11 @@
         let dniConsultaActual = "";
         let cancelacionTurnoActivaId = "";
         let cancelandoReservaId = "";
+        let enviandoKitFacial = false;
+
+        if (haySesionCliente && kitCta) {
+            kitCta.classList.remove("hidden");
+        }
 
         const escapeHtml = (value) => String(value ?? "")
             .replace(/&/g, "&amp;")
@@ -772,6 +958,42 @@
 
             turnosFeedback.textContent = message;
             turnosFeedback.className = `turnos-feedback show ${type}`;
+        };
+
+        const setKitFeedback = (message = "", type = "success") => {
+            if (!kitFeedback) return;
+            if (!message) {
+                kitFeedback.textContent = "";
+                kitFeedback.className = "kit-feedback";
+                return;
+            }
+            kitFeedback.textContent = message;
+            kitFeedback.className = `kit-feedback show ${type}`;
+        };
+
+        const obtenerItemsKitSeleccionados = () =>
+            [...document.querySelectorAll('#modalKitFacial input[type="checkbox"]:checked')]
+                .map((input) => input.value.trim())
+                .filter(Boolean);
+
+        const limpiarFormularioKit = () => {
+            document.querySelectorAll('#modalKitFacial input[type="checkbox"]').forEach((input) => {
+                input.checked = false;
+            });
+            if (kitDescripcionPiel) kitDescripcionPiel.value = "";
+            setKitFeedback("");
+        };
+
+        const abrirModalKit = () => {
+            if (!haySesionCliente || !modalKitFacial) return;
+            setKitFeedback("");
+            modalKitFacial.style.display = "flex";
+        };
+
+        const cerrarModalKit = () => {
+            if (!modalKitFacial) return;
+            modalKitFacial.style.display = "none";
+            if (!enviandoKitFacial) limpiarFormularioKit();
         };
 
         const formatearFechaTexto = (fechaStr) => {
@@ -1028,6 +1250,63 @@
             }
         };
 
+        const enviarSolicitudKitFacial = async () => {
+            if (!haySesionCliente || enviandoKitFacial) return;
+
+            const itemsSeleccionados = obtenerItemsKitSeleccionados();
+            const descripcionPiel = (kitDescripcionPiel?.value || "").trim();
+
+            if (!itemsSeleccionados.length) {
+                setKitFeedback("Elegí al menos un producto para que Gimena pueda preparar tu kit.", "error");
+                return;
+            }
+
+            if (descripcionPiel.length < 20) {
+                setKitFeedback("Contanos un poquito más sobre cómo sentís tu piel para que Gimena pueda orientarlo bien.", "error");
+                kitDescripcionPiel?.focus();
+                return;
+            }
+
+            enviandoKitFacial = true;
+            btnEnviarKitFacial?.setAttribute("disabled", "disabled");
+            if (btnEnviarKitFacial) btnEnviarKitFacial.textContent = "Enviando...";
+            setKitFeedback("");
+
+            try {
+                const clienteSnap = await getDoc(doc(db, "clients", dniSesion));
+                const clienteData = clienteSnap.exists() ? (clienteSnap.data() || {}) : {};
+                const telefono = String(clienteData.phone || "").trim();
+
+                if (!telefono) {
+                    throw new Error("No encontramos tu teléfono cargado. Escribinos y lo resolvemos enseguida.");
+                }
+
+                await addDoc(collection(db, "kitFacialRequests"), {
+                    dni: dniSesion,
+                    nombre: nombreSesion,
+                    telefono,
+                    productos: itemsSeleccionados,
+                    descripcionPiel,
+                    estado: "pendiente",
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    origen: "servicios-pro"
+                });
+
+                setKitFeedback("Tu pedido quedó enviado. Gimena te va a avisar cuando tu kit esté listo.", "success");
+                setTimeout(() => {
+                    cerrarModalKit();
+                }, 1200);
+            } catch (error) {
+                console.error(error);
+                setKitFeedback(error.message || "No pudimos enviar tu pedido en este momento.", "error");
+            } finally {
+                enviandoKitFacial = false;
+                btnEnviarKitFacial?.removeAttribute("disabled");
+                if (btnEnviarKitFacial) btnEnviarKitFacial.textContent = "Enviar pedido";
+            }
+        };
+
         btnAbrirBusqueda.onclick = () => {
             const dniGuardado = localStorage.getItem("clienteDNI");
 
@@ -1043,6 +1322,10 @@
             const dni = document.getElementById("inputDNI").value.trim();
             if (dni) ejecutarConsulta(dni);
         };
+
+        btnAbrirKitFacial?.addEventListener("click", abrirModalKit);
+        btnCerrarKitFacial?.addEventListener("click", cerrarModalKit);
+        btnEnviarKitFacial?.addEventListener("click", enviarSolicitudKitFacial);
 
         window.cerrarModalBusqueda = () => {
             modalBusqueda.style.display = "none";

@@ -247,6 +247,7 @@
                 <button class="btn-nav" id="btn-buscar" onclick="navegar('buscar')">Buscar</button>
                 <button class="btn-nav" id="btn-buscador-sesiones" onclick="navegar('buscador-sesiones')">Buscador de sesiones</button>
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">Pacientes</button>
+                <button class="btn-nav" id="btn-kits" onclick="navegar('kits')">Kits</button>
                 <button class="btn-nav" id="btn-export" onclick="navegar('export')">Exportar</button>
                 <button class="btn-nav" onclick="cerrarSesion()">Salir</button>
             </div>
@@ -369,6 +370,15 @@
                 </div>
                 <div id="resumenClientes" class="result-summary"></div>
                 <div id="contenedorClientes" style="display:grid; gap:8px; margin-bottom:12px;"></div>
+            </div>
+
+            <div id="sec-kits" class="section">
+                <div class="detalle-dia-card" style="margin-bottom:12px;">
+                    <h3 style="margin-top:0">Pedidos de kit facial domiciliario</h3>
+                    <p style="font-size:13px; color:#557b6b; margin:0 0 10px 0;">Acá ves quién pidió su kit, qué productos seleccionó y un acceso directo para avisarle por WhatsApp cuando ya esté listo.</p>
+                    <div id="resumenKits" class="result-summary"></div>
+                    <div id="contenedorKitsFaciales" style="display:grid; gap:10px;"></div>
+                </div>
             </div>
 
             <div id="sec-export" class="section">
@@ -721,6 +731,7 @@
         let todasLasReservas = [];
         let todasLasHistorias = [];
         let todasLosPacientes = [];
+        let todasLasSolicitudesKit = [];
         let dniClienteCargado = "";
         let horariosDisponibles = [];
         let bloqueosHorarios = new Map();
@@ -837,6 +848,58 @@
             if (!limpio) return "";
             if (!limpio.startsWith("54")) limpio = "549" + limpio;
             return limpio;
+        };
+
+        const construirWhatsAppKitUrl = (solicitud = {}) => {
+            const telefono = formatearTelefonoWhatsApp(solicitud.telefono || "");
+            if (!telefono) return "";
+            const nombre = (solicitud.nombre || "paciente").toString().trim();
+            const mensaje = `Hola ${nombre}, tu kit facial domiciliario ya está listo. Cuando quieras, te cuento cómo retirarlo y cómo usarlo.`;
+            return `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
+        };
+
+        const renderSolicitudesKit = () => {
+            const contenedor = document.getElementById("contenedorKitsFaciales");
+            const resumen = document.getElementById("resumenKits");
+            if (!contenedor) return;
+
+            if (!todasLasSolicitudesKit.length) {
+                if (resumen) resumen.textContent = "Todavía no hay pedidos cargados.";
+                contenedor.innerHTML = '<div class="empty-state">Todavía no se registraron pedidos de kit facial.</div>';
+                return;
+            }
+
+            if (resumen) resumen.textContent = `${todasLasSolicitudesKit.length} pedido(s) registrados`;
+
+            contenedor.innerHTML = todasLasSolicitudesKit.map((solicitud) => {
+                const waUrl = construirWhatsAppKitUrl(solicitud);
+                const productos = Array.isArray(solicitud.productos) && solicitud.productos.length
+                    ? solicitud.productos.map((item) => escapeHtml(item)).join(" · ")
+                    : "Sin productos detallados";
+                const descripcion = escapeHtml((solicitud.descripcionPiel || "Sin descripción de piel").toString());
+                const nombre = escapeHtml((solicitud.nombre || "Paciente").toString());
+                const dni = escapeHtml((solicitud.dni || "-").toString());
+                const telefono = escapeHtml((solicitud.telefono || "-").toString());
+                const fecha = solicitud.createdAt ? escapeHtml(formatoFechaISO(String(solicitud.createdAt).slice(0, 10))) : "Sin fecha";
+                const botonWa = waUrl
+                    ? `<a class="btn-mini" href="${waUrl}" target="_blank" rel="noopener noreferrer" style="background:#25D366;color:#fff;border-color:#25D366;">Informar por WhatsApp</a>`
+                    : `<span class="pill bloqueado">Sin teléfono válido</span>`;
+
+                return `
+                    <div class="detalle-dia-card">
+                        <div class="turno-headline">
+                            <span class="tag-fecha">${fecha}</span>
+                            <span class="pill disponible">Pendiente</span>
+                        </div>
+                        <b>${nombre}</b>
+                        <div class="turno-meta"><strong>DNI:</strong> ${dni}</div>
+                        <div class="turno-meta"><strong>Teléfono:</strong> ${telefono}</div>
+                        <div class="turno-meta"><strong>Productos:</strong> ${productos}</div>
+                        <div class="turno-meta"><strong>Piel:</strong> ${descripcion}</div>
+                        <div class="quick-actions" style="margin-top:12px;">${botonWa}</div>
+                    </div>
+                `;
+            }).join("");
         };
 
         const extraerMensajeErrorWhatsApp = (payload = {}, fallback = "Error desconocido") => {
@@ -1037,10 +1100,11 @@
         async function cargarTodo() {
             mostrarLoader(true);
             try {
-                const [snapR, snapH, snapC] = await Promise.all([
+                const [snapR, snapH, snapC, snapKits] = await Promise.all([
                     getDocs(collection(db, "reservas")),
                     getDocs(collection(db, "historias")),
-                    getDocs(collection(db, "clients")).catch(() => ({ docs: [] }))
+                    getDocs(collection(db, "clients")).catch(() => ({ docs: [] })),
+                    getDocs(collection(db, "kitFacialRequests")).catch(() => ({ docs: [] }))
                 ]);
                 const [snapHorarios, snapBloqueos] = await Promise.all([
                     getDocs(collection(db, "horarios")).catch(() => ({ docs: [] })),
@@ -1137,8 +1201,14 @@
                     };
                 });
 
+                todasLasSolicitudesKit = (snapKits.docs || []).map((d) => ({
+                    id: d.id,
+                    ...(d.data() || {})
+                })).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+
                 renderCalendario();
                 renderHistorias(todasLasHistorias);
+                renderSolicitudesKit();
                 actualizarKPIs();
                 poblarServiciosFiltro();
                 filtrarListadoClientes();
