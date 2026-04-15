@@ -656,10 +656,6 @@
             <button class="btn-buscar" id="btnAbrirBusqueda" style="max-width:340px;">Ver mis próximos turnos</button>
         </div>
 
-        <div class="section-head reveal" style="margin-top:12px;margin-bottom:22px;">
-            <button class="btn-buscar" id="btnKitFacial" style="max-width:340px;background:linear-gradient(135deg,#d4a573,#b8956a);">🧴 Solicitar Kit Facial Domiciliario</button>
-        </div>
-
         <div id="loading" class="reveal">Cargando experiencias...</div>
         <div class="servicios" id="listaServicios"></div>
     </main>
@@ -1023,10 +1019,6 @@
             modalBusqueda.style.display = "flex";
         };
 
-        document.getElementById("btnKitFacial").onclick = () => {
-            window.location.href = "/kit-facial.html";
-        };
-
         document.getElementById("btnRealizarBusqueda").onclick = () => {
             const dni = document.getElementById("inputDNI").value.trim();
             if (dni) ejecutarConsulta(dni);
@@ -1096,6 +1088,23 @@
                 servicios.sort((a, b) => a.orden - b.orden);
                 loading.style.display = "none";
 
+                const kitDiv = document.createElement("div");
+                kitDiv.className = "servicio reveal";
+                kitDiv.innerHTML = `
+                    <div>
+                        <div class="servicio-head">
+                            <div class="servicio-icono" aria-hidden="true">🧴</div>
+                            <div>
+                                <h3>Kit Facial Domiciliario</h3>
+                                <div class="duracion">Productos</div>
+                            </div>
+                        </div>
+                        <p class="desc">Leche de limpieza, gel de limpieza, tónico calmante y crema/gel regeneradora hidratante. Cuidado de tu piel en casa.</p>
+                    </div>
+                    <button class="btn-reservar" id="btnKitFacialPro" style="background:linear-gradient(135deg,#d4a573,#b8956a);">Pedir mi kit facial domiciliario</button>
+                `;
+                contenedor.appendChild(kitDiv);
+
                 servicios.forEach((s, idx) => {
                     const div = document.createElement("div");
                     div.className = "servicio reveal";
@@ -1121,6 +1130,16 @@
 
                 document.querySelectorAll(".btn-reservar").forEach((btn) => {
                     btn.addEventListener("click", () => {
+                        if (btn.id === "btnKitFacialPro") {
+                            const dni = localStorage.getItem("clienteDNI");
+                            const nombre = localStorage.getItem("clienteNombre");
+                            if (dni && nombre && dni !== "null" && nombre !== "null") {
+                                window.location.href = "/kit-facial.html";
+                                return;
+                            }
+                            window.location.href = "/login.html?redirect=kit-facial.html";
+                            return;
+                        }
                         localStorage.setItem("jornadaModo", "0");
                         localStorage.removeItem("jornadaSource");
                         localStorage.setItem("servicioSeleccionado", btn.getAttribute("data-nombre"));

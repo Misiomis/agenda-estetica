@@ -76,10 +76,6 @@
 
     <div class="container">
         <img src="img/logo.png" class="logo">
-        
-        <div style="text-align:center;margin:20px 0 30px;">
-            <button id="btnKitFacial" class="btn-reservar" style="max-width:320px;background:linear-gradient(135deg,#d4a573,#b8956a);">🧴 Solicitar Kit Facial Domiciliario</button>
-        </div>
 
         <div id="loading">Cargando experiencias...</div>
         <div class="servicios" id="listaServicios"></div>
@@ -187,6 +183,25 @@
 
                 servicios.sort((a, b) => a.orden - b.orden);
                 loading.style.display = "none";
+                
+                // Agregar botón de Kit Facial como servicio
+                const kitDiv = document.createElement("div");
+                kitDiv.className = "servicio";
+                kitDiv.innerHTML = `
+                    <div>
+                        <div class="servicio-head">
+                            <div class="servicio-icono" aria-hidden="true">🧴</div>
+                            <div>
+                                <h3>Kit Facial Domiciliario</h3>
+                                <div class="duracion"> Productos </div>
+                            </div>
+                        </div>
+                        <p>Leche de limpieza, gel de limpieza, tónico calmante y crema/gel regeneradora hidratante. Cuidado de tu piel en casa.</p>
+                    </div>
+                    <button class="btn-reservar" id="btnKitFacialCard" style="background:linear-gradient(135deg,#d4a573,#b8956a);">Pedir mi kit facial domiciliario</button>
+                `;
+                contenedor.appendChild(kitDiv);
+
                 servicios.forEach(s => {
                     const div = document.createElement("div");
                     div.className = "servicio";
@@ -198,8 +213,22 @@
                     div.innerHTML = `<div>${bloqueImagen}<div class="servicio-head"><div class="servicio-icono" aria-hidden="true">${emoji}</div><div><h3>${tituloLimpio}</h3><div class="duracion">${s.duracion} min</div></div></div><p>${descFormateada}</p></div><button class="btn-reservar" data-nombre="${s.nombre}">Reservar Turno</button>`;
                     contenedor.appendChild(div);
                 });
-                document.querySelectorAll('.btn-reservar').forEach(btn => {
+            document.querySelectorAll('.btn-reservar').forEach(btn => {
                     btn.addEventListener('click', () => {
+                        if (btn.id === 'btnKitFacialCard') {
+                            const dni = localStorage.getItem("clienteDNI");
+                            const nombre = localStorage.getItem("clienteNombre");
+                            if (dni && nombre && dni !== "null" && nombre !== "null") {
+                                window.location.href = "/kit-facial.html";
+                                return;
+                            }
+                            const numeroGimena = "5493764291807";
+                            const mensaje = "Hola! Quiero información sobre el kit facial domiciliario de Espacio Mimar T";
+                            const waUrl = `https://wa.me/${numeroGimena}?text=${encodeURIComponent(mensaje)}`;
+                            document.getElementById("waLinkKit").href = waUrl;
+                            document.getElementById("modalKitNoCliente").style.display = "flex";
+                            return;
+                        }
                         localStorage.setItem("jornadaModo", "0");
                         localStorage.removeItem("jornadaSource");
                         localStorage.setItem("servicioSeleccionado", btn.getAttribute('data-nombre'));
@@ -210,22 +239,6 @@
         }
 
         window.onclick = (e) => { if (e.target.classList.contains('modal-overlay')) e.target.style.display = "none"; };
-
-        document.getElementById("btnKitFacial").onclick = () => {
-            const dni = localStorage.getItem("clienteDNI");
-            const nombre = localStorage.getItem("clienteNombre");
-            
-            if (dni && nombre && dni !== "null" && nombre !== "null") {
-                window.location.href = "/kit-facial.html";
-                return;
-            }
-
-            const numeroGimena = "5493764291807";
-            const mensaje = "Hola! Quiero información sobre el kit facial domiciliario de Espacio Mimar T";
-            const waUrl = `https://wa.me/${numeroGimena}?text=${encodeURIComponent(mensaje)}`;
-            document.getElementById("waLinkKit").href = waUrl;
-            document.getElementById("modalKitNoCliente").style.display = "flex";
-        };
 
         cargarServicios();
     </script>
