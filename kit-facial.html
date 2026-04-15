@@ -359,7 +359,7 @@
     <script src="/js/mimi-bot.js"></script>
 
     <script type="module">
-        import { db, collection, addDoc, serverTimestamp } from "/js/firebase-web.js";
+        import { db, collection, addDoc } from "/js/firebase-web.js";
 
         const PRODUCTOS_DISPONIBLES = [
             "Leche de limpieza",
@@ -444,7 +444,7 @@
                     telefono: datosCliente?.phone || datosCliente?.telefono || "",
                     dni: dni,
                     estado: "pendiente",
-                    createdAt: serverTimestamp()
+                    createdAt: new Date().toISOString()
                 };
 
                 await addDoc(collection(db, "pedidosKit"), pedidoData);
