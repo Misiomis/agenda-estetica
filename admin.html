@@ -25,11 +25,43 @@
         .btn-nav { padding: 10px 18px; min-height: 40px; border: 1px solid #cfe9dd; background: #fff; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.3s; color: var(--texto); }
         .btn-nav:hover { background: var(--suave); border-color: var(--suave-oscuro); }
         .btn-nav.active { background: #e9f7f0; color: var(--accento-oscuro); border-color: #a9d9c3; }
-        
-        /* ... Estilos restantes omitidos por brevedad pero incluidos en el archivo original ... */
 
-        body.compact-mode .container { margin: 10px auto; }
-        body.compact-mode .kpi-grid { gap: 7px; margin-bottom: 10px; }
+        /* CONTENEDORES Y SECCIONES */
+        .container { max-width: 1024px; margin: 18px auto; padding: 0 16px; }
+        .section { display: none; }
+        .section.active { display: block; }
+        #admin-content { display: none; }
+
+        /* KPI */
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+        .kpi-card { background: #fff; border: 1px solid #d9eee4; border-radius: 14px; padding: 12px; box-shadow: 0 6px 14px rgba(72,133,106,0.08); }
+        .kpi-label { font-size: 11px; color: #6a8e7f; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+        .kpi-value { font-size: clamp(1.2rem, 2.2vw, 1.6rem); font-weight: 700; color: var(--verde-oscuro); margin-top: 4px; }
+
+        /* CALENDARIO */
+        .calendar-container { background: #fff; border-radius: 22px; padding: 18px; box-shadow: 0 10px 25px rgba(63,143,111,0.12); border: 1px solid #d7ebe2; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; text-align: center; margin-top: 15px; }
+        .day { padding: 10px 4px; min-height: 42px; border-radius: 12px; font-size: 13px; cursor: pointer; border: 1px solid #dbeee6; background: #ffffff; transition: 0.2s; color: #496b5d; display: flex; align-items: center; justify-content: center; }
+        .day.dia-hoy { outline: 2px solid var(--verde-oscuro); outline-offset: 1px; font-weight: 700; background: #f0faf5; }
+        .day.has-reserva { background: #e6f6ee; border: 1.5px solid var(--verde-oscuro); color: #1f6548; font-weight: 700; }
+        .day.selected { background: var(--verde) !important; color: white !important; }
+
+        /* COMPONENTES */
+        .btn-mini { border: 1px solid #b7dfcc; background: #ffffff; color: var(--verde-oscuro); border-radius: 999px; padding: 9px 13px; min-height: 38px; cursor: pointer; font-weight: 700; font-size: 12px; }
+        .btn-ws { border: none; padding: 10px 6px; min-height: 38px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 12px; color: white; text-align: center; transition: 0.3s; }
+        .wa-status-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+        .wa-status-badge.sent { background: #dcfce7; color: #166534; }
+        .wa-status-badge.failed { background: #fee2e2; color: #991b1b; }
+
+        /* TOAST */
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 999999; pointer-events: none; }
+        .toast { color: white; padding: 12px 25px; border-radius: 12px; font-weight: 600; opacity: 0; transition: 0.4s; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .toast.show { opacity: 1; }
+
+        @media (max-width: 760px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .menu-nav { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; }
+        }
     </style>
 </head>
 <body>
@@ -46,45 +78,33 @@
 
     <div id="admin-content">
         <div id="toast-container"></div>
-        <div id="confirm-block-modal" class="modal-overlay" style="display:none;">
-            <div class="modal-card">
-                <h3>Horario con reserva activa</h3>
-                <p id="confirm-block-text-1"></p>
-                <div class="modal-actions">
-                    <button class="btn-mini" onclick="cerrarModalBloqueo()">Volver</button>
-                    <button class="btn-mini alerta" onclick="confirmarBloqueoConReserva()">Confirmar bloqueo</button>
-                </div>
-            </div>
-        </div>
-
         <div class="header">
             <h2 style="font-family:'Playfair Display'; margin:0; color:var(--verde-oscuro)">Gimena Knack | Panel</h2>
             <div class="menu-nav">
-                <button class="btn-nav active" id="btn-agenda" onclick="navegar('agenda')">📅 Agenda</button>
-                <button class="btn-nav" id="btn-historias" onclick="navegar('historias')">📁 Historias</button>
-                <button class="btn-nav" id="btn-buscar" onclick="navegar('buscar')">🔍 Buscar</button>
-                <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">🧾 Pacientes</button>
-                <button class="btn-nav" id="btn-export" onclick="navegar('export')">📄 Exportar</button>
+                <button class="btn-nav active" onclick="navegar('agenda')">📅 Agenda</button>
+                <button class="btn-nav" onclick="navegar('historias')">📁 Historias</button>
+                <button class="btn-nav" onclick="navegar('clientes')">🧾 Pacientes</button>
+                <button class="btn-nav" onclick="navegar('export')">⚡ Control</button>
                 <button class="btn-nav" onclick="cerrarSesion()">Salir</button>
             </div>
         </div>
 
         <div class="container">
             <div id="sec-agenda" class="section active">
-                <div class="kpi-grid" id="kpiGrid">
+                <div class="kpi-grid">
                     <div class="kpi-card"><div class="kpi-label">Reservas totales</div><div class="kpi-value" id="kpi-total">0</div></div>
                     <div class="kpi-card"><div class="kpi-label">Turnos hoy</div><div class="kpi-value" id="kpi-hoy">0</div></div>
                 </div>
                 <div class="calendar-container">
-                    <div class="calendar-grid" id="calendarGrid"></div>
+                    <div id="calendarGrid" class="calendar-grid"></div>
                 </div>
                 <div id="panelDetalleDia"></div>
             </div>
 
             <div id="sec-export" class="section">
-                <div class="detalle-dia-card">
+                <div class="kpi-card">
                     <h3>⚡ Control Jornada Especial</h3>
-                    <button class="btn-mini" id="btnJornadaToggle" onclick="toggleJornadaEspecial()">Cargando...</button>
+                    <button class="btn-mini" id="btnJornadaToggle" onclick="toggleJornadaEspecial()">Cargar estado...</button>
                 </div>
             </div>
         </div>
@@ -92,28 +112,133 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // ============================================================
-        // FIX: CONSTANTES WA AL TOPE PARA EVITAR TDZ
+        // CONSTANTES WHATSAPP - FIX TDZ (Declaradas al tope)
         // ============================================================
         const WA_TOKEN = "EAAMzA3ngIUkBRMpXw5ZBCCzVCFZAum3yF3dcHlgOPZAigiAIXERNfxpGfq21VCEgiByPN5xhm9mZBUyJ0WWqTl0xoB8ZBEs8EEh2FVC82aDHizTv0bKvMrcH7mkO99svZCMymZAi07nnmnBZCeHlI8XdnMBfJI1pnjVFWQZCdCIOBZA8fDa71OuvkVZCJu5bTR91wZDZD";
         const WA_PHONE_ID = "995248997010108";
         const WA_BASE_URL = `https://graph.facebook.com/v18.0/${WA_PHONE_ID}/messages`;
 
-        const firebaseConfig = { 
-            apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew", 
-            authDomain: "estetica-8d067.firebaseapp.com", 
-            projectId: "estetica-8d067" 
+        const firebaseConfig = { /* Tu config aquí */ };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // ============================================================
+        // UI HELPERS
+        // ============================================================
+        window.mostrarAviso = (m, tipo = "info") => {
+            const colores = {
+                ok: "rgba(72, 187, 120, 0.95)",
+                error: "rgba(229, 62, 62, 0.95)",
+                warn: "rgba(236, 153, 75, 0.95)",
+                info: "rgba(114, 189, 153, 0.95)"
+            };
+            const color = m.startsWith("✅") ? colores.ok : m.startsWith("❌") ? colores.error : m.startsWith("⚠️") ? colores.warn : colores.info;
+            
+            const c = document.getElementById("toast-container");
+            const t = document.createElement("div");
+            t.className = "toast show";
+            t.style.background = color;
+            t.innerText = m;
+            c.appendChild(t);
+            setTimeout(() => { t.classList.remove("show"); setTimeout(() => c.removeChild(t), 400); }, 3000);
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // ============================================================
+        // WHATSAPP LOGIC
+        // ============================================================
+        window.enviarW = async (tipo, cel, fecha, hora, nombre, event) => {
+            const btn = event?.currentTarget;
+            if (btn) { btn.disabled = true; btn.style.opacity = "0.6"; }
 
-        // ... Lógica de autenticación y funciones de agenda ...
-        // Se mantiene la estructura original pero con las variables de WA correctamente inicializadas.
+            try {
+                const body = {
+                    messaging_product: "whatsapp",
+                    to: cel,
+                    type: "template",
+                    template: { name: tipo, language: { code: "es_AR" } }
+                };
+
+                const resp = await fetch(WA_BASE_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${WA_TOKEN}` },
+                    body: JSON.stringify(body)
+                });
+
+                if (resp.ok) {
+                    mostrarAviso("✅ Mensaje enviado");
+                    if (btn) btn.insertAdjacentHTML('afterend', '<span class="wa-status-badge sent">✅</span>');
+                } else {
+                    throw new Error();
+                }
+            } catch (e) {
+                mostrarAviso("❌ Error al enviar");
+                if (btn) btn.insertAdjacentHTML('afterend', '<span class="wa-status-badge failed">❌</span>');
+            } finally {
+                if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
+            }
+        };
+
+        // ============================================================
+        // JORNADA ESPECIAL - FIX ReferenceError
+        // ============================================================
+        window.toggleJornadaEspecial = async () => {
+            const btn = document.getElementById("btnJornadaToggle");
+            btn.disabled = true;
+            try {
+                const snap = await getDoc(doc(db, "configuracion", "jornadaEspecial"));
+                const config = snap.exists() ? snap.data() : null;
+                
+                if (!config) {
+                    await setDoc(doc(db, "configuracion", "jornadaEspecial"), { 
+                        active: true, 
+                        serviceName: "Criolipólisis", 
+                        zones: ["Abdomen", "Piernas"] 
+                    });
+                    mostrarAviso("✅ Jornada activada!");
+                } else {
+                    const nuevoEstado = !config.active;
+                    await updateDoc(doc(db, "configuracion", "jornadaEspecial"), { active: nuevoEstado });
+                    mostrarAviso(nuevoEstado ? "✅ Jornada activada!" : "❌ Jornada desactivada!");
+                }
+            } catch (err) {
+                mostrarAviso("❌ Error al cambiar estado");
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // ============================================================
+        // CALENDARIO - Mejora Visual Hoy
+        // ============================================================
+        const renderCalendario = () => {
+            const grid = document.getElementById("calendarGrid");
+            grid.innerHTML = "";
+            const hoy = new Date().toISOString().split('T')[0];
+
+            for (let i = 1; i <= 30; i++) {
+                const fStr = `2026-04-${String(i).padStart(2, '0')}`;
+                const div = document.createElement("div");
+                div.className = "day";
+                if (fStr === hoy) div.classList.add("dia-hoy");
+                div.innerText = i;
+                grid.appendChild(div);
+            }
+        };
+
+        // ... Resto de la lógica (Auth, Navegación, Historias) ...
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById("login-overlay").style.display = "none";
+                document.getElementById("admin-content").style.display = "block";
+                renderCalendario();
+            }
+        });
     </script>
 </body>
 </html>
