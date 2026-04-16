@@ -274,29 +274,38 @@ window.buscarServiciosRealizadosInput = function() {
         cont.innerHTML = '<div class="empty-state">Escribe el nombre o parte del nombre de la paciente...</div>';
         return;
     }
-    // Solo fechas pasadas (hoy o antes)
+    // TODAS las sesiones: pasadas Y futuras
     const hoy = new Date();
     hoy.setHours(0,0,0,0);
     const lista = reservas.filter(r => {
         const nombre = (r.nombreFinal || '').toLowerCase();
         const fechaObj = parsearFecha(r.fecha);
-        return nombre.includes(filtro) && fechaObj && fechaObj <= hoy;
+        return nombre.includes(filtro) && fechaObj;
     }).sort((a,b) => parsearFecha(b.fecha) - parsearFecha(a.fecha));
 
     if (!lista.length) {
         cont.innerHTML = '<div class="empty-state">No se encontraron sesiones pasadas para ese nombre.</div>';
         return;
     }
-    cont.innerHTML = lista.map(r => `
-        <div class="detalle-dia-card" style="margin-bottom:10px;">
-            <b>${escapeHtml(r.nombreFinal)}</b> <span class="tag-fecha">${escapeHtml(r.fecha)} ${escapeHtml(r.hora || '')}</span><br>
+    cont.innerHTML = lista.map(r => {
+        const fechaObj = parsearFecha(r.fecha);
+        const esPendiente = fechaObj > hoy;
+        const tagEstado = esPendiente ? 
+            '<span class="tag-fecha" style="background:#fff3cd; color:#856404;">⏳ PENDIENTE</span>' : 
+            '<span class="tag-fecha" style="background:#d4edda; color:#155724;">✅ REALIZADA</span>';
+            
+        return `
+        <div class="detalle-dia-card" style="margin-bottom:10px; ${esPendiente ? 'border-left:4px solid #ffc107;' : 'border-left:4px solid #28a745;'}">
+            <b>${escapeHtml(r.nombreFinal)}</b> 
+            <span class="tag-fecha">${escapeHtml(r.fecha)} ${escapeHtml(r.hora || '')}</span>
+            ${tagEstado}<br>
             <span style="color:#4a7c6a; font-weight:600">${escapeHtml(r.servicio || 'Tratamiento')}</span>
             <div style="margin-top:7px;">
                 <b>Nota:</b> <span>${escapeHtml(r.detalleSesion || '(sin nota)')}</span>
                 <button class="btn-mini" style="margin-left:10px;" onclick="window.activarEdicionNota('${r.id}')">Editar</button>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 };
 // --- FIN BUSCADOR DE SERVICIOS REALIZADOS ---
 
