@@ -304,4 +304,16 @@ function obtenerNombreMes(m) {
     return ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][m]; 
 }
 
+function parsearFecha(fechaStr) {
+    if (!fechaStr) return null;
+    const [y, m, d] = fechaStr.split('-');
+    const f = new Date(y, m - 1, d);
+    f.setHours(0,0,0,0);
+    return f;
+}
+
+function mostrarToast(mensaje) {
+    mostrarAviso(mensaje);
+}
+
 iniciar();

@@ -45,6 +45,26 @@
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
             .menu-nav { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; }
         }
+        .empty-state { 
+            color: #6a8e7f; 
+            text-align: center; 
+            padding: 30px 10px; 
+            font-size: 14px;
+        }
+        .tag-fecha {
+            background: #dff3ea;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .detalle-dia-card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #d7ebe2;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
@@ -80,6 +100,18 @@
                 </div>
                 <div id="panelDetalleDia"></div>
             </div>
+            <div id="sec-historias" class="section">
+                <div class="kpi-card" style="padding:20px;">
+                    <h3>🔍 Buscador de Sesiones</h3>
+                    <input type="text" id="inpBuscadorRealizados" placeholder="Buscar por nombre de paciente..." 
+                        style="width:100%; padding:12px; border:2px solid #d5eadf; border-radius:12px; font-size:15px; margin:15px 0;"
+                        oninput="buscarServiciosRealizadosInput()">
+                    <div id="contenedorServiciosRealizados">
+                        <div class="empty-state">Escribe el nombre o parte del nombre de la paciente...</div>
+                    </div>
+                </div>
+            </div>
+
             <div id="sec-export" class="section">
                 <div class="kpi-card">
                     <h3>⚡ Control Jornada Especial</h3>
@@ -232,9 +264,17 @@
             }
         };
 
-        // ... Aquí iría el resto de tu lógica (navegar, cerrarSesion, etc.) que no incluiste en el snippet original ...
-        // Por ejemplo:
-        window.navegar = (seccion) => console.log(`Navegando a ${seccion}`);
+        // Navegación entre secciones
+        window.navegar = (seccion) => {
+            // Quitar active de todos los botones
+            document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
+            // Poner active al botón clickeado
+            event.target.classList.add('active');
+            // Ocultar todas las secciones
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            // Mostrar la sección seleccionada
+            document.getElementById(`sec-${seccion}`).classList.add('active');
+        };
         window.cerrarSesion = () => signOut(auth).then(() => window.location.reload());
 
 
@@ -262,6 +302,12 @@
                 });
         });
 
+        // Exportar variables globales para admin.js
+        window.db = db;
+        window.auth = auth;
+        window.mostrarAviso = mostrarAviso;
+
     </script>
+    <script type="module" src="./js/admin.js"></script>
 </body>
 </html>
