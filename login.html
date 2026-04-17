@@ -1,375 +1,221 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gimena Knack | Registro de credencial</title>
 
     <link rel="stylesheet" href="mobile-fixes.css">
-<<<<<<< HEAD
-<title>Ingreso | Espacio Mimar</title>
-=======
-<title>Gimena Knack | Registro de credencial</title>
->>>>>>> main
+    <link rel="stylesheet" href="/pro-theme.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --verde: #72bd99;
+            --verde-oscuro: #4e9d7a;
+            --ink: #2b3934;
+            --muted: #64706b;
+        }
 
-<style>
+        * { box-sizing: border-box; }
 
-:root{
---verde:#72bd99;
---verde-oscuro:#4e9d7a;
---ink:#2b3934;
---muted:#64706b;
-}
+        body {
+            background: radial-gradient(circle at 14% -10%, #ffffff 0%, #f4f9f6 40%, #eaf2ee 72%, #e2ebe6 100%);
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px 12px;
+            position: relative;
+            overflow-x: hidden;
+            line-height: 1.45;
+            -webkit-font-smoothing: antialiased;
+        }
 
-*{
-box-sizing:border-box;
-}
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 92% 8%, rgba(114,189,153,0.1) 0%, rgba(114,189,153,0) 42%),
+                radial-gradient(circle at 8% 82%, rgba(62,136,106,0.08) 0%, rgba(62,136,106,0) 44%);
+        }
 
-body{
-background:radial-gradient(circle at 14% -10%, #ffffff 0%, #f4f9f6 40%, #eaf2ee 72%, #e2ebe6 100%);
-font-family:'Montserrat',sans-serif;
-margin:0;
-display:flex;
-justify-content:center;
-align-items:center;
-min-height:100vh;
-padding:20px 12px;
-position:relative;
-overflow-x:hidden;
-line-height:1.45;
--webkit-font-smoothing:antialiased;
-text-rendering:optimizeLegibility;
-}
+        .container {
+            background: rgba(255, 255, 255, 0.94);
+            padding: 42px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 22px 48px rgba(29,51,42,0.16), 0 7px 16px rgba(29,51,42,0.08);
+            max-width: 440px;
+            width: 92%;
+            border: 1px solid rgba(106,167,138,0.16);
+            position: relative;
+            z-index: 2;
+        }
 
-body::before{
-content:"";
-position:fixed;
-inset:0;
-pointer-events:none;
-background:
-radial-gradient(circle at 92% 8%, rgba(114,189,153,0.1) 0%, rgba(114,189,153,0) 42%),
-radial-gradient(circle at 8% 82%, rgba(62,136,106,0.08) 0%, rgba(62,136,106,0) 44%);
-}
+        .logo {
+            width: 170px;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 8px 18px rgba(45,83,67,0.14));
+        }
 
-.container{
-background:rgba(255,255,255,0.94);
-padding:42px;
-border-radius:24px;
-text-align:center;
-box-shadow:0 22px 48px rgba(29,51,42,0.16), 0 7px 16px rgba(29,51,42,0.08);
-max-width:440px;
-width:92%;
-border:1px solid rgba(106,167,138,0.16);
-position:relative;
-z-index:2;
-overflow:hidden;
-}
+        .nombre {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--ink);
+            font-family: 'Playfair Display', serif;
+        }
 
-.container::before{
-content:"";
-position:absolute;
-inset:0 0 auto 0;
-height:3px;
-background:linear-gradient(90deg, rgba(114,189,153,0) 0%, rgba(114,189,153,0.85) 50%, rgba(114,189,153,0) 100%);
-}
+        .credenciales {
+            font-size: 14px;
+            color: var(--muted);
+            margin-top: 5px;
+            line-height: 1.55;
+        }
 
-.container > *{
-animation:fadeLift .4s ease both;
-}
+        .descripcion {
+            font-size: 13px;
+            color: #5f6965;
+            margin: 15px 0 25px;
+            line-height: 1.6;
+        }
 
-.container > *:nth-child(2){ animation-delay:.05s; }
-.container > *:nth-child(3){ animation-delay:.1s; }
-.container > *:nth-child(4){ animation-delay:.15s; }
+        h3 {
+            font-weight: 600;
+            color: #3e4a45;
+            margin-bottom: 20px;
+        }
 
-.logo{
-width:170px;
-margin-bottom:15px;
-filter:drop-shadow(0 8px 18px rgba(45,83,67,0.14));
-}
+        input {
+            width: 100%;
+            padding: 13px;
+            margin-bottom: 15px;
+            border-radius: 11px;
+            border: 1px solid #d7e2dc;
+            font-size: 15px;
+        }
 
-.nombre{
-font-size:24px;
-font-weight:700;
-margin-top:10px;
-color:var(--ink);
-font-family:'Playfair Display',serif;
-letter-spacing:0.2px;
-}
+        button {
+            background: linear-gradient(135deg, #79c6a2 0%, #4f9e7b 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 12px 24px rgba(65,128,100,0.26);
+        }
 
-.credenciales{
-font-size:14px;
-color:var(--muted);
-margin-top:5px;
-line-height:1.55;
-}
+        #waLinkNoPaciente {
+            display: block;
+            background: #25D366;
+            color: white;
+            text-decoration: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
 
-.descripcion{
-font-size:13px;
-color:#5f6965;
-margin-top:10px;
-line-height:1.6;
-margin-bottom:25px;
-}
-
-h3{
-font-weight:600;
-color:#3e4a45;
-letter-spacing:.3px;
-}
-
-input{
-width:100%;
-padding:13px;
-margin-bottom:15px;
-border-radius:11px;
-border:1px solid #d7e2dc;
-font-size:15px;
-background:#fff;
-color:var(--ink);
-transition:border-color .2s ease, box-shadow .2s ease;
-}
-
-input:focus{
-outline:none;
-border-color:#87bb9f;
-box-shadow:0 0 0 3px rgba(114,189,153,0.2);
-}
-
-button{
-background:linear-gradient(135deg,#79c6a2 0%,#4f9e7b 100%);
-color:white;
-border:none;
-padding:14px;
-width:100%;
-border-radius:12px;
-font-size:16px;
-font-weight:700;
-cursor:pointer;
-transition:transform .2s ease, box-shadow .2s ease, filter .2s ease;
-box-shadow:0 12px 24px rgba(65,128,100,0.26);
-}
-
-button:hover{
-transform:translateY(-1px);
-filter:saturate(1.04);
-}
-
-button:active{
-transform:translateY(0);
-}
-
-button:focus-visible,
-input:focus-visible{
-outline:3px solid rgba(86,149,117,0.4);
-outline-offset:2px;
-}
-
-.footer{
-margin-top:20px;
-font-size:12px;
-color:#8b9691;
-padding-bottom:20px;
-text-align:center;
-width:100%;
-letter-spacing:0.2px;
-}
-
-@keyframes fadeLift{
-0%{
-opacity:0;
-transform:translateY(8px);
-}
-100%{
-opacity:1;
-transform:translateY(0);
-}
-}
-
-@media (prefers-reduced-motion: reduce){
-.container > *{
-animation:none;
-}
-
-button,
-input{
-transition:none;
-}
-}
-
-@media (max-width: 480px){
-.container{
-padding:30px 18px;
-border-radius:20px;
-}
-
-.logo{
-width:150px;
-}
-
-.nombre{
-font-size:22px;
-}
-}
-
-</style>
-
-<<<<<<< HEAD
+        @media (max-width: 480px) {
+            .container { padding: 30px 18px; }
+            .logo { width: 150px; }
+        }
+    </style>
 </head>
-=======
-    <link rel="stylesheet" href="/pro-theme.css"></head>
->>>>>>> main
-
 <body>
 
 <div class="container">
+    <img src="img/logo.png" class="logo" alt="Logo">
 
-<img src="img/logo.png" class="logo">
+    <div class="nombre">Gimena Knack</div>
 
-<div class="nombre">
-Gimena Knack
-</div>
+    <div class="credenciales">
+        Farmacéutica MP 1212<br>
+        Cosmetóloga · Cosmiatra · Dermocosmiatra
+    </div>
 
-<div class="credenciales">
-<<<<<<< HEAD
-FarmacÃ©utica MP 1212<br>
-CosmetÃ³loga Â· Cosmiatra Â· Dermocosmiatra
-=======
-Farmacéutica MP 1212<br>
-Cosmetóloga · Cosmiatra · Dermocosmiatra
->>>>>>> main
-</div>
+    <div class="descripcion">
+        Especialista en tratamientos faciales y corporales personalizados. En <strong>Espacio Mimar</strong> cada tratamiento se realiza con evaluación profesional, productos de calidad y atención individualizada.
+    </div>
 
-<div class="descripcion">
-Especialista en tratamientos faciales y corporales personalizados.  
-<<<<<<< HEAD
-En <strong>Espacio Mimar</strong> cada tratamiento se realiza con evaluaciÃ³n profesional, productos de calidad y atenciÃ³n individualizada para el cuidado integral de la piel.
-</div>
+    <h3 id="tituloAcceso">Bienvenido/a a Espacio Mimar T</h3>
 
-<h3>Ingreso de paciente</h3>
+    <p id="mensajeRedirect" style="font-size:13px; color:#5f6965; margin-bottom:20px;">
+        Si ya sos paciente de Gimena, ingresá tu DNI para continuar.
+    </p>
 
-<input id="nombre" placeholder="Nombre y apellido">
+    <form id="loginForm">
+        <input id="dni" type="text" placeholder="Tu DNI" inputmode="numeric" required>
+        <p id="error" style="color:#c44; display:none; font-size:13px; margin-bottom:15px;"></p>
+        <button type="submit">Ingresar</button>
+    </form>
 
-<input id="telefono" placeholder="TelÃ©fono">
-
-<button onclick="ingresar()">
-Ingresar
-</button>
-
-</div>
-
-<div class="footer">
-Â© 2026 Espacio Mimar T â€” Todos los derechos reservados
-</div>
-
-<script>
-
-function ingresar(){
-
-const nombre = document.getElementById("nombre").value
-const telefono = document.getElementById("telefono").value
-
-if(nombre=="" || telefono==""){
-
-alert("Por favor complete los datos")
-return
-
-}
-
-// guardar paciente
-localStorage.setItem("usuario",nombre)
-localStorage.setItem("telefono",telefono)
-
-// ir a historia clÃ­nica
-window.location.href="historia.html"
-
-}
-
-</script>
-
-</body>
-</html>
-
-=======
-En <strong>Espacio Mimar</strong> cada tratamiento se realiza con evaluación profesional, productos de calidad y atención individualizada para el cuidado integral de la piel.
-</div>
-
-<h3>Bienvenido/a a Espacio Mimar T</h3>
-
-<p id="mensajeRedirect" style="font-size:13px;color:#5f6965;margin-top:10px;line-height:1.6;margin-bottom:25px;">
-Si ya sos paciente de Gimena, ingresá tu DNI para continuar.
-</p>
-
-<div id="loginForm" style="text-align:left;">
-    <input id="dni" type="text" placeholder="Tu DNI" inputmode="numeric">
-    <p id="error" style="color:#c44;display:none;font-size:13px;margin-bottom:15px;"></p>
-    <button type="submit" form="loginForm">
-    Ingresar
-    </button>
-</div>
-
-<div id="noPacienteMsg" style="display:none;text-align:center;margin-top:20px;">
-    <p style="color:#5f6965;font-size:14px;line-height:1.6;margin:0 0 16px;">No aparecés en nuestro sistema de pacientes.</p>
-    <p style="color:#5f6965;font-size:14px;line-height:1.6;margin:0 0 20px;">Para formar parte de Espacio Mimar T y acceder al kit facial, hablá con Gimena:</p>
-    <a id="waLinkNoPaciente" href="#" style="display:block;background:#25D366;color:white;text-decoration:none;padding:14px;border-radius:12px;font-weight:600;text-align:center;font-size:15px;">💬 Hablar con Gimena</a>
+    <div id="noPacienteMsg" style="display:none; text-align:center;">
+        <p style="color:#5f6965; font-size:14px; line-height:1.6;">No aparecés en nuestro sistema de pacientes.</p>
+        <p style="color:#5f6965; font-size:14px; line-height:1.6;">Para formar parte de Espacio Mimar T y acceder al kit facial, hablá con Gimena:</p>
+        <a id="waLinkNoPaciente" href="#">💬 Hablar con Gimena</a>
+    </div>
 </div>
 
 <script type="module">
-import { db, doc, getDoc } from "/js/firebase-web.js";
+    import { db, doc, getDoc } from "/js/firebase-web.js";
 
-const params = new URLSearchParams(window.location.search);
-const redirectTo = params.get("redirect") || "servicios-pro.html";
+    const params = new URLSearchParams(window.location.search);
+    const redirectTo = params.get("redirect") || "servicios-pro.html";
 
-document.getElementById("loginForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const dni = document.getElementById("dni").value.trim();
-    const error = document.getElementById("error");
-    const btn = document.querySelector("button[type='submit']");
-    
-    if (!dni) {
-        error.textContent = "Por favor ingresá tu DNI";
-        error.style.display = "block";
-        return;
-    }
-    
-    btn.disabled = true;
-    btn.textContent = "Verificando...";
-    
-    try {
-        const docRef = doc(db, "clients", dni);
-        const docSnap = await getDoc(docRef);
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const dni = document.getElementById("dni").value.trim();
+        const error = document.getElementById("error");
+        const btn = document.querySelector("button[type='submit']");
         
-        if (docSnap.exists()) {
-            const cliente = docSnap.data();
-            localStorage.setItem("clienteDNI", dni);
-            localStorage.setItem("clienteNombre", cliente.fullName);
-            window.location.href = redirectTo;
-        } else {
-            document.getElementById("loginForm").style.display = "none";
-            document.getElementById("noPacienteMsg").style.display = "block";
-            document.getElementById("mensajeRedirect").style.display = "none";
-            
-            const numeroGimena = "5493764291807";
-            const mensaje = "Hola! Quiero información sobre el kit facial y formar parte de Espacio Mimar T";
-            document.getElementById("waLinkNoPaciente").href = `https://wa.me/${numeroGimena}?text=${encodeURIComponent(mensaje)}`;
+        if (!dni) {
+            error.textContent = "Por favor ingresá tu DNI";
+            error.style.display = "block";
+            return;
         }
-    } catch (err) {
-        error.textContent = "Error al verificar. Intentá de nuevo.";
-        error.style.display = "block";
-    } finally {
-        btn.disabled = false;
-        btn.textContent = "Ingresar";
-    }
-});
+        
+        btn.disabled = true;
+        btn.textContent = "Verificando...";
+        
+        try {
+            const docRef = doc(db, "clients", dni);
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                const cliente = docSnap.data();
+                localStorage.setItem("clienteDNI", dni);
+                localStorage.setItem("clienteNombre", cliente.fullName);
+                window.location.href = redirectTo;
+            } else {
+                document.getElementById("loginForm").style.display = "none";
+                document.getElementById("noPacienteMsg").style.display = "block";
+                document.getElementById("mensajeRedirect").style.display = "none";
+                document.getElementById("tituloAcceso").style.display = "none";
+                
+                const numeroGimena = "5493764291807";
+                const mensaje = "Hola! Quiero información sobre el kit facial y formar parte de Espacio Mimar T";
+                document.getElementById("waLinkNoPaciente").href = `https://wa.me/${numeroGimena}?text=${encodeURIComponent(mensaje)}`;
+            }
+        } catch (err) {
+            error.textContent = "Error al verificar. Intentá de nuevo.";
+            error.style.display = "block";
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Ingresar";
+        }
+    });
 </script>
 
-    <script src="/js/shared-footer.js"></script>
-    <script src="/js/mimi-bot.js"></script>
+<script src="/js/shared-footer.js"></script>
+<script src="/js/mimi-bot.js"></script>
+
 </body>
 </html>
-
-
-
->>>>>>> main
