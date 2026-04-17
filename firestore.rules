@@ -2,80 +2,64 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
     function esAdmin() {
       return request.auth != null
         && request.auth.token.email == "espaciomimart36@gmail.com";
     }
 
-    // Campos críticos que solo el admin puede tocar
     function noCambiaCamposAdmin() {
       return !(request.resource.data.diff(resource.data).affectedKeys()
                .hasAny(['membershipActive', 'membresia', 'hoursBalance', 'role']));
     }
 
-    // ── clients ──────────────────────────────────────────────────────────────
-    // Admin: lectura y escritura total (incluye membershipActive, hoursBalance).
-    // Pacientes sin auth: pueden leer (necesario para login por DNI).
-    // Pacientes sin auth: pueden actualizar solo campos no-críticos
-    //   (historiaCompletada, consentimientoAceptado, politicaAceptada, etc.)
     match /clients/{clientId} {
       allow read:   if true;
       allow write:  if esAdmin();
       allow update: if noCambiaCamposAdmin();
     }
 
-    // ── historias ────────────────────────────────────────────────────────────
-    // Cualquiera puede escribir su historia clínica (flujo sin auth Firebase).
     match /historias/{historiaId} {
       allow read:   if esAdmin();
       allow write:  if true;
     }
 
-    // ── reservas ─────────────────────────────────────────────────────────────
-    // Pacientes crean reservas. Admin puede modificar/cancelar.
     match /reservas/{reservaId} {
       allow read:   if true;
       allow create: if true;
       allow update, delete: if esAdmin();
     }
 
-    // ── horarios ─────────────────────────────────────────────────────────────
-    // Pacientes leen para ver disponibilidad.
+    // Control atomico anti-solapamiento de turnos
+    match /reservas_slots/{slotId} {
+      allow read:   if true;
+      allow write:  if true;
+    }
+
     match /horarios/{horarioId} {
       allow read:   if true;
       allow write:  if esAdmin();
     }
 
-    // ── calendarExceptions (bloqueos) ────────────────────────────────────────
-    // Pacientes leen para saber qué días están bloqueados.
     match /calendarExceptions/{excId} {
       allow read:   if true;
       allow write:  if esAdmin();
     }
 
-    // ── configuracion ────────────────────────────────────────────────────────
     match /configuracion/{docId} {
       allow read:   if true;
       allow write:  if esAdmin();
     }
 
-    // ── services ─────────────────────────────────────────────────────────────
     match /services/{serviceId} {
       allow read:   if true;
       allow write:  if esAdmin();
     }
 
-<<<<<<< HEAD
-=======
-    // ── pedidosKit ─────────────────────────────────────────────────────────
-    // Pacientes pueden crear pedidos (sin auth Firebase, solo localStorage).
     match /pedidosKit/{pedidoId} {
       allow read:   if esAdmin() || request.auth != null;
       allow create: if true;
       allow write:  if esAdmin();
     }
 
->>>>>>> main
   }
 }

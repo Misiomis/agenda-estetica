@@ -15,7 +15,6 @@
             --border:    #d9e5de;
             --card-sh:   0 16px 38px rgba(29,51,42,0.11);
             --radius:    22px;
-            --gold:      rgba(208,174,115,0.34);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -82,23 +81,23 @@
 
         .details-box p {
             margin: 0 0 10px;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             color: var(--muted);
             padding-bottom: 8px;
-            border-bottom: 1px solid rgba(217,229,222,0.7);
+            border-bottom: 1px solid rgba(217,229,222,0.6);
         }
 
         .details-box p:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
 
         .details-box strong {
             display: block;
-            font-size: 1rem;
+            font-size: 0.98rem;
             font-weight: 700;
             color: var(--ink);
             margin-top: 2px;
         }
 
-        /* Sección dúo */
+        /* Seccion duo - visible solo cuando el admin habilito ese slot */
         #duoSection {
             display: none;
             background: linear-gradient(135deg, #f5f9f6 0%, #ebf5ef 100%);
@@ -109,15 +108,15 @@
             text-align: left;
         }
 
-        #duoSection .duo-header {
+        .duo-header {
             font-family: 'Cormorant Garamond', serif;
             font-size: 1.05rem;
             font-weight: 600;
             color: #2a4338;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
         }
 
-        #duoSection .duo-sub {
+        .duo-sub {
             font-size: 0.8rem;
             color: var(--muted);
             margin-bottom: 16px;
@@ -155,8 +154,6 @@
 
         .duo-grid input:focus { border-color: var(--verde); }
 
-        .duo-grid input.error { border-color: #d9534f; }
-
         .btn-confirmar {
             width: 100%;
             background: linear-gradient(135deg, #77c39f 0%, #4e9f7b 100%);
@@ -172,9 +169,14 @@
             letter-spacing: .3px;
         }
 
-        .btn-confirmar:hover { transform: translateY(-1px); }
+        .btn-confirmar:hover  { transform: translateY(-1px); }
         .btn-confirmar:active { transform: translateY(0); }
-        .btn-confirmar:disabled { background: #c9d2cd; box-shadow: none; cursor: not-allowed; transform: none; }
+        .btn-confirmar:disabled {
+            background: #c9d2cd;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
 
         #statusMsg {
             margin-top: 14px;
@@ -187,7 +189,7 @@
 
         #statusMsg.error { color: #c0392b; }
 
-        /* Modal éxito */
+        /* Modal exito */
         #modalOk {
             position: fixed;
             inset: 0;
@@ -228,8 +230,8 @@
         }
 
         @media (max-width: 420px) {
-            .card { padding: 24px 18px; }
-            .duo-grid { grid-template-columns: 1fr; }
+            .card       { padding: 24px 18px; }
+            .duo-grid   { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -241,14 +243,13 @@
 
     <div class="details-box">
         <p>Servicio <strong id="lblServicio">-</strong></p>
-        <p>Fecha <strong id="lblFecha">-</strong></p>
-        <p>Hora <strong id="lblHora">-</strong></p>
+        <p>Fecha    <strong id="lblFecha">-</strong></p>
+        <p>Hora     <strong id="lblHora">-</strong></p>
     </div>
 
-    <!-- Aparece solo si el turno fue marcado como Duo por el admin -->
     <div id="duoSection">
         <div class="duo-header">Sesion Duo</div>
-        <div class="duo-sub">Este horario esta configurado para dos pacientes. Ingresa los datos de ambos para continuar.</div>
+        <div class="duo-sub">Este horario esta configurado para dos pacientes. Completa los datos de ambos para continuar.</div>
         <div class="duo-grid">
             <div>
                 <label>Nombre paciente 1</label>
@@ -256,7 +257,7 @@
             </div>
             <div>
                 <label>DNI paciente 1</label>
-                <input type="text" id="duoDni1" placeholder="12345678" oninput="validarDuo()">
+                <input type="text" id="duoDni1" placeholder="12345678" inputmode="numeric" oninput="validarDuo()">
             </div>
             <div>
                 <label>Nombre paciente 2</label>
@@ -264,7 +265,7 @@
             </div>
             <div>
                 <label>DNI paciente 2</label>
-                <input type="text" id="duoDni2" placeholder="12345678" oninput="validarDuo()">
+                <input type="text" id="duoDni2" placeholder="12345678" inputmode="numeric" oninput="validarDuo()">
             </div>
         </div>
     </div>
@@ -276,7 +277,7 @@
 <div id="modalOk">
     <div class="modal-content">
         <h2>Reserva confirmada</h2>
-        <p>Tu turno fue registrado exitosamente. Te esperamos.</p>
+        <p>Tu turno fue registrado. Te vamos a avisar por WhatsApp.</p>
         <button class="btn-confirmar" onclick="window.location.href='index.html'">Finalizar</button>
     </div>
 </div>
@@ -284,32 +285,36 @@
 <script type="module">
 import {
     db, doc, getDoc, collection, query, where, getDocs,
-    runTransaction, serverTimestamp, addDoc
+    runTransaction, serverTimestamp
 } from "/js/firebase-web.js";
 
+// ── Endpoints ────────────────────────────────────────────────────────────────
+const CF_CONFIRMAR_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarConfirmacionTurno";
+
+// ── Referencias DOM ───────────────────────────────────────────────────────────
 const btn    = document.getElementById("btnEjecutar");
 const status = document.getElementById("statusMsg");
 const duoSec = document.getElementById("duoSection");
 
-const nombre   = localStorage.getItem("clienteNombre") || "Cliente";
-const dni      = localStorage.getItem("clienteDNI")    || "";
+// ── Datos de sesion ───────────────────────────────────────────────────────────
+const nombre   = localStorage.getItem("clienteNombre")        || "Paciente";
+const dni      = localStorage.getItem("clienteDNI")           || "";
 const servicio = localStorage.getItem("servicioSeleccionado") || "Tratamiento";
-const fecha    = localStorage.getItem("fechaSeleccionada")    || "-";
-const hora     = localStorage.getItem("horaSeleccionada")     || "-";
+const fecha    = localStorage.getItem("fechaSeleccionada")    || "";
+const hora     = localStorage.getItem("horaSeleccionada")     || "";
 
+// Mostrar datos en pantalla
 document.getElementById("lblServicio").textContent = servicio;
 document.getElementById("lblFecha").textContent    = fecha;
-document.getElementById("lblHora").textContent     = hora + " hs";
+document.getElementById("lblHora").textContent     = hora ? hora + " hs" : "-";
 
-let esDuo        = false;
-let slotDuoDocId = null;
+// ── Estado duo ────────────────────────────────────────────────────────────────
+let esDuo = false;
 
-// Verifica si el horario fue marcado Duo por el admin
+// Verifica si el admin marco este slot como Sesion Duo
 async function verificarModoDuo() {
-    if (!fecha || !hora || hora === "-") return;
+    if (!fecha || !hora) { btn.disabled = false; return; }
     try {
-        const idDoc = `${fecha}_${hora.replace(":", "-")}_bloqueo`;
-        // Busca en calendarExceptions el doc que tenga la fecha+hora exacta con duo:true
         const snap = await getDocs(
             query(
                 collection(db, "calendarExceptions"),
@@ -319,45 +324,36 @@ async function verificarModoDuo() {
             )
         );
         if (!snap.empty) {
-            esDuo        = true;
-            slotDuoDocId = snap.docs[0].id;
-            duoSec.style.display  = "block";
-            btn.disabled          = true; // requiere completar los campos
+            esDuo = true;
+            duoSec.style.display = "block";
+            // El boton queda deshabilitado hasta que se completen todos los campos
         } else {
             esDuo = false;
             btn.disabled = false;
         }
     } catch (e) {
-        console.warn("verificarModoDuo:", e);
+        console.warn("verificarModoDuo:", e.message);
+        // Si falla la consulta, habilitar igualmente para no bloquear al paciente
+        esDuo = false;
         btn.disabled = false;
     }
 }
 
+// Validacion en tiempo real del formulario duo
 window.validarDuo = function () {
     if (!esDuo) return;
-    const n1 = document.getElementById("duoNombre1").value.trim();
-    const d1 = document.getElementById("duoDni1").value.trim();
-    const n2 = document.getElementById("duoNombre2").value.trim();
-    const d2 = document.getElementById("duoDni2").value.trim();
-    btn.disabled = !(n1 && d1 && n2 && d2);
+    const ok = ["duoNombre1","duoDni1","duoNombre2","duoDni2"]
+        .every(id => document.getElementById(id).value.trim() !== "");
+    btn.disabled = !ok;
 };
 
-// Notificacion via Meta Graph API (Cloud Function existente)
-async function enviarNotificacion(telefono, nombrePaciente) {
-    try {
-        await fetch("https://us-central1-estetica-8d067.cloudfunctions.net/enviarWhatsAppReserva", {
-            method:  "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ telefono, nombre: nombrePaciente, servicio, fecha, hora })
-        });
-    } catch (e) { console.warn("enviarNotificacion:", e); }
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-// Obtiene el telefono de un cliente por DNI
+// Obtiene telefono de un cliente por DNI desde Firestore
 async function obtenerTelefono(dniCliente) {
     if (!dniCliente) return "";
     try {
-        const snap = await getDoc(doc(db, "clients", dniCliente));
+        const snap = await getDoc(doc(db, "clients", String(dniCliente).replace(/\D/g, "")));
         if (snap.exists()) {
             const d = snap.data();
             return d.phone || d.telefono || d.whatsapp || "";
@@ -366,77 +362,97 @@ async function obtenerTelefono(dniCliente) {
     return "";
 }
 
+// Envia confirmacion via Cloud Function (plantilla turno_confirmado de Meta)
+async function enviarConfirmacionWhatsApp({ telefono, nombrePaciente, dniPaciente }) {
+    try {
+        const resp = await fetch(CF_CONFIRMAR_URL, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                nombre:   nombrePaciente,
+                servicio: servicio,
+                fecha:    fecha,
+                hora:     hora + " hs",
+                telefono: telefono || undefined,
+                dni:      dniPaciente || undefined,
+                descontarBalance: false
+            })
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) console.warn("CF respuesta no-ok:", data);
+    } catch (e) {
+        console.warn("enviarConfirmacionWhatsApp:", e.message);
+        // No bloquear el flujo si falla el envio de WA
+    }
+}
+
+// ── Confirmar reserva ─────────────────────────────────────────────────────────
 btn.addEventListener("click", async () => {
     btn.disabled = true;
     status.className = "";
     status.textContent = "Verificando disponibilidad...";
 
     try {
-        // Obtener telefono del paciente principal
-        let telefonoPrincipal = localStorage.getItem("clientePhoneIngresado") || "";
-        if (!telefonoPrincipal) telefonoPrincipal = await obtenerTelefono(dni);
-
-        // Campos base del documento
-        const camposBase = {
+        // Campos del documento de reserva
+        const camposReserva = {
             clienteNombre: nombre,
+            nombre:        nombre,
             dni:           dni,
             servicio:      servicio,
             fecha:         fecha,
             hora:          hora,
-            phone:         telefonoPrincipal,
             estado:        "confirmado",
             timestamp:     serverTimestamp(),
             origen:        "paciente"
         };
 
         if (esDuo) {
-            camposBase.duo       = true;
-            camposBase.duoDni1   = document.getElementById("duoDni1").value.trim();
-            camposBase.duoNombre1= document.getElementById("duoNombre1").value.trim();
-            camposBase.duoDni2   = document.getElementById("duoDni2").value.trim();
-            camposBase.duoNombre2= document.getElementById("duoNombre2").value.trim();
+            camposReserva.duo        = true;
+            camposReserva.duoNombre1 = document.getElementById("duoNombre1").value.trim();
+            camposReserva.duoDni1    = document.getElementById("duoDni1").value.trim();
+            camposReserva.duoNombre2 = document.getElementById("duoNombre2").value.trim();
+            camposReserva.duoDni2    = document.getElementById("duoDni2").value.trim();
         }
 
-        // Referencia al "slot" para la transaccion atomica
-        const slotRef = doc(db, "reservas_slots", `${fecha}_${hora.replace(":", "-")}`);
+        // Referencia al slot - clave unica por fecha+hora
+        const slotId  = `${fecha}_${hora.replace(":", "-")}`;
+        const slotRef = doc(db, "reservas_slots", slotId);
 
+        // Transaccion atomica: verifica y reserva en un solo paso
         await runTransaction(db, async (tx) => {
             const slotSnap = await tx.get(slotRef);
+            const ocupantes = slotSnap.exists() ? (slotSnap.data().ocupantes || 0) : 0;
+            const capacidad = esDuo ? 2 : 1;
 
-            // Verificar si el slot ya esta ocupado
-            if (slotSnap.exists() && slotSnap.data()?.ocupado === true && !esDuo) {
+            if (ocupantes >= capacidad) {
                 throw new Error("SLOT_OCUPADO");
             }
 
-            // Si es duo, permitir hasta 2 ocupantes
-            if (esDuo && slotSnap.exists()) {
-                const ocupantes = slotSnap.data()?.ocupantes || 0;
-                if (ocupantes >= 2) throw new Error("SLOT_OCUPADO");
-            }
+            // Crear la reserva con ID generado del lado del cliente
+            const reservaRef = doc(collection(db, "reservas"));
+            tx.set(reservaRef, camposReserva);
 
-            // Crear el nuevo documento de reserva dentro de la transaccion
-            const nuevaRef = doc(collection(db, "reservas"));
-            tx.set(nuevaRef, camposBase);
-
-            // Marcar el slot como ocupado
-            const ocupantes = (slotSnap.data()?.ocupantes || 0) + 1;
+            // Actualizar el contador del slot
             tx.set(slotRef, {
                 fecha,
                 hora,
-                ocupado:   !esDuo || ocupantes >= 2,
-                ocupantes: ocupantes,
+                ocupantes: ocupantes + 1,
+                ocupado:   (ocupantes + 1) >= capacidad,
                 updatedAt: serverTimestamp()
             }, { merge: true });
         });
 
         status.textContent = "Enviando confirmacion...";
 
-        // Notificaciones WhatsApp
-        if (telefonoPrincipal) await enviarNotificacion(telefonoPrincipal, nombre);
+        // Notificaciones por WhatsApp (no bloquean el flujo)
+        const telPrincipal = localStorage.getItem("clientePhoneIngresado") || await obtenerTelefono(dni);
+        await enviarConfirmacionWhatsApp({ telefono: telPrincipal, nombrePaciente: nombre, dniPaciente: dni });
 
         if (esDuo) {
-            const tel2 = await obtenerTelefono(camposBase.duoDni2);
-            if (tel2) await enviarNotificacion(tel2, camposBase.duoNombre2);
+            const dni2 = document.getElementById("duoDni2").value.trim();
+            const nom2 = document.getElementById("duoNombre2").value.trim();
+            const tel2 = await obtenerTelefono(dni2);
+            await enviarConfirmacionWhatsApp({ telefono: tel2, nombrePaciente: nom2, dniPaciente: dni2 });
         }
 
         document.getElementById("modalOk").style.display = "flex";
@@ -444,17 +460,17 @@ btn.addEventListener("click", async () => {
     } catch (e) {
         if (e.message === "SLOT_OCUPADO") {
             status.className  = "error";
-            status.textContent = "Este horario acaba de ser ocupado por otro paciente. Por favor, selecciona otro.";
+            status.textContent = "Este horario fue reservado en este momento por otro paciente. Por favor, selecciona otro.";
         } else {
-            console.error(e);
+            console.error("confirmar:", e);
             status.className  = "error";
-            status.textContent = "Hubo un error al guardar. Intentalo de nuevo.";
+            status.textContent = "Hubo un error al guardar la reserva. Intentalo de nuevo.";
         }
         btn.disabled = false;
     }
 });
 
-// Inicializar
+// ── Iniciar ───────────────────────────────────────────────────────────────────
 verificarModoDuo();
 </script>
 </body>
