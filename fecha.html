@@ -714,16 +714,11 @@
 import { db, doc, getDoc, collection, query, where, getDocs } from "/js/firebase-web.js";
 
 // Esquema unificado Lun-Sab
-// Normal (60 min):      07-11 manana | 15-19 tarde
-// Fraccionado (30 min): 12:00/12:30 | 20:00/20:30
-const BLOQUE_NORMAL_MANANA  = ["07:00","08:00","09:00","10:00","11:00"];
-const BLOQUE_FRACCIONADO_M  = ["12:00","12:30"];
-const BLOQUE_NORMAL_TARDE   = ["15:00","16:00","17:00","18:00","19:00"];
-const BLOQUE_FRACCIONADO_N  = ["20:00","20:30"];
-
+// Normal (60 min): 07-12 manana (ultimo termina 13:00) | 15-21 tarde (ultimo termina 22:00)
 const CONFIG_BASE = {
-    normal:      [...BLOQUE_NORMAL_MANANA, ...BLOQUE_NORMAL_TARDE],
-    fraccionado: [...BLOQUE_FRACCIONADO_M, ...BLOQUE_FRACCIONADO_N]
+    normal: ["07:00","08:00","09:00","10:00","11:00","12:00",
+             "15:00","16:00","17:00","18:00","19:00","20:00","21:00"],
+    fraccionado: []
 };
 
 // Misma config para todos los dias laborables (excepciones se manejan por EXCEPCIONES_HORARIOS)
@@ -1106,28 +1101,14 @@ async function cargarHorarios(fecha, fStr){
     todos.forEach(item => {
         let div=document.createElement("div"); div.className="hora"; div.innerText=item.h;
 
-        let estaOcupado = ocupados.includes(item.h);
-
-        if (!estaOcupado) {
-            if (item.h === "12:00" && ocupados.includes("12:30")) estaOcupado = true;
-            if (item.h === "12:30" && ocupados.includes("12:00")) estaOcupado = true;
-            if (item.h === "20:00" && ocupados.includes("20:30")) estaOcupado = true;
-            if (item.h === "20:30" && ocupados.includes("20:00")) estaOcupado = true;
-        }
+        const estaOcupado = ocupados.includes(item.h);
 
         if(estaOcupado) {
             div.classList.add("ocupado");
         } else {
             div.onclick=()=>{
-                if(!esMioUp && item.tipo==='fraccionado') {
-                    const esInicio = (item.h==="12:00" || item.h==="20:00");
-                    if(!esInicio) {
-                        mostrarAviso("Bloque de 30 min", "Para una sesión normal de 1 hora, selecciona el horario de inicio (12:00 o 20:00).");
-                        return;
-                    }
-                }
                 horaSeleccionada=item.h;
-                duracionTurno = (esMioUp && item.tipo==='fraccionado') ? 30 : 60;
+                duracionTurno=60;
                 document.querySelectorAll(".hora").forEach(e=>e.classList.remove("selected"));
                 div.classList.add("selected");
                 actualizarResumenSeleccion();
