@@ -3,254 +3,305 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gimena Knack | Confirmar turno</title>
+    <title>Gimena Knack | Confirmar Turno</title>
     
     <link rel="stylesheet" href="mobile-fixes.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --bg: #f2f6f4;
-            --primary: #72bd99;
-            --primary-strong: #4f9777;
-            --ink: #273630;
-            --muted: #67736e;
-            --border: #d9e5de;
-            --card-gold: rgba(208, 174, 115, 0.32);
-            --radius-xl: 28px;
-            --shadow-card: 0 18px 40px rgba(29, 51, 42, 0.13);
-            --trans: .26s ease;
+            --red-700: #9f1024;
+            --red-600: #cf1d35;
+            --red-500: #ff5a5f;
+            --red-100: #fff0f1;
+            --ink: #331f22;
+            --muted: #7b6165;
         }
+
         * { box-sizing: border-box; }
+
         body {
             margin: 0;
-            font-family: 'Montserrat', sans-serif;
-            background:
-                radial-gradient(circle at 8% 15%, rgba(114, 189, 153, 0.18), transparent 38%),
-                radial-gradient(circle at 90% 8%, rgba(114, 189, 153, 0.12), transparent 32%),
-                var(--bg);
-            color: var(--ink);
-            min-height: 100dvh;
+            min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
-            padding: 24px 16px;
-        }
-        .card {
-            background: linear-gradient(165deg, #fffdf9 0%, #f6fbf7 52%, #eef5ef 100%);
-            border: 1px solid var(--card-gold);
-            border-radius: var(--radius-xl);
-            padding: 36px 28px 28px;
-            width: 100%;
-            max-width: 440px;
-            text-align: center;
-            box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.85);
-        }
-        .card-logo {
-            width: clamp(90px, 22vw, 120px);
-            display: block;
-            margin: 0 auto 18px;
-            filter: drop-shadow(0 6px 16px rgba(66, 98, 83, 0.14));
-        }
-        h2 {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: clamp(28px, 6vw, 36px);
-            font-style: italic;
+            justify-content: center;
+            background:
+                radial-gradient(circle at 85% 10%, rgba(255, 90, 95, 0.2), rgba(255, 90, 95, 0) 45%),
+                radial-gradient(circle at 10% 90%, rgba(159, 16, 36, 0.16), rgba(159, 16, 36, 0) 42%),
+                linear-gradient(135deg, #fff9fa 0%, #fff0f1 60%, #ffe8ea 100%);
+            font-family: 'Montserrat', sans-serif;
             color: var(--ink);
-            margin: 0 0 22px;
-            font-weight: 600;
+            padding: 20px;
         }
-        .info-box {
-            background: rgba(255, 255, 255, 0.82);
-            padding: 18px 20px;
-            border-radius: 16px;
-            text-align: left;
-            margin-bottom: 22px;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 14px rgba(29, 51, 42, 0.06);
-        }
-        .info-box p {
-            margin: 9px 0;
-            font-size: 14px;
-            color: var(--muted);
-            line-height: 1.55;
-        }
-        .info-box p span { font-weight: 600; color: var(--ink); }
-        .info-box small {
-            display: block;
-            margin-top: 12px;
-            color: #8a9e96;
-            font-size: 12px;
-            line-height: 1.5;
-        }
-        .btn-confirmar {
-            background: linear-gradient(135deg, var(--primary), var(--primary-strong));
-            color: white;
-            border: none;
-            padding: 16px 25px;
-            border-radius: 14px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 700;
+
+        .card {
             width: 100%;
-            min-height: 50px;
-            box-shadow: 0 10px 24px rgba(79, 151, 119, 0.34);
-            transition: transform var(--trans), box-shadow var(--trans);
-            letter-spacing: 0.3px;
+            max-width: 520px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(207, 29, 53, 0.24);
+            border-radius: 22px;
+            box-shadow: 0 20px 45px rgba(117, 18, 33, 0.16);
+            padding: 26px;
         }
-        .btn-confirmar:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 14px 30px rgba(79, 151, 119, 0.42);
+
+        h1 {
+            margin: 0 0 14px;
+            font-size: 1.5rem;
+            color: var(--red-700);
+            text-align: center;
         }
-        .btn-confirmar:disabled {
-            background: linear-gradient(135deg, #c5d9cc, #a8c4b4);
-            cursor: not-allowed;
-            box-shadow: none;
-            opacity: 0.85;
+
+        .summary {
+            background: var(--red-100);
+            border: 1px solid rgba(207, 29, 53, 0.2);
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+            line-height: 1.45;
         }
-        #modalConfirmado {
-            display: none;
+
+        .summary p { margin: 6px 0; }
+        .summary strong { color: var(--red-700); }
+
+        .label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--red-700);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 84px;
+            border-radius: 12px;
+            border: 1px solid #efc3c8;
+            padding: 11px 12px;
+            font: inherit;
+            resize: vertical;
+            background: #fffcfc;
+            outline: none;
+        }
+
+        textarea:focus { border-color: var(--red-500); }
+
+        .hint {
+            margin-top: 7px;
+            color: var(--muted);
+            font-size: 0.86rem;
+        }
+
+        .status {
+            min-height: 20px;
+            margin-top: 10px;
+            color: var(--red-700);
+            font-size: 0.92rem;
+            text-align: center;
+        }
+
+        .btn {
+            width: 100%;
+            border: none;
+            border-radius: 999px;
+            padding: 13px 18px;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+            margin-top: 12px;
+            background: linear-gradient(135deg, var(--red-500), var(--red-600));
+            color: #fff;
+            box-shadow: 0 12px 26px rgba(159, 16, 36, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover:not(:disabled) { transform: translateY(-1px); opacity: 0.9; }
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        #modalOk {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.82);
-            justify-content: center;
+            display: none;
             align-items: center;
-            color: white;
-            flex-direction: column;
-            z-index: 1000;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
             padding: 20px;
+            z-index: 1000;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 430px;
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 22px;
             text-align: center;
         }
-        #modalConfirmado > h1 {
-            font-family: 'Cormorant Garamond', serif;
-            font-style: italic;
-            font-size: 40px;
+
+        .modal-card h2 { color: var(--red-700); margin-top: 0; }
+
+        .btn-secondary {
+            margin-top: 10px;
+            background: #fff4f5;
+            color: var(--red-700);
+            box-shadow: none;
+            border: 1px solid #f0d1d5;
         }
-        @media (max-width: 480px) {
-            body { align-items: flex-start; padding: 18px 14px; }
-            .card { padding: 26px 18px 22px; border-radius: 22px; }
+
+        @media (min-width: 1024px) {
+            .card { backdrop-filter: blur(14px); background: rgba(255, 255, 255, 0.9); }
+        }
+
+        @media (max-width: 640px) {
+            body { align-items: stretch; padding: 14px; }
+            .card { margin: auto; padding: 20px 16px; border-radius: 18px; }
+            #modalOk { align-items: flex-end; }
+            .modal-card { border-radius: 24px 24px 18px 18px; }
         }
     </style>
+    <link rel="stylesheet" href="/pro-theme.css">
 </head>
 <body>
-
     <div class="card">
-        <img src="img/logo.png" alt="Espacio Mimar T" class="card-logo">
-        <h2>Confirmar Turno</h2>
-        <div class="info-box">
-            <p>¡Hola <span id="txtNombre">Cargando...</span>!</p>
-            <p><span id="txtServicio">Cargando...</span> - <span id="txtFecha">Cargando...</span> a las <span id="txtHora">Cargando...</span></p>
-            <p>Te contactaremos al: <span id="txtTelefono">Buscando...</span></p>
-            <small>Revisá tu turno y confirmá para finalizar.</small>
+        <h1>Confirmar turno</h1>
+        <div class="summary">
+            <p>Paciente: <strong id="txtNombre">Cargando...</strong></p>
+            <p>Servicio: <strong id="txtServicio">Cargando...</strong></p>
+            <p>Fecha y hora: <strong><span id="txtFecha">-</span> a las <span id="txtHora">-</span></strong></p>
         </div>
-        <button id="btnConfirmar" class="btn-confirmar" disabled>Cargando datos...</button>
+
+        <label class="label" for="telefonos">Números de WhatsApp para aviso</label>
+        <textarea id="telefonos" placeholder="Ejemplo: 5491122334455, 5491166677788"></textarea>
+        <div class="hint">Podes cargar uno o varios números separados por coma.</div>
+
+        <div id="status" class="status"></div>
+        <button id="btnConfirmar" class="btn" type="button">Confirmar y enviar aviso</button>
     </div>
 
-    <div id="modalConfirmado">
-        <h1>Operación exitosa</h1>
-        <p id="modalMensaje">Turno confirmado y notificación enviada.</p>
-        <button onclick="window.location.href='index.html'" style="margin-top:20px; padding:12px 24px; cursor:pointer; border-radius: 12px; border: none; font-weight: 700; background: var(--primary-strong); color: white;">Volver al inicio</button>
+    <div id="modalOk">
+        <div class="modal-card">
+            <h2>¡Turno confirmado!</h2>
+            <p id="resultadoFinal">La reserva se guardó correctamente.</p>
+            <button class="btn" onclick="window.location.href='index.html'">Volver al inicio</button>
+            <button class="btn btn-secondary" onclick="window.location.href='jornada.html'">Ver mis turnos</button>
+        </div>
     </div>
 
     <script type="module">
-        import { db, collection, addDoc, doc, getDoc } from "./js/firebase-web.js";
+        import { db, collection, addDoc, doc, getDoc } from "/js/firebase-web.js";
 
         const CF_CONFIRM_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarConfirmacionTurno";
 
-        let telefonoExtraido = "";
-        const dniLs = localStorage.getItem("clienteDNI");
-        const nombreLs = localStorage.getItem("clienteNombre") || localStorage.getItem("nombre") || "";
-        const servLs = localStorage.getItem("servicioSeleccionado") || "";
-        const fechaLs = localStorage.getItem("fechaSeleccionada") || "";
-        const horaLs = localStorage.getItem("horaSeleccionada") || "";
+        // Obtener datos de localStorage
+        const dniLs = localStorage.getItem("clienteDNI") || "";
+        const nombreLs = localStorage.getItem("clienteNombre") || localStorage.getItem("nombre") || "Paciente";
+        const servicioLs = localStorage.getItem("servicioSeleccionado") || "Servicio Especial";
+        const fechaLs = localStorage.getItem("fechaSeleccionada") || "Pendiente";
+        const horaLs = localStorage.getItem("horaSeleccionada") || "00:00";
+        const phoneFallback = (localStorage.getItem("clientePhoneIngresado") || "").trim();
 
-        const formatearFechaVisible = (fecha) => {
-            if (!fecha) return "";
-            const [year, month, day] = fecha.split("-").map(Number);
-            const parsed = new Date(year, month - 1, day);
-            return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", year: "numeric" }).format(parsed);
+        const txtNombre = document.getElementById("txtNombre");
+        const txtServicio = document.getElementById("txtServicio");
+        const txtFecha = document.getElementById("txtFecha");
+        const txtHora = document.getElementById("txtHora");
+        const telefonosEl = document.getElementById("telefonos");
+        const statusEl = document.getElementById("status");
+        const btnConfirmar = document.getElementById("btnConfirmar");
+
+        // Formatear fecha para que sea legible (ej: 17 de abril)
+        const formatearFecha = (fecha) => {
+            if (!fecha || fecha === "Pendiente") return fecha;
+            const [y, m, d] = fecha.split("-").map(Number);
+            const dateObj = new Date(y, m - 1, d);
+            return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long" }).format(dateObj);
         };
 
-        // UI inicial
-        document.getElementById("txtNombre").innerText = nombreLs;
-        document.getElementById("txtServicio").innerText = servLs;
-        document.getElementById("txtFecha").innerText = formatearFechaVisible(fechaLs);
-        document.getElementById("txtHora").innerText = `${horaLs} hs`;
+        txtNombre.innerText = nombreLs;
+        txtServicio.innerText = servicioLs;
+        txtFecha.innerText = formatearFecha(fechaLs);
+        txtHora.innerText = horaLs + " hs";
 
-        async function obtenerDatosCliente() {
-            const boton = document.getElementById("btnConfirmar");
-            if (!dniLs || !nombreLs || !servLs || !fechaLs || !horaLs) {
-                window.location.href = "index.html";
-                return;
-            }
+        const parseTelefonos = (raw) => {
+            return String(raw || "").split(/[\n,;]+/).map(v => v.trim()).filter(Boolean);
+        };
 
+        async function sugerirTelefono() {
+            if (!dniLs) { telefonosEl.value = phoneFallback; return; }
             try {
-                const docRef = doc(db, "clients", dniLs);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    const datos = docSnap.data();
-                    telefonoExtraido = datos.phone || datos.telefono || datos.whatsapp || "";
-                    document.getElementById("txtTelefono").innerText = telefonoExtraido || "No registrado";
-                    boton.disabled = false;
-                    boton.innerText = telefonoExtraido ? "Confirmar y Enviar WhatsApp" : "Confirmar turno";
+                const snap = await getDoc(doc(db, "clients", dniLs));
+                if (snap.exists()) {
+                    const d = snap.data();
+                    telefonosEl.value = d.phone || d.telefono || d.whatsapp || phoneFallback;
                 } else {
-                    window.location.href = "index.html";
+                    telefonosEl.value = phoneFallback;
                 }
-            } catch (error) {
-                console.warn("Error de red, habilitando manual:", error);
-                boton.disabled = false;
-                boton.innerText = "Confirmar turno";
-            }
+            } catch (e) { telefonosEl.value = phoneFallback; }
         }
 
-        async function procesarConfirmacion() {
-            const boton = document.getElementById("btnConfirmar");
-            boton.disabled = true;
-            boton.innerText = "Procesando...";
-
+        async function llamarBackend({ tel = "", descontar = false, soloBalance = false }) {
             try {
-                const turnoAt = new Date(`${fechaLs}T${horaLs}:00-03:00`);
-                
-                // 1. Guardar en Firestore
-                await addDoc(collection(db, "reservas"), {
-                    nombre: nombreLs,
-                    cliente: nombreLs,
-                    dni: dniLs,
-                    telefono: telefonoExtraido,
-                    servicio: servLs,
-                    fecha: fechaLs,
-                    hora: horaLs,
-                    turnoAt: turnoAt,
-                    status: "confirmado",
-                    timestamp: new Date()
-                });
-
-                // 2. Llamar al Backend (WhatsApp)
-                const response = await fetch(CF_CONFIRM_URL, {
+                const res = await fetch(CF_CONFIRM_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         nombre: nombreLs,
-                        servicio: servLs,
+                        servicio: servicioLs,
                         fecha: fechaLs,
-                        hora: `${horaLs} hs`,
-                        telefono: telefonoExtraido,
+                        hora: horaLs + " hs",
+                        telefono: tel,
                         dni: dniLs,
-                        descontarBalance: true
+                        descontarBalance: descontar,
+                        omitirWhatsapp: soloBalance
                     })
                 });
+                return { ok: res.ok, data: await res.json().catch(() => ({})) };
+            } catch (e) { return { ok: false }; }
+        }
 
-                document.getElementById("modalConfirmado").style.display = "flex";
+        async function procesarConfirmacion() {
+            btnConfirmar.disabled = true;
+            btnConfirmar.textContent = "Procesando...";
+            statusEl.textContent = "";
+
+            try {
+                const tels = parseTelefonos(telefonosEl.value);
+                const principal = tels[0] || "";
+                
+                // 1. Guardar en Firestore
+                await addDoc(collection(db, "reservas"), {
+                    cliente: nombreLs,
+                    dni: dniLs,
+                    servicio: servicioLs,
+                    fecha: fechaLs,
+                    hora: horaLs,
+                    telefono: principal,
+                    status: "confirmado",
+                    timestamp: new Date()
+                });
+
+                // 2. Notificaciones y Balance
+                if (tels.length > 0) {
+                    statusEl.textContent = "Enviando avisos por WhatsApp...";
+                    for (const [i, t] of tels.entries()) {
+                        await llamarBackend({ tel: t, descontar: (i === 0 && !!dniLs) });
+                    }
+                } else {
+                    await llamarBackend({ descontar: !!dniLs, soloBalance: true });
+                }
+
+                document.getElementById("modalOk").style.display = "flex";
             } catch (error) {
-                alert("Error al confirmar: " + error.message);
-                boton.disabled = false;
-                boton.innerText = "Reintentar";
+                console.error(error);
+                statusEl.textContent = "Error al confirmar. Reintentá.";
+                btnConfirmar.disabled = false;
+                btnConfirmar.textContent = "Reintentar";
             }
         }
 
-        obtenerDatosCliente();
-        document.getElementById("btnConfirmar").addEventListener("click", procesarConfirmacion);
+        sugerirTelefono();
+        btnConfirmar.addEventListener("click", procesarConfirmacion);
     </script>
+    <script src="/js/shared-footer.js"></script>
+    <script src="/js/mimi-bot.js"></script>
 </body>
 </html>
