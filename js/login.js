@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 import { db } from "./firebase.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+=======
+import { db, doc, getDoc } from "./firebase-web.js";
+>>>>>>> main
 
 const form = document.getElementById("loginForm");
 const errorMsg = document.getElementById("errorMsg");
@@ -26,7 +30,11 @@ const clientSnap = await getDoc(clientRef);
 
 if(!clientSnap.exists()){
 
+<<<<<<< HEAD
 errorMsg.textContent="Cliente no encontrado.";
+=======
+errorMsg.textContent="Paciente no encontrado.";
+>>>>>>> main
 return;
 
 }
@@ -52,7 +60,11 @@ sessionStorage.setItem("userRole","client");
 
 if(clientData.aceptoPolitica){
 
+<<<<<<< HEAD
 window.location.href="servicios.html";
+=======
+window.location.href="servicios-pro.html";
+>>>>>>> main
 
 }else{
 

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, onSnapshot, doc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -9,6 +10,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+=======
+import { db, collection, onSnapshot, doc, updateDoc, getDocs } from "./firebase-web.js";
+>>>>>>> main
 
 let reservas = [];
 let diccionarioClientes = {};
@@ -274,8 +278,111 @@ window.cambiarMes = (n) => {
     renderCalendario(); 
 };
 
+<<<<<<< HEAD
+=======
+
+// --- BUSCADOR DE SESIONES POR PACIENTE ---
+window.buscarSesionesPorNombreInput = function() {
+    const input = document.getElementById('inpBuscadorSesiones');
+    const cont = document.getElementById('contenedorSesionesBuscadas');
+    const filtro = (input.value || '').toLowerCase().trim();
+    if (filtro.length < 2) {
+        cont.innerHTML = '<div class="empty-state">Escribí al menos 2 letras del nombre...</div>';
+        return;
+    }
+    const lista = reservas.filter(r => {
+        const nombre = (r.nombreFinal || '').toLowerCase();
+        return nombre.includes(filtro);
+    }).sort((a,b) => parsearFecha(b.fecha) - parsearFecha(a.fecha));
+
+    if (!lista.length) {
+        cont.innerHTML = '<div class="empty-state">No se encontraron sesiones para ese nombre.</div>';
+        return;
+    }
+    cont.innerHTML = lista.map(r => {
+        const fechaObj = parsearFecha(r.fecha);
+        const tieneNota = !!(r.detalleSesion && r.detalleSesion.trim());
+        const esPendiente = !tieneNota;
+        const tagEstado = esPendiente ? 
+            '<span class="tag-fecha" style="background:#fff3cd; color:#856404;">⏳ PENDIENTE</span>' : 
+            '<span class="tag-fecha" style="background:#d4edda; color:#155724;">✅ COMPLETADA</span>';
+            
+        return `
+        <div class="detalle-dia-card" style="margin-bottom:10px; ${esPendiente ? 'border-left:4px solid #ffc107;' : 'border-left:4px solid #28a745;'}">
+            <b>${escapeHtml(r.nombreFinal)}</b> 
+            <span class="tag-fecha">${escapeHtml(r.fecha)} ${escapeHtml(r.hora || '')}</span>
+            ${tagEstado}<br>
+            <span style="color:#4a7c6a; font-weight:600">${escapeHtml(r.servicio || 'Tratamiento')}</span>
+            <div style="margin-top:7px;">
+                <b>Nota:</b> <span>${escapeHtml(r.detalleSesion || '(sin nota)')}</span>
+            </div>
+        </div>
+    `}).join('');
+};
+// --- FIN BUSCADOR DE SESIONES ---
+
+// --- BUSCADOR DE SERVICIOS REALIZADOS (solo fechas pasadas) ---
+window.buscarServiciosRealizadosInput = function() {
+    const input = document.getElementById('inpBuscadorRealizados');
+    const cont = document.getElementById('contenedorServiciosRealizados');
+    const filtro = (input.value || '').toLowerCase().trim();
+    if (!filtro) {
+        cont.innerHTML = '<div class="empty-state">Escribe el nombre o parte del nombre de la paciente...</div>';
+        return;
+    }
+    // TODAS las sesiones: pasadas Y futuras
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+    const lista = reservas.filter(r => {
+        const nombre = (r.nombreFinal || '').toLowerCase();
+        const fechaObj = parsearFecha(r.fecha);
+        return nombre.includes(filtro) && fechaObj;
+    }).sort((a,b) => parsearFecha(b.fecha) - parsearFecha(a.fecha));
+
+    if (!lista.length) {
+        cont.innerHTML = '<div class="empty-state">No se encontraron sesiones pasadas para ese nombre.</div>';
+        return;
+    }
+    cont.innerHTML = lista.map(r => {
+        const fechaObj = parsearFecha(r.fecha);
+        const esPendiente = fechaObj > hoy;
+        const tagEstado = esPendiente ? 
+            '<span class="tag-fecha" style="background:#fff3cd; color:#856404;">⏳ PENDIENTE</span>' : 
+            '<span class="tag-fecha" style="background:#d4edda; color:#155724;">✅ REALIZADA</span>';
+            
+        return `
+        <div class="detalle-dia-card" style="margin-bottom:10px; ${esPendiente ? 'border-left:4px solid #ffc107;' : 'border-left:4px solid #28a745;'}">
+            <b>${escapeHtml(r.nombreFinal)}</b> 
+            <span class="tag-fecha">${escapeHtml(r.fecha)} ${escapeHtml(r.hora || '')}</span>
+            ${tagEstado}<br>
+            <span style="color:#4a7c6a; font-weight:600">${escapeHtml(r.servicio || 'Tratamiento')}</span>
+            <div style="margin-top:7px;">
+                <b>Nota:</b> <span>${escapeHtml(r.detalleSesion || '(sin nota)')}</span>
+                <button class="btn-mini" style="margin-left:10px;" onclick="window.activarEdicionNota('${r.id}')">Editar</button>
+            </div>
+        </div>
+    `}).join('');
+};
+// --- FIN BUSCADOR DE SERVICIOS REALIZADOS ---
+
+>>>>>>> main
 function obtenerNombreMes(m) { 
     return ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][m]; 
 }
 
+<<<<<<< HEAD
+=======
+function parsearFecha(fechaStr) {
+    if (!fechaStr) return null;
+    const [y, m, d] = fechaStr.split('-');
+    const f = new Date(y, m - 1, d);
+    f.setHours(0,0,0,0);
+    return f;
+}
+
+function mostrarToast(mensaje) {
+    mostrarAviso(mensaje);
+}
+
+>>>>>>> main
 iniciar();

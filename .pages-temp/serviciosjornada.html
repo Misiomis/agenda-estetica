@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servicio Jornada | CRIO LIPOCELL 360</title>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --rojo: #e11d2e;
+            --rojo-oscuro: #9f1120;
+            --arena: #fff7ec;
+            --texto: #2c1f18;
+            --subtexto: #5b4639;
+            --borde: #f1dcc1;
+            --font-display: 'Barlow Condensed', sans-serif;
+            --font-body: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: var(--font-body);
+            color: var(--texto);
+            background:
+                radial-gradient(1000px 420px at 8% -20%, rgba(255, 102, 84, 0.16), transparent 60%),
+                radial-gradient(900px 380px at 94% 110%, rgba(225, 29, 46, 0.13), transparent 56%),
+                #fffaf4;
+        }
+
+        .page-wrap {
+            width: min(980px, 100%);
+            margin: 0 auto;
+            padding: clamp(18px, 3vw, 32px) 14px 30px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .back-link {
+            text-decoration: none;
+            color: #7a2a33;
+            font-weight: 800;
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .back-link:hover { text-decoration: underline; }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            border-radius: 999px;
+            object-fit: contain;
+            border: 1.5px solid rgba(255, 255, 255, 0.78);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+        }
+
+        .hero-card {
+            background: linear-gradient(150deg, #fffefb 0%, #fff8ee 100%);
+            border: 1px solid var(--borde);
+            border-radius: 18px;
+            box-shadow: 0 20px 44px rgba(58, 36, 14, 0.1);
+            padding: clamp(18px, 3vw, 30px);
+        }
+
+        .kicker {
+            margin: 0;
+            color: #8f1c28;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .title {
+            margin: 8px 0 10px;
+            font-family: var(--font-display);
+            font-size: clamp(34px, 8vw, 56px);
+            line-height: 0.94;
+            letter-spacing: 0.03em;
+            color: #241713;
+        }
+
+        .desc {
+            margin: 0;
+            color: var(--subtexto);
+            font-size: 14px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .price-chip {
+            margin-top: 14px;
+            display: inline-flex;
+            gap: 8px;
+            align-items: baseline;
+            background: linear-gradient(135deg, #ffedd0 0%, #ffd487 100%);
+            border: 1px solid #f2c977;
+            color: #3f2508;
+            border-radius: 999px;
+            padding: 10px 16px;
+            font-weight: 900;
+            font-size: 13px;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .price-chip strong { font-size: 18px; }
+
+        .info-grid {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--borde);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            color: #301b1f;
+            font-size: 13px;
+            line-height: 1.3;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            font-weight: 900;
+        }
+
+        .card ul {
+            margin: 0;
+            padding-left: 18px;
+            color: var(--subtexto);
+            font-size: 13px;
+            line-height: 1.48;
+            font-weight: 600;
+        }
+
+        .card li + li { margin-top: 6px; }
+
+        .card-wide { grid-column: 1 / -1; }
+
+        .faq-block {
+            margin-top: 16px;
+            background: #fff;
+            border: 1px solid var(--borde);
+            border-radius: 14px;
+            padding: 12px;
+        }
+
+        .faq-title {
+            margin: 0 0 8px;
+            color: #301b1f;
+            font-size: 14px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-weight: 900;
+        }
+
+        .faq-item {
+            border: 1px solid #f1e3cd;
+            border-radius: 10px;
+            background: #fffdfa;
+        }
+
+        .faq-item + .faq-item {
+            margin-top: 8px;
+        }
+
+        .faq-item summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 800;
+            color: #40262a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .faq-item summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .faq-item summary::after {
+            content: "+";
+            color: #8f1c28;
+            font-size: 16px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .faq-item[open] summary::after {
+            content: "-";
+        }
+
+        .faq-answer {
+            padding: 0 12px 12px;
+            color: var(--subtexto);
+            font-size: 13px;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .services-teaser {
+            margin-top: 16px;
+            background: linear-gradient(160deg, #fffdf8 0%, #fff8ef 100%);
+            border: 1px solid var(--borde);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .services-teaser-title {
+            margin: 0 0 6px;
+            color: #301b1f;
+            font-size: 14px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-weight: 900;
+        }
+
+        .services-teaser-sub {
+            margin: 0;
+            color: #6c5548;
+            font-size: 12px;
+            line-height: 1.45;
+            font-weight: 600;
+        }
+
+        .services-teaser-grid {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .services-teaser-card {
+            border: 1px solid #ecdac3;
+            background: #fff;
+            border-radius: 10px;
+            padding: 10px;
+            min-height: 122px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .services-teaser-card h3 {
+            margin: 0;
+            color: #30211b;
+            font-size: 14px;
+            line-height: 1.24;
+            font-weight: 800;
+        }
+
+        .services-teaser-card p {
+            margin: 0;
+            color: #705a4b;
+            font-size: 12px;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+
+        .locked-chip {
+            align-self: flex-start;
+            margin-top: auto;
+            font-size: 10px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            font-weight: 900;
+            color: #8b6b4f;
+            background: #fff3df;
+            border: 1px solid #f0d4ae;
+            border-radius: 999px;
+            padding: 5px 8px;
+        }
+
+        .services-teaser-loading {
+            margin-top: 8px;
+            color: #7a6558;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .cta-row {
+            margin-top: 18px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-weight: 900;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-primary {
+            color: #fff;
+            background: linear-gradient(135deg, #ff3a4c 0%, #e11d2e 54%, #9f1120 100%);
+            box-shadow: 0 12px 26px rgba(159, 17, 32, 0.24);
+        }
+
+        .btn-secondary {
+            color: #7a2a33;
+            border: 1px solid #efc8b9;
+            background: #fff;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .info-grid { grid-template-columns: 1fr; }
+            .services-teaser-grid { grid-template-columns: 1fr; }
+            .topbar { align-items: flex-start; }
+            .logo { width: 58px; height: 58px; }
+        }
+
+        @media (max-width: 480px) {
+            .desc, .card ul { font-size: 12px; }
+            .faq-answer { font-size: 12px; }
+            .services-teaser-card h3 { font-size: 13px; }
+            .services-teaser-card p { font-size: 11px; }
+            .btn { width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrap">
+        <div class="topbar">
+            <a class="back-link" href="jornada.html">Volver a jornada</a>
+            <img src="img/logo2.jpg" alt="Espacio Mimar T" class="logo">
+        </div>
+
+        <section class="hero-card" aria-label="Informacion completa del tratamiento CRIO LIPOCELL 360">
+            <p class="kicker">Experiencia de Lanzamiento</p>
+            <h1 class="title">CRIO LIPOCELL 360</h1>
+            <p class="desc">Incorporamos criolipolisis de succion con cabezales 360, una tecnologia no invasiva indicada para tratar adiposidad localizada de manera segura y progresiva. El tratamiento actua mediante frio controlado, generando destruccion selectiva de adipocitos. El proceso de eliminacion es natural y progresivo, y continua hasta 60 dias posteriores a la sesion.</p>
+
+            <div class="price-chip">
+                <span>Valor de la inversion:</span>
+                <strong>$59.000</strong>
+            </div>
+
+            <div class="info-grid">
+                <article class="card">
+                    <h3>La experiencia incluye</h3>
+                    <ul>
+                        <li>Evaluacion personalizada.</li>
+                        <li>Tratamiento de 1 zona con Lipocell Crio 360.</li>
+                    </ul>
+                </article>
+
+                <article class="card">
+                    <h3>Indicaciones</h3>
+                    <ul>
+                        <li>Personas con adiposidad localizada.</li>
+                        <li>Sobrepeso leve.</li>
+                        <li>No indicado para obesidad generalizada.</li>
+                        <li>Requiere evaluacion previa.</li>
+                    </ul>
+                </article>
+
+                <article class="card card-wide">
+                    <h3>Contraindicaciones</h3>
+                    <ul>
+                        <li>Embarazo o lactancia.</li>
+                        <li>Enfermedades por criosensibilidad (por ejemplo: crioglobulinemia, urticaria por frio).</li>
+                        <li>Hernias en la zona a tratar.</li>
+                        <li>Trastornos de la coagulacion o uso de anticoagulantes.</li>
+                        <li>Enfermedades autoinmunes activas.</li>
+                        <li>Infecciones, lesiones o dermatitis en la zona.</li>
+                        <li>Marcapasos u otros dispositivos electronicos implantables.</li>
+                        <li>Uso de inyectables para descenso de peso, salvo que cuente con certificado medico que avale el tratamiento.</li>
+                    </ul>
+                </article>
+            </div>
+
+            <section class="faq-block" aria-label="Preguntas frecuentes sobre criolipolisis">
+                <h2 class="faq-title">FAQ</h2>
+
+                <details class="faq-item" open>
+                    <summary>Cuando se empiezan a ver resultados?</summary>
+                    <div class="faq-answer">El cuerpo elimina los adipocitos de manera progresiva. Generalmente se observan cambios entre la semana 3 y la semana 8, con evolucion hasta los 60 dias.</div>
+                </details>
+
+                <details class="faq-item">
+                    <summary>La sesion duele o requiere reposo?</summary>
+                    <div class="faq-answer">Es un tratamiento no invasivo. Puede sentirse frio intenso y succion al inicio, luego la zona se adapta. En la mayoria de los casos no requiere reposo.</div>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Sirve para bajar de peso general?</summary>
+                    <div class="faq-answer">No. Esta indicado para adiposidad localizada y modelado de zonas. No reemplaza un plan medico de descenso de peso.</div>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Que pasa si uso inyectables para descenso de peso?</summary>
+                    <div class="faq-answer">Se necesita certificado medico que avale el tratamiento antes de avanzar. La evaluacion profesional define si es apta para la sesion.</div>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Como confirmo si soy apta?</summary>
+                    <div class="faq-answer">Primero se realiza evaluacion personalizada. Ahi se revisan indicaciones, antecedentes clinicos y contraindicaciones para definir aptitud.</div>
+                </details>
+            </section>
+
+            <section class="services-teaser" aria-label="Listado de servicios informativo">
+                <h2 class="services-teaser-title">Estos son todos nuestros servicios</h2>
+                <p class="services-teaser-sub">En esta jornada especial no se pueden elegir servicios generales desde aqui. Es un panel solo informativo para que conozcas toda la propuesta de Espacio Mimar T.</p>
+                <div id="servicesTeaserLoading" class="services-teaser-loading">Cargando servicios...</div>
+                <div id="servicesTeaserGrid" class="services-teaser-grid"></div>
+            </section>
+
+            <div class="cta-row">
+                <a class="btn btn-primary" href="fechaservicio.html">Continuar a fecha especial</a>
+                <a class="btn btn-secondary" href="politica.html">Ver politica de privacidad</a>
+            </div>
+        </section>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
+            authDomain: "estetica-8d067.firebaseapp.com",
+            projectId: "estetica-8d067",
+            storageBucket: "estetica-8d067.firebasestorage.app",
+            messagingSenderId: "501220214938",
+            appId: "1:501220214938:web:af6e262c23d9a7ea853723",
+            measurementId: "G-J4NH9ENVYL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const loadingEl = document.getElementById("servicesTeaserLoading");
+        const gridEl = document.getElementById("servicesTeaserGrid");
+
+        const escapeHtml = (value) => String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
+        const trunc = (txt, max = 170) => {
+            const value = String(txt || "").replace(/\s+/g, " ").trim();
+            if (!value) return "Consulta de forma personalizada para definir plan, frecuencia y tecnologia recomendada.";
+            return value.length > max ? `${value.slice(0, max - 1)}...` : value;
+        };
+
+        async function cargarServiciosSoloVista() {
+            try {
+                const snap = await getDocs(collection(db, "services"));
+                const servicios = [];
+                snap.forEach((d) => {
+                    const data = d.data() || {};
+                    if (data.activo !== false) {
+                        servicios.push({
+                            nombre: String(data.nombre || "Servicio").trim(),
+                            descripcion: String(data.descripcion || "").trim(),
+                            orden: Number(data.orden) || 0
+                        });
+                    }
+                });
+
+                servicios.sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
+
+                loadingEl.style.display = "none";
+                if (!servicios.length) {
+                    gridEl.innerHTML = "<p class=\"services-teaser-sub\">No hay servicios cargados en este momento.</p>";
+                    return;
+                }
+
+                gridEl.innerHTML = servicios.map((s) => `
+                    <article class="services-teaser-card">
+                        <h3>${escapeHtml(s.nombre)}</h3>
+                        <p>${escapeHtml(trunc(s.descripcion))}</p>
+                        <span class="locked-chip">Solo informativo</span>
+                    </article>
+                `).join("");
+            } catch (error) {
+                console.error("No se pudieron cargar los servicios:", error);
+                loadingEl.textContent = "No pudimos cargar el listado de servicios por ahora.";
+            }
+        }
+
+        cargarServiciosSoloVista();
+    </script>
+</body>
+</html>

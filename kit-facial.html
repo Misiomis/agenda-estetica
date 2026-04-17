@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kit Facial Domiciliario | Espacio Mimar T</title>
+    <meta name="description" content="Solicitá tu kit facial domiciliario personalizado en Espacio Mimar T.">
+    <link rel="stylesheet" href="/mobile-fixes.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/pro-theme.css">
+
+    <style>
+        :root {
+            --bg: #f2f6f4;
+            --surface: #ffffff;
+            --primary: #72bd99;
+            --primary-strong: #4f9777;
+            --ink: #273630;
+            --muted: #67736e;
+            --border: #d9e5de;
+            --card-gold: rgba(208, 174, 115, 0.34);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-pill: 999px;
+            --shadow-soft: 0 8px 24px rgba(29, 51, 42, 0.08);
+            --shadow-card: 0 18px 36px rgba(29, 51, 42, 0.12);
+            --glow: 0 0 28px rgba(114, 189, 153, 0.32);
+            --trans: .26s ease;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            background:
+                radial-gradient(circle at 8% 15%, rgba(114, 189, 153, 0.18), transparent 38%),
+                radial-gradient(circle at 90% 8%, rgba(114, 189, 153, 0.12), transparent 32%),
+                var(--bg);
+            color: var(--ink);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .hero {
+            min-height: 28vh;
+            display: grid;
+            place-items: center;
+            padding: 72px 18px 32px;
+            position: relative;
+            isolation: isolate;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(145deg, #e8f5ee 0%, #f2f6f4 42%, #eef8f2 100%);
+            z-index: -2;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            width: min(560px, 90vw);
+            height: min(560px, 90vw);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(114, 189, 153, 0.28) 0%, rgba(114, 189, 153, 0) 68%);
+            filter: blur(8px);
+            z-index: -1;
+            animation: floatAura 7s ease-in-out infinite;
+        }
+
+        .hero-card {
+            width: min(980px, 94vw);
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: var(--shadow-soft);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-xl);
+            padding: 26px 20px;
+            text-align: center;
+        }
+
+        .logo {
+            width: clamp(160px, 28vw, 260px);
+            display: block;
+            margin: 0 auto 14px;
+            filter: drop-shadow(0 10px 22px rgba(66, 98, 83, 0.16));
+        }
+
+        .hero-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(32px, 7vw, 54px);
+            line-height: 1;
+            font-style: italic;
+            margin: 0;
+            color: var(--ink);
+        }
+
+        .hero-sub {
+            margin: 10px auto 0;
+            max-width: 600px;
+            font-size: clamp(13px, 2.5vw, 15px);
+            color: var(--muted);
+        }
+
+        @keyframes floatAura {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .section {
+            width: min(700px, 95vw);
+            margin: 0 auto 60px;
+            padding: 0 16px;
+        }
+
+        .kit-card {
+            background: linear-gradient(165deg, #fffdf9 0%, #f5faf6 52%, #eef5ef 100%);
+            border: 1px solid var(--card-gold);
+            border-radius: var(--radius-lg);
+            padding: 28px 22px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .kit-card h2 {
+            margin: 0 0 20px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 28px;
+            font-style: italic;
+            color: var(--ink);
+            text-align: center;
+        }
+
+        .productos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .producto-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all var(--trans);
+        }
+
+        .producto-item:hover {
+            background: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 4px 14px rgba(114, 189, 153, 0.15);
+        }
+
+        .producto-item input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            accent-color: var(--primary-strong);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .producto-item label {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--ink);
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .descripcion-box {
+            margin-bottom: 24px;
+        }
+
+        .descripcion-box label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink);
+            margin-bottom: 10px;
+        }
+
+        .descripcion-box textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            font-family: inherit;
+            font-size: 14px;
+            color: var(--ink);
+            background: #fff;
+            resize: vertical;
+            outline: none;
+            transition: border-color var(--trans), background var(--trans);
+        }
+
+        .descripcion-box textarea:focus {
+            border-color: var(--primary);
+            background: #f8fdfa;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform var(--trans), box-shadow var(--trans);
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(114, 189, 153, 0.34);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .feedback-message {
+            padding: 14px 16px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .feedback-message.success {
+            background: #e8f5ee;
+            color: var(--primary-strong);
+            border: 1px solid #cce8d9;
+        }
+
+        .feedback-message.error {
+            background: #fff1f3;
+            color: #a64b58;
+            border: 1px solid #f2d3d8;
+        }
+
+        .feedback-message.info {
+            background: #eef7f2;
+            color: #3d6252;
+            border: 1px solid #d5e9de;
+        }
+
+        .not-logged-in {
+            background: #f8fbf9;
+            border: 1px solid #d5e9de;
+            padding: 26px 20px;
+            border-radius: 18px;
+            text-align: center;
+        }
+
+        .not-logged-in .nl-icon { font-size: 36px; margin-bottom: 12px; }
+
+        .not-logged-in h3 {
+            margin: 0 0 8px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 22px;
+            font-style: italic;
+            color: var(--ink);
+        }
+
+        .not-logged-in p {
+            margin: 0 0 16px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .not-logged-in .btn-login {
+            display: block;
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+            color: white;
+            text-decoration: none;
+            border-radius: 13px;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: transform .22s ease, box-shadow .22s ease;
+            box-shadow: 0 8px 18px rgba(79, 151, 119, 0.28);
+        }
+
+        .not-logged-in .btn-login:hover { transform: translateY(-1px); }
+
+        .not-logged-in .btn-wa {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px;
+            background: #25D366;
+            color: white;
+            text-decoration: none;
+            border-radius: 13px;
+            font-weight: 700;
+            font-size: 14px;
+            transition: opacity .2s;
+        }
+
+        .not-logged-in .btn-wa:hover { opacity: 0.92; }
+
+        @media (min-width: 1024px) {
+            .hero-card {
+                background: rgba(255, 255, 255, 0.76);
+                backdrop-filter: blur(16px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero { min-height: 24vh; padding-top: 50px; }
+            .hero-card {
+                padding: 18px 14px;
+                background: rgba(255, 255, 255, 0.94);
+                backdrop-filter: blur(6px);
+            }
+            .logo { width: clamp(140px, 42vw, 180px); }
+            .kit-card { padding: 20px 16px; }
+            .kit-card h2 { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="hero-card">
+            <img src="/img/logo.png" alt="Espacio Mimar T" class="logo">
+            <h1 class="hero-title">Kit Facial Domiciliario</h1>
+            <p class="hero-sub">Cuidado de tu piel en casa, con productos recomendados por Gimena Knack.</p>
+        </div>
+    </section>
+
+    <main class="section">
+        <div class="kit-card">
+            <h2>Seleccioná tus productos</h2>
+            
+            <div id="feedbackMessage" class="feedback-message" style="display: none;"></div>
+
+            <div id="contenidoKit">
+                <div class="productos-list">
+                    <div class="producto-item">
+                        <input type="checkbox" id="prod-leche" value="Leche de limpieza">
+                        <label for="prod-leche">Leche de limpieza</label>
+                    </div>
+                    <div class="producto-item">
+                        <input type="checkbox" id="prod-gel" value="Gel de limpieza">
+                        <label for="prod-gel">Gel de limpieza</label>
+                    </div>
+                    <div class="producto-item">
+                        <input type="checkbox" id="prod-tonico" value="Tónico calmante">
+                        <label for="prod-tonico">Tónico calmante</label>
+                    </div>
+                    <div class="producto-item">
+                        <input type="checkbox" id="prod-crema" value="Crema/Gel regeneradora hidratante">
+                        <label for="prod-crema">Crema/Gel regeneradora hidratante</label>
+                    </div>
+                </div>
+
+                <div class="descripcion-box">
+                    <label for="descripcionPiel">Describe brevemente cómo está tu piel</label>
+                    <textarea id="descripcionPiel" placeholder="Ej: tengo la piel mixta, con algunas manchas por el sol y necesito hidratación..."></textarea>
+                </div>
+
+                <button class="btn-submit" id="btnSolicitarKit">Solicitar Kit</button>
+            </div>
+
+            <div id="noLoggedIn" class="not-logged-in" style="display: none;">
+                <div class="nl-icon">🌿</div>
+                <h3>Espacio exclusivo</h3>
+                <p id="nlMsg">Para solicitar el kit debés iniciar sesión con tu cuenta de paciente.</p>
+                <a href="/index.html#loginAccess" class="btn-login">Ingresar a mi cuenta</a>
+                <a href="https://wa.me/5493764291807?text=Hola%20Gime%2C%20quisiera%20ser%20paciente%20de%20Espacio%20Mimar%20T%20para%20acceder%20al%20kit%20facial%20%F0%9F%8C%BF" class="btn-wa" target="_blank" rel="noopener noreferrer">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    Quiero ser paciente
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/shared-footer.js"></script>
+    <script src="/js/mimi-bot.js"></script>
+
+    <script type="module">
+        import { db, collection, addDoc } from "/js/firebase-web.js";
+
+        const PRODUCTOS_DISPONIBLES = [
+            "Leche de limpieza",
+            "Gel de limpieza",
+            "Tónico calmante",
+            "Crema/Gel regeneradora hidratante"
+        ];
+
+        const escapeHtml = (value) => String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
+        const getUserData = () => {
+            const dni = localStorage.getItem("clienteDNI");
+            const nombre = localStorage.getItem("clienteNombre");
+            return { dni, nombre };
+        };
+
+        const showFeedback = (message, type = "info") => {
+            const el = document.getElementById("feedbackMessage");
+            el.textContent = message;
+            el.className = `feedback-message ${type}`;
+            el.style.display = "block";
+            setTimeout(() => {
+                el.style.display = "none";
+            }, 5000);
+        };
+
+        const checkAuthAndLoad = () => {
+            const { dni, nombre } = getUserData();
+            const contenidoKit = document.getElementById("contenidoKit");
+            const noLoggedIn = document.getElementById("noLoggedIn");
+
+            if (!dni || !nombre || dni === "null") {
+                contenidoKit.style.display = "none";
+                noLoggedIn.style.display = "block";
+                return false;
+            }
+            contenidoKit.style.display = "block";
+            noLoggedIn.style.display = "none";
+            return true;
+        };
+
+        const submitKitRequest = async () => {
+            const { dni, nombre } = getUserData();
+
+            if (!dni || !nombre) {
+                showFeedback("Necesitás estar logueado para solicitar un kit.", "error");
+                return;
+            }
+
+            const checkboxes = document.querySelectorAll('.productos-list input[type="checkbox"]:checked');
+            const productos = Array.from(checkboxes).map(cb => cb.value);
+
+            if (productos.length === 0) {
+                showFeedback("Seleccioná al menos un producto.", "error");
+                return;
+            }
+
+            const descripcionPiel = document.getElementById("descripcionPiel").value.trim();
+
+            if (!descripcionPiel || descripcionPiel.length < 10) {
+                showFeedback("Contános un poco más sobre tu piel (mínimo 10 caracteres).", "error");
+                return;
+            }
+
+            const btn = document.getElementById("btnSolicitarKit");
+            btn.disabled = true;
+            btn.textContent = "Enviando...";
+
+            try {
+                const datosCliente = await getClienteData(dni);
+                
+                const pedidoData = {
+                    fecha: new Date().toISOString(),
+                    productos: productos,
+                    descripcionPiel: descripcionPiel,
+                    nombrePaciente: nombre,
+                    telefono: datosCliente?.phone || datosCliente?.telefono || "",
+                    dni: dni,
+                    estado: "pendiente",
+                    createdAt: new Date().toISOString()
+                };
+
+                await addDoc(collection(db, "pedidosKit"), pedidoData);
+
+                showFeedback("✅ Tu solicitud de kit fue enviada. Te contactaremos pronto!", "success");
+                
+                document.querySelectorAll('.productos-list input[type="checkbox"]').forEach(cb => cb.checked = false);
+                document.getElementById("descripcionPiel").value = "";
+
+            } catch (error) {
+                console.error("Error al guardar pedido:", error);
+                showFeedback("Error al enviar la solicitud. Intentá de nuevo.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Solicitar Kit";
+            }
+        };
+
+        const getClienteData = async (dni) => {
+            try {
+                const { doc, getDoc } = await import("/js/firebase-web.js");
+                const docRef = doc(db, "clients", dni);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists() ? docSnap.data() : null;
+            } catch (e) {
+                console.error("Error getting client:", e);
+                return null;
+            }
+        };
+
+        const showEffect = (message, type) => {
+            showFeedback(message, type);
+        };
+
+        document.getElementById("btnSolicitarKit").addEventListener("click", submitKitRequest);
+
+        checkAuthAndLoad();
+    </script>
+</body>
+</html>

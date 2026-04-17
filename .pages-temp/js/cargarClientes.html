@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Carga masiva clientes</title>
+</head>
+<body>
+  <h2>Cargando clientes...</h2>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // 🔹 TU CONFIGURACIÓN FIREBASE (copiala EXACTA de tu proyecto actual)
+    const firebaseConfig = {
+      apiKey: "PEGÁ_ACÁ_TU_API_KEY",
+      authDomain: "PEGÁ_ACÁ_TU_AUTH_DOMAIN",
+      projectId: "PEGÁ_ACÁ_TU_PROJECT_ID",
+      storageBucket: "PEGÁ_ACÁ_TU_STORAGE_BUCKET",
+      messagingSenderId: "PEGÁ_ACÁ_TU_MESSAGING_ID",
+      appId: "PEGÁ_ACÁ_TU_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const clientes = [
+      "Casa Azul","Barco Amarillo","Sol Verde","Luna Roja","Puerta Blanca",
+      "Volcan Negro","Rio Dorado","Bosque Gris","Cielo Naranja","Estrella Violeta",
+      "Piedra Plateada","Faro Turquesa","Puente Marron","Arena Rosa","Nube Celeste",
+      "Tren Verde","Fuego Azul","Mar Blanco","Hoja Roja","Viento Amarillo",
+      "Reloj Negro","Camino Dorado","Flor Azul","Lago Verde","Isla Blanca",
+      "Rueda Roja","Perla Gris","Coral Naranja","Torre Plateada","Sendero Violeta",
+      "Puerta Dorada","Brisa Celeste","Arbol Marron","Roca Azul","Playa Blanca",
+      "Estacion Roja","Valle Verde","Faro Blanco","Ola Turquesa","Cristal Negro",
+      "Puente Azul","Barco Blanco","Luz Dorada","Cueva Gris","Colina Verde",
+      "Puerta Roja","Niebla Celeste","Sol Plateado","Luna Dorada","Bosque Azul",
+      "Mar Verde","Sendero Blanco","Rio Celeste","Estrella Roja","Piedra Negra",
+      "Fuego Dorado","Nube Blanca","Arena Verde","Torre Azul","Camino Plateado"
+    ];
+
+    async function cargarClientes() {
+      for (const nombre of clientes) {
+        await setDoc(doc(db, "clients", nombre), {
+          nombre: nombre,
+          clave: nombre,
+          email: "",
+          telefono: "",
+          monthlyLimit: 8,
+          role: "user"
+        });
+
+        console.log("✅ Creado:", nombre);
+      }
+
+      console.log("🚀 TODOS LOS CLIENTES FUERON CARGADOS");
+      alert("Clientes cargados correctamente");
+    }
+
+    cargarClientes();
+  </script>
+</body>
+</html>

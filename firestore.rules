@@ -66,5 +66,16 @@ service cloud.firestore {
       allow write:  if esAdmin();
     }
 
+<<<<<<< HEAD
+=======
+    // ── pedidosKit ─────────────────────────────────────────────────────────
+    // Pacientes pueden crear pedidos (sin auth Firebase, solo localStorage).
+    match /pedidosKit/{pedidoId} {
+      allow read:   if esAdmin() || request.auth != null;
+      allow create: if true;
+      allow write:  if esAdmin();
+    }
+
+>>>>>>> main
   }
 }

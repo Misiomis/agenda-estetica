@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <link rel="stylesheet" href="mobile-fixes.css">
+<<<<<<< HEAD
 <title>Confirmar Turno - Espacio Mimar T</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -32,29 +33,194 @@
             <p><span id="txtServicio">Cargando...</span> - <span id="txtFecha">Cargando...</span> a las <span id="txtHora">Cargando...</span></p>
             <p>Te contactaremos al: <span id="txtTelefono">Buscando en base de datos...</span></p>
             <small>RevisÃ¡ tu turno y confirma para finalizar.</small>
+=======
+<title>Gimena Knack | Confirmar turno</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f2f6f4;
+            --primary: #72bd99;
+            --primary-strong: #4f9777;
+            --ink: #273630;
+            --muted: #67736e;
+            --border: #d9e5de;
+            --card-gold: rgba(208, 174, 115, 0.32);
+            --radius-xl: 28px;
+            --shadow-card: 0 18px 40px rgba(29, 51, 42, 0.13);
+            --trans: .26s ease;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            background:
+                radial-gradient(circle at 8% 15%, rgba(114, 189, 153, 0.18), transparent 38%),
+                radial-gradient(circle at 90% 8%, rgba(114, 189, 153, 0.12), transparent 32%),
+                var(--bg);
+            color: var(--ink);
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px 16px;
+        }
+        .card {
+            background: linear-gradient(165deg, #fffdf9 0%, #f6fbf7 52%, #eef5ef 100%);
+            border: 1px solid var(--card-gold);
+            border-radius: var(--radius-xl);
+            padding: 36px 28px 28px;
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+            box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.85);
+        }
+        .card-logo {
+            width: clamp(90px, 22vw, 120px);
+            display: block;
+            margin: 0 auto 18px;
+            filter: drop-shadow(0 6px 16px rgba(66, 98, 83, 0.14));
+        }
+        h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(28px, 6vw, 36px);
+            font-style: italic;
+            color: var(--ink);
+            margin: 0 0 22px;
+            font-weight: 600;
+        }
+        .info-box {
+            background: rgba(255, 255, 255, 0.82);
+            padding: 18px 20px;
+            border-radius: 16px;
+            text-align: left;
+            margin-bottom: 22px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 14px rgba(29, 51, 42, 0.06);
+        }
+        .info-box p {
+            margin: 9px 0;
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+        .info-box p span { font-weight: 600; color: var(--ink); }
+        .info-box small {
+            display: block;
+            margin-top: 12px;
+            color: #8a9e96;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .btn-confirmar {
+            background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+            color: white;
+            border: none;
+            padding: 16px 25px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 700;
+            width: 100%;
+            min-height: 50px;
+            font-family: 'Montserrat', sans-serif;
+            box-shadow: 0 10px 24px rgba(79, 151, 119, 0.34);
+            transition: transform var(--trans), box-shadow var(--trans);
+            letter-spacing: 0.3px;
+        }
+        .btn-confirmar:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(79, 151, 119, 0.42);
+        }
+        .btn-confirmar:disabled {
+            background: linear-gradient(135deg, #c5d9cc, #a8c4b4);
+            cursor: not-allowed;
+            box-shadow: none;
+            opacity: 0.85;
+        }
+        #modalConfirmado {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.82);
+            justify-content: center;
+            align-items: center;
+            color: white;
+            flex-direction: column;
+            z-index: 1000;
+            padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+            text-align: center;
+        }
+        #modalConfirmado > h1,
+        #modalConfirmado > p,
+        #modalConfirmado > button { width: min(100%, 420px); }
+        #modalConfirmado > h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 40px;
+        }
+        #modalConfirmado > button {
+            margin-top: 20px;
+            padding: 14px 20px;
+            cursor: pointer;
+            border-radius: 14px;
+            border: none;
+            font-family: 'Montserrat', sans-serif;
+            min-height: 48px;
+            background: var(--primary-strong);
+            color: white;
+            font-weight: 700;
+            font-size: 15px;
+        }
+        @media (max-width: 480px) {
+            body { align-items: flex-start; padding: 18px 14px; }
+            .card { padding: 26px 18px 22px; border-radius: 22px; }
+        }
+    </style>
+    <link rel="stylesheet" href="/pro-theme.css"></head>
+<body>
+
+    <div class="card">
+        <img src="/img/logo.png" alt="Espacio Mimar T" class="card-logo">
+        <h2>Confirmar Turno</h2>
+        <div class="info-box">
+            <p>¡Hola <span id="txtNombre">Cargando...</span>!</p>
+            <p><span id="txtServicio">Cargando...</span> - <span id="txtFecha">Cargando...</span> a las <span id="txtHora">Cargando...</span></p>
+            <p>Te contactaremos al: <span id="txtTelefono">Buscando en base de datos...</span></p>
+            <small>Revisá tu turno y confirmá para finalizar.</small>
+>>>>>>> main
         </div>
         <button id="btnConfirmar" class="btn-confirmar" disabled>Cargando datos...</button>
     </div>
 
     <div id="modalConfirmado">
+<<<<<<< HEAD
         <h1>Operacion Exitosa</h1>
         <p>Turno confirmado y notificacion enviada.</p>
+=======
+        <h1>Operación exitosa</h1>
+        <p id="modalMensaje">Turno confirmado y notificación enviada.</p>
+>>>>>>> main
         <button onclick="window.location.href='index.html'" style="margin-top:20px; padding:10px 20px; cursor:pointer; border-radius: 10px; border: none; font-family: 'Poppins', sans-serif;">Volver al inicio</button>
     </div>
 
     <script type="module">
+<<<<<<< HEAD
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         const firebaseConfig = { projectId:"estetica-8d067", apiKey:"AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+=======
+        import { db, collection, addDoc, doc, getDoc } from "/js/firebase-web.js";
+>>>>>>> main
 
         const CF_CONFIRM_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarConfirmacionTurno";
 
         // Variables globales para este script
         let telefonoExtraido = "";
         const dniLs = localStorage.getItem("clienteDNI");
+<<<<<<< HEAD
         const nombreLs = localStorage.getItem("clienteNombre") || localStorage.getItem("nombre") || "Cliente";
         const servLs = localStorage.getItem("servicioSeleccionado") || "Tratamiento";
         const fechaLs = localStorage.getItem("fechaSeleccionada") || "Pendiente";
@@ -74,6 +240,35 @@
             if (!dniLs) {
                 document.getElementById("txtTelefono").innerText = "Error: DNI no encontrado en sesiÃ³n";
                 boton.innerText = "Error de sesiÃ³n";
+=======
+        const nombreLs = localStorage.getItem("clienteNombre") || localStorage.getItem("nombre") || "";
+        const servLs = localStorage.getItem("servicioSeleccionado") || "";
+        const fechaLs = localStorage.getItem("fechaSeleccionada") || "";
+        const horaRawLs = localStorage.getItem("horaSeleccionada") || "";
+        const horaLs = horaRawLs;
+
+        const formatearFechaVisible = (fecha) => {
+            if (!fecha) return "";
+            const [year, month, day] = fecha.split("-").map(Number);
+            const parsed = new Date(year, (month || 1) - 1, day || 1);
+            if (Number.isNaN(parsed.getTime())) return fecha;
+            return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", year: "numeric" }).format(parsed);
+        };
+
+        // Mostrar datos iniciales en pantalla
+        document.getElementById("txtNombre").innerText = nombreLs;
+        document.getElementById("txtServicio").innerText = servLs;
+        document.getElementById("txtFecha").innerText = formatearFechaVisible(fechaLs);
+        document.getElementById("txtHora").innerText = `${horaLs} hs`;
+        const modalMensaje = document.getElementById("modalMensaje");
+
+        // Buscar el teléfono en Firestore al cargar la página
+        async function obtenerDatosCliente() {
+            const boton = document.getElementById("btnConfirmar");
+
+            if (!dniLs || !nombreLs || !servLs || !fechaLs || !horaLs) {
+                window.location.href = "/";
+>>>>>>> main
                 return;
             }
 
@@ -83,6 +278,17 @@
 
                 if (docSnap.exists()) {
                     const datosCliente = docSnap.data();
+<<<<<<< HEAD
+=======
+                    const nombreDb = (datosCliente.fullName || "").trim().toLowerCase();
+                    const nombreSesion = (nombreLs || "").trim().toLowerCase();
+
+                    if (!nombreDb || nombreDb !== nombreSesion) {
+                        window.location.href = "/";
+                        return;
+                    }
+
+>>>>>>> main
                     telefonoExtraido = datosCliente.phone || datosCliente.telefono || datosCliente.whatsapp || "";
 
                     if (telefonoExtraido) {
@@ -90,11 +296,16 @@
                         boton.disabled = false;
                         boton.innerText = "Confirmar y Enviar WhatsApp";
                     } else {
+<<<<<<< HEAD
                         document.getElementById("txtTelefono").innerText = "Sin telÃ©fono en ficha (se guardarÃ¡ igual)";
+=======
+                        document.getElementById("txtTelefono").innerText = "Sin teléfono en ficha (se guardará igual)";
+>>>>>>> main
                         boton.disabled = false;
                         boton.innerText = "Confirmar turno";
                     }
                 } else {
+<<<<<<< HEAD
                     document.getElementById("txtTelefono").innerText = "Usuario no registrado";
                     boton.innerText = "Error de registro";
                 }
@@ -108,6 +319,49 @@
         obtenerDatosCliente();
 
         // Procesar la confirmacion final
+=======
+                    window.location.href = "/";
+                }
+            } catch (error) {
+                // Error de red (móvil inestable): NO redirigir.
+                // Habilitar el botón igualmente para poder confirmar el turno.
+                console.warn("Error de red en confirmar, habilitando de todos modos:", error?.code || error?.message);
+                boton.disabled = false;
+                boton.innerText = "Confirmar turno";
+            }
+        }
+
+        // Ejecutar la búsqueda apenas arranca
+        obtenerDatosCliente();
+
+        async function ejecutarConfirmacionBackend({ telefono, omitirWhatsapp = false }) {
+            try {
+                const response = await fetch(CF_CONFIRM_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        nombre: nombreLs,
+                        servicio: servLs,
+                        fecha: fechaLs,
+                        hora: `${horaLs} hs`,
+                        telefono: telefono || "",
+                        dni: dniLs,
+                        descontarBalance: true,
+                        omitirWhatsapp
+                    })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                return { ok: response.ok, data };
+            } catch (error) {
+                return { ok: false, error };
+            }
+        }
+
+        // Procesar la confirmación final
+>>>>>>> main
         async function procesarConfirmacion() {
             const boton = document.getElementById("btnConfirmar");
             boton.disabled = true;
@@ -128,7 +382,15 @@
                     servicio: servLs,
                     fecha: fechaLs,
                     hora: horaLs,
+<<<<<<< HEAD
                     turnoAt: Number.isNaN(turnoAt.getTime()) ? null : turnoAt,
+=======
+                    origen: "normal",
+                    turnoAt: Number.isNaN(turnoAt.getTime()) ? null : turnoAt,
+                    status: "confirmado",
+                    estado: "confirmado",
+                    reminderSent: false,
+>>>>>>> main
                     recordatorios: {
                         h48: { enviado: false },
                         h24: { enviado: false },
@@ -138,6 +400,7 @@
                     timestamp: new Date()
                 });
 
+<<<<<<< HEAD
                 // 2. Descontar sesion del balance del cliente (hoursBalance)
                 try {
                     const clientRef = doc(db, "clients", dniLs);
@@ -177,6 +440,33 @@
                     }
                 }
 
+=======
+                const resultadoBackend = await ejecutarConfirmacionBackend({
+                    telefono: telefonoExtraido,
+                    omitirWhatsapp: !telefonoExtraido
+                });
+
+                let mensajeModal = "Turno confirmado y notificación enviada.";
+                const warnings = resultadoBackend.ok ? (resultadoBackend.data?.warnings || []) : [];
+
+                if (warnings.includes("balance_update_failed") || warnings.includes("balance_client_not_found")) {
+                    console.warn("Revisar hoursBalance en admin:", warnings);
+                }
+
+                if (!resultadoBackend.ok) {
+                    console.error("Error API Cloud Function:", resultadoBackend.data || resultadoBackend.error);
+                    mensajeModal = telefonoExtraido
+                        ? "Turno confirmado. No se pudo enviar la notificación automática."
+                        : "Turno confirmado. No había un teléfono disponible para el aviso automático.";
+                } else if (!resultadoBackend.data?.whatsappSent) {
+                    mensajeModal = telefonoExtraido
+                        ? "Turno confirmado. El aviso automático quedó pendiente."
+                        : "Turno confirmado. No había un teléfono disponible para el aviso automático.";
+                }
+
+                modalMensaje.textContent = mensajeModal;
+
+>>>>>>> main
                 document.getElementById("modalConfirmado").style.display = "flex";
             } catch (error) {
                 console.error("Error general:", error);
@@ -189,6 +479,16 @@
 
         document.getElementById("btnConfirmar").addEventListener("click", procesarConfirmacion);
     </script>
+<<<<<<< HEAD
 </body>
 </html>
 
+=======
+    <script src="/js/shared-footer.js"></script>
+    <script src="/js/mimi-bot.js"></script>
+</body>
+</html>
+
+
+
+>>>>>>> main

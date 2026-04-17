@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { db } from "./firebase.js";
 import {
   collection,
@@ -6,6 +7,9 @@ import {
   getDoc,
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+=======
+import { db, collection, getDocs, doc, getDoc, updateDoc } from "./firebase-web.js";
+>>>>>>> main
 
 /* ===============================
 ELEMENTOS

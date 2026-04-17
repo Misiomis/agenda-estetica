@@ -1,0 +1,388 @@
+<header class="site-header">
+    <div class="header-container">
+        <div class="header-left">
+            <a href="/" class="logo-link">
+                <img src="/img/logo.png" alt="Espacio Mimar T" class="header-logo">
+            </a>
+        </div>
+        
+        <nav class="header-nav">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/kit-facial.html" class="nav-link">Kit Facial</a>
+            <a id="serviciosLink" href="/servicios-pro.html" class="nav-link">Servicios</a>
+            <a href="/" class="nav-link">Agendar</a>
+            <a href="https://wa.me/543757585029" class="nav-link" target="_blank" rel="noopener noreferrer">Contacto</a>
+        </nav>
+
+        <div class="header-actions">
+            <div id="headerSessionInfo" style="display: none;">
+                <span class="session-name" id="sessionNameDisplay"></span>
+                <button class="btn-session-exit" id="btnCerrarSesion">Salir</button>
+            </div>
+            <button class="btn-agendar" id="btnAgendar">Agendar</button>
+        </div>
+
+        <button class="menu-toggle" id="menuToggle" aria-label="Menú">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+
+    <nav class="mobile-menu" id="mobileMenu">
+        <a href="/" class="mobile-nav-link">Inicio</a>
+        <a href="/kit-facial.html" class="mobile-nav-link">Kit Facial</a>
+        <a id="serviciosLinkMobile" href="/servicios-pro.html" class="mobile-nav-link">Servicios</a>
+        <a href="/" class="mobile-nav-link">Agendar</a>
+        <a href="https://wa.me/543757585029" class="mobile-nav-link" target="_blank" rel="noopener noreferrer">Contacto</a>
+        <button class="btn-agendar-mobile" id="btnAgendarMobile">Agendar Cita</button>
+        <button class="btn-session-exit-mobile" id="btnCerrarSesionMobile" style="display: none;">Cerrar sesión</button>
+    </nav>
+</header>
+
+<style>
+:root {
+    --mimar-color-primary: #72bd99;
+    --mimar-color-primary-strong: #4e9d7a;
+    --mimar-color-ink: #2b3934;
+    --mimar-color-surface: #ffffff;
+    --mimar-color-muted: #64706b;
+    --mimar-color-border: #d7e2dc;
+    --mimar-radius-md: 14px;
+    --mimar-shadow-sm: 0 6px 14px rgba(29, 51, 42, 0.08);
+    --mimar-transition-base: 0.24s ease;
+}
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--mimar-color-surface);
+    border-bottom: 1px solid var(--mimar-color-border);
+    box-shadow: var(--mimar-shadow-sm);
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 70px;
+    gap: 30px;
+}
+
+.header-left {
+    flex-shrink: 0;
+}
+
+.logo-link {
+    display: block;
+    text-decoration: none;
+}
+
+.header-logo {
+    height: 45px;
+    width: auto;
+    transition: opacity var(--mimar-transition-base);
+}
+
+.header-logo:hover {
+    opacity: 0.85;
+}
+
+.header-nav {
+    display: flex;
+    gap: 35px;
+    flex: 1;
+    justify-content: center;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: var(--mimar-color-ink);
+    font-size: 15px;
+    font-weight: 500;
+    transition: color var(--mimar-transition-base);
+    letter-spacing: 0.3px;
+}
+
+.nav-link:hover {
+    color: var(--mimar-color-primary);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-shrink: 0;
+}
+
+#headerSessionInfo {
+    align-items: center;
+    gap: 12px;
+}
+
+.session-name {
+    font-size: 13px;
+    color: var(--mimar-color-muted);
+    font-weight: 500;
+}
+
+.btn-session-exit {
+    background: none;
+    border: 1px solid var(--mimar-color-border);
+    color: var(--mimar-color-muted);
+    padding: 8px 14px;
+    border-radius: var(--mimar-radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--mimar-transition-base);
+}
+
+.btn-session-exit:hover {
+    border-color: var(--mimar-color-primary);
+    color: var(--mimar-color-primary);
+}
+
+.btn-agendar {
+    background: linear-gradient(135deg, var(--mimar-color-primary) 0%, var(--mimar-color-primary-strong) 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--mimar-radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--mimar-transition-base), box-shadow var(--mimar-transition-base);
+    white-space: nowrap;
+}
+
+.btn-agendar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(114, 189, 153, 0.25);
+}
+
+.menu-toggle {
+    display: none;
+    flex-direction: column;
+    background: none;
+    border: none;
+    cursor: pointer;
+    gap: 5px;
+    padding: 8px;
+}
+
+.menu-toggle span {
+    width: 25px;
+    height: 2.5px;
+    background: var(--mimar-color-ink);
+    border-radius: 2px;
+    transition: all var(--mimar-transition-base);
+}
+
+.menu-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(10px, 10px);
+}
+
+.menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.menu-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
+}
+
+.mobile-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--mimar-color-surface);
+    border-bottom: 1px solid var(--mimar-color-border);
+    flex-direction: column;
+    padding: 20px;
+    gap: 12px;
+}
+
+.mobile-menu.active {
+    display: flex;
+}
+
+.mobile-nav-link {
+    text-decoration: none;
+    color: var(--mimar-color-ink);
+    font-size: 15px;
+    font-weight: 500;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--mimar-color-border);
+}
+
+.btn-agendar-mobile {
+    background: linear-gradient(135deg, var(--mimar-color-primary) 0%, var(--mimar-color-primary-strong) 100%);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: var(--mimar-radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.btn-session-exit-mobile {
+    background: #f6faf7;
+    color: var(--mimar-color-muted);
+    border: 1px solid var(--mimar-color-border);
+    padding: 12px;
+    border-radius: var(--mimar-radius-md);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .site-header {
+        top: 0;
+    }
+
+    .header-container {
+        height: 56px;
+        gap: 8px;
+        padding: 0 16px;
+    }
+
+    .header-nav {
+        display: none;
+    }
+
+    .btn-agendar {
+        display: none;
+    }
+
+    .menu-toggle {
+        display: flex;
+        margin-left: auto;
+    }
+
+    .header-logo {
+        height: 32px;
+    }
+
+    #headerSessionInfo {
+        display: none !important;
+    }
+
+    .session-name {
+        display: none;
+    }
+
+    .mobile-menu {
+        padding: 12px 16px;
+        gap: 6px;
+    }
+
+    .mobile-nav-link {
+        font-size: 14px;
+        padding: 10px 0;
+    }
+
+    .btn-agendar-mobile {
+        padding: 12px;
+        font-size: 13px;
+        margin-top: 8px;
+    }
+}
+</style>
+
+<script>
+// Gestionar menú móvil
+const menuToggle = document.getElementById('menuToggle');
+const mobileMenu = document.getElementById('mobileMenu');
+
+if (menuToggle) {
+    menuToggle.addEventListener('click', () => {
+        menuToggle.classList.toggle('active');
+        mobileMenu.classList.toggle('active');
+    });
+}
+
+// Cerrar menú al hacer click en un link
+document.querySelectorAll('.mobile-nav-link, .btn-agendar-mobile').forEach(link => {
+    link.addEventListener('click', () => {
+        menuToggle?.classList.remove('active');
+        mobileMenu?.classList.remove('active');
+    });
+});
+
+// Cerrar menú al hacer scroll
+window.addEventListener('scroll', () => {
+    menuToggle?.classList.remove('active');
+    mobileMenu?.classList.remove('active');
+});
+
+// Gestionar sesión y botones de agendar
+function actualizarHeaderSesion() {
+    const clienteDNI = localStorage.getItem('clienteDNI');
+    const clienteNombre = localStorage.getItem('clienteNombre');
+    const headerSessionInfo = document.getElementById('headerSessionInfo');
+    const sessionNameDisplay = document.getElementById('sessionNameDisplay');
+    const btnAgendar = document.getElementById('btnAgendar');
+    const btnAgendarMobile = document.getElementById('btnAgendarMobile');
+    const btnCerrarSesionMobile = document.getElementById('btnCerrarSesionMobile');
+    const serviciosLink = document.getElementById('serviciosLink');
+    const serviciosLinkMobile = document.getElementById('serviciosLinkMobile');
+
+    if (clienteDNI && clienteNombre) {
+        // Usuario logueado
+        if (headerSessionInfo) headerSessionInfo.style.display = 'flex';
+        if (sessionNameDisplay) sessionNameDisplay.textContent = clienteNombre;
+        if (btnAgendar) btnAgendar.style.display = 'none';
+        if (btnCerrarSesionMobile) btnCerrarSesionMobile.style.display = 'block';
+        // Link de servicios apunta a la versión funcional
+        if (serviciosLink) serviciosLink.href = '/servicios.html';
+        if (serviciosLinkMobile) serviciosLinkMobile.href = '/servicios.html';
+    } else {
+        // Usuario no logueado
+        if (headerSessionInfo) headerSessionInfo.style.display = 'none';
+        if (btnAgendar) btnAgendar.style.display = 'block';
+        if (btnCerrarSesionMobile) btnCerrarSesionMobile.style.display = 'none';
+        // Link de servicios apunta al catálogo bonito
+        if (serviciosLink) serviciosLink.href = '/servicios-pro.html';
+        if (serviciosLinkMobile) serviciosLinkMobile.href = '/servicios-pro.html';
+    }
+
+    // Botones de agendar
+    [btnAgendar, btnAgendarMobile].forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', () => {
+                if (clienteDNI) {
+                    window.location.href = '/servicios.html';
+                } else {
+                    window.location.href = '/servicios-pro.html';
+                }
+            });
+        }
+    });
+}
+
+const btnCerrarSesion = document.getElementById('btnCerrarSesion');
+const cerrarSesion = () => {
+        localStorage.removeItem('clienteDNI');
+        localStorage.removeItem('clienteNombre');
+        localStorage.removeItem('jornadaModo');
+        window.location.href = '/';
+};
+
+if (btnCerrarSesion) {
+    btnCerrarSesion.addEventListener('click', cerrarSesion);
+}
+
+const btnCerrarSesionMobile = document.getElementById('btnCerrarSesionMobile');
+if (btnCerrarSesionMobile) {
+    btnCerrarSesionMobile.addEventListener('click', cerrarSesion);
+}
+
+actualizarHeaderSesion();
+</script>

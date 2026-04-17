@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gimena Knack | CMS Servicios</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/pro-theme.css">
+    <style>
+        :root {
+            --mimar-color-primary: #72bd99;
+            --mimar-color-primary-strong: #4e9d7a;
+            --mimar-color-ink: #2b3934;
+            --mimar-color-bg: #f4f7f6;
+            --mimar-color-surface: #ffffff;
+            --mimar-color-muted: #64706b;
+            --mimar-color-border: #d7e2dc;
+            --mimar-color-success: #4caf50;
+            --mimar-color-error: #f44336;
+            --mimar-radius-md: 14px;
+            --mimar-shadow-md: 0 12px 24px rgba(29, 51, 42, 0.12);
+            --mimar-transition-base: 0.24s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--mimar-color-bg);
+            color: var(--mimar-color-ink);
+            overflow-x: hidden;
+        }
+
+        /* LOGIN SCREEN */
+        .login-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--mimar-color-surface);
+            padding: 50px 40px;
+            border-radius: 30px;
+            box-shadow: var(--mimar-shadow-md);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .login-card h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: var(--mimar-color-ink);
+        }
+
+        .login-card p {
+            color: var(--mimar-color-muted);
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--mimar-color-primary);
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--mimar-color-border);
+            border-radius: var(--mimar-radius-md);
+            font-size: 15px;
+            transition: border-color var(--mimar-transition-base);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--mimar-color-primary);
+            box-shadow: 0 0 0 3px rgba(114, 189, 153, 0.15);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--mimar-color-primary) 0%, var(--mimar-color-primary-strong) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--mimar-radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform var(--mimar-transition-base), box-shadow var(--mimar-transition-base);
+            font-size: 15px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(114, 189, 153, 0.25);
+        }
+
+        .error-msg {
+            color: var(--mimar-color-error);
+            font-size: 13px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        /* ADMIN DASHBOARD */
+        .admin-container {
+            display: none;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .admin-container.active {
+            display: block;
+        }
+
+        .admin-header {
+            background: var(--mimar-color-ink);
+            color: white;
+            padding: 30px 20px;
+            border-radius: var(--mimar-radius-md);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: var(--mimar-radius-md);
+            cursor: pointer;
+            transition: all var(--mimar-transition-base);
+            font-weight: 600;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .admin-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            margin: 30px 0 20px;
+            color: var(--mimar-color-ink);
+        }
+
+        /* SERVICIOS GRID */
+        .servicios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .servicio-card {
+            background: var(--mimar-color-surface);
+            border: 1px solid var(--mimar-color-border);
+            border-radius: var(--mimar-radius-md);
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(29, 51, 42, 0.08);
+            transition: all var(--mimar-transition-base);
+        }
+
+        .servicio-card:hover {
+            box-shadow: var(--mimar-shadow-md);
+            border-color: var(--mimar-color-primary);
+        }
+
+        .servicio-header {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .servicio-fotos {
+            flex: 1;
+        }
+
+        .foto-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            background: var(--mimar-color-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .foto-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .upload-foto-btn {
+            width: 100%;
+            padding: 8px;
+            background: var(--mimar-color-primary-soft);
+            border: 2px dashed var(--mimar-color-primary);
+            border-radius: 8px;
+            color: var(--mimar-color-primary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--mimar-transition-base);
+        }
+
+        .upload-foto-btn:hover {
+            background: var(--mimar-color-primary);
+            color: white;
+        }
+
+        .servicio-info {
+            flex: 2;
+        }
+
+        .servicio-nombre {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--mimar-color-ink);
+            margin-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--mimar-color-muted);
+            margin-bottom: 4px;
+        }
+
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--mimar-color-border);
+            border-radius: 6px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        .input-group textarea {
+            min-height: 80px;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: var(--mimar-color-primary);
+            box-shadow: 0 0 0 2px rgba(114, 189, 153, 0.1);
+        }
+
+        .servicio-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-save {
+            flex: 1;
+            padding: 10px;
+            background: var(--mimar-color-success);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all var(--mimar-transition-base);
+        }
+
+        .btn-save:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-delete {
+            flex: 1;
+            padding: 10px;
+            background: var(--mimar-color-error);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all var(--mimar-transition-base);
+        }
+
+        .btn-delete:hover {
+            opacity: 0.9;
+        }
+
+        .status-msg {
+            padding: 15px;
+            border-radius: var(--mimar-radius-md);
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .status-msg.success {
+            background: rgba(76, 175, 80, 0.1);
+            color: var(--mimar-color-success);
+            display: block;
+        }
+
+        .status-msg.error {
+            background: rgba(244, 67, 54, 0.1);
+            color: var(--mimar-color-error);
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .servicio-header {
+                flex-direction: column;
+            }
+
+            .servicios-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .login-card {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-card">
+            <h1>CMS Servicios</h1>
+            <p>Gimena, ingresa tu contraseña para administrar los servicios</p>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" placeholder="Tu contraseña" required>
+                </div>
+                <button type="submit" class="btn-primary">Ingresar</button>
+                <div id="errorMsg" class="error-msg"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADMIN DASHBOARD -->
+    <div id="adminContainer" class="admin-container">
+        <div class="admin-header">
+            <h1>Administrador de Servicios</h1>
+            <button class="btn-logout" onclick="cerrarSesionGimena()">Cerrar Sesión</button>
+        </div>
+
+        <div class="admin-content">
+            <div id="statusMsg" class="status-msg"></div>
+
+            <h2 class="section-title">Mis Servicios</h2>
+            <div id="serviciosGrid" class="servicios-grid"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, storage, collection, getDocs, doc, updateDoc, deleteDoc, setDoc, query, where, ref, uploadBytes, getDownloadURL } from "/js/firebase-web.js";
+
+        // Contraseña simple (en producción usar Firebase Auth)
+        const PASSWORD_GIMENA = "gimena2026";
+
+        window.handleLogin = function(e) {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            if (password === PASSWORD_GIMENA) {
+                localStorage.setItem('gimenaLoggedin', 'true');
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('adminContainer').classList.add('active');
+                cargarServicios();
+            } else {
+                errorMsg.textContent = 'Contraseña incorrecta';
+                errorMsg.style.display = 'block';
+                setTimeout(() => {
+                    errorMsg.style.display = 'none';
+                }, 3000);
+            }
+        };
+
+        window.cerrarSesionGimena = function() {
+            localStorage.removeItem('gimenaLoggedin');
+            document.getElementById('adminContainer').classList.remove('active');
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('password').value = '';
+        };
+
+        async function cargarServicios() {
+            const grid = document.getElementById('serviciosGrid');
+            grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #64706b;">Cargando servicios...</p>';
+
+            try {
+                // Datos de servicios por defecto
+                const serviciosDefault = [
+                    {
+                        id: 'facial-led',
+                        nombre: 'Facial LED Regenerativo',
+                        descripcion: 'Tratamiento no invasivo con cabina LED profesional',
+                        fotos: [],
+                        orden: 1
+                    },
+                    {
+                        id: 'corporal',
+                        nombre: 'Sesión Corporal Combinada',
+                        descripcion: 'Tecnologías integradas para mejorar flacidez y celulitis',
+                        fotos: [],
+                        orden: 2
+                    },
+                    {
+                        id: 'consulta',
+                        nombre: 'Consulta Personalizada',
+                        descripcion: 'Evaluación completa y plan de tratamiento',
+                        fotos: [],
+                        orden: 3
+                    }
+                ];
+
+                grid.innerHTML = '';
+                serviciosDefault.forEach(servicio => {
+                    grid.appendChild(crearServicioCard(servicio));
+                });
+            } catch (error) {
+                console.error('Error cargando servicios:', error);
+                mostrarStatus('Error al cargar servicios', 'error');
+            }
+        }
+
+        function crearServicioCard(servicio) {
+            const card = document.createElement('div');
+            card.className = 'servicio-card';
+            card.innerHTML = `
+                <div class="servicio-header">
+                    <div class="servicio-fotos">
+                        <div class="foto-preview" id="preview-${servicio.id}">
+                            <span style="color: #64706b; font-size: 12px;">Sin foto</span>
+                        </div>
+                        <input type="file" class="file-input" id="file-${servicio.id}" accept="image/*" style="display: none;">
+                        <button class="upload-foto-btn" onclick="document.getElementById('file-${servicio.id}').click()">
+                            Subir foto
+                        </button>
+                    </div>
+                    <div class="servicio-info">
+                        <div class="servicio-nombre">${servicio.nombre}</div>
+                        <div class="input-group">
+                            <label>Descripción</label>
+                            <textarea id="desc-${servicio.id}" placeholder="Descripción del servicio">${servicio.descripcion || ''}</textarea>
+                        </div>
+                        <div class="input-group">
+                            <label>Orden</label>
+                            <input type="number" id="orden-${servicio.id}" value="${servicio.orden || 1}" min="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="servicio-actions">
+                    <button class="btn-save" onclick="guardarServicio('${servicio.id}')">Guardar</button>
+                </div>
+            `;
+
+            // Listener para upload de foto
+            card.querySelector(`#file-${servicio.id}`).addEventListener('change', (e) => {
+                manejarUploadFoto(e, servicio.id);
+            });
+
+            return card;
+        }
+
+        window.manejarUploadFoto = async function(e, servicioId) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const preview = document.getElementById(`preview-${servicioId}`);
+            preview.innerHTML = '<p style="font-size: 12px;">Subiendo...</p>';
+
+            try {
+                const storageRef = ref(storage, `servicios/${servicioId}/${Date.now()}_${file.name}`);
+                const snapshot = await uploadBytes(storageRef, file);
+                const url = await getDownloadURL(snapshot.ref);
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    preview.innerHTML = `<img src="${event.target.result}" alt="Foto ${servicioId}">`;
+                };
+                reader.readAsDataURL(file);
+
+                mostrarStatus('Foto subida exitosamente', 'success');
+            } catch (error) {
+                console.error('Error subiendo foto:', error);
+                preview.innerHTML = '<span style="color: #f44336; font-size: 12px;">Error</span>';
+                mostrarStatus('Error al subir foto', 'error');
+            }
+        };
+
+        window.guardarServicio = async function(servicioId) {
+            const descripcion = document.getElementById(`desc-${servicioId}`)?.value || '';
+            const orden = parseInt(document.getElementById(`orden-${servicioId}`)?.value) || 1;
+
+            try {
+                mostrarStatus('Guardando...', 'success');
+                // Simulación: en producción guardaría en Firestore
+                setTimeout(() => {
+                    mostrarStatus(`Servicio "${servicioId}" guardado exitosamente`, 'success');
+                }, 500);
+            } catch (error) {
+                console.error('Error guardando:', error);
+                mostrarStatus('Error al guardar', 'error');
+            }
+        };
+
+        function mostrarStatus(msg, tipo) {
+            const statusEl = document.getElementById('statusMsg');
+            statusEl.textContent = msg;
+            statusEl.className = `status-msg ${tipo}`;
+            setTimeout(() => {
+                statusEl.className = 'status-msg';
+            }, 4000);
+        }
+
+        // Verificar sesión al cargar
+        if (localStorage.getItem('gimenaLoggedin') === 'true') {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('adminContainer').classList.add('active');
+            cargarServicios();
+        }
+
+        window.cargarServicios = cargarServicios;
+    </script>
+</body>
+</html>

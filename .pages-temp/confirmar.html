@@ -48,10 +48,14 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+<<<<<<< HEAD
         const WHATSAPP_TOKEN = "EAAMzA3ngIUkBRMpXw5ZBCCzVCFZAum3yF3dcHlgOPZAigiAIXERNfxpGfq21VCEgiByPN5xhm9mZBUyJ0WWqTl0xoB8ZBEs8EEh2FVC82aDHizTv0bKvMrcH7mkO99svZCMymZAi07nnmnBZCeHlI8XdnMBfJI1pnjVFWQZCdCIOBZA8fDa71OuvkVZCJu5bTR91wZDZD";
         const PHONE_NUMBER_ID = "995248997010108";
         const TEMPLATE_NAME = "turno_confirmado"; 
         const TEMPLATE_LANG = "en"; 
+=======
+        const CF_CONFIRM_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarConfirmacionTurno";
+>>>>>>> main
 
         // Variables globales para este script
         let telefonoExtraido = "";
@@ -59,13 +63,22 @@
         const nombreLs = localStorage.getItem("clienteNombre") || localStorage.getItem("nombre") || "Cliente";
         const servLs = localStorage.getItem("servicioSeleccionado") || "Tratamiento";
         const fechaLs = localStorage.getItem("fechaSeleccionada") || "Pendiente";
+<<<<<<< HEAD
         const horaLs = (localStorage.getItem("horaSeleccionada") || "00:00") + " hs";
+=======
+        const horaRawLs = localStorage.getItem("horaSeleccionada") || "00:00";
+        const horaLs = horaRawLs;
+>>>>>>> main
 
         // Mostrar datos iniciales en pantalla
         document.getElementById("txtNombre").innerText = nombreLs;
         document.getElementById("txtServicio").innerText = servLs;
         document.getElementById("txtFecha").innerText = fechaLs;
+<<<<<<< HEAD
         document.getElementById("txtHora").innerText = horaLs;
+=======
+        document.getElementById("txtHora").innerText = `${horaLs} hs`;
+>>>>>>> main
 
         // Buscar el telefono en Firestore al cargar la pagina
         async function obtenerDatosCliente() {
@@ -83,15 +96,25 @@
 
                 if (docSnap.exists()) {
                     const datosCliente = docSnap.data();
+<<<<<<< HEAD
                     telefonoExtraido = datosCliente.phone; // Extrae el campo phone exacto
+=======
+                    telefonoExtraido = datosCliente.phone || datosCliente.telefono || datosCliente.whatsapp || "";
+>>>>>>> main
 
                     if (telefonoExtraido) {
                         document.getElementById("txtTelefono").innerText = telefonoExtraido;
                         boton.disabled = false;
                         boton.innerText = "Confirmar y Enviar WhatsApp";
                     } else {
+<<<<<<< HEAD
                         document.getElementById("txtTelefono").innerText = "Sin teléfono en ficha";
                         boton.innerText = "Falta teléfono en ficha";
+=======
+                        document.getElementById("txtTelefono").innerText = "Sin teléfono en ficha (se guardará igual)";
+                        boton.disabled = false;
+                        boton.innerText = "Confirmar turno";
+>>>>>>> main
                     }
                 } else {
                     document.getElementById("txtTelefono").innerText = "Usuario no registrado";
@@ -114,16 +137,37 @@
 
             try {
                 // 1. Guardar turno en Firestore (con multiple redundancia de nombres para el panel)
+<<<<<<< HEAD
                 await addDoc(collection(db, "reservas"), {
                     cliente: nombreLs, 
                     nombre: nombreLs, 
                     title: nombreLs,
                     displayName: nombreLs,
+=======
+                const turnoAt = new Date(`${fechaLs}T${horaLs}:00-03:00`);
+                await addDoc(collection(db, "reservas"), {
+                    cliente: nombreLs, 
+                    clienteNombre: nombreLs,
+                    nombre: nombreLs, 
+                    title: nombreLs,
+                    displayName: nombreLs,
+                    phone: telefonoExtraido || "",
+>>>>>>> main
                     telefono: telefonoExtraido,
                     dni: dniLs,
                     servicio: servLs,
                     fecha: fechaLs,
                     hora: horaLs,
+<<<<<<< HEAD
+=======
+                    turnoAt: Number.isNaN(turnoAt.getTime()) ? null : turnoAt,
+                    recordatorios: {
+                        h48: { enviado: false },
+                        h24: { enviado: false },
+                        h12: { enviado: false },
+                        h6: { enviado: false }
+                    },
+>>>>>>> main
                     timestamp: new Date()
                 });
 
@@ -137,6 +181,7 @@
                     console.error("No se pudo descontar hoursBalance: ", e); 
                 }
 
+<<<<<<< HEAD
                 // 3. Enviar WhatsApp usando el telefono de la ficha
                 const payload = {
                     messaging_product: "whatsapp",
@@ -178,6 +223,42 @@
             } catch (error) {
                 console.error("Error general:", error);
                 alert("Error de conexión al guardar el turno.");
+=======
+                // 3. Enviar confirmación por Cloud Function (backend)
+                if (telefonoExtraido) {
+                    try {
+                        const response = await fetch(CF_CONFIRM_URL, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                nombre: nombreLs,
+                                servicio: servLs,
+                                fecha: fechaLs,
+                                hora: `${horaLs} hs`,
+                                telefono: telefonoExtraido,
+                                dni: dniLs
+                            })
+                        });
+
+                        const resJson = await response.json();
+                        if (!response.ok) {
+                            console.error("Error API Cloud Function:", resJson);
+                            alert("Turno guardado, pero falló el WhatsApp.");
+                        }
+                    } catch (waError) {
+                        console.error("Error enviando WhatsApp vía backend:", waError);
+                        alert("Turno guardado, pero no se pudo enviar WhatsApp.");
+                    }
+                }
+
+                document.getElementById("modalConfirmado").style.display = "flex";
+            } catch (error) {
+                console.error("Error general:", error);
+                const detalle = error?.code || error?.message || "Error desconocido";
+                alert(`No se pudo guardar el turno en Firestore: ${detalle}`);
+>>>>>>> main
                 boton.disabled = false;
                 boton.innerText = "Reintentar";
             }

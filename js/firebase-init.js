@@ -1,0 +1,1 @@
+export { app, auth, db, firebaseConfig } from "./firebase-web.js";
