@@ -77,6 +77,14 @@
     <div class="container">
         <img src="img/logo.png" class="logo">
 
+        <div id="noClienteMsg" style="display:none;background:#f8fbf9;border:1px solid #d5e9de;border-radius:18px;padding:28px 22px;text-align:center;margin:20px auto;max-width:480px;">
+            <div style="font-size:38px;margin-bottom:12px;">🌿</div>
+            <h2 style="font-family:'Playfair Display',serif;color:#2c3e3a;margin:0 0 10px;font-size:22px;">Espacio exclusivo para pacientes</h2>
+            <p style="color:#5a7265;font-size:14px;line-height:1.65;margin:0 0 18px;">Los servicios de Espacio Mimar T son personalizados y exclusivos para pacientes registrados. Para sumarte y conocer los tratamientos disponibles, escribile a Gimena.</p>
+            <a id="waLinkNoCliente" href="https://wa.me/5493764291807?text=Hola%20Gime%2C%20quisiera%20conocer%20los%20servicios%20de%20Espacio%20Mimar%20T%20%F0%9F%8C%BF"
+               style="display:inline-block;background:#25D366;color:white;text-decoration:none;padding:13px 24px;border-radius:12px;font-weight:600;font-size:14px;">💬 Hablar con Gimena</a>
+        </div>
+
         <div id="loading">Cargando experiencias...</div>
         <div class="servicios" id="listaServicios"></div>
     </div>
@@ -125,6 +133,16 @@
             if (normalizado.includes("corporal combinada") || normalizado.includes("tratamientos corporales") || normalizado.includes("crio")) return "img/criolipolisis.jpg";
             if (normalizado.includes("brazo") || normalizado.includes("reafirm")) return "img/mioup.jpg";
             return "";
+        }
+
+        // Access check
+        const dniSesion = localStorage.getItem("clienteDNI");
+        const nombreSesion = (localStorage.getItem("clienteNombre") || "").trim();
+        const esCliente = !!(dniSesion && dniSesion !== "null" && dniSesion !== "" && nombreSesion);
+
+        if (!esCliente) {
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("noClienteMsg").style.display = "block";
         }
 
         // Carga inicial de servicios
@@ -240,7 +258,7 @@
 
         window.onclick = (e) => { if (e.target.classList.contains('modal-overlay')) e.target.style.display = "none"; };
 
-        cargarServicios();
+        if (esCliente) cargarServicios();
     </script>
     <script src="/js/shared-footer.js"></script>
     <script src="/js/mimi-bot.js"></script>

@@ -581,6 +581,225 @@
             border: 1px solid #f2d3d8;
         }
 
+        .kit-featured {
+            width: min(1180px, 95vw);
+            margin: 0 auto 26px;
+            background: linear-gradient(135deg, #fff8f0 0%, #fff3e8 50%, #ffeedd 100%);
+            border: 1.5px solid rgba(210, 160, 90, 0.42);
+            border-radius: var(--radius-xl);
+            padding: 28px 30px;
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            box-shadow: 0 8px 28px rgba(180, 130, 60, 0.12);
+        }
+
+        .kit-featured-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            background: linear-gradient(145deg, #fff0dc, #ffe4b8);
+            border: 1px solid rgba(210, 160, 90, 0.35);
+            display: grid;
+            place-items: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .kit-featured-text { flex: 1; }
+
+        .kit-featured-text h3 {
+            margin: 0 0 5px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 26px;
+            font-style: italic;
+            color: #5a3c1a;
+        }
+
+        .kit-featured-text p {
+            margin: 0;
+            font-size: 13.5px;
+            color: #8a6840;
+            line-height: 1.5;
+        }
+
+        .btn-kit-pedir {
+            background: linear-gradient(135deg, #d4a55a, #b8833a);
+            color: #fff;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            box-shadow: 0 8px 20px rgba(180, 120, 40, 0.28);
+            transition: transform var(--trans), box-shadow var(--trans);
+        }
+
+        .btn-kit-pedir:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 26px rgba(180, 120, 40, 0.38);
+        }
+
+        @media (max-width: 600px) {
+            .kit-featured { flex-direction: column; text-align: center; padding: 22px 18px; }
+            .btn-kit-pedir { width: 100%; }
+        }
+
+        .kit-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            padding: 15px;
+        }
+
+        .kit-modal-card {
+            background: #fff;
+            padding: 32px 26px 26px;
+            border-radius: 26px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.22);
+            border: 1px solid #f0e8d8;
+            animation: modalIn .3s ease;
+        }
+
+        .kit-modal-card h2 {
+            margin: 0 0 6px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 30px;
+            font-style: italic;
+            color: #4a3218;
+            text-align: center;
+        }
+
+        .kit-modal-sub {
+            text-align: center;
+            color: #8a7055;
+            font-size: 13.5px;
+            margin: 0 0 20px;
+        }
+
+        .kit-productos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .kit-producto-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            background: #fffbf5;
+            border: 1px solid rgba(210, 160, 90, 0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all var(--trans);
+        }
+
+        .kit-producto-item:hover {
+            background: #fff6e8;
+            border-color: rgba(210, 160, 90, 0.6);
+        }
+
+        .kit-producto-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #b8833a;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .kit-producto-item label {
+            font-size: 14.5px;
+            font-weight: 500;
+            color: #4a3218;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .kit-desc-box { margin-bottom: 20px; }
+
+        .kit-desc-box label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #5a3c1a;
+            margin-bottom: 8px;
+        }
+
+        .kit-desc-box textarea {
+            width: 100%;
+            min-height: 90px;
+            padding: 12px;
+            border: 1.5px solid rgba(210, 160, 90, 0.35);
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 14px;
+            color: #3a2910;
+            background: #fffbf5;
+            resize: vertical;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color var(--trans);
+        }
+
+        .kit-desc-box textarea:focus { border-color: #c8943e; background: #fff; }
+
+        .kit-feedback {
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-size: 13.5px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .kit-feedback.success { background: #e8f5ee; color: var(--primary-strong); border: 1px solid #cce8d9; }
+        .kit-feedback.error { background: #fff1f3; color: #a64b58; border: 1px solid #f2d3d8; }
+
+        .btn-kit-submit {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #d4a55a, #b8833a);
+            color: #fff;
+            border: none;
+            border-radius: 13px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(180, 120, 40, 0.26);
+            transition: transform var(--trans), box-shadow var(--trans);
+            margin-bottom: 10px;
+        }
+
+        .btn-kit-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(180, 120, 40, 0.36); }
+        .btn-kit-submit:disabled { opacity: 0.65; cursor: not-allowed; }
+
+        .btn-kit-cerrar {
+            width: 100%;
+            padding: 13px;
+            background: #f1f3f2;
+            color: #4a5851;
+            border: none;
+            border-radius: 13px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
         .hint-dev {
             width: min(1180px, 95vw);
             margin: 0 auto 32px;
@@ -647,6 +866,15 @@
         </div>
     </section>
 
+    <div class="kit-featured reveal" id="kitFeaturedSection">
+        <div class="kit-featured-icon">🧴</div>
+        <div class="kit-featured-text">
+            <h3>Kit Facial Domiciliario</h3>
+            <p>Leche de limpieza, tónico calmante, crema regeneradora y más. Cuidado de tu piel en casa, recomendado por Gimena.</p>
+        </div>
+        <button class="btn-kit-pedir" id="btnKitFacialPro">Pedir mi kit</button>
+    </div>
+
     <main class="section">
         <div class="section-head reveal">
             <h2>Catálogo de Servicios</h2>
@@ -659,6 +887,40 @@
         <div id="loading" class="reveal">Cargando experiencias...</div>
         <div class="servicios" id="listaServicios"></div>
     </main>
+
+    <div id="modalKitPedido" class="kit-modal-overlay">
+        <div class="kit-modal-card">
+            <h2>Kit Facial Domiciliario</h2>
+            <p class="kit-modal-sub">Seleccioná tus productos y contanos sobre tu piel</p>
+            <div id="kitFeedback" class="kit-feedback"></div>
+            <div id="kitFormContent">
+                <div class="kit-productos-list">
+                    <div class="kit-producto-item">
+                        <input type="checkbox" id="kp-leche" value="Leche de limpieza">
+                        <label for="kp-leche">Leche de limpieza</label>
+                    </div>
+                    <div class="kit-producto-item">
+                        <input type="checkbox" id="kp-gel" value="Gel de limpieza">
+                        <label for="kp-gel">Gel de limpieza</label>
+                    </div>
+                    <div class="kit-producto-item">
+                        <input type="checkbox" id="kp-tonico" value="Tónico calmante">
+                        <label for="kp-tonico">Tónico calmante</label>
+                    </div>
+                    <div class="kit-producto-item">
+                        <input type="checkbox" id="kp-crema" value="Crema/Gel regeneradora hidratante">
+                        <label for="kp-crema">Crema/Gel regeneradora hidratante</label>
+                    </div>
+                </div>
+                <div class="kit-desc-box">
+                    <label for="kitDescripcion">¿Cómo está tu piel?</label>
+                    <textarea id="kitDescripcion" placeholder="Ej: tengo la piel mixta, con algunas manchas y necesito hidratación..."></textarea>
+                </div>
+                <button class="btn-kit-submit" id="btnEnviarKit">Solicitar Kit</button>
+            </div>
+            <button class="btn-kit-cerrar" id="btnCerrarKit">Cerrar</button>
+        </div>
+    </div>
 
     <div class="hint-dev">Sitio en desarrollo: iremos sumando nuevos tratamientos y mejoras visuales.</div>
 
@@ -683,7 +945,7 @@
     </div>
 
     <script type="module">
-        import { db, collection, getDocs, query, where, doc, getDoc } from "/js/firebase-web.js";
+        import { db, collection, getDocs, addDoc, query, where, doc, getDoc } from "/js/firebase-web.js";
         const CF_CANCELACION_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/cancelarReservaPaciente";
         const WHATSAPP_GIMENA_NUMERO = "5493764291807";
 
@@ -1088,23 +1350,6 @@
                 servicios.sort((a, b) => a.orden - b.orden);
                 loading.style.display = "none";
 
-                const kitDiv = document.createElement("div");
-                kitDiv.className = "servicio reveal";
-                kitDiv.innerHTML = `
-                    <div>
-                        <div class="servicio-head">
-                            <div class="servicio-icono" aria-hidden="true">🧴</div>
-                            <div>
-                                <h3>Kit Facial Domiciliario</h3>
-                                <div class="duracion">Productos</div>
-                            </div>
-                        </div>
-                        <p class="desc">Leche de limpieza, gel de limpieza, tónico calmante y crema/gel regeneradora hidratante. Cuidado de tu piel en casa.</p>
-                    </div>
-                    <button class="btn-reservar" id="btnKitFacialPro" style="background:linear-gradient(135deg,#d4a573,#b8956a);">Pedir mi kit facial domiciliario</button>
-                `;
-                contenedor.appendChild(kitDiv);
-
                 servicios.forEach((s, idx) => {
                     const div = document.createElement("div");
                     div.className = "servicio reveal";
@@ -1130,16 +1375,6 @@
 
                 document.querySelectorAll(".btn-reservar").forEach((btn) => {
                     btn.addEventListener("click", () => {
-                        if (btn.id === "btnKitFacialPro") {
-                            const dni = localStorage.getItem("clienteDNI");
-                            const nombre = localStorage.getItem("clienteNombre");
-                            if (dni && nombre && dni !== "null" && nombre !== "null") {
-                                window.location.href = "/kit-facial.html";
-                                return;
-                            }
-                            window.location.href = "/login.html?redirect=kit-facial.html";
-                            return;
-                        }
                         localStorage.setItem("jornadaModo", "0");
                         localStorage.removeItem("jornadaSource");
                         localStorage.setItem("servicioSeleccionado", btn.getAttribute("data-nombre"));
@@ -1172,6 +1407,72 @@
                 e.target.style.display = "none";
             }
         };
+
+        // --- KIT FACIAL MODAL ---
+        const modalKit = document.getElementById("modalKitPedido");
+        const kitFeedback = document.getElementById("kitFeedback");
+
+        const showKitFeedback = (msg, type) => {
+            kitFeedback.textContent = msg;
+            kitFeedback.className = `kit-feedback ${type}`;
+            kitFeedback.style.display = "block";
+        };
+
+        document.getElementById("btnKitFacialPro").onclick = () => {
+            kitFeedback.style.display = "none";
+            document.getElementById("kitFormContent").style.display = "block";
+            document.querySelectorAll("#modalKitPedido input[type=checkbox]").forEach(cb => cb.checked = false);
+            document.getElementById("kitDescripcion").value = "";
+            modalKit.style.display = "flex";
+        };
+
+        document.getElementById("btnCerrarKit").onclick = () => { modalKit.style.display = "none"; };
+
+        document.getElementById("btnEnviarKit").onclick = async () => {
+            const checked = document.querySelectorAll("#modalKitPedido input[type=checkbox]:checked");
+            const productos = Array.from(checked).map(cb => cb.value);
+            if (productos.length === 0) { showKitFeedback("Seleccioná al menos un producto.", "error"); return; }
+            const desc = document.getElementById("kitDescripcion").value.trim();
+            if (!desc || desc.length < 10) { showKitFeedback("Describí tu piel con un poco más de detalle (mínimo 10 caracteres).", "error"); return; }
+
+            const btn = document.getElementById("btnEnviarKit");
+            btn.disabled = true;
+            btn.textContent = "Enviando...";
+
+            try {
+                let telefonoCliente = "";
+                try {
+                    const clienteDoc = await getDoc(doc(db, "clients", dniSesion));
+                    if (clienteDoc.exists()) {
+                        const cd = clienteDoc.data();
+                        telefonoCliente = cd.phone || cd.telefono || "";
+                    }
+                } catch (_) {}
+
+                await addDoc(collection(db, "pedidosKit"), {
+                    fecha: new Date().toISOString(),
+                    productos,
+                    descripcionPiel: desc,
+                    nombrePaciente: nombreSesion,
+                    telefono: telefonoCliente,
+                    dni: dniSesion,
+                    estado: "pendiente",
+                    createdAt: new Date().toISOString()
+                });
+
+                showKitFeedback("¡Tu solicitud fue enviada! Gimena se va a contactar pronto.", "success");
+                document.getElementById("kitFormContent").style.display = "none";
+            } catch (e) {
+                console.error(e);
+                showKitFeedback("Error al enviar. Intentá de nuevo.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Solicitar Kit";
+            }
+        };
+
+        modalKit.addEventListener("click", (e) => { if (e.target === modalKit) modalKit.style.display = "none"; });
+        // --- FIN KIT MODAL ---
 
         activarReveal();
         cargarServicios();
