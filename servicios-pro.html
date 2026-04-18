@@ -950,21 +950,25 @@
             <div id="kitFormContent">
                 <div class="kit-productos-list">
                     <div class="kit-producto-item">
-                        <input type="checkbox" id="kp-leche" value="Leche de limpieza">
-                        <label for="kp-leche">Leche de limpieza</label>
+                        <input type="checkbox" id="kp-leche" value="Leche de limpieza" data-price="15000">
+                        <label for="kp-leche">Leche de limpieza <span style="color:#c8943e;font-weight:700;font-size:12px;">$15.000</span></label>
                     </div>
                     <div class="kit-producto-item">
-                        <input type="checkbox" id="kp-gel" value="Gel de limpieza">
-                        <label for="kp-gel">Gel de limpieza</label>
+                        <input type="checkbox" id="kp-gel" value="Gel de limpieza" data-price="10000">
+                        <label for="kp-gel">Gel de limpieza <span style="color:#c8943e;font-weight:700;font-size:12px;">$10.000</span></label>
                     </div>
                     <div class="kit-producto-item">
-                        <input type="checkbox" id="kp-tonico" value="Tónico calmante">
-                        <label for="kp-tonico">Tónico calmante</label>
+                        <input type="checkbox" id="kp-tonico" value="Tónico calmante" data-price="15000">
+                        <label for="kp-tonico">Tónico calmante <span style="color:#c8943e;font-weight:700;font-size:12px;">$15.000</span></label>
                     </div>
                     <div class="kit-producto-item">
-                        <input type="checkbox" id="kp-crema" value="Crema/Gel regeneradora hidratante">
-                        <label for="kp-crema">Crema/Gel regeneradora hidratante</label>
+                        <input type="checkbox" id="kp-crema" value="Crema/Gel regeneradora hidratante" data-price="15000">
+                        <label for="kp-crema">Crema/Gel regeneradora hidratante <span style="color:#c8943e;font-weight:700;font-size:12px;">$15.000</span></label>
                     </div>
+                </div>
+                <div id="kitTotalWrap" style="display:none;background:linear-gradient(135deg,#fdf6ec,#fcecd8);border:1px solid #e8d5a3;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:13px;font-weight:600;color:#7a5a1c;">Total estimado</span>
+                    <span id="kitTotalValor" style="font-size:18px;font-weight:800;color:#c8943e;">$0</span>
                 </div>
                 <div class="kit-desc-box">
                     <label for="kitDescripcion">¿Cómo está tu piel?</label>
@@ -1497,11 +1501,30 @@
             kitFeedback.style.display = "block";
         };
 
+        const actualizarTotalKit = () => {
+            const checked = document.querySelectorAll("#modalKitPedido input[type=checkbox]:checked");
+            let total = 0;
+            checked.forEach(cb => { total += parseInt(cb.dataset.price || "0", 10); });
+            const wrap = document.getElementById("kitTotalWrap");
+            const val = document.getElementById("kitTotalValor");
+            if (total > 0) {
+                wrap.style.display = "flex";
+                val.textContent = "$" + total.toLocaleString("es-AR");
+            } else {
+                wrap.style.display = "none";
+            }
+        };
+
+        document.querySelectorAll("#modalKitPedido input[type=checkbox]").forEach(cb => {
+            cb.addEventListener("change", actualizarTotalKit);
+        });
+
         document.getElementById("btnKitFacialPro").onclick = () => {
             kitFeedback.style.display = "none";
             document.getElementById("kitFormContent").style.display = "block";
             document.querySelectorAll("#modalKitPedido input[type=checkbox]").forEach(cb => cb.checked = false);
             document.getElementById("kitDescripcion").value = "";
+            document.getElementById("kitTotalWrap").style.display = "none";
             modalKit.style.display = "flex";
         };
 
@@ -1539,7 +1562,7 @@
                     createdAt: new Date().toISOString()
                 });
 
-                showKitFeedback("¡Tu solicitud fue enviada! Gimena se va a contactar pronto.", "success");
+                showKitFeedback("Tu pedido fue enviado. El pago se coordina con Gime.", "success");
                 document.getElementById("kitFormContent").style.display = "none";
             } catch (e) {
                 console.error(e);
