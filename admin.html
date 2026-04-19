@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -10,18 +10,27 @@
     <title>Gimena Knack | Admin Mimar T</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
     <style>
-        :root { --fondo: #f4fbf7; --texto: #06402B; --accento: #4ea37f; --accento-oscuro: #06402B; --verde: #72bd99; --verde-oscuro: #06402B; --azul: #4a90e2; --rojo: #D4AF37; --whatsapp: #25D366; --suave: #dff3ea; --suave-oscuro: #bfe6d5; --nude: #f7fffb; --ambar: #D4AF37; --ambar-claro: #fdf8e8; --gold: #D4AF37; --gold-claro: #fdf8e8; --deep-green: #06402B; }
+        :root {
+            --fondo: #f4fbf7; --texto: #06402B; --accento: #4ea37f; --accento-oscuro: #06402B;
+            --verde: #72bd99; --verde-oscuro: #06402B; --azul: #4a90e2;
+            --whatsapp: #25D366; --suave: #dff3ea; --suave-oscuro: #bfe6d5;
+            --nude: #f7fffb; --gold: #D4AF37; --gold-claro: #fdf8e8; --deep-green: #06402B;
+        }
         body { font-family: 'Montserrat', sans-serif; background: linear-gradient(180deg, #f8fdfb 0%, #edf8f3 100%); margin: 0; color: var(--texto); padding-bottom: 50px; font-size: 15px; line-height: 1.45; }
-        
+
         /* LOGIN */
-        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f4f7f6; z-index: 99999; display: flex; align-items: center; justify-content: center; }
-        .login-box { background: white; padding: 40px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 90%; max-width: 350px; text-align: center; }
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(ellipse at 30% 60%, rgba(78,163,127,0.10) 0%, transparent 55%), #f4f7f6; z-index: 99999; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: white; padding: 40px; border-radius: 25px; box-shadow: 0 16px 42px rgba(6,64,43,0.13); width: 90%; max-width: 350px; text-align: center; border: 1px solid rgba(178,222,200,0.55); }
         .login-box h2 { font-family: 'Playfair Display', serif; color: var(--accento-oscuro); margin-bottom: 25px; }
-        .login-box input { width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid #d5eadf; border-radius: 12px; box-sizing: border-box; font-size: 16px; outline: none; }
-        .btn-entrar { width: 100%; padding: 15px; background: var(--accento); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 16px; }
+        .login-box input { width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid #d5eadf; border-radius: 12px; box-sizing: border-box; font-size: 16px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        .login-box input:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.15); }
+        .login-box input::placeholder { color: #9ab8ab; }
+        .btn-entrar { width: 100%; padding: 15px; background: linear-gradient(135deg, #5ab88c 0%, #3d9068 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 16px; transition: transform 0.15s, box-shadow 0.15s, filter 0.15s; box-shadow: 0 6px 18px rgba(78,163,127,0.30); letter-spacing: 0.02em; }
+        .btn-entrar:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(78,163,127,0.35); filter: brightness(1.04); }
+        .btn-entrar:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(78,163,127,0.22); filter: brightness(0.98); }
         /* NAVEGACIÓN */
         .header { background: #fff; padding: 14px 16px; text-align: center; border-bottom: 1px solid #dceee5; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 18px rgba(0,0,0,0.06); }
-        .header h2 { color: var(--accento); font-size: clamp(1.2rem, 2.2vw, 1.7rem); }
+        .header h2 { color: var(--verde-oscuro); font-family: 'Playfair Display', serif; font-size: clamp(1.2rem, 2.2vw, 1.7rem); margin: 0; }
         .menu-nav { margin-top: 10px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
         .btn-nav { padding: 10px 18px; min-height: 40px; border: 1px solid #cfe9dd; background: #fff; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.3s; color: var(--texto); }
         .btn-nav:hover { background: var(--suave); border-color: var(--suave-oscuro); }
@@ -50,12 +59,14 @@
         .section.active { display: block; }
         #admin-content { display: none; }
         .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
-        .kpi-card { background: rgba(255,255,255,0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(178,222,200,0.55); border-radius: 14px; padding: 12px; box-shadow: 0 6px 18px rgba(72,133,106,0.10); }
+        .kpi-card { background: rgba(255,255,255,0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(178,222,200,0.55); border-radius: 14px; padding: 12px; box-shadow: 0 6px 18px rgba(72,133,106,0.10); transition: transform 0.18s, box-shadow 0.18s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(72,133,106,0.16); }
         .kpi-label { font-size: 11px; color: #6a8e7f; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
         .kpi-value { font-size: clamp(1.2rem, 2.2vw, 1.6rem); font-weight: 700; color: var(--verde-oscuro); margin-top: 4px; }
         .quick-actions { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-        .btn-mini { border: 1px solid #b7dfcc; background: #ffffff; color: var(--verde-oscuro); border-radius: 999px; padding: 9px 13px; min-height: 38px; cursor: pointer; font-weight: 700; font-size: 12px; }
-        .btn-mini:hover { background: #eaf8f1; }
+        .btn-mini { border: 1px solid #b7dfcc; background: #ffffff; color: var(--verde-oscuro); border-radius: 999px; padding: 9px 13px; min-height: 38px; cursor: pointer; font-weight: 700; font-size: 12px; transition: background 0.18s, box-shadow 0.18s, transform 0.12s; }
+        .btn-mini:hover { background: #eaf8f1; box-shadow: 0 3px 10px rgba(78,163,127,0.14); }
+        .btn-mini:active { transform: scale(0.97); }
         .cliente-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
         .cliente-form-grid .full { grid-column: span 2; }
         .cliente-checks { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
@@ -86,7 +97,8 @@
         .modal-card.delicado .modal-actions { margin-top: 14px; }
         @keyframes popInSoft { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .filtros-advanced { display: grid; grid-template-columns: minmax(190px, 1.2fr) repeat(3, minmax(110px, 1fr)) auto; gap: 8px; margin-bottom: 10px; align-items: center; }
-        .select-input { width: 100%; min-height: 40px; padding: 10px 12px; border-radius: 12px; border: 1px solid #d1e7dc; box-sizing: border-box; outline: none; background: #fff; color: var(--texto); }
+        .select-input { width: 100%; min-height: 40px; padding: 10px 12px; border-radius: 12px; border: 1px solid #d1e7dc; box-sizing: border-box; outline: none; background: #fff; color: var(--texto); transition: border-color 0.2s, box-shadow 0.2s; }
+        .select-input:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.12); }
         .result-summary { font-size: 12px; color: #4c7a66; font-weight: 700; margin: 6px 0 8px; }
         .empty-state { text-align:center; opacity:0.65; background:#fff; border:1px dashed #cde5d8; border-radius:14px; padding:14px; margin-top:10px; }
         .loader-overlay { position: fixed; inset: 0; background: rgba(235,246,240,0.72); z-index: 99998; display: flex; align-items: center; justify-content: center; }
@@ -113,9 +125,11 @@
         /* CARDS */
         .detalle-dia-card { background: rgba(255,255,255,0.78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 16px; padding: 14px; margin-top: 14px; border-left: 6px solid #79c6a1; box-shadow: 0 8px 22px rgba(94,153,124,0.14); border: 1px solid rgba(178,222,200,0.45); }
         .detalle-dia-card b { color: #2f7c5d; }
-        textarea { width: 100%; height: 80px; border: 1px solid #cbe7da; border-radius: 12px; padding: 10px; font-family: inherit; resize: none; box-sizing: border-box; margin-top: 10px; background: #f5fcf8; }
-        .btn-save { width: 100%; background: var(--verde-oscuro); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: 0.2s; }
-        .btn-save:hover { background: #2f765a; }
+        textarea { width: 100%; height: 80px; border: 1px solid #cbe7da; border-radius: 12px; padding: 10px; font-family: inherit; resize: none; box-sizing: border-box; margin-top: 10px; background: #f5fcf8; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        textarea:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.12); }
+        .btn-save { width: 100%; background: linear-gradient(135deg, #2a7a55 0%, var(--verde-oscuro) 100%); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: filter 0.18s, box-shadow 0.18s, transform 0.12s; box-shadow: 0 4px 14px rgba(6,64,43,0.22); }
+        .btn-save:hover { filter: brightness(1.08); box-shadow: 0 6px 18px rgba(6,64,43,0.30); }
+        .btn-save:active { transform: scale(0.98); filter: brightness(0.96); }
         /* BOTONES WHATSAPP */
         .grid-acciones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 15px; }
         .btn-ws { border: none; padding: 10px 6px; min-height: 38px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 12px; color: white; text-align: center; }
@@ -124,16 +138,17 @@
         .btn-cancelar { background: linear-gradient(135deg, #D4AF37, #b8940a); color: #2a1f00; }
         .btn-delete-reserva { width: 100%; margin-top: 8px; border: 1px solid #D4AF37; background: #fdf8e8; color: #7a5e00; padding: 10px; min-height: 38px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 13px; }
         .btn-delete-reserva:hover { background: #faf0cc; }
-        .busc-input { width: 100%; min-height: 42px; padding: 10px 12px; border-radius: 12px; border: 1px solid #cfe2d9; margin-bottom: 10px; box-sizing: border-box; outline: none; }
+        .busc-input { width: 100%; min-height: 42px; padding: 10px 12px; border-radius: 12px; border: 1px solid #cfe2d9; margin-bottom: 10px; box-sizing: border-box; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        .busc-input:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.12); }
         .tag-fecha { display: inline-block; background: #eef7f2; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #466a5b; line-height: 1.35; white-space: normal; max-width: 100%; margin-bottom: 6px; }
         .tag-origen { display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:0.03em; text-transform:uppercase; }
         .tag-origen.jornada { background:#fff0f2; color:#b53345; border:1px solid #f2b7bf; }
         .tag-origen.normal { background:#edf8f3; color:#2f7c5d; border:1px solid #b7dfcc; }
         .tag-origen.admin { background:#eef5ff; color:#2e61b1; border:1px solid #c6daf8; }
         /* TOAST */
-        #toast-container { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 999999; pointer-events: none; }
-        .toast { background: rgba(114, 189, 153, 0.9); color: white; padding: 15px 30px; border-radius: 25px; font-weight: 600; opacity: 0; transition: 0.4s; }
-        .toast.show { opacity: 1; }
+        #toast-container { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 999999; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .toast { background: rgba(6,64,43,0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: #d4f0e2; padding: 13px 26px; border-radius: 50px; font-weight: 600; font-size: 14px; letter-spacing: 0.01em; opacity: 0; transform: translateY(8px) scale(0.97); transition: opacity 0.28s ease, transform 0.28s ease; border: 1px solid rgba(114,189,153,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.18); white-space: nowrap; }
+        .toast.show { opacity: 1; transform: translateY(0) scale(1); }
         
         /* EXPORT */
         .btn-export-main { background: var(--verde-oscuro); color: white; border: none; padding: 20px; border-radius: 15px; width: 100%; font-weight: 600; cursor: pointer; font-size: 16px; }
@@ -249,7 +264,7 @@
             </div>
         </div>
         <div class="header">
-            <h2 style="font-family:'Playfair Display'; margin:0; color:var(--verde-oscuro)">Gimena Knack | Panel</h2>
+            <h2>Gimena Knack &nbsp;·&nbsp; Panel Admin</h2>
             <div id="installWidgetAdmin" class="install-widget-admin" aria-live="polite">
                 <div class="install-inner">
                     <div class="install-head">
