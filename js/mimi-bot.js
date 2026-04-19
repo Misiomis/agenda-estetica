@@ -13,8 +13,9 @@
     {
       id: 'saludo',
       keywords: ['hola', 'buenas', 'buen dia', 'buen día', 'buenas tardes', 'buenas noches',
-                 'hey', 'hi', 'hello', 'que tal', 'qué tal', 'como estas', 'cómo estás'],
-      answer: '¡Hola! Soy <strong>Mimi</strong> 🌿, la asistente virtual de <strong>Espacio Mimar T</strong>. Estoy radiante y con muchas ganas de ayudarte a reservar tu momento de relax. ¿En qué te puedo ayudar?'
+                 'hey', 'hi', 'hello', 'que tal', 'qué tal', 'como estas', 'cómo estás',
+                 'hay alguien', 'hola mimi', 'buenas mimi'],
+      answer: '¡Hola! Soy <strong>Mimi</strong> ✨, la asistente de <strong>Espacio Mimar T</strong>. ¿En qué te puedo ayudar hoy?'
     },
     {
       id: 'quien_es_mimi',
@@ -225,6 +226,53 @@
       answer: 'En Espacio Mimar T nos especializamos en <strong>estética facial y corporal avanzada</strong> con base dermocosmiátrica. Los servicios de depilación, uñas, inyectables y cirugías no se ofrecen. ¿Querés que te cuente sobre alguno de nuestros tratamientos?'
     },
 
+    // ── KIT FACIAL ──────────────────────────────────────────
+    {
+      id: 'kit_facial',
+      keywords: ['kit', 'kit facial', 'kit domiciliario', 'productos', 'crema', 'leche limpieza',
+                 'tonico', 'tónico', 'gel limpieza', 'llevar a casa', 'para casa', 'domiciliario',
+                 'comprar productos', 'quiero el kit', 'pedir kit'],
+      answer: '🌿 El <strong>Kit Facial Domiciliario</strong> incluye productos seleccionados por Gimena para cuidar tu piel en casa:<br><br>• <strong>Leche de limpieza</strong> — $15.000<br>• <strong>Gel de limpieza</strong> — $10.000<br>• <strong>Tónico calmante</strong> — $15.000<br>• <strong>Crema/Gel regeneradora hidratante</strong> — $15.000<br><br>Podés pedirlo desde la sección <strong>Mis Servicios</strong> en la web. El pago se coordina directamente con Gimena.'
+    },
+    {
+      id: 'horarios',
+      keywords: ['horario', 'horarios', 'que horarios', 'qué horarios', 'que horas', 'qué horas',
+                 'a que hora', 'a qué hora', 'cuando atienden', 'cuándo atienden', 'de que hora',
+                 'de qué hora', 'mañana', 'tarde', 'noche', 'cuando abren', 'cuándo abren'],
+      answer: '🕐 Los turnos disponibles son:<br><br><strong>Mañana:</strong> 07:00 · 08:00 · 09:00 · 10:00 · 11:00 · 12:00<br><strong>Tarde/Noche:</strong> 15:00 · 16:00 · 17:00 · 18:00 · 19:00 · 20:00 · 21:00<br><br>Los horarios reales disponibles los ves en el calendario de la web al momento de reservar — se actualizan en tiempo real.'
+    },
+    {
+      id: 'historia_clinica',
+      keywords: ['historia clinica', 'historia clínica', 'ficha medica', 'ficha médica',
+                 'formulario', 'antecedentes', 'datos salud', 'primera sesion', 'primera sesión',
+                 'que me piden', 'qué me piden', 'consentimiento', 'cuestionario'],
+      answer: '📋 Antes de tu primera sesión, Gimena te pide completar una breve <strong>historia clínica</strong>. Incluye tus datos de salud general, objetivos estéticos y el consentimiento informado. Se completa fácil desde la web en <strong>"Mi historia"</strong>. Es obligatoria para garantizar un protocolo seguro y personalizado.'
+    },
+    {
+      id: 'sesion_duo',
+      keywords: ['duo', 'dúo', 'sesion duo', 'sesión dúo', 'dos personas', 'con una amiga',
+                 'con alguien', 'juntas', 'acompañante', 'para dos', 'mi amiga', 'mi pareja'],
+      answer: '👯 ¡Podés reservar una <strong>Sesión Duo</strong>! Dos pacientes pueden compartir el mismo horario juntas. Al momento de elegir la fecha, el sistema te da la opción de agregar a la segunda persona con su nombre y DNI. Ideal para ir con una amiga.'
+    },
+    {
+      id: 'membresia',
+      keywords: ['membresia', 'membresía', 'plan', 'paquete', 'suscripcion', 'suscripción',
+                 'abono', 'pack sesiones', 'descuento', 'beneficio', 'cliente frecuente'],
+      answer: '💎 Las pacientes con <strong>membresía activa</strong> acceden a condiciones preferenciales en el espacio. Para saber si tenés membresía activa o cómo activarla, consultale directamente a Gimena por WhatsApp con el botón <strong>"Quiero ser paciente"</strong>.'
+    },
+    {
+      id: 'duracion',
+      keywords: ['cuanto dura', 'cuánto dura', 'cuanto tiempo', 'cuánto tiempo', 'duracion',
+                 'duración', 'cuantas horas', 'cuántas horas', 'es largo', 'minutos'],
+      answer: '⏱ La duración depende del servicio:<br>• <strong>30 min</strong>: MioUp y Facial LED Regenerativo<br>• <strong>60 min</strong>: Facial, Corporales, Manchas, Cryo 360, Labios<br>La <strong>Consulta inicial</strong> puede variar según la evaluación. Siempre llegá unos minutos antes de tu turno.'
+    },
+    {
+      id: 'resultados',
+      keywords: ['resultado', 'resultados', 'funciona', 'sirve', 'efectivo', 'efectiva',
+                 'cuantas sesiones', 'cuántas sesiones', 'cuando veo', 'cuándo veo', 'notaré'],
+      answer: '✨ Los resultados varían según la piel y el tratamiento. Algunos, como el <strong>Facial LED</strong> y la <strong>hidratación de labios</strong>, se notan desde la primera sesión. Para flacidez y celulitis se recomiendan varias sesiones. Gimena te diseña un plan realista y personalizado desde la consulta inicial.'
+    },
+
     // ── AFIRMACIONES / NEGACIONES / RESPUESTAS CORTAS ───────
     {
       id: 'afirmacion',
@@ -255,57 +303,82 @@
   const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
   const SYSTEM_PROMPT = `# PERFIL
-Sos Mimi, la unidad de inteligencia operativa de Espacio Mimar T. Atendés pacientes con voseo rioplatense, tono elegante, concreto y orientado a acción. No sos una FAQ pasiva: analizás intención, contexto y paso actual antes de responder.
+Sos Mimi, la asistente virtual de Espacio Mimar T. Atendés pacientes con voseo rioplatense, tono cálido, elegante y orientado a la acción. Sos amable, concisa y siempre buscás el siguiente paso concreto para ayudar.
 
-# PRIORIDAD OPERATIVA
-1. Detectá la intención principal del usuario.
-2. Revisá el estado actual del flujo web: Paso 1 (identificación), Paso 2 (fecha y hora), Paso 3 (confirmación).
-3. Si falta información crítica, pedila sin inventar.
-4. Si el sistema ya resolvió una herramienta real, apoyate en ese resultado y no lo contradigas.
+# SOBRE ESPACIO MIMAR T
+Espacio de estética avanzada en Comandante Andresito, Misiones. A cargo de Gimena Knack, Farmacéutica (MP 1212) y Dermatocosmiatra (RC 2319). Especialidad: tratamientos faciales y corporales con activos de grado farmacéutico. Foco en personalización, criterio clínico y experiencia de calidad.
 
-# HERRAMIENTAS REALES DISPONIBLES EN EL SISTEMA
-- check_patient_status(dni): valida si el DNI ya existe como paciente.
-- get_availability(fecha, servicio): consulta la agenda real en Firebase y devuelve horarios disponibles.
-- calc_session_logic(servicio): devuelve duración y preparación general si está cargada.
-- send_whatsapp_template(template_id, runtime): solo puede reintentarse cuando el flujo ya está en Paso 3 con contexto completo.
+# PROFESIONAL
+- Gimena Knack — Farmacéutica (Matrícula Provincial 1212) y Dermatocosmiatra (RC 2319)
+- Diseña y realiza cada protocolo de forma personalizada
+- WhatsApp directo: botón "Quiero ser paciente" en la web
 
-# REGLAS DURAS
-- No inventes horarios, precios ni resultados clínicos.
-- Si la disponibilidad o el estado del paciente no están claros, pedí fecha o DNI.
-- Si el usuario consulta por depilación, láser, cera, uñas, masajes o inyectables, redirigilo a los 8 servicios oficiales.
-- Si hay un retraso técnico, explicalo con calma y sin alarmar.
-- Detectá errores ortográficos razonables y no pierdas el foco por eso.
-- Actuá como una secretaria excelente: cálida, resolutiva y orientada a cerrar el siguiente paso.
-- Máximo 3 o 4 oraciones por respuesta.
+# SERVICIOS OFICIALES (8 en total)
+1. Consulta — Evaluación y plan estético personalizado. Punto de partida ideal.
+2. Tratamiento Facial — 60 min. Acné, manchas, cicatrices. Protocolo según tipo de piel.
+3. Tratamientos Corporales — 60 min. Celulitis, flacidez, contorno corporal por zona.
+4. Tratamiento Manchas Corporales — 60 min. Unificación del tono, renovación cutánea.
+5. Tonificación Muscular MioUp — 30 min. Contracciones electromagnéticas, firmeza y definición.
+6. Lipocell Cryo 360 — 60 min. Criolipólisis no invasiva para adiposidad localizada.
+7. Hidratación y Revitalización de Labios — 60 min. Ácido hialurónico y activos. Resultado desde la 1ra sesión.
+8. Facial LED Regenerativo — 30 min. Cabina LED profesional. Estimula colágeno y elastina. Sin dolor.
+NO se ofrecen: depilación, uñas, masajes, inyectables, cirugías, botox, cera, láser.
 
-# INFORMACIÓN OFICIAL
-Profesional: Gimena Knack (Farmacéutica MP 1212 / Dermatocosmiatra RC 2319).
-Ubicación: Comandante Andresito, Misiones.
-Ingreso al sistema: nombre + inicial del apellido y DNI sin puntos.
-Pacientes nuevas: botón "Quiero ser paciente" en la web.
-Reserva: Paso 1 -> Paso 2 -> Paso 3, con confirmación automática por WhatsApp.
-Cancelación: mínimo 48 horas antes, con motivo desde la web.
+# HORARIOS DISPONIBLES
+Mañana: 07:00 — 08:00 — 09:00 — 10:00 — 11:00 — 12:00
+Tarde:  15:00 — 16:00 — 17:00 — 18:00 — 19:00 — 20:00 — 21:00
+Los horarios reales disponibles se ven en el calendario de fecha.html (en tiempo real desde Firebase).
 
-# SERVICIOS OFICIALES
-1. Consulta.
-2. Tratamiento Facial.
-3. Tratamientos Corporales.
-4. Tratamiento Manchas Corporales.
-5. Tonificación Muscular MioUp.
-6. Lipocell Cryo 360.
-7. Hidratación y Revitalización de Labios.
-8. Facial LED Regenerativo.
+# KIT FACIAL DOMICILIARIO
+Productos disponibles con precio estimado:
+- Leche de limpieza: $15.000
+- Gel de limpieza: $10.000
+- Tónico calmante: $15.000
+- Crema/Gel regeneradora hidratante: $15.000
+El pago se coordina directamente con Gimena. Se solicita desde la sección de servicios.
+
+# ACCESO AL SISTEMA
+- Ingresar: nombre + inicial del apellido (ej: "María G") + DNI sin puntos
+- Pacientes nuevas: contactar a Gimena por WhatsApp con el botón "Quiero ser paciente"
+- Sin contraseñas. El sistema reconoce por nombre + DNI.
+
+# FLUJO DE RESERVA
+Paso 1 → Identificación en index.html
+Paso 2 → Elección de fecha y hora en fecha.html
+Paso 3 → Confirmación en confirmar.html → WhatsApp automático con los detalles
+
+# POLÍTICA DE CANCELACIÓN
+- Cancelar con mínimo 48 horas de anticipación
+- Cancelación fuera de plazo o inasistencia = turno utilizado
+- Se cancela o reprograma directamente desde servicios-pro.html con motivo
+
+# SESIÓN DUO
+Dos pacientes pueden reservar el mismo horario juntas. Se configura en el flujo de fecha.
+
+# HISTORIA CLÍNICA
+Primera vez: Gimena pide completar la historia clínica antes de la sesión (historia.html). Incluye datos de salud, objetivos y consentimiento.
+
+# MEMBRESÍA
+Pacientes con membresía activa tienen acceso a condiciones preferenciales. Se gestiona desde el panel.
 
 # MAPA DEL SITIO
-- index.html: ingreso de paciente.
-- servicios.html y servicios-pro.html: catálogo, consulta y cancelación.
-- fecha.html: selección de fecha y hora.
-- confirmar.html: confirmación final del turno.
-- politica.html: política de cancelación.
-- historia.html: acceso a la historia del paciente.
+- index.html: ingreso de paciente
+- servicios-pro.html: mis turnos, cancelación, kit facial
+- fecha.html: selección de fecha y hora
+- confirmar.html: confirmación final
+- politica.html: política de cancelación completa
+- historia.html: historia clínica del paciente
+- servicioincluido.html: detalle de qué incluye cada sesión
 
-# ESTILO DE SALIDA
-Respondé como alguien que acompaña y empuja el siguiente paso. Cerrá con acción concreta cuando tenga sentido: seguir al paso que toca, revisar agenda o escribir a Gimena.`;
+# REGLAS
+- No inventés precios definitivos (solo los del kit son fijos)
+- No inventés horarios disponibles — remití siempre al calendario de la web
+- Máximo 3-4 oraciones por respuesta
+- Cerrá siempre con una acción concreta o una pregunta que impulse el siguiente paso
+- Si pregunta por algo que no sabés, decilo con amabilidad y ofrecé escribirle a Gimena
+
+# ESTILO
+Cálida, profesional, breve. Voseo rioplatense. Siempre orientada a ayudar a dar el siguiente paso.`;
 
   const SYSTEM_PROMPT_ADMIN = `# PERFIL Y FUNCIÓN
 Sos Mimi, la asistente interna de gestión para Espacio Mimar T. Fuiste creada en abril de 2026 por Braulio V. En este modo, tu única interlocutora es Gimena. Tu objetivo es la eficiencia absoluta en la gestión de turnos, pacientes y recordatorios en tiempo real.
@@ -384,12 +457,13 @@ Estado: ⏳ Sin recordatorio
   }
 
   const QUICK_REPLIES = [
-    { label: 'Primer horario disponible', query: 'Buscame el primer horario disponible' },
-    { label: 'Ya soy paciente', query: 'Ya soy paciente' },
     { label: 'Quiero reservar', query: 'Quiero reservar un turno' },
-    { label: 'Facial LED esta semana', query: 'Buscame un horario para Facial LED esta semana' },
-    { label: 'Necesito cancelar', query: 'Necesito cancelar un turno' },
     { label: '¿Qué servicios tienen?', query: 'Qué servicios tienen' },
+    { label: '¿Cuáles son los horarios?', query: 'Cuáles son los horarios disponibles' },
+    { label: 'Kit facial — precios', query: 'Cuánto cuesta el kit facial' },
+    { label: 'Sesión Duo', query: 'Quiero reservar una sesión duo con una amiga' },
+    { label: 'Necesito cancelar', query: 'Necesito cancelar un turno' },
+    { label: 'Primera vez', query: 'Es mi primera vez, cómo me registro' },
   ];
 
   // ── Utilidades ────────────────────────────────────────────
@@ -448,10 +522,18 @@ Estado: ⏳ Sin recordatorio
 - Fecha seleccionada: ${fecha || 'no'}
 - Hora seleccionada: ${hora || 'no'}
 
+# REGLA DE ORO — PROTOCOLO DE SALUDO
+Si el mensaje del usuario es solo un saludo ("Hola", "Buenas", "Hey", etc.) SIN ninguna consulta específica:
+Respondé ÚNICAMENTE: "¡Hola! Soy Mimi ✨, la asistente de Espacio Mimar T. ¿En qué te puedo ayudar hoy?"
+PROHIBIDO: mencionar turnos, servicios, agenda o estado de sesión anterior en esa primera respuesta.
+
 # CONSIGNA DE EJECUCIÓN
 - Si la persona quiere turnos, actuá como secretaria y concretá el siguiente paso.
 - Si hay errores de tipeo, interpretalos con criterio y seguí ayudando.
-- No te disperses en charla general cuando el objetivo sea reservar, reprogramar o encontrar horarios disponibles.`;
+- No te disperses en charla general cuando el objetivo sea reservar, reprogramar o encontrar horarios.
+- Estilo: elegante, breve, voseo rioplatense profesional. Máximo 3-4 oraciones.
+- Términos prohibidos: depilación, láser, cera, uñas, manicura, pedicura, masajes, botox, inyectables, cirugías. Si te preguntan, respondé: "Ese servicio no forma parte de nuestra propuesta actual, pero Gimena puede asesorarte con nuestros tratamientos de revitalización y cuidado avanzado."
+- No inventes horarios disponibles. Siempre remití al calendario real de la web.`;
   }
 
   async function runPatientOperationalReply(text) {
@@ -589,7 +671,7 @@ Estado: ⏳ Sin recordatorio
       z-index: 9997;
       pointer-events: none;
       isolation: isolate;
-      --mimi-avatar-focus-y: 12%;
+      --mimi-avatar-focus-y: 30%;
     }
     #mimi-root * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', 'Montserrat', sans-serif; }
     #mimi-bubble,
@@ -616,12 +698,12 @@ Estado: ⏳ Sin recordatorio
     #mimi-bubble-inner {
       width: 100%; height: 100%;
       aspect-ratio: 1 / 1;
-      --mimi-avatar-scale: 1.18;
+      --mimi-avatar-scale: 1.42;
       border-radius: 50%;
       overflow: hidden;
       box-shadow: 0 8px 32px rgba(95,130,95,0.5), 0 2px 8px rgba(0,0,0,0.2);
       border: 3px solid #fff;
-      background: linear-gradient(145deg, #a8c9a0 0%, #5d8c6a 100%);
+      background: linear-gradient(145deg, #c6dfc6 0%, #7aab8a 100%);
       position: relative;
     }
     /* Avatar imagen del personaje */
@@ -630,7 +712,7 @@ Estado: ⏳ Sin recordatorio
       inset: 0;
       border-radius: 50%;
       overflow: hidden;
-      background: #e8f2e8;
+      background: #c6dfc6;
     }
     #mimi-bubble-inner video,
     #mimi-bubble-fallback img,
@@ -643,7 +725,7 @@ Estado: ⏳ Sin recordatorio
       object-fit: cover;
       object-position: 50% var(--mimi-avatar-focus-y);
       transform: scale(var(--mimi-avatar-scale, 1));
-      transform-origin: center 24%;
+      transform-origin: 50% 32%;
       pointer-events: none;
       display: block;
     }
@@ -764,11 +846,11 @@ Estado: ⏳ Sin recordatorio
     #mimi-avatar-small {
       width: 48px; height: 48px;
       aspect-ratio: 1 / 1;
-      --mimi-avatar-scale: 1.14;
+      --mimi-avatar-scale: 1.42;
       border-radius: 50%; overflow: hidden;
       border: 2.5px solid rgba(255,255,255,0.9);
       flex-shrink: 0;
-      background: linear-gradient(145deg, #a8c9a0 0%, #5d8c6a 100%);
+      background: linear-gradient(145deg, #c6dfc6 0%, #7aab8a 100%);
       position: relative;
     }
     #mimi-avatar-fallback {
@@ -776,7 +858,7 @@ Estado: ⏳ Sin recordatorio
       inset: 0;
       border-radius: 50%;
       overflow: hidden;
-      background: #e8f2e8;
+      background: #c6dfc6;
     }
     #mimi-avatar-fallback.mimi-video-ok { display: none; }
     #mimi-avatar-vid.mimi-video-ok { display: block; }
@@ -961,7 +1043,7 @@ Estado: ⏳ Sin recordatorio
 
     @media (max-width: 700px) {
       #mimi-root {
-        --mimi-avatar-focus-y: 10%;
+        --mimi-avatar-focus-y: 30%;
       }
       /* Móvil: recuadro compacto por encima de la burbuja */
       #mimi-window,
@@ -1026,10 +1108,10 @@ Estado: ⏳ Sin recordatorio
         height: 60px !important;
       }
       #mimi-bubble-inner {
-        --mimi-avatar-scale: 1.28;
+        --mimi-avatar-scale: 1.52;
       }
       #mimi-avatar-small {
-        --mimi-avatar-scale: 1.2;
+        --mimi-avatar-scale: 1.48;
       }
       #mimi-restore {
         left: 50% !important;
@@ -1284,6 +1366,17 @@ Estado: ⏳ Sin recordatorio
       renderQuickReplies();
     }
 
+    // Detecta si es un saludo simple sin intención adicional
+    function isSimpleGreeting(text) {
+      const clean = text.trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[!?.,]+$/, '').trim();
+      const greetings = ['hola','buenas','buen dia','buenos dias','buenas tardes','buenas noches',
+                         'hey','hi','hello','que tal','como estas','como andas','buen dia',
+                         'hay alguien','hay alguien ahi','hola mimi','buenas mimi'];
+      return greetings.includes(clean);
+    }
+
     // ── Responder a texto libre ──
     async function respondToText(text) {
       const typingEl = document.createElement('div');
@@ -1295,25 +1388,34 @@ Estado: ⏳ Sin recordatorio
 
       let answer = null;
 
-      // 0. Modo admin: consultar datos del panel (NO sale a Gemini)
+      // 0. Saludos simples: responder solo con saludo, nunca activar capa operativa
+      if (!esAdmin && isSimpleGreeting(text)) {
+        await new Promise(r => setTimeout(r, 600));
+        typingEl.remove();
+        await addMsg('¡Hola! Soy <strong>Mimi</strong> ✨, la asistente de <strong>Espacio Mimar T</strong>. ¿En qué te puedo ayudar hoy?', 'bot');
+        renderQuickReplies();
+        return;
+      }
+
+      // 1. Modo admin: consultar datos del panel (NO sale a Gemini)
       if (esAdmin && window.MIMI_ADMIN_DATA) {
         await new Promise(r => setTimeout(r, 420));
         answer = handleAdminQuery(text);
       }
 
-      // 1. Modo paciente: intentar primero la capa operativa real
+      // 2. Modo paciente: intentar primero la capa operativa real
       if (!answer && !esAdmin) {
         answer = await runPatientOperationalReply(text);
       }
 
-      // 2. Si no respondió nada operativo, intentar Gemini con el prompt y el historial correspondiente
+      // 3. Si no respondió nada operativo, intentar Gemini con el prompt y el historial correspondiente
       if (!answer && GEMINI_KEY) {
         answer = esAdmin
           ? await askGemini(text, SYSTEM_PROMPT_ADMIN, chatHistoryAdmin)
           : await askGemini(text, buildPatientSystemPrompt(), chatHistory);
       }
 
-      // 3. Fallback al KB local
+      // 4. Fallback al KB local
       if (!answer) {
         const kb = findAnswer(text);
         answer = (kb === '__FALLBACK__') ? null : kb;
@@ -1341,12 +1443,7 @@ Estado: ⏳ Sin recordatorio
         await showTyping(800);
         await addMsg('Soy <strong>Mimi</strong>, tu asistente personal. Estoy acá para ayudarte con la administración de tu estética: podés preguntarme por turnos de pacientes, recordatorios, lo que necesites. 🌿', 'bot');
       } else {
-        await addMsg('¡Hola! Soy <strong>Mimi</strong> 🌿, tu asistente de <strong>Espacio Mimar T</strong>. ¿En qué te puedo ayudar hoy?', 'bot', 200);
-        const resume = await getPatientResumeIntro();
-        if (resume) {
-          await showTyping(500);
-          await addMsg(resume, 'bot');
-        }
+        await addMsg('¡Hola! Soy <strong>Mimi</strong> ✨, la asistente de <strong>Espacio Mimar T</strong>. ¿En qué te puedo ayudar hoy?', 'bot', 200);
       }
       renderQuickReplies();
     }

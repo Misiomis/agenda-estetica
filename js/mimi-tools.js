@@ -7,23 +7,19 @@ const RESUME_COOLDOWN_MS = 90 * 1000;
 const SEARCH_DAYS_DEFAULT = 14;
 const SEARCH_DAYS_EXTENDED = 28;
 
+const HORARIOS_BASE = ["07:00","08:00","09:00","10:00","11:00","12:00",
+                       "15:00","16:00","17:00","18:00","19:00","20:00","21:00"];
+
 const CONFIG_DIAS = {
-  lunes: { normal: ["16:00", "17:00", "18:00", "19:00"], fraccionado: ["20:00", "20:30"] },
-  martes: { normal: ["07:00", "08:00", "09:00", "10:00", "11:00", "16:00", "17:00", "18:00", "19:00"], fraccionado: ["12:00", "12:30", "20:00", "20:30"] },
-  miercoles: { normal: ["15:00", "16:00", "17:00", "18:00", "19:00"], fraccionado: ["20:00", "20:30"] },
-  jueves: { normal: ["08:00", "09:00", "10:00", "11:00"], fraccionado: ["12:00", "12:30"] },
-  viernes: { normal: ["15:00", "16:00", "17:00", "18:00", "19:00"], fraccionado: [] },
-  sabado: { normal: ["08:00", "09:00", "10:00", "11:00"], fraccionado: ["12:00", "12:30"] },
+  lunes:    { normal: HORARIOS_BASE, fraccionado: [] },
+  martes:   { normal: HORARIOS_BASE, fraccionado: [] },
+  miercoles:{ normal: HORARIOS_BASE, fraccionado: [] },
+  jueves:   { normal: HORARIOS_BASE, fraccionado: [] },
+  viernes:  { normal: HORARIOS_BASE, fraccionado: [] },
+  sabado:   { normal: HORARIOS_BASE, fraccionado: [] },
 };
 
 const EXCEPCIONES_HORARIOS = {
-  "2026-03-26": { normal: ["08:00", "09:00", "10:00", "11:00", "16:00"], fraccionado: ["12:00", "12:30"] },
-  "2026-03-28": { normal: ["11:00"], fraccionado: [] },
-  "2026-04-01": { normal: ["21:00"], fraccionado: [] },
-  "2026-04-02": { normal: ["11:30"], fraccionado: [] },
-  "2026-04-04": { normal: ["18:00"], fraccionado: [] },
-  "2026-04-09": { normal: ["21:00"], fraccionado: [] },
-  "2026-04-10": { normal: ["08:00", "09:00", "10:00", "11:00"], fraccionado: ["12:00"], replaceBase: true },
   "2026-04-22": { normal: ["21:00"], fraccionado: [] },
   "2026-04-25": { normal: ["17:00"], fraccionado: [] },
 };
