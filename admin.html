@@ -1597,6 +1597,7 @@
                         <button class="btn-ws btn-cancelar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar')">Cancelar</button>
                     </div>
                     <button class="btn-mini" style="width:100%;margin-top:8px;border-color:#b5cce8;color:#2e61b1;background:#f3f8ff" onclick="cambiarServicioReserva('${r.id}')">Cambiar servicio</button>
+                    <button class="btn-mini" style="width:100%;margin-top:6px;border-color:#e0b0b0;color:#a02828;background:#fff5f5" onclick="cancelarTurnoYNotificar('${r.id}')">Cancelar turno y notificar</button>
                     <button class="btn-delete-reserva" onclick="borrarReserva('${r.id}')">Borrar reserva</button>
                     ${btnEnviar1}${btnEnviar2}
                 </div>`;
@@ -2165,30 +2166,68 @@
             }
         };
         
-        window.cancelarTurnoYNotificar = async (idReserva) => {
+        window.cancelarTurnoYNotificar = (idReserva) => {
             const reserva = todasLasReservas.find(r => r.id === idReserva);
-            if (!reserva) {
-                mostrarAviso("No encontré la reserva");
-                return;
-            }
-            try {
-                mostrarLoader(true);
-                await updateDoc(doc(db, "reservas", idReserva), {
-                    status: "cancelado",
-                    estado: "cancelado",
-                    canceladoPor: "admin_bloqueo_horario",
-                    canceladoAt: serverTimestamp()
-                });
-                enviarW(reserva.phone || '', reserva.nombreLimpio || 'Paciente', reserva.fecha, reserva.hora, reserva.servicio || 'Servicio', 'cancelar');
-                mostrarAviso("Turno cancelado y notificación preparada por WhatsApp");
-                await cargarTodo();
-                if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
-            } catch (error) {
-                console.error(error);
-                mostrarAviso("No se pudo cancelar el turno");
-            } finally {
-                mostrarLoader(false);
-            }
+            if (!reserva) { mostrarAviso("No encontré la reserva"); return; }
+
+            // Modal de justificación
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px';
+            overlay.innerHTML = `
+                <div style="width:100%;max-width:440px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 60%,#eef7f3 100%);border-radius:24px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:26px 24px 22px">
+                    <div style="display:flex;justify-content:center;margin-bottom:14px">
+                        <img src="img/logo.png" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid rgba(178,222,200,0.7)" onerror="this.style.display='none'">
+                    </div>
+                    <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 4px">Cancelar turno</p>
+                    <p style="font-size:12px;color:#6a8e7f;font-weight:700;text-align:center;margin:0 0 18px;letter-spacing:.04em">${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(reserva.fecha)} ${escapeHtml(reserva.hora)} hs</p>
+                    <label style="font-size:11px;font-weight:800;color:#4a7060;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Motivo de cancelación *</label>
+                    <textarea id="_cancel-motivo" placeholder="Escribí el motivo (ej: Gimena no puede ese día, se reprogramó...)" style="width:100%;box-sizing:border-box;padding:12px 14px;border:2px solid #d5eadf;border-radius:12px;font-family:inherit;font-size:14px;color:#2f5a47;background:#f8fefb;outline:none;resize:vertical;min-height:90px;margin-bottom:16px"></textarea>
+                    <div style="display:flex;gap:10px">
+                        <button id="_cancel-volver" style="flex:1;padding:13px;border:1.5px solid #c8ddd6;background:#fff;border-radius:12px;color:#4a7060;font-weight:700;font-size:14px;cursor:pointer">Volver</button>
+                        <button id="_cancel-confirmar" style="flex:2;padding:13px;background:linear-gradient(135deg,#c94040,#a02828);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(180,40,40,0.28)">Cancelar turno</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            overlay.querySelector('#_cancel-motivo').focus();
+
+            overlay.querySelector('#_cancel-volver').onclick = () => overlay.remove();
+
+            overlay.querySelector('#_cancel-confirmar').onclick = async () => {
+                const motivo = overlay.querySelector('#_cancel-motivo').value.trim();
+                if (!motivo) { overlay.querySelector('#_cancel-motivo').style.borderColor = '#c94040'; return; }
+                overlay.remove();
+                try {
+                    mostrarLoader(true);
+                    await updateDoc(doc(db, "reservas", idReserva), {
+                        status: "cancelado",
+                        estado: "cancelado",
+                        canceladoPor: "admin",
+                        motivoCancelacion: motivo,
+                        canceladoAt: serverTimestamp()
+                    });
+
+                    // Notificar a la paciente por WA
+                    enviarW(reserva.phone || '', reserva.nombreLimpio || 'Paciente', reserva.fecha, reserva.hora, reserva.servicio || 'Servicio', 'cancelar');
+
+                    // Notificar a Gimena con el motivo
+                    const fechaFmt = escapeHtml(reserva.fecha);
+                    const horaFmt = escapeHtml(reserva.hora);
+                    const paciente = encodeURIComponent(reserva.nombreLimpio || 'Paciente');
+                    const servicio = encodeURIComponent(reserva.servicio || 'Servicio');
+                    const motivoEnc = encodeURIComponent(motivo);
+                    const msgGimena = `🔔 *Turno cancelado*%0A%0A👤 Paciente: *${paciente}*%0A📅 Fecha: *${fechaFmt}*%0A🕒 Hora: *${horaFmt} hs*%0A✨ Servicio: *${servicio}*%0A%0A📝 Motivo:%0A${motivoEnc}`;
+                    window.open(`https://wa.me/5493764291807?text=${msgGimena}`, '_blank');
+
+                    mostrarAviso("Turno cancelado · Gimena notificada por WhatsApp");
+                    await cargarTodo();
+                    if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+                } catch (error) {
+                    console.error(error);
+                    mostrarAviso("No se pudo cancelar el turno");
+                } finally {
+                    mostrarLoader(false);
+                }
+            };
         };
         
         /* ── Estado del modal de registro ── */
@@ -2280,21 +2319,23 @@
             if (!_mreg_clienteSeleccionado) { mostrarAviso("Seleccioná un paciente"); return; }
             const servicioIngresado = document.getElementById('mreg-servicio-select').value.trim();
             if (!servicioIngresado) { mostrarAviso("Seleccioná un servicio"); return; }
+            const clienteSnap = { ..._mreg_clienteSeleccionado };
+            const fechaSnap = _mreg_fecha, horaSnap = _mreg_hora;
             try {
                 mostrarLoader(true);
                 cerrarModalRegistrar();
                 const reservaNueva = {
-                    cliente: _mreg_clienteSeleccionado.nombre,
-                    clienteNombre: _mreg_clienteSeleccionado.nombre,
-                    nombre: _mreg_clienteSeleccionado.nombre,
-                    title: _mreg_clienteSeleccionado.nombre,
-                    displayName: _mreg_clienteSeleccionado.nombre,
-                    phone: _mreg_clienteSeleccionado.phone,
-                    telefono: _mreg_clienteSeleccionado.phone,
-                    dni: _mreg_clienteSeleccionado.dni,
+                    cliente: clienteSnap.nombre,
+                    clienteNombre: clienteSnap.nombre,
+                    nombre: clienteSnap.nombre,
+                    title: clienteSnap.nombre,
+                    displayName: clienteSnap.nombre,
+                    phone: clienteSnap.phone,
+                    telefono: clienteSnap.phone,
+                    dni: clienteSnap.dni,
                     servicio: servicioIngresado,
-                    fecha: _mreg_fecha,
-                    hora: _mreg_hora,
+                    fecha: fechaSnap,
+                    hora: horaSnap,
                     origen: document.getElementById("btnFlowModeHeader")?.classList.contains("is-jornada") ? "jornada" : "normal",
                     status: "confirmado",
                     estado: "confirmado",
@@ -2303,10 +2344,10 @@
                     creadoPor: "admin_manual"
                 };
                 const ref = await addDoc(collection(db, "reservas"), reservaNueva);
-                todasLasReservas.push({ id: ref.id, ...reservaNueva, nombreLimpio: _mreg_clienteSeleccionado.nombre });
+                todasLasReservas.push({ id: ref.id, ...reservaNueva, nombreLimpio: clienteSnap.nombre });
                 actualizarKPIs();
                 poblarServiciosFiltro();
-                verTurnos(_mreg_fecha, document.querySelector('.day.selected'));
+                verTurnos(fechaSnap, document.querySelector('.day.selected'));
                 mostrarAviso("Reserva creada");
             } catch(error) {
                 console.error(error);
