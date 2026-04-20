@@ -287,39 +287,58 @@
                 const hoy = new Date();
                 hoy.setHours(0, 0, 0, 0);
 
-                const activos = [];
+                const todos = [];
                 snap.forEach(docSnap => {
-                    const r = docSnap.data();
-                    const estado = (r.status || r.estado || "").toLowerCase();
-                    if (estado === "cancelado") return;
-                    const [y, m, d] = (r.fecha || "").split("-").map(Number);
-                    const fechaR = new Date(y, m - 1, d);
-                    if (fechaR >= hoy) activos.push({ id: docSnap.id, ...r });
+                    todos.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                activos.sort((a, b) => a.fecha.localeCompare(b.fecha));
+                // Ordenar: próximos primero, luego pasados
+                todos.sort((a, b) => {
+                    const fa = a.fecha || "";
+                    const fb = b.fecha || "";
+                    return fb.localeCompare(fa); // más reciente primero
+                });
 
-                if (activos.length === 0) {
-                    lista.innerHTML = '<p style="color:#888; padding:16px 0">No tenés turnos próximos.</p>';
+                if (todos.length === 0) {
+                    lista.innerHTML = '<p style="color:#888; padding:16px 0">No tenés turnos registrados.</p>';
                     return;
                 }
 
                 lista.innerHTML = "";
-                activos.forEach(r => {
+                todos.forEach(r => {
+                    const estado = (r.status || r.estado || "").toLowerCase();
+                    const [y, m, d] = (r.fecha || "0-0-0").split("-").map(Number);
+                    const fechaR = new Date(y, m - 1, d);
+                    const esFuturo = fechaR >= hoy;
+                    const cancelado = estado === "cancelado";
+                    const fechaFmt = r.fecha ? r.fecha.split("-").reverse().join("/") : "—";
+
+                    // Badge de estado
+                    let badge = "";
+                    if (cancelado) {
+                        badge = `<span style="background:#fce8e8;color:#a02828;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px">Cancelado</span>`;
+                    } else if (esFuturo) {
+                        badge = `<span style="background:#e6f7ee;color:#1e6645;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px">Próximo</span>`;
+                    } else {
+                        badge = `<span style="background:#f0f0f0;color:#888;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px">Realizado</span>`;
+                    }
+
                     const card = document.createElement("div");
                     card.className = "turno-card";
-                    const fechaFmt = r.fecha ? r.fecha.split("-").reverse().join("/") : "—";
+                    if (cancelado) card.style.opacity = "0.6";
+
+                    const btnCancelar = (!cancelado && esFuturo)
+                        ? `<button class="btn-cancelar-turno" data-id="${r.id}" data-servicio="${escapeHtml(r.servicio || '')}" data-fecha="${escapeHtml(r.fecha || '')}" data-hora="${escapeHtml(r.hora || '')}" data-dni="${escapeHtml(dni)}">Cancelar este turno</button>`
+                        : "";
+
                     card.innerHTML = `
-                        <div class="turno-card-servicio">${escapeHtml(r.servicio || "Tratamiento")}</div>
+                        <div class="turno-card-servicio">${escapeHtml(r.servicio || "Tratamiento")}${badge}</div>
                         <div class="turno-card-meta">📅 ${fechaFmt} &nbsp;·&nbsp; 🕒 ${escapeHtml(r.hora || "—")} hs</div>
-                        <button class="btn-cancelar-turno" data-id="${r.id}" data-servicio="${escapeHtml(r.servicio || '')}" data-fecha="${escapeHtml(r.fecha || '')}" data-hora="${escapeHtml(r.hora || '')}" data-dni="${escapeHtml(dni)}">
-                            Cancelar este turno
-                        </button>
+                        ${btnCancelar}
                     `;
                     lista.appendChild(card);
                 });
 
-                // Asignar eventos a botones de cancelar
                 lista.querySelectorAll('.btn-cancelar-turno').forEach(btn => {
                     btn.onclick = () => abrirModalCancelacion(btn.dataset);
                 });
