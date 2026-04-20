@@ -230,7 +230,8 @@
                         }
                     } else {
                         localStorage.setItem("servicioSeleccionado", btn.getAttribute('data-nombre'));
-                        window.location.href = "fecha.html";
+                        const esMiembro = localStorage.getItem("esMiembro") === "1";
+                        window.location.href = esMiembro ? "fecha.html" : "fechaocasional.html";
                     }
                 };
             });
