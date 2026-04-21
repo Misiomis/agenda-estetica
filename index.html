@@ -416,63 +416,71 @@
         }
         .section-header.centered .section-sub { margin: 12px auto 0; }
 
-        /* Testimonials grid / carousel */
+        /* ── Testimonials carrusel ── */
+        .slider-viewport {
+            overflow: hidden;
+            border-radius: 24px;
+        }
         .testimonials-track {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+            display: flex;
+            transition: transform 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            will-change: transform;
         }
         .testimonial-card {
+            flex: 0 0 100%;
             background: #fff;
-            border-radius: 24px; padding: 28px 26px;
-            border: 1px solid rgba(196,221,205,0.7);
+            border-radius: 24px; padding: 36px 40px 32px;
+            border: 1px solid rgba(196,221,205,0.6);
             box-shadow: 0 16px 40px rgba(20,50,32,0.08),
                         inset 0 1px 0 rgba(255,255,255,0.9);
             position: relative; overflow: hidden;
-            transition: transform 0.22s ease, box-shadow 0.22s ease;
-        }
-        .testimonial-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 26px 52px rgba(20,50,32,0.13),
-                        inset 0 1px 0 rgba(255,255,255,0.9);
+            box-sizing: border-box;
         }
         .testimonial-card::before {
             content: "\201C";
-            position: absolute; top: 18px; right: 22px;
+            position: absolute; top: 20px; right: 28px;
             font-family: var(--font-display);
-            font-size: 80px; line-height: 1;
-            color: rgba(114,189,153,0.14);
+            font-size: 110px; line-height: 1;
+            color: rgba(114,189,153,0.11);
             font-weight: 700; pointer-events: none;
         }
         .testimonial-stars {
-            font-size: 13px; letter-spacing: 2px;
-            margin-bottom: 14px; color: var(--gold);
+            font-size: 14px; letter-spacing: 3px;
+            margin-bottom: 16px; color: #D4AF37;
         }
         .testimonial-text {
-            font-size: 14px; line-height: 1.72;
+            font-size: clamp(14px, 2vw, 17px); line-height: 1.78;
             color: var(--text-mid); font-weight: 500;
-            font-style: italic; margin-bottom: 18px;
+            font-style: italic; margin-bottom: 24px;
+            max-width: 680px;
         }
         .testimonial-footer {
-            display: flex; align-items: center; gap: 10px;
+            display: flex; align-items: center; gap: 12px;
         }
         .testimonial-avatar {
-            width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+            width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
             background: linear-gradient(135deg, #72bd99, #3a7a5a);
             display: flex; align-items: center; justify-content: center;
-            font-size: 15px; font-weight: 800; color: #fff;
+            font-size: 16px; font-weight: 800; color: #fff;
         }
-        .testimonial-author { font-size: 12px; font-weight: 800; color: var(--text-dark); letter-spacing: 0.02em; }
-        .testimonial-service { font-size: 11px; font-weight: 600; color: var(--text-light); margin-top: 1px; }
-        @media (max-width: 680px) {
-            .testimonials-track {
-                display: flex; overflow-x: auto;
-                scroll-snap-type: x mandatory;
-                scrollbar-width: none; gap: 14px;
-                padding-bottom: 12px; margin: 0 -16px; padding-left: 16px; padding-right: 16px;
-            }
-            .testimonials-track::-webkit-scrollbar { display: none; }
-            .testimonial-card { flex: 0 0 82vw; scroll-snap-align: start; }
+        .testimonial-author { font-size: 13px; font-weight: 800; color: var(--text-dark); letter-spacing: 0.02em; }
+        .testimonial-service { font-size: 12px; font-weight: 600; color: var(--text-light); margin-top: 2px; }
+
+        /* Dots del carrusel */
+        .slider-dots {
+            display: flex; justify-content: center; gap: 10px;
+            margin-top: 28px;
+        }
+        .sdot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: rgba(74,110,92,0.18);
+            border: none; cursor: pointer;
+            transition: background 0.35s, transform 0.35s, width 0.35s;
+            padding: 0;
+        }
+        .sdot.active {
+            background: var(--sage);
+            width: 28px; border-radius: 4px;
         }
 
         /* ── SERVICES (dark bg) ── */
@@ -888,51 +896,59 @@
                 <h2 class="section-title">Resultados reales,<br>en sus palabras</h2>
                 <p class="section-sub">No hacemos tratamientos genéricos. Estas son historias de pacientes reales con transformaciones concretas.</p>
             </div>
-            <div class="testimonials-track">
-                <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
-                    <p class="testimonial-text">"Cuando hicimos el tratamiento en 2020 fue algo que me impactó mucho. No solo por la piel que quedó hermosa, sino por todo lo que significa tomarse ese tiempo y lo que das de vos en cada turno. Las charlas y todo el combo. Volví a usar la crema que me preparaste y ¡mi piel sigue hermosa! 💖"</p>
-                    <div class="testimonial-footer">
-                        <div class="testimonial-avatar">P</div>
-                        <div>
-                            <p class="testimonial-author">Paciente</p>
-                            <p class="testimonial-service">Tratamiento facial · 2020–2024</p>
+            <div class="slider-viewport">
+                <div class="testimonials-track" id="testimonialsTrack">
+                    <div class="testimonial-card">
+                        <div class="testimonial-stars">★★★★★</div>
+                        <p class="testimonial-text">"Cuando hicimos el tratamiento en 2020 fue algo que me impactó mucho. No solo por la piel que quedó hermosa, sino por todo lo que significa tomarse ese tiempo y lo que das de vos en cada turno. Las charlas y todo el combo. Volví a usar la crema que me preparaste y ¡mi piel sigue hermosa! 💖"</p>
+                        <div class="testimonial-footer">
+                            <div class="testimonial-avatar">P</div>
+                            <div>
+                                <p class="testimonial-author">Paciente</p>
+                                <p class="testimonial-service">Tratamiento facial · 2020–2024</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <div class="testimonial-stars">★★★★★</div>
+                        <p class="testimonial-text">"¡Los resultados de la CRYO son espectaculares! Hace unos 20 días fue mi primera sesión y se nota muchísimo cómo bajó esa pancita que pensé que era imposible de quemar. Realmente un 10/10 🔥 ¡Vamos por más!"</p>
+                        <div class="testimonial-footer">
+                            <div class="testimonial-avatar">M</div>
+                            <div>
+                                <p class="testimonial-author">Paciente</p>
+                                <p class="testimonial-service">Crioterapia corporal</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <div class="testimonial-stars">★★★★★</div>
+                        <p class="testimonial-text">"Estoy encantada con los resultados. Feliz por haber invertido ese dinero y feliz por tu trabajo. ¡Millones de gracias! No me imaginaba que se podía lograr esto."</p>
+                        <div class="testimonial-footer">
+                            <div class="testimonial-avatar">L</div>
+                            <div>
+                                <p class="testimonial-author">Paciente</p>
+                                <p class="testimonial-service">Tratamiento corporal</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <div class="testimonial-stars">★★★★★</div>
+                        <p class="testimonial-text">"Fue una experiencia maravillosa hacer el desafío. Bajé los 7 kg que no podía lograr desde hacía más de 20 años, y no solo eso, también cambié mi forma de alimentarme. Gracias por el acompañamiento y tu excelente atención."</p>
+                        <div class="testimonial-footer">
+                            <div class="testimonial-avatar">S</div>
+                            <div>
+                                <p class="testimonial-author">Paciente</p>
+                                <p class="testimonial-service">Desafío de transformación</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
-                    <p class="testimonial-text">"¡Los resultados de la CRYO son espectaculares! Hace unos 20 días fue mi primera sesión y se nota muchísimo cómo bajó esa pancita que pensé que era imposible de quemar. Realmente un 10/10 🔥 ¡Vamos por más!"</p>
-                    <div class="testimonial-footer">
-                        <div class="testimonial-avatar">M</div>
-                        <div>
-                            <p class="testimonial-author">Paciente</p>
-                            <p class="testimonial-service">Crioterapia corporal</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
-                    <p class="testimonial-text">"Estoy encantada con los resultados. Feliz por haber invertido ese dinero y feliz por tu trabajo. ¡Millones de gracias! No me imaginaba que se podía lograr esto."</p>
-                    <div class="testimonial-footer">
-                        <div class="testimonial-avatar">L</div>
-                        <div>
-                            <p class="testimonial-author">Paciente</p>
-                            <p class="testimonial-service">Tratamiento corporal</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
-                    <p class="testimonial-text">"Fue una experiencia maravillosa hacer el desafío. Bajé los 7 kg que no podía lograr desde hacía más de 20 años, y no solo eso, también cambié mi forma de alimentarme. Gracias por el acompañamiento y tu excelente atención."</p>
-                    <div class="testimonial-footer">
-                        <div class="testimonial-avatar">S</div>
-                        <div>
-                            <p class="testimonial-author">Paciente</p>
-                            <p class="testimonial-service">Desafío de transformación</p>
-                        </div>
-                    </div>
-                </div>
+            </div>
+            <div class="slider-dots" id="testimonialDots">
+                <button class="sdot active" data-idx="0" aria-label="Testimonio 1"></button>
+                <button class="sdot" data-idx="1" aria-label="Testimonio 2"></button>
+                <button class="sdot" data-idx="2" aria-label="Testimonio 3"></button>
+                <button class="sdot" data-idx="3" aria-label="Testimonio 4"></button>
             </div>
         </div>
     </section>
@@ -1286,6 +1302,38 @@
         document.querySelectorAll('.service-card, .testimonial-card, .faq-item, .trust-col, .about-card').forEach(el => {
             el.classList.add('reveal'); io.observe(el);
         });
+    })();
+
+    /* Testimonials carousel */
+    (function() {
+        const track = document.getElementById('testimonialsTrack');
+        const dotBtns = document.querySelectorAll('#testimonialDots .sdot');
+        if (!track || !dotBtns.length) return;
+        const cards = track.querySelectorAll('.testimonial-card');
+        let cur = 0, timer;
+        function goTo(n) {
+            cur = (n + cards.length) % cards.length;
+            track.style.transform = `translateX(-${cur * 100}%)`;
+            dotBtns.forEach((d, i) => d.classList.toggle('active', i === cur));
+        }
+        function advance() { goTo(cur + 1); }
+        timer = setInterval(advance, 4200);
+        dotBtns.forEach((d, i) => d.addEventListener('click', () => {
+            clearInterval(timer); goTo(i); timer = setInterval(advance, 4200);
+        }));
+        const section = track.closest('.testimonials-section');
+        if (section) {
+            section.addEventListener('mouseenter', () => clearInterval(timer));
+            section.addEventListener('mouseleave', () => { timer = setInterval(advance, 4200); });
+        }
+        /* Auto-advance when section enters viewport */
+        const visObs = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) { clearInterval(timer); timer = setInterval(advance, 4200); }
+                else clearInterval(timer);
+            });
+        }, { threshold: 0.3 });
+        if (section) visObs.observe(section);
     })();
     </script>
     <script src="/js/promo-braulio.js"></script>
