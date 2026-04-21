@@ -49,9 +49,34 @@
         .btn-buscar { background: var(--verde-oscuro); color: white; border: none; padding: 16px; width: 100%; border-radius: 18px; font-weight: 600; font-size: 16px; cursor: pointer; }
 
         /* Cards de turno */
-        .turno-card { text-align: left; border: 1.5px solid #e0eee7; border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; background: #f8fbf9; }
-        .turno-card-servicio { font-weight: 700; color: #2c3e3a; font-size: 15px; margin-bottom: 4px; }
-        .turno-card-meta { font-size: 13px; color: #5a7265; margin-bottom: 12px; }
+        .turno-section-label {
+            font-size: 10.5px; font-weight: 800; color: #4a7060;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            margin: 18px 0 8px; padding: 0 2px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .turno-section-label:first-child { margin-top: 4px; }
+        .turno-section-label .sec-count {
+            background: rgba(78,163,127,0.12); color: #3a7560;
+            font-size: 10px; padding: 1px 7px; border-radius: 20px; font-weight: 700;
+        }
+        .turno-card { text-align: left; border: 1.5px solid #e0eee7; border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; background: #f8fbf9; transition: box-shadow 0.18s; }
+        .turno-card:hover { box-shadow: 0 4px 14px rgba(72,133,106,0.10); }
+        .turno-card.card-cancelada { background: #fff8f8; border-color: #f0d4d4; opacity: 0.82; }
+        .turno-card.card-realizada { background: #f5faf7; border-color: #d8eae2; }
+        .turno-card-servicio { font-weight: 700; color: #2c3e3a; font-size: 14.5px; margin-bottom: 5px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+        .turno-card-meta { font-size: 13px; color: #5a7265; margin-bottom: 10px; }
+        .turno-badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+        .turno-badge.badge-realizada { background: #e8f5ee; color: #1a6644; border: 1px solid rgba(26,102,68,0.15); }
+        .turno-badge.badge-proximo  { background: #e8f0fe; color: #1a54a8; border: 1px solid rgba(26,84,168,0.15); }
+        .turno-badge.badge-cancelada { background: #fce8e8; color: #a02828; border: 1px solid rgba(160,40,40,0.15); }
+        .turno-card-motivo {
+            font-size: 12px; color: #7a4a4a;
+            background: #fef3f3; border-left: 3px solid #e8a0a0;
+            border-radius: 0 8px 8px 0; padding: 7px 10px;
+            margin: 4px 0 10px; line-height: 1.5;
+        }
+        .turno-card-motivo em { font-style: normal; }
         .btn-cancelar-turno { width: 100%; padding: 11px; border-radius: 12px; border: 1.5px solid #e0b0b0; background: #fff5f5; color: #a02828; font-weight: 700; font-size: 13px; cursor: pointer; transition: background 0.18s; }
         .btn-cancelar-turno:hover { background: #fce8e8; }
 
@@ -292,52 +317,79 @@
                     todos.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                // Ordenar: próximos primero, luego pasados
-                todos.sort((a, b) => {
-                    const fa = a.fecha || "";
-                    const fb = b.fecha || "";
-                    return fb.localeCompare(fa); // más reciente primero
-                });
-
                 if (todos.length === 0) {
                     lista.innerHTML = '<p style="color:#888; padding:16px 0">No tenés turnos registrados.</p>';
                     return;
                 }
 
-                lista.innerHTML = "";
-                todos.forEach(r => {
-                    const estado = (r.status || r.estado || "").toLowerCase();
+                const parseDate = r => {
                     const [y, m, d] = (r.fecha || "0-0-0").split("-").map(Number);
-                    const fechaR = new Date(y, m - 1, d);
+                    return new Date(y, m - 1, d);
+                };
+
+                const esCancelado = r => (r.status || r.estado || "").toLowerCase() === "cancelado";
+
+                // Grupos separados con su propio orden
+                const realizadas = todos
+                    .filter(r => !esCancelado(r) && parseDate(r) < hoy)
+                    .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || "")); // más reciente primero
+
+                const canceladas = todos
+                    .filter(r => esCancelado(r))
+                    .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
+
+                const proximas = todos
+                    .filter(r => !esCancelado(r) && parseDate(r) >= hoy)
+                    .sort((a, b) => (a.fecha || "").localeCompare(b.fecha || "")); // más próximo primero
+
+                lista.innerHTML = "";
+
+                function renderSeccion(label, emoji, items, tipo) {
+                    if (!items.length) return;
+                    const sec = document.createElement("div");
+                    sec.className = "turno-section-label";
+                    sec.innerHTML = `${emoji} ${label} <span class="sec-count">${items.length}</span>`;
+                    lista.appendChild(sec);
+                    items.forEach(r => renderCard(r, tipo));
+                }
+
+                function renderCard(r, tipo) {
+                    const cancelado = esCancelado(r);
+                    const fechaR = parseDate(r);
                     const esFuturo = fechaR >= hoy;
-                    const cancelado = estado === "cancelado";
                     const fechaFmt = r.fecha ? r.fecha.split("-").reverse().join("/") : "—";
 
-                    // Badge de estado
                     let badge = "";
-                    if (cancelado) {
-                        badge = `<span style="background:#fce8e8;color:#a02828;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px">Cancelado</span>`;
-                    } else if (esFuturo) {
-                        badge = `<span style="background:#e6f7ee;color:#1e6645;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px">Próximo</span>`;
+                    if (tipo === "cancelada") {
+                        badge = `<span class="turno-badge badge-cancelada">✕ Cancelada</span>`;
+                    } else if (tipo === "proxima") {
+                        badge = `<span class="turno-badge badge-proximo">● Próximo</span>`;
                     } else {
-                        badge = `<span style="background:#f0f0f0;color:#888;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px">Realizado</span>`;
+                        badge = `<span class="turno-badge badge-realizada">✓ Realizada</span>`;
                     }
 
-                    const card = document.createElement("div");
-                    card.className = "turno-card";
-                    if (cancelado) card.style.opacity = "0.6";
+                    const motivoHTML = (cancelado && r.motivoCancelacion)
+                        ? `<div class="turno-card-motivo">📝 Motivo: <em>${escapeHtml(r.motivoCancelacion)}</em></div>`
+                        : "";
 
-                    const btnCancelar = (!cancelado && esFuturo)
+                    const btnCancelar = (tipo === "proxima")
                         ? `<button class="btn-cancelar-turno" data-id="${r.id}" data-servicio="${escapeHtml(r.servicio || '')}" data-fecha="${escapeHtml(r.fecha || '')}" data-hora="${escapeHtml(r.hora || '')}" data-dni="${escapeHtml(dni)}">Cancelar este turno</button>`
                         : "";
 
+                    const card = document.createElement("div");
+                    card.className = `turno-card${tipo === "cancelada" ? " card-cancelada" : tipo === "realizada" ? " card-realizada" : ""}`;
                     card.innerHTML = `
-                        <div class="turno-card-servicio">${escapeHtml(r.servicio || "Tratamiento")}${badge}</div>
+                        <div class="turno-card-servicio">${escapeHtml(r.servicio || "Tratamiento")} ${badge}</div>
                         <div class="turno-card-meta">📅 ${fechaFmt} &nbsp;·&nbsp; 🕒 ${escapeHtml(r.hora || "—")} hs</div>
+                        ${motivoHTML}
                         ${btnCancelar}
                     `;
                     lista.appendChild(card);
-                });
+                }
+
+                renderSeccion("Sesiones realizadas", "✅", realizadas, "realizada");
+                renderSeccion("Turnos cancelados",   "❌", canceladas, "cancelada");
+                renderSeccion("Próximos turnos",     "📅", proximas,   "proxima");
 
                 lista.querySelectorAll('.btn-cancelar-turno').forEach(btn => {
                     btn.onclick = () => abrirModalCancelacion(btn.dataset);

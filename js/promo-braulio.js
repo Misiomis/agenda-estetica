@@ -1,97 +1,69 @@
 (() => {
+    const DISMISS_KEY = 'pb_v3_gone';
     const WA_NUM = "5493757671229";
-    const WA_MSG = encodeURIComponent("Hola Braulio! 👋 Vi tu trabajo en Espacio Mimar T y me encantó el diseño. Me gustaría tener algo así para mi negocio. ¿Podés contarme más?");
+    const WA_MSG = encodeURIComponent("Hola! 👋 Vi el trabajo en Espacio Mimar T y me encantó. Me gustaría tener algo así para mi negocio. ¿Podés contarme más?");
     const WA_URL = `https://wa.me/${WA_NUM}?text=${WA_MSG}`;
 
-    const WA_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.554 4.118 1.525 5.845L.057 23.928l6.253-1.44A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 01-4.988-1.362l-.358-.212-3.713.855.882-3.608-.233-.371A9.794 9.794 0 012.182 12C2.182 6.573 6.573 2.182 12 2.182c5.428 0 9.818 4.39 9.818 9.818 0 5.427-4.39 9.818-9.818 9.818z"/></svg>`;
+    const WA_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.554 4.118 1.525 5.845L.057 23.928l6.253-1.44A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 01-4.988-1.362l-.358-.212-3.713.855.882-3.608-.233-.371A9.794 9.794 0 012.182 12C2.182 6.573 6.573 2.182 12 2.182c5.428 0 9.818 4.39 9.818 9.818 0 5.427-4.39 9.818-9.818 9.818z"/></svg>`;
 
     const CSS = `
-        /* ── Popup Braulio ── */
-        #pb-popup {
-            position: fixed; top: -180px; left: 50%; transform: translateX(-50%);
-            z-index: 999999; width: calc(100% - 32px); max-width: 460px;
-            background: linear-gradient(135deg, #0d2b1f 0%, #1a4a34 60%, #0f3526 100%);
+        /* ── Chip fijo ── */
+        #pb-chip {
+            position: fixed;
+            bottom: 22px;
+            right: 16px;
+            z-index: 999999;
+            display: flex;
+            align-items: center;
+            gap: 0;
+            background: linear-gradient(135deg, #0d2b1f 0%, #1a4a34 100%);
             border: 1px solid rgba(114,189,153,0.4);
-            border-radius: 20px;
-            box-shadow: 0 24px 64px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
-            padding: 16px 18px 14px 16px;
-            transition: top 0.5s cubic-bezier(0.34,1.46,0.64,1);
-            display: flex; align-items: center; gap: 13px;
+            border-radius: 999px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.07);
+            overflow: hidden;
+            animation: pb-chip-in 0.55s cubic-bezier(0.34,1.46,0.64,1) both;
         }
-        #pb-popup.pb-visible { top: 14px; }
-        #pb-popup-icon {
-            width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px;
-            background: linear-gradient(135deg, #72bd99, #3f8f6f);
+        #pb-chip-link {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 6px 10px 14px;
+            text-decoration: none;
+            transition: background 0.18s;
+        }
+        #pb-chip-link:hover { background: rgba(114,189,153,0.1); }
+        #pb-chip-icon { font-size: 14px; line-height: 1; flex-shrink: 0; }
+        #pb-chip-text {
+            font-size: 12.5px; font-weight: 700;
+            color: #a8dfc0; white-space: nowrap;
+            letter-spacing: 0.02em;
+            font-family: 'Montserrat', sans-serif;
+        }
+        #pb-chip-wa {
+            display: flex; align-items: center;
+            padding: 10px 12px 10px 4px;
+            color: #5ae080;
+        }
+        #pb-chip-dismiss {
+            background: rgba(255,255,255,0.07);
+            border: none; border-left: 1px solid rgba(114,189,153,0.2);
+            color: rgba(255,255,255,0.4);
+            width: 32px; height: 100%; min-height: 40px;
+            font-size: 11px; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            font-size: 21px; box-shadow: 0 6px 16px rgba(114,189,153,0.4);
-        }
-        #pb-popup-body { flex: 1; min-width: 0; }
-        #pb-popup-title {
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 14px; font-weight: 700; color: #fff;
-            margin: 0 0 2px; line-height: 1.3;
-        }
-        #pb-popup-sub {
-            font-size: 10.5px; color: rgba(255,255,255,0.6);
-            margin: 0 0 9px; line-height: 1.45;
-        }
-        #pb-popup-cta {
-            display: inline-flex; align-items: center; gap: 5px;
-            background: #25D366; color: #fff; border: none;
-            padding: 7px 13px; border-radius: 9px;
-            font-size: 11.5px; font-weight: 700; cursor: pointer;
-            text-decoration: none; transition: filter 0.18s;
-            box-shadow: 0 4px 12px rgba(37,211,102,0.35);
-        }
-        #pb-popup-cta:hover { filter: brightness(1.1); }
-        #pb-popup-dismiss {
-            position: absolute; top: 9px; right: 11px;
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
-            color: rgba(255,255,255,0.7); border-radius: 6px;
-            font-size: 10px; font-weight: 700; cursor: pointer;
-            padding: 3px 8px; line-height: 1.4; letter-spacing: .03em;
-            transition: background 0.18s, color 0.18s;
-        }
-        #pb-popup-dismiss:hover { background: rgba(255,255,255,0.2); color: #fff; }
-
-        /* ── Barra fija inferior ── */
-        #pb-bar {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            z-index: 99998;
-            background: linear-gradient(90deg, #0d2b1f 0%, #1b4d36 50%, #0d2b1f 100%);
-            border-top: 1px solid rgba(114,189,153,0.35);
-            box-shadow: 0 -8px 28px rgba(0,0,0,0.28);
-            padding: 10px 16px;
-            display: flex; align-items: center; justify-content: center;
-            gap: 12px; flex-wrap: wrap;
-        }
-        #pb-bar-text {
-            font-size: 12px; color: rgba(255,255,255,0.82);
-            font-family: 'Montserrat', sans-serif; font-weight: 600;
-            white-space: nowrap;
-        }
-        #pb-bar-text strong { color: #a8dfc0; }
-        #pb-bar-cta {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: #25D366; color: #fff; border: none;
-            padding: 8px 16px; border-radius: 10px;
-            font-size: 12px; font-weight: 700; cursor: pointer;
-            text-decoration: none; white-space: nowrap;
-            box-shadow: 0 4px 14px rgba(37,211,102,0.4);
-            transition: filter 0.18s;
-        }
-        #pb-bar-cta:hover { filter: brightness(1.1); }
-        #pb-bar-close {
-            background: none; border: none;
-            color: rgba(255,255,255,0.4); font-size: 16px;
-            cursor: pointer; padding: 0 4px; line-height: 1;
             flex-shrink: 0;
+            transition: background 0.15s, color 0.15s;
         }
-        #pb-bar-close:hover { color: rgba(255,255,255,0.8); }
-        /* Empujar el contenido de la página para que no tape nada */
-        body.pb-bar-active { padding-bottom: 52px !important; }
+        #pb-chip-dismiss:hover { background: rgba(180,40,40,0.35); color: #ffaaaa; }
+        @keyframes pb-chip-in {
+            from { opacity: 0; transform: translateY(20px) scale(0.88); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .pb-chip-out {
+            transition: opacity 0.28s ease, transform 0.28s ease !important;
+            opacity: 0 !important;
+            transform: translateY(14px) scale(0.9) !important;
+        }
 
-        /* ── Footer card (dentro del contenido) ── */
+        /* ── Footer card ── */
         .pb-footer-card { margin: 40px auto 0; max-width: 680px; padding: 0 16px 40px; }
         .pb-footer-inner {
             background: linear-gradient(135deg, #0d2b1f 0%, #1a4a34 55%, #163d2c 100%);
@@ -106,10 +78,10 @@
             pointer-events: none;
         }
         .pb-footer-badge {
-            width: 60px; height: 60px; flex-shrink: 0; border-radius: 16px;
+            width: 58px; height: 58px; flex-shrink: 0; border-radius: 16px;
             background: linear-gradient(135deg, #72bd99, #3f8f6f);
             display: flex; align-items: center; justify-content: center;
-            font-size: 26px; box-shadow: 0 8px 20px rgba(114,189,153,0.4);
+            font-size: 24px; box-shadow: 0 8px 20px rgba(114,189,153,0.4);
         }
         .pb-footer-text { flex: 1; min-width: 0; }
         .pb-footer-tag { font-size: 10px; font-weight: 800; letter-spacing: .12em; color: #72bd99; text-transform: uppercase; margin: 0 0 5px; }
@@ -129,7 +101,7 @@
         @media (max-width: 560px) {
             .pb-footer-inner { flex-direction: column; text-align: center; }
             .pb-footer-pills { justify-content: center; }
-            #pb-bar-text { font-size: 11px; }
+            #pb-chip { bottom: 14px; right: 10px; }
         }
     `;
 
@@ -139,78 +111,35 @@
         document.head.appendChild(s);
     }
 
-    // ── POPUP (aparece cada 60 segundos) ──────────────────────
-    let popupBuilt = false, popupVisible = false, autoHideTimer = null;
+    // ── CHIP FIJO (dismiss permanente) ─────────────────────────
+    function buildChip() {
+        if (localStorage.getItem(DISMISS_KEY)) return;
 
-    function buildPopup() {
-        if (popupBuilt) return;
-        popupBuilt = true;
-        const el = document.createElement('div');
-        el.id = 'pb-popup';
-        el.innerHTML = `
-            <div id="pb-popup-icon">💻</div>
-            <div id="pb-popup-body">
-                <p id="pb-popup-title">¿Te gusta lo que ves?</p>
-                <p id="pb-popup-sub">Agenda online · Panel de gestión · WhatsApp automático<br>Estéticas · Peluquerías · Gastronomía y más.</p>
-                <a id="pb-popup-cta" href="${WA_URL}" target="_blank" rel="noopener">
-                    ${WA_SVG} Escribile a Braulio
-                </a>
-            </div>
-            <button id="pb-popup-dismiss" aria-label="Omitir">Omitir</button>
-        `;
-        document.body.appendChild(el);
-        document.getElementById('pb-popup-dismiss').onclick = () => {
-            hidePopup();
-        };
-        el.addEventListener('mouseenter', () => clearTimeout(autoHideTimer));
-        el.addEventListener('mouseleave', () => scheduleAutoHide(4000));
-    }
-
-    function showPopup() {
-        if (popupVisible) return;
-        buildPopup();
-        popupVisible = true;
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-            document.getElementById('pb-popup')?.classList.add('pb-visible');
-        }));
-        scheduleAutoHide(7000);
-    }
-
-    function hidePopup() {
-        popupVisible = false;
-        clearTimeout(autoHideTimer);
-        const el = document.getElementById('pb-popup');
-        if (el) el.classList.remove('pb-visible');
-    }
-
-    function scheduleAutoHide(ms) {
-        clearTimeout(autoHideTimer);
-        autoHideTimer = setTimeout(hidePopup, ms);
-    }
-
-    // ── BARRA FIJA INFERIOR ────────────────────────────────────
-    function buildBar() {
-        if (document.getElementById('pb-bar')) return;
-        const bar = document.createElement('div');
-        bar.id = 'pb-bar';
-        bar.innerHTML = `
-            <span id="pb-bar-text">💻 <strong>¿Te gusta lo que ves?</strong> Podemos hacerlo para tu negocio.</span>
-            <a id="pb-bar-cta" href="${WA_URL}" target="_blank" rel="noopener">
-                ${WA_SVG} Escribile a Braulio
+        const chip = document.createElement('div');
+        chip.id = 'pb-chip';
+        chip.innerHTML = `
+            <a id="pb-chip-link" href="${WA_URL}" target="_blank" rel="noopener" aria-label="Contactar al desarrollador">
+                <span id="pb-chip-icon">💻</span>
+                <span id="pb-chip-text">¿Tu negocio también?</span>
+                <span id="pb-chip-wa">${WA_SVG}</span>
             </a>
-            <button id="pb-bar-close" aria-label="Cerrar">✕</button>
+            <button id="pb-chip-dismiss" aria-label="No mostrar más">✕</button>
         `;
-        document.body.appendChild(bar);
-        document.body.classList.add('pb-bar-active');
-        document.getElementById('pb-bar-close').onclick = () => {
-            bar.remove();
-            document.body.classList.remove('pb-bar-active');
+        document.body.appendChild(chip);
+
+        document.getElementById('pb-chip-dismiss').onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            localStorage.setItem(DISMISS_KEY, '1');
+            chip.classList.add('pb-chip-out');
+            setTimeout(() => chip.remove(), 320);
         };
     }
 
     // ── FOOTER CARD ────────────────────────────────────────────
     function buildFooterCard() {
         if (document.querySelector('.pb-footer-card')) return;
+        if (localStorage.getItem(DISMISS_KEY)) return;
         const footer = document.querySelector('.footer, footer, #footer');
         if (!footer) return;
         const div = document.createElement('div');
@@ -219,8 +148,8 @@
             <div class="pb-footer-inner">
                 <div class="pb-footer-badge">💻</div>
                 <div class="pb-footer-text">
-                    <p class="pb-footer-tag">Desarrollado a medida · Por Braulio</p>
-                    <p class="pb-footer-title">¿Te gusta lo que ves? Podemos hacer lo mismo para vos.</p>
+                    <p class="pb-footer-tag">Desarrollado a medida</p>
+                    <p class="pb-footer-title">¿Tu negocio merece algo así?</p>
                     <p class="pb-footer-desc">Agenda online con recordatorios automáticos, panel de gestión, integración con WhatsApp y diseño premium personalizado.</p>
                     <div class="pb-footer-pills">
                         <span class="pb-footer-pill">✦ Estéticas</span>
@@ -229,7 +158,7 @@
                         <span class="pb-footer-pill">✦ Salud & Bienestar</span>
                     </div>
                     <a class="pb-footer-cta" href="${WA_URL}" target="_blank" rel="noopener">
-                        ${WA_SVG} Quiero algo así — Escribile a Braulio
+                        ${WA_SVG} Quiero algo así →
                     </a>
                 </div>
             </div>
@@ -241,9 +170,7 @@
     function init() {
         injectCSS();
         buildFooterCard();
-        buildBar();
-        setTimeout(showPopup, 5000);
-        setInterval(showPopup, 60000);
+        buildChip();
     }
 
     if (document.readyState === 'loading') {
