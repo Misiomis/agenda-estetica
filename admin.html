@@ -70,18 +70,22 @@
         /* NAVEGACIÓN */
         .header {
             background: linear-gradient(135deg, #0d2b1f 0%, #1a4a34 60%, #0f3526 100%);
-            padding: 14px 20px 12px;
-            text-align: center;
+            padding: 12px 16px 10px;
             border-bottom: 1px solid rgba(114,189,153,0.18);
             position: sticky; top: 0; z-index: 100;
             box-shadow: 0 4px 28px rgba(0,0,0,0.28);
         }
-        .header h2 {
+        .header-toprow {
+            display: flex; align-items: center; gap: 8px; min-height: 44px;
+        }
+        .header-toprow h2 {
+            flex: 1; text-align: center;
             color: #a8dfc0; font-family: 'Playfair Display', serif;
             font-size: clamp(1.05rem, 2vw, 1.45rem); margin: 0;
             font-weight: 600; letter-spacing: 0.015em;
             text-shadow: 0 2px 12px rgba(0,0,0,0.3);
         }
+        .header-spacer { width: 40px; flex-shrink: 0; }
         .menu-nav { margin-top: 10px; display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
         .btn-nav {
             padding: 8px 16px; min-height: 36px;
@@ -95,9 +99,23 @@
         .btn-nav:hover { background: rgba(114,189,153,0.18); border-color: rgba(114,189,153,0.42); color: #d0f0e0; transform: translateY(-1px); }
         .btn-nav.active { background: rgba(114,189,153,0.24); color: #a8dfc0; border-color: rgba(114,189,153,0.52); }
         .flow-switch-shortcut { margin-top: 10px; display: flex; justify-content: center; }
-        .flow-switch-button { min-width: min(100%, 360px); border: 1px solid rgba(212,175,55,0.5); background: linear-gradient(135deg, rgba(245,198,108,0.22) 0%, rgba(236,172,67,0.18) 100%); backdrop-filter: blur(8px); color: #e8c96a; border-radius: 999px; padding: 10px 18px; min-height: 40px; cursor: pointer; font-weight: 800; font-size: 12px; letter-spacing: 0.04em; transition: 0.2s; box-shadow: 0 6px 18px rgba(0,0,0,0.2); }
-        .flow-switch-button:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(0,0,0,0.25); background: linear-gradient(135deg, rgba(245,198,108,0.3) 0%, rgba(236,172,67,0.26) 100%); }
-        .flow-switch-button.is-jornada { border-color: rgba(197,154,54,0.6); background: linear-gradient(135deg, rgba(228,178,77,0.28) 0%, rgba(207,150,48,0.22) 100%); color: #f0d080; }
+        .flow-switch-button {
+            min-width: min(100%, 360px);
+            border: 1.5px solid rgba(114,189,153,0.35);
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(8px);
+            color: #a8dfc0;
+            border-radius: 14px; padding: 11px 18px; min-height: 42px;
+            cursor: pointer; font-weight: 700; font-size: 12.5px;
+            letter-spacing: 0.03em; transition: 0.2s;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        .flow-switch-button:hover { transform: translateY(-1px); background: rgba(255,255,255,0.10); }
+        .flow-switch-button.is-jornada {
+            border-color: rgba(212,175,55,0.55);
+            background: rgba(212,175,55,0.10);
+            color: #f0d080;
+        }
         .flow-switch-button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
         .install-widget-admin { display: none; margin: 10px auto 6px; width: min(100%, 460px); background: linear-gradient(135deg, rgba(245, 251, 247, 0.98) 0%, rgba(238, 248, 242, 0.98) 100%); border: 1px solid rgba(132, 168, 140, 0.32); border-radius: 14px; box-shadow: 0 8px 20px rgba(30, 54, 37, 0.12); overflow: hidden; }
         .install-widget-admin.show { display: block; animation: popInSoft 0.18s ease-out; }
@@ -112,20 +130,22 @@
         .install-widget-admin .btn-dismiss { border: 1px solid #cfe2d8; border-radius: 10px; padding: 10px 12px; background: #fff; color: #557b6b; font-size: 12px; font-weight: 700; cursor: pointer; }
         .mode-toggle-wrap { margin-top: 10px; }
         .mode-toggle {
-            border: 1px solid rgba(178,222,200,0.5);
-            background: rgba(255,255,255,0.72);
+            border: 1px solid rgba(114,189,153,0.32);
+            background: rgba(13,43,31,0.75);
             backdrop-filter: blur(8px);
-            color: var(--verde-oscuro); border-radius: 999px;
+            color: #a8dfc0; border-radius: 999px;
             padding: 8px 16px; min-height: 34px;
             font-size: 11.5px; font-weight: 700; cursor: pointer;
+            letter-spacing: 0.03em;
             transition: background 0.18s, transform 0.15s;
         }
-        .mode-toggle:hover { background: rgba(234,248,241,0.92); transform: translateY(-1px); }
+        .mode-toggle:hover { background: rgba(26,74,52,0.85); transform: translateY(-1px); }
         .container { max-width: 1024px; margin: 18px auto; padding: 0 16px; }
         .section { display: none; }
         .section.active { display: block; }
         #admin-content { display: none; }
-        .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        @media (max-width: 620px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
         .kpi-card {
             background: rgba(255,255,255,0.82);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -325,12 +345,28 @@
         .loader-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--verde-oscuro); animation: pulseDot 0.9s infinite ease-in-out; }
         @keyframes pulseDot { 0% { transform: scale(0.75); opacity: 0.5; } 50% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.75); opacity: 0.5; } }
         /* HAMBURGER */
-        .hamburger-btn { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--accento-oscuro); font-size: 22px; line-height: 1; }
+        .hamburger-btn {
+            display: none;
+            width: 40px; height: 40px;
+            background: rgba(255,255,255,0.09);
+            border: 1px solid rgba(114,189,153,0.28);
+            border-radius: 12px;
+            cursor: pointer;
+            color: #a8dfc0;
+            font-size: 18px; line-height: 1;
+            align-items: center; justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.18s;
+        }
+        .hamburger-btn:hover { background: rgba(255,255,255,0.16); }
         @media (max-width: 760px) {
-            .hamburger-btn { display: inline-flex; align-items: center; }
-            .menu-nav { max-height: 0; overflow: hidden; transition: max-height 0.28s ease; flex-direction: column; align-items: stretch; margin-top: 0; padding-bottom: 0; }
-            .menu-nav.open { max-height: 420px; margin-top: 10px; padding-bottom: 4px; }
-            .menu-nav .btn-nav { text-align: left; border-radius: 12px; }
+            .hamburger-btn { display: flex; }
+            .menu-nav { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; flex-direction: column; align-items: stretch; margin-top: 0; padding-bottom: 0; }
+            .menu-nav.open { max-height: 480px; margin-top: 10px; padding-bottom: 6px; }
+            .menu-nav .btn-nav { text-align: left; border-radius: 12px; padding: 12px 16px; font-size: 13px; }
+        }
+        @media (min-width: 761px) {
+            .header-spacer { display: none; }
         }
         /* CALENDARIO */
         .calendar-container {
@@ -504,7 +540,11 @@
             </div>
         </div>
         <div class="header">
-            <h2>✦ &nbsp;Gimena Knack &nbsp;·&nbsp; Panel Admin&nbsp; ✦</h2>
+            <div class="header-toprow">
+                <button class="hamburger-btn" id="btnHamburger" onclick="toggleMenuNav()" aria-label="Menú">&#9776;</button>
+                <h2>✦ &nbsp;Gimena Knack &nbsp;·&nbsp; Panel Admin&nbsp; ✦</h2>
+                <div class="header-spacer"></div>
+            </div>
             <div id="installWidgetAdmin" class="install-widget-admin" aria-live="polite">
                 <div class="install-inner">
                     <div class="install-head">
@@ -520,7 +560,6 @@
                     </div>
                 </div>
             </div>
-            <button class="hamburger-btn" id="btnHamburger" onclick="toggleMenuNav()" aria-label="Menú">&#9776;</button>
             <div class="menu-nav" id="menuNav">
                 <button class="btn-nav active" id="btn-agenda" onclick="navegar('agenda')">Agenda</button>
                 <button class="btn-nav" id="btn-historias" onclick="navegar('historias')">Historias</button>
