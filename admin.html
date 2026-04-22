@@ -1620,6 +1620,11 @@
                         ...historiaLimpia,
                         nombreLimpio: borrarEtiquetaDNI(historiaLimpia.nombre || "")
                     };
+                }).filter(h => {
+                    const n = (h.nombreLimpio || '').trim().toLowerCase();
+                    if (!n) return false;
+                    if (/bloquead|no\s+disponible/i.test(n)) return false;
+                    return true;
                 });
                 
                 renderCalendario();
