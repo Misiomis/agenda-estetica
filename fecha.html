@@ -873,6 +873,7 @@
 
 <script type="module">
 import { db, doc, getDoc, collection, query, where, getDocs } from "/js/firebase-web.js";
+import { cargarTemaYAnuncio } from "/js/theme-loader.js";
 
 // Esquema unificado Lun-Sab
 // Normal (60 min): 07-12 manana (ultimo termina 13:00) | 15-21 tarde (ultimo termina 22:00)
@@ -912,6 +913,8 @@ const SABADOS_BLOQUEADOS = ["2026-03-01", "2026-03-08", "2026-03-15", "2026-03-2
 let fechaActual=new Date();
 let fechaSeleccionada=null, horaSeleccionada=null, duracionTurno=60, excepciones={}, bloqueosHorarios=new Map();
 const hoy=new Date(); hoy.setHours(0,0,0,0);
+let mesesBloqueados = new Set();
+let rangosDiasBloqueados = [];
 const dniUsuario=localStorage.getItem("clienteDNI");
 const nombreUsuarioSesion=(localStorage.getItem("clienteNombre") || "").trim().toLowerCase();
 const servicioGuardado=localStorage.getItem("servicioSeleccionado")||"";
@@ -1023,6 +1026,10 @@ const esExcepcionBloqueante = (fStr) => {
     return !!excepciones[fStr];
 };
 
+const esDiaBloqueadoPorAdmin = (fStr) => {
+    return rangosDiasBloqueados.some(r => fStr >= r.desde && fStr <= r.hasta);
+};
+
 const obtenerHorasNoDisponibles = async (fStr) => {
     const snapRes = await getDocs(query(collection(db, "reservas"), where("fecha", "==", fStr)));
     const horas = new Set();
@@ -1093,6 +1100,15 @@ async function cargarDatos(){
         }
     });
 
+    try {
+        const [mesesSnap, diasSnap] = await Promise.all([
+            getDocs(collection(db, "bloqueosMeses")),
+            getDocs(collection(db, "bloqueosDias"))
+        ]);
+        mesesBloqueados = new Set(mesesSnap.docs.map(d => d.id));
+        rangosDiasBloqueados = diasSnap.docs.map(d => d.data()).filter(d => d.desde && d.hasta);
+    } catch(e) {}
+
     if (jornadaModo) fijarMesJornada();
     renderCalendario();
 }
@@ -1130,7 +1146,9 @@ function renderCalendario(){
 
     const btnSig = document.getElementById("btnMesSiguiente");
     const MES_LIMITE_Y = 2026, MES_LIMITE_M = 5;
-    const esBloqueado = y > MES_LIMITE_Y || (y === MES_LIMITE_Y && m > MES_LIMITE_M);
+    const mesKey = `${y}-${String(m+1).padStart(2,"0")}`;
+    const esBloqueadoAdmin = mesesBloqueados.has(mesKey);
+    const esBloqueado = esBloqueadoAdmin || y > MES_LIMITE_Y || (y === MES_LIMITE_Y && m > MES_LIMITE_M);
     btnSig.disabled = esBloqueado || (y === MES_LIMITE_Y && m === MES_LIMITE_M);
     btnSig.style.opacity = btnSig.disabled ? "0.45" : "";
     btnSig.style.cursor  = btnSig.disabled ? "not-allowed" : "";
@@ -1166,6 +1184,10 @@ function renderCalendario(){
         else if(!esFechaHabilitadaJornada(fStr)) {
             div.classList.add("bloqueado");
             div.onclick=()=>mostrarAviso("Jornada especial", MENSAJE_DIA_NO_DISPONIBLE_JORNADA);
+        }
+        else if(esDiaBloqueadoPorAdmin(fStr)){
+            div.classList.add("bloqueado");
+            div.onclick=()=>mostrarAviso("No disponible", "Este día está bloqueado. Comunicarte con Gimena si necesitás un turno.");
         }
         else if(esExcepcionBloqueante(fStr)){
             div.classList.add("bloqueado");
@@ -1336,6 +1358,7 @@ if (localStorage.getItem("floatingWarningHidden") === "true") {
 }
 
 async function iniciarFlujoFecha() {
+    cargarTemaYAnuncio();
     const accesoValido = await validarAccesoCliente();
     if (!accesoValido) return;
     actualizarCabeceraFecha();
