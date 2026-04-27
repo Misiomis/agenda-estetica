@@ -594,7 +594,7 @@
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">Pacientes</button>
                 <button class="btn-nav" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">Pedidos de Kit</button>
                 <button class="btn-nav" id="btn-export" onclick="navegar('export')">Exportar</button>
-                <a class="btn-nav" href="/fecha.html" target="_blank" style="text-decoration:none;background:linear-gradient(135deg,#eaf7f0,#d4f0e4);border-color:#8ecfb2;color:#1e6645;font-weight:700">Ver agenda de pacientes</a>
+                <a class="btn-nav" href="/fechagimena.html" target="_blank" style="text-decoration:none;background:linear-gradient(135deg,#eaf7f0,#d4f0e4);border-color:#8ecfb2;color:#1e6645;font-weight:700">Ver agenda (vista Gimena)</a>
                 <button class="btn-nav" onclick="cerrarSesion()">Salir</button>
                 <button class="btn-nav" id="btn-control" onclick="navegar('control')" style="margin-top:8px;background:linear-gradient(135deg,rgba(212,175,55,0.14),rgba(212,175,55,0.06));border-color:rgba(212,175,55,0.36);color:#8a6c00;font-size:11px;font-weight:700;letter-spacing:.04em;">⚙ Configuración avanzada</button>
             </div>
@@ -744,7 +744,17 @@
                 </div>
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0">Reportes de Reservas</h3>
-                    <p style="font-size:14px; color:#666">Descarga todas las reservas en PDF, ordenadas por fecha y acomodadas en dos columnas para ahorrar hojas.</p>
+                    <p style="font-size:14px; color:#666; margin-bottom:14px;">Descarga reservas por rango de meses, con los días separados visualmente y las fechas completas.</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                        <div>
+                            <label style="display:block;font-size:12px;font-weight:700;color:#2f5a47;margin-bottom:5px;">Desde</label>
+                            <input type="month" id="exportDesde" style="width:100%;padding:9px 10px;border:2px solid #d5eadf;border-radius:10px;font-family:inherit;font-size:13px;color:#2f5a47;background:#fff;outline:none;">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:12px;font-weight:700;color:#2f5a47;margin-bottom:5px;">Hasta</label>
+                            <input type="month" id="exportHasta" style="width:100%;padding:9px 10px;border:2px solid #d5eadf;border-radius:10px;font-family:inherit;font-size:13px;color:#2f5a47;background:#fff;outline:none;">
+                        </div>
+                    </div>
                     <button class="btn-export-main" onclick="exportarReservasPDF()">Descargar reservas (.pdf)</button>
                 </div>
                 <div class="detalle-dia-card">
@@ -1708,7 +1718,7 @@
                     const c = docCli.data() || {};
                     return {
                         dni: docCli.id,
-                        fullName: c.fullName || c.fullLname || c.nombre || c.name || "",
+                        fullName: toTitleCase(c.fullName || c.fullLname || c.nombre || c.name || ""),
                         phone: c.phone || "",
                         email: c.email || "",
                         username: c.username || "",
@@ -1728,7 +1738,7 @@
                 
                 todasLasReservas = snapR.docs.map(d => {
                     const data = d.data();
-                    const nombreLimpio = borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || "");
+                    const nombreLimpio = toTitleCase(borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || ""));
                     const phoneDirecto = normalizarTelefono(data.phone ?? data.telefono ?? "");
                     const dniReserva = normalizarDNI(data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "");
                     const phoneNormalizado = phoneDirecto
@@ -1755,7 +1765,7 @@
                     return {
                         id: d.id,
                         ...historiaLimpia,
-                        nombreLimpio: borrarEtiquetaDNI(historiaLimpia.nombre || "")
+                        nombreLimpio: toTitleCase(borrarEtiquetaDNI(historiaLimpia.nombre || ""))
                     };
                 }).filter(h => {
                     const n = (h.nombreLimpio || '').trim().toLowerCase();
@@ -2083,17 +2093,63 @@
             reserva.duo === true ? 'Dúo' : ''
         ]);
         
+        // Inicializar el rango de exportación con valores inteligentes
+        (function initExportRange() {
+            const hoy = fechaHoyISO();
+            const [anio, mes] = (hoy || '').split('-');
+            if (!anio || !mes) return;
+            const desdeEl = document.getElementById('exportDesde');
+            const hastaEl = document.getElementById('exportHasta');
+            if (!desdeEl || !hastaEl) return;
+            desdeEl.value = `${anio}-${mes}`;
+            const hastaDate = new Date(parseInt(anio), parseInt(mes) - 1 + 2, 1);
+            hastaEl.value = `${hastaDate.getFullYear()}-${String(hastaDate.getMonth() + 1).padStart(2, '0')}`;
+            desdeEl.min = `${anio}-01`;
+            hastaEl.max = '2026-12';
+        })();
+
+        const formatFechaLargaExport = (value) => {
+            const fecha = parsearFecha(value);
+            if (!fecha) return value || 'Sin fecha';
+            return capitalizarTexto(datePdfFormatter.format(fecha)).replace(/,\s*/, ' ');
+        };
+
         window.exportarReservasPDF = () => {
             const tools = getPdfTools();
             if (!tools) return;
             const { jsPDF, runAutoTable } = tools;
+
+            // Rango seleccionado
+            const desdeVal = (document.getElementById('exportDesde')?.value || '').trim();
+            const hastaVal = (document.getElementById('exportHasta')?.value || '').trim();
+            const desde = desdeVal || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+            const hasta = hastaVal || desde;
+
             const reservasOrdenadas = todasLasReservas
-                .filter((reserva) => esReservaExportablePdf(reserva))
+                .filter((r) => {
+                    if (!esReservaExportablePdf(r)) return false;
+                    const mes = (r.fecha || '').slice(0, 7);
+                    return mes >= desde && mes <= hasta;
+                })
                 .sort((a, b) => {
-                const porFecha = (a.fecha || '').localeCompare(b.fecha || '');
-                if (porFecha !== 0) return porFecha;
-                return (a.hora || '').localeCompare(b.hora || '');
+                    const porFecha = (a.fecha || '').localeCompare(b.fecha || '');
+                    return porFecha !== 0 ? porFecha : (a.hora || '').localeCompare(b.hora || '');
                 });
+
+            // Etiqueta del período
+            const etiquetaPeriodo = desde === hasta
+                ? formatFechaLargaExport(`${desde}-01`).replace(/^\w+\s+\d+\s+de\s+/, '').replace(/^\w/, c => c.toUpperCase())
+                : (() => {
+                    const [da, dm] = desde.split('-');
+                    const [ha, hm] = hasta.split('-');
+                    const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+                    const mDesde = meses[parseInt(dm)-1];
+                    const mHasta = meses[parseInt(hm)-1];
+                    return da === ha
+                        ? `${mDesde} a ${mHasta} de ${da}`
+                        : `${mDesde} ${da} a ${mHasta} ${ha}`;
+                })();
+
             const docPdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             docPdf.setTextColor(47, 90, 71);
             docPdf.setFont('helvetica', 'bold');
@@ -2101,20 +2157,56 @@
             docPdf.text('Reporte de reservas', 14, 16);
             docPdf.setFont('helvetica', 'normal');
             docPdf.setFontSize(9.5);
-            docPdf.text(`Periodo: ${ETIQUETA_PERIODO_RESERVAS_PDF}`, 14, 22);
-            docPdf.text(`Generado el ${formatoFechaVisible(fechaHoyISO())}`, 14, 27);
-            docPdf.text(`Total de reservas: ${reservasOrdenadas.length}`, 14, 32);
+            docPdf.text(`Período: ${etiquetaPeriodo}`, 14, 23);
+            docPdf.text(`Generado el ${formatFechaLargaExport(fechaHoyISO())}`, 14, 28);
+            docPdf.text(`Total de reservas: ${reservasOrdenadas.length}`, 14, 33);
+
             if (!reservasOrdenadas.length) {
-                docPdf.text(`No hay reservas de ${ETIQUETA_PERIODO_RESERVAS_PDF} para exportar.`, 14, 41);
-                docPdf.save(`reservas_abr_jun_${ANIO_RESERVAS_PDF}_${fechaHoyISO()}.pdf`);
+                docPdf.text('No hay reservas para el período seleccionado.', 14, 42);
+                docPdf.save(`reservas_${desde}_${hasta}_${fechaHoyISO()}.pdf`);
                 return;
             }
+
+            // Agrupar por fecha
+            const grupos = {};
+            reservasOrdenadas.forEach(r => {
+                const f = r.fecha || 'Sin fecha';
+                if (!grupos[f]) grupos[f] = [];
+                grupos[f].push(r);
+            });
+
+            // Construir filas con separador por día
+            const body = [];
+            Object.keys(grupos).sort().forEach(fecha => {
+                body.push([{
+                    content: formatFechaLargaExport(fecha),
+                    colSpan: 4,
+                    styles: {
+                        fillColor: [233, 246, 240],
+                        textColor: [30, 80, 55],
+                        fontStyle: 'bold',
+                        fontSize: 9.5,
+                        cellPadding: { top: 5, bottom: 4, left: 10, right: 4 },
+                        lineColor: [150, 210, 180],
+                        lineWidth: 0.4
+                    }
+                }]);
+                grupos[fecha].forEach(r => {
+                    body.push([
+                        limpiarTextoPdf(r.hora || '—'),
+                        limpiarTextoPdf(r.nombreLimpio || r.clienteNombre || r.nombre || r.cliente || 'Sin nombre'),
+                        limpiarTextoPdf(r.servicio || 'Sin especificar'),
+                        r.duo === true ? 'Dúo' : ''
+                    ]);
+                });
+            });
+
             const pudoRenderizar = runAutoTable(docPdf, {
-                startY: 37,
+                startY: 38,
                 theme: 'grid',
-                head: [['Fecha', 'Hora', 'Paciente', 'Servicio', 'Dúo']],
-                body: filasReservasPdf(reservasOrdenadas),
-                margin: { top: 37, right: 10, bottom: 12, left: 10 },
+                head: [['Hora', 'Paciente', 'Servicio', 'Dúo']],
+                body,
+                margin: { top: 38, right: 10, bottom: 12, left: 10 },
                 styles: {
                     font: 'helvetica',
                     fontSize: 9,
@@ -2128,24 +2220,19 @@
                 headStyles: {
                     fillColor: [47, 90, 71],
                     textColor: [255, 255, 255],
-                    font: 'helvetica',
                     fontStyle: 'bold',
                     halign: 'left',
                     fontSize: 9
                 },
-                alternateRowStyles: {
-                    fillColor: [248, 253, 251]
-                },
                 columnStyles: {
-                    0: { cellWidth: 44 },
-                    1: { cellWidth: 16, halign: 'center' },
-                    2: { cellWidth: 54 },
-                    3: { cellWidth: 60 },
-                    4: { cellWidth: 16, halign: 'center' }
+                    0: { cellWidth: 16, halign: 'center' },
+                    1: { cellWidth: 58 },
+                    2: { cellWidth: 96 },
+                    3: { cellWidth: 16, halign: 'center' }
                 }
             });
             if (!pudoRenderizar) return;
-            docPdf.save(`reservas_abr_jun_${ANIO_RESERVAS_PDF}_${fechaHoyISO()}.pdf`);
+            docPdf.save(`reservas_${desde}_${hasta}_${fechaHoyISO()}.pdf`);
         };
         
         window.exportarPacientesPDF = () => {
