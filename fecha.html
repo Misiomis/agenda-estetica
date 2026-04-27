@@ -316,7 +316,7 @@
 
         .legend-dot.available{ background:linear-gradient(135deg,#98d2b1 0%,#62b288 100%); box-shadow:0 0 0 4px rgba(114,189,153,0.16); }
         .legend-dot.selected{ background:linear-gradient(135deg,#77c39f 0%,#4e9f7b 100%); box-shadow:0 0 0 4px rgba(79,159,123,0.18); }
-        .legend-dot.unavailable{ background:#c7d0cb; box-shadow:0 0 0 4px rgba(199,208,203,0.2); }
+        .legend-dot.unavailable{ background:linear-gradient(135deg,#ff5252 0%,#e53935 100%); box-shadow:0 0 0 4px rgba(229,57,53,0.2); }
 
         .grid{
             display:grid;
@@ -351,11 +351,11 @@
             box-shadow:0 8px 16px rgba(89,146,119,0.14);
         }
 
-        .dia:not(.domingo):not(.pasado):not(.bloqueado):not(.seleccionado){
+        .dia:not(.domingo):not(.pasado):not(.bloqueado):not(.seleccionado):not(.lleno){
             animation:fechaGlow 3.8s ease-in-out infinite;
         }
 
-        .dia:not(.domingo):not(.pasado):not(.bloqueado):not(.seleccionado)::after{
+        .dia:not(.domingo):not(.pasado):not(.bloqueado):not(.seleccionado):not(.lleno)::after{
             content:"";
             position:absolute;
             top:-35%;
@@ -396,6 +396,32 @@
             border-color:#e8ecea;
             box-shadow:none;
             transform:none;
+        }
+
+        .dia.lleno{
+            background:linear-gradient(135deg,#ff5252 0%,#e53935 100%);
+            color:#fff;
+            border-color:#e53935;
+            box-shadow:0 4px 14px rgba(229,57,53,0.32);
+            cursor:not-allowed;
+            font-weight:700;
+        }
+        .dia.lleno:hover{
+            transform:none;
+            box-shadow:0 6px 18px rgba(229,57,53,0.42);
+        }
+
+        .hora.admin-bloqueado{
+            background:rgba(255,248,220,0.55)!important;
+            border-color:#e8d9a0!important;
+            color:#8a6c00!important;
+            text-decoration:line-through!important;
+            text-decoration-color:rgba(138,108,0,0.5)!important;
+            cursor:not-allowed!important;
+            pointer-events:none!important;
+            box-shadow:none!important;
+            opacity:0.7!important;
+            animation:none!important;
         }
 
         .horarios{
@@ -915,6 +941,8 @@ let fechaSeleccionada=null, horaSeleccionada=null, duracionTurno=60, excepciones
 const hoy=new Date(); hoy.setHours(0,0,0,0);
 let mesesBloqueados = new Set();
 let rangosDiasBloqueados = [];
+let reservasPorFecha = new Map();
+const TOTAL_SLOTS_DIA = 13;
 const dniUsuario=localStorage.getItem("clienteDNI");
 const nombreUsuarioSesion=(localStorage.getItem("clienteNombre") || "").trim().toLowerCase();
 const servicioGuardado=localStorage.getItem("servicioSeleccionado")||"";
@@ -1030,6 +1058,39 @@ const esDiaBloqueadoPorAdmin = (fStr) => {
     return rangosDiasBloqueados.some(r => fStr >= r.desde && fStr <= r.hasta);
 };
 
+const esDiaLleno = (fStr) => {
+    const reservadas = reservasPorFecha.get(fStr) || new Set();
+    let adminBlocks = 0;
+    bloqueosHorarios.forEach((v, k) => { if (k.startsWith(fStr + '|')) adminBlocks++; });
+    return (reservadas.size + adminBlocks) >= TOTAL_SLOTS_DIA;
+};
+
+async function cargarReservasMes() {
+    const y = fechaActual.getFullYear();
+    const m = fechaActual.getMonth();
+    const mesStr = `${y}-${String(m+1).padStart(2,'0')}`;
+    try {
+        const snap = await getDocs(query(
+            collection(db, "reservas"),
+            where("fecha", ">=", mesStr + "-01"),
+            where("fecha", "<=", mesStr + "-31")
+        ));
+        reservasPorFecha = new Map();
+        snap.forEach(d => {
+            const dat = d.data();
+            if (!dat.fecha || !dat.hora) return;
+            if (["cancelado"].includes((dat.status||"").toLowerCase()) ||
+                ["cancelado"].includes((dat.estado||"").toLowerCase())) return;
+            const h = normalizarHora(dat.hora);
+            if (!h) return;
+            if (!reservasPorFecha.has(dat.fecha)) reservasPorFecha.set(dat.fecha, new Set());
+            reservasPorFecha.get(dat.fecha).add(h);
+        });
+    } catch(e) {
+        console.warn("cargarReservasMes:", e?.code || e?.message);
+    }
+}
+
 const obtenerHorasNoDisponibles = async (fStr) => {
     const snapRes = await getDocs(query(collection(db, "reservas"), where("fecha", "==", fStr)));
     const horas = new Set();
@@ -1109,6 +1170,7 @@ async function cargarDatos(){
         }
     } catch(e) {}
 
+    await cargarReservasMes();
     if (jornadaModo) fijarMesJornada();
     renderCalendario();
 }
@@ -1145,7 +1207,7 @@ function renderCalendario(){
     document.getElementById("mes").innerText=`${["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][m]} ${y}`;
 
     const btnSig = document.getElementById("btnMesSiguiente");
-    const MES_LIMITE_Y = 2026, MES_LIMITE_M = 5;
+    const MES_LIMITE_Y = 2026, MES_LIMITE_M = 11;
     const mesKey = `${y}-${String(m+1).padStart(2,"0")}`;
     const esBloqueadoAdmin = mesesBloqueados.has(mesKey);
     const esBloqueado = esBloqueadoAdmin || y > MES_LIMITE_Y || (y === MES_LIMITE_Y && m > MES_LIMITE_M);
@@ -1192,6 +1254,9 @@ function renderCalendario(){
         else if(esExcepcionBloqueante(fStr)){
             div.classList.add("bloqueado");
             div.onclick=()=>mostrarAviso("Cerrado", `Motivo: ${excepciones[fStr]}`);
+        } else if(esDiaLleno(fStr)){
+            div.classList.add("lleno");
+            div.onclick=()=>mostrarAviso("Sin turnos disponibles", "Este día ya no tiene horarios libres. Elegí otro día o escribile a Gimena. 🌿");
         } else {
             div.onclick=()=>{
                 document.querySelectorAll(".dia").forEach(e=>e.classList.remove("seleccionado"));
@@ -1285,9 +1350,12 @@ async function cargarHorarios(fecha, fStr){
         let div=document.createElement("div"); div.className="hora"; div.innerText=item.h;
         div.style.animationDelay=`${Math.min(idx*55,460)}ms`;
 
+        const esAdminBloqueo = bloqueosHorarios.has(keyBloqueo(fStr, item.h));
         const estaOcupado = ocupados.includes(item.h);
 
-        if(estaOcupado) {
+        if(esAdminBloqueo) {
+            div.classList.add("admin-bloqueado");
+        } else if(estaOcupado) {
             div.classList.add("ocupado");
         } else {
             div.onclick=()=>{
@@ -1320,12 +1388,18 @@ document.getElementById("reservarBtn").onclick=()=>{
     window.location.href = destinoConfirmacion;
 };
 
-document.getElementById("btnMesSiguiente").onclick=()=>{
+document.getElementById("btnMesSiguiente").onclick= async ()=>{
     const y=fechaActual.getFullYear(), m=fechaActual.getMonth();
-    if(y > 2026 || (y === 2026 && m >= 5)) return;
-    fechaActual.setMonth(m+1); renderCalendario();
+    if(y > 2026 || (y === 2026 && m >= 11)) return;
+    fechaActual.setMonth(m+1);
+    await cargarReservasMes();
+    renderCalendario();
 };
-document.getElementById("btnMesAnterior").onclick=()=>{ fechaActual.setMonth(fechaActual.getMonth()-1); renderCalendario(); };
+document.getElementById("btnMesAnterior").onclick= async ()=>{
+    fechaActual.setMonth(fechaActual.getMonth()-1);
+    await cargarReservasMes();
+    renderCalendario();
+};
 
 if (jornadaModo) {
     const btnMesSig = document.getElementById("btnMesSiguiente");

@@ -174,7 +174,14 @@
                  'tengo turno', 'cuando tengo turno', 'cuándo tengo turno',
                  'consultar turno', 'ver reserva', 'mis reservas', 'historial turnos',
                  'turnos pasados', 'turno cancelado'],
-      answer: 'Podés ver <strong>todos tus turnos</strong> (próximos, realizados y cancelados) en la sección <strong>"Ver mis próximos turnos"</strong> dentro de la página de servicios. Cada turno tiene su estado y, si es futuro, el botón para cancelarlo. 📋'
+      answer: () => {
+        const dni = (localStorage.getItem('clienteDNI') || '').trim();
+        const nombre = (localStorage.getItem('clienteNombre') || '').trim();
+        if (!dni || dni === 'null' || !nombre) {
+          return '¡Hola! Para poder mostrarte tus turnos necesitás estar ingresada. 🌿<br><br>Entrá con tu nombre y DNI desde la <a href="/" style="color:#3f8f6f;font-weight:700;">página principal</a>. Si todavía no sos paciente, ¡te invito a sumarte! Es muy fácil y Gimena te acompaña en el primer paso. 💚';
+        }
+        return `Hola <strong>${nombre.split(' ')[0]}</strong>! 🌿 Podés ver <strong>todos tus turnos</strong> (próximos, realizados y cancelados) en la sección <strong>"Ver mis próximos turnos"</strong> dentro de la página de servicios. Cada turno tiene su estado y, si es futuro, el botón para cancelarlo. 📋`;
+      }
     },
 
     // ── PRECIOS ─────────────────────────────────────────────
@@ -486,18 +493,22 @@ Estado: ⏳ Sin recordatorio
       .replace(/[^a-z0-9\s]/g, ' ');
   }
 
+  function resolveAnswer(ans) {
+    return typeof ans === 'function' ? ans() : ans;
+  }
+
   function findAnswer(text) {
     const q = normalize(text);
     for (const entry of KB) {
       const hit = entry.keywords.some(k => q.includes(normalize(k)));
-      if (hit) return entry.answer;
+      if (hit) return resolveAnswer(entry.answer);
     }
     return FALLBACK;
   }
 
   function findAnswerById(id) {
     const e = KB.find(k => k.id === id);
-    return e ? e.answer : FALLBACK;
+    return e ? resolveAnswer(e.answer) : FALLBACK;
   }
 
   // ── MODO ADMIN: acceso en vivo a datos del panel ─────────
@@ -698,7 +709,8 @@ PROHIBIDO: mencionar turnos, servicios, agenda o estado de sesión anterior en e
     #mimi-bubble {
       position: fixed;
       bottom: 24px;
-      left: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       width: 70px;
       height: 70px;
       border-radius: 50%;
@@ -707,7 +719,7 @@ PROHIBIDO: mencionar turnos, servicios, agenda o estado de sesión anterior en e
       z-index: 9999;
       transition: transform .22s cubic-bezier(.34,1.56,.64,1);
     }
-    #mimi-bubble:hover { transform: scale(1.09); }
+    #mimi-bubble:hover { transform: translateX(-50%) scale(1.09); }
     #mimi-bubble-inner {
       width: 100%; height: 100%;
       aspect-ratio: 1 / 1;
@@ -745,16 +757,7 @@ PROHIBIDO: mencionar turnos, servicios, agenda o estado de sesión anterior en e
     #mimi-bubble-fallback { display: block; }
 
     #mimi-badge {
-      position: absolute;
-      top: -2px; right: -2px;
-      width: 20px; height: 20px;
-      background: #e05c50;
-      border-radius: 50%;
-      border: 2.5px solid #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 10px; color: #fff; font-weight: 800;
-      animation: mimi-pulse 1.8s infinite;
-      z-index: 1;
+      display: none !important;
     }
     @keyframes mimi-pulse {
       0%,100% { transform: scale(1); }
@@ -786,39 +789,11 @@ PROHIBIDO: mencionar turnos, servicios, agenda o estado de sesión anterior en e
     }
     #mimi-bubble-dismiss:hover { background: rgba(180,40,40,0.85); }
 
-    #mimi-restore {
-      position: fixed;
-      left: 18px;
-      bottom: 22px;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      min-height: 42px;
-      padding: 0 14px;
-      border: 1px solid rgba(96, 132, 103, 0.18);
-      border-radius: 999px;
-      background: rgba(255,255,255,0.94);
-      color: #2f5540;
-      font-size: 12.5px;
-      font-weight: 700;
-      box-shadow: 0 10px 24px rgba(28,46,34,0.12);
-      cursor: pointer;
-      z-index: 9999;
-      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-    #mimi-restore:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 12px 30px rgba(28,46,34,0.18);
-      background: rgba(255,255,255,0.98);
-    }
+    #mimi-restore { display: none !important; }
     #mimi-root.mimi-dismissed #mimi-bubble,
-    #mimi-root.mimi-dismissed #mimi-window {
-      display: none !important;
-    }
+    #mimi-root.mimi-dismissed #mimi-window,
     #mimi-root.mimi-dismissed #mimi-restore {
-      display: inline-flex;
+      display: none !important;
     }
 
     /* ── Ventana chat ── */
@@ -1111,7 +1086,8 @@ PROHIBIDO: mencionar turnos, servicios, agenda o estado de sesión anterior en e
         font-size: 16px !important;
       }
       #mimi-bubble {
-        right: 14px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
         bottom: calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
         width: 60px !important;
         height: 60px !important;

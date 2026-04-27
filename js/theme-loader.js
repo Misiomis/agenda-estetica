@@ -1,40 +1,37 @@
-import { db, getDoc, doc } from "/js/firebase-web.js";
+import { db, doc, onSnapshot } from "/js/firebase-web.js";
 
 const CACHE_KEY_TEMA = "mimar_tema";
 const CACHE_KEY_ANUNCIO = "mimar_anuncio";
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
-export async function cargarTemaYAnuncio() {
+export function cargarTemaYAnuncio() {
     aplicarTemaCache();
     mostrarAnuncioCache();
-    try {
-        const [temaSnap, anuncioSnap] = await Promise.all([
-            getDoc(doc(db, "configuracion", "apariencia")),
-            getDoc(doc(db, "configuracion", "anuncio"))
-        ]);
 
-        if (temaSnap.exists()) {
-            const tema = temaSnap.data().tema || "";
-            localStorage.setItem(CACHE_KEY_TEMA, JSON.stringify({ tema, ts: Date.now() }));
-            aplicarTema(tema);
-        }
+    onSnapshot(doc(db, "configuracion", "apariencia"), (snap) => {
+        if (!snap.exists()) return;
+        const tema = snap.data().tema || "";
+        localStorage.setItem(CACHE_KEY_TEMA, JSON.stringify({ tema, ts: Date.now() }));
+        aplicarTema(tema);
+    }, (e) => {
+        console.warn("[theme-loader] apariencia:", e?.code || e?.message);
+    });
 
-        if (anuncioSnap.exists()) {
-            const d = anuncioSnap.data();
-            localStorage.setItem(CACHE_KEY_ANUNCIO, JSON.stringify({ texto: d.texto || "", activo: !!d.activo, ts: Date.now() }));
-            mostrarAnuncio(d.texto || "", !!d.activo);
-        }
-    } catch(e) {
-        console.warn("[theme-loader] No se pudo cargar configuración:", e?.code || e?.message);
-    }
+    onSnapshot(doc(db, "configuracion", "anuncio"), (snap) => {
+        if (!snap.exists()) return;
+        const d = snap.data();
+        localStorage.setItem(CACHE_KEY_ANUNCIO, JSON.stringify({ texto: d.texto || "", activo: !!d.activo, ts: Date.now() }));
+        mostrarAnuncio(d.texto || "", !!d.activo);
+    }, (e) => {
+        console.warn("[theme-loader] anuncio:", e?.code || e?.message);
+    });
 }
 
 function aplicarTemaCache() {
     try {
         const raw = localStorage.getItem(CACHE_KEY_TEMA);
         if (!raw) return;
-        const { tema, ts } = JSON.parse(raw);
-        if (Date.now() - ts < CACHE_TTL) aplicarTema(tema);
+        const { tema } = JSON.parse(raw);
+        aplicarTema(tema);
     } catch(e) {}
 }
 
@@ -42,8 +39,8 @@ function mostrarAnuncioCache() {
     try {
         const raw = localStorage.getItem(CACHE_KEY_ANUNCIO);
         if (!raw) return;
-        const { texto, activo, ts } = JSON.parse(raw);
-        if (Date.now() - ts < CACHE_TTL) mostrarAnuncio(texto, activo);
+        const { texto, activo } = JSON.parse(raw);
+        mostrarAnuncio(texto, activo);
     } catch(e) {}
 }
 

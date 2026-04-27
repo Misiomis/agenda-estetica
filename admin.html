@@ -407,6 +407,7 @@
         .day:hover { background: #eaf8f1; }
         .day.has-reserva { background: #e6f6ee; border: 1.5px solid var(--verde-oscuro); color: #1f6548; font-weight: 700; }
         .day.day-closed { background: #fff2f4; border: 1.5px solid #e7b8bf; color: #96404d; }
+        .day.day-full { background: linear-gradient(135deg,#ff5252,#e53935) !important; border-color: #e53935 !important; color: #fff !important; font-weight: 800; }
         .day.selected { background: var(--verde) !important; color: white !important; }
         /* CARDS */
         .detalle-dia-card {
@@ -593,9 +594,9 @@
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">Pacientes</button>
                 <button class="btn-nav" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">Pedidos de Kit</button>
                 <button class="btn-nav" id="btn-export" onclick="navegar('export')">Exportar</button>
-                <button class="btn-nav" id="btn-control" onclick="navegar('control')" style="background:linear-gradient(135deg,rgba(212,175,55,0.18),rgba(212,175,55,0.08));border-color:rgba(212,175,55,0.42);color:#8a6c00;font-weight:800;">⚙ Control</button>
                 <a class="btn-nav" href="/fecha.html" target="_blank" style="text-decoration:none;background:linear-gradient(135deg,#eaf7f0,#d4f0e4);border-color:#8ecfb2;color:#1e6645;font-weight:700">Ver agenda de pacientes</a>
                 <button class="btn-nav" onclick="cerrarSesion()">Salir</button>
+                <button class="btn-nav" id="btn-control" onclick="navegar('control')" style="margin-top:8px;background:linear-gradient(135deg,rgba(212,175,55,0.14),rgba(212,175,55,0.06));border-color:rgba(212,175,55,0.36);color:#8a6c00;font-size:11px;font-weight:700;letter-spacing:.04em;">⚙ Configuración avanzada</button>
             </div>
             <div class="flow-switch-shortcut">
                 <button id="btnFlowModeHeader" class="flow-switch-button" onclick="toggleFlowMode()">Cargando modo de flujo...</button>
@@ -2218,8 +2219,14 @@
                 const fStr = `${anio}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const tiene = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fStr);
                 const cierreDia = cierresPorFecha.get(fStr);
+                const horasReservadasDia = new Set(
+                    todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === fStr && r.hora).map(r => r.hora)
+                );
+                const horasAdminDia = [...bloqueosHorarios.entries()]
+                    .filter(([k]) => k.startsWith(fStr + '|')).length;
+                const esDiaFullAdmin = !cierreDia && (horasReservadasDia.size + horasAdminDia) >= 13;
                 const div = document.createElement("div");
-                div.className = `day ${tiene ? 'has-reserva' : ''} ${cierreDia ? 'day-closed' : ''}`.trim();
+                div.className = `day ${tiene && !esDiaFullAdmin ? 'has-reserva' : ''} ${cierreDia ? 'day-closed' : ''} ${esDiaFullAdmin ? 'day-full' : ''}`.trim();
                 div.innerText = d;
                 div.onclick = () => {
                     if (cierreDia) {
