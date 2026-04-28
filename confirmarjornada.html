@@ -193,7 +193,7 @@
     </div>
 
     <script type="module">
-        import { db, collection, addDoc, doc, getDoc, getDocs, query, where } from "/js/firebase-web.js";
+        import { db, collection, addDoc, doc, getDoc, getDocs, query, where, runTransaction, serverTimestamp } from "/js/firebase-web.js";
 
         const CF_CONFIRM_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarConfirmacionTurno";
 
@@ -319,24 +319,14 @@
                 const telefonoPrincipal = telefonos[0] || "";
                 const turnoAt = new Date(`${fechaLs}T${horaLs}:00-03:00`);
 
-                // Verificar que el horario no esté bloqueado por admin
-                const blkSnap = await getDocs(query(
-                    collection(db, "calendarExceptions"),
-                    where("fecha", "==", fechaLs),
-                    where("hora",  "==", horaLs)
-                ));
-                const esBloqueado = blkSnap.docs.some(d => {
-                    const bd = d.data();
-                    return bd.active !== false && (bd.type === "blocked" || bd.blocked === true);
-                });
-                if (esBloqueado) {
-                    setStatus("Este horario no está disponible. Por favor, volvé y elegí otro.");
-                    btnConfirmar.disabled = false;
-                    btnConfirmar.textContent = "Confirmar turno";
-                    return;
-                }
-
-                await addDoc(collection(db, "reservas"), {
+                // Transacción atómica: verificar bloqueo admin + slot + crear reserva
+                const slotId   = `${fechaLs}_${horaLs.replace(":", "-")}`;
+                const slotRef  = doc(db, "reservas_slots", slotId);
+                const blkRef   = doc(db, "calendarExceptions", `block_${fechaLs}_${horaLs.replace(":", "-")}`);
+                const dniActual = dniLs || "anonimo";
+                const ahoraTs  = Date.now();
+                const reservaRef = doc(collection(db, "reservas"));
+                const camposReserva = {
                     cliente: nombreLs,
                     phone: telefonoPrincipal,
                     dni: dniLs,
@@ -352,9 +342,43 @@
                         h48: { enviado: false },
                         h24: { enviado: false },
                         h12: { enviado: false },
-                        h6: { enviado: false }
+                        h6:  { enviado: false }
                     },
-                    timestamp: new Date()
+                    timestamp: serverTimestamp()
+                };
+
+                await runTransaction(db, async (tx) => {
+                    const blkSnap = await tx.get(blkRef);
+                    if (blkSnap.exists()) {
+                        const bd = blkSnap.data();
+                        if (bd.active !== false && (bd.type === "blocked" || bd.blocked === true)) {
+                            throw new Error("HORA_BLOQUEADA");
+                        }
+                    }
+
+                    const slotSnap  = await tx.get(slotRef);
+                    const sd        = slotSnap.exists() ? slotSnap.data() : null;
+                    const ocupantes = sd ? (sd.ocupantes || 0) : 0;
+
+                    if (ocupantes >= 1) throw new Error("SLOT_OCUPADO");
+                    if (sd && sd.held && sd.heldBy && sd.heldBy !== dniActual && (sd.heldUntil || 0) > ahoraTs) {
+                        throw new Error("SLOT_RETENIDO");
+                    }
+
+                    tx.set(reservaRef, camposReserva);
+
+                    const nuevoConteo = ocupantes + 1;
+                    const slotData = {
+                        fecha: fechaLs, hora: horaLs,
+                        ocupantes: nuevoConteo, ocupado: nuevoConteo >= 1,
+                        held: false, heldBy: null, heldUntil: null,
+                        updatedAt: serverTimestamp()
+                    };
+                    if (slotSnap.exists()) {
+                        tx.update(slotRef, slotData);
+                    } else {
+                        tx.set(slotRef, slotData);
+                    }
                 });
 
                 let resumen = "Turno confirmado.";
@@ -372,7 +396,15 @@
                 document.getElementById("modalOk").style.display = "flex";
             } catch (error) {
                 console.error("Error:", error);
-                setStatus(`Error: ${error.message}`);
+                if (error.message === "HORA_BLOQUEADA") {
+                    setStatus("Este horario no está disponible. Por favor, volvé y elegí otro.");
+                } else if (error.message === "SLOT_OCUPADO") {
+                    setStatus("Este horario fue tomado por otro paciente. Por favor, volvé y elegí otro.");
+                } else if (error.message === "SLOT_RETENIDO") {
+                    setStatus("Otra persona está procesando este turno ahora mismo. Esperá unos minutos e intentá de nuevo.");
+                } else {
+                    setStatus("Error al confirmar el turno. Intentá de nuevo.");
+                }
                 btnConfirmar.disabled = false;
                 btnConfirmar.textContent = "Reintentar confirmación";
             }

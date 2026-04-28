@@ -457,25 +457,39 @@ btn.addEventListener("click", async () => {
             }
 
             const slotSnap = await tx.get(slotRef);
-            const ocupantes = slotSnap.exists() ? (slotSnap.data().ocupantes || 0) : 0;
+            const sd       = slotSnap.exists() ? slotSnap.data() : null;
+            const ocupantes = sd ? (sd.ocupantes || 0) : 0;
             const capacidad = esDuo ? 2 : 1;
 
             if (ocupantes >= capacidad) {
                 throw new Error("SLOT_OCUPADO");
             }
 
+            // Verificar hold de otro usuario (protección contra doble reserva simultánea)
+            const ahoraTx = Date.now();
+            const dniActual = localStorage.getItem("clienteDNI") || "";
+            if (sd && sd.held && sd.heldBy && sd.heldBy !== dniActual && (sd.heldUntil || 0) > ahoraTx) {
+                throw new Error("SLOT_RETENIDO");
+            }
+
             // Crear la reserva con ID generado del lado del cliente
             const reservaRef = doc(collection(db, "reservas"));
             tx.set(reservaRef, camposReserva);
 
-            // Actualizar el contador del slot
-            tx.set(slotRef, {
-                fecha,
-                hora,
-                ocupantes: ocupantes + 1,
-                ocupado:   (ocupantes + 1) >= capacidad,
+            // Actualizar el contador del slot (sin merge para que Firestore detecte conflictos correctamente)
+            const nuevoConteo = ocupantes + 1;
+            const slotData = {
+                fecha, hora,
+                ocupantes: nuevoConteo,
+                ocupado:   nuevoConteo >= capacidad,
+                held: false, heldBy: null, heldUntil: null,
                 updatedAt: serverTimestamp()
-            }, { merge: true });
+            };
+            if (slotSnap.exists()) {
+                tx.update(slotRef, slotData);
+            } else {
+                tx.set(slotRef, slotData);
+            }
         });
 
         status.textContent = "Enviando confirmacion...";
@@ -499,7 +513,10 @@ btn.addEventListener("click", async () => {
             status.textContent = "Este horario no está disponible. Por favor, volvé y elegí otro.";
         } else if (e.message === "SLOT_OCUPADO") {
             status.className  = "error";
-            status.textContent = "Este horario fue reservado en este momento por otro paciente. Por favor, selecciona otro.";
+            status.textContent = "Este horario fue reservado por otro paciente. Por favor, volvé y elegí otro.";
+        } else if (e.message === "SLOT_RETENIDO") {
+            status.className  = "error";
+            status.textContent = "Otra persona está procesando este turno ahora mismo. Esperá unos minutos e intentá de nuevo.";
         } else {
             console.error("confirmar:", e);
             status.className  = "error";

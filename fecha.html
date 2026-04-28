@@ -897,7 +897,7 @@
 </div>
 
 <script type="module">
-import { db, doc, getDoc, collection, query, where, getDocs } from "/js/firebase-web.js";
+import { db, doc, getDoc, collection, query, where, getDocs, runTransaction } from "/js/firebase-web.js";
 import { cargarTemaYAnuncio } from "/js/theme-loader.js";
 
 // Esquema unificado Lun-Sab
@@ -1383,13 +1383,54 @@ function mostrarAviso(titulo, msg){
 
 document.getElementById("btnFinalizarModal").onclick=()=>document.getElementById("modalMimar").style.display="none";
 
-document.getElementById("reservarBtn").onclick=()=>{
-    const fStr=`${fechaSeleccionada.getFullYear()}-${String(fechaSeleccionada.getMonth()+1).padStart(2,'0')}-${String(fechaSeleccionada.getDate()).padStart(2,'0')}`;
-    localStorage.setItem("fechaSeleccionada", fStr);
-    localStorage.setItem("horaSeleccionada", horaSeleccionada);
-    localStorage.setItem("duracionSeleccionada", duracionTurno);
-    const destinoConfirmacion = jornadaModo ? "confirmarjornada.html" : "confirmar.html";
-    window.location.href = destinoConfirmacion;
+document.getElementById("reservarBtn").onclick = async () => {
+    const btn = document.getElementById("reservarBtn");
+    btn.disabled = true;
+    btn.textContent = "Verificando...";
+
+    const fStr = `${fechaSeleccionada.getFullYear()}-${String(fechaSeleccionada.getMonth()+1).padStart(2,'0')}-${String(fechaSeleccionada.getDate()).padStart(2,'0')}`;
+    const slotId = `${fStr}_${horaSeleccionada.replace(":", "-")}`;
+    const slotRef = doc(db, "reservas_slots", slotId);
+    const dniUsuario = localStorage.getItem("clienteDNI") || "anonimo";
+    const ahora = Date.now();
+
+    try {
+        await runTransaction(db, async (tx) => {
+            const slotSnap = await tx.get(slotRef);
+            if (slotSnap.exists()) {
+                const sd = slotSnap.data();
+                if ((sd.ocupantes || 0) >= 1) throw new Error("SLOT_OCUPADO");
+                if (sd.held && sd.heldBy && sd.heldBy !== dniUsuario && (sd.heldUntil || 0) > ahora) {
+                    throw new Error("SLOT_RETENIDO");
+                }
+            }
+            tx.set(slotRef, {
+                fecha: fStr,
+                hora: horaSeleccionada,
+                held: true,
+                heldBy: dniUsuario,
+                heldUntil: ahora + 5 * 60 * 1000,
+                ocupantes: slotSnap.exists() ? (slotSnap.data().ocupantes || 0) : 0
+            }, { merge: true });
+        });
+
+        localStorage.setItem("fechaSeleccionada", fStr);
+        localStorage.setItem("horaSeleccionada", horaSeleccionada);
+        localStorage.setItem("duracionSeleccionada", duracionTurno);
+        const destinoConfirmacion = jornadaModo ? "confirmarjornada.html" : "confirmar.html";
+        window.location.href = destinoConfirmacion;
+    } catch (e) {
+        btn.disabled = false;
+        btn.textContent = "Reservar mi turno ✦";
+        if (e.message === "SLOT_OCUPADO") {
+            mostrarAviso("Horario ocupado", "Este horario acaba de ser tomado por otra persona. Por favor, elegí otro.");
+        } else if (e.message === "SLOT_RETENIDO") {
+            mostrarAviso("Horario en proceso", "Otra persona está reservando este horario ahora mismo. Esperá unos minutos e intentá de nuevo.");
+        } else {
+            console.error("hold:", e);
+            mostrarAviso("Error", "No se pudo verificar el horario. Intentá de nuevo.");
+        }
+    }
 };
 
 document.getElementById("btnMesSiguiente").onclick= async ()=>{
