@@ -183,6 +183,16 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        const _fmtFechaLarga = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+        const formatFecha = (fechaStr) => {
+            if (!fechaStr) return "—";
+            const [y, m, d] = fechaStr.split("-").map(Number);
+            const dt = new Date(y, m - 1, d);
+            if (isNaN(dt.getTime())) return fechaStr;
+            const s = _fmtFechaLarga.format(dt).replace(/,\s*/, " ");
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        };
+
         const SERVICIOS_EXTRAS = [
             {
                 nombre: "Facial LED Regenerativo",
@@ -327,15 +337,6 @@
                     return new Date(y, m - 1, d);
                 };
 
-                const fmtFechaLarga = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-                const formatFecha = (fechaStr) => {
-                    if (!fechaStr) return "—";
-                    const [y, m, d] = fechaStr.split("-").map(Number);
-                    const dt = new Date(y, m - 1, d);
-                    if (isNaN(dt.getTime())) return fechaStr;
-                    const s = fmtFechaLarga.format(dt).replace(/,\s*/, " ");
-                    return s.charAt(0).toUpperCase() + s.slice(1);
-                };
 
                 const esCancelado = r => (r.status || r.estado || "").toLowerCase() === "cancelado";
 
