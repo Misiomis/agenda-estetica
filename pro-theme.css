@@ -437,3 +437,98 @@ body[data-tema="bosque"] {
     background: none; border: none; color: rgba(255,255,255,0.8);
     cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px;
 }
+
+/* ===== SENSITIVE DATA BLUR ===== */
+.dato-sensible {
+    filter: blur(5px);
+    transition: filter 0.18s ease, opacity 0.18s ease;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 3px;
+    display: inline-block;
+    opacity: 0.8;
+}
+.dato-sensible:hover {
+    filter: blur(3px);
+    opacity: 1;
+}
+.dato-sensible.revelado {
+    filter: none;
+    opacity: 1;
+    cursor: default;
+    user-select: text;
+}
+.dato-sensible-wrap {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+.dato-sensible-hint {
+    font-size: 10px;
+    color: var(--pro-muted);
+    opacity: 0.55;
+    letter-spacing: 0.03em;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+}
+.dato-sensible.revelado + .dato-sensible-hint {
+    display: none;
+}
+
+/* ===== GRADIENT ACCENT BAR ON CARDS ===== */
+.servicio,
+.service-card,
+.turno-item,
+.detalle-dia-card {
+    position: relative;
+    overflow: hidden;
+}
+.servicio::before,
+.service-card::before,
+.turno-item::before,
+.detalle-dia-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--pro-accent-strong) 0%, var(--pro-accent) 52%, var(--pro-accent-light, #7db89e) 100%);
+    opacity: 0;
+    transition: opacity 0.26s ease;
+    z-index: 1;
+}
+.servicio:hover::before,
+.service-card:hover::before,
+.turno-item:hover::before,
+.detalle-dia-card:hover::before {
+    opacity: 1;
+}
+
+/* ===== ENHANCED BADGE STYLES ===== */
+.pill {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.pill:hover {
+    transform: translateY(-1px);
+}
+.pill.disponible {
+    background: #eef7f2;
+    color: #1b5c3f;
+    border: 1px solid rgba(78, 163, 127, 0.3);
+}
+.pill.bloqueado {
+    background: #f8f0e8;
+    color: #7a4e1c;
+    border: 1px solid rgba(180, 120, 60, 0.25);
+}
+.pill.reservado {
+    background: #edf4ff;
+    color: #1a4a8a;
+    border: 1px solid rgba(66, 120, 200, 0.25);
+}
+.pill.cancelado {
+    background: #fdf6e8;
+    color: #8a5c00;
+    border: 1px solid rgba(200, 155, 0, 0.25);
+}

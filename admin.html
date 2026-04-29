@@ -1889,7 +1889,7 @@
                 return `
                 <div class="detalle-dia-card">
                     ${renderTagOrigen(r)}${duoBadge}<br>
-                    ${pac1label}<b>${escapeHtml(r.nombreLimpio || 'Sin nombre')}</b> - ${escapeHtml(r.hora || '--:--')} hs<br>
+                    ${pac1label}<b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(r.nombreLimpio || 'Sin nombre')}</b> - ${escapeHtml(r.hora || '--:--')} hs<br>
                     <small>${escapeHtml(r.servicio || 'Servicio')}</small>
                     ${notaDisplay1}
                     ${notaDisplay2}
@@ -1986,8 +1986,8 @@
                 <div class="detalle-dia-card">
                     <span class="tag-fecha">${formatoFechaISO(r.fecha)}</span>
                     ${renderTagOrigen(r)}
-                    <b>${escapeHtml(r.nombreLimpio)}</b> - ${escapeHtml(r.servicio || 'Servicio')}<br>
-                    <small>${escapeHtml(r.hora || '--:--')} hs · ${escapeHtml((r.phone || 'Sin teléfono').toString())}</small>
+                    <b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(r.nombreLimpio)}</b> - ${escapeHtml(r.servicio || 'Servicio')}<br>
+                    <small>${escapeHtml(r.hora || '--:--')} hs · <span class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml((r.phone || 'Sin teléfono').toString())}</span></small>
                 </div>`).join('');
         };
         
@@ -3052,9 +3052,12 @@
             }
             cont.innerHTML = filtrados.map((p) => `
                 <div class="detalle-dia-card" style="margin-top:0; border-left-width:4px; border-left-color:${p.membershipActive ? '#3f8f6f' : '#8fa99d'}">
-                    <b>${escapeHtml(p.fullName || 'Sin nombre')}</b>
+                    <div class="dato-sensible-wrap">
+                        <b class="dato-sensible" onclick="revelarDato(this)">${escapeHtml(p.fullName || 'Sin nombre')}</b>
+                        <span class="dato-sensible-hint">👁 clic para ver</span>
+                    </div>
                     <div style="margin-top:4px; font-size:13px; color:#4b6d5f;">
-                        DNI ${escapeHtml(p.dni || '-')} · Tel. ${escapeHtml(p.phone || 'Sin tel')}
+                        DNI ${escapeHtml(p.dni || '-')} · Tel. <span class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(p.phone || 'Sin tel')}</span>
                     </div>
                     <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
                         <span class="pill ${p.membershipActive ? 'disponible' : 'bloqueado'}">${p.membershipActive ? 'Membresía activa' : 'Ocasional'}</span>
@@ -3096,6 +3099,14 @@
             }
         };
         
+        window.revelarDato = (el) => {
+            el.classList.toggle('revelado');
+            const hint = el.nextElementSibling;
+            if (hint && hint.classList.contains('dato-sensible-hint')) {
+                hint.style.display = el.classList.contains('revelado') ? 'none' : '';
+            }
+        };
+
         window.limpiarFiltrosClientes = () => {
             document.getElementById("inpBusPaciente").value = "";
             document.getElementById("filtroTipoCliente").value = "todos";
