@@ -853,6 +853,27 @@
                     </div>
                 </div>
 
+                <!-- PRODUCTOS DEL KIT FACIAL -->
+                <div class="detalle-dia-card">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">🧴 Productos del Kit Facial</h3>
+                    <p style="font-size:13px;color:#557b6b;margin:0 0 14px;">Configurá los productos y precios del kit domiciliario. Los cambios se reflejan al instante para las pacientes.</p>
+                    <div id="kitProductosAdmin" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;"></div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button class="btn-mini" onclick="agregarFilaProductoKit()" style="padding:9px 16px;">+ Agregar producto</button>
+                        <button class="btn-mini" onclick="guardarKitProductos()" style="padding:9px 16px;background:linear-gradient(135deg,#3f8f6f,#2f6f52);color:#fff;border-color:transparent;">💾 Guardar precios</button>
+                    </div>
+                    <div id="kitProductosFeedback" style="display:none;margin-top:10px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;"></div>
+                </div>
+
+                <!-- CATÁLOGO DE TRATAMIENTOS -->
+                <div class="detalle-dia-card">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">🌿 Catálogo de Tratamientos</h3>
+                    <p style="font-size:13px;color:#557b6b;margin:0 0 14px;">Servicios que aparecen en la página de servicios de las pacientes. Podés agregar, editar o eliminar tratamientos.</p>
+                    <div id="tratamientosAdmin" style="display:flex;flex-direction:column;gap:12px;margin-bottom:14px;"></div>
+                    <button class="btn-mini" onclick="agregarFilaTratamiento()" style="padding:9px 16px;">+ Nuevo tratamiento</button>
+                    <div id="tratamientosFeedback" style="display:none;margin-top:10px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;"></div>
+                </div>
+
             </div><!-- /sec-control -->
 
         </div>
@@ -3739,6 +3760,9 @@
             document.getElementById("anuncioActivo")?.addEventListener("change", () => {
                 actualizarPreviewAnuncio(document.getElementById("anuncioTexto")?.value || "", document.getElementById("anuncioActivo").checked);
             });
+
+            cargarKitProductosAdmin();
+            cargarTratamientosAdmin();
         };
 
         function renderTemaGrid() {
@@ -3930,6 +3954,217 @@
                 console.error(e);
                 mostrarAviso("No se pudo guardar la configuración");
             } finally { mostrarLoader(false); }
+        };
+
+        // ============================================================
+        // KIT FACIAL — PRODUCTOS Y PRECIOS
+        // ============================================================
+
+        const KIT_PRODUCTOS_DEFAULT = [
+            { nombre: "Leche de limpieza",                  precio: 15000 },
+            { nombre: "Gel de limpieza",                    precio: 10000 },
+            { nombre: "Tónico calmante",                    precio: 15000 },
+            { nombre: "Crema/Gel regeneradora hidratante",  precio: 15000 }
+        ];
+
+        let _kitProductos = [];
+
+        const kitFeedback = (msg, ok = true) => {
+            const el = document.getElementById('kitProductosFeedback');
+            if (!el) return;
+            el.textContent = msg;
+            el.style.display = 'block';
+            el.style.background = ok ? '#e8f5ee' : '#fff1f3';
+            el.style.color = ok ? '#2f7c5d' : '#a64b58';
+            el.style.border = ok ? '1px solid #cce8d9' : '1px solid #f2d3d8';
+            clearTimeout(el._t);
+            el._t = setTimeout(() => { el.style.display = 'none'; }, 4000);
+        };
+
+        const renderKitProductosAdmin = () => {
+            const cont = document.getElementById('kitProductosAdmin');
+            if (!cont) return;
+            cont.innerHTML = _kitProductos.map((p, i) => `
+                <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;background:#f8fefb;border:1px solid #d5eadf;border-radius:12px;padding:10px 12px;">
+                    <input type="text" value="${escapeHtml(p.nombre)}" placeholder="Nombre del producto"
+                        style="border:1.5px solid #d5eadf;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:14px;color:#2f5a47;background:#fff;outline:none;"
+                        onchange="_kitProductos[${i}].nombre=this.value">
+                    <div style="display:flex;align-items:center;gap:4px;">
+                        <span style="font-size:12px;font-weight:700;color:#4a7060;">$</span>
+                        <input type="number" value="${p.precio}" min="0" step="500" placeholder="Precio"
+                            style="width:90px;border:1.5px solid #d5eadf;border-radius:8px;padding:8px 8px;font-family:inherit;font-size:14px;color:#2f5a47;background:#fff;outline:none;"
+                            onchange="_kitProductos[${i}].precio=Number(this.value)">
+                    </div>
+                    <button onclick="eliminarProductoKit(${i})"
+                        style="background:#fff1f3;border:1px solid #f2d3d8;color:#a64b58;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:14px;font-weight:700;" title="Eliminar">✕</button>
+                </div>
+            `).join('');
+        };
+
+        window.agregarFilaProductoKit = () => {
+            _kitProductos.push({ nombre: '', precio: 15000 });
+            renderKitProductosAdmin();
+            const inputs = document.querySelectorAll('#kitProductosAdmin input[type="text"]');
+            if (inputs.length) inputs[inputs.length - 1].focus();
+        };
+
+        window.eliminarProductoKit = (i) => {
+            _kitProductos.splice(i, 1);
+            renderKitProductosAdmin();
+        };
+
+        window.guardarKitProductos = async () => {
+            // Sync input values before saving (onchange doesn't fire on blur in all cases)
+            document.querySelectorAll('#kitProductosAdmin > div').forEach((row, i) => {
+                const txt = row.querySelector('input[type="text"]');
+                const num = row.querySelector('input[type="number"]');
+                if (txt) _kitProductos[i].nombre = txt.value.trim();
+                if (num) _kitProductos[i].precio = Number(num.value) || 0;
+            });
+            const validos = _kitProductos.filter(p => p.nombre.trim());
+            if (!validos.length) { kitFeedback('Agregá al menos un producto con nombre.', false); return; }
+            try {
+                await setDoc(doc(db, 'configuracion', 'kitProductos'), { productos: validos, updatedAt: serverTimestamp() }, { merge: true });
+                kitFeedback('Precios guardados ✓');
+            } catch(e) {
+                console.error(e);
+                kitFeedback('No se pudo guardar. Intentá de nuevo.', false);
+            }
+        };
+
+        const cargarKitProductosAdmin = async () => {
+            try {
+                const snap = await getDoc(doc(db, 'configuracion', 'kitProductos'));
+                _kitProductos = (snap.exists() && Array.isArray(snap.data().productos) && snap.data().productos.length)
+                    ? snap.data().productos.map(p => ({ nombre: p.nombre || '', precio: Number(p.precio) || 0 }))
+                    : JSON.parse(JSON.stringify(KIT_PRODUCTOS_DEFAULT));
+            } catch(e) {
+                _kitProductos = JSON.parse(JSON.stringify(KIT_PRODUCTOS_DEFAULT));
+            }
+            renderKitProductosAdmin();
+        };
+
+        // ============================================================
+        // CATÁLOGO DE TRATAMIENTOS
+        // ============================================================
+
+        let _tratamientos = [];
+
+        const tratFeedback = (msg, ok = true) => {
+            const el = document.getElementById('tratamientosFeedback');
+            if (!el) return;
+            el.textContent = msg;
+            el.style.display = 'block';
+            el.style.background = ok ? '#e8f5ee' : '#fff1f3';
+            el.style.color = ok ? '#2f7c5d' : '#a64b58';
+            el.style.border = ok ? '1px solid #cce8d9' : '1px solid #f2d3d8';
+            clearTimeout(el._t);
+            el._t = setTimeout(() => { el.style.display = 'none'; }, 4000);
+        };
+
+        const renderTratamientosAdmin = () => {
+            const cont = document.getElementById('tratamientosAdmin');
+            if (!cont) return;
+            if (!_tratamientos.length) {
+                cont.innerHTML = '<p style="font-size:13px;color:#88948f;margin:0;">No hay tratamientos cargados todavía.</p>';
+                return;
+            }
+            cont.innerHTML = _tratamientos.map((t, i) => `
+                <div style="background:#f8fdfb;border:1px solid #d0e8dc;border-radius:14px;padding:14px 16px;">
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;margin-bottom:10px;">
+                        <input type="text" value="${escapeHtml(t.nombre || '')}" placeholder="Nombre del tratamiento"
+                            style="border:1.5px solid #d5eadf;border-radius:8px;padding:9px 12px;font-family:inherit;font-size:14px;font-weight:700;color:#2f5a47;background:#fff;outline:none;width:100%;box-sizing:border-box;"
+                            oninput="_tratamientos[${i}].nombre=this.value">
+                        <button onclick="guardarTratamiento(${i})"
+                            style="background:linear-gradient(135deg,#3f8f6f,#2f6f52);color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">💾 Guardar</button>
+                    </div>
+                    <div style="display:grid;grid-template-columns:80px 60px 1fr;gap:8px;margin-bottom:8px;align-items:center;">
+                        <input type="text" value="${escapeHtml(t.icono || '🌿')}" placeholder="Icono"
+                            style="border:1.5px solid #d5eadf;border-radius:8px;padding:8px;font-family:inherit;font-size:18px;text-align:center;color:#2f5a47;background:#fff;outline:none;"
+                            oninput="_tratamientos[${i}].icono=this.value">
+                        <div style="position:relative;">
+                            <input type="number" value="${t.duracion || 60}" min="5" step="5" placeholder="Min"
+                                style="width:100%;border:1.5px solid #d5eadf;border-radius:8px;padding:8px;font-family:inherit;font-size:13px;color:#2f5a47;background:#fff;outline:none;box-sizing:border-box;"
+                                oninput="_tratamientos[${i}].duracion=Number(this.value)">
+                        </div>
+                        <span style="font-size:11px;color:#6a8e7f;">minutos</span>
+                    </div>
+                    <textarea placeholder="Descripción del tratamiento" rows="2"
+                        style="width:100%;box-sizing:border-box;border:1.5px solid #d5eadf;border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:#2f5a47;background:#fff;outline:none;resize:vertical;margin-bottom:8px;"
+                        oninput="_tratamientos[${i}].descripcion=this.value">${escapeHtml(t.descripcion || '')}</textarea>
+                    <button onclick="eliminarTratamiento(${i}, '${escapeHtml(t._id || '')}')"
+                        style="background:#fff1f3;border:1px solid #f2d3d8;color:#a64b58;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700;">✕ Eliminar tratamiento</button>
+                </div>
+            `).join('');
+        };
+
+        window.agregarFilaTratamiento = () => {
+            _tratamientos.unshift({ _id: null, nombre: '', descripcion: '', duracion: 60, icono: '🌿', activo: true });
+            renderTratamientosAdmin();
+            const inputs = document.querySelectorAll('#tratamientosAdmin input[type="text"]');
+            if (inputs.length) inputs[0].focus();
+        };
+
+        window.guardarTratamiento = async (i) => {
+            // Sync DOM values first
+            const rows = document.querySelectorAll('#tratamientosAdmin > div');
+            const row = rows[i];
+            if (row) {
+                const txts = row.querySelectorAll('input[type="text"]');
+                const nums = row.querySelectorAll('input[type="number"]');
+                const ta   = row.querySelector('textarea');
+                if (txts[0]) _tratamientos[i].nombre = txts[0].value.trim();
+                if (txts[1]) _tratamientos[i].icono  = txts[1].value.trim() || '🌿';
+                if (nums[0]) _tratamientos[i].duracion = Number(nums[0].value) || 60;
+                if (ta)      _tratamientos[i].descripcion = ta.value.trim();
+            }
+            const t = _tratamientos[i];
+            if (!t.nombre) { tratFeedback('El tratamiento necesita un nombre.', false); return; }
+            try {
+                const data = { nombre: t.nombre, descripcion: t.descripcion, duracion: t.duracion, icono: t.icono, activo: true, orden: i + 1, updatedAt: serverTimestamp() };
+                if (t._id) {
+                    await updateDoc(doc(db, 'services', t._id), data);
+                } else {
+                    const ref = await addDoc(collection(db, 'services'), data);
+                    _tratamientos[i]._id = ref.id;
+                }
+                tratFeedback(`"${t.nombre}" guardado ✓`);
+                renderTratamientosAdmin();
+            } catch(e) {
+                console.error(e);
+                tratFeedback('No se pudo guardar. Intentá de nuevo.', false);
+            }
+        };
+
+        window.eliminarTratamiento = async (i, id) => {
+            if (!confirm(`¿Eliminar "${_tratamientos[i].nombre || 'este tratamiento'}"?`)) return;
+            try {
+                if (id) await deleteDoc(doc(db, 'services', id));
+                _tratamientos.splice(i, 1);
+                renderTratamientosAdmin();
+                tratFeedback('Tratamiento eliminado.');
+            } catch(e) {
+                console.error(e);
+                tratFeedback('No se pudo eliminar.', false);
+            }
+        };
+
+        const cargarTratamientosAdmin = async () => {
+            const cont = document.getElementById('tratamientosAdmin');
+            if (!cont) return;
+            cont.innerHTML = '<p style="font-size:13px;color:#88948f;">Cargando...</p>';
+            try {
+                const snap = await getDocs(collection(db, 'services'));
+                _tratamientos = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    if (data.activo !== false) _tratamientos.push({ _id: d.id, ...data });
+                });
+                _tratamientos.sort((a, b) => (a.orden || 99) - (b.orden || 99));
+            } catch(e) {
+                console.error(e);
+            }
+            renderTratamientosAdmin();
         };
 
         // ============================================================

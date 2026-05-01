@@ -388,7 +388,26 @@
             box-shadow:0 8px 16px rgba(101,171,139,0.26);
         }
 
-        .domingo,.pasado,.bloqueado{
+        /* días pasados — muy desvanecidos, claramente "ya fue" */
+        .pasado{
+            background: repeating-linear-gradient(
+                -45deg,
+                #f3f5f4 0px, #f3f5f4 4px,
+                #eaedec 4px, #eaedec 8px
+            );
+            color:#c4ccc8;
+            cursor:not-allowed;
+            opacity:.42;
+            border-color:transparent;
+            box-shadow:none;
+            transform:none;
+            text-decoration:line-through;
+            text-decoration-color:rgba(180,190,185,0.55);
+            pointer-events:none;
+        }
+
+        /* días bloqueados por admin — gris más opaco, sin tachado */
+        .bloqueado{
             background:#eff2f1;
             color:#b1bab6;
             cursor:not-allowed;
@@ -396,6 +415,19 @@
             border-color:#e8ecea;
             box-shadow:none;
             transform:none;
+            pointer-events:none;
+        }
+
+        /* domingos — igual que bloqueado */
+        .domingo{
+            background:#eff2f1;
+            color:#b1bab6;
+            cursor:not-allowed;
+            opacity:.65;
+            border-color:#e8ecea;
+            box-shadow:none;
+            transform:none;
+            pointer-events:none;
         }
 
         .dia.lleno{
@@ -472,15 +504,22 @@
             border:1px solid rgba(90,144,119,0.16);
             box-shadow:0 10px 22px rgba(41,66,56,0.06);
             text-align:left;
+            transition: border-color .22s ease, box-shadow .22s ease, background .22s ease;
+        }
+
+        .summary-card.filled {
+            background: linear-gradient(160deg, rgba(255,255,255,0.98) 0%, rgba(240,250,244,0.98) 100%);
+            border-color: rgba(90,160,125,0.35);
+            box-shadow: 0 14px 30px rgba(41,66,56,0.10);
         }
 
         .summary-label{
             display:block;
             margin-bottom:6px;
             color:#718177;
-            font-size:11px;
+            font-size:10.5px;
             font-weight:800;
-            letter-spacing:.08em;
+            letter-spacing:.09em;
             text-transform:uppercase;
         }
 
@@ -490,6 +529,12 @@
             font-size:15px;
             font-weight:700;
             line-height:1.35;
+        }
+
+        .summary-value.placeholder {
+            color: #adb9b4;
+            font-weight: 500;
+            font-size: 13px;
         }
 
         .hora{

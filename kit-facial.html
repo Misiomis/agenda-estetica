@@ -174,6 +174,50 @@
             flex: 1;
         }
 
+        .producto-precio {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary-strong);
+            background: rgba(114, 189, 153, 0.14);
+            padding: 3px 10px;
+            border-radius: 20px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .producto-item.selected {
+            background: #f0faf4;
+            border-color: var(--primary);
+            box-shadow: 0 4px 14px rgba(114, 189, 153, 0.18);
+        }
+
+        .total-kit {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, rgba(114, 189, 153, 0.12), rgba(79, 151, 119, 0.06));
+            border: 1.5px solid rgba(114, 189, 153, 0.35);
+            border-radius: 14px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .total-kit .total-monto {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--primary-strong);
+        }
+
+        .productos-loading {
+            text-align: center;
+            padding: 24px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
         .descripcion-box {
             margin-bottom: 24px;
         }
@@ -352,23 +396,13 @@
             <div id="feedbackMessage" class="feedback-message" style="display: none;"></div>
 
             <div id="contenidoKit">
-                <div class="productos-list">
-                    <div class="producto-item">
-                        <input type="checkbox" id="prod-leche" value="Leche de limpieza">
-                        <label for="prod-leche">Leche de limpieza</label>
-                    </div>
-                    <div class="producto-item">
-                        <input type="checkbox" id="prod-gel" value="Gel de limpieza">
-                        <label for="prod-gel">Gel de limpieza</label>
-                    </div>
-                    <div class="producto-item">
-                        <input type="checkbox" id="prod-tonico" value="Tónico calmante">
-                        <label for="prod-tonico">Tónico calmante</label>
-                    </div>
-                    <div class="producto-item">
-                        <input type="checkbox" id="prod-crema" value="Crema/Gel regeneradora hidratante">
-                        <label for="prod-crema">Crema/Gel regeneradora hidratante</label>
-                    </div>
+                <div class="productos-list" id="productosList">
+                    <div class="productos-loading">Cargando productos...</div>
+                </div>
+
+                <div class="total-kit" id="totalKit">
+                    <span>Total seleccionado</span>
+                    <span class="total-monto" id="totalMonto">$0</span>
                 </div>
 
                 <div class="descripcion-box">
@@ -396,14 +430,16 @@
     <script src="/js/mimi-bot.js"></script>
 
     <script type="module">
-        import { db, collection, addDoc } from "/js/firebase-web.js";
+        import { db, collection, addDoc, doc, getDoc } from "/js/firebase-web.js";
 
-        const PRODUCTOS_DISPONIBLES = [
-            "Leche de limpieza",
-            "Gel de limpieza",
-            "Tónico calmante",
-            "Crema/Gel regeneradora hidratante"
+        const PRODUCTOS_DEFAULT = [
+            { nombre: "Leche de limpieza",                   precio: 15000 },
+            { nombre: "Gel de limpieza",                     precio: 10000 },
+            { nombre: "Tónico calmante",                     precio: 15000 },
+            { nombre: "Crema/Gel regeneradora hidratante",   precio: 15000 }
         ];
+
+        let productosKit = [];
 
         const escapeHtml = (value) => String(value ?? "")
             .replace(/&/g, "&amp;")
@@ -426,6 +462,54 @@
             setTimeout(() => {
                 el.style.display = "none";
             }, 5000);
+        };
+
+        const formatPrecio = (n) => '$' + Number(n).toLocaleString('es-AR');
+
+        const cargarProductosKit = async () => {
+            try {
+                const snap = await getDoc(doc(db, 'configuracion', 'kitProductos'));
+                if (snap.exists() && Array.isArray(snap.data().productos) && snap.data().productos.length > 0) {
+                    productosKit = snap.data().productos;
+                } else {
+                    productosKit = PRODUCTOS_DEFAULT;
+                }
+            } catch (e) {
+                productosKit = PRODUCTOS_DEFAULT;
+            }
+            renderizarProductos();
+        };
+
+        const renderizarProductos = () => {
+            const lista = document.getElementById('productosList');
+            lista.innerHTML = productosKit.map((p, i) => `
+                <div class="producto-item" onclick="document.getElementById('prod-${i}').click()">
+                    <input type="checkbox" id="prod-${i}" value="${escapeHtml(p.nombre)}" onchange="actualizarTotal()">
+                    <label for="prod-${i}" onclick="event.preventDefault()">${escapeHtml(p.nombre)}</label>
+                    <span class="producto-precio">${formatPrecio(p.precio)}</span>
+                </div>
+            `).join('');
+        };
+
+        window.actualizarTotal = () => {
+            const checks = document.querySelectorAll('#productosList input[type="checkbox"]:checked');
+            let total = 0;
+            checks.forEach(cb => {
+                const prod = productosKit.find(p => p.nombre === cb.value);
+                if (prod) total += Number(prod.precio);
+            });
+            const totalEl = document.getElementById('totalKit');
+            if (checks.length > 0) {
+                totalEl.style.display = 'flex';
+                document.getElementById('totalMonto').textContent = formatPrecio(total);
+            } else {
+                totalEl.style.display = 'none';
+            }
+            // update selected style
+            document.querySelectorAll('#productosList .producto-item').forEach(item => {
+                const cb = item.querySelector('input[type="checkbox"]');
+                item.classList.toggle('selected', cb.checked);
+            });
         };
 
         const checkAuthAndLoad = () => {
@@ -451,8 +535,13 @@
                 return;
             }
 
-            const checkboxes = document.querySelectorAll('.productos-list input[type="checkbox"]:checked');
-            const productos = Array.from(checkboxes).map(cb => cb.value);
+            const checkboxes = document.querySelectorAll('#productosList input[type="checkbox"]:checked');
+            const productosSeleccionados = Array.from(checkboxes).map(cb => {
+                const prod = productosKit.find(p => p.nombre === cb.value);
+                return { nombre: cb.value, precio: prod ? prod.precio : 0 };
+            });
+            const productos = productosSeleccionados.map(p => p.nombre);
+            const totalPedido = productosSeleccionados.reduce((s, p) => s + p.precio, 0);
 
             if (productos.length === 0) {
                 showFeedback("Seleccioná al menos un producto.", "error");
@@ -476,6 +565,8 @@
                 const pedidoData = {
                     fecha: new Date().toISOString(),
                     productos: productos,
+                    productosDetalle: productosSeleccionados,
+                    totalPedido: totalPedido,
                     descripcionPiel: descripcionPiel,
                     nombrePaciente: nombre,
                     telefono: datosCliente?.phone || datosCliente?.telefono || "",
@@ -518,7 +609,9 @@
 
         document.getElementById("btnSolicitarKit").addEventListener("click", submitKitRequest);
 
-        checkAuthAndLoad();
+        if (checkAuthAndLoad()) {
+            cargarProductosKit();
+        }
     </script>
 </body>
 </html>

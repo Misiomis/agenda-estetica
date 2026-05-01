@@ -532,3 +532,74 @@ body[data-tema="bosque"] {
     color: #8a5c00;
     border: 1px solid rgba(200, 155, 0, 0.25);
 }
+
+/* ===== SKELETON LOADER ===== */
+@keyframes shimmerSlide {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+}
+
+.skeleton {
+    pointer-events: none;
+    user-select: none;
+}
+.skeleton * { visibility: hidden !important; }
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    border-radius: inherit;
+}
+.skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(74,110,92,0.05) 0%,
+        rgba(74,110,92,0.11) 40%,
+        rgba(74,110,92,0.05) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmerSlide 1.5s ease infinite;
+    border-radius: inherit;
+}
+
+/* ===== CARD ENTRANCE — stagger helpers ===== */
+@keyframes cardIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+    animation: cardIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-in:nth-child(1)  { animation-delay: 0.04s; }
+.animate-in:nth-child(2)  { animation-delay: 0.09s; }
+.animate-in:nth-child(3)  { animation-delay: 0.14s; }
+.animate-in:nth-child(4)  { animation-delay: 0.19s; }
+.animate-in:nth-child(5)  { animation-delay: 0.24s; }
+.animate-in:nth-child(6)  { animation-delay: 0.29s; }
+.animate-in:nth-child(n+7) { animation-delay: 0.34s; }
+
+/* ===== GLASS BUTTON (secundario) ===== */
+.btn-glass {
+    background: rgba(255, 255, 255, 0.82);
+    color: var(--pro-ink);
+    border: 1.5px solid rgba(140, 180, 160, 0.38);
+    box-shadow: 0 10px 24px rgba(29, 51, 42, 0.08);
+    border-radius: 999px;
+    font-family: var(--pro-font-body);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.btn-glass:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px rgba(29, 51, 42, 0.13);
+    border-color: rgba(100, 160, 130, 0.60);
+}
