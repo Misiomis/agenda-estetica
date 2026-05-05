@@ -2995,7 +2995,7 @@
         
         window.buscarClientePorDni = async (mostrarMensaje = false) => {
             const dni = normalizarDNI(document.getElementById("cliDni").value);
-            if (!dni || dni.length < 6) {
+            if (!dni || dni.length < 4) {
                 dniClienteCargado = "";
                 return;
             }
@@ -3190,8 +3190,16 @@
             const username = usernameInput || generarUsername(fullName);
             const hoursBalance = hoursBalanceRaw === "" ? 1 : Number(hoursBalanceRaw);
             const membershipActive = document.getElementById("cliMembership").checked;
-            if (!dni || !fullName || !phone) {
-                mostrarAviso("Completá DNI, nombre y teléfono");
+            if (!dni || dni.length < 4) {
+                mostrarAviso("El DNI debe tener al menos 4 dígitos");
+                return;
+            }
+            if (!fullName) {
+                mostrarAviso("Completá el nombre del paciente");
+                return;
+            }
+            if (!phone) {
+                mostrarAviso("Completá el teléfono del paciente");
                 return;
             }
             if (Number.isNaN(hoursBalance) || hoursBalance < 0) {
@@ -3213,14 +3221,39 @@
                 membershipActive,
                 membresia: membershipActive,
                 hoursBalance,
-                updatedAt: serverTimestamp(),
-                createdAt: serverTimestamp()
+                updatedAt: serverTimestamp()
             };
             try {
                 mostrarLoader(true);
+                // Solo setear createdAt si el paciente no existe aún
+                const existeSnap = await getDoc(doc(db, "clients", dni));
+                if (!existeSnap.exists()) {
+                    payload.createdAt = serverTimestamp();
+                }
                 await setDoc(doc(db, "clients", dni), payload, { merge: true });
                 dniClienteCargado = dni;
-                mostrarAviso("Paciente guardado");
+
+                // Actualizar lista en memoria sin necesidad de recargar todo
+                const idx = todasLosPacientes.findIndex(p => p.dni === dni);
+                const entradaActualizada = {
+                    dni,
+                    fullName,
+                    phone: payload.phone,
+                    email,
+                    username,
+                    active: payload.active,
+                    hoursBalance,
+                    membershipActive
+                };
+                if (idx !== -1) {
+                    todasLosPacientes[idx] = entradaActualizada;
+                } else {
+                    todasLosPacientes.push(entradaActualizada);
+                    todasLosPacientes.sort((a, b) => (a.fullName || "").localeCompare(b.fullName || "", 'es'));
+                }
+                filtrarListadoClientes();
+
+                mostrarAviso(`Paciente "${fullName}" guardado ✓`);
                 limpiarFormularioCliente();
             } catch (error) {
                 console.error(error);
@@ -3539,6 +3572,7 @@
             if (nav) nav.classList.remove('open');
             if (s === 'pedidos-kit') window.cargarPedidosKit();
             if (s === 'control') window.cargarSeccionControl();
+            if (s === 'clientes') filtrarListadoClientes();
         };
         
         // === FUNCIONES PARA CONTROL DE JORNADA ESPECIAL ===
