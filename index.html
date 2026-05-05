@@ -1177,7 +1177,19 @@
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const cliente = docSnap.data();
-                    if (cliente.fullName.toLowerCase() === nombreIngresado) {
+                    const normNombre = s => (s || "").toLowerCase()
+                        .normalize("NFD").replace(/[̀-ͯ]/g, "")
+                        .replace(/[^a-z0-9\s]/g, "").trim();
+                    const nombreCandidato = normNombre(
+                        cliente.fullName || cliente.fullLname || cliente.nombre || cliente.name || cliente.username || ""
+                    );
+                    const nombreTipado = normNombre(nombreIngresado);
+                    // Acepta: coincidencia exacta, nombre completo, o cada palabra tipada como prefijo de alguna palabra guardada
+                    const palabrasTipadas = nombreTipado.split(/\s+/).filter(Boolean);
+                    const palabrasGuardadas = nombreCandidato.split(/\s+/).filter(Boolean);
+                    const nombreValido = nombreCandidato === nombreTipado
+                        || palabrasTipadas.every(pt => palabrasGuardadas.some(pg => pg.startsWith(pt)));
+                    if (nombreValido && palabrasTipadas.length > 0) {
                         localStorage.setItem("clienteDNI", dniIngresado);
                         localStorage.setItem("clienteNombre", cliente.fullName);
                         if (jornadaLoginRedirect) {
