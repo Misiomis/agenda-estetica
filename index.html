@@ -317,9 +317,50 @@
             .gallery-section, .encontrarme-section { padding: 48px 16px; }
             .services-section { padding: 56px 16px 64px; }
         }
+
+        /* ── LOADER ── */
+        #loader-wrapper {
+            position: fixed; inset: 0; z-index: 999999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(24px) saturate(1.15); -webkit-backdrop-filter: blur(24px) saturate(1.15);
+            transition: opacity 0.55s cubic-bezier(0.4,0,0.2,1), visibility 0.55s;
+        }
+        #loader-wrapper.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        .loader-inner { display: flex; flex-direction: column; align-items: center; }
+        .logo-coin {
+            width: clamp(96px, 24vw, 148px); height: auto; display: block;
+            animation: coinSpinLoader 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes coinSpinLoader {
+            0%   { transform: perspective(560px) rotateY(0deg) scale(1); }
+            25%  { transform: perspective(560px) rotateY(90deg) scale(0.82); }
+            50%  { transform: perspective(560px) rotateY(180deg) scale(1); }
+            75%  { transform: perspective(560px) rotateY(270deg) scale(0.82); }
+            100% { transform: perspective(560px) rotateY(360deg) scale(1); }
+        }
+        .loader-shadow {
+            width: 72px; height: 10px; margin-top: 16px;
+            background: radial-gradient(ellipse, rgba(20,55,38,0.20) 0%, transparent 72%);
+            border-radius: 50%;
+            animation: shadowSync 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes shadowSync {
+            0%,100% { transform: scaleX(1); opacity: 0.55; }
+            25%,75% { transform: scaleX(0.18); opacity: 0.15; }
+            50%     { transform: scaleX(1); opacity: 0.55; }
+        }
     </style>
 </head>
 <body>
+    <!-- ── LOADER ── -->
+    <div id="loader-wrapper" role="status" aria-label="Cargando Espacio Mimar T">
+        <div class="loader-inner">
+            <img src="img/logo.png" alt="Espacio Mimar T" class="logo-coin">
+            <div class="loader-shadow"></div>
+        </div>
+    </div>
+
     <div id="headerContainer"></div>
 
     <!-- ── HERO ── -->
@@ -786,5 +827,14 @@
     })();
     </script>
     <script src="/js/promo-braulio.js"></script>
+    <script>
+    /* ── Loader ── */
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const loader = document.getElementById('loader-wrapper');
+            if (loader) loader.classList.add('hidden');
+        }, 1500);
+    });
+    </script>
 </body>
 </html>
