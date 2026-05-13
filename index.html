@@ -113,30 +113,23 @@
         /* ── GALLERY ── */
         .gallery-section { padding: 72px 16px; background: #fff; overflow: hidden; }
         .gallery-shell { max-width: 1080px; margin: 0 auto; }
-        .gallery-grid { display: grid; grid-template-columns: 1.45fr 1fr; gap: 16px; margin-top: 40px; height: 500px; }
-        .gallery-item-main { border-radius: 22px; overflow: hidden; box-shadow: 0 16px 40px rgba(20,50,32,0.10); height: 100%; }
-        .gallery-right { display: flex; flex-direction: column; gap: 14px; height: 100%; }
-        .gallery-right .gallery-item { flex: 1; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 28px rgba(20,50,32,0.08); min-height: 0; }
-        .gallery-right .gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.55s cubic-bezier(0.25,0.46,0.45,0.94); }
-        .gallery-right .gallery-item:hover img { transform: scale(1.05); }
+        .gallery-grid { margin-top: 40px; }
+        .gallery-item-main { border-radius: 22px; overflow: hidden; box-shadow: 0 16px 40px rgba(20,50,32,0.10); height: 500px; max-height: 65vw; }
 
         /* mini-carousel */
         .mc-wrap { position: relative; width: 100%; height: 100%; }
         .mc-slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 1.2s cubic-bezier(0.4,0,0.2,1); }
         .mc-slide.active { opacity: 1; }
-        .mc-dots { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; z-index: 3; }
-        .mc-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.45); border: 1px solid rgba(255,255,255,0.6); cursor: pointer; padding: 0; transition: background 0.3s, transform 0.3s; }
-        .mc-dot.active { background: #fff; transform: scale(1.5); }
+        .mc-nav { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; z-index: 3; pointer-events: none; }
+        .mc-arrow { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.18); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1.5px solid rgba(255,255,255,0.38); color: #fff; font-size: 28px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; pointer-events: all; padding: 0; transition: background 0.22s, transform 0.22s; animation: arrowPulse 3s ease-in-out infinite; }
+        .mc-arrow:hover { background: rgba(255,255,255,0.32); transform: scale(1.1); animation: none; }
+        .mc-prev { animation-delay: 0s; }
+        .mc-next { animation-delay: 0.6s; }
+        @keyframes arrowPulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
 
         @media (max-width: 720px) {
-            .gallery-grid { grid-template-columns: 1fr; height: auto; }
-            .gallery-item-main { height: 260px; }
-            .gallery-right { flex-direction: row; height: 150px; }
-            .gallery-right .gallery-item { flex: 1; }
-        }
-        @media (max-width: 420px) {
-            .gallery-right { flex-direction: column; height: auto; }
-            .gallery-right .gallery-item { height: 130px; flex: none; }
+            .gallery-item-main { height: 280px; max-height: none; }
+            .mc-arrow { width: 38px; height: 38px; font-size: 22px; }
         }
 
         /* ── ENCONTRARME ── */
@@ -189,9 +182,9 @@
         .testimonial-footer { display: flex; align-items: center; gap: 12px; }
         .testimonial-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, #72bd99, #3a7a5a); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: #fff; }
         .testimonial-service { font-size: 12px; font-weight: 700; color: var(--sage); }
-        .slider-dots { display: flex; justify-content: center; gap: 10px; margin-top: 28px; }
-        .sdot { width: 8px; height: 8px; border-radius: 50%; background: rgba(74,110,92,0.18); border: none; cursor: pointer; transition: background 0.35s, width 0.35s; padding: 0; }
-        .sdot.active { background: var(--sage); width: 28px; border-radius: 4px; }
+        .t-nav { display: flex; justify-content: center; gap: 12px; margin-top: 24px; }
+        .t-arrow { width: 42px; height: 42px; border-radius: 50%; background: rgba(74,110,92,0.10); border: 1.5px solid rgba(74,110,92,0.22); color: var(--sage); font-size: 24px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.22s, border-color 0.22s, transform 0.22s; }
+        .t-arrow:hover { background: rgba(74,110,92,0.18); border-color: rgba(74,110,92,0.4); transform: scale(1.08); }
         @media (max-width: 768px) { .testimonials-section { padding: 56px 0 64px; } .testimonial-card { padding: 28px 22px 24px; } }
 
         /* ── SERVICES ACCORDION ── */
@@ -298,15 +291,13 @@
         @media (max-width: 768px) { .login-section { padding: 56px 16px 64px; } }
 
         /* ── WA FLOATING ── */
-        .wa-wrap { position: fixed; bottom: 22px; right: 18px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-        .wa-full { display: flex; align-items: center; background: #25D366; border-radius: 999px; box-shadow: 0 8px 28px rgba(37,211,102,0.42), 0 2px 8px rgba(0,0,0,0.12); overflow: hidden; transition: opacity 0.3s ease, transform 0.3s ease; }
-        .wa-full.hidden { opacity: 0; pointer-events: none; transform: scale(0.8) translateY(10px); }
-        .wa-main-link { display: flex; align-items: center; gap: 8px; padding: 13px 8px 13px 18px; color: #fff; text-decoration: none; font-family: var(--font-body); font-size: 13px; font-weight: 800; letter-spacing: 0.05em; white-space: nowrap; }
-        .wa-close-btn { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.75); font-size: 12px; padding: 13px 16px 13px 6px; line-height: 1; font-weight: 700; transition: color 0.2s; }
-        .wa-close-btn:hover { color: #fff; }
-        .wa-bubble { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; background: #25D366; border: none; cursor: pointer; box-shadow: 0 8px 28px rgba(37,211,102,0.42); transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0; pointer-events: none; transform: scale(0.4); }
-        .wa-bubble.visible { opacity: 1; pointer-events: all; transform: scale(1); }
-        .wa-bubble:hover { transform: scale(1.1); }
+        .wa-wrap { position: fixed; bottom: 22px; right: 18px; z-index: 9999; }
+        .wa-icon-wrap { position: relative; display: inline-flex; transition: opacity 0.28s ease, transform 0.28s ease; }
+        .wa-icon-wrap.hidden { opacity: 0; pointer-events: none; transform: scale(0.4); }
+        .wa-icon-link { width: 54px; height: 54px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 28px rgba(37,211,102,0.44), 0 2px 8px rgba(0,0,0,0.14); text-decoration: none; transition: transform 0.22s; }
+        .wa-icon-link:hover { transform: scale(1.08); }
+        .wa-close-mini { position: absolute; top: -3px; right: -3px; width: 18px; height: 18px; border-radius: 50%; background: rgba(24,24,24,0.72); border: 1.5px solid rgba(255,255,255,0.85); color: #fff; font-size: 8px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; transition: background 0.2s; }
+        .wa-close-mini:hover { background: rgba(0,0,0,0.90); }
 
         /* ── ANIMATIONS ── */
         @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
@@ -367,18 +358,11 @@
                         <img src="img/1P.jpg" class="mc-slide" alt="Espacio Mimar T" loading="lazy">
                         <img src="img/2P.jpg" class="mc-slide" alt="Espacio Mimar T" loading="lazy">
                         <img src="img/3P.jpg" class="mc-slide" alt="Espacio Mimar T" loading="lazy">
-                        <div class="mc-dots" id="mcDots" aria-hidden="true">
-                            <button class="mc-dot active" data-idx="0"></button>
-                            <button class="mc-dot" data-idx="1"></button>
-                            <button class="mc-dot" data-idx="2"></button>
-                            <button class="mc-dot" data-idx="3"></button>
+                        <div class="mc-nav" aria-hidden="true">
+                            <button class="mc-arrow mc-prev" id="mcPrev" aria-label="Anterior">&#8249;</button>
+                            <button class="mc-arrow mc-next" id="mcNext" aria-label="Siguiente">&#8250;</button>
                         </div>
                     </div>
-                </div>
-                <div class="gallery-right">
-                    <div class="gallery-item"><img src="img/cosmetologa.webp" alt="Atención personalizada" loading="lazy"></div>
-                    <div class="gallery-item"><img src="img/cabina.webp" alt="Cabina de tratamiento" loading="lazy"></div>
-                    <div class="gallery-item"><img src="img/camilla.webp" alt="Equipamiento profesional" loading="lazy"></div>
                 </div>
             </div>
         </div>
@@ -449,11 +433,9 @@
                     </div>
                 </div>
             </div>
-            <div class="slider-dots" id="testimonialDots">
-                <button class="sdot active" data-idx="0" aria-label="Testimonio 1"></button>
-                <button class="sdot" data-idx="1" aria-label="Testimonio 2"></button>
-                <button class="sdot" data-idx="2" aria-label="Testimonio 3"></button>
-                <button class="sdot" data-idx="3" aria-label="Testimonio 4"></button>
+            <div class="t-nav" aria-label="Navegar testimonios">
+                <button class="t-arrow" id="tPrev" aria-label="Testimonio anterior">&#8249;</button>
+                <button class="t-arrow" id="tNext" aria-label="Testimonio siguiente">&#8250;</button>
             </div>
         </div>
     </section>
@@ -603,16 +585,12 @@
 
     <!-- ── WA FLOTANTE ── -->
     <div class="wa-wrap" id="waWrap">
-        <div class="wa-full" id="waFull">
-            <a href="https://wa.me/5493764291807?text=Hola%20Gime%21%20Vi%20la%20web%20de%20Espacio%20Mimar%20T%20y%20quer%C3%ADa%20consultarte." class="wa-main-link" target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp">
-                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#fff" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                <span class="wa-label">WhatsApp</span>
+        <div class="wa-icon-wrap" id="waFull">
+            <a href="https://wa.me/5493764291807?text=Hola%20Gime%21%20Vi%20la%20web%20de%20Espacio%20Mimar%20T%20y%20quer%C3%ADa%20consultarte." class="wa-icon-link" target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp">
+                <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="#fff" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             </a>
-            <button class="wa-close-btn" id="waCloseBtn" aria-label="Cerrar">✕</button>
+            <button class="wa-close-mini" id="waCloseBtn" aria-label="Cerrar WhatsApp">✕</button>
         </div>
-        <button class="wa-bubble" id="waBubble" aria-label="Abrir WhatsApp">
-            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="#fff" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        </button>
     </div>
 
     <div id="footerContainer"></div>
@@ -724,40 +702,38 @@
     /* ── Gallery mini-carousel ── */
     (function() {
         const slides = document.querySelectorAll('.mc-slide');
-        const dots = document.querySelectorAll('#mcDots .mc-dot');
         if (!slides.length) return;
-        let cur = 0, timer;
+        let cur = 0;
         function goTo(n) {
-            slides[cur].classList.remove('active'); dots[cur].classList.remove('active');
+            slides[cur].classList.remove('active');
             cur = (n + slides.length) % slides.length;
-            slides[cur].classList.add('active'); dots[cur].classList.add('active');
+            slides[cur].classList.add('active');
         }
-        timer = setInterval(() => goTo(cur + 1), 4200);
-        dots.forEach(d => d.addEventListener('click', () => { clearInterval(timer); goTo(+d.dataset.idx); timer = setInterval(() => goTo(cur + 1), 4200); }));
+        document.getElementById('mcPrev')?.addEventListener('click', () => goTo(cur - 1));
+        document.getElementById('mcNext')?.addEventListener('click', () => goTo(cur + 1));
+        const wrap = document.querySelector('.mc-wrap');
+        if (wrap) {
+            let tx = 0;
+            wrap.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+            wrap.addEventListener('touchend', e => { const diff = tx - e.changedTouches[0].clientX; if (Math.abs(diff) > 44) goTo(cur + (diff > 0 ? 1 : -1)); }, { passive: true });
+        }
     })();
 
     /* ── Testimonials carousel ── */
     (function() {
-        const INTERVAL = 45000;
         const track = document.getElementById('testimonialsTrack');
-        const dotBtns = document.querySelectorAll('#testimonialDots .sdot');
-        if (!track || !dotBtns.length) return;
+        if (!track) return;
         const cards = track.querySelectorAll('.testimonial-card');
         const vp = track.closest('.slider-viewport');
-        let cur = 0, timer;
-        function goTo(n) { cur = (n + cards.length) % cards.length; track.style.transform = `translateX(-${cur * 100}%)`; dotBtns.forEach((d, i) => d.classList.toggle('active', i === cur)); }
-        function restart() { clearInterval(timer); timer = setInterval(() => goTo(cur + 1), INTERVAL); }
-        timer = setInterval(() => goTo(cur + 1), INTERVAL);
-        dotBtns.forEach((d, i) => d.addEventListener('click', () => { goTo(i); restart(); }));
-        const section = track.closest('.testimonials-section');
-        if (section) { section.addEventListener('mouseenter', () => clearInterval(timer)); section.addEventListener('mouseleave', restart); }
+        let cur = 0;
+        function goTo(n) { cur = (n + cards.length) % cards.length; track.style.transform = `translateX(-${cur * 100}%)`; }
+        document.getElementById('tPrev')?.addEventListener('click', () => goTo(cur - 1));
+        document.getElementById('tNext')?.addEventListener('click', () => goTo(cur + 1));
         if (vp) {
             let tx = 0;
             vp.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
-            vp.addEventListener('touchend', e => { const diff = tx - e.changedTouches[0].clientX; if (Math.abs(diff) > 44) { goTo(cur + (diff > 0 ? 1 : -1)); restart(); } }, { passive: true });
+            vp.addEventListener('touchend', e => { const diff = tx - e.changedTouches[0].clientX; if (Math.abs(diff) > 44) goTo(cur + (diff > 0 ? 1 : -1)); }, { passive: true });
         }
-        const visObs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) restart(); else clearInterval(timer); }); }, { threshold: 0.3 });
-        if (section) visObs.observe(section);
     })();
 
     /* ── Services accordion ── */
@@ -790,11 +766,9 @@
     (function() {
         const waFull = document.getElementById('waFull');
         const waClose = document.getElementById('waCloseBtn');
-        const waBubble = document.getElementById('waBubble');
-        if (!waFull || !waClose || !waBubble) return;
-        if (sessionStorage.getItem('waHidden') === '1') { waFull.classList.add('hidden'); waBubble.classList.add('visible'); }
-        waClose.addEventListener('click', () => { waFull.classList.add('hidden'); waBubble.classList.add('visible'); sessionStorage.setItem('waHidden', '1'); });
-        waBubble.addEventListener('click', () => { waFull.classList.remove('hidden'); waBubble.classList.remove('visible'); sessionStorage.removeItem('waHidden'); });
+        if (!waFull || !waClose) return;
+        if (sessionStorage.getItem('waHidden') === '1') waFull.classList.add('hidden');
+        waClose.addEventListener('click', () => { waFull.classList.add('hidden'); sessionStorage.setItem('waHidden', '1'); });
     })();
 
     /* ── Scroll reveal ── */
@@ -802,7 +776,7 @@
         const io = new IntersectionObserver((entries) => {
             entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('revealed'); io.unobserve(e.target); } });
         }, { threshold: 0.10 });
-        document.querySelectorAll('.service-card, .testimonial-card, .faq-acc-item, .gallery-right .gallery-item').forEach(el => {
+        document.querySelectorAll('.service-card, .testimonial-card, .faq-acc-item').forEach(el => {
             el.classList.add('reveal'); io.observe(el);
         });
     })();

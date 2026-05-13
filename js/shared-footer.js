@@ -82,7 +82,7 @@
 
             .shared-site-footer__text {
                 margin: 0;
-                color: #87717c;
+                color: rgba(255,255,255,0.45);
                 font-size: 12px;
                 line-height: 1.5;
                 font-weight: 600;
@@ -90,14 +90,14 @@
             }
 
             .shared-site-footer__brand {
-                color: #72bd99;
-                font-weight: 800;
+                color: rgba(255,255,255,0.6);
+                font-weight: 700;
             }
 
             .shared-site-footer__sep {
                 display: inline-block;
                 margin: 0 6px;
-                color: #c79ab1;
+                color: rgba(255,255,255,0.25);
             }
 
             .maintenance-shell {
@@ -170,6 +170,7 @@
     function removeLegacyFooters() {
         const candidates = document.querySelectorAll(".footer, footer");
         candidates.forEach((node) => {
+            if (node.classList.contains("site-footer") || node.closest("#footerContainer")) return;
             const text = (node.textContent || "").toLowerCase();
             if (text.includes("todos los derechos reservados")) {
                 node.remove();
@@ -200,6 +201,7 @@
 
     function appendFooter() {
         if (document.querySelector("[data-shared-site-footer]")) return;
+        if (document.querySelector(".site-footer") || document.getElementById("footerContainer")) return;
 
         const mount = getMountNode();
         const footer = document.createElement("footer");

@@ -1902,6 +1902,18 @@
                     ? `<button onclick="enviarDetalleManual2('${r.id}')" style="width:100%; margin-top:6px; padding:10px; border-radius:10px; border:none; background:#128c7e; color:white; font-weight:700; cursor:pointer; font-size:13px">Enviar resumen — Paciente 2</button>`
                     : '';
 
+                // Botón de recomendaciones post-sesión
+                const phone = (r.phone || '').toString().trim();
+                const recId = `recMenu-${r.id}`;
+                const msg1 = encodeURIComponent('Recordá que el consumo de agua es el complemento indispensable de tu sesión y un pilar fundamental para tu salud. Para maximizar los resultados y permitir que tu cuerpo procese el tratamiento de forma óptima, mantenete hidratada/o durante todo el día✨💧');
+                const msg2 = encodeURIComponent('Recordá que el uso de tu faja es fundamental para consolidar los resultados. El esquema recomendado es de 3 horas diarias durante 5 días a la semana, o bien 5 horas diarias durante 3 días. ¡Tu constancia hace la diferencia!✨');
+                const btnRec = phone ? `
+                    <button onclick="(function(){var m=document.getElementById('${recId}');m.style.display=m.style.display==='flex'?'none':'flex';})()" style="width:100%; margin-top:6px; padding:10px; border-radius:10px; border:1.5px solid #9cb8e8; background:#f0f6ff; color:#2255a4; font-weight:700; cursor:pointer; font-size:13px">📋 Enviar Recomendaciones</button>
+                    <div id="${recId}" style="display:none; flex-direction:column; gap:6px; margin-top:4px; background:#e8f0ff; border:1px solid #b8d0f0; border-radius:10px; padding:10px;">
+                        <a href="https://wa.me/${phone}?text=${msg1}" target="_blank" rel="noopener noreferrer" style="display:block; padding:10px 12px; border-radius:8px; background:#25d366; color:#fff; font-weight:700; font-size:12px; text-decoration:none; text-align:center">💧 Tomar agua hoy</a>
+                        <a href="https://wa.me/${phone}?text=${msg2}" target="_blank" rel="noopener noreferrer" style="display:block; padding:10px 12px; border-radius:8px; background:#128c7e; color:#fff; font-weight:700; font-size:12px; text-decoration:none; text-align:center">🩺 Uso de faja</a>
+                    </div>` : '';
+
                 // Header del paciente
                 const pac1label = esDuo
                     ? `<div style="font-size:11px;font-weight:700;color:#2f7c5d;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Paciente 1</div>`
@@ -1923,6 +1935,7 @@
                     <button class="btn-mini" style="width:100%;margin-top:6px;border-color:#e0b0b0;color:#a02828;background:#fff5f5" onclick="cancelarTurnoYNotificar('${r.id}')">Cancelar turno y notificar</button>
                     <button class="btn-delete-reserva" onclick="borrarReserva('${r.id}')">Borrar reserva</button>
                     ${btnEnviar1}${btnEnviar2}
+                    ${btnRec}
                 </div>`;
             }).join('') : '<p style="text-align:center; opacity:0.5">Sin turnos.</p>';
             
@@ -2864,7 +2877,7 @@
             }
         };
         
-        window.guardarN = async (id, fecha, tel, nombre, hora, servicio) => { 
+        window.guardarN = async (id) => {
             const el = document.getElementById(`n-${id}`);
             if (!el) return;
             const nota = el.value.trim();
@@ -2873,37 +2886,9 @@
                 await updateDoc(doc(db, "reservas", id), { detalleSesion: nota });
                 const idx = todasLasReservas.findIndex(r => r.id === id);
                 if (idx !== -1) todasLasReservas[idx].detalleSesion = nota;
-                const displayEl = document.getElementById(`nd-${id}`);
-                if (displayEl) {
-                    displayEl.innerHTML = `${escapeHtml(nota)}<button title="Editar nota" onclick="activarEdicionNotaAdmin('${id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:12px">Editar</button>`;
-                    displayEl.style.display = "block";
-                    document.getElementById(`ne-${id}`).style.display = "none";
-                } else {
-                    const d = document.createElement("div");
-                    d.id = `nd-${id}`;
-                    d.style.cssText = "margin-top:8px; background:#f3faf6; border:1px solid #b6dfc9; border-radius:10px; padding:10px 34px 10px 10px; font-size:13px; color:#2f5a47; white-space:pre-wrap; position:relative";
-                    d.innerHTML = `${escapeHtml(nota)}<button title="Editar nota" onclick="activarEdicionNotaAdmin('${id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:12px">Editar</button>`;
-                    const ne = document.createElement("div");
-                    ne.id = `ne-${id}`;
-                    ne.style.display = "none";
-                    ne.innerHTML = `<textarea id="n-${id}" style="width:100%; box-sizing:border-box; margin-top:6px">${escapeHtml(nota)}</textarea><div style="display:flex; gap:6px; margin-top:4px"><button class="btn-save" onclick="guardarN('${id}')">Guardar</button><button onclick="cancelarEdicionAdmin('${id}')" style="border:1px solid #ccc; background:#f9f9f9; border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px">Cancelar</button></div>`;
-                    const btnGuardar = document.getElementById(`btnN-${id}`);
-                    if (btnGuardar) btnGuardar.remove();
-                    el.replaceWith(d);
-                    d.insertAdjacentElement("afterend", ne);
-                }
-                if (!document.getElementById(`btnEnviarResumen-${id}`)) {
-                    const card = document.getElementById(`nd-${id}`)?.closest('.detalle-dia-card') || document.getElementById(`nd-${id}`)?.parentElement;
-                    if (card) {
-                        const btnEnviar = document.createElement('button');
-                        btnEnviar.id = `btnEnviarResumen-${id}`;
-                        btnEnviar.textContent = 'Enviar resumen de sesión';
-                        btnEnviar.style.cssText = 'width:100%; margin-top:8px; padding:10px; border-radius:10px; border:none; background:#25d366; color:white; font-weight:700; cursor:pointer; font-size:13px';
-                        btnEnviar.onclick = () => enviarDetalleManual(id);
-                        card.appendChild(btnEnviar);
-                    }
-                }
-                mostrarAviso('Nota guardada');
+                mostrarAviso('Nota guardada ✓');
+                await cargarTodo();
+                if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
             } catch (error) {
                 console.error(error);
                 mostrarAviso("No se pudo guardar la nota");
