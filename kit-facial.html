@@ -283,9 +283,9 @@
         }
 
         .feedback-message.success {
-            background: #e8f5ee;
+            background: linear-gradient(135deg, #e4f7ed 0%, #d8f2e5 100%);
             color: var(--primary-strong);
-            border: 1px solid #cce8d9;
+            border: 1.5px solid #a8dfc0;
         }
 
         .feedback-message.error {
@@ -299,6 +299,56 @@
             color: #3d6252;
             border: 1px solid #d5e9de;
         }
+
+        /* ── Success screen ── */
+        #successScreen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 32px 16px 24px;
+            gap: 14px;
+            animation: fadeInUp .45s ease both;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .success-icon {
+            width: 74px; height: 74px; border-radius: 50%;
+            background: linear-gradient(135deg, #72bd99, #4f9777);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 34px;
+            box-shadow: 0 10px 28px rgba(79,151,119,0.30);
+        }
+        .success-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 26px;
+            font-style: italic;
+            color: var(--ink);
+            margin: 0;
+        }
+        .success-body {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--muted);
+            max-width: 380px;
+            margin: 0;
+        }
+        .btn-otro {
+            margin-top: 8px;
+            padding: 12px 28px;
+            background: transparent;
+            border: 1.5px solid var(--primary);
+            color: var(--primary-strong);
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background .22s, color .22s;
+        }
+        .btn-otro:hover { background: var(--primary); color: #fff; }
 
         .not-logged-in {
             background: #f8fbf9;
@@ -413,6 +463,16 @@
                 <button class="btn-submit" id="btnSolicitarKit">Solicitar Kit</button>
             </div>
 
+            <div id="successScreen">
+                <div class="success-icon">💚</div>
+                <h2 class="success-title">¡Tu solicitud fue enviada!</h2>
+                <p class="success-body">
+                    Gimena va a revisar tu pedido y se va a poner en contacto con vos a la brevedad.<br>
+                    ¡Gracias por confiar en Espacio Mimar T! ✨
+                </p>
+                <button class="btn-otro" id="btnNuevaSolicitud">Hacer otra solicitud</button>
+            </div>
+
             <div id="noLoggedIn" class="not-logged-in" style="display: none;">
                 <div class="nl-icon">🌿</div>
                 <h3>Espacio exclusivo</h3>
@@ -454,14 +514,12 @@
             return { dni, nombre };
         };
 
-        const showFeedback = (message, type = "info") => {
+        const showFeedback = (message, type = "info", autohide = true) => {
             const el = document.getElementById("feedbackMessage");
             el.textContent = message;
             el.className = `feedback-message ${type}`;
             el.style.display = "block";
-            setTimeout(() => {
-                el.style.display = "none";
-            }, 5000);
+            if (autohide) setTimeout(() => { el.style.display = "none"; }, 5000);
         };
 
         const formatPrecio = (n) => '$' + Number(n).toLocaleString('es-AR');
@@ -577,15 +635,20 @@
 
                 await addDoc(collection(db, "pedidosKit"), pedidoData);
 
-                showFeedback("✅ Tu solicitud de kit fue enviada. Te contactaremos pronto!", "success");
-                
-                document.querySelectorAll('.productos-list input[type="checkbox"]').forEach(cb => cb.checked = false);
+                // Limpiar formulario
+                document.querySelectorAll('#productosList input[type="checkbox"]').forEach(cb => { cb.checked = false; });
                 document.getElementById("descripcionPiel").value = "";
+                actualizarTotal();
+
+                // Mostrar pantalla de éxito
+                document.getElementById("contenidoKit").style.display = "none";
+                document.getElementById("feedbackMessage").style.display = "none";
+                const successScreen = document.getElementById("successScreen");
+                successScreen.style.display = "flex";
 
             } catch (error) {
                 console.error("Error al guardar pedido:", error);
-                showFeedback("Error al enviar la solicitud. Intentá de nuevo.", "error");
-            } finally {
+                showFeedback("No se pudo enviar la solicitud. Intentá de nuevo.", "error");
                 btn.disabled = false;
                 btn.textContent = "Solicitar Kit";
             }
@@ -608,6 +671,15 @@
         };
 
         document.getElementById("btnSolicitarKit").addEventListener("click", submitKitRequest);
+
+        document.getElementById("btnNuevaSolicitud").addEventListener("click", () => {
+            document.getElementById("successScreen").style.display = "none";
+            const contenido = document.getElementById("contenidoKit");
+            contenido.style.display = "block";
+            const btn = document.getElementById("btnSolicitarKit");
+            btn.disabled = false;
+            btn.textContent = "Solicitar Kit";
+        });
 
         if (checkAuthAndLoad()) {
             cargarProductosKit();
