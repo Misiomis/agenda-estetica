@@ -967,6 +967,59 @@ exports.enviarRecordatoriosTurnos = onSchedule(
 // enviarResumenSesion: envía por WhatsApp el detalle de lo realizado ese día
 // Body esperado: { tel, nombre, fecha, sesiones: [{ hora, servicio, detalle }] }
 // ─────────────────────────────────────────────────────────────────────────────
+exports.enviarNotificacionKitFacial = onRequest({ invoker: "public" }, async (req, res) => {
+
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") return res.status(204).send("");
+
+    if (req.method !== "POST") {
+        return res.status(405).json({ error: "Metodo no permitido" });
+    }
+
+    try {
+        const { nombre, dni, productos, total, descripcionPiel } = req.body || {};
+
+        if (!nombre || !dni || !productos || !total) {
+            return res.status(400).json({ error: "Faltan campos obligatorios." });
+        }
+
+        const productosTexto = Array.isArray(productos)
+            ? productos.join(", ")
+            : String(productos);
+
+        const whatsappConfig = getWhatsAppConfig();
+
+        const envio = await enviarTemplateWhatsApp({
+            telefono: "3757671229",
+            templateName: "pedidos_de_kit",
+            templateLang: "es_AR",
+            bodyParameters: [
+                { placeholder: "{{1}} nombre", value: String(nombre).trim() || "Cliente" },
+                { placeholder: "{{2}} dni", value: String(dni).trim() },
+                { placeholder: "{{3}} productos", value: sanitizarTextoResumen(productosTexto, 900, "Sin productos") },
+                { placeholder: "{{4}} total", value: String(total).trim() },
+                { placeholder: "{{5}} descripcionPiel", value: sanitizarTextoResumen(String(descripcionPiel || "Sin descripción"), 900, "Sin descripción") }
+            ],
+            whatsappConfig
+        });
+
+        return res.status(200).json({
+            status: "enviado",
+            whatsappSent: true,
+            data: envio?.response?.data || null
+        });
+
+    } catch (error) {
+        console.error("enviarNotificacionKitFacial error:", error.response?.data || error.message);
+        return res.status(500).json({
+            error: "Error al enviar notificación",
+            detalles: error.response?.data || error.message
+        });
+    }
+});
+
 exports.enviarResumenSesion = onRequest({ invoker: "public" }, async (req, res) => {
 
     res.set("Access-Control-Allow-Origin", "*");

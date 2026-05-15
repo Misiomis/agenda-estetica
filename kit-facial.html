@@ -635,6 +635,19 @@
 
                 await addDoc(collection(db, "pedidosKit"), pedidoData);
 
+                // Notificar a Gimena vía WA Business API (sin bloquear el flujo)
+                fetch("https://us-central1-estetica-8d067.cloudfunctions.net/enviarNotificacionKitFacial", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        nombre: nombre,
+                        dni: dni,
+                        productos: productos,
+                        total: formatPrecio(totalPedido),
+                        descripcionPiel: descripcionPiel
+                    })
+                }).catch(e => console.warn("WA kit notification failed:", e));
+
                 // Limpiar formulario
                 document.querySelectorAll('#productosList input[type="checkbox"]').forEach(cb => { cb.checked = false; });
                 document.getElementById("descripcionPiel").value = "";
