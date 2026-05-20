@@ -360,6 +360,81 @@
             padding: 24px 22px 20px;
             animation: popInSoft 0.22s ease-out;
         }
+        /* ── Modal editar precio producto kit ── */
+        #modal-precio-kit-overlay {
+            position: fixed; inset: 0; z-index: 100002;
+            background: rgba(6, 22, 15, 0.52);
+            backdrop-filter: blur(7px);
+            -webkit-backdrop-filter: blur(7px);
+            display: none; align-items: center; justify-content: center; padding: 16px;
+        }
+        #modal-precio-kit-overlay.open { display: flex; }
+        #modal-precio-kit-card {
+            width: 100%; max-width: 360px;
+            background: linear-gradient(165deg, #ffffff 0%, #f6fbf8 55%, #eef7f3 100%);
+            border-radius: 24px;
+            border: 1px solid rgba(178,222,200,0.6);
+            box-shadow: 0 24px 52px rgba(6,40,25,0.22);
+            padding: 26px 24px 22px;
+            animation: popInSoft 0.2s ease-out;
+            text-align: center;
+        }
+        #modal-precio-kit-card .mpk-icon {
+            width: 54px; height: 54px; border-radius: 50%;
+            background: linear-gradient(135deg, #72bd99, #4f9777);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; margin: 0 auto 14px;
+            box-shadow: 0 8px 20px rgba(79,151,119,0.28);
+        }
+        #modal-precio-kit-card .mpk-title {
+            margin: 0 0 4px; font-size: 17px; font-weight: 800; color: #1e3028;
+        }
+        #modal-precio-kit-card .mpk-producto {
+            margin: 0 0 18px; font-size: 13px; color: #4c7a66; font-weight: 600;
+            background: #edf7f2; border-radius: 8px; padding: 6px 12px; display: inline-block;
+        }
+        #modal-precio-kit-card .mpk-label {
+            display: block; text-align: left; font-size: 12px; font-weight: 700;
+            color: #3a5e4d; margin-bottom: 6px; letter-spacing: 0.03em; text-transform: uppercase;
+        }
+        #modal-precio-kit-input-wrap {
+            display: flex; align-items: center;
+            border: 2px solid #b8dece; border-radius: 12px;
+            background: #fff; overflow: hidden; margin-bottom: 18px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #modal-precio-kit-input-wrap:focus-within {
+            border-color: #4f9777; box-shadow: 0 0 0 3px rgba(79,151,119,0.14);
+        }
+        #modal-precio-kit-input-wrap .mpk-currency {
+            padding: 0 12px; font-size: 16px; font-weight: 800; color: #4f9777;
+            background: #edf7f2; height: 48px; display: flex; align-items: center;
+            border-right: 1px solid #d4eddf;
+        }
+        #modal-precio-kit-input {
+            border: none; outline: none; flex: 1; height: 48px;
+            padding: 0 14px; font-size: 18px; font-weight: 800;
+            color: #1e3028; background: transparent; font-family: inherit;
+        }
+        #modal-precio-kit-card .mpk-actions {
+            display: flex; gap: 10px;
+        }
+        #modal-precio-kit-card .mpk-btn-cancel {
+            flex: 1; padding: 12px; border: 1.5px solid #c8e0d6; border-radius: 12px;
+            background: #fff; color: #4c7a66; font-size: 14px; font-weight: 700;
+            cursor: pointer; font-family: inherit; transition: background 0.18s;
+        }
+        #modal-precio-kit-card .mpk-btn-cancel:hover { background: #f0faf5; }
+        #modal-precio-kit-card .mpk-btn-save {
+            flex: 1; padding: 12px; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, #4f9777, #337358);
+            color: #fff; font-size: 14px; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+            box-shadow: 0 6px 16px rgba(51,115,88,0.28);
+            transition: opacity 0.18s, transform 0.18s;
+        }
+        #modal-precio-kit-card .mpk-btn-save:hover { opacity: 0.92; transform: translateY(-1px); }
+
         .filtros-advanced { display: grid; grid-template-columns: minmax(190px, 1.2fr) repeat(3, minmax(110px, 1fr)) auto; gap: 8px; margin-bottom: 10px; align-items: center; }
         .select-input { width: 100%; min-height: 40px; padding: 10px 12px; border-radius: 12px; border: 1px solid #d1e7dc; box-sizing: border-box; outline: none; background: #fff; color: var(--texto); transition: border-color 0.2s, box-shadow 0.2s; }
         .select-input:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.12); }
@@ -3461,7 +3536,7 @@
                                 '<span style="display:flex;align-items:center;gap:5px;">' +
                                     (precio !== null
                                         ? '<span style="color:#2f7c5d;font-weight:700;">' + formatPesos(safePrice) + '</span>' +
-                                          '<button onclick="editarPrecioProdKit(\'' + escapeHtml(p.id) + '\',' + idx + ',' + safePrice + ')" title="Editar precio" style="background:none;border:none;cursor:pointer;font-size:12px;line-height:1;opacity:0.5;padding:2px 3px;border-radius:4px;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'" aria-label="Editar precio">✏️</button>'
+                                          '<button onclick="editarPrecioProdKit(\'' + escapeHtml(p.id) + '\',' + idx + ',' + safePrice + ',\'' + escapeHtml(prod).replace(/'/g, "&#39;") + '\')" title="Editar precio" style="background:none;border:none;cursor:pointer;font-size:12px;line-height:1;opacity:0.5;padding:2px 3px;border-radius:4px;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'" aria-label="Editar precio">✏️</button>'
                                         : '<span style="color:#aaa;">—</span>'
                                     ) +
                                 '</span>' +
@@ -3557,25 +3632,45 @@
             }
         };
 
-        window.editarPrecioProdKit = async function(pedidoId, prodIdx, precioActual) {
-            const nuevo = window.prompt('Nuevo precio para este producto (solo números):', precioActual);
-            if (nuevo === null) return;
-            const nuevoPrecio = parseInt(nuevo.replace(/\D/g, ''), 10);
+        let _mpk_pedidoId = null, _mpk_prodIdx = null;
+
+        window.editarPrecioProdKit = function(pedidoId, prodIdx, precioActual, nombreProd) {
+            _mpk_pedidoId = pedidoId;
+            _mpk_prodIdx = prodIdx;
+            document.getElementById('mpk-producto-nombre').textContent =
+                nombreProd || ('Producto ' + (prodIdx + 1));
+            const input = document.getElementById('modal-precio-kit-input');
+            input.value = precioActual || '';
+            document.getElementById('modal-precio-kit-overlay').classList.add('open');
+            setTimeout(function() { input.focus(); input.select(); }, 80);
+        };
+
+        window.cerrarModalPrecioKit = function() {
+            document.getElementById('modal-precio-kit-overlay').classList.remove('open');
+            _mpk_pedidoId = null;
+            _mpk_prodIdx = null;
+        };
+
+        window.confirmarPrecioKit = async function() {
+            if (_mpk_pedidoId === null || _mpk_prodIdx === null) return;
+            const raw = document.getElementById('modal-precio-kit-input').value;
+            const nuevoPrecio = parseInt(String(raw).replace(/\D/g, ''), 10);
             if (isNaN(nuevoPrecio) || nuevoPrecio < 0) {
                 mostrarAviso('Precio inválido');
                 return;
             }
+            cerrarModalPrecioKit();
             try {
                 mostrarLoader(true);
-                const pedidoRef = doc(db, 'pedidosKit', pedidoId);
+                const pedidoRef = doc(db, 'pedidosKit', _mpk_pedidoId);
                 const pedidoSnap = await getDoc(pedidoRef);
                 if (!pedidoSnap.exists()) { mostrarAviso('Pedido no encontrado'); return; }
                 const data = pedidoSnap.data();
                 const detalle = Array.isArray(data.productosDetalle)
                     ? data.productosDetalle.map(function(d) { return Object.assign({}, d); })
                     : (Array.isArray(data.productos) ? data.productos.map(function(n) { return { nombre: n, precio: 0 }; }) : []);
-                if (!detalle[prodIdx]) { mostrarAviso('Producto no encontrado'); return; }
-                detalle[prodIdx].precio = nuevoPrecio;
+                if (!detalle[_mpk_prodIdx]) { mostrarAviso('Producto no encontrado'); return; }
+                detalle[_mpk_prodIdx].precio = nuevoPrecio;
                 const nuevoTotal = detalle.reduce(function(sum, d) { return sum + (Number(d.precio) || 0); }, 0);
                 await updateDoc(pedidoRef, { productosDetalle: detalle, totalPedido: nuevoTotal });
                 mostrarAviso('Precio actualizado ✓');
@@ -3587,6 +3682,15 @@
                 mostrarLoader(false);
             }
         };
+
+        // Cerrar modal precio kit con Escape o click en overlay
+        document.getElementById('modal-precio-kit-overlay').addEventListener('click', function(e) {
+            if (e.target === this) cerrarModalPrecioKit();
+        });
+        document.getElementById('modal-precio-kit-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') confirmarPrecioKit();
+            if (e.key === 'Escape') cerrarModalPrecioKit();
+        });
 
         window.toggleMenuNav = () => {
             const nav = document.getElementById('menuNav');
@@ -4250,6 +4354,24 @@
             <div class="mreg-actions">
                 <button class="mreg-btn-cancel" onclick="cerrarModalRegistrar()">Cancelar</button>
                 <button class="mreg-btn-confirm" id="mreg-btn-confirmar" disabled onclick="confirmarRegistroManual()">Registrar turno</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Editar precio de producto en pedido de kit -->
+    <div id="modal-precio-kit-overlay" role="dialog" aria-modal="true" aria-labelledby="mpk-title">
+        <div id="modal-precio-kit-card">
+            <div class="mpk-icon">✏️</div>
+            <p class="mpk-title" id="mpk-title">Editar precio</p>
+            <p class="mpk-producto" id="mpk-producto-nombre">—</p>
+            <label class="mpk-label" for="modal-precio-kit-input">Nuevo precio</label>
+            <div id="modal-precio-kit-input-wrap">
+                <span class="mpk-currency">$</span>
+                <input type="number" id="modal-precio-kit-input" min="0" step="100" placeholder="0">
+            </div>
+            <div class="mpk-actions">
+                <button class="mpk-btn-cancel" onclick="cerrarModalPrecioKit()">Cancelar</button>
+                <button class="mpk-btn-save" onclick="confirmarPrecioKit()">Guardar</button>
             </div>
         </div>
     </div>
