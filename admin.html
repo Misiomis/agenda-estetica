@@ -3437,7 +3437,8 @@
                 let totalMes = 0;
                 const cards = pedidos.map(function(p) {
                     const productosArr = Array.isArray(p.productos) ? p.productos : (p.productos ? [p.productos] : []);
-                    const totalPedido = calcularTotalKit(productosArr);
+                    const productosDetalle = Array.isArray(p.productosDetalle) ? p.productosDetalle : null;
+                    const totalPedido = p.totalPedido != null ? Number(p.totalPedido) : calcularTotalKit(productosArr);
                     const fechaStr = p.createdAt || p.fecha || '';
                     if (fechaStr.slice(0, 7) === mesActual) totalMes += totalPedido;
                     const estadoBadge = p.estado === 'entregado'
@@ -3446,12 +3447,24 @@
                         ? '<span style="background:#e8f5ee;color:#3a7a5a;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Listo</span>'
                         : '<span style="background:#fff8e1;color:#8a6c00;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Pendiente</span>';
                     const productosList = productosArr.length
-                        ? productosArr.map(function(prod) {
-                            const key = Object.keys(KIT_PRECIOS).find(k => prod.toLowerCase().includes(k.toLowerCase()));
-                            const precio = key ? KIT_PRECIOS[key] : null;
-                            return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eef4f0;">' +
+                        ? productosArr.map(function(prod, idx) {
+                            let precio;
+                            if (productosDetalle && productosDetalle[idx] != null) {
+                                precio = Number(productosDetalle[idx].precio);
+                            } else {
+                                const key = Object.keys(KIT_PRECIOS).find(k => prod.toLowerCase().includes(k.toLowerCase()));
+                                precio = key ? KIT_PRECIOS[key] : null;
+                            }
+                            const safePrice = (precio !== null && !isNaN(precio)) ? precio : 0;
+                            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #eef4f0;">' +
                                 '<span>' + escapeHtml(prod) + '</span>' +
-                                (precio !== null ? '<span style="color:#2f7c5d;font-weight:700;">' + formatPesos(precio) + '</span>' : '<span style="color:#aaa;">—</span>') +
+                                '<span style="display:flex;align-items:center;gap:5px;">' +
+                                    (precio !== null
+                                        ? '<span style="color:#2f7c5d;font-weight:700;">' + formatPesos(safePrice) + '</span>' +
+                                          '<button onclick="editarPrecioProdKit(\'' + escapeHtml(p.id) + '\',' + idx + ',' + safePrice + ')" title="Editar precio" style="background:none;border:none;cursor:pointer;font-size:12px;line-height:1;opacity:0.5;padding:2px 3px;border-radius:4px;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'" aria-label="Editar precio">✏️</button>'
+                                        : '<span style="color:#aaa;">—</span>'
+                                    ) +
+                                '</span>' +
                             '</div>';
                         }).join('')
                         : '<div style="color:#aaa;">Sin productos</div>';
@@ -3539,6 +3552,37 @@
             } catch(e) {
                 console.error(e);
                 mostrarAviso('No se pudo borrar el pedido');
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
+        window.editarPrecioProdKit = async function(pedidoId, prodIdx, precioActual) {
+            const nuevo = window.prompt('Nuevo precio para este producto (solo números):', precioActual);
+            if (nuevo === null) return;
+            const nuevoPrecio = parseInt(nuevo.replace(/\D/g, ''), 10);
+            if (isNaN(nuevoPrecio) || nuevoPrecio < 0) {
+                mostrarAviso('Precio inválido');
+                return;
+            }
+            try {
+                mostrarLoader(true);
+                const pedidoRef = doc(db, 'pedidosKit', pedidoId);
+                const pedidoSnap = await getDoc(pedidoRef);
+                if (!pedidoSnap.exists()) { mostrarAviso('Pedido no encontrado'); return; }
+                const data = pedidoSnap.data();
+                const detalle = Array.isArray(data.productosDetalle)
+                    ? data.productosDetalle.map(function(d) { return Object.assign({}, d); })
+                    : (Array.isArray(data.productos) ? data.productos.map(function(n) { return { nombre: n, precio: 0 }; }) : []);
+                if (!detalle[prodIdx]) { mostrarAviso('Producto no encontrado'); return; }
+                detalle[prodIdx].precio = nuevoPrecio;
+                const nuevoTotal = detalle.reduce(function(sum, d) { return sum + (Number(d.precio) || 0); }, 0);
+                await updateDoc(pedidoRef, { productosDetalle: detalle, totalPedido: nuevoTotal });
+                mostrarAviso('Precio actualizado ✓');
+                await cargarPedidosKit();
+            } catch(e) {
+                console.error(e);
+                mostrarAviso('No se pudo actualizar el precio');
             } finally {
                 mostrarLoader(false);
             }
