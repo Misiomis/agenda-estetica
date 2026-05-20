@@ -3659,18 +3659,21 @@
                 mostrarAviso('Precio inválido');
                 return;
             }
+            // Capturar antes de cerrar el modal (cerrar resetea las vars a null)
+            const pedidoId = _mpk_pedidoId;
+            const prodIdx = _mpk_prodIdx;
             cerrarModalPrecioKit();
             try {
                 mostrarLoader(true);
-                const pedidoRef = doc(db, 'pedidosKit', _mpk_pedidoId);
+                const pedidoRef = doc(db, 'pedidosKit', pedidoId);
                 const pedidoSnap = await getDoc(pedidoRef);
                 if (!pedidoSnap.exists()) { mostrarAviso('Pedido no encontrado'); return; }
                 const data = pedidoSnap.data();
                 const detalle = Array.isArray(data.productosDetalle)
                     ? data.productosDetalle.map(function(d) { return Object.assign({}, d); })
                     : (Array.isArray(data.productos) ? data.productos.map(function(n) { return { nombre: n, precio: 0 }; }) : []);
-                if (!detalle[_mpk_prodIdx]) { mostrarAviso('Producto no encontrado'); return; }
-                detalle[_mpk_prodIdx].precio = nuevoPrecio;
+                if (!detalle[prodIdx]) { mostrarAviso('Producto no encontrado'); return; }
+                detalle[prodIdx].precio = nuevoPrecio;
                 const nuevoTotal = detalle.reduce(function(sum, d) { return sum + (Number(d.precio) || 0); }, 0);
                 await updateDoc(pedidoRef, { productosDetalle: detalle, totalPedido: nuevoTotal });
                 mostrarAviso('Precio actualizado ✓');
