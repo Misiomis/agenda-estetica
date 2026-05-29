@@ -9,16 +9,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --sage: #6b9080;
-            --sage-dark: #4a6e5c;
-            --ink: #1e2f28;
-            --muted: #607268;
-            --border: rgba(140, 170, 155, 0.28);
-            --gold: #c4a46b;
+            --sage: rgba(140,210,180,0.85);
+            --sage-dark: #357a5c;
+            --ink: rgba(220,242,232,0.95);
+            --muted: rgba(165,205,188,0.68);
+            --border: rgba(255,255,255,0.10);
+            --rose: rgba(210,168,178,0.88);
             --radius: 32px;
             --font-display: 'Cormorant Garamond', serif;
             --font-body: 'Montserrat', sans-serif;
-            --shadow: 0 16px 48px rgba(16, 28, 22, 0.1);
+            --shadow: 0 16px 52px rgba(0,0,0,0.35);
         }
 
         * { box-sizing: border-box; }
@@ -33,7 +33,10 @@
         }
 
         body {
-            background: linear-gradient(160deg, #f4f8f4 0%, #e8f0e9 100%);
+            background:
+                radial-gradient(circle at 80% 10%, rgba(30,90,60,0.22), rgba(30,90,60,0) 45%),
+                radial-gradient(circle at 10% 90%, rgba(10,50,30,0.18), rgba(10,50,30,0) 42%),
+                linear-gradient(160deg, #060e0b 0%, #0c2218 55%, #071a12 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -53,12 +56,13 @@
         .card {
             width: 100%;
             max-width: 500px;
-            background: rgba(255, 255, 255, 0.88);
+            background: rgba(255, 255, 255, 0.07);
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 44px 38px 38px;
             box-shadow: var(--shadow);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             text-align: center;
             animation: fadeUp 0.5s ease 0.06s both;
         }
@@ -81,7 +85,7 @@
             font-family: var(--font-display);
             font-size: clamp(26px, 5vw, 36px);
             font-style: italic;
-            color: var(--ink);
+            color: rgba(220, 242, 232, 0.95);
             margin: 0 0 18px;
             line-height: 1.15;
         }
