@@ -351,6 +351,40 @@
             25%,75% { transform: scaleX(0.18); opacity: 0.15; }
             50%     { transform: scaleX(1); opacity: 0.55; }
         }
+
+        /* ── PELOTA MUNDIAL ── */
+        .mundial-orbit {
+            position: fixed;
+            top: 50vh;
+            left: 50vw;
+            width: 0;
+            height: 0;
+            z-index: 1;
+            pointer-events: none;
+            transform-origin: 0 0;
+            animation: mundialOrbit 14s linear infinite;
+            will-change: transform;
+        }
+        .mundial-ball {
+            position: absolute;
+            transform: translateY(calc(-1 * min(36vw, 36vh))) translateX(-50%);
+            font-size: clamp(22px, 4vw, 32px);
+            line-height: 1;
+            filter: drop-shadow(0 4px 14px rgba(0,0,0,0.50));
+            opacity: 0.88;
+            animation: ballSpin 3s linear infinite;
+        }
+        @keyframes mundialOrbit {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+        @keyframes ballSpin {
+            from { transform: translateY(calc(-1 * min(36vw, 36vh))) translateX(-50%) rotate(0deg); }
+            to   { transform: translateY(calc(-1 * min(36vw, 36vh))) translateX(-50%) rotate(360deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .mundial-orbit, .mundial-ball { animation: none; }
+        }
     </style>
 </head>
 <body>
@@ -851,5 +885,10 @@
         }, 1900);
     });
     </script>
+
+    <!-- ⚽ MUNDIAL 2026 -->
+    <div class="mundial-orbit" aria-hidden="true">
+        <span class="mundial-ball">⚽</span>
+    </div>
 </body>
 </html>
