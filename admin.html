@@ -304,6 +304,35 @@
             background-repeat: no-repeat; background-position: right 14px center;
         }
         .mreg-select:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.15); }
+
+        /* ── Chips de servicio ── */
+        .mreg-chips-grid {
+            display: flex; flex-wrap: wrap; gap: 7px;
+            margin-bottom: 16px; max-height: 148px; overflow-y: auto;
+            padding: 2px 1px;
+            scrollbar-width: thin; scrollbar-color: rgba(114,189,153,0.28) transparent;
+        }
+        .mreg-chips-grid::-webkit-scrollbar { width: 3px; }
+        .mreg-chips-grid::-webkit-scrollbar-thumb { background: rgba(114,189,153,0.30); border-radius: 99px; }
+        .mreg-chip {
+            padding: 7px 13px; border-radius: 999px;
+            border: 1.5px solid rgba(255,255,255,0.11);
+            background: rgba(255,255,255,0.06);
+            color: rgba(165,205,188,0.85); font-size: 12px; font-weight: 700;
+            cursor: pointer; transition: all 0.16s; white-space: nowrap;
+            user-select: none; font-family: inherit;
+        }
+        .mreg-chip:hover {
+            border-color: rgba(114,189,153,0.38); background: rgba(114,189,153,0.10);
+            color: rgba(200,232,218,0.95); transform: translateY(-1px);
+        }
+        .mreg-chip.activo {
+            border-color: var(--accento);
+            background: linear-gradient(135deg, rgba(78,163,127,0.25) 0%, rgba(53,122,92,0.18) 100%);
+            color: rgba(220,242,232,0.97);
+            box-shadow: 0 0 0 2px rgba(78,163,127,0.18), 0 4px 12px rgba(78,163,127,0.18);
+        }
+
         .mreg-resultados {
             min-height: 0; margin-bottom: 14px;
         }
@@ -2773,7 +2802,38 @@
         /* ── Estado del modal de registro ── */
         let _mreg_fecha = null, _mreg_hora = null, _mreg_clienteSeleccionado = null, _mreg_debounce = null;
 
-        window.registrarReservaManual = (fecha, hora) => {
+        /* ── Helper compartido: seleccionar chip ── */
+        window.seleccionarChipServicio = (el, hiddenId) => {
+            el.closest('.mreg-chips-grid').querySelectorAll('.mreg-chip').forEach(c => c.classList.remove('activo'));
+            el.classList.add('activo');
+            document.getElementById(hiddenId).value = el.dataset.servicio;
+        };
+
+        const _cargarChipsServicios = async (gridId, hiddenId, preseleccion = '') => {
+            const grid = document.getElementById(gridId);
+            grid.innerHTML = '<span style="font-size:12px;color:rgba(140,210,180,0.50);padding:4px 0">Cargando…</span>';
+            let lista = [];
+            try {
+                const svSnap = await getDocs(collection(db, 'services'));
+                svSnap.forEach(d => {
+                    const data = d.data();
+                    if (data.activo !== false) {
+                        const n = (data.nombre || '').toString().trim();
+                        if (n) lista.push(n);
+                    }
+                });
+                lista.sort((a, b) => a.localeCompare(b, 'es'));
+            } catch(e) { /* fallback below */ }
+            if (!lista.length) {
+                lista = [...new Set(todasLasReservas.map(r => (r.servicio||'').toString().trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+            }
+            grid.innerHTML = lista.map(s =>
+                `<button type="button" class="mreg-chip${s === preseleccion ? ' activo' : ''}" data-servicio="${escapeHtml(s)}" onclick="seleccionarChipServicio(this,'${hiddenId}')">${escapeHtml(s)}</button>`
+            ).join('');
+            if (preseleccion) document.getElementById(hiddenId).value = preseleccion;
+        };
+
+        window.registrarReservaManual = async (fecha, hora) => {
             const horaNormalizada = normalizarHora(hora);
             if (!horaNormalizada) { mostrarAviso("Hora inválida"); return; }
             const yaExiste = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fecha && normalizarHora(r.hora) === horaNormalizada);
@@ -2787,16 +2847,12 @@
             document.getElementById('mreg-nombre-input').value = '';
             document.getElementById('mreg-resultados').innerHTML = '';
             document.getElementById('mreg-btn-confirmar').disabled = true;
-
-            const servicios = [...new Set(
-                todasLasReservas.map(r => (r.servicio || '').toString().trim()).filter(Boolean)
-            )].sort((a, b) => a.localeCompare(b, 'es'));
-            const sel = document.getElementById('mreg-servicio-select');
-            sel.innerHTML = '<option value="">Seleccioná un servicio…</option>' +
-                servicios.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+            document.getElementById('mreg-servicio-hidden').value = '';
 
             document.getElementById('modal-registrar-overlay').classList.add('open');
             setTimeout(() => document.getElementById('mreg-nombre-input').focus(), 80);
+
+            _cargarChipsServicios('mreg-chips-grid', 'mreg-servicio-hidden');
         };
 
         window.cerrarModalRegistrar = () => {
@@ -2857,7 +2913,7 @@
 
         window.confirmarRegistroManual = async () => {
             if (!_mreg_clienteSeleccionado) { mostrarAviso("Seleccioná un paciente"); return; }
-            const servicioIngresado = document.getElementById('mreg-servicio-select').value.trim();
+            const servicioIngresado = document.getElementById('mreg-servicio-hidden').value.trim();
             if (!servicioIngresado) { mostrarAviso("Seleccioná un servicio"); return; }
             const clienteSnap = { ..._mreg_clienteSeleccionado };
             const fechaSnap = _mreg_fecha, horaSnap = _mreg_hora;
@@ -2909,14 +2965,10 @@
             document.getElementById('mcs-paciente-label').textContent =
                 `${reserva.nombreLimpio || reserva.nombre || 'Paciente'} · ${formatoFechaISO(reserva.fecha)} ${reserva.hora} hs`;
 
-            const servicios = [...new Set(
-                todasLasReservas.map(r => (r.servicio || '').toString().trim()).filter(Boolean)
-            )].sort((a, b) => a.localeCompare(b, 'es'));
-            const sel = document.getElementById('mcs-servicio-select');
-            sel.innerHTML = '<option value="">Seleccioná un servicio…</option>' +
-                servicios.map(s => `<option value="${escapeHtml(s)}"${s === reserva.servicio ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
-
+            document.getElementById('mcs-servicio-hidden').value = '';
             document.getElementById('modal-cambio-servicio-overlay').classList.add('open');
+
+            _cargarChipsServicios('mcs-chips-grid', 'mcs-servicio-hidden', reserva.servicio || '');
         };
 
         window.cerrarModalCambioServicio = () => {
@@ -2925,7 +2977,7 @@
         };
 
         window.confirmarCambioServicio = async () => {
-            const nuevoServicio = document.getElementById('mcs-servicio-select').value.trim();
+            const nuevoServicio = document.getElementById('mcs-servicio-hidden').value.trim();
             if (!nuevoServicio) { mostrarAviso("Seleccioná un servicio"); return; }
             try {
                 mostrarLoader(true);
@@ -4373,10 +4425,9 @@
             <label class="mreg-field-label" for="mreg-nombre-input">Buscar paciente por nombre</label>
             <input type="text" class="mreg-input" id="mreg-nombre-input" placeholder="Empezá a escribir el nombre…" autocomplete="off">
             <div class="mreg-resultados" id="mreg-resultados"></div>
-            <label class="mreg-field-label" for="mreg-servicio-select">Servicio</label>
-            <select class="mreg-select" id="mreg-servicio-select">
-                <option value="">Seleccioná un servicio…</option>
-            </select>
+            <label class="mreg-field-label">Servicio</label>
+            <div class="mreg-chips-grid" id="mreg-chips-grid"></div>
+            <input type="hidden" id="mreg-servicio-hidden" value="">
             <div class="mreg-actions">
                 <button class="mreg-btn-cancel" onclick="cerrarModalRegistrar()">Cancelar</button>
                 <button class="mreg-btn-confirm" id="mreg-btn-confirmar" disabled onclick="confirmarRegistroManual()">Registrar turno</button>
@@ -4410,10 +4461,9 @@
             </div>
             <p class="mreg-title" id="mcs-title">Cambiar servicio</p>
             <p class="mreg-subtitle" id="mcs-paciente-label">—</p>
-            <label class="mreg-field-label" for="mcs-servicio-select">Nuevo servicio</label>
-            <select class="mreg-select" id="mcs-servicio-select">
-                <option value="">Seleccioná un servicio…</option>
-            </select>
+            <label class="mreg-field-label">Nuevo servicio</label>
+            <div class="mreg-chips-grid" id="mcs-chips-grid"></div>
+            <input type="hidden" id="mcs-servicio-hidden" value="">
             <div class="mreg-actions">
                 <button class="mreg-btn-cancel" onclick="cerrarModalCambioServicio()">Cancelar</button>
                 <button class="mreg-btn-confirm" onclick="confirmarCambioServicio()">Guardar cambio</button>
