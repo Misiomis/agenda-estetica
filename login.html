@@ -189,22 +189,34 @@
             width: 100%;
             padding: 14px 16px;
             border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.14);
+            border: 1.5px solid rgba(255,255,255,0.14);
             font-size: 15px;
             font-family: inherit;
-            background: rgba(255,255,255,0.07);
+            -webkit-appearance: none;
+            appearance: none;
+            background-color: rgba(6, 18, 13, 0.65) !important;
             color: rgba(220,242,232,0.95);
+            -webkit-text-fill-color: rgba(220,242,232,0.95);
             transition: border-color var(--l-trans), box-shadow var(--l-trans), background var(--l-trans);
             outline: none;
         }
 
         input:focus {
-            border-color: rgba(255,255,255,0.28);
-            background: rgba(255,255,255,0.11);
-            box-shadow: 0 0 0 4px rgba(53,122,92,0.18);
+            border-color: rgba(114,189,153,0.45);
+            background-color: rgba(20, 50, 36, 0.70) !important;
+            box-shadow: 0 0 0 4px rgba(53,122,92,0.14);
         }
 
-        input::placeholder { color: rgba(160,205,185,0.38); }
+        /* Fix autofill Chrome que pone fondo blanco/amarillo */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px rgba(6, 18, 13, 0.9) inset !important;
+            -webkit-text-fill-color: rgba(220,242,232,0.95) !important;
+            border-color: rgba(114,189,153,0.35) !important;
+        }
+
+        input::placeholder { color: rgba(140,185,165,0.35); }
 
         /* ── BOTÓN SUBMIT ── */
         button[type="submit"] {

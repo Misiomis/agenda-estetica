@@ -11,25 +11,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --fondo: #f4fbf7; --texto: #06402B; --accento: #4ea37f; --accento-oscuro: #06402B;
-            --verde: #72bd99; --verde-oscuro: #06402B; --azul: #4a90e2;
-            --whatsapp: #25D366; --suave: #dff3ea; --suave-oscuro: #bfe6d5;
-            --nude: #f7fffb; --gold: #D4AF37; --gold-claro: #fdf8e8; --deep-green: #06402B;
+            --fondo: #060e0b; --texto: rgba(205,232,218,0.90); --accento: #4ea37f; --accento-oscuro: rgba(160,225,200,0.95);
+            --verde: #72bd99; --verde-oscuro: rgba(160,225,200,0.95); --azul: #6a9ee2;
+            --whatsapp: #25D366; --suave: rgba(255,255,255,0.07); --suave-oscuro: rgba(255,255,255,0.11);
+            --nude: rgba(255,255,255,0.05); --gold: #D4AF37; --gold-claro: rgba(165,130,50,0.14); --deep-green: rgba(160,225,200,0.95);
         }
         /* ===== TEMAS ADMIN ===== */
         body[data-tema="esmeralda"] {
-            --accento: #1a8a56; --accento-oscuro: #00512e; --verde-oscuro: #00512e;
-            --verde: #4ec98c; --texto: #00512e; --fondo: #eaf7f1;
-            --suave: #c8f0dd; --suave-oscuro: #9adfc2;
+            --accento: #1a8a56; --accento-oscuro: rgba(140,220,185,0.95); --verde-oscuro: rgba(140,220,185,0.95);
+            --verde: #4ec98c; --texto: rgba(185,235,215,0.90); --fondo: #040e09;
+            --suave: rgba(255,255,255,0.07); --suave-oscuro: rgba(255,255,255,0.11);
         }
-        body[data-tema="esmeralda"] { background: linear-gradient(160deg, #e8f7f0 0%, #d8f0e5 50%, #eef8f3 100%); }
+        body[data-tema="esmeralda"] { background: linear-gradient(160deg, #040e09 0%, #091c12 55%, #041309 100%); }
         body[data-tema="bosque"] {
-            --accento: #3a5c47; --accento-oscuro: #1c3528; --verde-oscuro: #1c3528;
-            --verde: #6a9479; --texto: #1c3528; --fondo: #f0f5f2;
-            --suave: #dce9e2; --suave-oscuro: #c4d8cc;
+            --accento: #3a5c47; --accento-oscuro: rgba(155,215,190,0.95); --verde-oscuro: rgba(155,215,190,0.95);
+            --verde: #6a9479; --texto: rgba(195,225,210,0.88); --fondo: #070b08;
+            --suave: rgba(255,255,255,0.07); --suave-oscuro: rgba(255,255,255,0.11);
         }
-        body[data-tema="bosque"] { background: linear-gradient(160deg, #eef3f0 0%, #e5ede8 50%, #f2f6f4 100%); }
-        body { font-family: 'Montserrat', sans-serif; background: linear-gradient(160deg, #f2faf6 0%, #eaf4ef 50%, #f5fbf8 100%); margin: 0; color: var(--texto); padding-bottom: 50px; font-size: 15px; line-height: 1.45; position: relative; isolation: isolate; }
+        body[data-tema="bosque"] { background: linear-gradient(160deg, #070b08 0%, #0f1c13 55%, #09110a 100%); }
+        body { font-family: 'Montserrat', sans-serif; background: linear-gradient(160deg, #060e0b 0%, #0c2218 55%, #071a12 100%); margin: 0; color: var(--texto); padding-bottom: 50px; font-size: 15px; line-height: 1.45; position: relative; isolation: isolate; }
 
         /* ── Orbes flotantes — elemento 3D sutil ── */
         .bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: -1; overflow: hidden; }
@@ -130,17 +130,17 @@
             color: rgba(232,198,210,0.92);
         }
         .flow-switch-button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-        .install-widget-admin { display: none; margin: 10px auto 6px; width: min(100%, 460px); background: linear-gradient(135deg, rgba(245, 251, 247, 0.98) 0%, rgba(238, 248, 242, 0.98) 100%); border: 1px solid rgba(132, 168, 140, 0.32); border-radius: 14px; box-shadow: 0 8px 20px rgba(30, 54, 37, 0.12); overflow: hidden; }
+        .install-widget-admin { display: none; margin: 10px auto 6px; width: min(100%, 460px); background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.28); overflow: hidden; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
         .install-widget-admin.show { display: block; animation: popInSoft 0.18s ease-out; }
         .install-widget-admin .install-inner { padding: 12px; display: grid; gap: 8px; }
         .install-widget-admin .install-head { display: flex; align-items: center; gap: 10px; }
-        .install-widget-admin .install-logo { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(132, 168, 140, 0.34); box-shadow: 0 6px 12px rgba(30, 54, 37, 0.14); background: #fff; }
+        .install-widget-admin .install-logo { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 6px 12px rgba(0,0,0,0.28); background: rgba(255,255,255,0.06); }
         .install-widget-admin .install-head-copy { min-width: 0; flex: 1; }
-        .install-widget-admin .install-title { margin: 0; color: #2f5a47; font-size: 14px; font-weight: 700; }
-        .install-widget-admin .install-text { margin: 0; color: #4a6f5f; font-size: 12px; }
+        .install-widget-admin .install-title { margin: 0; color: rgba(180,230,210,0.95); font-size: 14px; font-weight: 700; }
+        .install-widget-admin .install-text { margin: 0; color: rgba(165,205,188,0.72); font-size: 12px; }
         .install-widget-admin .install-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .install-widget-admin .btn-install { flex: 1; min-width: 180px; border: none; border-radius: 10px; padding: 10px 12px; background: linear-gradient(135deg, #7caf93 0%, #4f7f67 100%); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
-        .install-widget-admin .btn-dismiss { border: 1px solid #cfe2d8; border-radius: 10px; padding: 10px 12px; background: #fff; color: #557b6b; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .install-widget-admin .btn-dismiss { border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 10px 12px; background: rgba(255,255,255,0.07); color: rgba(165,205,188,0.80); font-size: 12px; font-weight: 700; cursor: pointer; }
         .mode-toggle-wrap { margin-top: 10px; }
         .mode-toggle {
             border: 1px solid rgba(114,189,153,0.32);
@@ -160,12 +160,12 @@
         .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 12px; margin-bottom: 16px; }
         @media (max-width: 620px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
         .kpi-card {
-            background: rgba(255,255,255,0.82);
+            background: rgba(255,255,255,0.07);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(178,222,200,0.42);
+            border: 1px solid rgba(255,255,255,0.10);
             border-radius: 24px; padding: 18px 16px;
-            box-shadow: 0 8px 28px rgba(72,133,106,0.10), inset 0 1px 0 rgba(255,255,255,0.92);
-            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.22);
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
             position: relative; overflow: hidden;
         }
         .kpi-card::before {
@@ -174,52 +174,52 @@
             background: linear-gradient(90deg, #72bd99 0%, #4f9777 50%, transparent 100%);
             border-radius: 24px 24px 0 0;
         }
-        .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 16px 36px rgba(72,133,106,0.16), inset 0 1px 0 rgba(255,255,255,0.92); }
-        .kpi-label { font-size: 10px; color: #6a8e7f; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; }
+        .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 16px 36px rgba(0,0,0,0.32), 0 0 24px rgba(114,189,153,0.08); border-color: rgba(255,255,255,0.16); }
+        .kpi-label { font-size: 10px; color: rgba(140,210,180,0.72); font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; }
         .kpi-value { font-size: clamp(1.5rem, 2.4vw, 2rem); font-weight: 800; color: var(--verde-oscuro); margin-top: 8px; line-height: 1; }
         .quick-actions { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
         .btn-mini {
-            border: 1px solid rgba(178,222,200,0.55);
-            background: rgba(255,255,255,0.82);
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.08);
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             color: var(--verde-oscuro);
             border-radius: 999px; padding: 9px 15px; min-height: 38px;
             cursor: pointer; font-weight: 700; font-size: 12px;
             transition: background 0.18s, box-shadow 0.18s, transform 0.15s;
-            box-shadow: 0 2px 8px rgba(72,133,106,0.07);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
         }
-        .btn-mini:hover { background: rgba(234,248,241,0.96); box-shadow: 0 6px 16px rgba(78,163,127,0.16); transform: translateY(-1px); }
+        .btn-mini:hover { background: rgba(255,255,255,0.14); box-shadow: 0 6px 16px rgba(0,0,0,0.28); transform: translateY(-1px); }
         .btn-mini:active { transform: scale(0.97); }
         .cliente-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
         .cliente-form-grid .full { grid-column: span 2; }
         .cliente-checks { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
-        .cliente-checks label { font-size: 13px; font-weight: 600; color: #396a56; display: flex; align-items: center; gap: 6px; }
-        .cliente-help { margin-top: 8px; font-size: 12px; color: #557b6b; }
-        .horarios-admin-card { margin-top: 12px; border: 1px solid #cfe6da; border-radius: 16px; background: linear-gradient(180deg, #f8fdfb 0%, #f2fbf6 100%); padding: 14px; box-shadow: 0 2px 8px rgba(47,90,71,0.06); }
-        .horarios-admin-card h4 { margin: 0 0 10px 0; font-size: 14px; color: #2f7c5d; font-weight: 800; letter-spacing: 0.02em; }
+        .cliente-checks label { font-size: 13px; font-weight: 600; color: rgba(165,205,188,0.88); display: flex; align-items: center; gap: 6px; }
+        .cliente-help { margin-top: 8px; font-size: 12px; color: rgba(140,185,165,0.70); }
+        .horarios-admin-card { margin-top: 12px; border: 1px solid rgba(255,255,255,0.10); border-radius: 16px; background: rgba(255,255,255,0.05); padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.22); }
+        .horarios-admin-card h4 { margin: 0 0 10px 0; font-size: 14px; color: rgba(180,230,210,0.95); font-weight: 800; letter-spacing: 0.02em; }
         .horarios-admin-list { display: grid; gap: 7px; }
-        .hora-row { display: grid; grid-template-columns: 72px 1fr auto; gap: 8px; align-items: center; background: #fff; border: 1px solid #d7ebe2; border-radius: 10px; padding: 8px 10px; transition: box-shadow 0.15s ease; }
-        .hora-row:hover { box-shadow: 0 2px 10px rgba(47,90,71,0.10); }
-        .hora-row .hora-label { font-weight: 700; color: #2f7c5d; }
-        .hora-row .hora-status { font-size: 12px; color: #4f6f61; }
-        .hora-row.admin-bloqueado { background: rgba(253,248,232,0.55); border-color: #e8d9a0; }
-        .hora-row.admin-bloqueado .hora-label { text-decoration: line-through; text-decoration-thickness: 1px; color: #8a6c00; opacity: 0.82; }
+        .hora-row { display: grid; grid-template-columns: 72px 1fr auto; gap: 8px; align-items: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; padding: 8px 10px; transition: box-shadow 0.15s ease, background 0.15s ease; }
+        .hora-row:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.28); background: rgba(255,255,255,0.08); }
+        .hora-row .hora-label { font-weight: 700; color: rgba(160,225,200,0.92); }
+        .hora-row .hora-status { font-size: 12px; color: rgba(165,205,188,0.68); }
+        .hora-row.admin-bloqueado { background: rgba(165,130,50,0.10); border-color: rgba(165,130,50,0.22); }
+        .hora-row.admin-bloqueado .hora-label { text-decoration: line-through; text-decoration-thickness: 1px; color: rgba(220,185,120,0.72); opacity: 0.82; }
         .hora-row .hora-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
         .pill { border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; display: inline-block; }
-        .pill.disponible { background: #e6f7ef; color: #1a7550; border: 1px solid #b8e8ce; }
-        .pill.reservado { background: #eef5ff; color: #2e61b1; border: 1px solid #c4d8f8; }
-        .pill.bloqueado { background: #fdf8e8; color: #8a6c00; border: 1px solid #e8d9a0; }
-        .btn-mini.alerta { border-color: #D4AF37; color: #7a5e00; background: #fdf8e8; }
-        .btn-mini.alerta:hover { background: #faf0cc; }
-        .btn-mini.alerta:active { background: #f5e8b0; }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(20, 35, 29, 0.45); display: flex; align-items: center; justify-content: center; z-index: 100000; padding: 16px; }
-        .modal-card { width: 100%; max-width: 430px; background: #fff; border-radius: 16px; box-shadow: 0 14px 40px rgba(0,0,0,0.2); border: 1px solid #dceee5; padding: 16px; }
+        .pill.disponible { background: rgba(53,122,92,0.18); color: rgba(140,220,185,0.92); border: 1px solid rgba(53,122,92,0.32); }
+        .pill.reservado { background: rgba(60,100,200,0.14); color: rgba(140,185,240,0.90); border: 1px solid rgba(60,100,200,0.28); }
+        .pill.bloqueado { background: rgba(165,130,50,0.14); color: rgba(220,185,120,0.88); border: 1px solid rgba(165,130,50,0.28); }
+        .btn-mini.alerta { border-color: rgba(210,168,178,0.40); color: rgba(210,168,178,0.88); background: rgba(210,168,178,0.08); }
+        .btn-mini.alerta:hover { background: rgba(210,168,178,0.14); border-color: rgba(210,168,178,0.55); }
+        .btn-mini.alerta:active { background: rgba(210,168,178,0.20); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.60); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 100000; padding: 16px; }
+        .modal-card { width: 100%; max-width: 430px; background: rgba(8,22,16,0.96); border-radius: 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.12); padding: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
         .modal-card h3 { margin: 0 0 8px 0; color: var(--accento-oscuro); font-size: 18px; }
-        .modal-card p { margin: 0 0 8px 0; color: #456a5b; font-size: 14px; }
+        .modal-card p { margin: 0 0 8px 0; color: rgba(165,205,188,0.80); font-size: 14px; }
         .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; flex-wrap: wrap; }
-        .modal-card.delicado { max-width: 460px; border-radius: 20px; padding: 18px; background: linear-gradient(180deg, #ffffff 0%, #f8fdfb 100%); border: 1px solid #d5e8df; box-shadow: 0 20px 48px rgba(37, 68, 47, 0.18); animation: popInSoft 0.18s ease-out; }
+        .modal-card.delicado { max-width: 460px; border-radius: 20px; padding: 18px; background: rgba(8,22,16,0.97); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 20px 48px rgba(0,0,0,0.50); animation: popInSoft 0.18s ease-out; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
         .modal-card.delicado h3 { color: var(--accento-oscuro); margin-bottom: 6px; }
-        .modal-card.delicado p { color: #456a5b; }
+        .modal-card.delicado p { color: rgba(165,205,188,0.80); }
         .modal-card.delicado .modal-actions { margin-top: 14px; }
         @keyframes popInSoft { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -243,20 +243,21 @@
         #modal-registrar-overlay.open { display: flex; }
         #modal-registrar-card {
             width: 100%; max-width: 480px;
-            background: linear-gradient(165deg, #ffffff 0%, #f6fbf8 55%, #eef7f3 100%);
+            background: rgba(8,22,16,0.97);
             border-radius: 28px;
-            border: 1px solid rgba(178,222,200,0.6);
-            box-shadow: 0 28px 60px rgba(6,40,25,0.22), 0 8px 24px rgba(6,40,25,0.10), inset 0 1px 0 rgba(255,255,255,0.95);
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 28px 60px rgba(0,0,0,0.55), 0 8px 24px rgba(0,0,0,0.30);
             padding: 28px 26px 24px;
             animation: popInSoft 0.22s ease-out;
             position: relative;
             overflow: hidden;
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
         }
         #modal-registrar-card::before {
             content: "";
             position: absolute; top: -60px; right: -60px;
             width: 180px; height: 180px; border-radius: 50%;
-            background: radial-gradient(circle, rgba(78,163,127,0.12) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(78,163,127,0.10) 0%, transparent 70%);
             pointer-events: none;
         }
         .mreg-logo-wrap {
@@ -264,8 +265,8 @@
         }
         .mreg-logo {
             width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
-            border: 2px solid rgba(178,222,200,0.7);
-            box-shadow: 0 10px 24px rgba(6,64,43,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
+            border: 2px solid rgba(114,189,153,0.45);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.30);
         }
         .mreg-title {
             font-family: 'Playfair Display', serif;
@@ -273,19 +274,19 @@
             text-align: center; margin: 0 0 4px;
         }
         .mreg-subtitle {
-            text-align: center; font-size: 12px; color: #6a8e7f;
+            text-align: center; font-size: 12px; color: rgba(140,210,180,0.72);
             font-weight: 700; letter-spacing: 0.04em; margin: 0 0 20px;
         }
         .mreg-field-label {
-            font-size: 11px; font-weight: 800; color: #4a7060;
+            font-size: 11px; font-weight: 800; color: rgba(114,189,153,0.88);
             text-transform: uppercase; letter-spacing: 0.08em;
             margin-bottom: 6px; display: block;
         }
         .mreg-input {
             width: 100%; padding: 13px 14px;
-            border: 2px solid #d5eadf; border-radius: 12px;
+            border: 1.5px solid rgba(255,255,255,0.14); border-radius: 12px;
             font-family: inherit; font-size: 14px; font-weight: 600;
-            color: var(--verde-oscuro); background: #f8fefb;
+            color: rgba(220,242,232,0.95); background: rgba(255,255,255,0.07);
             outline: none; box-sizing: border-box;
             transition: border-color 0.2s, box-shadow 0.2s;
             margin-bottom: 14px;
@@ -293,13 +294,13 @@
         .mreg-input:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.15); }
         .mreg-select {
             width: 100%; padding: 13px 14px;
-            border: 2px solid #d5eadf; border-radius: 12px;
+            border: 1.5px solid rgba(255,255,255,0.14); border-radius: 12px;
             font-family: inherit; font-size: 14px; font-weight: 600;
-            color: var(--verde-oscuro); background: #f8fefb;
+            color: rgba(220,242,232,0.95); background: rgba(255,255,255,0.07);
             outline: none; box-sizing: border-box; cursor: pointer;
             transition: border-color 0.2s, box-shadow 0.2s;
             margin-bottom: 14px; appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%234a7060' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2372bd99' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
             background-repeat: no-repeat; background-position: right 14px center;
         }
         .mreg-select:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.15); }
@@ -309,28 +310,28 @@
         .mreg-paciente-item {
             display: flex; align-items: center; gap: 12px;
             padding: 11px 14px; border-radius: 12px;
-            border: 1.5px solid #d5eadf; background: #fff;
+            border: 1.5px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.06);
             cursor: pointer; transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
             margin-bottom: 8px;
         }
-        .mreg-paciente-item:hover { border-color: var(--accento); background: #f0faf5; box-shadow: 0 4px 14px rgba(78,163,127,0.12); }
-        .mreg-paciente-item.seleccionado { border-color: var(--accento); background: linear-gradient(135deg, #e8f8f0 0%, #d8f0e8 100%); }
+        .mreg-paciente-item:hover { border-color: var(--accento); background: rgba(78,163,127,0.12); box-shadow: 0 4px 14px rgba(0,0,0,0.22); }
+        .mreg-paciente-item.seleccionado { border-color: var(--accento); background: rgba(53,122,92,0.18); }
         .mreg-paciente-avatar {
             width: 36px; height: 36px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--accento) 0%, var(--verde-oscuro) 100%);
+            background: linear-gradient(135deg, var(--accento) 0%, #357a5c 100%);
             color: #fff; font-weight: 800; font-size: 14px;
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
         .mreg-paciente-nombre { font-size: 14px; font-weight: 700; color: var(--verde-oscuro); }
-        .mreg-paciente-tel { font-size: 12px; color: #6a8e7f; margin-top: 1px; }
+        .mreg-paciente-tel { font-size: 12px; color: rgba(140,210,180,0.72); margin-top: 1px; }
         .mreg-actions { display: flex; gap: 10px; margin-top: 4px; }
         .mreg-btn-cancel {
-            flex: 1; padding: 13px; border: 1.5px solid #c8ddd6; background: #fff;
-            border-radius: 12px; color: #4a7060; font-weight: 700; font-size: 14px;
+            flex: 1; padding: 13px; border: 1.5px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.07);
+            border-radius: 12px; color: rgba(165,205,188,0.85); font-weight: 700; font-size: 14px;
             cursor: pointer; transition: background 0.18s;
         }
-        .mreg-btn-cancel:hover { background: #f0f6f3; }
+        .mreg-btn-cancel:hover { background: rgba(255,255,255,0.12); }
         .mreg-btn-confirm {
             flex: 2; padding: 13px;
             background: linear-gradient(135deg, #5ab88c 0%, #3d9068 100%);
@@ -340,7 +341,7 @@
             transition: filter 0.18s, box-shadow 0.18s, transform 0.12s;
         }
         .mreg-btn-confirm:hover { filter: brightness(1.06); box-shadow: 0 10px 24px rgba(78,163,127,0.38); }
-        .mreg-btn-confirm:disabled { background: #b8cfc7; box-shadow: none; cursor: not-allowed; filter: none; }
+        .mreg-btn-confirm:disabled { background: rgba(255,255,255,0.10); box-shadow: none; cursor: not-allowed; filter: none; color: rgba(165,205,188,0.40); }
 
         /* ── Modal cambio de servicio ── */
         #modal-cambio-servicio-overlay {
@@ -353,12 +354,13 @@
         #modal-cambio-servicio-overlay.open { display: flex; }
         #modal-cambio-servicio-card {
             width: 100%; max-width: 440px;
-            background: linear-gradient(165deg, #ffffff 0%, #f6fbf8 55%, #eef7f3 100%);
+            background: rgba(8,22,16,0.97);
             border-radius: 24px;
-            border: 1px solid rgba(178,222,200,0.6);
-            box-shadow: 0 24px 52px rgba(6,40,25,0.20);
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 24px 52px rgba(0,0,0,0.52);
             padding: 24px 22px 20px;
             animation: popInSoft 0.22s ease-out;
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
         }
         /* ── Modal editar precio producto kit ── */
         #modal-precio-kit-overlay {
@@ -371,77 +373,78 @@
         #modal-precio-kit-overlay.open { display: flex; }
         #modal-precio-kit-card {
             width: 100%; max-width: 360px;
-            background: linear-gradient(165deg, #ffffff 0%, #f6fbf8 55%, #eef7f3 100%);
+            background: rgba(8,22,16,0.97);
             border-radius: 24px;
-            border: 1px solid rgba(178,222,200,0.6);
-            box-shadow: 0 24px 52px rgba(6,40,25,0.22);
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 24px 52px rgba(0,0,0,0.52);
             padding: 26px 24px 22px;
             animation: popInSoft 0.2s ease-out;
             text-align: center;
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
         }
         #modal-precio-kit-card .mpk-icon {
             width: 54px; height: 54px; border-radius: 50%;
             background: linear-gradient(135deg, #72bd99, #4f9777);
             display: flex; align-items: center; justify-content: center;
             font-size: 24px; margin: 0 auto 14px;
-            box-shadow: 0 8px 20px rgba(79,151,119,0.28);
+            box-shadow: 0 8px 20px rgba(79,151,119,0.35);
         }
         #modal-precio-kit-card .mpk-title {
-            margin: 0 0 4px; font-size: 17px; font-weight: 800; color: #1e3028;
+            margin: 0 0 4px; font-size: 17px; font-weight: 800; color: rgba(220,242,232,0.95);
         }
         #modal-precio-kit-card .mpk-producto {
-            margin: 0 0 18px; font-size: 13px; color: #4c7a66; font-weight: 600;
-            background: #edf7f2; border-radius: 8px; padding: 6px 12px; display: inline-block;
+            margin: 0 0 18px; font-size: 13px; color: rgba(140,210,180,0.88); font-weight: 600;
+            background: rgba(53,122,92,0.18); border-radius: 8px; padding: 6px 12px; display: inline-block;
         }
         #modal-precio-kit-card .mpk-label {
             display: block; text-align: left; font-size: 12px; font-weight: 700;
-            color: #3a5e4d; margin-bottom: 6px; letter-spacing: 0.03em; text-transform: uppercase;
+            color: rgba(114,189,153,0.88); margin-bottom: 6px; letter-spacing: 0.03em; text-transform: uppercase;
         }
         #modal-precio-kit-input-wrap {
             display: flex; align-items: center;
-            border: 2px solid #b8dece; border-radius: 12px;
-            background: #fff; overflow: hidden; margin-bottom: 18px;
+            border: 1.5px solid rgba(255,255,255,0.14); border-radius: 12px;
+            background: rgba(255,255,255,0.07); overflow: hidden; margin-bottom: 18px;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
         #modal-precio-kit-input-wrap:focus-within {
-            border-color: #4f9777; box-shadow: 0 0 0 3px rgba(79,151,119,0.14);
+            border-color: #4f9777; box-shadow: 0 0 0 3px rgba(79,151,119,0.18);
         }
         #modal-precio-kit-input-wrap .mpk-currency {
-            padding: 0 12px; font-size: 16px; font-weight: 800; color: #4f9777;
-            background: #edf7f2; height: 48px; display: flex; align-items: center;
-            border-right: 1px solid #d4eddf;
+            padding: 0 12px; font-size: 16px; font-weight: 800; color: #72bd99;
+            background: rgba(53,122,92,0.18); height: 48px; display: flex; align-items: center;
+            border-right: 1px solid rgba(255,255,255,0.10);
         }
         #modal-precio-kit-input {
             border: none; outline: none; flex: 1; height: 48px;
             padding: 0 14px; font-size: 18px; font-weight: 800;
-            color: #1e3028; background: transparent; font-family: inherit;
+            color: rgba(220,242,232,0.95); background: transparent; font-family: inherit;
         }
         #modal-precio-kit-card .mpk-actions {
             display: flex; gap: 10px;
         }
         #modal-precio-kit-card .mpk-btn-cancel {
-            flex: 1; padding: 12px; border: 1.5px solid #c8e0d6; border-radius: 12px;
-            background: #fff; color: #4c7a66; font-size: 14px; font-weight: 700;
+            flex: 1; padding: 12px; border: 1.5px solid rgba(255,255,255,0.12); border-radius: 12px;
+            background: rgba(255,255,255,0.07); color: rgba(165,205,188,0.85); font-size: 14px; font-weight: 700;
             cursor: pointer; font-family: inherit; transition: background 0.18s;
         }
-        #modal-precio-kit-card .mpk-btn-cancel:hover { background: #f0faf5; }
+        #modal-precio-kit-card .mpk-btn-cancel:hover { background: rgba(255,255,255,0.12); }
         #modal-precio-kit-card .mpk-btn-save {
             flex: 1; padding: 12px; border: none; border-radius: 12px;
             background: linear-gradient(135deg, #4f9777, #337358);
             color: #fff; font-size: 14px; font-weight: 700;
             cursor: pointer; font-family: inherit;
-            box-shadow: 0 6px 16px rgba(51,115,88,0.28);
+            box-shadow: 0 6px 16px rgba(51,115,88,0.35);
             transition: opacity 0.18s, transform 0.18s;
         }
         #modal-precio-kit-card .mpk-btn-save:hover { opacity: 0.92; transform: translateY(-1px); }
 
         .filtros-advanced { display: grid; grid-template-columns: minmax(190px, 1.2fr) repeat(3, minmax(110px, 1fr)) auto; gap: 8px; margin-bottom: 10px; align-items: center; }
-        .select-input { width: 100%; min-height: 40px; padding: 10px 12px; border-radius: 12px; border: 1px solid #d1e7dc; box-sizing: border-box; outline: none; background: #fff; color: var(--texto); transition: border-color 0.2s, box-shadow 0.2s; }
-        .select-input:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.12); }
-        .result-summary { font-size: 12px; color: #4c7a66; font-weight: 700; margin: 6px 0 8px; }
-        .empty-state { text-align:center; opacity:0.65; background:#fff; border:1px dashed #cde5d8; border-radius:14px; padding:14px; margin-top:10px; }
-        .loader-overlay { position: fixed; inset: 0; background: rgba(235,246,240,0.72); z-index: 99998; display: flex; align-items: center; justify-content: center; }
-        .loader-box { background: #fff; border: 1px solid #d6ecdf; border-radius: 14px; padding: 14px 18px; box-shadow: 0 10px 24px rgba(41,99,72,0.13); display: flex; align-items: center; gap: 10px; color: var(--verde-oscuro); font-weight: 700; }
+        .select-input { width: 100%; min-height: 40px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); box-sizing: border-box; outline: none; background: rgba(255,255,255,0.07); color: var(--texto); transition: border-color 0.2s, box-shadow 0.2s; }
+        .select-input:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.14); }
+        .result-summary { font-size: 12px; color: rgba(140,210,180,0.80); font-weight: 700; margin: 6px 0 8px; }
+        .empty-state { text-align:center; opacity:0.75; background: rgba(255,255,255,0.05); border:1px dashed rgba(255,255,255,0.14); color: rgba(165,205,188,0.68); border-radius:14px; padding:14px; margin-top:10px; }
+        .loader-overlay { position: fixed; inset: 0; background: rgba(6,14,11,0.75); z-index: 99998; display: flex; align-items: center; justify-content: center; }
+        .loader-box { background: rgba(8,22,16,0.96); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 14px 18px; box-shadow: 0 10px 24px rgba(0,0,0,0.35); display: flex; align-items: center; gap: 10px; color: var(--verde-oscuro); font-weight: 700; }
         .loader-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--verde-oscuro); animation: pulseDot 0.9s infinite ease-in-out; }
         @keyframes pulseDot { 0% { transform: scale(0.75); opacity: 0.5; } 50% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.75); opacity: 0.5; } }
         /* HAMBURGER */
@@ -480,33 +483,33 @@
         }
         /* CALENDARIO */
         .calendar-container {
-            background: rgba(255,255,255,0.86);
+            background: rgba(255,255,255,0.07);
             backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
             border-radius: 24px; padding: 20px;
-            box-shadow: 0 12px 34px rgba(63,143,111,0.12), inset 0 1px 0 rgba(255,255,255,0.94);
-            border: 1px solid rgba(178,222,200,0.42);
+            box-shadow: 0 12px 34px rgba(0,0,0,0.28);
+            border: 1px solid rgba(255,255,255,0.10);
         }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; text-align: center; margin-top: 15px; }
-        .day-name { font-size: 11px; color: #8f7a88; font-weight: 700; text-transform: uppercase; padding-bottom: 6px; }
-        .day { padding: 10px 4px; min-height: 42px; border-radius: 12px; font-size: 13px; cursor: pointer; border: 1px solid #dbeee6; background: #ffffff; transition: 0.2s; color: #496b5d; display: flex; align-items: center; justify-content: center; }
-        .day:hover { background: #eaf8f1; }
-        .day.has-reserva { background: #e6f6ee; border: 1.5px solid var(--verde-oscuro); color: #1f6548; font-weight: 700; }
-        .day.day-closed { background: #fff2f4; border: 1.5px solid #e7b8bf; color: #96404d; }
+        .day-name { font-size: 11px; color: rgba(140,190,170,0.68); font-weight: 700; text-transform: uppercase; padding-bottom: 6px; }
+        .day { padding: 10px 4px; min-height: 42px; border-radius: 12px; font-size: 13px; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); transition: 0.2s; color: rgba(205,232,218,0.82); display: flex; align-items: center; justify-content: center; }
+        .day:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
+        .day.has-reserva { background: rgba(53,122,92,0.20); border: 1.5px solid rgba(114,189,153,0.45); color: rgba(160,230,200,0.96); font-weight: 700; }
+        .day.day-closed { background: rgba(165,80,90,0.12); border: 1.5px solid rgba(200,100,110,0.30); color: rgba(220,140,150,0.90); }
         .day.day-full { background: linear-gradient(135deg,#ff5252,#e53935) !important; border-color: #e53935 !important; color: #fff !important; font-weight: 800; }
         .day.selected { background: var(--verde) !important; color: white !important; }
         /* CARDS */
         .detalle-dia-card {
-            background: rgba(255,255,255,0.84);
+            background: rgba(255,255,255,0.07);
             backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
             border-radius: 20px; padding: 16px; margin-top: 14px;
-            box-shadow: 0 8px 28px rgba(94,153,124,0.12), inset 0 1px 0 rgba(255,255,255,0.9);
-            border: 1px solid rgba(178,222,200,0.38);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.24);
+            border: 1px solid rgba(255,255,255,0.10);
             transition: box-shadow 0.22s ease, transform 0.18s ease;
         }
-        .detalle-dia-card:hover { box-shadow: 0 14px 40px rgba(94,153,124,0.20), inset 0 1px 0 rgba(255,255,255,0.9); transform: translateY(-2px); }
-        .detalle-dia-card b { color: #2f7c5d; }
-        textarea { width: 100%; height: 80px; border: 1px solid #cbe7da; border-radius: 12px; padding: 10px; font-family: inherit; resize: none; box-sizing: border-box; margin-top: 10px; background: #f5fcf8; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
-        textarea:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.12); }
+        .detalle-dia-card:hover { box-shadow: 0 14px 40px rgba(0,0,0,0.34); transform: translateY(-2px); }
+        .detalle-dia-card b { color: rgba(160,225,200,0.95); }
+        textarea { width: 100%; height: 80px; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 10px; font-family: inherit; resize: none; box-sizing: border-box; margin-top: 10px; background: rgba(255,255,255,0.06); color: rgba(220,242,232,0.92); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        textarea:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.14); }
         .btn-save { width: 100%; background: linear-gradient(135deg, #2a7a55 0%, var(--verde-oscuro) 100%); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: filter 0.18s, box-shadow 0.18s, transform 0.12s; box-shadow: 0 4px 14px rgba(6,64,43,0.22); }
         .btn-save:hover { filter: brightness(1.08); box-shadow: 0 6px 18px rgba(6,64,43,0.30); }
         .btn-save:active { transform: scale(0.98); filter: brightness(0.96); }
@@ -516,15 +519,15 @@
         .btn-confirmar { background: var(--whatsapp); }
         .btn-recordar { background: var(--azul); }
         .btn-cancelar { background: linear-gradient(135deg, #D4AF37, #b8940a); color: #2a1f00; }
-        .btn-delete-reserva { width: 100%; margin-top: 8px; border: 1px solid #D4AF37; background: #fdf8e8; color: #7a5e00; padding: 10px; min-height: 38px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 13px; }
-        .btn-delete-reserva:hover { background: #faf0cc; }
-        .busc-input { width: 100%; min-height: 42px; padding: 10px 12px; border-radius: 12px; border: 1px solid #cfe2d9; margin-bottom: 10px; box-sizing: border-box; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
-        .busc-input:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.12); }
-        .tag-fecha { display: inline-block; background: #eef7f2; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #466a5b; line-height: 1.35; white-space: normal; max-width: 100%; margin-bottom: 6px; }
+        .btn-delete-reserva { width: 100%; margin-top: 8px; border: 1px solid rgba(210,168,50,0.35); background: rgba(165,130,50,0.10); color: rgba(220,185,100,0.88); padding: 10px; min-height: 38px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 13px; transition: background 0.18s; }
+        .btn-delete-reserva:hover { background: rgba(165,130,50,0.18); border-color: rgba(210,168,50,0.50); }
+        .busc-input { width: 100%; min-height: 42px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.07); color: rgba(220,242,232,0.92); margin-bottom: 10px; box-sizing: border-box; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        .busc-input:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.14); }
+        .tag-fecha { display: inline-block; background: rgba(53,122,92,0.15); padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; color: rgba(140,210,180,0.90); line-height: 1.35; white-space: normal; max-width: 100%; margin-bottom: 6px; }
         .tag-origen { display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:0.03em; text-transform:uppercase; }
-        .tag-origen.jornada { background:#fff0f2; color:#b53345; border:1px solid #f2b7bf; }
-        .tag-origen.normal { background:#edf8f3; color:#2f7c5d; border:1px solid #b7dfcc; }
-        .tag-origen.admin { background:#eef5ff; color:#2e61b1; border:1px solid #c6daf8; }
+        .tag-origen.jornada { background: rgba(165,50,60,0.15); color: rgba(220,130,140,0.92); border:1px solid rgba(190,80,90,0.28); }
+        .tag-origen.normal { background: rgba(53,122,92,0.15); color: rgba(100,200,160,0.92); border:1px solid rgba(53,122,92,0.28); }
+        .tag-origen.admin { background: rgba(60,100,200,0.12); color: rgba(130,170,240,0.92); border:1px solid rgba(70,120,210,0.25); }
         /* TOAST */
         #toast-container { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 999999; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .toast { background: rgba(6,64,43,0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: #d4f0e2; padding: 13px 26px; border-radius: 50px; font-weight: 600; font-size: 14px; letter-spacing: 0.01em; opacity: 0; transform: translateY(8px) scale(0.97); transition: opacity 0.28s ease, transform 0.28s ease; border: 1px solid rgba(114,189,153,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.18); white-space: nowrap; }
@@ -691,7 +694,7 @@
                     <h3 style="margin-top:0; color:var(--accento-oscuro); font-family:'Playfair Display',serif; font-size:1.35em; letter-spacing:0.01em;">Buscador de sesiones</h3>
                     <input type="text" class="busc-input buscador-sesiones-input" id="inpBuscadorSesiones" placeholder="Nombre completo exacto (ej: Adriana Cerri)" oninput="buscarSesionesPorNombreInput()" style="font-size:1.1em; border:2px solid #b2ddc8; margin-bottom:14px; border-radius:14px;">
                     <div id="contenedorSesionesBuscadas" style="margin-top:10px;"></div>
-                    <div class="cliente-help" style="margin-top:14px; color:#3f8f6f; font-size:13px; background:#f0faf5; border-radius:10px; padding:8px 12px;">Busca todas las sesiones con nota asociada para un paciente. Escribí al menos 2 letras del nombre.</div>
+                    <div class="cliente-help" style="margin-top:14px; font-size:13px; background:rgba(53,122,92,0.10); border-radius:10px; padding:8px 12px;">Busca todas las sesiones con nota asociada para un paciente. Escribí al menos 2 letras del nombre.</div>
                 </div>
             </div>
             <div id="sec-agenda" class="section active">
@@ -749,11 +752,11 @@
             <div id="sec-clientes" class="section">
                 <div class="detalle-dia-card" style="margin-bottom:12px;">
                     <h3 style="margin-top:0">Alta / Actualización de paciente</h3>
-                    <p style="font-size:13px; color:#557b6b; margin:0 0 8px 0;">Completá al menos DNI, nombre y teléfono. Si el DNI ya existe, se actualiza el paciente.</p>
+                    <p style="font-size:13px; margin:0 0 8px 0;">Completá al menos DNI, nombre y teléfono. Si el DNI ya existe, se actualiza el paciente.</p>
                     <div class="cliente-form-grid">
                         <div class="full" style="position:relative">
                             <input id="cliFullName" class="select-input" style="width:100%; box-sizing:border-box" type="text" placeholder="Nombre y apellido" oninput="buscarPorNombreFormInput()" autocomplete="off">
-                            <div id="sugerenciasNombreForm" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:white; border:1px solid #cde5d8; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.12); z-index:300; max-height:220px; overflow-y:auto;"></div>
+                            <div id="sugerenciasNombreForm" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:rgba(8,22,16,0.97); border:1px solid rgba(255,255,255,0.14); border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,0.45); z-index:300; max-height:220px; overflow-y:auto; backdrop-filter:blur(14px);"></div>
                         </div>
                         <input id="cliDni" class="select-input" type="text" inputmode="numeric" placeholder="DNI (solo números)" oninput="buscarClientePorDniInput()">
                         <input id="cliPhone" class="select-input" type="text" inputmode="tel" placeholder="Teléfono (ej: 375613943)">
@@ -780,7 +783,7 @@
                 </div>
                 <div style="position:relative; margin-bottom:10px">
                     <input type="text" class="busc-input" id="inpBusPaciente" placeholder="Buscar paciente por nombre..." oninput="buscarPacienteNombreInput(); filtrarListadoClientesInput()" autocomplete="off" style="margin-bottom:0">
-                    <div id="sugerenciasPaciente" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:white; border:1px solid #cde5d8; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.1); z-index:200; max-height:220px; overflow-y:auto;"></div>
+                    <div id="sugerenciasPaciente" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:rgba(8,22,16,0.97); border:1px solid rgba(255,255,255,0.14); border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,0.45); z-index:200; max-height:220px; overflow-y:auto; backdrop-filter:blur(14px);"></div>
                 </div>
                 <div class="filtros-advanced" style="grid-template-columns: minmax(180px, 1fr) auto; margin-bottom:12px;">
                     <select id="filtroTipoCliente" class="select-input" onchange="filtrarListadoClientes()">
@@ -796,53 +799,53 @@
             <div id="sec-pedidos-kit" class="section">
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0">Pedidos de Kit Facial</h3>
-                    <p style="font-size:13px; color:#557b6b; margin:0 0 14px 0;">Pacientes que solicitaron su kit facial domiciliario.</p>
-                    <div id="listaPedidosKit" style="font-size:13px; color:#557b6b;">Cargando pedidos...</div>
+                    <p style="font-size:13px; margin:0 0 14px 0;">Pacientes que solicitaron su kit facial domiciliario.</p>
+                    <div id="listaPedidosKit" style="font-size:13px;">Cargando pedidos...</div>
                 </div>
             </div>
             <div id="sec-export" class="section">
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0">Control Jornada Especial</h3>
-                    <p style="font-size:13px; color:#557b6b; margin:0 0 12px 0;">Administrá por separado la campaña de jornada y el flujo principal del sitio. Podés cambiar entre modo normal y modo jornada todas las veces que necesites.</p>
+                    <p style="font-size:13px; margin:0 0 12px 0;">Administrá por separado la campaña de jornada y el flujo principal del sitio. Podés cambiar entre modo normal y modo jornada todas las veces que necesites.</p>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:12px;">
                         <button class="btn-mini" id="btnJornadaToggle" onclick="toggleJornadaEspecial()">Cargando estado...</button>
                         <button class="btn-mini" onclick="recargarJornadaStatus()">Recargar</button>
                     </div>
-                    <div id="jornadaStatusBox" style="background:#f5fcf8; border:1px solid #cfe6da; border-radius:12px; padding:12px; margin-bottom:12px;">
-                        <p style="margin:0 0 8px; font-size:12px; color:#557b6b; font-weight:600;">Estado actual:</p>
-                        <p id="jornadaStatusText" style="margin:0; font-size:13px; color:#2f7c5d; font-weight:700;">Cargando...</p>
+                    <div id="jornadaStatusBox" style="background:rgba(53,122,92,0.10); border:1px solid rgba(53,122,92,0.22); border-radius:12px; padding:12px; margin-bottom:12px;">
+                        <p style="margin:0 0 8px; font-size:12px; font-weight:600;">Estado actual:</p>
+                        <p id="jornadaStatusText" style="margin:0; font-size:13px; color:rgba(140,220,185,0.95); font-weight:700;">Cargando...</p>
                     </div>
                     <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-bottom:12px;">
                         <button class="btn-mini" id="btnFlowModeToggle" onclick="toggleFlowMode()">Cargando modo...</button>
                     </div>
-                    <div id="flowModeStatusBox" style="background:#fffaf3; border:1px solid #efd8aa; border-radius:12px; padding:12px; margin-bottom:12px;">
-                        <p style="margin:0 0 8px; font-size:12px; color:#7a6331; font-weight:600;">Flujo activo del sitio:</p>
-                        <p id="jornadaFlowModeText" style="margin:0; font-size:13px; color:#7a5a1c; font-weight:700;">Cargando...</p>
+                    <div id="flowModeStatusBox" style="background:rgba(165,130,50,0.10); border:1px solid rgba(165,130,50,0.22); border-radius:12px; padding:12px; margin-bottom:12px;">
+                        <p style="margin:0 0 8px; font-size:12px; color:rgba(220,185,120,0.85); font-weight:600;">Flujo activo del sitio:</p>
+                        <p id="jornadaFlowModeText" style="margin:0; font-size:13px; color:rgba(220,185,100,0.95); font-weight:700;">Cargando...</p>
                     </div>
-                    <details style="font-size:12px; color:#556a5f; margin-bottom:12px;">
+                    <details style="font-size:12px; margin-bottom:12px;">
                         <summary style="cursor:pointer; font-weight:600; margin-bottom:8px;">Ver configuración actual</summary>
-                        <pre id="jornadaConfigView" style="background:#fff; border:1px solid #e0ede6; border-radius:8px; padding:10px; font-size:11px; overflow-x:auto; margin:0;">Cargando...</pre>
+                        <pre id="jornadaConfigView" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10); border-radius:8px; padding:10px; font-size:11px; overflow-x:auto; margin:0;">Cargando...</pre>
                     </details>
-                    <p style="font-size:11px; color:#8a7679; margin:0;">Para editar la configuración completa (fechas, servicios, zonas), accedé a Firestore > configuracion > jornadaEspecial</p>
+                    <p style="font-size:11px; opacity:0.55; margin:0;">Para editar la configuración completa (fechas, servicios, zonas), accedé a Firestore > configuracion > jornadaEspecial</p>
                 </div>
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0">Reportes de Reservas</h3>
-                    <p style="font-size:14px; color:#666; margin-bottom:14px;">Descarga reservas por rango de meses, con los días separados visualmente y las fechas completas.</p>
+                    <p style="font-size:14px; margin-bottom:14px;">Descarga reservas por rango de meses, con los días separados visualmente y las fechas completas.</p>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
                         <div>
-                            <label style="display:block;font-size:12px;font-weight:700;color:#2f5a47;margin-bottom:5px;">Desde</label>
-                            <input type="month" id="exportDesde" style="width:100%;padding:9px 10px;border:2px solid #d5eadf;border-radius:10px;font-family:inherit;font-size:13px;color:#2f5a47;background:#fff;outline:none;">
+                            <label style="display:block;font-size:12px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:5px;">Desde</label>
+                            <input type="month" id="exportDesde" style="width:100%;padding:9px 10px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;">
                         </div>
                         <div>
-                            <label style="display:block;font-size:12px;font-weight:700;color:#2f5a47;margin-bottom:5px;">Hasta</label>
-                            <input type="month" id="exportHasta" style="width:100%;padding:9px 10px;border:2px solid #d5eadf;border-radius:10px;font-family:inherit;font-size:13px;color:#2f5a47;background:#fff;outline:none;">
+                            <label style="display:block;font-size:12px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:5px;">Hasta</label>
+                            <input type="month" id="exportHasta" style="width:100%;padding:9px 10px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;">
                         </div>
                     </div>
                     <button class="btn-export-main" onclick="exportarReservasPDF()">Descargar reservas (.pdf)</button>
                 </div>
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0">Reporte de Pacientes</h3>
-                    <p style="font-size:14px; color:#666">Exporta todos los pacientes en PDF con datos de contacto y estado de membresía.</p>
+                    <p style="font-size:14px;">Exporta todos los pacientes en PDF con datos de contacto y estado de membresía.</p>
                     <button class="btn-export-main" onclick="exportarPacientesPDF()">Descargar pacientes (.pdf)</button>
                 </div>
             </div>
@@ -855,19 +858,19 @@
                 <!-- APARIENCIA -->
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">🎨 Apariencia del sitio</h3>
-                    <p style="font-size:13px;color:#557b6b;margin:0 0 16px;">Elegí el tema de color para el panel y para lo que ven tus pacientes.</p>
+                    <p style="font-size:13px;margin:0 0 16px;">Elegí el tema de color para el panel y para lo que ven tus pacientes.</p>
                     <div id="temaGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;"></div>
-                    <p style="font-size:11px;color:#8a9e94;margin:12px 0 0;">El tema se aplica al instante y lo verán todas las pacientes que abran el sitio.</p>
+                    <p style="font-size:11px;opacity:0.55;margin:12px 0 0;">El tema se aplica al instante y lo verán todas las pacientes que abran el sitio.</p>
                 </div>
 
                 <!-- ANUNCIO PARA PACIENTES -->
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">📢 Anuncio para pacientes</h3>
-                    <p style="font-size:13px;color:#557b6b;margin:0 0 12px;">Aparece como banner en la parte superior de la página de turnos. Ideal para promos, avisos o fechas especiales.</p>
-                    <textarea id="anuncioTexto" placeholder="Ej: ¡Junio con 20% de descuento en sesiones corporales! Reservá ahora." style="width:100%;box-sizing:border-box;min-height:72px;padding:12px;border:2px solid #d5eadf;border-radius:12px;font-family:inherit;font-size:14px;color:#2f5a47;resize:vertical;background:#f8fefb;outline:none;margin-bottom:12px;"></textarea>
+                    <p style="font-size:13px;margin:0 0 12px;">Aparece como banner en la parte superior de la página de turnos. Ideal para promos, avisos o fechas especiales.</p>
+                    <textarea id="anuncioTexto" placeholder="Ej: ¡Junio con 20% de descuento en sesiones corporales! Reservá ahora." style="width:100%;box-sizing:border-box;min-height:72px;padding:12px;border:1.5px solid rgba(255,255,255,0.14);border-radius:12px;font-family:inherit;font-size:14px;color:rgba(220,242,232,0.95);resize:vertical;background:rgba(255,255,255,0.07);outline:none;margin-bottom:12px;"></textarea>
                     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#2f5a47;cursor:pointer;">
-                            <input type="checkbox" id="anuncioActivo" style="width:18px;height:18px;accent-color:#3f8f6f;cursor:pointer;">
+                        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;cursor:pointer;">
+                            <input type="checkbox" id="anuncioActivo" style="width:18px;height:18px;accent-color:#4ea37f;cursor:pointer;">
                             Mostrar anuncio
                         </label>
                         <button class="btn-mini" onclick="guardarAnuncio()" style="padding:9px 18px;">💾 Guardar</button>
@@ -878,58 +881,58 @@
                 <!-- BLOQUEOS DE CALENDARIO -->
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">🔒 Bloqueos de calendario</h3>
-                    <p style="font-size:13px;color:#557b6b;margin:0 0 16px;">Bloqueá días, semanas o meses enteros para que las pacientes no puedan reservar. Lo podés revertir cuando quieras.</p>
+                    <p style="font-size:13px;margin:0 0 16px;">Bloqueá días, semanas o meses enteros para que las pacientes no puedan reservar. Lo podés revertir cuando quieras.</p>
 
                     <!-- Bloquear mes -->
-                    <div style="background:#f8fdfb;border:1px solid #d0e8dc;border-radius:14px;padding:14px;margin-bottom:12px;">
-                        <p style="margin:0 0 10px;font-size:12px;font-weight:800;color:#2f5a47;text-transform:uppercase;letter-spacing:.06em;">Mes completo</p>
+                    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px;margin-bottom:12px;">
+                        <p style="margin:0 0 10px;font-size:12px;font-weight:800;color:rgba(114,189,153,0.88);text-transform:uppercase;letter-spacing:.06em;">Mes completo</p>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="month" id="bloqueoMesInput" style="padding:9px 12px;border:2px solid #d5eadf;border-radius:10px;font-family:inherit;font-size:14px;color:#2f5a47;background:#fff;outline:none;" min="2026-05">
+                            <input type="month" id="bloqueoMesInput" style="padding:9px 12px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;" min="2026-05">
                             <button class="btn-mini" onclick="bloquearMes()" style="padding:9px 16px;">Bloquear mes</button>
                         </div>
                     </div>
 
                     <!-- Bloquear rango de días -->
-                    <div style="background:#f8fdfb;border:1px solid #d0e8dc;border-radius:14px;padding:14px;margin-bottom:12px;">
-                        <p style="margin:0 0 10px;font-size:12px;font-weight:800;color:#2f5a47;text-transform:uppercase;letter-spacing:.06em;">Rango de días (día / semana / quincena)</p>
+                    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px;margin-bottom:12px;">
+                        <p style="margin:0 0 10px;font-size:12px;font-weight:800;color:rgba(114,189,153,0.88);text-transform:uppercase;letter-spacing:.06em;">Rango de días (día / semana / quincena)</p>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
                             <div>
-                                <label style="font-size:11px;font-weight:700;color:#6a8e7f;display:block;margin-bottom:4px;">Desde</label>
-                                <input type="date" id="bloqueoDesdeDia" style="width:100%;box-sizing:border-box;padding:9px 12px;border:2px solid #d5eadf;border-radius:10px;font-family:inherit;font-size:14px;color:#2f5a47;background:#fff;outline:none;">
+                                <label style="font-size:11px;font-weight:700;color:rgba(140,210,180,0.72);display:block;margin-bottom:4px;">Desde</label>
+                                <input type="date" id="bloqueoDesdeDia" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;">
                             </div>
                             <div>
-                                <label style="font-size:11px;font-weight:700;color:#6a8e7f;display:block;margin-bottom:4px;">Hasta</label>
-                                <input type="date" id="bloqueoHastaDia" style="width:100%;box-sizing:border-box;padding:9px 12px;border:2px solid #d5eadf;border-radius:10px;font-family:inherit;font-size:14px;color:#2f5a47;background:#fff;outline:none;">
+                                <label style="font-size:11px;font-weight:700;color:rgba(140,210,180,0.72);display:block;margin-bottom:4px;">Hasta</label>
+                                <input type="date" id="bloqueoHastaDia" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;">
                             </div>
                         </div>
-                        <input type="text" id="bloqueoRazonDia" placeholder="Motivo del bloqueo (ej: Vacaciones, Curso, Feria...)" style="width:100%;box-sizing:border-box;padding:9px 12px;border:2px solid #d5eadf;border-radius:10px;font-family:inherit;font-size:14px;color:#2f5a47;background:#fff;outline:none;margin-bottom:8px;">
+                        <input type="text" id="bloqueoRazonDia" placeholder="Motivo del bloqueo (ej: Vacaciones, Curso, Feria...)" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;margin-bottom:8px;">
                         <button class="btn-mini" onclick="bloquearRangoDias()" style="padding:9px 18px;">Bloquear días seleccionados</button>
                     </div>
 
                     <!-- Lista de bloqueos activos -->
-                    <p style="margin:0 0 8px;font-size:12px;font-weight:800;color:#2f5a47;text-transform:uppercase;letter-spacing:.06em;">Bloqueos activos</p>
-                    <div id="listaBloqueos" style="font-size:13px;color:#557b6b;">Cargando...</div>
+                    <p style="margin:0 0 8px;font-size:12px;font-weight:800;color:rgba(114,189,153,0.88);text-transform:uppercase;letter-spacing:.06em;">Bloqueos activos</p>
+                    <div id="listaBloqueos" style="font-size:13px;">Cargando...</div>
                 </div>
 
                 <!-- CONFIGURACIÓN DEL NEGOCIO -->
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">⚙️ Configuración del negocio</h3>
-                    <p style="font-size:13px;color:#557b6b;margin:0 0 14px;">Textos que aparecen en el sitio para tus pacientes.</p>
+                    <p style="font-size:13px;margin:0 0 14px;">Textos que aparecen en el sitio para tus pacientes.</p>
                     <div style="display:grid;gap:10px;">
                         <div>
-                            <label style="font-size:11px;font-weight:800;color:#4a7060;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Nombre del negocio</label>
+                            <label style="font-size:11px;font-weight:800;color:rgba(114,189,153,0.88);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Nombre del negocio</label>
                             <input id="confNombre" type="text" placeholder="Espacio Mimar T" class="busc-input" style="margin:0;">
                         </div>
                         <div>
-                            <label style="font-size:11px;font-weight:800;color:#4a7060;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Tagline / subtítulo</label>
+                            <label style="font-size:11px;font-weight:800;color:rgba(114,189,153,0.88);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Tagline / subtítulo</label>
                             <input id="confTagline" type="text" placeholder="Tu lugar de bienestar" class="busc-input" style="margin:0;">
                         </div>
                         <div>
-                            <label style="font-size:11px;font-weight:800;color:#4a7060;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Mensaje de bienvenida (aparece al ingresar)</label>
-                            <textarea id="confBienvenida" placeholder="Bienvenida a Espacio Mimar T..." style="width:100%;box-sizing:border-box;min-height:60px;padding:12px;border:2px solid #d5eadf;border-radius:12px;font-family:inherit;font-size:14px;color:#2f5a47;resize:vertical;background:#f8fefb;outline:none;"></textarea>
+                            <label style="font-size:11px;font-weight:800;color:rgba(114,189,153,0.88);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Mensaje de bienvenida (aparece al ingresar)</label>
+                            <textarea id="confBienvenida" placeholder="Bienvenida a Espacio Mimar T..." style="width:100%;box-sizing:border-box;min-height:60px;padding:12px;border:1.5px solid rgba(255,255,255,0.14);border-radius:12px;font-family:inherit;font-size:14px;color:rgba(220,242,232,0.95);resize:vertical;background:rgba(255,255,255,0.07);outline:none;"></textarea>
                         </div>
                         <div>
-                            <label style="font-size:11px;font-weight:800;color:#4a7060;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Número de WhatsApp (con código de país)</label>
+                            <label style="font-size:11px;font-weight:800;color:rgba(114,189,153,0.88);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Número de WhatsApp (con código de país)</label>
                             <input id="confWhatsapp" type="text" placeholder="5493764291807" class="busc-input" style="margin:0;">
                         </div>
                         <button class="btn-mini" onclick="guardarConfigNegocio()" style="padding:11px;font-size:14px;">💾 Guardar configuración</button>
@@ -939,7 +942,7 @@
                 <!-- PRODUCTOS DEL KIT FACIAL -->
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">🧴 Productos del Kit Facial</h3>
-                    <p style="font-size:13px;color:#557b6b;margin:0 0 14px;">Configurá los productos y precios del kit domiciliario. Los cambios se reflejan al instante para las pacientes.</p>
+                    <p style="font-size:13px;margin:0 0 14px;">Configurá los productos y precios del kit domiciliario. Los cambios se reflejan al instante para las pacientes.</p>
                     <div id="kitProductosAdmin" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;"></div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
                         <button class="btn-mini" onclick="agregarFilaProductoKit()" style="padding:9px 16px;">+ Agregar producto</button>
@@ -951,7 +954,7 @@
                 <!-- CATÁLOGO DE TRATAMIENTOS -->
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">🌿 Catálogo de Tratamientos</h3>
-                    <p style="font-size:13px;color:#557b6b;margin:0 0 14px;">Servicios que aparecen en la página de servicios de las pacientes. Podés agregar, editar o eliminar tratamientos.</p>
+                    <p style="font-size:13px;margin:0 0 14px;">Servicios que aparecen en la página de servicios de las pacientes. Podés agregar, editar o eliminar tratamientos.</p>
                     <div id="tratamientosAdmin" style="display:flex;flex-direction:column;gap:12px;margin-bottom:14px;"></div>
                     <button class="btn-mini" onclick="agregarFilaTratamiento()" style="padding:9px 16px;">+ Nuevo tratamiento</button>
                     <div id="tratamientosFeedback" style="display:none;margin-top:10px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;"></div>
@@ -1932,7 +1935,7 @@
             if(el) el.classList.add('selected');
             const cierreDia = cierresPorFecha.get(f);
             const cierreBannerHTML = cierreDia ? `
-                <div class="empty-state" style="opacity:1; border-style:solid; border-color:#e6c5cb; background:#fff7f8; color:#7f3b48; text-align:left; margin-bottom:10px;">
+                <div class="empty-state" style="opacity:1; border-style:solid; border-color:rgba(200,100,110,0.35); background:rgba(165,50,60,0.12); color:rgba(220,140,150,0.95); text-align:left; margin-bottom:10px;">
                     <strong>${formatoFechaISO(f)}</strong><br>
                     Día cerrado por calendarExceptions: ${escapeHtml(cierreDia.reason || 'No disponible')}
                 </div>
@@ -1945,17 +1948,17 @@
 
                 // Badge Duo
                 const duoBadge = esDuo
-                    ? `<span style="display:inline-block;background:#eef5ff;color:#2e61b1;border:1px solid #c6daf8;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">Duo</span>`
+                    ? `<span style="display:inline-block;background:rgba(60,100,200,0.14);color:rgba(130,170,240,0.95);border:1px solid rgba(70,120,210,0.28);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">Duo</span>`
                     : '';
 
                 // Nota para paciente 1 (o unico)
                 const notaDisplay1 = tieneNota ? `
-                    <div id="nd-${r.id}" style="margin-top:8px; background:#f3faf6; border:1px solid #b6dfc9; border-radius:10px; padding:10px 34px 10px 10px; font-size:13px; color:#2f5a47; white-space:pre-wrap; position:relative">${escapeHtml(r.detalleSesion)}<button title="Editar" onclick="activarEdicionNotaAdmin('${r.id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:12px">Editar</button></div>
+                    <div id="nd-${r.id}" style="margin-top:8px; background:rgba(53,122,92,0.12); border:1px solid rgba(114,189,153,0.22); border-radius:10px; padding:10px 34px 10px 10px; font-size:13px; color:rgba(180,230,210,0.92); white-space:pre-wrap; position:relative">${escapeHtml(r.detalleSesion)}<button title="Editar" onclick="activarEdicionNotaAdmin('${r.id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:12px; color:rgba(140,210,180,0.80)">Editar</button></div>
                     <div id="ne-${r.id}" style="display:none">
                         <textarea id="n-${r.id}" style="width:100%; box-sizing:border-box; margin-top:6px">${escapeHtml(r.detalleSesion)}</textarea>
                         <div style="display:flex; gap:6px; margin-top:4px">
                             <button class="btn-save" onclick="guardarN('${r.id}')">Guardar</button>
-                            <button onclick="cancelarEdicionAdmin('${r.id}')" style="border:1px solid #ccc; background:#f9f9f9; border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px">Cancelar</button>
+                            <button onclick="cancelarEdicionAdmin('${r.id}')" style="border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.07); border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px; color:rgba(165,205,188,0.85)">Cancelar</button>
                         </div>
                     </div>` : `
                     <textarea id="n-${r.id}" placeholder="${esDuo ? 'Nota paciente 1...' : 'Detalle de la sesion...'}" style="width:100%; box-sizing:border-box; margin-top:6px"></textarea>
@@ -1963,16 +1966,16 @@
 
                 // Nota para paciente 2 (solo en Duo)
                 const notaDisplay2 = esDuo ? (tieneNota2 ? `
-                    <div style="font-size:11px;font-weight:700;color:#2e61b1;text-transform:uppercase;letter-spacing:.06em;margin-top:12px;">Nota paciente 2 — ${escapeHtml(r.duoNombre2 || 'Paciente 2')}</div>
-                    <div id="nd2-${r.id}" style="margin-top:6px; background:#f0f5ff; border:1px solid #c6daf8; border-radius:10px; padding:10px 34px 10px 10px; font-size:13px; color:#2a3d5a; white-space:pre-wrap; position:relative">${escapeHtml(r.detalleSesion2)}<button title="Editar" onclick="activarEdicionNota2Admin('${r.id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:12px">Editar</button></div>
+                    <div style="font-size:11px;font-weight:700;color:rgba(130,170,240,0.88);text-transform:uppercase;letter-spacing:.06em;margin-top:12px;">Nota paciente 2 — ${escapeHtml(r.duoNombre2 || 'Paciente 2')}</div>
+                    <div id="nd2-${r.id}" style="margin-top:6px; background:rgba(60,100,200,0.10); border:1px solid rgba(70,120,210,0.22); border-radius:10px; padding:10px 34px 10px 10px; font-size:13px; color:rgba(180,200,240,0.92); white-space:pre-wrap; position:relative">${escapeHtml(r.detalleSesion2)}<button title="Editar" onclick="activarEdicionNota2Admin('${r.id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:12px; color:rgba(130,170,240,0.80)">Editar</button></div>
                     <div id="ne2-${r.id}" style="display:none">
                         <textarea id="n2-${r.id}" style="width:100%; box-sizing:border-box; margin-top:6px">${escapeHtml(r.detalleSesion2)}</textarea>
                         <div style="display:flex; gap:6px; margin-top:4px">
                             <button class="btn-save" onclick="guardarN2('${r.id}')">Guardar</button>
-                            <button onclick="cancelarEdicion2Admin('${r.id}')" style="border:1px solid #ccc; background:#f9f9f9; border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px">Cancelar</button>
+                            <button onclick="cancelarEdicion2Admin('${r.id}')" style="border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.07); border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px; color:rgba(165,205,188,0.85)">Cancelar</button>
                         </div>
                     </div>` : `
-                    <div style="font-size:11px;font-weight:700;color:#2e61b1;text-transform:uppercase;letter-spacing:.06em;margin-top:12px;">Nota paciente 2 — ${escapeHtml(r.duoNombre2 || 'Paciente 2')}</div>
+                    <div style="font-size:11px;font-weight:700;color:rgba(130,170,240,0.88);text-transform:uppercase;letter-spacing:.06em;margin-top:12px;">Nota paciente 2 — ${escapeHtml(r.duoNombre2 || 'Paciente 2')}</div>
                     <textarea id="n2-${r.id}" placeholder="Nota paciente 2..." style="width:100%; box-sizing:border-box; margin-top:6px"></textarea>
                     <button class="btn-save" onclick="guardarN2('${r.id}')">Guardar nota paciente 2</button>`)
                     : '';
@@ -3154,7 +3157,7 @@
                     </div>
                     <div style="margin-top:8px;">
                         <button onclick="toggleMembresiaCliente('${escapeHtml(p.dni || '')}', ${!p.membershipActive})"
-                            style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid ${p.membershipActive ? '#c8ddd6' : '#3f8f6f'};background:${p.membershipActive ? '#fff' : '#edf7f2'};cursor:pointer;color:#2f5a47;font-weight:700;">
+                            style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid ${p.membershipActive ? 'rgba(255,255,255,0.12)' : 'rgba(114,189,153,0.35)'};background:${p.membershipActive ? 'rgba(255,255,255,0.07)' : 'rgba(53,122,92,0.14)'};cursor:pointer;color:rgba(160,225,200,0.90);font-weight:700;">
                             ${p.membershipActive ? 'Cambiar a Ocasional' : 'Cambiar a Membresía'}
                         </button>
                     </div>
@@ -3210,7 +3213,7 @@
             const coincidencias = todasLosPacientes.filter(p => (p.fullName || "").toLowerCase().includes(txt)).slice(0, 8);
             if (!coincidencias.length) { cont.style.display = "none"; return; }
             cont.innerHTML = coincidencias.map(p =>
-                `<div onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni)}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f7f3; font-size:13px; hover:background:#f5fdf8">
+                `<div onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni)}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.07); font-size:13px; color:rgba(205,232,218,0.90);" onmouseover="this.style.background='rgba(53,122,92,0.14)'" onmouseout="this.style.background=''">
                     <strong>${escapeHtml(p.fullName)}</strong>&nbsp;·&nbsp;DNI ${escapeHtml(p.dni)}&nbsp;·&nbsp;Tel. ${escapeHtml(p.phone || 'Sin tel')}&nbsp;·&nbsp;${p.membershipActive ? 'Membresía' : 'Ocasional'}
                 </div>`
             ).join("");
@@ -3444,20 +3447,20 @@
                 var isCancelado = (r.estado || r.status || "").toLowerCase() === "cancelado";
                 var esPasada = r.fecha < hoyStr || (r.fecha === hoyStr && (r.hora || "00:00") <= horaActual);
                 var estado = isCancelado ? "CANCELADO" : (esPasada ? "Realizada" : "Pendiente");
-                var color = isCancelado ? "#e11d2e" : (esPasada ? "#3f8f6f" : "#c07a10");
-                var bg = isCancelado ? "#fff1f2" : (esPasada ? "#e8f5ee" : "#fff8e7");
-                var border = isCancelado ? "#fecdd3" : (esPasada ? "#7dc9a0" : "#f0c060");
+                var color = isCancelado ? "rgba(230,80,80,0.90)" : (esPasada ? "rgba(114,189,153,0.90)" : "rgba(220,185,80,0.90)");
+                var bg = isCancelado ? "rgba(165,50,50,0.12)" : (esPasada ? "rgba(53,122,92,0.12)" : "rgba(165,130,30,0.10)");
+                var border = isCancelado ? "rgba(200,80,80,0.25)" : (esPasada ? "rgba(114,189,153,0.25)" : "rgba(200,160,50,0.25)");
                 var detalle = r.detalleSesion || r.notas || r.nota || "";
                 var fechaLarga = escapeHtml(formatFechaLargaExport(r.fecha) || r.fecha || "Sin fecha");
-                html += "<div style='background:#fff;border:1px solid " + border + ";border-left:4px solid " + color + ";border-radius:12px;padding:14px 16px;margin-bottom:10px;'>" +
+                html += "<div style='background:rgba(255,255,255,0.06);border:1px solid " + border + ";border-left:4px solid " + color + ";border-radius:12px;padding:14px 16px;margin-bottom:10px;'>" +
                     "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'>" +
-                    "<span style='font-weight:700;font-size:13px;color:#2f5a47;'>" + fechaLarga + " &mdash; " + escapeHtml(r.hora || "Sin hora") + " hs</span>" +
+                    "<span style='font-weight:700;font-size:13px;color:rgba(180,230,210,0.92);'>" + fechaLarga + " &mdash; " + escapeHtml(r.hora || "Sin hora") + " hs</span>" +
                     "<span style='background:" + bg + ";color:" + color + ";border:1px solid " + border + ";border-radius:999px;padding:3px 10px;font-size:11px;font-weight:800;'>" + estado + "</span>" +
                     "</div>" +
-                    "<div style='font-size:13px;color:#557b6b;margin-bottom:4px;'><strong>Servicio:</strong> " + escapeHtml(r.servicio || "—") + "</div>" +
+                    "<div style='font-size:13px;margin-bottom:4px;'><strong>Servicio:</strong> " + escapeHtml(r.servicio || "—") + "</div>" +
                     (detalle
-                        ? "<div style='font-size:13px;color:#3d5045;margin-top:6px;background:#f5fbf7;border-radius:8px;padding:8px 10px;'>" + escapeHtml(detalle) + "</div>"
-                        : "<div style='font-size:12px;color:#a0b0a8;font-style:italic;margin-top:4px;'>Sin detalle de sesión</div>") +
+                        ? "<div style='font-size:13px;margin-top:6px;background:rgba(53,122,92,0.10);border-radius:8px;padding:8px 10px;color:rgba(165,205,188,0.90);'>" + escapeHtml(detalle) + "</div>"
+                        : "<div style='font-size:12px;opacity:0.45;font-style:italic;margin-top:4px;'>Sin detalle de sesión</div>") +
                     "</div>";
             });
             contenedor.innerHTML = html;
@@ -3479,9 +3482,9 @@
             var html = "<p style='font-size:13px;font-weight:700;margin-bottom:10px;'>" + sesiones.length + " servicio(s) realizado(s)</p>";
             sesiones.forEach(function(r) {
                 var detalle = r.detalleSesion || r.notas || r.nota || "";
-                html += "<div style='background:#fff;border:1px solid #c5dfd0;border-left:4px solid #3f8f6f;border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:13px;'>" +
+                html += "<div style='background:rgba(255,255,255,0.06);border:1px solid rgba(114,189,153,0.20);border-left:4px solid rgba(114,189,153,0.55);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:13px;'>" +
                     "<strong>" + escapeHtml(r.fecha || "—") + "</strong> | " + escapeHtml(r.hora || "—") + " | " + escapeHtml(r.servicio || "—") +
-                    (detalle ? "<div style='margin-top:6px;color:#4a7060;'>" + escapeHtml(detalle) + "</div>" : "") +
+                    (detalle ? "<div style='margin-top:6px;color:rgba(165,205,188,0.80);'>" + escapeHtml(detalle) + "</div>" : "") +
                     "</div>";
             });
             contenedor.innerHTML = html;
@@ -3525,10 +3528,10 @@
                     const fechaStr = p.createdAt || p.fecha || '';
                     if (fechaStr.slice(0, 7) === mesActual) totalMes += totalPedido;
                     const estadoBadge = p.estado === 'entregado'
-                        ? '<span style="background:#d4f0e3;color:#1a6644;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">✓ Entregado</span>'
+                        ? '<span style="background:rgba(53,122,92,0.20);color:rgba(140,220,185,0.95);border:1px solid rgba(53,122,92,0.35);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">✓ Entregado</span>'
                         : p.estado === 'listo'
-                        ? '<span style="background:#e8f5ee;color:#3a7a5a;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Listo</span>'
-                        : '<span style="background:#fff8e1;color:#8a6c00;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Pendiente</span>';
+                        ? '<span style="background:rgba(53,122,92,0.14);color:rgba(160,225,195,0.92);border:1px solid rgba(53,122,92,0.25);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Listo</span>'
+                        : '<span style="background:rgba(165,130,30,0.14);color:rgba(220,185,80,0.92);border:1px solid rgba(165,130,30,0.25);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Pendiente</span>';
                     const productosList = productosArr.length
                         ? productosArr.map(function(prod, idx) {
                             let precio;
@@ -3539,33 +3542,33 @@
                                 precio = key ? KIT_PRECIOS[key] : null;
                             }
                             const safePrice = (precio !== null && !isNaN(precio)) ? precio : 0;
-                            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #eef4f0;">' +
+                            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.07);">' +
                                 '<span>' + escapeHtml(prod) + '</span>' +
                                 '<span style="display:flex;align-items:center;gap:5px;">' +
                                     (precio !== null
-                                        ? '<span style="color:#2f7c5d;font-weight:700;">' + formatPesos(safePrice) + '</span>' +
+                                        ? '<span style="color:rgba(140,220,185,0.92);font-weight:700;">' + formatPesos(safePrice) + '</span>' +
                                           '<button onclick="editarPrecioProdKit(\'' + escapeHtml(p.id) + '\',' + idx + ',' + safePrice + ',\'' + escapeHtml(prod).replace(/'/g, "&#39;") + '\')" title="Editar precio" style="background:none;border:none;cursor:pointer;font-size:12px;line-height:1;opacity:0.5;padding:2px 3px;border-radius:4px;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'" aria-label="Editar precio">✏️</button>'
-                                        : '<span style="color:#aaa;">—</span>'
+                                        : '<span style="opacity:0.45;">—</span>'
                                     ) +
                                 '</span>' +
                             '</div>';
                         }).join('')
                         : '<div style="color:#aaa;">Sin productos</div>';
-                    return '<div style="background:rgba(255,255,255,0.8);backdrop-filter:blur(8px);border:1px solid #d9ede4;border-radius:14px;padding:14px 16px;margin-bottom:12px;">' +
+                    return '<div style="background:rgba(255,255,255,0.07);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px 16px;margin-bottom:12px;">' +
                         '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">' +
-                            '<strong style="font-size:15px;color:#1e3028;">' + escapeHtml(p.nombrePaciente || '-') + '</strong>' +
+                            '<strong style="font-size:15px;color:rgba(220,242,232,0.95);">' + escapeHtml(p.nombrePaciente || '-') + '</strong>' +
                             estadoBadge +
                         '</div>' +
-                        '<div style="font-size:12px;color:#5a7265;line-height:1.7;margin-bottom:8px;">' +
+                        '<div style="font-size:12px;line-height:1.7;margin-bottom:8px;">' +
                             '<div><strong>DNI:</strong> ' + escapeHtml(p.dni || '-') + '</div>' +
                             '<div><strong>Fecha solicitud:</strong> ' + formatFecha(fechaStr) + '</div>' +
                         '</div>' +
-                        '<div style="font-size:12px;background:#f5fcf8;border-radius:10px;padding:10px;margin-bottom:8px;">' +
-                            '<div style="font-weight:700;color:#2f5a47;margin-bottom:6px;">Productos solicitados</div>' +
+                        '<div style="font-size:12px;background:rgba(53,122,92,0.10);border-radius:10px;padding:10px;margin-bottom:8px;">' +
+                            '<div style="font-weight:700;color:rgba(140,210,180,0.90);margin-bottom:6px;">Productos solicitados</div>' +
                             productosList +
-                            (totalPedido > 0 ? '<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-weight:800;color:#2f5a47;font-size:13px;"><span>Total</span><span>' + formatPesos(totalPedido) + '</span></div>' : '') +
+                            (totalPedido > 0 ? '<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-weight:800;color:rgba(160,225,200,0.95);font-size:13px;"><span>Total</span><span>' + formatPesos(totalPedido) + '</span></div>' : '') +
                         '</div>' +
-                        (p.descripcionPiel ? '<div style="font-size:12px;background:#f2f7f4;padding:8px 10px;border-radius:8px;margin-bottom:8px;"><strong>Descripción piel:</strong> ' + escapeHtml(p.descripcionPiel) + '</div>' : '') +
+                        (p.descripcionPiel ? '<div style="font-size:12px;background:rgba(255,255,255,0.05);padding:8px 10px;border-radius:8px;margin-bottom:8px;"><strong>Descripción piel:</strong> ' + escapeHtml(p.descripcionPiel) + '</div>' : '') +
                         '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
                             '<button onclick="enviarWaKit(\'' + escapeHtml(p.id || '') + '\',\'' + escapeHtml(p.dni || '') + '\',\'' + (p.nombrePaciente || '').replace(/'/g, "\\'") + '\')" ' +
                                 'style="background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border:none;padding:9px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;flex:1;">📲 WhatsApp</button>' +
@@ -3574,19 +3577,19 @@
                                   'style="background:linear-gradient(135deg,#3f8f6f,#2a6e52);color:#fff;border:none;padding:9px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;flex:1;">✓ Entregado</button>'
                                 : '') +
                             '<button onclick="borrarPedidoKit(\'' + escapeHtml(p.id || '') + '\')" ' +
-                                'style="background:#fff;color:#c94040;border:1.5px solid #f5c5c5;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;">Borrar</button>' +
+                                'style="background:rgba(165,50,50,0.12);color:rgba(220,130,130,0.92);border:1.5px solid rgba(200,80,80,0.25);padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;">Borrar</button>' +
                         '</div>' +
                     '</div>';
                 });
                 cont.innerHTML =
-                    '<div style="background:linear-gradient(135deg,#e8f5ee,#d4eddf);border:1px solid #b7dfcc;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">' +
-                        '<span style="font-size:13px;font-weight:700;color:#2f5a47;">Ingresos estimados este mes</span>' +
-                        '<span style="font-size:18px;font-weight:800;color:#1e3028;">' + formatPesos(totalMes) + '</span>' +
+                    '<div style="background:rgba(53,122,92,0.12);border:1px solid rgba(114,189,153,0.22);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">' +
+                        '<span style="font-size:13px;font-weight:700;color:rgba(140,210,180,0.90);">Ingresos estimados este mes</span>' +
+                        '<span style="font-size:18px;font-weight:800;color:rgba(220,242,232,0.95);">' + formatPesos(totalMes) + '</span>' +
                     '</div>' +
                     cards.join('');
             } catch(e) {
                 console.error(e);
-                cont.innerHTML = '<p style="color:#9a6820;">Error al cargar pedidos.</p>';
+                cont.innerHTML = '<p style="color:rgba(220,185,80,0.88);">Error al cargar pedidos.</p>';
             }
         };
         
@@ -3948,13 +3951,13 @@
             if (!grid) return;
             grid.innerHTML = TEMAS_CTRL.map(t => `
                 <div onclick="aplicarTema('${t.id}')"
-                    style="cursor:pointer;border-radius:16px;border:2.5px solid ${_temaActual === t.id ? '#3f8f6f' : '#d5eadf'};padding:16px 10px;text-align:center;transition:all .2s;background:${_temaActual === t.id ? '#eaf7f1' : '#fff'};box-shadow:${_temaActual === t.id ? '0 6px 20px rgba(63,143,111,0.22)' : '0 2px 8px rgba(0,0,0,0.04)'};">
+                    style="cursor:pointer;border-radius:16px;border:2.5px solid ${_temaActual === t.id ? 'rgba(114,189,153,0.65)' : 'rgba(255,255,255,0.10)'};padding:16px 10px;text-align:center;transition:all .2s;background:${_temaActual === t.id ? 'rgba(53,122,92,0.18)' : 'rgba(255,255,255,0.06)'};box-shadow:${_temaActual === t.id ? '0 6px 20px rgba(0,0,0,0.30)' : '0 2px 8px rgba(0,0,0,0.18)'};">
                     <div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;">
-                        ${t.swatches.map(c => `<div style="width:22px;height:22px;border-radius:50%;background:${c};border:1.5px solid rgba(0,0,0,0.09);"></div>`).join("")}
+                        ${t.swatches.map(c => `<div style="width:22px;height:22px;border-radius:50%;background:${c};border:1.5px solid rgba(255,255,255,0.18);"></div>`).join("")}
                     </div>
-                    <div style="font-weight:800;font-size:13px;color:#2f5a47;">${t.label}</div>
-                    <div style="font-size:11px;color:#6a8e7f;margin-top:3px;">${t.desc}</div>
-                    ${_temaActual === t.id ? '<div style="font-size:10px;font-weight:800;color:#3f8f6f;margin-top:7px;text-transform:uppercase;letter-spacing:.08em;">✓ Activo</div>' : ""}
+                    <div style="font-weight:800;font-size:13px;color:rgba(220,242,232,0.92);">${t.label}</div>
+                    <div style="font-size:11px;color:rgba(140,210,180,0.72);margin-top:3px;">${t.desc}</div>
+                    ${_temaActual === t.id ? '<div style="font-size:10px;font-weight:800;color:rgba(114,189,153,0.92);margin-top:7px;text-transform:uppercase;letter-spacing:.08em;">✓ Activo</div>' : ""}
                 </div>
             `).join("");
         }
@@ -4102,18 +4105,18 @@
             }
             let html = "";
             _bloqueosMeses.forEach(mes => {
-                html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#fff;border:1px solid #d5eadf;border-radius:10px;margin-bottom:6px;">
-                    <span style="font-weight:700;color:#2f5a47;">📅 ${mes} — mes completo</span>
-                    <button onclick="desbloquearMes('${mes}')" style="flex-shrink:0;font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid #e8a0a0;background:#fff8f8;color:#c05050;font-weight:700;cursor:pointer;">Desbloquear</button>
+                html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:10px;margin-bottom:6px;">
+                    <span style="font-weight:700;color:rgba(160,225,200,0.90);">📅 ${mes} — mes completo</span>
+                    <button onclick="desbloquearMes('${mes}')" style="flex-shrink:0;font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid rgba(200,80,80,0.30);background:rgba(165,50,50,0.12);color:rgba(220,130,130,0.92);font-weight:700;cursor:pointer;">Desbloquear</button>
                 </div>`;
             });
             _bloqueosDias.forEach(r => {
-                html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#fff;border:1px solid #d5eadf;border-radius:10px;margin-bottom:6px;">
+                html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:10px;margin-bottom:6px;">
                     <div>
-                        <span style="font-weight:700;color:#2f5a47;">📆 ${r.desde} → ${r.hasta}</span>
-                        <span style="font-size:12px;color:#6a8e7f;margin-left:6px;">${escapeHtml(r.motivo || "")}</span>
+                        <span style="font-weight:700;color:rgba(160,225,200,0.90);">📆 ${r.desde} → ${r.hasta}</span>
+                        <span style="font-size:12px;opacity:0.65;margin-left:6px;">${escapeHtml(r.motivo || "")}</span>
                     </div>
-                    <button onclick="desbloquearRangoDias('${escapeHtml(r.id)}')" style="flex-shrink:0;font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid #e8a0a0;background:#fff8f8;color:#c05050;font-weight:700;cursor:pointer;">Desbloquear</button>
+                    <button onclick="desbloquearRangoDias('${escapeHtml(r.id)}')" style="flex-shrink:0;font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid rgba(200,80,80,0.30);background:rgba(165,50,50,0.12);color:rgba(220,130,130,0.92);font-weight:700;cursor:pointer;">Desbloquear</button>
                 </div>`;
             });
             el.innerHTML = html;
@@ -4163,18 +4166,18 @@
             const cont = document.getElementById('kitProductosAdmin');
             if (!cont) return;
             cont.innerHTML = _kitProductos.map((p, i) => `
-                <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;background:#f8fefb;border:1px solid #d5eadf;border-radius:12px;padding:10px 12px;">
+                <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:10px 12px;">
                     <input type="text" value="${escapeHtml(p.nombre)}" placeholder="Nombre del producto"
-                        style="border:1.5px solid #d5eadf;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:14px;color:#2f5a47;background:#fff;outline:none;"
+                        style="border:1.5px solid rgba(255,255,255,0.14);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:14px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;"
                         onchange="_kitProductos[${i}].nombre=this.value">
                     <div style="display:flex;align-items:center;gap:4px;">
-                        <span style="font-size:12px;font-weight:700;color:#4a7060;">$</span>
+                        <span style="font-size:12px;font-weight:700;color:rgba(114,189,153,0.88);">$</span>
                         <input type="number" value="${p.precio}" min="0" step="500" placeholder="Precio"
-                            style="width:90px;border:1.5px solid #d5eadf;border-radius:8px;padding:8px 8px;font-family:inherit;font-size:14px;color:#2f5a47;background:#fff;outline:none;"
+                            style="width:90px;border:1.5px solid rgba(255,255,255,0.14);border-radius:8px;padding:8px 8px;font-family:inherit;font-size:14px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;"
                             onchange="_kitProductos[${i}].precio=Number(this.value)">
                     </div>
                     <button onclick="eliminarProductoKit(${i})"
-                        style="background:#fff1f3;border:1px solid #f2d3d8;color:#a64b58;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:14px;font-weight:700;" title="Eliminar">✕</button>
+                        style="background:rgba(165,50,50,0.12);border:1px solid rgba(200,80,80,0.25);color:rgba(220,130,130,0.92);border-radius:8px;padding:7px 12px;cursor:pointer;font-size:14px;font-weight:700;" title="Eliminar">✕</button>
                 </div>
             `).join('');
         };
@@ -4248,30 +4251,30 @@
                 return;
             }
             cont.innerHTML = _tratamientos.map((t, i) => `
-                <div style="background:#f8fdfb;border:1px solid #d0e8dc;border-radius:14px;padding:14px 16px;">
+                <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:14px;padding:14px 16px;">
                     <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;margin-bottom:10px;">
                         <input type="text" value="${escapeHtml(t.nombre || '')}" placeholder="Nombre del tratamiento"
-                            style="border:1.5px solid #d5eadf;border-radius:8px;padding:9px 12px;font-family:inherit;font-size:14px;font-weight:700;color:#2f5a47;background:#fff;outline:none;width:100%;box-sizing:border-box;"
+                            style="border:1.5px solid rgba(255,255,255,0.14);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:14px;font-weight:700;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;width:100%;box-sizing:border-box;"
                             oninput="_tratamientos[${i}].nombre=this.value">
                         <button onclick="guardarTratamiento(${i})"
                             style="background:linear-gradient(135deg,#3f8f6f,#2f6f52);color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">💾 Guardar</button>
                     </div>
                     <div style="display:grid;grid-template-columns:80px 60px 1fr;gap:8px;margin-bottom:8px;align-items:center;">
                         <input type="text" value="${escapeHtml(t.icono || '🌿')}" placeholder="Icono"
-                            style="border:1.5px solid #d5eadf;border-radius:8px;padding:8px;font-family:inherit;font-size:18px;text-align:center;color:#2f5a47;background:#fff;outline:none;"
+                            style="border:1.5px solid rgba(255,255,255,0.14);border-radius:8px;padding:8px;font-family:inherit;font-size:18px;text-align:center;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;"
                             oninput="_tratamientos[${i}].icono=this.value">
                         <div style="position:relative;">
                             <input type="number" value="${t.duracion || 60}" min="5" step="5" placeholder="Min"
-                                style="width:100%;border:1.5px solid #d5eadf;border-radius:8px;padding:8px;font-family:inherit;font-size:13px;color:#2f5a47;background:#fff;outline:none;box-sizing:border-box;"
+                                style="width:100%;border:1.5px solid rgba(255,255,255,0.14);border-radius:8px;padding:8px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;box-sizing:border-box;"
                                 oninput="_tratamientos[${i}].duracion=Number(this.value)">
                         </div>
-                        <span style="font-size:11px;color:#6a8e7f;">minutos</span>
+                        <span style="font-size:11px;opacity:0.60;">minutos</span>
                     </div>
                     <textarea placeholder="Descripción del tratamiento" rows="2"
-                        style="width:100%;box-sizing:border-box;border:1.5px solid #d5eadf;border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:#2f5a47;background:#fff;outline:none;resize:vertical;margin-bottom:8px;"
+                        style="width:100%;box-sizing:border-box;border:1.5px solid rgba(255,255,255,0.14);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;resize:vertical;margin-bottom:8px;"
                         oninput="_tratamientos[${i}].descripcion=this.value">${escapeHtml(t.descripcion || '')}</textarea>
                     <button onclick="eliminarTratamiento(${i}, '${escapeHtml(t._id || '')}')"
-                        style="background:#fff1f3;border:1px solid #f2d3d8;color:#a64b58;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700;">✕ Eliminar tratamiento</button>
+                        style="background:rgba(165,50,50,0.12);border:1px solid rgba(200,80,80,0.25);color:rgba(220,130,130,0.92);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700;">✕ Eliminar tratamiento</button>
                 </div>
             `).join('');
         };
