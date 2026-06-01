@@ -1486,7 +1486,6 @@
         const esReservaPeriodoPdf = (r = {}) => PERIODOS_RESERVAS_PDF.has(((r.fecha || '').toString().trim()).slice(0, 7));
         const esReservaExportablePdf = (r = {}) =>
             esReservaPacienteExportable(r)
-            && esReservaPeriodoPdf(r)
             && !esReservaDeBraulioV(r);
             
         const asegurarCampoMembresiaEnFirestore = async (docsClientes = []) => {
@@ -2035,10 +2034,10 @@
                         <a href="https://wa.me/${phone}?text=${msgMioUp}" target="_blank" rel="noopener noreferrer" style="display:block; padding:10px 12px; border-radius:8px; background:linear-gradient(135deg,#6a3fa5,#4a2d82); color:#fff; font-weight:700; font-size:12px; text-decoration:none; text-align:center">💪 MIO UP</a>
                         <a href="https://wa.me/${phone}?text=${msgFraxisFacial}" target="_blank" rel="noopener noreferrer" style="display:block; padding:10px 12px; border-radius:8px; background:linear-gradient(135deg,#c0506e,#8c2a46); color:#fff; font-weight:700; font-size:12px; text-decoration:none; text-align:center">✨ FRAXIS Facial</a>
                         <a href="https://wa.me/${phone}?text=${msgFraxisCorp}" target="_blank" rel="noopener noreferrer" style="display:block; padding:10px 12px; border-radius:8px; background:linear-gradient(135deg,#b04030,#7a1e12); color:#fff; font-weight:700; font-size:12px; text-decoration:none; text-align:center">🔥 FRAXIS Corporal</a>
-                    </div>
-                    <button onclick="(function(){var m=document.getElementById('${postCryoId}');m.style.display=m.style.display==='flex'?'none':'flex';})()" style="width:100%; margin-top:6px; padding:10px; border-radius:10px; border:1.5px solid rgba(165,130,50,0.35); background:rgba(165,130,50,0.10); color:rgba(220,185,100,0.92); font-weight:700; cursor:pointer; font-size:13px">❄️ Post-Criolipólisis</button>
-                    <div id="${postCryoId}" style="display:none; flex-direction:column; gap:6px; margin-top:4px; background:rgba(165,130,50,0.07); border:1px solid rgba(165,130,50,0.20); border-radius:10px; padding:10px;">
-                        <a href="https://wa.me/${phone}?text=${msgPostCryo}" target="_blank" rel="noopener noreferrer" style="display:block; padding:10px 12px; border-radius:8px; background:linear-gradient(135deg,#25d366,#128c7e); color:#fff; font-weight:700; font-size:12px; text-decoration:none; text-align:center">❄️🤍 Enviar mensaje post-Criolipólisis</a>
+                        <button onclick="(function(){var m=document.getElementById('${postCryoId}');m.style.display=m.style.display==='flex'?'none':'flex';})()" style="width:100%; padding:10px; border-radius:10px; border:1.5px solid rgba(165,130,50,0.35); background:rgba(165,130,50,0.10); color:rgba(220,185,100,0.92); font-weight:700; cursor:pointer; font-size:13px">❄️ Post-Criolipólisis</button>
+                        <div id="${postCryoId}" style="display:none; flex-direction:column; gap:6px; background:rgba(165,130,50,0.07); border:1px solid rgba(165,130,50,0.20); border-radius:10px; padding:10px;">
+                            <a href="https://wa.me/${phone}?text=${msgPostCryo}" target="_blank" rel="noopener noreferrer" style="display:block; padding:10px 12px; border-radius:8px; background:linear-gradient(135deg,#25d366,#128c7e); color:#fff; font-weight:700; font-size:12px; text-decoration:none; text-align:center">❄️🤍 Enviar mensaje post-Criolipólisis</a>
+                        </div>
                     </div>` : '';
 
                 // Header del paciente
