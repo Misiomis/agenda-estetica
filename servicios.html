@@ -289,8 +289,18 @@
         .turno-card-meta { font-size: 13px; color: rgba(165,205,188,0.65); margin-bottom: 10px; }
         .turno-badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
         .turno-badge.badge-realizada { background: rgba(100,180,140,0.14); color: rgba(140,210,180,0.90); border: 1px solid rgba(100,180,140,0.22); }
-        .turno-badge.badge-proximo   { background: rgba(80,140,220,0.12); color: rgba(140,190,240,0.90); border: 1px solid rgba(80,140,220,0.22); }
+        .turno-badge.badge-proximo   { background: rgba(220,170,40,0.14); color: rgba(240,200,80,0.95); border: 1px solid rgba(220,170,40,0.28); }
         .turno-badge.badge-cancelada { background: rgba(200,80,80,0.12); color: rgba(240,160,160,0.90); border: 1px solid rgba(200,80,80,0.22); }
+        .turno-countdown {
+            font-size: 11.5px; font-weight: 700;
+            color: rgba(220,185,60,0.90);
+            margin: 4px 0 8px;
+            display: flex; align-items: center; gap: 5px;
+            animation: pulsoContador 2.4s ease-in-out infinite;
+        }
+        .turno-countdown.urgente { color: rgba(220,100,60,0.95); animation-duration: 1s; }
+        .turno-countdown.en-curso { color: rgba(100,200,140,0.90); animation: none; }
+        @keyframes pulsoContador { 0%,100%{opacity:1} 50%{opacity:0.55} }
         .turno-card-motivo {
             font-size: 12px;
             color: rgba(240,180,180,0.80);
@@ -611,9 +621,6 @@
             try {
                 const q = query(collection(db, "reservas"), where("dni", "==", dni));
                 const snap = await getDocs(q);
-                const hoy = new Date();
-                hoy.setHours(0, 0, 0, 0);
-
                 const todos = [];
                 snap.forEach(docSnap => {
                     todos.push({ id: docSnap.id, ...docSnap.data() });
@@ -624,26 +631,47 @@
                     return;
                 }
 
-                const parseDate = r => {
-                    const [y, m, d] = (r.fecha || "0-0-0").split("-").map(Number);
-                    return new Date(y, m - 1, d);
-                };
-
-
                 const esCancelado = r => (r.status || r.estado || "").toLowerCase() === "cancelado";
 
-                // Grupos separados con su propio orden
+                // Turno finalizado = pasaron 60 min desde la hora de inicio
+                const finTurno = r => {
+                    if (!r.fecha || !r.hora) return null;
+                    const dt = new Date(`${r.fecha}T${r.hora}:00-03:00`);
+                    if (isNaN(dt.getTime())) return null;
+                    return new Date(dt.getTime() + 60 * 60 * 1000);
+                };
+                const esFinalizado = r => { const f = finTurno(r); return f ? Date.now() >= f.getTime() : true; };
+
+                // Contador regresivo
+                const cuentaRegresiva = r => {
+                    const f = finTurno(r);
+                    if (!f) return null;
+                    const inicio = new Date(f.getTime() - 60 * 60 * 1000);
+                    const diff = inicio.getTime() - Date.now();
+                    if (diff <= 0) {
+                        const enCurso = (Date.now() - inicio.getTime()) < 60 * 60 * 1000;
+                        return enCurso ? { texto: "🟢 Turno en curso", tipo: "en-curso" } : null;
+                    }
+                    const min = Math.floor(diff / 60000);
+                    if (min < 60) return { texto: "⚠️ Falta menos de 1 hora — ¡asegurate de llegar a tiempo!", tipo: "urgente" };
+                    const hs = Math.floor(min / 60);
+                    if (hs < 48) return { texto: `⏱ Faltan ${hs} hora${hs !== 1 ? "s" : ""}`, tipo: "" };
+                    const dias = Math.floor(hs / 24);
+                    return { texto: `⏱ Faltan ${dias} día${dias !== 1 ? "s" : ""}`, tipo: "" };
+                };
+
+                // Pendientes primero, luego realizadas, luego canceladas
+                const proximas = todos
+                    .filter(r => !esCancelado(r) && !esFinalizado(r))
+                    .sort((a, b) => (a.fecha || "").localeCompare(b.fecha || "") || (a.hora || "").localeCompare(b.hora || ""));
+
                 const realizadas = todos
-                    .filter(r => !esCancelado(r) && parseDate(r) < hoy)
-                    .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || "")); // más reciente primero
+                    .filter(r => !esCancelado(r) && esFinalizado(r))
+                    .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
 
                 const canceladas = todos
                     .filter(r => esCancelado(r))
                     .sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
-
-                const proximas = todos
-                    .filter(r => !esCancelado(r) && parseDate(r) >= hoy)
-                    .sort((a, b) => (a.fecha || "").localeCompare(b.fecha || "")); // más próximo primero
 
                 lista.innerHTML = "";
 
@@ -658,15 +686,13 @@
 
                 function renderCard(r, tipo) {
                     const cancelado = esCancelado(r);
-                    const fechaR = parseDate(r);
-                    const esFuturo = fechaR >= hoy;
                     const fechaFmt = formatFecha(r.fecha);
 
                     let badge = "";
                     if (tipo === "cancelada") {
                         badge = `<span class="turno-badge badge-cancelada">✕ Cancelada</span>`;
                     } else if (tipo === "proxima") {
-                        badge = `<span class="turno-badge badge-proximo">● Próximo</span>`;
+                        badge = `<span class="turno-badge badge-proximo">● Pendiente</span>`;
                     } else {
                         badge = `<span class="turno-badge badge-realizada">✓ Realizada</span>`;
                     }
@@ -674,6 +700,13 @@
                     const motivoHTML = (cancelado && r.motivoCancelacion)
                         ? `<div class="turno-card-motivo">📝 Motivo: <em>${escapeHtml(r.motivoCancelacion)}</em></div>`
                         : "";
+
+                    // Countdown solo para turnos pendientes
+                    let countdownHTML = "";
+                    if (tipo === "proxima") {
+                        const cnt = cuentaRegresiva(r);
+                        if (cnt) countdownHTML = `<div class="turno-countdown ${cnt.tipo}">${cnt.texto}</div>`;
+                    }
 
                     const btnCancelar = (tipo === "proxima")
                         ? `<button class="btn-cancelar-turno" data-id="${r.id}" data-servicio="${escapeHtml(r.servicio || '')}" data-fecha="${escapeHtml(r.fecha || '')}" data-hora="${escapeHtml(r.hora || '')}" data-dni="${escapeHtml(dni)}">Cancelar este turno</button>`
@@ -684,15 +717,17 @@
                     card.innerHTML = `
                         <div class="turno-card-servicio">${escapeHtml(r.servicio || "Tratamiento")} ${badge}</div>
                         <div class="turno-card-meta">📅 ${fechaFmt} &nbsp;·&nbsp; 🕒 ${escapeHtml(r.hora || "—")} hs</div>
+                        ${countdownHTML}
                         ${motivoHTML}
                         ${btnCancelar}
                     `;
                     lista.appendChild(card);
                 }
 
+                // ORDEN: pendientes primero → realizadas → canceladas
+                renderSeccion("Próximos turnos",     "📅", proximas,   "proxima");
                 renderSeccion("Sesiones realizadas", "✅", realizadas, "realizada");
                 renderSeccion("Turnos cancelados",   "❌", canceladas, "cancelada");
-                renderSeccion("Próximos turnos",     "📅", proximas,   "proxima");
 
                 lista.querySelectorAll('.btn-cancelar-turno').forEach(btn => {
                     btn.onclick = () => abrirModalCancelacion(btn.dataset);
