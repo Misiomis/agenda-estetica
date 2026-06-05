@@ -903,6 +903,41 @@
             .hero-title { font-size: clamp(34px, 12vw, 46px); }
             .btn-buscar { width: 100%; }
         }
+
+        .turno-countdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .02em;
+            background: rgba(200, 165, 40, 0.13);
+            color: #b8860b;
+            border: 1px solid rgba(200, 165, 40, 0.28);
+            animation: pulsoContador 2.4s ease-in-out infinite;
+        }
+
+        .turno-countdown.urgente {
+            background: rgba(210, 90, 40, 0.13);
+            color: #c85028;
+            border-color: rgba(210, 90, 40, 0.28);
+            animation: pulsoContador 1s ease-in-out infinite;
+        }
+
+        .turno-countdown.en-curso {
+            background: rgba(40, 160, 90, 0.13);
+            color: #1a7a48;
+            border-color: rgba(40, 160, 90, 0.28);
+            animation: none;
+        }
+
+        @keyframes pulsoContador {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
     </style>
     <link rel="stylesheet" href="/pro-theme.css"></head>
 <body>
@@ -1048,6 +1083,39 @@
             .replace(/\s+/g, " ")
             .trim();
 
+        // Devuelve la fecha/hora de FIN del turno (inicio + 60 min, zona AR)
+        const obtenerFinTurno = (turno) => {
+            if (!turno.fecha || !turno.hora) return null;
+            const dt = new Date(`${turno.fecha}T${turno.hora}:00-03:00`);
+            if (Number.isNaN(dt.getTime())) return null;
+            return new Date(dt.getTime() + 60 * 60 * 1000);
+        };
+
+        // True si ya pasaron los 60 min del turno → turno realizado
+        const esTurnoFinalizado = (turno) => {
+            const fin = obtenerFinTurno(turno);
+            return fin ? Date.now() >= fin.getTime() : false;
+        };
+
+        // Texto del contador regresivo para turno pendiente
+        const textoContadorTurno = (turno) => {
+            if (!turno.fecha || !turno.hora) return null;
+            const inicio = new Date(`${turno.fecha}T${turno.hora}:00-03:00`);
+            const ahora = new Date();
+            const diffMs = inicio.getTime() - ahora.getTime();
+            if (diffMs <= 0) {
+                const msDesdeInicio = -diffMs;
+                if (msDesdeInicio < 60 * 60 * 1000) return { texto: "Turno en curso", tipo: "en-curso" };
+                return null;
+            }
+            const diffMin = Math.floor(diffMs / 60000);
+            if (diffMin < 60) return { texto: "⚠️ Falta menos de 1 hora — ¡asegurate de llegar a tiempo!", tipo: "urgente" };
+            const diffHoras = Math.floor(diffMin / 60);
+            if (diffHoras < 48) return { texto: `Faltan ${diffHoras} hora${diffHoras !== 1 ? "s" : ""}`, tipo: "" };
+            const diffDias = Math.floor(diffHoras / 24);
+            return { texto: `Faltan ${diffDias} día${diffDias !== 1 ? "s" : ""}`, tipo: "" };
+        };
+
         const obtenerEstadoTurno = (turno = {}) => {
             const estados = [turno.estado, turno.status]
                 .map((value) => (value || "").toString().trim().toLowerCase())
@@ -1120,9 +1188,9 @@
                 return;
             }
 
-            const hoy = new Date().toISOString().split("T")[0];
-            const proximos = turnosConsultados.filter(t => (t.fecha || "") >= hoy);
-            const pasados  = turnosConsultados.filter(t => (t.fecha || "") < hoy);
+            // Regla: pendiente = cancelado === false Y turno_fin (inicio+60min) > ahora
+            const proximos = turnosConsultados.filter(t => obtenerEstadoTurno(t) !== "cancelado" && !esTurnoFinalizado(t));
+            const pasados  = turnosConsultados.filter(t => obtenerEstadoTurno(t) === "cancelado" || esTurnoFinalizado(t));
 
             const renderItem = (turno, esFuturo) => {
                 const estado = obtenerEstadoTurno(turno);
@@ -1160,7 +1228,16 @@
                     : "";
 
                 const badgeClass = estado === "cancelado" ? "cancelado" : (esFuturo ? "proximo" : "finalizado");
-                const badgeLabel = estado === "cancelado" ? "Cancelado" : (esFuturo ? "Proximo" : "Finalizado");
+                const badgeLabel = estado === "cancelado" ? "Cancelado" : (esFuturo ? "Pendiente" : "Realizado");
+
+                // Contador regresivo solo para turnos pendientes
+                let contadorHtml = "";
+                if (esFuturo && estado !== "cancelado") {
+                    const cnt = textoContadorTurno(turno);
+                    if (cnt) {
+                        contadorHtml = `<div class="turno-countdown ${cnt.tipo}">${cnt.texto}</div>`;
+                    }
+                }
 
                 return `
                     <div class="turno-item ${estado === "cancelado" ? "turno-cancelado" : ""} ${esFuturo && estado !== "cancelado" ? "turno-proximo" : ""}">
@@ -1170,6 +1247,7 @@
                         <b>${escapeHtml(turno.servicio || "Servicio")}</b>
                         ${formatearFechaPro(turno.fecha)}
                         <span class="hora-tag">Hora: ${escapeHtml(turno.hora || "--:--")}</span>
+                        ${contadorHtml}
                         ${detalleCancelacion}
                         ${accionesCancelacion}
                         ${botonNotificar}
@@ -1179,7 +1257,7 @@
 
             const partes = [];
             if (proximos.length) {
-                partes.push(`<div class="turnos-section-header">Proximos turnos</div>`);
+                partes.push(`<div class="turnos-section-header">Próximos turnos</div>`);
                 partes.push(...proximos.map(t => renderItem(t, true)));
             }
             if (pasados.length) {
@@ -1230,21 +1308,26 @@
                     turnosConsultados = [];
                     listaResultados.innerHTML = "<p style='color:#88948f; padding: 28px;'>No hay turnos registrados con este DNI.</p>";
                 } else {
-                    const hoy = new Date().toISOString().split("T")[0];
                     const proximos = [];
                     const pasados  = [];
 
                     querySnapshot.forEach((doc) => {
                         const data = doc.data();
                         const item = { id: doc.id, ...data };
-                        if ((data.fecha || "") >= hoy) proximos.push(item);
+                        const esCanc = obtenerEstadoTurno(item) === "cancelado";
+                        if (!esCanc && !esTurnoFinalizado(item)) proximos.push(item);
                         else pasados.push(item);
                     });
 
-                    proximos.sort((a, b) => a.fecha !== b.fecha ? a.fecha.localeCompare(b.fecha) : a.hora.localeCompare(b.hora));
-                    pasados.sort((a, b)  => b.fecha !== a.fecha ? b.fecha.localeCompare(a.fecha) : b.hora.localeCompare(a.hora));
+                    // Pendientes: el más cercano primero
+                    proximos.sort((a, b) => a.fecha !== b.fecha ? a.fecha.localeCompare(b.fecha) : (a.hora || "").localeCompare(b.hora || ""));
+                    // Pasados/cancelados: el más reciente primero
+                    pasados.sort((a, b)  => b.fecha !== a.fecha ? b.fecha.localeCompare(a.fecha) : (b.hora || "").localeCompare(a.hora || ""));
 
                     turnosConsultados = [...proximos, ...pasados];
+
+                    // Programar notificaciones para turnos próximos
+                    programarNotificacionesTurnos(proximos);
 
                     if (!turnosConsultados.length) {
                         listaResultados.innerHTML = "<p style='color:#88948f; padding: 28px;'>No hay turnos registrados.</p>";
@@ -1565,6 +1648,80 @@
 
         modalKit.addEventListener("click", (e) => { if (e.target === modalKit) modalKit.style.display = "none"; });
         // --- FIN KIT MODAL ---
+
+        // --- NOTIFICACIONES PUSH ---
+        const notificacionesProgramadas = new Set();
+
+        const programarNotificacionesTurnos = async (proximos) => {
+            if (!("Notification" in window) || !proximos.length) return;
+
+            let permiso = Notification.permission;
+            if (permiso === "default") {
+                permiso = await Notification.requestPermission().catch(() => "denied");
+            }
+            if (permiso !== "granted") return;
+
+            const ahora = Date.now();
+            proximos.forEach((t) => {
+                if (!t.fecha || !t.hora) return;
+                const inicio = new Date(`${t.fecha}T${t.hora}:00-03:00`);
+                if (Number.isNaN(inicio.getTime())) return;
+                const diffMs = inicio.getTime() - ahora;
+
+                // Notificación 1 h antes (solo si aún faltan entre 1h y 24h)
+                const clave1h = `${t.id}-1h`;
+                const ms1h = diffMs - 60 * 60 * 1000;
+                if (!notificacionesProgramadas.has(clave1h) && ms1h > 0 && ms1h < 23 * 60 * 60 * 1000) {
+                    notificacionesProgramadas.add(clave1h);
+                    setTimeout(() => {
+                        new Notification("Espacio Mimar T — Tu turno se acerca 📅", {
+                            body: `En 1 hora tenés tu turno de ${t.servicio || "tratamiento"}. ¡Asegurate de llegar a tiempo!`,
+                            icon: "/img/icon-192.png",
+                            tag: clave1h
+                        });
+                    }, ms1h);
+                }
+
+                // Notificación inmediata si falta menos de 1 h
+                const claveUrgente = `${t.id}-urgente`;
+                if (!notificacionesProgramadas.has(claveUrgente) && diffMs > 0 && diffMs < 60 * 60 * 1000) {
+                    notificacionesProgramadas.add(claveUrgente);
+                    const minutos = Math.floor(diffMs / 60000);
+                    new Notification("Espacio Mimar T — ¡Tu turno es muy pronto! ⚠️", {
+                        body: `Faltan ${minutos} minuto${minutos !== 1 ? "s" : ""} para tu turno de ${t.servicio || "tratamiento"}. ¡Asegurate de llegar a tiempo!`,
+                        icon: "/img/icon-192.png",
+                        tag: claveUrgente
+                    });
+                }
+            });
+        };
+
+        // Auto-refresh del contador cada 60 segundos mientras el modal está abierto
+        let _countdownInterval = null;
+        const iniciarRefrescadorContador = () => {
+            if (_countdownInterval) return;
+            _countdownInterval = setInterval(() => {
+                if (modalResultados.style.display === "flex" && turnosConsultados.length) {
+                    renderTurnosConsultados();
+                }
+            }, 60 * 1000);
+        };
+        iniciarRefrescadorContador();
+
+        // Auto-carga silenciosa de turnos para notificaciones (sin abrir modal)
+        if (dniSesion && dniSesion !== "null") {
+            getDocs(query(collection(db, "reservas"), where("dni", "==", dniSesion))).then((snap) => {
+                const pendientes = [];
+                snap.forEach((d) => {
+                    const item = { id: d.id, ...d.data() };
+                    if (obtenerEstadoTurno(item) !== "cancelado" && !esTurnoFinalizado(item)) {
+                        pendientes.push(item);
+                    }
+                });
+                if (pendientes.length) programarNotificacionesTurnos(pendientes);
+            }).catch(() => {});
+        }
+        // --- FIN NOTIFICACIONES PUSH ---
 
         activarReveal();
         cargarTemaYAnuncio();

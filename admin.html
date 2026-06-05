@@ -3488,39 +3488,88 @@
             var contenedor = document.getElementById("contenedorSesionesBuscadas");
             if (!contenedor) return;
             if (txt.length < 3) { contenedor.innerHTML = ""; return; }
-            var hoyStr = new Date().toISOString().slice(0, 10);
-            var horaActual = new Date().toTimeString().slice(0, 5);
+
+            // Helper: fin del turno = inicio + 60 min (zona AR -03:00)
+            function calcFinTurnoAdmin(r) {
+                var h = (r.hora || "00:00").replace(/[^0-9:]/g, "");
+                var iso = (r.fecha || "1970-01-01") + "T" + (h || "00:00") + ":00-03:00";
+                var dt = new Date(iso);
+                if (isNaN(dt.getTime())) return null;
+                return new Date(dt.getTime() + 60 * 60 * 1000);
+            }
+
+            var ahora = new Date();
+
             // Match exacto por nombre completo para evitar mezclar pacientes con nombre similar
-            var sesiones = todasLasReservas
-                .filter(function(r) {
-                    return (r.nombreLimpio || "").toLowerCase() === txt && esReservaActiva(r);
-                })
-                .sort(function(a, b) {
-                    var fa = a.fecha || "", fb = b.fecha || "";
-                    if (fa !== fb) return fa < fb ? -1 : 1;
-                    return (a.hora || "") < (b.hora || "") ? -1 : 1;
-                });
-            if (!sesiones.length) {
+            var todasSesiones = todasLasReservas.filter(function(r) {
+                return (r.nombreLimpio || "").toLowerCase() === txt && esReservaActiva(r);
+            });
+
+            if (!todasSesiones.length) {
                 contenedor.innerHTML = "<p style='color:#888;padding:12px;'>No se encontraron sesiones. Escribí el nombre completo exactamente como figura en el sistema (ej: <em>Adriana Cerri</em>).</p>";
                 return;
             }
+
+            // Separar: pendientes (inicio+60min > ahora) vs realizadas
+            var pendientes = [], realizadas = [];
+            todasSesiones.forEach(function(r) {
+                var isCancelado = (r.estado || r.status || "").toLowerCase() === "cancelado";
+                var finTurno = calcFinTurnoAdmin(r);
+                var finalizado = finTurno ? ahora >= finTurno : true;
+                if (!isCancelado && !finalizado) pendientes.push(r);
+                else realizadas.push(r);
+            });
+
+            // Pendientes: el más próximo primero (ascendente)
+            pendientes.sort(function(a, b) {
+                if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+                return (a.hora || "") < (b.hora || "") ? -1 : 1;
+            });
+            // Realizadas/canceladas: el más reciente primero (descendente)
+            realizadas.sort(function(a, b) {
+                if (a.fecha !== b.fecha) return a.fecha > b.fecha ? -1 : 1;
+                return (a.hora || "") > (b.hora || "") ? -1 : 1;
+            });
+
+            var sesiones = pendientes.concat(realizadas);
+
             var primerNombre = escapeHtml(sesiones[0].nombreLimpio || txt);
             var html = "<p style='font-size:13px;color:#4a90e2;font-weight:700;margin-bottom:10px;'>" + sesiones.length + " sesión(es) encontrada(s) &middot; <strong>" + primerNombre + "</strong></p>";
+
             sesiones.forEach(function(r) {
                 var isCancelado = (r.estado || r.status || "").toLowerCase() === "cancelado";
-                var esPasada = r.fecha < hoyStr || (r.fecha === hoyStr && (r.hora || "00:00") <= horaActual);
+                var finTurno = calcFinTurnoAdmin(r);
+                var esPasada = isCancelado ? true : (finTurno ? ahora >= finTurno : true);
                 var estado = isCancelado ? "CANCELADO" : (esPasada ? "Realizada" : "Pendiente");
                 var color = isCancelado ? "rgba(230,80,80,0.90)" : (esPasada ? "rgba(114,189,153,0.90)" : "rgba(220,185,80,0.90)");
                 var bg = isCancelado ? "rgba(165,50,50,0.12)" : (esPasada ? "rgba(53,122,92,0.12)" : "rgba(165,130,30,0.10)");
                 var border = isCancelado ? "rgba(200,80,80,0.25)" : (esPasada ? "rgba(114,189,153,0.25)" : "rgba(200,160,50,0.25)");
                 var detalle = r.detalleSesion || r.notas || r.nota || "";
                 var fechaLarga = escapeHtml(formatFechaLargaExport(r.fecha) || r.fecha || "Sin fecha");
+
+                // Contador regresivo para pendientes
+                var contadorHtml = "";
+                if (!isCancelado && !esPasada && finTurno) {
+                    var inicio = new Date(finTurno.getTime() - 60 * 60 * 1000);
+                    var diffMs = inicio.getTime() - ahora.getTime();
+                    if (diffMs > 0) {
+                        var diffMin = Math.floor(diffMs / 60000);
+                        var txtCnt = diffMin < 60
+                            ? "⚠️ Falta menos de 1 hora"
+                            : ("Faltan " + Math.floor(diffMin / 60) + " hora" + (Math.floor(diffMin / 60) !== 1 ? "s" : ""));
+                        contadorHtml = "<div style='margin-top:6px;font-size:11px;font-weight:700;color:rgba(220,185,80,0.92);'>⏱ " + txtCnt + "</div>";
+                    } else {
+                        contadorHtml = "<div style='margin-top:6px;font-size:11px;font-weight:700;color:rgba(114,189,153,0.92);'>🟢 Turno en curso</div>";
+                    }
+                }
+
                 html += "<div style='background:rgba(255,255,255,0.06);border:1px solid " + border + ";border-left:4px solid " + color + ";border-radius:12px;padding:14px 16px;margin-bottom:10px;'>" +
                     "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'>" +
                     "<span style='font-weight:700;font-size:13px;color:rgba(180,230,210,0.92);'>" + fechaLarga + " &mdash; " + escapeHtml(r.hora || "Sin hora") + " hs</span>" +
                     "<span style='background:" + bg + ";color:" + color + ";border:1px solid " + border + ";border-radius:999px;padding:3px 10px;font-size:11px;font-weight:800;'>" + estado + "</span>" +
                     "</div>" +
                     "<div style='font-size:13px;margin-bottom:4px;'><strong>Servicio:</strong> " + escapeHtml(r.servicio || "—") + "</div>" +
+                    contadorHtml +
                     (detalle
                         ? "<div style='font-size:13px;margin-top:6px;background:rgba(53,122,92,0.10);border-radius:8px;padding:8px 10px;color:rgba(165,205,188,0.90);'>" + escapeHtml(detalle) + "</div>"
                         : "<div style='font-size:12px;opacity:0.45;font-style:italic;margin-top:4px;'>Sin detalle de sesión</div>") +
@@ -3534,9 +3583,20 @@
             var contenedor = document.getElementById("contenedorServiciosRealizados");
             if (!contenedor) return;
             if (txt.length < 2) { contenedor.innerHTML = ""; return; }
-            var hoyStr = new Date().toISOString().slice(0, 10);
+            var ahora = new Date();
+            function calcFinTurnoRealiz(r) {
+                var h = (r.hora || "00:00").replace(/[^0-9:]/g, "");
+                var dt = new Date((r.fecha || "1970-01-01") + "T" + (h || "00:00") + ":00-03:00");
+                return isNaN(dt.getTime()) ? null : new Date(dt.getTime() + 60 * 60 * 1000);
+            }
+            // Solo sesiones ya finalizadas (inicio+60min <= ahora) y no canceladas
             var sesiones = todasLasReservas
-                .filter(function(r) { return (r.nombreLimpio || "").toLowerCase().indexOf(txt) >= 0 && esReservaActiva(r) && (r.fecha || "") < hoyStr; })
+                .filter(function(r) {
+                    if (!((r.nombreLimpio || "").toLowerCase().indexOf(txt) >= 0 && esReservaActiva(r))) return false;
+                    if ((r.estado || r.status || "").toLowerCase() === "cancelado") return false;
+                    var fin = calcFinTurnoRealiz(r);
+                    return fin ? ahora >= fin : true;
+                })
                 .sort(function(a, b) { return (a.fecha || "") < (b.fecha || "") ? -1 : 1; });
             if (!sesiones.length) {
                 contenedor.innerHTML = "<p style='color:#888;padding:12px;'>No se encontraron servicios realizados para ese nombre.</p>";
