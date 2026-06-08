@@ -709,6 +709,7 @@
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">Pacientes</button>
                 <button class="btn-nav" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">Pedidos de Kit</button>
                 <button class="btn-nav" id="btn-export" onclick="navegar('export')">Exportar</button>
+                <button class="btn-nav" id="btn-ultimos-movimientos" onclick="mostrarUltimosMovimientos()">Últimos movimientos</button>
                 <a class="btn-nav" href="/fechagimena.html" target="_blank" style="text-decoration:none;background:rgba(180,238,210,0.12);border-color:rgba(160,218,190,0.28);color:rgba(200,240,220,0.92);font-weight:700">Ver agenda (vista Gimena)</a>
                 <button class="btn-nav" onclick="cerrarSesion()">Salir</button>
                 <button class="btn-nav" id="btn-control" onclick="navegar('control')" style="margin-top:4px;background:rgba(210,168,178,0.10);border-color:rgba(195,150,163,0.28);color:rgba(228,195,208,0.85);font-size:12px;font-weight:700;letter-spacing:.04em;">⚙ Configuración avanzada</button>
@@ -998,7 +999,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
     <script type="module" src="/js/panel.js"></script>
     <script type="module">
-        import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp } from "/js/firebase-web.js";
+        import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where } from "/js/firebase-web.js";
         
         const COMPACT_STORAGE_KEY = "mimar_compact_mode";
         const ADMIN_EMAILS = ["espaciomimart36@gmail.com"];
@@ -2597,6 +2598,68 @@
             }
         };
 
+        // Modal "Últimos movimientos": muestra el historial de acciones del admin
+        // (bloqueos/desbloqueos, borrados y cancelaciones de turnos) guardado por registrarAuditoria
+        window.mostrarUltimosMovimientos = async () => {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px';
+            overlay.innerHTML = `
+                <div style="width:100%;max-width:520px;max-height:82vh;display:flex;flex-direction:column;background:linear-gradient(165deg,#fff 0%,#f6fbf8 60%,#eef7f3 100%);border-radius:24px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:24px 22px 20px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                        <p style="font-family:'Playfair Display',serif;font-size:19px;color:#2f5a47;margin:0">Últimos movimientos</p>
+                        <button id="_mov-cerrar" style="border:none;background:transparent;font-size:22px;line-height:1;color:#6a8e7f;cursor:pointer;padding:4px 8px">×</button>
+                    </div>
+                    <p style="margin:0 0 14px;font-size:12px;color:#6a8e7f">Acciones recientes del admin: bloqueos, desbloqueos, borrados y cancelaciones de turnos.</p>
+                    <div id="_mov-lista" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;padding-right:4px">
+                        <p style="text-align:center;color:#6a8e7f;font-size:13px">Cargando...</p>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            overlay.querySelector('#_mov-cerrar').onclick = () => overlay.remove();
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+            const lista = overlay.querySelector('#_mov-lista');
+            try {
+                const qMov = query(collection(db, "historias"), where("registradoPor", "==", "admin"));
+                const snap = await getDocs(qMov);
+                const movimientos = snap.docs
+                    .map(d => d.data())
+                    .filter(m => m.tipo_accion)
+                    .sort((a, b) => (b.fecha_accion || "").localeCompare(a.fecha_accion || ""))
+                    .slice(0, 40);
+
+                if (!movimientos.length) {
+                    lista.innerHTML = '<p style="text-align:center;color:#6a8e7f;font-size:13px">Todavía no hay movimientos registrados.</p>';
+                    return;
+                }
+
+                const etiquetas = {
+                    bloqueo:           { texto: 'Bloqueó un horario',     color: '#c98a2e', icono: '🔒' },
+                    desbloqueo:        { texto: 'Desbloqueó un horario',  color: '#3f8f6f', icono: '🔓' },
+                    borrado_reserva:   { texto: 'Borró una reserva',      color: '#c94040', icono: '🗑️' },
+                    cancelacion_turno: { texto: 'Canceló un turno',       color: '#c94040', icono: '✖️' }
+                };
+
+                lista.innerHTML = movimientos.map(m => {
+                    const tag = etiquetas[m.tipo_accion] || { texto: m.tipo_accion, color: '#4a7060', icono: '•' };
+                    let fechaFmt = m.fecha_accion || '';
+                    try { fechaFmt = new Date(m.fecha_accion).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }); } catch (_) {}
+                    return `
+                        <div style="border:1px solid #d5eadf;border-radius:14px;padding:12px 14px;background:#fff">
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
+                                <span style="font-weight:800;font-size:13px;color:${tag.color}">${tag.icono} ${escapeHtml(tag.texto)}</span>
+                                <span style="font-size:11px;color:#8aa79a;white-space:nowrap">${escapeHtml(fechaFmt)}</span>
+                            </div>
+                            <p style="margin:0;font-size:12px;color:#4a7060">Turno: <strong>${escapeHtml(m.horario_afectado || '')}</strong></p>
+                            ${m.detalle ? `<p style="margin:4px 0 0;font-size:12px;color:#5d8473">${escapeHtml(m.detalle)}</p>` : ''}
+                        </div>`;
+                }).join('');
+            } catch (e) {
+                console.error('mostrarUltimosMovimientos:', e);
+                lista.innerHTML = '<p style="text-align:center;color:#c94040;font-size:13px">No se pudieron cargar los movimientos.</p>';
+            }
+        };
+
         window.toggleBloqueoHorario = async (fecha, hora) => {
             const key = keyBloqueo(fecha, hora);
             const bloqueado = bloqueosHorarios.get(key);
@@ -2757,6 +2820,11 @@
                         motivoCancelacion: motivo,
                         canceladoAt: serverTimestamp()
                     });
+                    await registrarAuditoria("cancelacion_turno", reserva.fecha, reserva.hora,
+                        `Cancelado el turno de ${reserva.nombreLimpio || reserva.cliente || "Paciente"}` +
+                        (reserva.servicio ? ` · ${reserva.servicio}` : "") +
+                        ` · Motivo: ${motivo}`
+                    );
 
                     // Buscar teléfono registrado del cliente (no el número de la reserva)
                     const pacienteNombre = reserva.nombreLimpio || reserva.cliente || reserva.clienteNombre || 'Paciente';
@@ -3007,6 +3075,11 @@
             try {
                 mostrarLoader(true);
                 await deleteDoc(doc(db, "reservas", idReserva));
+                await registrarAuditoria("borrado_reserva", reserva.fecha, reserva.hora,
+                    `Borrada la reserva de ${reserva.nombreLimpio || reserva.cliente || "Paciente"}` +
+                    (reserva.servicio ? ` · ${reserva.servicio}` : "") +
+                    (reserva.dni ? ` · DNI ${reserva.dni}` : "")
+                );
                 todasLasReservas = todasLasReservas.filter(r => r.id !== idReserva);
                 actualizarKPIs();
                 poblarServiciosFiltro();

@@ -504,7 +504,8 @@
     let fechaSeleccionada = "";
     let horaSeleccionada  = "";
     let reservasOcupadas  = [];
-    let bloqueos          = {};
+    let bloqueosHorarios  = new Map();
+    let diasCerrados      = {};
     let currentDate       = new Date();
     let renderizando      = false;
 
@@ -528,16 +529,44 @@
         reservasOcupadas = snap.docs.map(d => d.data()).filter(r => (r.estado||'')!=='cancelado');
     }
 
-    async function cargarBloqueos(anio, mes) {
-        const clave = `${anio}-${String(mes+1).padStart(2,'0')}`;
+    const keyBloqueo = (fecha, hora) => `${fecha}|${hora}`;
+
+    const normalizarHoraExcepcion = (hora) => {
+        const txt = (hora || "").toString().replace(/\s*hs$/i, "").trim();
+        const match = txt.match(/^(\d{1,2})[:.](\d{2})$/);
+        if (!match) return "";
+        const hh = Number(match[1]);
+        const mm = Number(match[2]);
+        if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return "";
+        return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+    };
+
+    // Lee los bloqueos reales que carga el admin (colección 'calendarExceptions',
+    // la misma que usa admin.html). Antes esta función consultaba 'horariosBloqueados',
+    // una colección que el admin nunca escribe, así que ningún bloqueo se respetaba acá.
+    async function cargarExcepcionesAdmin() {
+        bloqueosHorarios = new Map();
+        diasCerrados = {};
         try {
-            const snap = await getDocs(collection(db,'horariosBloqueados'));
-            bloqueos = {};
-            snap.docs.forEach(d => {
-                const data = d.data();
-                if (d.id.startsWith(clave)) bloqueos[d.id] = data;
+            const exSnap = await getDocs(collection(db, 'calendarExceptions'));
+            exSnap.forEach(docSnap => {
+                const data = docSnap.data() || {};
+                const idEsFecha = /^\d{4}-\d{2}-\d{2}$/.test(docSnap.id);
+                const fechaExcepcion = ((data.fecha || '') || (idEsFecha ? docSnap.id : '')).toString();
+                const horaExcepcion = normalizarHoraExcepcion(data.hora || data.hour || data.time || '');
+                const activo = data.active !== false;
+                const tipo = (data.type || '').toString().toLowerCase();
+                const esBloqueo = tipo === 'blocked' || data.blocked === true;
+
+                if (!activo || !esBloqueo) return;
+
+                if (fechaExcepcion && horaExcepcion) {
+                    bloqueosHorarios.set(keyBloqueo(fechaExcepcion, horaExcepcion), true);
+                } else if (fechaExcepcion) {
+                    diasCerrados[fechaExcepcion] = data.reason || 'Día no disponible';
+                }
             });
-        } catch(e) { bloqueos = {}; }
+        } catch(e) { bloqueosHorarios = new Map(); diasCerrados = {}; }
     }
 
     async function renderCalendario() {
@@ -548,7 +577,7 @@
         document.getElementById('mes').textContent =
             new Date(anio, mes, 1).toLocaleDateString('es-AR',{month:'long',year:'numeric'});
 
-        await Promise.all([cargarReservas(anio, mes), cargarBloqueos(anio, mes)]);
+        await Promise.all([cargarReservas(anio, mes), cargarExcepcionesAdmin()]);
 
         const grid = document.getElementById('calendario');
         grid.innerHTML = '';
@@ -566,10 +595,12 @@
             const fDate = new Date(anio, mes, d);
             const esDom = fDate.getDay() === 0;
             const esPas = fDate < hoy;
+            const esCerrado = !!diasCerrados[fecha];
             const cell  = document.createElement('div');
-            cell.className = 'dia' + (esDom ? ' domingo' : '') + (esPas ? ' pasado' : '');
+            cell.className = 'dia' + (esDom ? ' domingo' : '') + (esPas ? ' pasado' : '') + (esCerrado ? ' bloqueado' : '');
+            cell.title = esCerrado ? diasCerrados[fecha] : '';
             cell.textContent = d;
-            if (!esDom && !esPas) {
+            if (!esDom && !esPas && !esCerrado) {
                 cell.addEventListener('click', () => seleccionarDia(fecha, cell));
             }
             grid.appendChild(cell);
@@ -591,11 +622,13 @@
         const reservasDia = reservasOcupadas.filter(r => r.fecha === fecha);
         HORAS_DISPONIBLES.forEach((hora, idx) => {
             const ocupado = reservasDia.some(r => r.hora === hora);
+            const bloqueadoPorAdmin = bloqueosHorarios.has(keyBloqueo(fecha, hora));
+            const noDisponible = ocupado || bloqueadoPorAdmin;
             const btn = document.createElement('button');
-            btn.className = 'hora' + (ocupado ? ' ocupado' : '');
+            btn.className = 'hora' + (noDisponible ? ' ocupado' : '');
             btn.textContent = hora;
             btn.style.animationDelay = `${idx * 0.04}s`;
-            if (!ocupado) btn.addEventListener('click', () => seleccionarHora(hora, btn));
+            if (!noDisponible) btn.addEventListener('click', () => seleccionarHora(hora, btn));
             cont.appendChild(btn);
         });
     }

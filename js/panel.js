@@ -215,10 +215,27 @@ async function generarHorarios(fechaSeleccionada){
     horariosContainer.innerHTML="<p>Buscando horarios...</p>";
 
     const blockedDates = ["2026-05-01", "2026-05-04"];
-    if (blockedDates.includes(fechaSeleccionada)) {
-        horariosContainer.innerHTML = "<p style='color:#e74c3c; font-weight:bold; margin-top:10px; padding:10px; border:1px solid #e74c3c; border-radius:10px; background:#fdf2f2; text-align:center;'>Bloqueado por Admin</p>";
+
+    // Excepciones cargadas por el admin para este dia (coleccion calendarExceptions,
+    // la misma que escribe admin.html al "bloquear horario" / "cerrar dia"). Antes
+    // esta vista solo miraba el array hardcodeado de arriba, asi que un bloqueo nuevo
+    // del admin (de dia completo o de un horario puntual) seguia apareciendo disponible.
+    const qExcepciones=query(collection(db,"calendarExceptions"),where("fecha","==",fechaSeleccionada));
+    const snapExcepciones=await getDocs(qExcepciones);
+    const excepcionesActivas=snapExcepciones.docs
+        .map(d=>d.data())
+        .filter(b => b.active !== false && (b.blocked === true || String(b.type || "").trim().toLowerCase() === "blocked"));
+
+    const cierreDia=excepcionesActivas.find(b => !String(b.hora || "").trim());
+    if (blockedDates.includes(fechaSeleccionada) || cierreDia) {
+        const motivo=cierreDia?.reason ? `: ${cierreDia.reason}` : "";
+        horariosContainer.innerHTML = `<p style='color:#e74c3c; font-weight:bold; margin-top:10px; padding:10px; border:1px solid #e74c3c; border-radius:10px; background:#fdf2f2; text-align:center;'>Bloqueado por Admin${motivo}</p>`;
         return;
     }
+
+    const horasBloqueadas=excepcionesActivas
+        .map(b => String(b.hora || "").trim())
+        .filter(Boolean);
 
     const dias=["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
 
@@ -271,6 +288,13 @@ async function generarHorarios(fechaSeleccionada){
                 btn.innerText+=" 🔴";
                 btn.disabled=true;
                 btn.classList.add("bloqueado");
+
+            }else if(horasBloqueadas.includes(horaStr)){
+
+                btn.innerText+=" 🚫";
+                btn.disabled=true;
+                btn.classList.add("bloqueado");
+                btn.title="Bloqueado por Admin";
 
             }else{
 
