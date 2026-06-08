@@ -2584,18 +2584,43 @@
         };
         
         // Registra una accion de auditoria en la coleccion historias
-        const registrarAuditoria = async (tipo_accion, fecha, hora, detalle = "") => {
+        const registrarAuditoria = async (tipo_accion, fecha, hora, detalle = "", paciente = "") => {
             try {
                 await addDoc(collection(db, "historias"), {
                     fecha_accion:     new Date().toISOString(),
                     tipo_accion,
                     horario_afectado: `${fecha} ${hora}`,
                     detalle,
+                    paciente,
                     registradoPor:    "admin"
                 });
             } catch (e) {
                 console.warn("registrarAuditoria:", e);
             }
+        };
+
+        // Formatea "YYYY-MM-DD HH:MM" como "Lunes 08 de junio de 2026 a las 18:00"
+        const formatearHorarioAfectado = (horarioAfectado) => {
+            const partes = (horarioAfectado || '').toString().trim().split(/\s+/);
+            const fechaLarga = formatoFechaReservaPdf(partes[0] || '');
+            return partes[1] ? `${fechaLarga} a las ${partes[1]}` : fechaLarga;
+        };
+
+        // Formatea un ISO timestamp (fecha_accion) como "Lunes 08 de junio de 2026, 18:05 hs"
+        const formatearFechaHoraAccion = (isoString) => {
+            const fecha = new Date(isoString);
+            if (Number.isNaN(fecha.getTime())) return (isoString || '').toString();
+            const fechaLarga = capitalizarTexto(datePdfFormatter.format(fecha));
+            const hora = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+            return `${fechaLarga}, ${hora} hs`;
+        };
+
+        // Las primeras entradas de auditoria (antes de agregar el campo "paciente") guardaban
+        // el nombre adentro de "detalle" como "Borrada la reserva de NOMBRE · ...". Lo extraemos
+        // para no perder el dato en esos registros viejos.
+        const extraerPacienteDeDetalle = (detalle) => {
+            const match = (detalle || '').match(/(?:reserva|turno) de (.+?)(?:\s·|$)/i);
+            return match ? match[1].trim() : '';
         };
 
         // Modal "Últimos movimientos": muestra el historial de acciones del admin
@@ -2633,24 +2658,36 @@
                     return;
                 }
 
-                const etiquetas = {
-                    bloqueo:           { texto: 'Bloqueó un horario',     color: '#c98a2e', icono: '🔒' },
-                    desbloqueo:        { texto: 'Desbloqueó un horario',  color: '#3f8f6f', icono: '🔓' },
-                    borrado_reserva:   { texto: 'Borró una reserva',      color: '#c94040', icono: '🗑️' },
-                    cancelacion_turno: { texto: 'Canceló un turno',       color: '#c94040', icono: '✖️' }
-                };
-
                 lista.innerHTML = movimientos.map(m => {
-                    const tag = etiquetas[m.tipo_accion] || { texto: m.tipo_accion, color: '#4a7060', icono: '•' };
-                    let fechaFmt = m.fecha_accion || '';
-                    try { fechaFmt = new Date(m.fecha_accion).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }); } catch (_) {}
+                    const nombrePaciente = (m.paciente || extraerPacienteDeDetalle(m.detalle) || '').trim();
+                    const horarioFmt = formatearHorarioAfectado(m.horario_afectado);
+                    const cuandoFmt = formatearFechaHoraAccion(m.fecha_accion);
+
+                    let tag;
+                    switch (m.tipo_accion) {
+                        case 'bloqueo':
+                            tag = { texto: `Bloqueó el horario de las ${escapeHtml((m.horario_afectado || '').split(/\s+/)[1] || '')}`, color: '#c98a2e', icono: '🔒' };
+                            break;
+                        case 'desbloqueo':
+                            tag = { texto: `Desbloqueó el horario de las ${escapeHtml((m.horario_afectado || '').split(/\s+/)[1] || '')}`, color: '#3f8f6f', icono: '🔓' };
+                            break;
+                        case 'borrado_reserva':
+                            tag = { texto: nombrePaciente ? `Borró la reserva de ${escapeHtml(nombrePaciente)}` : 'Borró una reserva', color: '#c94040', icono: '🗑️' };
+                            break;
+                        case 'cancelacion_turno':
+                            tag = { texto: nombrePaciente ? `Canceló el turno de ${escapeHtml(nombrePaciente)}` : 'Canceló un turno', color: '#c94040', icono: '✖️' };
+                            break;
+                        default:
+                            tag = { texto: escapeHtml(m.tipo_accion || ''), color: '#4a7060', icono: '•' };
+                    }
+
                     return `
                         <div style="border:1px solid #d5eadf;border-radius:14px;padding:12px 14px;background:#fff">
-                            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
-                                <span style="font-weight:800;font-size:13px;color:${tag.color}">${tag.icono} ${escapeHtml(tag.texto)}</span>
-                                <span style="font-size:11px;color:#8aa79a;white-space:nowrap">${escapeHtml(fechaFmt)}</span>
+                            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">
+                                <span style="font-weight:800;font-size:13px;color:${tag.color}">${tag.icono} ${tag.texto}</span>
+                                <span style="font-size:10.5px;color:#8aa79a;white-space:nowrap;text-align:right">${escapeHtml(cuandoFmt)}</span>
                             </div>
-                            <p style="margin:0;font-size:12px;color:#4a7060">Turno: <strong>${escapeHtml(m.horario_afectado || '')}</strong></p>
+                            <p style="margin:0;font-size:12.5px;color:#4a7060">📅 Turno afectado: <strong>${escapeHtml(horarioFmt)}</strong></p>
                             ${m.detalle ? `<p style="margin:4px 0 0;font-size:12px;color:#5d8473">${escapeHtml(m.detalle)}</p>` : ''}
                         </div>`;
                 }).join('');
@@ -2794,7 +2831,7 @@
                         <img src="img/logo.png" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid rgba(178,222,200,0.7)" onerror="this.style.display='none'">
                     </div>
                     <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 4px">Cancelar turno</p>
-                    <p style="font-size:12px;color:#6a8e7f;font-weight:700;text-align:center;margin:0 0 18px;letter-spacing:.04em">${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(reserva.fecha)} ${escapeHtml(reserva.hora)} hs</p>
+                    <p style="font-size:12px;color:#6a8e7f;font-weight:700;text-align:center;margin:0 0 18px;letter-spacing:.04em">${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(formatoFechaISO(reserva.fecha))} · ${escapeHtml(reserva.hora)} hs</p>
                     <label style="font-size:11px;font-weight:800;color:#4a7060;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Motivo de cancelación *</label>
                     <textarea id="_cancel-motivo" placeholder="Escribí el motivo (ej: Gimena no puede ese día, se reprogramó...)" style="width:100%;box-sizing:border-box;padding:12px 14px;border:2px solid #d5eadf;border-radius:12px;font-family:inherit;font-size:14px;color:#2f5a47;background:#f8fefb;outline:none;resize:vertical;min-height:90px;margin-bottom:16px"></textarea>
                     <div style="display:flex;gap:10px">
@@ -2821,9 +2858,8 @@
                         canceladoAt: serverTimestamp()
                     });
                     await registrarAuditoria("cancelacion_turno", reserva.fecha, reserva.hora,
-                        `Cancelado el turno de ${reserva.nombreLimpio || reserva.cliente || "Paciente"}` +
-                        (reserva.servicio ? ` · ${reserva.servicio}` : "") +
-                        ` · Motivo: ${motivo}`
+                        [reserva.servicio, `Motivo: ${motivo}`].filter(Boolean).join(" · "),
+                        reserva.nombreLimpio || reserva.cliente || "Paciente"
                     );
 
                     // Buscar teléfono registrado del cliente (no el número de la reserva)
@@ -2844,7 +2880,7 @@
                     if (telefonoRegistrado) {
                         let num = telefonoRegistrado.replace(/\D/g, "");
                         if (!num.startsWith("54")) num = "549" + num;
-                        const fechaFmt = reserva.fecha || "";
+                        const fechaFmt = formatoFechaISO(reserva.fecha) || reserva.fecha || "";
                         const horaFmt = reserva.hora || "";
                         const servicio = reserva.servicio || "Tratamiento";
                         const msgPaciente = encodeURIComponent(`Hola ${pacienteNombre}, te escribo de Espacio Mimar T. Lamentablemente tuvimos que cancelar tu turno del *${fechaFmt}* a las *${horaFmt}* (${servicio}). ${motivo} ¡Pedimos disculpas y te contactamos pronto para reprogramar!`);
@@ -3076,9 +3112,8 @@
                 mostrarLoader(true);
                 await deleteDoc(doc(db, "reservas", idReserva));
                 await registrarAuditoria("borrado_reserva", reserva.fecha, reserva.hora,
-                    `Borrada la reserva de ${reserva.nombreLimpio || reserva.cliente || "Paciente"}` +
-                    (reserva.servicio ? ` · ${reserva.servicio}` : "") +
-                    (reserva.dni ? ` · DNI ${reserva.dni}` : "")
+                    [reserva.servicio, reserva.dni ? `DNI ${reserva.dni}` : ""].filter(Boolean).join(" · "),
+                    reserva.nombreLimpio || reserva.cliente || "Paciente"
                 );
                 todasLasReservas = todasLasReservas.filter(r => r.id !== idReserva);
                 actualizarKPIs();
@@ -3679,7 +3714,7 @@
             sesiones.forEach(function(r) {
                 var detalle = r.detalleSesion || r.notas || r.nota || "";
                 html += "<div style='background:rgba(255,255,255,0.06);border:1px solid rgba(114,189,153,0.20);border-left:4px solid rgba(114,189,153,0.55);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:13px;'>" +
-                    "<strong>" + escapeHtml(r.fecha || "—") + "</strong> | " + escapeHtml(r.hora || "—") + " | " + escapeHtml(r.servicio || "—") +
+                    "<strong>" + escapeHtml(r.fecha ? formatoFechaISO(r.fecha) : "—") + "</strong> | " + escapeHtml(r.hora || "—") + " | " + escapeHtml(r.servicio || "—") +
                     (detalle ? "<div style='margin-top:6px;color:rgba(165,205,188,0.80);'>" + escapeHtml(detalle) + "</div>" : "") +
                     "</div>";
             });
@@ -3713,7 +3748,9 @@
                     if (!isoStr) return '-';
                     const d = new Date(isoStr);
                     if (isNaN(d)) return isoStr;
-                    return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const fechaLarga = capitalizarTexto(datePdfFormatter.format(d));
+                    const hora = d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+                    return `${fechaLarga}, ${hora} hs`;
                 };
                 const mesActual = new Date().toISOString().slice(0, 7);
                 let totalMes = 0;
