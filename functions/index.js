@@ -704,6 +704,60 @@ exports.enviarConfirmacionTurno = onRequest(async (req, res) => {
     }
 });
 
+exports.enviarBienvenida = onRequest(async (req, res) => {
+
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+        return res.status(204).send("");
+    }
+
+    if (req.method !== "POST") {
+        return res.status(405).json({ error: "Metodo no permitido" });
+    }
+
+    try {
+        const { nombre, telefono, dni } = req.body || {};
+
+        if (!nombre) {
+            return res.status(400).json({ error: "Faltan datos en el body." });
+        }
+
+        const destino = await resolverDestinoConfirmacion({ telefono, dni, nombre });
+        const telefonoDestino = destino.telefonoDestino;
+        const nombreReal = destino.nombreReal;
+
+        if (!telefonoDestino) {
+            return res.status(400).json({ error: "No se encontró teléfono para enviar WhatsApp." });
+        }
+
+        const envio = await enviarTemplateWhatsApp({
+            telefono: telefonoDestino,
+            templateName: "bienvenida",
+            templateLang: "en",
+            bodyParameters: [
+                { placeholder: "{{1}} nombre", value: nombreReal }
+            ]
+        });
+
+        return res.status(200).json({
+            status: "success",
+            whatsappSent: true,
+            lookupSource: destino.source,
+            data: envio.response.data
+        });
+
+    } catch (error) {
+        console.error("Error en enviarBienvenida:", error.response ? error.response.data : error.message);
+        return res.status(500).json({
+            error: "Error interno en el envío",
+            detalles: error.response ? error.response.data : error.message
+        });
+    }
+});
+
 exports.cancelarReservaPaciente = onRequest(async (req, res) => {
 
     res.set("Access-Control-Allow-Origin", "*");
@@ -992,7 +1046,7 @@ exports.enviarNotificacionKitFacial = onRequest({ invoker: "public" }, async (re
         const whatsappConfig = getWhatsAppConfig();
 
         const envio = await enviarTemplateWhatsApp({
-            telefono: "3757671229",
+            telefono: "3764291807",
             templateName: "pedidos_de_kit",
             templateLang: "es_AR",
             bodyParameters: [

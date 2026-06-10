@@ -1292,6 +1292,7 @@
         
         const CF_RESUMEN_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarResumenSesion";
         const CF_CONFIRMACION_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarConfirmacionTurno";
+        const CF_BIENVENIDA_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarBienvenida";
         let deferredInstallPromptAdmin = null;
         let installReminderTimerAdmin = null;
         const INSTALL_REMINDER_ADMIN_MS = 25000;
@@ -2834,9 +2835,11 @@
                     <p style="font-size:12px;color:#6a8e7f;font-weight:700;text-align:center;margin:0 0 18px;letter-spacing:.04em">${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(formatoFechaISO(reserva.fecha))} · ${escapeHtml(reserva.hora)} hs</p>
                     <label style="font-size:11px;font-weight:800;color:#4a7060;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Motivo de cancelación *</label>
                     <textarea id="_cancel-motivo" placeholder="Escribí el motivo (ej: Gimena no puede ese día, se reprogramó...)" style="width:100%;box-sizing:border-box;padding:12px 14px;border:2px solid #d5eadf;border-radius:12px;font-family:inherit;font-size:14px;color:#2f5a47;background:#f8fefb;outline:none;resize:vertical;min-height:90px;margin-bottom:16px"></textarea>
-                    <div style="display:flex;gap:10px">
-                        <button id="_cancel-volver" style="flex:1;padding:13px;border:1.5px solid #c8ddd6;background:#fff;border-radius:12px;color:#4a7060;font-weight:700;font-size:14px;cursor:pointer">Volver</button>
-                        <button id="_cancel-confirmar" style="flex:2;padding:13px;background:linear-gradient(135deg,#c94040,#a02828);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(180,40,40,0.28)">Cancelar turno</button>
+                    <p style="font-size:11px;font-weight:800;color:#4a7060;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px">¿Quién pidió la cancelación?</p>
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                        <button id="_cancel-admin" style="padding:13px;background:linear-gradient(135deg,#c94040,#a02828);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(180,40,40,0.28)">Cancelada por Admin</button>
+                        <button id="_cancel-paciente" style="padding:13px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.28)">Cancelada por el Paciente</button>
+                        <button id="_cancel-volver" style="padding:13px;border:1.5px solid #c8ddd6;background:#fff;border-radius:12px;color:#4a7060;font-weight:700;font-size:14px;cursor:pointer">Volver</button>
                     </div>
                 </div>`;
             document.body.appendChild(overlay);
@@ -2844,7 +2847,7 @@
 
             overlay.querySelector('#_cancel-volver').onclick = () => overlay.remove();
 
-            overlay.querySelector('#_cancel-confirmar').onclick = async () => {
+            const ejecutarCancelacion = async (canceladoPor) => {
                 const motivo = overlay.querySelector('#_cancel-motivo').value.trim();
                 if (!motivo) { overlay.querySelector('#_cancel-motivo').style.borderColor = '#c94040'; return; }
                 overlay.remove();
@@ -2853,12 +2856,12 @@
                     await updateDoc(doc(db, "reservas", idReserva), {
                         status: "cancelado",
                         estado: "cancelado",
-                        canceladoPor: "admin",
+                        canceladoPor,
                         motivoCancelacion: motivo,
                         canceladoAt: serverTimestamp()
                     });
                     await registrarAuditoria("cancelacion_turno", reserva.fecha, reserva.hora,
-                        [reserva.servicio, `Motivo: ${motivo}`].filter(Boolean).join(" · "),
+                        [reserva.servicio, canceladoPor === "paciente" ? "Cancelada por el paciente" : "Cancelada por admin", `Motivo: ${motivo}`].filter(Boolean).join(" · "),
                         reserva.nombreLimpio || reserva.cliente || "Paciente"
                     );
 
@@ -2880,10 +2883,13 @@
                     if (telefonoRegistrado) {
                         let num = telefonoRegistrado.replace(/\D/g, "");
                         if (!num.startsWith("54")) num = "549" + num;
-                        const fechaFmt = formatoFechaISO(reserva.fecha) || reserva.fecha || "";
+                        const fechaFmt = formatFechaLargaExport(reserva.fecha) || reserva.fecha || "";
                         const horaFmt = reserva.hora || "";
                         const servicio = reserva.servicio || "Tratamiento";
-                        const msgPaciente = encodeURIComponent(`Hola ${pacienteNombre}, te escribo de Espacio Mimar T. Lamentablemente tuvimos que cancelar tu turno del *${fechaFmt}* a las *${horaFmt}* (${servicio}). ${motivo} ¡Pedimos disculpas y te contactamos pronto para reprogramar!`);
+                        const texto = canceladoPor === "paciente"
+                            ? `Hola ${pacienteNombre}, te escribo de Espacio Mimar T. Para confirmarte que tu turno del *${fechaFmt}* a las *${horaFmt}* (${servicio}) se canceló debido a que ${motivo}. ¡Cuando quieras coordinamos un nuevo turno!`
+                            : `Hola ${pacienteNombre}, te escribo de Espacio Mimar T. Lamentablemente tuvimos que cancelar tu turno del *${fechaFmt}* a las *${horaFmt}* (${servicio}). ${motivo} ¡Pedimos disculpas y te contactamos pronto para reprogramar!`;
+                        const msgPaciente = encodeURIComponent(texto);
                         window.open(`https://wa.me/${num}?text=${msgPaciente}`, '_blank');
                         mostrarAviso("Turno cancelado · Abrió WhatsApp para notificar al paciente");
                     } else {
@@ -2900,6 +2906,9 @@
                     mostrarLoader(false);
                 }
             };
+
+            overlay.querySelector('#_cancel-admin').onclick = () => ejecutarCancelacion("admin");
+            overlay.querySelector('#_cancel-paciente').onclick = () => ejecutarCancelacion("paciente");
         };
         
         /* ── Estado del modal de registro ── */
@@ -3469,11 +3478,21 @@
                 mostrarLoader(true);
                 // Solo setear createdAt si el paciente no existe aún
                 const existeSnap = await getDoc(doc(db, "clients", dni));
-                if (!existeSnap.exists()) {
+                const esPacienteNuevo = !existeSnap.exists();
+                if (esPacienteNuevo) {
                     payload.createdAt = serverTimestamp();
                 }
                 await setDoc(doc(db, "clients", dni), payload, { merge: true });
                 dniClienteCargado = dni;
+
+                // Enviar plantilla de bienvenida por WhatsApp si es un paciente nuevo
+                if (esPacienteNuevo) {
+                    fetch(CF_BIENVENIDA_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ telefono: phone, nombre: fullName, dni })
+                    }).catch((error) => console.error("No se pudo enviar la bienvenida por WhatsApp:", error));
+                }
 
                 // Actualizar lista en memoria sin necesidad de recargar todo
                 const idx = todasLosPacientes.findIndex(p => p.dni === dni);
