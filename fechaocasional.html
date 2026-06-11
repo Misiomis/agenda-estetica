@@ -324,7 +324,7 @@
         }
         .hora{
             background:rgba(255,255,255,0.88);
-            color:#244135;
+            color:#2a4338;
             border-radius:14px;
             padding:13px 10px;
             cursor:pointer;
@@ -332,30 +332,44 @@
             text-align:center;
             font-size:14px;
             font-weight:600;
-            transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
-            box-shadow:0 4px 12px rgba(41,66,56,0.06);
-            animation:fadeInSlot 0.42s ease both;
+            transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+            box-shadow: 0 4px 12px rgba(41,66,56,0.06), inset 0 1px 0 rgba(255,255,255,0.9);
+            position:relative;
+            overflow:hidden;
+            animation: fadeInSlot 0.42s ease both;
         }
         @keyframes fadeInSlot{
             from{ opacity:0; transform:translateY(10px); }
             to{ opacity:1; transform:translateY(0); }
         }
-        .hora:hover{ transform:translateY(-2px); border-color:rgba(107,160,137,0.7); box-shadow:0 10px 22px rgba(70,130,104,0.14); }
+        @keyframes horaSelectPop{
+            0%{ transform:translateY(0) scale(.98); }
+            60%{ transform:translateY(-2px) scale(1.04); }
+            100%{ transform:translateY(-2px) scale(1.02); }
+        }
+        .hora:hover{
+            transform:translateY(-2px);
+            border-color:rgba(107,160,137,0.7);
+            box-shadow:0 10px 22px rgba(70,130,104,0.14);
+            background:rgba(255,255,255,0.98);
+        }
         .hora.selected{
             background:linear-gradient(135deg,#7dbfa3 0%,#4d9b78 100%);
             color:white;
             border-color:#4d9b78;
             box-shadow:0 12px 22px rgba(70,131,103,0.28);
             transform:translateY(-2px) scale(1.02);
+            animation:horaSelectPop .26s ease;
         }
         .hora.ocupado{
-            background:rgba(255,255,255,0.05)!important;
-            color:rgba(220,242,232,0.38)!important;
-            border-color:rgba(255,255,255,0.08)!important;
+            background:rgba(200,210,205,0.22)!important;
+            color:#adb9b4!important;
             cursor:not-allowed!important;
-            text-decoration:line-through!important;
-            box-shadow:none!important;
+            border:1px solid rgba(190,205,200,0.32)!important;
             pointer-events:none!important;
+            box-shadow:none!important;
+            opacity:0.52;
+            animation:none!important;
         }
 
         /* ── Summary ── */
