@@ -1033,6 +1033,7 @@
         import { db, collection, getDocs, addDoc, query, where, doc, getDoc, updateDoc, serverTimestamp, increment } from "/js/firebase-web.js";
         import { cargarTemaYAnuncio } from "/js/theme-loader.js";
         const CF_CANCELACION_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/cancelarReservaPaciente";
+        const CF_NOTIFICAR_KIT_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarNotificacionKitFacial";
         const WHATSAPP_GIMENA_NUMERO = "5493764291807";
 
         const getServiciosErrorMessage = (error) => {
@@ -1624,6 +1625,9 @@
                     }
                 } catch (_) {}
 
+                let total = 0;
+                checked.forEach(cb => { total += parseInt(cb.dataset.price || "0", 10); });
+
                 await addDoc(collection(db, "pedidosKit"), {
                     fecha: new Date().toISOString(),
                     productos,
@@ -1631,9 +1635,27 @@
                     nombrePaciente: nombreSesion,
                     telefono: telefonoCliente,
                     dni: dniSesion,
+                    total,
                     estado: "pendiente",
                     createdAt: new Date().toISOString()
                 });
+
+                // Avisar a Gimena por WhatsApp (no bloquea el flujo si falla)
+                try {
+                    await fetch(CF_NOTIFICAR_KIT_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            nombre: nombreSesion,
+                            dni: dniSesion,
+                            productos,
+                            total: `$${total.toLocaleString("es-AR")}`,
+                            descripcionPiel: desc
+                        })
+                    });
+                } catch (notifyErr) {
+                    console.warn("enviarNotificacionKitFacial:", notifyErr.message);
+                }
 
                 showKitFeedback("Tu pedido fue enviado. El pago se coordina con Gime.", "success");
                 document.getElementById("kitFormContent").style.display = "none";

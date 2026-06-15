@@ -600,15 +600,16 @@
         <div class="modal-box">
             <h3 id="modalTitulo">¿Confirmás?</h3>
             <p id="modalTexto">Vas a reservar este turno.</p>
-            <button onclick="confirmarTurno()">Confirmar</button>
-            <button onclick="cerrarModal()" style="background:#b0bdb6; box-shadow:none;">Volver</button>
+            <button id="btnModalConfirmar" onclick="confirmarTurno()">Confirmar</button>
+            <button id="btnModalVolver" onclick="cerrarModal()" style="background:#b0bdb6; box-shadow:none;">Volver</button>
+            <button id="btnModalFinalizar" onclick="window.location.href='index.html'" style="display:none;">Finalizar</button>
         </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp }       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, doc, getDoc, setDoc, serverTimestamp }
+    import { getFirestore, collection, getDocs, query, where, doc, getDoc, runTransaction, serverTimestamp }
         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -801,21 +802,74 @@
         modal.style.display = 'none';
         btn.disabled = true;
         btn.textContent = 'Procesando...';
+
+        const slotKey = horaSeleccionada.replace(':', '-');
+        const slotRef = doc(db, 'reservas_slots', `${fechaSeleccionada}_${slotKey}`);
+
         try {
-            await setDoc(doc(collection(db,'reservas')), {
-                cliente: nombre, nombre, fullName: nombre,
-                dni, fecha: fechaSeleccionada, hora: horaSeleccionada,
-                servicio: localStorage.getItem('servicioSeleccionado') || 'Turno ocasional',
-                estado: 'pendiente', origen: 'ocasional',
-                createdAt: serverTimestamp()
+            await runTransaction(db, async (tx) => {
+                // Verificar bloqueo admin (mismo ID canónico que usa confirmar.html)
+                const blkRef  = doc(db, 'calendarExceptions', `block_${fechaSeleccionada}_${slotKey}`);
+                const blkSnap = await tx.get(blkRef);
+                if (blkSnap.exists()) {
+                    const bd = blkSnap.data();
+                    if (bd.active !== false && (bd.type === 'blocked' || bd.blocked === true)) {
+                        throw new Error('HORA_BLOQUEADA');
+                    }
+                }
+
+                const slotSnap  = await tx.get(slotRef);
+                const sd        = slotSnap.exists() ? slotSnap.data() : null;
+                const ocupantes = sd ? (sd.ocupantes || 0) : 0;
+
+                if (ocupantes >= 1) throw new Error('SLOT_OCUPADO');
+
+                const ahora = Date.now();
+                if (sd && sd.held && sd.heldBy && sd.heldBy !== dni && (sd.heldUntil || 0) > ahora) {
+                    throw new Error('SLOT_RETENIDO');
+                }
+
+                // Crear la reserva
+                const reservaRef = doc(collection(db, 'reservas'));
+                tx.set(reservaRef, {
+                    cliente: nombre, nombre, fullName: nombre,
+                    dni, fecha: fechaSeleccionada, hora: horaSeleccionada,
+                    servicio: localStorage.getItem('servicioSeleccionado') || 'Turno ocasional',
+                    estado: 'pendiente', origen: 'ocasional',
+                    createdAt: serverTimestamp()
+                });
+
+                // Marcar el slot como ocupado para que nadie más pueda tomarlo
+                const slotData = {
+                    fecha: fechaSeleccionada, hora: horaSeleccionada,
+                    ocupantes: ocupantes + 1,
+                    ocupado: true,
+                    held: false, heldBy: null, heldUntil: null,
+                    updatedAt: serverTimestamp()
+                };
+                if (slotSnap.exists()) tx.update(slotRef, slotData);
+                else tx.set(slotRef, slotData);
             });
-            localStorage.setItem('fechaSeleccionada',  fechaSeleccionada);
-            localStorage.setItem('horaSeleccionada',   horaSeleccionada);
-            window.location.href = 'confirmar.html';
+
+            const [y,m,d] = fechaSeleccionada.split('-');
+            const fechaLeg = new Date(+y,+m-1,+d).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+            document.getElementById('modalTitulo').textContent = '¡Turno reservado!';
+            document.getElementById('modalTexto').textContent  =
+                `Tu turno para el ${fechaLeg} a las ${horaSeleccionada} hs quedó pendiente de confirmación por Gimena.`;
+            document.getElementById('btnModalConfirmar').style.display = 'none';
+            document.getElementById('btnModalVolver').style.display    = 'none';
+            document.getElementById('btnModalFinalizar').style.display = 'block';
+            modal.style.display = 'flex';
         } catch(e) {
-            alert('Error al guardar el turno. Intentá de nuevo.');
+            let msg = 'Error al guardar el turno. Intentá de nuevo.';
+            if (e.message === 'HORA_BLOQUEADA') msg = 'Este horario ya no está disponible. Por favor, elegí otro.';
+            else if (e.message === 'SLOT_OCUPADO') msg = 'Este horario fue reservado por otra persona. Por favor, elegí otro.';
+            else if (e.message === 'SLOT_RETENIDO') msg = 'Otra persona está reservando este horario en este momento. Esperá unos minutos e intentá de nuevo.';
+            alert(msg);
             btn.disabled = false;
             btn.textContent = 'Confirmar turno';
+            await renderCalendario();
+            if (fechaSeleccionada) renderHorarios(fechaSeleccionada);
         }
     };
 
