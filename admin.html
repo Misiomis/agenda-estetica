@@ -848,6 +848,13 @@
                     <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-bottom:12px;">
                         <button class="btn-mini" id="btnFlowModeToggle" onclick="toggleFlowMode()">Cargando modo...</button>
                     </div>
+                    <div id="jornadaTypeSelector" style="display:none; background:rgba(20,184,166,0.08); border:1px solid rgba(20,184,166,0.25); border-radius:12px; padding:14px; margin:12px 0;">
+                        <p style="font-size:12px; font-weight:700; color:rgba(94,234,212,0.95); text-transform:uppercase; letter-spacing:0.08em; margin:0 0 10px;">Tipo de jornada</p>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button onclick="selectJornadaType('crio')" class="jornada-type-btn" data-type="crio" style="flex:1; padding:12px; border-radius:10px; border:1.5px solid rgba(20,184,166,0.3); background:rgba(20,184,166,0.08); color:#5eead4; font-weight:700; font-size:13px; cursor:pointer; transition:all 0.2s;">&#x1F9CA; Criolipólisis</button>
+                            <button onclick="selectJornadaType('radio')" class="jornada-type-btn" data-type="radio" style="flex:1; padding:12px; border-radius:10px; border:1.5px solid rgba(20,184,166,0.3); background:rgba(20,184,166,0.08); color:#5eead4; font-weight:700; font-size:13px; cursor:pointer; transition:all 0.2s;">&#x1F4E1; Radiofrecuencia</button>
+                        </div>
+                    </div>
                     <div id="flowModeStatusBox" style="background:rgba(165,130,50,0.10); border:1px solid rgba(165,130,50,0.22); border-radius:12px; padding:12px; margin-bottom:12px;">
                         <p style="margin:0 0 8px; font-size:12px; color:rgba(220,185,120,0.85); font-weight:600;">Flujo activo del sitio:</p>
                         <p id="jornadaFlowModeText" style="margin:0; font-size:13px; color:rgba(220,185,100,0.95); font-weight:700;">Cargando...</p>
@@ -4083,36 +4090,68 @@
                 const config = snap.exists() ? (snap.data() || {}) : null;
                 const currentMode = config?.flowMode === "jornada" ? "jornada" : "normal";
                 const nextMode = currentMode === "jornada" ? "normal" : "jornada";
+                if (nextMode === "jornada") {
+                    document.getElementById("jornadaTypeSelector").style.display = "block";
+                    setFlowModeButtons("normal", false);
+                    return;
+                }
+                document.getElementById("jornadaTypeSelector").style.display = "none";
                 if (!config) {
                     await setDoc(ref, {
-                        active: true,
-                        flowMode: "jornada",
+                        active: false,
+                        flowMode: "normal",
                         redirectTo: "serviciosjornada.html",
-                        serviceName: "Jornada Única de Criolipólisis",
-                        allowedDates: ["2026-04-02"],
-                        zones: ["Abdomen", "Rollito espalda", "Banana subglútea", "Caderas"],
+                        serviceName: "Jornada Especial",
+                        allowedDates: [],
+                        zones: [],
                         sourceTag: "jornada_especial",
-                        startAt: new Date("2026-03-30"),
-                        endAt: new Date("2026-04-03"),
                         updatedAt: serverTimestamp()
                     }, { merge: true });
-                    mostrarAviso("Modo jornada activado");
+                    mostrarAviso("Modo normal activado");
                 } else {
                     const payload = {
-                        flowMode: nextMode,
+                        flowMode: "normal",
                         updatedAt: serverTimestamp()
                     };
-                    if (nextMode === "jornada" && config.active === false) {
-                        payload.active = true;
-                    }
                     await setDoc(ref, payload, { merge: true });
-                    mostrarAviso(nextMode === "jornada" ? "Modo jornada activado" : "Modo normal activado");
+                    mostrarAviso("Modo normal activado");
                 }
             } catch (err) {
                 console.error("Error al cambiar modo de flujo:", err);
                 mostrarAviso("No se pudo cambiar el modo de flujo");
             } finally {
                 await recargarJornadaStatus();
+            }
+        };
+
+        window.selectJornadaType = async (type) => {
+            const typeNames = { crio: "Jornada Única de Criolipólisis", radio: "Jornada de Radiofrecuencia Fraccionada" };
+            const redirectPages = { crio: "serviciosjornada.html", radio: "serviciosjornada.html" };
+            const zones = {
+                crio: ["Abdomen", "Rollito espalda", "Banana subglútea", "Caderas"],
+                radio: ["Rostro", "Cuello", "Abdomen", "Muslos"]
+            };
+
+            document.querySelectorAll('.jornada-type-btn').forEach(b => {
+                b.style.background = b.dataset.type === type ? 'rgba(20,184,166,0.25)' : 'rgba(20,184,166,0.08)';
+                b.style.borderColor = b.dataset.type === type ? '#14b8a6' : 'rgba(20,184,166,0.3)';
+            });
+
+            try {
+                const ref = doc(db, "configuracion", "jornadaEspecial");
+                await updateDoc(ref, {
+                    flowMode: "jornada",
+                    jornadaType: type,
+                    serviceName: typeNames[type] || typeNames.crio,
+                    redirectTo: redirectPages[type] || "serviciosjornada.html",
+                    zones: zones[type] || zones.crio
+                });
+                mostrarAviso("Modo jornada activado: " + (typeNames[type] || type));
+                document.getElementById("jornadaTypeSelector").style.display = "none";
+                await recargarJornadaStatus();
+            } catch(e) {
+                console.error("selectJornadaType:", e);
+                mostrarAviso("Error al seleccionar tipo de jornada");
             }
         };
         

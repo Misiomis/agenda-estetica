@@ -639,7 +639,10 @@
     let renderizando      = false;
 
     const DIAS_SEMANA = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
-    const HORAS_DISPONIBLES = ["07:00","08:00","09:00","10:00","11:00","12:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00"];
+    const HORAS_LUNES_VIERNES = ["07:00","08:00","09:00","10:00","11:00","12:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00"];
+    const HORAS_SABADO = ["07:00","08:00","09:00","10:00","11:00","12:00","16:30","17:30","18:30","19:30","20:30","21:30","22:30","23:30"];
+    const getHorasParaFecha = (fecha) => { const [y,m,d] = fecha.split('-').map(Number); return new Date(y,m-1,d).getDay() === 6 ? HORAS_SABADO : HORAS_LUNES_VIERNES; };
+    const HORAS_DISPONIBLES = HORAS_LUNES_VIERNES;
 
     function formatearFechaISO(y, m, d) {
         return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -668,7 +671,7 @@
         });
         let adminBlocks = 0;
         bloqueosHorarios.forEach((v, k) => { if (k.startsWith(fecha + '|')) adminBlocks++; });
-        return (horas.size + adminBlocks) >= HORAS_DISPONIBLES.length;
+        return (horas.size + adminBlocks) >= getHorasParaFecha(fecha).length;
     };
 
     const normalizarHoraExcepcion = (hora) => {
@@ -760,7 +763,8 @@
         const cont = document.getElementById('horarios');
         cont.innerHTML = '';
         const reservasDia = reservasOcupadas.filter(r => r.fecha === fecha);
-        HORAS_DISPONIBLES.forEach((hora, idx) => {
+        const horasDelDia = getHorasParaFecha(fecha);
+        horasDelDia.forEach((hora, idx) => {
             const ocupado = reservasDia.some(r => r.hora === hora);
             const bloqueadoPorAdmin = bloqueosHorarios.has(keyBloqueo(fecha, hora));
             const noDisponible = ocupado || bloqueadoPorAdmin;
