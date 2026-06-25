@@ -177,10 +177,7 @@
         const candidates = document.querySelectorAll(".footer, footer");
         candidates.forEach((node) => {
             if (node.classList.contains("site-footer") || node.closest("#footerContainer")) return;
-            const text = (node.textContent || "").toLowerCase();
-            if (text.includes("todos los derechos reservados")) {
-                node.remove();
-            }
+            if (node.classList.contains("footer") || node.tagName === "FOOTER") return;
         });
     }
 
