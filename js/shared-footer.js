@@ -74,10 +74,11 @@
         style.id = STYLE_ID;
         style.textContent = `
             .shared-site-footer {
-                margin-top: 26px;
-                padding: 16px 0 8px;
+                margin-top: 40px;
+                padding: 48px 24px 8px;
                 text-align: center;
-                opacity: 0.5;
+                background: #080f0b;
+                border-top: 1px solid rgba(60,179,113,0.15);
             }
 
             .shared-site-footer__text {
@@ -202,12 +203,20 @@
     function appendFooter() {
         if (document.querySelector("[data-shared-site-footer]")) return;
         if (document.querySelector(".site-footer") || document.getElementById("footerContainer")) return;
+        if (document.querySelector("footer.footer")) return;
 
         const mount = getMountNode();
         const footer = document.createElement("footer");
         footer.className = "shared-site-footer";
         footer.setAttribute("data-shared-site-footer", "true");
         footer.innerHTML = `
+            <div style="max-width:800px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:14px; padding-bottom:28px; border-bottom:1px solid rgba(60,179,113,0.15); text-align:center;">
+                <img src="/img/logo.png" alt="${BRAND_TEXT}" style="height:56px; width:auto; filter:brightness(0.95);" onerror="this.style.display='none'">
+                <p style="font-family:'Cormorant Garamond',Georgia,serif; font-size:1.15rem; font-style:italic; color:rgba(255,255,255,0.88); margin:0;">Estética avanzada con criterio profesional.</p>
+                <p style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.45); margin:0;">Comandante Andresito · Misiones · Argentina</p>
+                <div style="font-size:0.7rem; color:rgba(255,255,255,0.45); line-height:1.8;">Gimena Knack · Farmacéutica MP 1212 · Dermatocosmiatra RC 2319</div>
+                <a href="https://wa.me/5493764291807" target="_blank" rel="noopener" style="font-size:0.82rem; color:#3cb371; text-decoration:none;">WhatsApp → +54 9 3764 29-1807</a>
+            </div>
             <p class="shared-site-footer__text">
                 <span>&copy; 2026</span>
                 <span class="shared-site-footer__sep">&middot;</span>
