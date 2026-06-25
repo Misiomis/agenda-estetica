@@ -524,7 +524,7 @@
         .day:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
         .day.has-reserva { background: rgba(53,122,92,0.20); border: 1.5px solid rgba(114,189,153,0.45); color: rgba(160,230,200,0.96); font-weight: 700; }
         .day.day-closed { background: rgba(165,80,90,0.12); border: 1.5px solid rgba(200,100,110,0.30); color: rgba(220,140,150,0.90); }
-        .day.day-full { background: linear-gradient(135deg,#ff5252,#e53935) !important; border-color: #e53935 !important; color: #fff !important; font-weight: 800; }
+        .day.day-full { background: linear-gradient(135deg,#14b8a6,#0f766e) !important; border-color: #0f766e !important; color: #fff !important; font-weight: 800; }
         .day.selected { background: var(--verde) !important; color: white !important; }
         /* CARDS */
         .detalle-dia-card {
@@ -3989,14 +3989,17 @@
         };
         
         // === FUNCIONES PARA CONTROL DE JORNADA ESPECIAL ===
-        const setFlowModeButtons = (flowMode, disabled = false) => {
+        const setFlowModeButtons = (flowMode, disabled = false, jornadaType = "") => {
             const buttons = [
                 document.getElementById("btnFlowModeToggle"),
                 document.getElementById("btnFlowModeHeader")
             ].filter(Boolean);
             const isJornada = flowMode === "jornada";
+            const typeLabel = jornadaType === "radio" ? "radio" : jornadaType === "crio" ? "crio" : "";
             const text = isJornada ? "Cambiar a modo normal" : "Cambiar a modo jornada";
-            const compactText = isJornada ? "Modo activo: jornada · Cambiar a normal" : "Modo activo: normal · Cambiar a jornada";
+            const compactText = isJornada
+                ? `Activo: jornada ${typeLabel} · Cambiar a normal`
+                : "Modo normal · Cambiar a jornada";
             buttons.forEach((button) => {
                 button.disabled = disabled;
                 if (button.id === "btnFlowModeHeader") {
@@ -4028,11 +4031,12 @@
                 }
                 const activa = config.active === true;
                 const flowMode = config.flowMode === "jornada" ? "jornada" : "normal";
+                const jType = config.jornadaType || "";
                 const color = activa ? "#06402B" : "#D4AF37";
                 const label = activa ? "Desactivar" : "Activar";
                 btn.textContent = label;
                 btn.style.background = color;
-                setFlowModeButtons(flowMode);
+                setFlowModeButtons(flowMode, false, jType);
                 
                 const status = activa ? "ACTIVA" : "INACTIVA";
                 const dates = Array.isArray(config.allowedDates) && config.allowedDates.length

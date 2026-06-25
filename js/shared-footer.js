@@ -36,8 +36,10 @@
 
     function getLandingRedirect(flowMode, jornadaType) {
         const currentPage = getCurrentPage();
-        if (flowMode === "jornada" && currentPage === FLOW_NORMAL_LANDING) {
-            return JORNADA_TYPE_PAGES[jornadaType] || "jornadacrio.html";
+        if (flowMode === "jornada") {
+            const correctPage = JORNADA_TYPE_PAGES[jornadaType] || "jornadacrio.html";
+            if (currentPage === FLOW_NORMAL_LANDING) return correctPage;
+            if (JORNADA_LANDINGS.has(currentPage) && currentPage !== correctPage) return correctPage;
         }
         if (flowMode !== "jornada" && JORNADA_LANDINGS.has(currentPage)) {
             return FLOW_NORMAL_LANDING;
