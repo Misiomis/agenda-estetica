@@ -848,7 +848,7 @@
                     <div style="display:grid; grid-template-columns: 1fr; gap:8px; margin-bottom:12px;">
                         <button class="btn-mini" id="btnFlowModeToggle" onclick="toggleFlowMode()">Cargando modo...</button>
                     </div>
-                    <div id="jornadaTypeSelector" style="display:none; background:rgba(20,184,166,0.08); border:1px solid rgba(20,184,166,0.25); border-radius:12px; padding:14px; margin:12px 0;">
+                    <div id="jornadaTypeSelector" style="background:rgba(20,184,166,0.08); border:1px solid rgba(20,184,166,0.25); border-radius:12px; padding:14px; margin:12px 0;">
                         <p style="font-size:12px; font-weight:700; color:rgba(94,234,212,0.95); text-transform:uppercase; letter-spacing:0.08em; margin:0 0 10px;">Tipo de jornada</p>
                         <div style="display:flex; gap:8px; flex-wrap:wrap;">
                             <button onclick="selectJornadaType('crio')" class="jornada-type-btn" data-type="crio" style="flex:1; padding:12px; border-radius:10px; border:1.5px solid rgba(20,184,166,0.3); background:rgba(20,184,166,0.08); color:#5eead4; font-weight:700; font-size:13px; cursor:pointer; transition:all 0.2s;">&#x1F9CA; Criolipólisis</button>
@@ -4091,11 +4091,10 @@
                 const currentMode = config?.flowMode === "jornada" ? "jornada" : "normal";
                 const nextMode = currentMode === "jornada" ? "normal" : "jornada";
                 if (nextMode === "jornada") {
-                    document.getElementById("jornadaTypeSelector").style.display = "block";
                     setFlowModeButtons("normal", false);
+                    mostrarAviso("Elegí el tipo de jornada en el selector de abajo");
                     return;
                 }
-                document.getElementById("jornadaTypeSelector").style.display = "none";
                 if (!config) {
                     await setDoc(ref, {
                         active: false,
@@ -4139,15 +4138,16 @@
 
             try {
                 const ref = doc(db, "configuracion", "jornadaEspecial");
-                await updateDoc(ref, {
+                await setDoc(ref, {
+                    active: true,
                     flowMode: "jornada",
                     jornadaType: type,
                     serviceName: typeNames[type] || typeNames.crio,
                     redirectTo: redirectPages[type] || "serviciosjornada.html",
-                    zones: zones[type] || zones.crio
-                });
+                    zones: zones[type] || zones.crio,
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
                 mostrarAviso("Modo jornada activado: " + (typeNames[type] || type));
-                document.getElementById("jornadaTypeSelector").style.display = "none";
                 await recargarJornadaStatus();
             } catch(e) {
                 console.error("selectJornadaType:", e);

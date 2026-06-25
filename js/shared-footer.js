@@ -8,7 +8,8 @@
     const MAINTENANCE_PAGE = "jornada.html";
     const FLOW_CONFIG_DOC = "jornadaEspecial";
     const FLOW_NORMAL_LANDING = "index.html";
-    const FLOW_JORNADA_LANDING = "jornada.html";
+    const JORNADA_LANDINGS = new Set(["jornadacrio.html", "jornadaradio.html", "jornada.html"]);
+    const JORNADA_TYPE_PAGES = { crio: "jornadacrio.html", radio: "jornadaradio.html" };
     const FLOW_APP_NAME = "shared-footer-router";
 
     function getCurrentPage() {
@@ -30,15 +31,15 @@
     function shouldCheckLandingFlow() {
         const currentPage = getCurrentPage();
         if (isAdminPage() || isSharedFlowPage()) return false;
-        return currentPage === FLOW_NORMAL_LANDING || currentPage === FLOW_JORNADA_LANDING;
+        return currentPage === FLOW_NORMAL_LANDING || JORNADA_LANDINGS.has(currentPage);
     }
 
-    function getLandingRedirect(flowMode) {
+    function getLandingRedirect(flowMode, jornadaType) {
         const currentPage = getCurrentPage();
         if (flowMode === "jornada" && currentPage === FLOW_NORMAL_LANDING) {
-            return FLOW_JORNADA_LANDING;
+            return JORNADA_TYPE_PAGES[jornadaType] || "jornadacrio.html";
         }
-        if (flowMode !== "jornada" && currentPage === FLOW_JORNADA_LANDING) {
+        if (flowMode !== "jornada" && JORNADA_LANDINGS.has(currentPage)) {
             return FLOW_NORMAL_LANDING;
         }
         return "";
@@ -58,12 +59,16 @@
             const db = getFirestore(app);
             const snap = await getDoc(doc(db, "configuracion", FLOW_CONFIG_DOC));
 
-            if (!snap.exists()) return "normal";
+            if (!snap.exists()) return { mode: "normal", type: "" };
 
-            return snap.data()?.flowMode === "jornada" ? "jornada" : "normal";
+            const data = snap.data();
+            return {
+                mode: data?.flowMode === "jornada" ? "jornada" : "normal",
+                type: data?.jornadaType || "crio"
+            };
         } catch (error) {
             console.warn("No se pudo cargar el modo de flujo global:", error);
-            return "normal";
+            return { mode: "normal", type: "" };
         }
     }
 
@@ -239,8 +244,8 @@
         }
     }
     else if (shouldCheckLandingFlow()) {
-        const flowMode = await loadFlowMode();
-        const redirectTarget = getLandingRedirect(flowMode);
+        const { mode: flowMode, type: jornadaType } = await loadFlowMode();
+        const redirectTarget = getLandingRedirect(flowMode, jornadaType);
         if (redirectTarget && getCurrentPage() !== redirectTarget) {
             window.location.replace(`/${redirectTarget}`);
             return;
