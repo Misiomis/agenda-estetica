@@ -717,6 +717,13 @@
             <div class="flow-switch-shortcut">
                 <button id="btnFlowModeHeader" class="flow-switch-button" onclick="toggleFlowMode()">Cargando modo de flujo...</button>
             </div>
+            <div id="jornadaTypeSelectorHeader" style="display:none; padding:10px 16px 14px; background:rgba(20,184,166,0.10); border:1px solid rgba(20,184,166,0.30); border-radius:14px; margin:8px 16px 0;">
+                <p style="font-size:11px; font-weight:700; color:#5eead4; text-transform:uppercase; letter-spacing:0.1em; margin:0 0 8px; text-align:center;">Elegí tipo de jornada</p>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="selectJornadaType('crio')" style="flex:1; padding:14px 10px; border-radius:12px; border:2px solid rgba(20,184,166,0.4); background:rgba(20,184,166,0.12); color:#5eead4; font-weight:800; font-size:14px; cursor:pointer;">🧊 Crio</button>
+                    <button onclick="selectJornadaType('radio')" style="flex:1; padding:14px 10px; border-radius:12px; border:2px solid rgba(20,184,166,0.4); background:rgba(20,184,166,0.12); color:#5eead4; font-weight:800; font-size:14px; cursor:pointer;">📡 Radio</button>
+                </div>
+            </div>
         </div>
         <div class="container">
             <div id="sec-buscador-sesiones" class="section">
@@ -4092,9 +4099,12 @@
                 const nextMode = currentMode === "jornada" ? "normal" : "jornada";
                 if (nextMode === "jornada") {
                     setFlowModeButtons("normal", false);
-                    mostrarAviso("Elegí el tipo de jornada en el selector de abajo");
+                    const sel = document.getElementById("jornadaTypeSelectorHeader");
+                    if (sel) sel.style.display = "block";
                     return;
                 }
+                const selHide = document.getElementById("jornadaTypeSelectorHeader");
+                if (selHide) selHide.style.display = "none";
                 if (!config) {
                     await setDoc(ref, {
                         active: false,
@@ -4148,6 +4158,8 @@
                     updatedAt: serverTimestamp()
                 }, { merge: true });
                 mostrarAviso("Modo jornada activado: " + (typeNames[type] || type));
+                const selH = document.getElementById("jornadaTypeSelectorHeader");
+                if (selH) selH.style.display = "none";
                 await recargarJornadaStatus();
             } catch(e) {
                 console.error("selectJornadaType:", e);
