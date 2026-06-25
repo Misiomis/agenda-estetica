@@ -641,7 +641,8 @@
     const DIAS_SEMANA = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
     const HORAS_LUNES_VIERNES = ["07:00","08:00","09:00","10:00","11:00","12:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00"];
     const HORAS_SABADO = ["07:00","08:00","09:00","10:00","11:00","12:00","16:30","17:30","18:30","19:30","20:30","21:30"];
-    const getHorasParaFecha = (fecha) => { const [y,m,d] = fecha.split('-').map(Number); return new Date(y,m-1,d).getDay() === 6 ? HORAS_SABADO : HORAS_LUNES_VIERNES; };
+    let _sabado30 = false;
+    const getHorasParaFecha = (fecha) => { const [y,m,d] = fecha.split('-').map(Number); return (new Date(y,m-1,d).getDay() === 6 && _sabado30) ? HORAS_SABADO : HORAS_LUNES_VIERNES; };
     const HORAS_DISPONIBLES = HORAS_LUNES_VIERNES;
 
     function formatearFechaISO(y, m, d) {
@@ -721,6 +722,7 @@
             new Date(anio, mes, 1).toLocaleDateString('es-AR',{month:'long',year:'numeric'});
 
         await Promise.all([cargarReservas(anio, mes), cargarExcepcionesAdmin()]);
+        try { const s30 = await getDoc(doc(db,"configuracion","sabadoHorarios30")); _sabado30 = s30.exists() && s30.data()?.active === true; } catch(e) { _sabado30 = false; }
 
         const grid = document.getElementById('calendario');
         grid.innerHTML = '';

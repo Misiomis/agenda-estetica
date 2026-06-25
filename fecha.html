@@ -965,13 +965,14 @@ const CONFIG_SABADO = {
     fraccionado: []
 };
 
+let sabado30Activo = false;
 const CONFIG_DIAS = {
     "lunes":    CONFIG_BASE,
     "martes":   CONFIG_BASE,
     "miercoles":CONFIG_BASE,
     "jueves":   CONFIG_BASE,
     "viernes":  CONFIG_BASE,
-    "sabado":   CONFIG_SABADO
+    get sabado() { return sabado30Activo ? CONFIG_SABADO : CONFIG_BASE; }
 };
 
 const EXCEPCIONES_HORARIOS = {
@@ -1180,6 +1181,10 @@ const aplicarModoVisualJornada = () => {
 };
 
 async function cargarDatos(){
+    try {
+        const s30 = await getDoc(doc(db,"configuracion","sabadoHorarios30"));
+        sabado30Activo = s30.exists() && s30.data()?.active === true;
+    } catch(e) { sabado30Activo = false; }
     const snap=await getDoc(doc(db,"clients",dniUsuario));
     if(snap.exists()) {
         const horas = Number(snap.data().hoursBalance ?? 1);
