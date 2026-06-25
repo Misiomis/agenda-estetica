@@ -699,6 +699,9 @@
             display:block; margin-bottom:2px; font-size:12.5px;
             letter-spacing:.02em;
         }
+        .card-recommendations.tips-open .recommendations-grid { max-height: 800px; opacity: 1; }
+        .card-recommendations.tips-open .tips-toggle { transform: rotate(180deg); }
+        .card-recommendations .recommendations-grid { transition: max-height 0.5s ease, opacity 0.3s ease; }
 
         /* Aviso flotante */
         .floating-warning{
@@ -862,29 +865,30 @@
     <div class="badge-balance" id="badgeBalance">Cargando tu saldo...</div>
 
     <div class="card-recommendations">
-        <div class="rec-header">
-            <div class="rec-header-icon">💡</div>
+        <div class="rec-header" onclick="this.closest('.card-recommendations').classList.toggle('tips-open')" style="cursor:pointer; user-select:none;">
+            <div class="rec-header-icon">🌟</div>
             <h2>Tips para aprovechar tu plan</h2>
+            <span class="tips-toggle" style="margin-left:auto; font-size:14px; transition:transform 0.3s; display:inline-block;">▼</span>
         </div>
-        <div class="recommendations-grid">
+        <div class="recommendations-grid" style="max-height:0; overflow:hidden; transition:max-height 0.5s ease; opacity:0;">
             <div class="rec-card">
-                <span class="rec-card-icon">🗓️</span>
+                <span class="rec-card-icon">📅</span>
                 <div><strong>Pack 2 sesiones</strong>Un turno cada 15 días — ritmo ideal para acompañar la renovación celular de tu piel.</div>
             </div>
             <div class="rec-card">
-                <span class="rec-card-icon">⚡</span>
+                <span class="rec-card-icon">🔥</span>
                 <div><strong>Pack 4 sesiones</strong>Una sesión por semana durante 4 semanas — el ciclo completo para resultados reales y duraderos.</div>
             </div>
             <div class="rec-card">
-                <span class="rec-card-icon">✨</span>
+                <span class="rec-card-icon">💎</span>
                 <div><strong>Pack 8 sesiones</strong>Podés hacer dos sesiones el mismo día para maximizar los resultados en menos tiempo.</div>
             </div>
             <div class="rec-card">
-                <span class="rec-card-icon">⏰</span>
+                <span class="rec-card-icon">🕐</span>
                 <div><strong>Horarios 12:00 y 20:00 – 21:00</strong>Por favor, reservalos solo si trabajás en esa franja horaria o tu servicio es MioUp.</div>
             </div>
             <div class="rec-card">
-                <span class="rec-card-icon">💪</span>
+                <span class="rec-card-icon">🏋️</span>
                 <div><strong>MioUp (30 min)</strong>Si tu sesión es exclusivamente MioUp, cualquier bloque de media hora es tuyo.</div>
             </div>
         </div>
@@ -1588,7 +1592,32 @@ function renderHorariosPorConfig(config, container, fStr) {
             container.innerHTML = "<p style='color:red;'>Error cargando horarios</p>";
         });
 }
+
+// Calendar swipe to change month
+(function() {
+    const grid = document.getElementById('dias');
+    if (!grid) return;
+    let startX = 0;
+    grid.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+    grid.addEventListener('touchend', e => {
+        const diff = startX - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 60) {
+            if (diff > 0) document.getElementById('btnMesSiguiente').click();
+            else document.getElementById('btnMesAnterior').click();
+        }
+    }, { passive: true });
+})();
 </script>
+<footer style="background:#080f0b; border-top:1px solid rgba(201,169,110,0.15); padding:48px 24px 0; margin-top:40px;">
+  <div style="max-width:800px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:16px; padding-bottom:32px; border-bottom:1px solid rgba(201,169,110,0.15); text-align:center;">
+    <img src="img/logo.png" alt="Espacio Mimar T" style="height:64px; width:auto; filter:brightness(0.9);">
+    <p style="font-family:'Cormorant Garamond',serif; font-size:1.3rem; font-style:italic; color:#f0ebe3;">Estética avanzada con criterio profesional.</p>
+    <p style="font-family:'Montserrat',sans-serif; font-size:0.72rem; letter-spacing:0.1em; text-transform:uppercase; color:#b8b0a4;">Comandante Andresito · Misiones · Argentina</p>
+    <div style="font-family:'Montserrat',sans-serif; font-size:0.72rem; color:#b8b0a4; line-height:1.9;">Gimena Knack<br>Farmacéutica · MP 1212<br>Dermatocosmiatra · RC 2319</div>
+    <a href="https://wa.me/5493764291807" target="_blank" rel="noopener" style="font-family:'Montserrat',sans-serif; font-size:0.84rem; color:#8aab8e; text-decoration:none;">WhatsApp → +54 9 3764 29-1807</a>
+  </div>
+  <div style="text-align:center; padding:20px 0; font-family:'Montserrat',sans-serif; font-size:0.68rem; color:#7a7570; letter-spacing:0.06em;">© 2026 Espacio Mimar T — Todos los derechos reservados</div>
+</footer>
 <script src="/js/shared-footer.js"></script>
 <script src="/js/mimi-bot.js"></script>
 </body>

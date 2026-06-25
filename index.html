@@ -214,15 +214,16 @@ img, video { max-width: 100%; height: auto; }
 }
 .hero-scroll-hint {
   position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
-  display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 1;
+  z-index: 1; display: flex; flex-direction: column; align-items: center;
 }
-.hero-scroll-hint span {
-  display: block; width: 1px; height: 8px; background: var(--gold-mid);
-  border-radius: 2px; animation: scrollDrop 1.5s ease-in-out infinite;
+.hero-scroll-hint svg {
+  width: 20px; height: 20px; color: var(--gold-mid); opacity: 0.6;
+  animation: scrollBounce 2s ease-in-out infinite;
 }
-.hero-scroll-hint span:nth-child(2) { animation-delay: 0.15s; }
-.hero-scroll-hint span:nth-child(3) { animation-delay: 0.30s; }
-@keyframes scrollDrop { 0%,100% { opacity:0.2; transform:scaleY(1); } 50% { opacity:1; transform:scaleY(1.6); } }
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(6px); opacity: 1; }
+}
 @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
 
 /* ── BUTTONS ── */
@@ -231,7 +232,7 @@ img, video { max-width: 100%; height: auto; }
   font-family: 'Jost', sans-serif; font-size: 0.78rem; font-weight: 500;
   letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none;
   color: var(--bg-primary);
-  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-mid) 100%);
+  background: linear-gradient(135deg, #ffd700 0%, #daa520 50%, #ffd700 100%);
   border: none; border-radius: var(--radius-pill); padding: 14px 32px;
   cursor: pointer; transition: all var(--transition-fast);
   box-shadow: 0 4px 20px rgba(201,169,110,0.28); white-space: nowrap;
@@ -239,13 +240,17 @@ img, video { max-width: 100%; height: auto; }
 }
 .btn-primary::after {
   content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
-  transition: left 0.4s ease;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  animation: btnShimmer 2.5s ease-in-out infinite;
 }
-.btn-primary:hover::after { left: 150%; }
+@keyframes btnShimmer {
+  0% { left: -100%; }
+  50% { left: 150%; }
+  100% { left: 150%; }
+}
 .btn-primary:hover {
   transform: translateY(-2px); box-shadow: 0 8px 30px rgba(201,169,110,0.40);
-  background: linear-gradient(135deg, #f0e0b4 0%, var(--gold-light) 100%);
+  background: linear-gradient(135deg, #ffe44d 0%, #ffd700 100%);
 }
 .btn-primary:active { transform: translateY(0); box-shadow: 0 2px 12px rgba(201,169,110,0.25); }
 .btn-ghost {
@@ -285,7 +290,7 @@ img, video { max-width: 100%; height: auto; }
 
 /* ── ESPACIO SECTION ── */
 .espacio-section {
-  padding: clamp(80px, 10vw, 140px) clamp(24px, 5vw, 80px);
+  padding: clamp(48px, 6vw, 80px) clamp(24px, 5vw, 80px) clamp(80px, 10vw, 140px);
   background: var(--bg-secondary); position: relative; overflow: hidden;
 }
 .espacio-section::before {
@@ -491,7 +496,7 @@ img, video { max-width: 100%; height: auto; }
 
 /* ── UBICACIÓN ── */
 .ubicacion-section { padding: clamp(80px, 10vw, 140px) clamp(24px, 5vw, 80px); background: var(--bg-secondary); }
-.ubicacion-inner { display: grid; grid-template-columns: 1fr 1.2fr; gap: clamp(40px, 6vw, 80px); align-items: center; }
+.ubicacion-inner { display: flex; flex-direction: column; gap: 32px; }
 .ubicacion-card { display: flex; flex-direction: column; gap: 24px; }
 .ubicacion-details {
   display: flex; flex-direction: column; gap: 18px; padding: 24px;
@@ -509,12 +514,6 @@ img, video { max-width: 100%; height: auto; }
 }
 .ubicacion-detail-item span { font-family: 'Jost', sans-serif; font-size: 0.85rem; color: var(--text-primary); line-height: 1.5; }
 .ubicacion-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-.ubicacion-video-wrap {
-  border-radius: var(--radius-lg); overflow: hidden; aspect-ratio: 9/16;
-  max-height: 480px; border: 1px solid var(--border-subtle);
-}
-.ubicacion-video { width: 100%; height: 100%; object-fit: cover; display: block; }
-@media (max-width: 768px) { .ubicacion-inner { grid-template-columns: 1fr; } .ubicacion-video-wrap { max-height: 320px; } }
 
 /* ── LOGIN MODAL ── */
 .modal-overlay {
@@ -592,9 +591,9 @@ img, video { max-width: 100%; height: auto; }
   gap: clamp(36px, 5vw, 64px); padding-bottom: 48px;
   border-bottom: 1px solid var(--border-subtle);
 }
-.footer-logo { height: 48px; width: auto; margin-bottom: 16px; filter: brightness(0.9); }
-.footer-tagline { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-style: italic; color: var(--text-secondary); margin-bottom: 8px; }
-.footer-location { font-family: 'Jost', sans-serif; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.footer-logo { height: 64px; width: auto; margin-bottom: 16px; filter: brightness(0.9); }
+.footer-tagline { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; font-style: italic; color: var(--text-primary); margin-bottom: 8px; }
+.footer-location { font-family: 'Jost', sans-serif; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); }
 .footer-links-col h4, .footer-contact h4 {
   font-family: 'Jost', sans-serif; font-size: 0.65rem; font-weight: 600;
   letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold-mid); margin-bottom: 20px;
@@ -605,9 +604,9 @@ img, video { max-width: 100%; height: auto; }
 .footer-wa { display: block; font-family: 'Jost', sans-serif; font-size: 0.84rem; color: var(--sage-light); text-decoration: none; margin-bottom: 8px; transition: color var(--transition-fast); }
 .footer-wa:hover { color: var(--text-primary); }
 .footer-contact p { font-family: 'Jost', sans-serif; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 16px; }
-.footer-credentials { font-family: 'Jost', sans-serif; font-size: 0.72rem; color: var(--text-muted); line-height: 1.9; }
+.footer-credentials { font-family: 'Jost', sans-serif; font-size: 0.72rem; color: var(--text-secondary); line-height: 1.9; }
 .footer-bottom {
-  display: flex; align-items: center; justify-content: space-between; padding: 20px 0;
+  display: flex; align-items: center; justify-content: center; padding: 20px 0;
   font-family: 'Jost', sans-serif; font-size: 0.68rem; color: var(--text-muted); letter-spacing: 0.06em;
 }
 @media (max-width: 768px) {
@@ -686,8 +685,12 @@ img, video { max-width: 100%; height: auto; }
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
   .hero { min-height: 100svh; }
+  .hero-content { text-align: center; }
+  .hero-badge { justify-content: center; }
   .hero-actions { flex-direction: column; }
   .hero-actions .btn-primary, .hero-actions .btn-ghost { width: 100%; justify-content: center; }
+  .testimonio-card { padding: 24px 20px; }
+  .testimonio-text { font-size: 0.92rem; line-height: 1.8; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -759,7 +762,7 @@ img, video { max-width: 100%; height: auto; }
             </div>
         </div>
         <div class="hero-scroll-hint" aria-hidden="true">
-            <span></span><span></span><span></span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10l5 5 5-5"/></svg>
         </div>
     </section>
 
@@ -980,12 +983,12 @@ img, video { max-width: 100%; height: auto; }
                 <h2 class="section-title">Vení a <em>conocernos</em></h2>
                 <div class="ubicacion-details">
                     <div class="ubicacion-detail-item">
-                        <div class="ubicacion-detail-icon">📍</div>
-                        <div><strong>Dirección</strong><span>Quintas Bajas, Comandante Andresito<br>Misiones · Solo con turno previo</span></div>
+                        <div class="ubicacion-detail-icon">📌</div>
+                        <div><strong>Dirección</strong><span><a href="https://share.google/ScmWNYBPdBaswqrmm" target="_blank" rel="noopener" style="color:var(--text-primary);text-decoration:none;">Quintas Bajas, Comandante Andresito<br>Misiones · Solo con turno previo</a></span></div>
                     </div>
                     <div class="ubicacion-detail-item">
                         <div class="ubicacion-detail-icon">📱</div>
-                        <div><strong>WhatsApp</strong><span>+54 9 3764 29-1807</span></div>
+                        <div><strong>WhatsApp</strong><span><a href="https://wa.me/5493764291807" target="_blank" rel="noopener" style="color:var(--text-primary);text-decoration:none;">WhatsApp</a></span></div>
                     </div>
                     <div class="ubicacion-detail-item">
                         <div class="ubicacion-detail-icon">⏰</div>
@@ -996,9 +999,6 @@ img, video { max-width: 100%; height: auto; }
                     <a href="https://share.google/ScmWNYBPdBaswqrmm" target="_blank" class="btn-primary" rel="noopener">📍 Cómo llegar</a>
                     <a href="https://share.google/ScmWNYBPdBaswqrmm" target="_blank" class="btn-ghost" rel="noopener">⭐ Dejar reseña</a>
                 </div>
-            </div>
-            <div class="ubicacion-video-wrap" data-reveal="right">
-                <video src="/media/comollegar.mp4" autoplay muted loop playsinline class="ubicacion-video"></video>
             </div>
         </div>
     </section>
@@ -1030,7 +1030,6 @@ img, video { max-width: 100%; height: auto; }
         </div>
         <div class="footer-bottom">
             <span>© 2026 Espacio Mimar T — Todos los derechos reservados</span>
-            <span>Diseñado con intención</span>
         </div>
     </footer>
 
