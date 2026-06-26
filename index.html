@@ -1114,7 +1114,11 @@ img, video { max-width: 100%; height: auto; }
                 const configSnap = await getDoc(doc(db, "configuracion", JORNADA_CONFIG_DOC));
                 const config = configSnap.exists() ? configSnap.data() : null;
                 const forzarJornada = params.get("modo") === "jornada" || params.get("jornada") === "1" || (config?.active && config?.flowMode === "jornada");
-                if (forzarJornada) { jornadaLoginRedirect = config?.redirectTo || "serviciosjornada.html"; localStorage.setItem("jornadaModo", "1"); }
+                if (forzarJornada) {
+                    const _typePages = { crio: "jornadacrio.html", radio: "jornadaradio.html", detox: "jornadadetox.html" };
+                    jornadaLoginRedirect = _typePages[config?.jornadaType] || config?.redirectTo || "jornadacrio.html";
+                    localStorage.setItem("jornadaModo", "1");
+                }
             } catch (e) { console.warn("No se pudo cargar config de jornada:", e); }
         };
         await cargarContextoJornada();
