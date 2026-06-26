@@ -2130,9 +2130,20 @@
                     </div>
                 `;
             }).join('');
+            const [_sy,_sm,_sd] = f.split('-').map(Number);
+            const _esSabado = new Date(_sy, _sm-1, _sd).getDay() === 6;
+            const sabadoBannerHTML = _esSabado ? `
+                <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:12px;border-radius:12px;background:rgba(53,122,92,0.12);border:1px solid rgba(53,122,92,0.28);">
+                    <span style="font-size:20px;">🗓️</span>
+                    <div style="flex:1;font-size:12px;font-weight:700;color:rgba(140,220,185,0.95);">
+                        Sábado — Horarios :30 tarde: <span id="sab30InlineStatus" style="color:${_sabado30Activo ? '#4ade80' : '#D4AF37'}">${_sabado30Activo ? 'ACTIVADO' : 'DESACTIVADO'}</span>
+                    </div>
+                    <button class="btn-mini" onclick="toggleSabado30().then(()=>{verTurnos('${f}',document.querySelector('.day.selected'))})" style="white-space:nowrap;font-size:11px;padding:6px 12px;">${_sabado30Activo ? 'Desactivar' : 'Activar :30'}</button>
+                </div>` : '';
             const gestorHTML = `
                 <div class="horarios-admin-card">
                     <h4>Gestión de horarios del ${formatoFechaISO(f)}</h4>
+                    ${sabadoBannerHTML}
                     <div class="horarios-admin-list">${horariosHTML}</div>
                 </div>
             `;
