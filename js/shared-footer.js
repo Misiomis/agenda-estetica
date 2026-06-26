@@ -8,8 +8,8 @@
     const MAINTENANCE_PAGE = "maintenance.html";
     const FLOW_CONFIG_DOC = "jornadaEspecial";
     const FLOW_NORMAL_LANDING = "index.html";
-    const JORNADA_LANDINGS = new Set(["jornadacrio.html", "jornadaradio.html"]);
-    const JORNADA_TYPE_PAGES = { crio: "jornadacrio.html", radio: "jornadaradio.html" };
+    const JORNADA_LANDINGS = new Set(["jornadacrio.html", "jornadaradio.html", "jornadadetox.html"]);
+    const JORNADA_TYPE_PAGES = { crio: "jornadacrio.html", radio: "jornadaradio.html", detox: "jornadadetox.html" };
     const FLOW_APP_NAME = "shared-footer-router";
 
     function getCurrentPage() {
