@@ -251,7 +251,7 @@
 <body>
     <div class="shell">
         <div class="topbar">
-            <a class="back" href="serviciosjornada.html">Volver al servicio</a>
+            <a class="back" id="backLink" href="jornadacrio.html">Volver a jornada</a>
             <img class="logo" src="img/logo2.jpg" alt="Espacio Mimar T">
         </div>
 
@@ -260,13 +260,13 @@
             <h1 class="title">Fecha de Jornada</h1>
             <p class="desc">Esta jornada tiene agenda en un mes especial, con un día exclusivo para que vivas la experiencia completa con calma.</p>
 
-            <div class="month-banner">Agenda habilitada: Abril 2026</div>
+            <div class="month-banner" id="monthBanner">Agenda habilitada: Julio 2026</div>
 
             <section class="layout">
                 <article class="box">
                     <h2>Fecha única habilitada</h2>
                     <p>Esta jornada tiene una fecha especial pensada para vos.</p>
-                    <div class="date-locked">Jueves 02 de abril de 2026</div>
+                    <div class="date-locked" id="dateLocked">Cargando...</div>
                 </article>
 
                 <article class="box">
@@ -278,7 +278,7 @@
 
             <div class="actions">
                 <button id="btnContinuar" class="btn btn-primary" type="button">Elegir fecha y horario</button>
-                <a class="btn btn-secondary" href="serviciosjornada.html">Volver</a>
+                <a class="btn btn-secondary" id="backBtn" href="jornadacrio.html">Volver</a>
             </div>
 
             <div id="status" class="status"></div>
@@ -286,14 +286,42 @@
     </div>
 
     <script>
-        const JORNADA_DATE = "2026-04-02";
-        const JORNADA_MONTH = "2026-04";
-        const JORNADA_SERVICE = "Jornada especial de criolipólisis";
-        const JORNADA_SLOTS = ["07:30", "08:30", "09:30", "10:30", "16:00", "17:00", "18:00", "19:00", "20:00"];
+        let JORNADA_DATES = [];
+        let JORNADA_MONTH = "2026-07";
+        let JORNADA_SERVICE = "";
+        let JORNADA_SLOTS = [];
+        let JORNADA_BACK = "jornadacrio.html";
+
+        try { JORNADA_DATES = JSON.parse(localStorage.getItem("jornadaAllowedDates") || "[]"); } catch(e) {}
+        JORNADA_MONTH = localStorage.getItem("jornadaAllowedMonth") || "2026-07";
+        JORNADA_SERVICE = localStorage.getItem("servicioSeleccionado") || "Jornada especial";
+        try { JORNADA_SLOTS = JSON.parse(localStorage.getItem("jornadaSlots") || "[]"); } catch(e) {}
+        JORNADA_BACK = localStorage.getItem("jornadaBackPage") || "jornadacrio.html";
+
+        if (!JORNADA_SLOTS.length) JORNADA_SLOTS = ["07:30","08:30","09:30","10:30","16:00","17:00","18:00","19:00","20:00"];
 
         const slotsEl = document.getElementById("slots");
         const statusEl = document.getElementById("status");
         const btn = document.getElementById("btnContinuar");
+
+        document.getElementById("backLink").href = JORNADA_BACK;
+        document.getElementById("backBtn").href = JORNADA_BACK;
+
+        const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+        const dias = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+        const [yy, mm] = JORNADA_MONTH.split("-").map(Number);
+        document.getElementById("monthBanner").textContent = "Agenda habilitada: " + (meses[mm - 1] || "") + " " + yy;
+
+        const dateLockedEl = document.getElementById("dateLocked");
+        if (JORNADA_DATES.length) {
+            const parts = JORNADA_DATES[0].split("-").map(Number);
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            dateLockedEl.textContent = dias[d.getDay()] + " " + String(parts[2]).padStart(2, "0") + " de " + meses[parts[1] - 1].toLowerCase() + " de " + parts[0];
+        } else {
+            dateLockedEl.textContent = "Fecha pendiente de configuración";
+        }
+
+        document.querySelector(".title").textContent = JORNADA_SERVICE || "Fecha de Jornada";
 
         function tieneRegistroJornadaValido() {
             const dni = (localStorage.getItem("clienteDNI") || "").trim();
@@ -304,29 +332,15 @@
         if (!tieneRegistroJornadaValido()) {
             statusEl.textContent = "Primero completá tu registro en la jornada para acceder al calendario especial.";
             btn.disabled = true;
-            setTimeout(() => {
-                window.location.href = "jornada.html#reserva-jornada";
-            }, 900);
+            setTimeout(() => { window.location.href = JORNADA_BACK + "#reserva-jornada"; }, 900);
         }
 
         slotsEl.innerHTML = JORNADA_SLOTS.map((h) => `<span class="slot">${h}</span>`).join("");
 
-        function prepararContextoJornada() {
-            localStorage.setItem("jornadaModo", "1");
-            localStorage.setItem("jornadaAllowedDates", JSON.stringify([JORNADA_DATE]));
-            localStorage.setItem("jornadaAllowedMonth", JORNADA_MONTH);
-            localStorage.setItem("jornadaSlots", JSON.stringify(JORNADA_SLOTS));
-            localStorage.setItem("jornadaSource", "jornada_especial_fechajornada");
-
-            const servicioActual = (localStorage.getItem("servicioSeleccionado") || "").trim();
-            if (!servicioActual) {
-                localStorage.setItem("servicioSeleccionado", JORNADA_SERVICE);
-            }
-        }
-
         btn.addEventListener("click", () => {
             try {
-                prepararContextoJornada();
+                localStorage.setItem("jornadaModo", "1");
+                localStorage.setItem("jornadaSource", "jornada_especial_login");
                 statusEl.textContent = "Perfecto. Estamos abriendo tu calendario especial...";
                 window.location.href = "fecha.html?modo=jornada";
             } catch (error) {
