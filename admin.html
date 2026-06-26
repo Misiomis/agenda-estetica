@@ -4052,7 +4052,7 @@
                 document.getElementById("btnFlowModeHeader")
             ].filter(Boolean);
             const isJornada = flowMode === "jornada";
-            const typeLabel = jornadaType === "radio" ? "radio" : jornadaType === "crio" ? "crio" : "";
+            const typeLabel = jornadaType === "radio" ? "radio" : jornadaType === "crio" ? "crio" : jornadaType === "detox" ? "detox" : "";
             const text = isJornada ? "Cambiar a modo normal" : "Cambiar a modo jornada";
             const compactText = isJornada
                 ? `Activo: jornada ${typeLabel} · Cambiar a normal`
@@ -4123,13 +4123,12 @@
                     await setDoc(doc(db, "configuracion", "jornadaEspecial"), {
                         active: true,
                         flowMode: "normal",
-                        redirectTo: "serviciosjornada.html",
+                        redirectTo: "jornadacrio.html",
                         serviceName: "Jornada Única de Criolipólisis",
-                        allowedDates: ["2026-04-02"],
+                        allowedDates: [],
                         zones: ["Abdomen", "Rollito espalda", "Banana subglútea", "Caderas"],
                         sourceTag: "jornada_especial",
-                        startAt: new Date("2026-03-30"),
-                        endAt: new Date("2026-04-03")
+                        updatedAt: serverTimestamp()
                     });
                     mostrarAviso("Jornada creada y activada");
                 } else {
@@ -4196,7 +4195,7 @@
 
         window.selectJornadaType = async (type) => {
             const typeNames = { crio: "Jornada Única de Criolipólisis", radio: "Jornada de Radiofrecuencia Fraccionada", detox: "Jornada Detox — Drenaje con manta térmica y presoterapia" };
-            const redirectPages = { crio: "serviciosjornada.html", radio: "serviciosjornada.html", detox: "jornadadetox.html" };
+            const redirectPages = { crio: "jornadacrio.html", radio: "jornadaradio.html", detox: "jornadadetox.html" };
             const zones = {
                 crio: ["Abdomen", "Rollito espalda", "Banana subglútea", "Caderas"],
                 radio: ["Rostro", "Cuello", "Abdomen", "Muslos"],
