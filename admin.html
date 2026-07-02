@@ -937,6 +937,21 @@
                     <div id="anuncioPreview" style="display:none;margin-top:14px;background:linear-gradient(135deg,#2f5a47,#3f8f6f);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;text-align:center;"></div>
                 </div>
 
+                <!-- DÍAS DE JORNADA ESPECIAL -->
+                <div class="detalle-dia-card" style="margin-bottom:16px;">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">✨ Días de Jornada Especial</h3>
+                    <p style="font-size:13px;margin:0 0 14px;">Marcá un día como Jornada. Ese día desaparece del calendario normal para reservas comunes. Si hay turnos ya reservados, te avisamos para que puedas notificar a las pacientes por WhatsApp.</p>
+                    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
+                        <div style="flex:1;min-width:180px;">
+                            <label style="font-size:11px;font-weight:800;color:rgba(114,189,153,0.88);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;">Fecha a marcar</label>
+                            <input type="date" id="jornadaDiaInput" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;">
+                        </div>
+                        <button class="btn-mini" onclick="marcarDiaJornada()" style="padding:9px 16px;white-space:nowrap;">✦ Marcar como Jornada</button>
+                    </div>
+                    <p style="margin:0 0 8px;font-size:12px;font-weight:800;color:rgba(114,189,153,0.88);text-transform:uppercase;letter-spacing:.06em;">Días marcados como Jornada</p>
+                    <div id="listaDiasJornada" style="font-size:13px;color:rgba(165,205,188,0.55);">Cargando...</div>
+                </div>
+
                 <!-- BLOQUEOS DE CALENDARIO -->
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">🔒 Bloqueos de calendario</h3>
@@ -4310,6 +4325,7 @@
 
             cargarKitProductosAdmin();
             cargarTratamientosAdmin();
+            await cargarDiasJornada();
         };
 
         function renderTemaGrid() {
@@ -4715,6 +4731,130 @@
         };
 
         // ============================================================
+
+        // === DÍAS DE JORNADA ESPECIAL ===
+        let _diasJornada = {};
+
+        async function cargarDiasJornada() {
+            try {
+                const snap = await getDoc(doc(db, "configuracion", "jornadasDias"));
+                _diasJornada = snap.exists() ? (snap.data()?.dias || {}) : {};
+            } catch(e) { _diasJornada = {}; }
+            renderListaDiasJornada();
+        }
+
+        function renderListaDiasJornada() {
+            const el = document.getElementById("listaDiasJornada");
+            if (!el) return;
+            const fechas = Object.keys(_diasJornada).sort();
+            if (!fechas.length) {
+                el.innerHTML = `<p style="color:rgba(165,205,188,0.50);font-size:13px;margin:0;padding:8px 0;">No hay días marcados como Jornada Especial.</p>`;
+                return;
+            }
+            el.innerHTML = fechas.map(fecha => {
+                const info = _diasJornada[fecha] || {};
+                const label = escapeHtml(info.label || "Jornada Especial");
+                const fechaVis = escapeHtml(formatoFechaVisible(fecha));
+                return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.22);border-radius:10px;margin-bottom:8px;">
+                    <span style="font-size:18px;">✨</span>
+                    <div style="flex:1;">
+                        <p style="margin:0;font-size:13px;font-weight:700;color:rgba(252,211,77,0.95);">${fechaVis}</p>
+                        <p style="margin:0;font-size:11px;color:rgba(245,158,11,0.70);">${label}</p>
+                    </div>
+                    <button class="btn-mini alerta" onclick="quitarDiaJornada('${fecha}')" style="padding:6px 12px;font-size:11px;">✕ Quitar</button>
+                </div>`;
+            }).join('');
+        }
+
+        window.marcarDiaJornada = async () => {
+            const fecha = (document.getElementById("jornadaDiaInput")?.value || "").trim();
+            if (!fecha) { mostrarAviso("Seleccioná una fecha primero."); return; }
+            try {
+                mostrarAviso("Verificando reservas...");
+                const snap = await getDocs(query(collection(db, "reservas"), where("fecha", "==", fecha)));
+                const reservasActivas = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    const estado = (data.estado || data.status || "").toLowerCase();
+                    if (estado !== "cancelado") reservasActivas.push({ id: d.id, ...data });
+                });
+                if (reservasActivas.length === 0) {
+                    await _guardarDiaJornada(fecha, "Jornada Especial");
+                    mostrarAviso("Día marcado como Jornada Especial ✓");
+                } else {
+                    _mostrarModalReservasJornada(fecha, reservasActivas);
+                }
+            } catch(e) {
+                console.error("marcarDiaJornada:", e);
+                mostrarAviso("Error al verificar reservas.");
+            }
+        };
+
+        async function _guardarDiaJornada(fecha, label) {
+            const snap = await getDoc(doc(db, "configuracion", "jornadasDias"));
+            const datos = snap.exists() ? (snap.data()?.dias || {}) : {};
+            datos[fecha] = { label, blockedAt: Date.now() };
+            await setDoc(doc(db, "configuracion", "jornadasDias"), { dias: datos });
+            _diasJornada = datos;
+            renderListaDiasJornada();
+        }
+
+        window.quitarDiaJornada = async (fecha) => {
+            try {
+                const snap = await getDoc(doc(db, "configuracion", "jornadasDias"));
+                const datos = snap.exists() ? (snap.data()?.dias || {}) : {};
+                delete datos[fecha];
+                await setDoc(doc(db, "configuracion", "jornadasDias"), { dias: datos });
+                _diasJornada = datos;
+                renderListaDiasJornada();
+                mostrarAviso(`Día ${formatoFechaVisible(fecha)} quitado de Jornada ✓`);
+            } catch(e) {
+                console.error("quitarDiaJornada:", e);
+                mostrarAviso("Error al quitar el día.");
+            }
+        };
+
+        function _mostrarModalReservasJornada(fecha, reservas) {
+            const fechaVis = formatoFechaVisible(fecha);
+            const reservasHtml = reservas.map(r => {
+                const nombre = escapeHtml(r.nombre || r.name || "Sin nombre");
+                const hora = escapeHtml(r.hora || r.hour || r.time || "");
+                const servicio = escapeHtml(r.servicio || r.service || r.servicioSeleccionado || "");
+                const telefono = (r.telefono || r.phone || r.whatsapp || "").toString().replace(/\D/g, "");
+                const waText = encodeURIComponent(`Hola ${r.nombre || ""}! 👋 Te avisamos que el día ${fechaVis} quedó reservado para una Jornada Especial en Espacio Mimar T. Te pedimos que te comuniques con nosotras para reprogramar tu turno${hora ? ` de las ${hora} hs` : ""}. ¡Disculpá el inconveniente y gracias por tu comprensión! 🌿`);
+                const waLink = telefono ? `https://wa.me/549${telefono}?text=${waText}` : "";
+                return `<div style="padding:10px 12px;background:rgba(255,255,255,0.05);border-radius:10px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.09);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                        <div>
+                            <p style="margin:0;font-size:13px;font-weight:700;color:rgba(220,242,232,0.95);">${nombre}${hora ? ` · ${hora} hs` : ""}</p>
+                            ${servicio ? `<p style="margin:0;font-size:11px;color:rgba(165,205,188,0.65);">${servicio}</p>` : ""}
+                        </div>
+                        ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener" style="padding:7px 13px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.30);border-radius:999px;color:rgba(37,211,102,0.90);font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;">WhatsApp →</a>` : `<span style="font-size:11px;color:rgba(165,205,188,0.40);">Sin teléfono</span>`}
+                    </div>
+                </div>`;
+            }).join('');
+            const html = `<div id="modalJornadaDiaOverlay" class="modal-overlay" onclick="if(event.target===this)cerrarModalJornadaDia()">
+                <div class="modal-card delicado" style="max-width:480px;max-height:85vh;overflow-y:auto;">
+                    <h3>⚠️ Hay ${reservas.length} reserva${reservas.length > 1 ? 's' : ''} en esta fecha</h3>
+                    <p>El <strong style="color:rgba(252,211,77,0.95)">${escapeHtml(fechaVis)}</strong> tiene reservas activas. Al marcarlo como Jornada, ese día desaparece del calendario normal. <strong>Notificá a las pacientes primero.</strong></p>
+                    <div style="margin:14px 0;">${reservasHtml}</div>
+                    <div class="modal-actions">
+                        <button class="btn-mini" onclick="cerrarModalJornadaDia()">Cancelar</button>
+                        <button class="btn-mini" onclick="confirmarMarcarJornadaDia('${fecha}')" style="background:linear-gradient(135deg,#d97706,#b45309);color:#fff;border-color:transparent;">Confirmar Jornada</button>
+                    </div>
+                </div>
+            </div>`;
+            document.body.insertAdjacentHTML("beforeend", html);
+        }
+
+        window.cerrarModalJornadaDia = () => { document.getElementById("modalJornadaDiaOverlay")?.remove(); };
+
+        window.confirmarMarcarJornadaDia = async (fecha) => {
+            cerrarModalJornadaDia();
+            await _guardarDiaJornada(fecha, "Jornada Especial");
+            mostrarAviso("Día marcado como Jornada ✓ · Recordá notificar a las pacientes");
+        };
+
     </script>
     <!-- Modal: Registrar turno manualmente -->
     <div id="modal-registrar-overlay" role="dialog" aria-modal="true" aria-labelledby="mreg-title">

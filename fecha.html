@@ -419,6 +419,30 @@
             pointer-events:none;
         }
 
+        /* días marcados como jornada especial — visibles pero no reservables */
+        .jornada-especial{
+            background:linear-gradient(135deg,#fef9e7 0%,#fef3cd 100%);
+            color:#92400e;
+            border:1.5px solid rgba(245,158,11,0.55);
+            cursor:pointer;
+            font-weight:700;
+        }
+        .jornada-especial::before{
+            content:"✦";
+            position:absolute;
+            top:3px;
+            right:4px;
+            font-size:7px;
+            color:#f59e0b;
+            opacity:0.9;
+            pointer-events:none;
+        }
+        .jornada-especial:hover{
+            transform:translateY(-1px);
+            box-shadow:0 6px 16px rgba(245,158,11,0.22);
+            border-color:rgba(245,158,11,0.75);
+        }
+
         /* domingos — igual que bloqueado */
         .domingo{
             background:#eff2f1;
@@ -921,6 +945,7 @@
             <div class="legend-item"><span class="legend-dot available"></span><span>Disponible</span></div>
             <div class="legend-item"><span class="legend-dot selected"></span><span>Seleccionado</span></div>
             <div class="legend-item"><span class="legend-dot unavailable"></span><span>No disponible</span></div>
+            <div class="legend-item"><span class="legend-dot" style="background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%);box-shadow:0 0 0 4px rgba(245,158,11,0.14);"></span><span>Jornada Especial</span></div>
         </div>
         <div class="grid" id="dias"></div>
     </div>
@@ -993,6 +1018,7 @@ const HORARIOS_JORNADA_DEFAULT = ["07:30", "08:30", "09:30", "10:30", "16:00", "
 const SABADOS_BLOQUEADOS = ["2026-03-01", "2026-03-08", "2026-03-15", "2026-03-22", "2026-03-29", "2026-04-04", "2026-04-11", "2026-04-18", "2026-04-25"];
 
 let fechaActual=new Date();
+let jornadasDias = {};
 let fechaSeleccionada=null, horaSeleccionada=null, duracionTurno=60, excepciones={}, bloqueosHorarios=new Map();
 const hoy=new Date(); hoy.setHours(0,0,0,0);
 let mesesBloqueados = new Set();
@@ -1114,6 +1140,8 @@ const esDiaBloqueadoPorAdmin = (fStr) => {
     return rangosDiasBloqueados.some(r => fStr >= r.desde && fStr <= r.hasta);
 };
 
+const esDiaJornada = (fStr) => !jornadaModo && !!jornadasDias[fStr];
+
 const esDiaLleno = (fStr) => {
     const reservadas = reservasPorFecha.get(fStr) || new Set();
     let adminBlocks = 0;
@@ -1230,6 +1258,11 @@ async function cargarDatos(){
         }
     } catch(e) {}
 
+    try {
+        const jSnap = await getDoc(doc(db, "configuracion", "jornadasDias"));
+        jornadasDias = jSnap.exists() ? (jSnap.data()?.dias || {}) : {};
+    } catch(e) { jornadasDias = {}; }
+
     await cargarReservasMes();
     if (jornadaModo) fijarMesJornada();
     renderCalendario();
@@ -1314,6 +1347,9 @@ function renderCalendario(){
         else if(esExcepcionBloqueante(fStr)){
             div.classList.add("bloqueado");
             div.onclick=()=>mostrarAviso("Cerrado", `Motivo: ${excepciones[fStr]}`);
+        } else if(esDiaJornada(fStr)){
+            div.classList.add("jornada-especial");
+            div.onclick=()=>mostrarAviso("Día de Jornada Especial ✨", "Este día está reservado para una sesión grupal. Si fuiste convocada para la jornada, accedé por el enlace especial que te enviamos.");
         } else if(esDiaLleno(fStr)){
             div.classList.add("lleno");
             div.onclick=()=>{
