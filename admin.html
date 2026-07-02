@@ -1965,6 +1965,7 @@
                 actualizarKPIs();
                 poblarServiciosFiltro();
                 filtrarListadoClientes();
+                cargarDiasJornada();
             } catch (error) {
                 console.error(error);
                 mostrarAviso("Error al cargar datos");
@@ -2159,9 +2160,22 @@
                     </div>
                     <button class="btn-mini" onclick="toggleSabado30().then(()=>{verTurnos('${f}',document.querySelector('.day.selected'))})" style="white-space:nowrap;font-size:11px;padding:6px 12px;">${_sabado30Activo ? 'Desactivar' : 'Activar :30'}</button>
                 </div>` : '';
+            const _esDiaJornadaActual = !!_diasJornada[f];
+            const jornadaBannerHTML = _esDiaJornadaActual
+                ? `<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:12px;border-radius:12px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);">
+                    <span style="font-size:20px;">✨</span>
+                    <div style="flex:1;font-size:12px;font-weight:700;color:rgba(252,211,77,0.95);">Este día está marcado como <strong>Jornada Especial</strong> — no aparece en el calendario normal.</div>
+                    <button class="btn-mini alerta" onclick="quitarDiaJornadaYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 12px;">✕ Quitar Jornada</button>
+                </div>`
+                : `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:12px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px dashed rgba(245,158,11,0.28);">
+                    <span style="font-size:16px;">✨</span>
+                    <div style="flex:1;font-size:12px;color:rgba(165,205,188,0.60);">¿Querés reservar este día para una Jornada Especial?</div>
+                    <button class="btn-mini" onclick="marcarDiaJornadaYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 12px;border-color:rgba(245,158,11,0.4);color:rgba(252,211,77,0.90);">✦ Marcar como Jornada</button>
+                </div>`;
             const gestorHTML = `
                 <div class="horarios-admin-card">
                     <h4>Gestión de horarios del ${formatoFechaISO(f)}</h4>
+                    ${jornadaBannerHTML}
                     ${sabadoBannerHTML}
                     <div class="horarios-admin-list">${horariosHTML}</div>
                 </div>
@@ -4734,6 +4748,7 @@
 
         // === DÍAS DE JORNADA ESPECIAL ===
         let _diasJornada = {};
+        let _jornadaVistaRefreshFecha = null;
 
         async function cargarDiasJornada() {
             try {
@@ -4853,6 +4868,52 @@
             cerrarModalJornadaDia();
             await _guardarDiaJornada(fecha, "Jornada Especial");
             mostrarAviso("Día marcado como Jornada ✓ · Recordá notificar a las pacientes");
+            if (_jornadaVistaRefreshFecha) {
+                verTurnos(_jornadaVistaRefreshFecha, document.querySelector('.day.selected'));
+                _jornadaVistaRefreshFecha = null;
+            }
+        };
+
+        window.marcarDiaJornadaYRefrescar = async (fecha) => {
+            _jornadaVistaRefreshFecha = fecha;
+            try {
+                mostrarAviso("Verificando reservas...");
+                const snap = await getDocs(query(collection(db, "reservas"), where("fecha", "==", fecha)));
+                const reservasActivas = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    const estado = (data.estado || data.status || "").toLowerCase();
+                    if (estado !== "cancelado") reservasActivas.push({ id: d.id, ...data });
+                });
+                if (reservasActivas.length === 0) {
+                    await _guardarDiaJornada(fecha, "Jornada Especial");
+                    mostrarAviso("Día marcado como Jornada Especial ✓");
+                    verTurnos(fecha, document.querySelector('.day.selected'));
+                    _jornadaVistaRefreshFecha = null;
+                } else {
+                    _mostrarModalReservasJornada(fecha, reservasActivas);
+                }
+            } catch(e) {
+                console.error("marcarDiaJornadaYRefrescar:", e);
+                mostrarAviso("Error al verificar reservas.");
+                _jornadaVistaRefreshFecha = null;
+            }
+        };
+
+        window.quitarDiaJornadaYRefrescar = async (fecha) => {
+            try {
+                const snap = await getDoc(doc(db, "configuracion", "jornadasDias"));
+                const datos = snap.exists() ? (snap.data()?.dias || {}) : {};
+                delete datos[fecha];
+                await setDoc(doc(db, "configuracion", "jornadasDias"), { dias: datos });
+                _diasJornada = datos;
+                renderListaDiasJornada();
+                mostrarAviso(`Jornada quitada del ${formatoFechaVisible(fecha)} ✓`);
+                verTurnos(fecha, document.querySelector('.day.selected'));
+            } catch(e) {
+                console.error("quitarDiaJornadaYRefrescar:", e);
+                mostrarAviso("Error al quitar el día.");
+            }
         };
 
     </script>
