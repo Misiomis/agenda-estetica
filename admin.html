@@ -3764,17 +3764,16 @@
 
             function _construirMsgWA(nombre, lista, tipo) {
                 var enc = tipo === "pendientes"
-                    ? "Hola *" + nombre + "* 👋\n\nTe recuerdo tus próximas sesiones en _Espacio Mimar T_:\n\n"
-                    : "Hola *" + nombre + "* 👋\n\nEstas son tus sesiones *realizadas* en _Espacio Mimar T_ 💚:\n\n";
+                    ? "Hola *" + nombre + "*\n\nTe recuerdo tus proximas sesiones en _Espacio Mimar T_:\n\n"
+                    : "Hola *" + nombre + "*\n\nEstas son tus sesiones ya realizadas en _Espacio Mimar T_:\n\n";
                 var lineas = lista.map(function(r) {
-                    var emoji = _emojiServicio(r.servicio);
                     var fechaFmt = formatFechaLargaExport(r.fecha) || r.fecha || "Sin fecha";
-                    var hora = r.hora ? " · " + r.hora + " hs" : "";
-                    return emoji + " *" + fechaFmt + "*" + hora + "\n    _" + (r.servicio || "Sesión") + "_";
+                    var hora = r.hora ? " a las " + r.hora + " hs" : "";
+                    return "- *" + fechaFmt + "*" + hora + "\n  _" + (r.servicio || "Sesion") + "_";
                 }).join("\n\n");
                 var cierre = tipo === "pendientes"
-                    ? "\n\n¡Te esperamos con gusto! Cualquier consulta, avisanos 🌸\n— _Espacio Mimar T_"
-                    : "\n\n¡Gracias por confiar en nosotras! Seguí con tu tratamiento para ver los mejores resultados 🌸\n— _Espacio Mimar T_";
+                    ? "\n\nTe esperamos puntual. Ante cualquier consulta no dudes en escribirnos.\n- _Espacio Mimar T_"
+                    : "\n\nGracias por confiar en nosotras. Continua con tu tratamiento para obtener los mejores resultados.\n- _Espacio Mimar T_";
                 return enc + lineas + cierre;
             }
 
@@ -3796,7 +3795,7 @@
 
             var barraAcciones = "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;padding:14px;background:rgba(53,122,92,0.08);border-radius:14px;border:1px solid rgba(114,189,153,0.20);'>" +
                 "<div style='width:100%;margin-bottom:8px;display:flex;align-items:center;gap:6px;'>" +
-                "<span style='font-size:14px;font-weight:700;color:rgba(180,230,210,0.95);'>💌 " + primerNombre + "</span>" + noPhoneTag +
+                "<span style='font-size:14px;font-weight:700;color:rgba(180,230,210,0.95);'>" + primerNombre + "</span>" + noPhoneTag +
                 "</div>" +
                 _btnWA(urlPend,
                     "⏳ Enviar pendientes (" + pendientes.length + ")",
