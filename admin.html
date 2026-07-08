@@ -3732,10 +3732,83 @@
                 return (a.hora || "") > (b.hora || "") ? -1 : 1;
             });
 
+            // Realizadas sin cancelados (para el mensaje WA)
+            var completadas = realizadas.filter(function(r) {
+                return (r.estado || r.status || "").toLowerCase() !== "cancelado";
+            });
+            completadas.sort(function(a, b) {
+                if (a.fecha !== b.fecha) return a.fecha > b.fecha ? -1 : 1;
+                return (a.hora || "") > (b.hora || "") ? -1 : 1;
+            });
+
             var sesiones = pendientes.concat(realizadas);
 
-            var primerNombre = escapeHtml(sesiones[0].nombreLimpio || txt);
-            var html = "<p style='font-size:13px;color:#4a90e2;font-weight:700;margin-bottom:10px;'>" + sesiones.length + " sesión(es) encontrada(s) &middot; <strong>" + primerNombre + "</strong></p>";
+            // Teléfono: primer registro que lo tenga
+            var phoneWA = "";
+            for (var _pi = 0; _pi < sesiones.length; _pi++) {
+                var _ph = ((sesiones[_pi].phone || sesiones[_pi].telefono || "")).toString().replace(/\D/g, "");
+                if (_ph) { phoneWA = _ph; break; }
+            }
+
+            function _emojiServicio(srv) {
+                var s = (srv || "").toLowerCase();
+                if (s.includes("facial")) return "💆";
+                if (s.includes("crio")) return "❄️";
+                if (s.includes("mio")) return "💪";
+                if (s.includes("radio")) return "✨";
+                if (s.includes("corporal")) return "🌿";
+                if (s.includes("detox") || s.includes("drenaje") || s.includes("presoterapia")) return "🍃";
+                if (s.includes("jornada")) return "⭐";
+                return "🌸";
+            }
+
+            function _construirMsgWA(nombre, lista, tipo) {
+                var enc = tipo === "pendientes"
+                    ? "Hola *" + nombre + "* 👋\n\nTe recuerdo tus próximas sesiones en _Espacio Mimar T_:\n\n"
+                    : "Hola *" + nombre + "* 👋\n\nEstas son tus sesiones *realizadas* en _Espacio Mimar T_ 💚:\n\n";
+                var lineas = lista.map(function(r) {
+                    var emoji = _emojiServicio(r.servicio);
+                    var fechaFmt = formatFechaLargaExport(r.fecha) || r.fecha || "Sin fecha";
+                    var hora = r.hora ? " · " + r.hora + " hs" : "";
+                    return emoji + " *" + fechaFmt + "*" + hora + "\n    _" + (r.servicio || "Sesión") + "_";
+                }).join("\n\n");
+                var cierre = tipo === "pendientes"
+                    ? "\n\n¡Te esperamos con gusto! Cualquier consulta, avisanos 🌸\n— _Espacio Mimar T_"
+                    : "\n\n¡Gracias por confiar en nosotras! Seguí con tu tratamiento para ver los mejores resultados 🌸\n— _Espacio Mimar T_";
+                return enc + lineas + cierre;
+            }
+
+            var _nombreWA = sesiones[0].nombreLimpio || txt;
+            var urlPend = phoneWA && pendientes.length
+                ? "https://wa.me/549" + phoneWA + "?text=" + encodeURIComponent(_construirMsgWA(_nombreWA, pendientes, "pendientes"))
+                : "";
+            var urlReal = phoneWA && completadas.length
+                ? "https://wa.me/549" + phoneWA + "?text=" + encodeURIComponent(_construirMsgWA(_nombreWA, completadas, "realizadas"))
+                : "";
+
+            function _btnWA(href, label, colorBorder, colorText, colorBg, disabled) {
+                if (disabled) return "<div style='flex:1;min-width:150px;text-align:center;padding:10px 14px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.08);border-radius:10px;color:rgba(140,180,160,0.40);font-size:13px;font-weight:600;'>" + label + "</div>";
+                return "<a href='" + href + "' target='_blank' rel='noopener' style='flex:1;min-width:150px;text-align:center;padding:10px 14px;background:" + colorBg + ";border:1.5px solid " + colorBorder + ";border-radius:10px;color:" + colorText + ";font-weight:700;font-size:13px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;'>" + label + "</a>";
+            }
+
+            var primerNombre = escapeHtml(_nombreWA);
+            var noPhoneTag = phoneWA ? "" : "<span style='font-size:11px;color:rgba(220,120,100,0.80);margin-left:8px;'>⚠ Sin teléfono</span>";
+
+            var barraAcciones = "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;padding:14px;background:rgba(53,122,92,0.08);border-radius:14px;border:1px solid rgba(114,189,153,0.20);'>" +
+                "<div style='width:100%;margin-bottom:8px;display:flex;align-items:center;gap:6px;'>" +
+                "<span style='font-size:14px;font-weight:700;color:rgba(180,230,210,0.95);'>💌 " + primerNombre + "</span>" + noPhoneTag +
+                "</div>" +
+                _btnWA(urlPend,
+                    "⏳ Enviar pendientes (" + pendientes.length + ")",
+                    "rgba(245,158,11,0.45)", "rgba(252,211,77,0.95)", "rgba(245,158,11,0.12)",
+                    !urlPend) +
+                _btnWA(urlReal,
+                    "✅ Enviar realizadas (" + completadas.length + ")",
+                    "rgba(114,189,153,0.45)", "rgba(140,220,185,0.95)", "rgba(53,122,92,0.12)",
+                    !urlReal) +
+                "</div>";
+
+            var html = barraAcciones + "<p style='font-size:13px;color:#4a90e2;font-weight:700;margin-bottom:10px;'>" + sesiones.length + " sesión(es) encontrada(s) &middot; <strong>" + primerNombre + "</strong></p>";
 
             sesiones.forEach(function(r) {
                 var isCancelado = (r.estado || r.status || "").toLowerCase() === "cancelado";
