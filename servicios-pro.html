@@ -977,23 +977,8 @@
             <p class="kit-modal-sub">Seleccioná tus productos y contanos sobre tu piel</p>
             <div id="kitFeedback" class="kit-feedback"></div>
             <div id="kitFormContent">
-                <div class="kit-productos-list">
-                    <div class="kit-producto-item">
-                        <input type="checkbox" id="kp-leche" value="Leche de limpieza" data-price="15000">
-                        <label for="kp-leche">Leche de limpieza <span style="color:#c8943e;font-weight:700;font-size:12px;">$15.000</span></label>
-                    </div>
-                    <div class="kit-producto-item">
-                        <input type="checkbox" id="kp-gel" value="Gel de limpieza" data-price="10000">
-                        <label for="kp-gel">Gel de limpieza <span style="color:#c8943e;font-weight:700;font-size:12px;">$10.000</span></label>
-                    </div>
-                    <div class="kit-producto-item">
-                        <input type="checkbox" id="kp-tonico" value="Tónico calmante" data-price="15000">
-                        <label for="kp-tonico">Tónico calmante <span style="color:#c8943e;font-weight:700;font-size:12px;">$15.000</span></label>
-                    </div>
-                    <div class="kit-producto-item">
-                        <input type="checkbox" id="kp-crema" value="Crema/Gel regeneradora hidratante" data-price="15000">
-                        <label for="kp-crema">Crema/Gel regeneradora hidratante <span style="color:#c8943e;font-weight:700;font-size:12px;">$15.000</span></label>
-                    </div>
+                <div id="kitProductosList" class="kit-productos-list">
+                    <p style="color:#b5a9a0;font-size:13px;padding:8px 0;">Cargando productos...</p>
                 </div>
                 <div id="kitTotalWrap" style="display:none;background:linear-gradient(135deg,#fdf6ec,#fcecd8);border:1px solid #e8d5a3;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
                     <span style="font-size:13px;font-weight:600;color:#7a5a1c;">Total estimado</span>
@@ -1589,14 +1574,48 @@
             }
         };
 
-        document.querySelectorAll("#modalKitPedido input[type=checkbox]").forEach(cb => {
-            cb.addEventListener("change", actualizarTotalKit);
+        // Event delegation: funciona con checkboxes generados dinámicamente
+        document.getElementById("kitProductosList").addEventListener("change", function(e) {
+            if (e.target.type === "checkbox") actualizarTotalKit();
         });
+
+        const KIT_PRODUCTOS_DEFAULT_PRO = [
+            { nombre: "Leche de limpieza",                 precio: 15000 },
+            { nombre: "Gel de limpieza",                   precio: 10000 },
+            { nombre: "Tónico calmante",                   precio: 15000 },
+            { nombre: "Crema/Gel regeneradora hidratante", precio: 15000 }
+        ];
+
+        const _escKP = (s) => (s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+        async function cargarKitProductosPro() {
+            let productos = [...KIT_PRODUCTOS_DEFAULT_PRO];
+            try {
+                const snap = await getDoc(doc(db, "configuracion", "kitProductos"));
+                if (snap.exists() && Array.isArray(snap.data().productos) && snap.data().productos.length) {
+                    productos = snap.data().productos.map(p => ({ nombre: p.nombre || "", precio: Number(p.precio) || 0 }));
+                }
+            } catch(e) {}
+
+            const lista = document.getElementById("kitProductosList");
+            if (!lista) return;
+            lista.innerHTML = productos.map((p, i) => {
+                const id = "kp-dyn-" + i;
+                const precioFmt = "$" + p.precio.toLocaleString("es-AR");
+                return `<div class="kit-producto-item">
+                    <input type="checkbox" id="${id}" value="${_escKP(p.nombre)}" data-price="${p.precio}">
+                    <label for="${id}">${_escKP(p.nombre)} <span style="color:#c8943e;font-weight:700;font-size:12px;">${precioFmt}</span></label>
+                </div>`;
+            }).join("");
+        }
+
+        // Carga productos al iniciar la página
+        cargarKitProductosPro();
 
         document.getElementById("btnKitFacialPro").onclick = () => {
             kitFeedback.style.display = "none";
             document.getElementById("kitFormContent").style.display = "block";
-            document.querySelectorAll("#modalKitPedido input[type=checkbox]").forEach(cb => cb.checked = false);
+            document.querySelectorAll("#kitProductosList input[type=checkbox]").forEach(cb => cb.checked = false);
             document.getElementById("kitDescripcion").value = "";
             document.getElementById("kitTotalWrap").style.display = "none";
             modalKit.style.display = "flex";
