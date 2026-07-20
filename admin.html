@@ -720,10 +720,11 @@
             <div id="jornadaTypeSelectorHeader" style="display:none; padding:10px 16px 14px; background:rgba(20,184,166,0.10); border:1px solid rgba(20,184,166,0.30); border-radius:14px; margin:8px 16px 0;">
                 <p style="font-size:11px; font-weight:700; color:#5eead4; text-transform:uppercase; letter-spacing:0.1em; margin:0 0 8px; text-align:center;">Elegí tipo de jornada</p>
                 <div style="display:flex; gap:8px;">
-                    <button onclick="selectJornadaType('crio')" style="flex:1; padding:14px 10px; border-radius:12px; border:2px solid rgba(20,184,166,0.4); background:rgba(20,184,166,0.12); color:#5eead4; font-weight:800; font-size:14px; cursor:pointer;">🧊 Crio</button>
-                    <button onclick="selectJornadaType('radio')" style="flex:1; padding:14px 10px; border-radius:12px; border:2px solid rgba(20,184,166,0.4); background:rgba(20,184,166,0.12); color:#5eead4; font-weight:800; font-size:14px; cursor:pointer;">📡 Radio</button>
-                    <button onclick="selectJornadaType('detox')" style="flex:1; padding:14px 10px; border-radius:12px; border:2px solid rgba(20,184,166,0.4); background:rgba(20,184,166,0.12); color:#5eead4; font-weight:800; font-size:14px; cursor:pointer;">🍃 Detox</button>
+                    <button onclick="selectJornadaType('crio')" id="btnJornadaCrioHeader" style="flex:1; padding:14px 10px; border-radius:12px; border:2px solid rgba(20,184,166,0.4); background:rgba(20,184,166,0.12); color:#5eead4; font-weight:800; font-size:14px; cursor:pointer;">🧊 Crio</button>
+                    <button onclick="selectJornadaType('radio')" id="btnJornadaRadioHeader" style="flex:1; padding:14px 10px; border-radius:12px; border:2px solid rgba(20,184,166,0.4); background:rgba(20,184,166,0.12); color:#5eead4; font-weight:800; font-size:14px; cursor:pointer;">📡 Radio</button>
+                    <button onclick="selectJornadaType('detox')" id="btnJornadaDetoxHeader" style="flex:1; padding:14px 10px; border-radius:12px; border:2px solid rgba(20,184,166,0.4); background:rgba(20,184,166,0.12); color:#5eead4; font-weight:800; font-size:14px; cursor:pointer;">🍃 Detox</button>
                 </div>
+                <button id="btnVolverNormalHeader" onclick="activarModoNormal()" style="display:none; width:100%; margin-top:8px; padding:10px; border-radius:10px; border:1px solid rgba(165,130,50,0.35); background:rgba(165,130,50,0.10); color:rgba(220,185,120,0.90); font-size:12px; font-weight:700; cursor:pointer;">Cambiar a modo normal</button>
             </div>
         </div>
         <div class="container">
@@ -3013,6 +3014,18 @@
             if (!lista.length) {
                 lista = [...new Set(todasLasReservas.map(r => (r.servicio||'').toString().trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
             }
+            if (preseleccion && !lista.includes(preseleccion)) {
+                lista.unshift(preseleccion);
+            }
+            if (!lista.length) {
+                grid.innerHTML = `<div style="font-size:12px;color:rgba(140,210,180,0.50);padding:6px 0">No hay servicios cargados. Escribí uno:<br>
+                    <input type="text" placeholder="Nombre del servicio" id="${hiddenId}_txt"
+                        style="margin-top:8px;width:100%;border:1.5px solid rgba(255,255,255,0.14);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;box-sizing:border-box;"
+                        oninput="document.getElementById('${hiddenId}').value=this.value.trim()">
+                </div>`;
+                if (preseleccion) document.getElementById(hiddenId).value = preseleccion;
+                return;
+            }
             grid.innerHTML = lista.map(s =>
                 `<button type="button" class="mreg-chip${s === preseleccion ? ' activo' : ''}" data-servicio="${escapeHtml(s)}" onclick="seleccionarChipServicio(this,'${hiddenId}')">${escapeHtml(s)}</button>`
             ).join('');
@@ -4157,8 +4170,8 @@
             const typeLabel = jornadaType === "radio" ? "radio" : jornadaType === "crio" ? "crio" : jornadaType === "detox" ? "detox" : "";
             const text = isJornada ? "Cambiar a modo normal" : "Cambiar a modo jornada";
             const compactText = isJornada
-                ? `Activo: jornada ${typeLabel} · Cambiar a normal`
-                : "Modo normal · Cambiar a jornada";
+                ? `Activo: jornada ${typeLabel} · Cambiar tipo`
+                : "Modo normal · Activar jornada";
             buttons.forEach((button) => {
                 button.disabled = disabled;
                 if (button.id === "btnFlowModeHeader") {
@@ -4168,6 +4181,16 @@
                 }
                 button.textContent = text;
                 button.style.background = isJornada ? "#d9a441" : "#f0b35a";
+            });
+            // Resaltar tipo activo en los botones del header
+            const typeMap = { crio: "btnJornadaCrioHeader", radio: "btnJornadaRadioHeader", detox: "btnJornadaDetoxHeader" };
+            Object.entries(typeMap).forEach(([t, id]) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                const active = isJornada && t === jornadaType;
+                btn.style.background = active ? "rgba(20,184,166,0.35)" : "rgba(20,184,166,0.12)";
+                btn.style.borderColor = active ? "#14b8a6" : "rgba(20,184,166,0.4)";
+                btn.style.boxShadow = active ? "0 0 0 2px rgba(20,184,166,0.4)" : "none";
             });
         };
         
@@ -4184,6 +4207,8 @@
                     btn.textContent = "Activar (crear doc)";
                     btn.style.background = "#72bd99";
                     setFlowModeButtons("normal");
+                    const selH0 = document.getElementById("jornadaTypeSelectorHeader");
+                    if (selH0) selH0.style.display = "none";
                     flowStatusText.innerHTML = "MODO NORMAL<br><small style=\"color:#8a6e3e;\">Ingreso principal por index.html</small>";
                     configView.textContent = "{}";
                     return;
@@ -4196,7 +4221,11 @@
                 btn.textContent = label;
                 btn.style.background = color;
                 setFlowModeButtons(flowMode, false, jType);
-                
+                const selH = document.getElementById("jornadaTypeSelectorHeader");
+                if (selH) selH.style.display = "none";
+                const btnVH = document.getElementById("btnVolverNormalHeader");
+                if (btnVH) btnVH.style.display = "none";
+
                 const status = activa ? "ACTIVA" : "INACTIVA";
                 const dates = Array.isArray(config.allowedDates) && config.allowedDates.length
                     ? config.allowedDates.map((date) => formatoFechaVisible(date)).join(", ")
@@ -4252,43 +4281,46 @@
         };
         
         window.toggleFlowMode = async () => {
-            setFlowModeButtons(document.getElementById("btnFlowModeHeader")?.classList.contains("is-jornada") ? "jornada" : "normal", true);
+            const isJornada = document.getElementById("btnFlowModeHeader")?.classList.contains("is-jornada");
+            setFlowModeButtons(isJornada ? "jornada" : "normal", true);
+            if (isJornada) {
+                // Ya está en jornada: mostrar selector para cambiar tipo + botón de volver a normal
+                setFlowModeButtons("jornada", false);
+                const sel = document.getElementById("jornadaTypeSelectorHeader");
+                const btnVolver = document.getElementById("btnVolverNormalHeader");
+                if (sel) sel.style.display = "block";
+                if (btnVolver) btnVolver.style.display = "block";
+                return;
+            }
+            // Está en normal: mostrar selector para elegir tipo de jornada
+            try {
+                setFlowModeButtons("normal", false);
+                const sel = document.getElementById("jornadaTypeSelectorHeader");
+                const btnVolver = document.getElementById("btnVolverNormalHeader");
+                if (sel) sel.style.display = "block";
+                if (btnVolver) btnVolver.style.display = "none";
+            } catch (err) {
+                console.error("Error al cambiar modo de flujo:", err);
+                mostrarAviso("No se pudo cambiar el modo de flujo");
+                await recargarJornadaStatus();
+            }
+        };
+
+        window.activarModoNormal = async () => {
+            const selHide = document.getElementById("jornadaTypeSelectorHeader");
+            if (selHide) selHide.style.display = "none";
             try {
                 const ref = doc(db, "configuracion", "jornadaEspecial");
                 const snap = await getDoc(ref);
                 const config = snap.exists() ? (snap.data() || {}) : null;
-                const currentMode = config?.flowMode === "jornada" ? "jornada" : "normal";
-                const nextMode = currentMode === "jornada" ? "normal" : "jornada";
-                if (nextMode === "jornada") {
-                    setFlowModeButtons("normal", false);
-                    const sel = document.getElementById("jornadaTypeSelectorHeader");
-                    if (sel) sel.style.display = "block";
-                    return;
-                }
-                const selHide = document.getElementById("jornadaTypeSelectorHeader");
-                if (selHide) selHide.style.display = "none";
                 if (!config) {
-                    await setDoc(ref, {
-                        active: false,
-                        flowMode: "normal",
-                        redirectTo: "serviciosjornada.html",
-                        serviceName: "Jornada Especial",
-                        allowedDates: [],
-                        zones: [],
-                        sourceTag: "jornada_especial",
-                        updatedAt: serverTimestamp()
-                    }, { merge: true });
-                    mostrarAviso("Modo normal activado");
+                    await setDoc(ref, { active: false, flowMode: "normal", redirectTo: "serviciosjornada.html", serviceName: "Jornada Especial", allowedDates: [], zones: [], sourceTag: "jornada_especial", updatedAt: serverTimestamp() }, { merge: true });
                 } else {
-                    const payload = {
-                        flowMode: "normal",
-                        updatedAt: serverTimestamp()
-                    };
-                    await setDoc(ref, payload, { merge: true });
-                    mostrarAviso("Modo normal activado");
+                    await setDoc(ref, { flowMode: "normal", updatedAt: serverTimestamp() }, { merge: true });
                 }
+                mostrarAviso("Modo normal activado");
             } catch (err) {
-                console.error("Error al cambiar modo de flujo:", err);
+                console.error("activarModoNormal:", err);
                 mostrarAviso("No se pudo cambiar el modo de flujo");
             } finally {
                 await recargarJornadaStatus();
@@ -4323,6 +4355,8 @@
                 mostrarAviso("Modo jornada activado: " + (typeNames[type] || type));
                 const selH = document.getElementById("jornadaTypeSelectorHeader");
                 if (selH) selH.style.display = "none";
+                const btnVolver = document.getElementById("btnVolverNormalHeader");
+                if (btnVolver) btnVolver.style.display = "none";
                 await recargarJornadaStatus();
             } catch(e) {
                 console.error("selectJornadaType:", e);
