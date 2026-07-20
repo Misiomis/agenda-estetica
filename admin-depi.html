@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — Depilación & HIFU · Espacio Mimar T</title>
+    <link rel="icon" href="/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --fondo: #090b18;
+            --acento: #7c3aed;
+            --acento-hover: #6d28d9;
+            --acento-suave: rgba(124,58,237,0.15);
+            --acento-borde: rgba(124,58,237,0.30);
+            --texto: rgba(220,218,255,0.92);
+            --texto-suave: rgba(190,186,240,0.60);
+            --tarjeta: rgba(255,255,255,0.035);
+            --tarjeta-hover: rgba(255,255,255,0.055);
+            --borde: rgba(255,255,255,0.08);
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--fondo);
+            color: var(--texto);
+            min-height: 100vh;
+        }
+
+        /* ── LOGIN ── */
+        #loginOverlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: rgba(9,11,24,0.97);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .login-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--borde);
+            border-radius: 20px;
+            padding: 36px 32px;
+            width: min(360px, 92vw);
+            display: flex; flex-direction: column; gap: 16px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+        }
+        .login-title { font-family: 'Playfair Display', serif; font-size: 1.6em; text-align:center; color: var(--texto); }
+        .login-sub { font-size: 12px; color: var(--texto-suave); text-align: center; margin-top: -8px; }
+        .login-input {
+            width: 100%; padding: 12px 14px; border-radius: 10px;
+            border: 1.5px solid var(--borde); background: rgba(255,255,255,0.06);
+            color: var(--texto); font-size: 14px; font-family: inherit; outline: none;
+            transition: border-color 0.18s;
+        }
+        .login-input:focus { border-color: var(--acento); box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+        .login-btn {
+            width: 100%; padding: 13px; border-radius: 11px; border: none;
+            background: var(--acento); color: #fff; font-weight: 700; font-size: 15px;
+            cursor: pointer; font-family: inherit; transition: background 0.18s, transform 0.12s;
+        }
+        .login-btn:hover { background: var(--acento-hover); }
+        .login-btn:active { transform: scale(0.98); }
+        #loginError { color: #f87171; font-size: 12px; font-weight: 600; text-align: center; min-height: 18px; }
+
+        /* ── LAYOUT ── */
+        #appWrapper { display: none; }
+        #appWrapper.visible { display: flex; }
+
+        .sidebar {
+            width: 220px; min-height: 100vh;
+            background: rgba(255,255,255,0.025);
+            border-right: 1px solid var(--borde);
+            display: flex; flex-direction: column;
+            padding: 24px 14px 20px;
+            position: sticky; top: 0; height: 100vh; overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .sidebar-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1em; color: var(--texto); margin-bottom: 4px;
+            line-height: 1.3;
+        }
+        .sidebar-sub {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .08em; color: rgba(167,139,250,0.70);
+            margin-bottom: 28px;
+        }
+        .nav-btn {
+            display: block; width: 100%; text-align: left;
+            padding: 10px 13px; border-radius: 10px; border: none;
+            background: transparent; color: var(--texto-suave);
+            font-family: inherit; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.16s; margin-bottom: 4px;
+        }
+        .nav-btn:hover { background: var(--acento-suave); color: var(--texto); }
+        .nav-btn.active { background: var(--acento-suave); color: rgba(216,200,255,0.95); border-left: 3px solid var(--acento); padding-left: 10px; }
+        .nav-divider { height: 1px; background: var(--borde); margin: 12px 0; }
+        .nav-exit {
+            display: block; width: 100%; text-align: left;
+            padding: 9px 13px; border-radius: 10px; border: none;
+            background: transparent; color: rgba(248,113,113,0.70);
+            font-family: inherit; font-size: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.16s; margin-top: auto;
+        }
+        .nav-exit:hover { background: rgba(248,113,113,0.10); color: #f87171; }
+
+        .main-content { flex: 1; padding: 28px 24px; max-width: 860px; }
+
+        /* ── SECTIONS ── */
+        .section { display: none; }
+        .section.active { display: block; }
+        .sec-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5em; margin-bottom: 20px; color: var(--texto);
+        }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 16px;
+            padding: 22px;
+            margin-bottom: 18px;
+        }
+        .card h4 {
+            font-size: 13px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .07em; color: var(--texto-suave); margin-bottom: 14px;
+        }
+
+        /* ── CALENDARIO ── */
+        .cal-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .cal-nav button {
+            background: var(--tarjeta); border: 1px solid var(--borde);
+            color: var(--texto); border-radius: 8px; padding: 7px 13px;
+            cursor: pointer; font-family: inherit; font-weight: 700; font-size: 14px;
+            transition: background 0.16s;
+        }
+        .cal-nav button:hover { background: var(--tarjeta-hover); }
+        .cal-nav span { font-weight: 700; font-size: 14px; color: var(--texto); }
+        .cal-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+        }
+        .cal-dow {
+            text-align: center; font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .07em;
+            color: var(--texto-suave); padding: 4px 0 8px;
+        }
+        .cal-day {
+            aspect-ratio: 1; border-radius: 8px; border: 1px solid transparent;
+            background: transparent; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; cursor: pointer;
+            font-family: inherit; font-size: 13px; font-weight: 600;
+            color: var(--texto-suave); transition: all 0.14s; position: relative;
+        }
+        .cal-day:hover { background: var(--acento-suave); color: var(--texto); border-color: var(--acento-borde); }
+        .cal-day.hoy { border-color: var(--acento-borde); color: rgba(167,139,250,0.95); }
+        .cal-day.tiene-reservas::after {
+            content: ''; position: absolute; bottom: 4px;
+            width: 5px; height: 5px; border-radius: 50%;
+            background: rgba(167,139,250,0.80);
+        }
+        .cal-day.seleccionado { background: var(--acento-suave); border-color: var(--acento); color: rgba(216,200,255,0.95); }
+        .cal-day.vacio { cursor: default; pointer-events: none; }
+        .cal-day.pasado { opacity: 0.4; }
+
+        /* ── DÍA DETALLE ── */
+        .reserva-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 14px; border-radius: 12px;
+            background: rgba(255,255,255,0.035);
+            border: 1px solid var(--borde);
+            margin-bottom: 8px; transition: all 0.14s;
+        }
+        .reserva-hora {
+            font-size: 15px; font-weight: 800; color: rgba(167,139,250,0.90);
+            min-width: 46px;
+        }
+        .reserva-info { flex: 1; }
+        .reserva-nombre { font-size: 14px; font-weight: 700; color: var(--texto); }
+        .reserva-servicio { font-size: 12px; color: var(--texto-suave); margin-top: 2px; }
+        .reserva-estado {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .06em; padding: 3px 8px; border-radius: 20px;
+        }
+        .estado-pendiente { background: rgba(251,191,36,0.14); color: #fbbf24; }
+        .estado-confirmada { background: rgba(74,222,128,0.12); color: #4ade80; }
+        .estado-cancelada { background: rgba(248,113,113,0.12); color: #f87171; text-decoration: line-through; opacity: 0.65; }
+        .estado-realizada { background: rgba(139,92,246,0.15); color: #a78bfa; }
+
+        .btn-icono {
+            background: transparent; border: 1px solid var(--borde);
+            color: var(--texto-suave); border-radius: 7px; padding: 5px 9px;
+            cursor: pointer; font-size: 13px; transition: all 0.15s;
+        }
+        .btn-icono:hover { background: var(--acento-suave); color: var(--texto); border-color: var(--acento-borde); }
+
+        /* ── FORM ── */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        @media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
+        .form-field { display: flex; flex-direction: column; gap: 6px; }
+        .form-field.full { grid-column: 1 / -1; }
+        .form-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--texto-suave); }
+        .form-input, .form-select, .form-textarea {
+            padding: 11px 13px; border-radius: 10px;
+            border: 1.5px solid var(--borde);
+            background: rgba(255,255,255,0.06);
+            color: var(--texto); font-size: 14px; font-family: inherit;
+            outline: none; transition: border-color 0.18s;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            border-color: var(--acento); box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+        }
+        .form-select option { background: #1a1535; }
+        .form-textarea { resize: vertical; min-height: 80px; }
+
+        .btn-primary {
+            padding: 12px 24px; border-radius: 11px; border: none;
+            background: var(--acento); color: #fff; font-weight: 700;
+            font-size: 14px; cursor: pointer; font-family: inherit;
+            transition: background 0.18s, transform 0.12s;
+        }
+        .btn-primary:hover { background: var(--acento-hover); }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        .btn-outline {
+            padding: 11px 20px; border-radius: 10px;
+            border: 1.5px solid var(--acento-borde);
+            background: var(--acento-suave); color: rgba(167,139,250,0.90);
+            font-weight: 700; font-size: 13px; cursor: pointer;
+            font-family: inherit; transition: all 0.16s;
+        }
+        .btn-outline:hover { background: rgba(124,58,237,0.25); }
+
+        /* ── FEEDBACK ── */
+        .feedback {
+            display: none; padding: 10px 14px; border-radius: 10px;
+            font-size: 13px; font-weight: 600; margin-top: 12px;
+        }
+        .feedback.ok { background: rgba(74,222,128,0.10); color: #4ade80; display: block; }
+        .feedback.err { background: rgba(248,113,113,0.10); color: #f87171; display: block; }
+
+        /* ── SEARCH ── */
+        .search-input-wrap {
+            display: flex; gap: 10px; margin-bottom: 18px;
+        }
+        .search-result-item {
+            padding: 13px 16px; border-radius: 12px;
+            background: var(--tarjeta); border: 1px solid var(--borde);
+            margin-bottom: 8px;
+        }
+        .search-result-item strong { color: rgba(167,139,250,0.90); }
+
+        /* ── WHATSAPP ── */
+        .wa-btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(37,211,102,0.30);
+            background: rgba(37,211,102,0.10); color: #25d366;
+            font-size: 11px; font-weight: 700; text-decoration: none;
+            cursor: pointer; transition: all 0.14s;
+        }
+        .wa-btn:hover { background: rgba(37,211,102,0.18); }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 640px) {
+            .sidebar { width: 100%; min-height: unset; height: auto; position: static; flex-direction: row; flex-wrap: wrap; padding: 14px; gap: 6px; border-right: none; border-bottom: 1px solid var(--borde); }
+            .sidebar-brand, .sidebar-sub { display: none; }
+            .nav-btn { width: auto; font-size: 12px; padding: 8px 11px; }
+            .nav-exit { width: auto; margin-top: 0; }
+            .nav-divider { display: none; }
+            #appWrapper { flex-direction: column; }
+            .main-content { padding: 16px 14px; }
+        }
+
+        /* ── AVISO FLOTANTE ── */
+        #avisoDepi {
+            position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(80px);
+            background: #1e1b3a; border: 1px solid rgba(124,58,237,0.40);
+            color: var(--texto); border-radius: 14px; padding: 12px 22px;
+            font-size: 14px; font-weight: 600; z-index: 9000;
+            transition: transform 0.32s cubic-bezier(.22,.82,.44,1), opacity 0.28s;
+            opacity: 0; pointer-events: none; white-space: nowrap;
+        }
+        #avisoDepi.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+    </style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="loginOverlay">
+    <div class="login-card">
+        <div class="login-title">Espacio Mimar T</div>
+        <div class="login-sub">Panel · Depilación &amp; HIFU</div>
+        <input class="login-input" type="email" id="loginEmail" placeholder="Tu email" autocomplete="email">
+        <input class="login-input" type="password" id="loginPassword" placeholder="Contraseña"
+            onkeydown="if(event.key==='Enter')iniciarSesion()">
+        <button class="login-btn" onclick="iniciarSesion()">Ingresar</button>
+        <div id="loginError"></div>
+    </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="appWrapper">
+    <!-- sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">Espacio Mimar T</div>
+        <div class="sidebar-sub">Depilación &amp; HIFU</div>
+        <button class="nav-btn active" id="navAgenda" onclick="irA('agenda')">📅 Agenda</button>
+        <button class="nav-btn" id="navRegistrar" onclick="irA('registrar')">➕ Nuevo turno</button>
+        <button class="nav-btn" id="navBuscar" onclick="irA('buscar')">🔍 Buscar</button>
+        <div class="nav-divider"></div>
+        <button class="nav-exit" onclick="cerrarSesionDepi()">Cerrar sesión</button>
+    </nav>
+
+    <!-- main -->
+    <main class="main-content">
+
+        <!-- ══ AGENDA ══ -->
+        <div id="secAgenda" class="section active">
+            <h2 class="sec-title">Agenda</h2>
+            <div class="card">
+                <div class="cal-nav">
+                    <button onclick="cambiarMes(-1)">‹</button>
+                    <span id="calTitulo">—</span>
+                    <button onclick="cambiarMes(1)">›</button>
+                </div>
+                <div class="cal-grid" id="calGrid"></div>
+            </div>
+            <div id="diaDetalle" style="display:none;">
+                <div class="card">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+                        <h4 style="margin-bottom:0;" id="diaDetalleTitle">Turnos del día</h4>
+                        <button class="btn-outline" onclick="irARegistrarDia()">+ Agregar turno</button>
+                    </div>
+                    <div id="diaDetalleContenido">
+                        <div style="color:var(--texto-suave);font-size:13px;padding:12px 0 4px;">No hay turnos para este día.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ REGISTRAR TURNO ══ -->
+        <div id="secRegistrar" class="section">
+            <h2 class="sec-title">Nuevo Turno</h2>
+            <div class="card">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label class="form-label">Nombre completo *</label>
+                        <input class="form-input" type="text" id="rNombre" placeholder="Nombre de la paciente">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">DNI</label>
+                        <input class="form-input" type="text" id="rDni" placeholder="Sin puntos" inputmode="numeric">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Teléfono / WhatsApp</label>
+                        <input class="form-input" type="tel" id="rTelefono" placeholder="3764..." inputmode="tel">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Fecha *</label>
+                        <input class="form-input" type="date" id="rFecha">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Hora *</label>
+                        <input class="form-input" type="time" id="rHora" step="600">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Servicio *</label>
+                        <select class="form-select" id="rServicio">
+                            <option value="">Elegí un servicio</option>
+                            <optgroup label="HIFU">
+                                <option>HIFU — Rostro completo</option>
+                                <option>HIFU — Cuello y escote</option>
+                                <option>HIFU — Rostro + Cuello</option>
+                                <option>HIFU — Abdomen</option>
+                                <option>HIFU — Muslos</option>
+                                <option>HIFU — Brazos</option>
+                                <option>HIFU — Zona completa</option>
+                            </optgroup>
+                            <optgroup label="Depilación Definitiva">
+                                <option>Depilación — Labio superior</option>
+                                <option>Depilación — Mentón</option>
+                                <option>Depilación — Axilas</option>
+                                <option>Depilación — Ingle completa</option>
+                                <option>Depilación — Bikini brasileño</option>
+                                <option>Depilación — Piernas medias</option>
+                                <option>Depilación — Piernas completas</option>
+                                <option>Depilación — Zona completa inferior</option>
+                                <option>Depilación — Zona completa superior</option>
+                                <option>Depilación — Cuerpo completo</option>
+                            </optgroup>
+                            <optgroup label="Criolipólisis">
+                                <option>Criolipólisis — Abdomen</option>
+                                <option>Criolipólisis — Flancos</option>
+                                <option>Criolipólisis — Muslos internos</option>
+                                <option>Criolipólisis — Muslos externos</option>
+                                <option>Criolipólisis — Brazos</option>
+                                <option>Criolipólisis — Rodillas</option>
+                                <option>Criolipólisis — Zona completa</option>
+                            </optgroup>
+                            <option value="Consulta">Consulta</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Estado inicial</label>
+                        <select class="form-select" id="rEstado">
+                            <option value="pendiente">Pendiente</option>
+                            <option value="confirmada">Confirmada</option>
+                        </select>
+                    </div>
+                    <div class="form-field full">
+                        <label class="form-label">Notas (opcional)</label>
+                        <textarea class="form-textarea" id="rNotas" placeholder="Antecedentes, zona específica, aclaraciones..."></textarea>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;">
+                    <button class="btn-primary" id="btnGuardarTurno" onclick="guardarTurnoDepi()">Guardar turno</button>
+                    <button class="btn-outline" onclick="limpiarFormRegistro()">Limpiar</button>
+                </div>
+                <div class="feedback" id="rFeedback"></div>
+            </div>
+        </div>
+
+        <!-- ══ BUSCAR ══ -->
+        <div id="secBuscar" class="section">
+            <h2 class="sec-title">Buscar Turnos</h2>
+            <div class="card">
+                <div class="search-input-wrap">
+                    <input class="form-input" type="text" id="buscarInput"
+                        placeholder="Nombre o DNI..."
+                        style="flex:1;"
+                        onkeydown="if(event.key==='Enter')buscarTurnos()">
+                    <button class="btn-primary" onclick="buscarTurnos()">Buscar</button>
+                </div>
+                <div id="buscarResultados">
+                    <div style="color:var(--texto-suave);font-size:13px;">Ingresá un nombre o DNI para buscar.</div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<div id="avisoDepi"></div>
+
+<script type="module">
+    import {
+        auth, db,
+        signInWithEmailAndPassword, onAuthStateChanged, signOut,
+        collection, getDocs, doc, setDoc, addDoc, updateDoc, getDoc,
+        serverTimestamp, query, where
+    } from "/js/firebase-web.js";
+
+    // ── Emails autorizados para este panel
+    // Para agregar la nueva profesional: crear el usuario en Firebase Auth y agregar su email acá
+    const ADMIN_EMAILS_DEPI = [
+        "espaciomimart36@gmail.com",   // acceso temporal de Gime para configurar
+        "depi.mimart@gmail.com"        // ← cambiar por el email real de la profesional
+    ];
+
+    const COLECCION = "reservas_depi";
+
+    // ── Estado
+    let _calMes = new Date().getMonth();
+    let _calAnio = new Date().getFullYear();
+    let _diaSeleccionado = null;
+    let _reservasDia = {};   // { "YYYY-MM-DD": [docs] }
+    let _diaRegistroPrefill = null;
+
+    // ════════════════════════════════
+    // LOGIN
+    // ════════════════════════════════
+    window.iniciarSesion = async () => {
+        const email = document.getElementById('loginEmail').value.trim();
+        const pass  = document.getElementById('loginPassword').value;
+        const errEl = document.getElementById('loginError');
+        errEl.textContent = '';
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+        } catch(e) {
+            errEl.textContent = 'Email o contraseña incorrectos.';
+        }
+    };
+
+    window.cerrarSesionDepi = async () => {
+        await signOut(auth);
+        document.getElementById('appWrapper').classList.remove('visible');
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('loginError').textContent = '';
+        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginPassword').value = '';
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user && ADMIN_EMAILS_DEPI.includes(user.email)) {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('appWrapper').classList.add('visible');
+            await cargarCalendario();
+        } else if (user) {
+            // Usuario autenticado pero no autorizado para este panel
+            document.getElementById('loginError').textContent = 'Tu cuenta no tiene acceso a este panel.';
+            await signOut(auth);
+        }
+    });
+
+    // ════════════════════════════════
+    // NAVEGACIÓN
+    // ════════════════════════════════
+    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', buscar: 'secBuscar' };
+    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', buscar: 'navBuscar' };
+
+    window.irA = (sec) => {
+        Object.values(SECCIONES).forEach(id => document.getElementById(id).classList.remove('active'));
+        Object.values(NAV_BTNS).forEach(id => document.getElementById(id).classList.remove('active'));
+        document.getElementById(SECCIONES[sec]).classList.add('active');
+        document.getElementById(NAV_BTNS[sec]).classList.add('active');
+    };
+
+    window.irARegistrarDia = () => {
+        if (_diaSeleccionado) {
+            document.getElementById('rFecha').value = _diaSeleccionado;
+            _diaRegistroPrefill = _diaSeleccionado;
+        }
+        irA('registrar');
+    };
+
+    // ════════════════════════════════
+    // CALENDARIO
+    // ════════════════════════════════
+    const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const DIAS_DOW = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+    window.cambiarMes = async (delta) => {
+        _calMes += delta;
+        if (_calMes > 11) { _calMes = 0; _calAnio++; }
+        if (_calMes < 0)  { _calMes = 11; _calAnio--; }
+        await cargarCalendario();
+    };
+
+    const cargarCalendario = async () => {
+        document.getElementById('calTitulo').textContent = `${MESES[_calMes]} ${_calAnio}`;
+        const grid = document.getElementById('calGrid');
+
+        // Header DOW
+        const dowHeaders = DIAS_DOW.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+        // Cargar reservas del mes
+        const primerDia = new Date(_calAnio, _calMes, 1);
+        const ultimoDia = new Date(_calAnio, _calMes + 1, 0);
+        const fechaMin = fmtFecha(primerDia);
+        const fechaMax = fmtFecha(ultimoDia);
+
+        let diasConReservas = new Set();
+        try {
+            const snap = await getDocs(query(
+                collection(db, COLECCION),
+                where('fecha', '>=', fechaMin),
+                where('fecha', '<=', fechaMax)
+            ));
+            snap.forEach(d => {
+                const f = d.data().fecha;
+                if (f) diasConReservas.add(f);
+            });
+        } catch(e) {
+            console.error("cargarCalendario:", e);
+        }
+
+        // Generar celdas
+        const offset = primerDia.getDay(); // 0=Dom
+        let celdas = '';
+        for (let i = 0; i < offset; i++) celdas += `<div class="cal-day vacio"></div>`;
+        const hoy = fmtFecha(new Date());
+        const totalDias = ultimoDia.getDate();
+        for (let d = 1; d <= totalDias; d++) {
+            const fecha = `${_calAnio}-${String(_calMes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const esHoy = fecha === hoy;
+            const tieneTurnos = diasConReservas.has(fecha);
+            const esSel = fecha === _diaSeleccionado;
+            const esPasado = fecha < hoy;
+            let cls = 'cal-day';
+            if (esHoy) cls += ' hoy';
+            if (tieneTurnos) cls += ' tiene-reservas';
+            if (esSel) cls += ' seleccionado';
+            if (esPasado && !esHoy) cls += ' pasado';
+            celdas += `<button class="${cls}" onclick="verDia('${fecha}')">${d}</button>`;
+        }
+        grid.innerHTML = dowHeaders + celdas;
+    };
+
+    window.verDia = async (fecha) => {
+        _diaSeleccionado = fecha;
+        document.getElementById('diaDetalle').style.display = 'block';
+        const [anio, mes, dia] = fecha.split('-');
+        document.getElementById('diaDetalleTitle').textContent = `Turnos · ${dia}/${mes}/${anio}`;
+        const cont = document.getElementById('diaDetalleContenido');
+        cont.innerHTML = '<div style="color:var(--texto-suave);font-size:13px;padding:8px 0;">Cargando...</div>';
+
+        // Update selected style
+        document.querySelectorAll('.cal-day.seleccionado').forEach(el => el.classList.remove('seleccionado'));
+        const hoy = fmtFecha(new Date());
+        document.querySelectorAll('.cal-day').forEach(el => {
+            const txt = el.textContent.trim();
+            const dayNum = parseInt(txt);
+            if (!dayNum) return;
+            const f = `${_calAnio}-${String(_calMes+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+            if (f === fecha) el.classList.add('seleccionado');
+        });
+
+        try {
+            const snap = await getDocs(query(
+                collection(db, COLECCION),
+                where('fecha', '==', fecha)
+            ));
+            const reservas = [];
+            snap.forEach(d => reservas.push({ _id: d.id, ...d.data() }));
+            reservas.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+            _reservasDia[fecha] = reservas;
+            renderDiaDetalle(reservas);
+        } catch(e) {
+            console.error("verDia:", e);
+            cont.innerHTML = '<div style="color:#f87171;font-size:13px;">Error al cargar turnos.</div>';
+        }
+    };
+
+    const renderDiaDetalle = (reservas) => {
+        const cont = document.getElementById('diaDetalleContenido');
+        if (!reservas.length) {
+            cont.innerHTML = '<div style="color:var(--texto-suave);font-size:13px;padding:8px 0;">No hay turnos registrados para este día.</div>';
+            return;
+        }
+        cont.innerHTML = reservas.map(r => {
+            const estadoCls = `estado-${r.estado || 'pendiente'}`;
+            const estadoLabel = { pendiente: 'Pendiente', confirmada: 'Confirmada', cancelada: 'Cancelada', realizada: 'Realizada' }[r.estado || 'pendiente'] || r.estado;
+            const waHref = r.telefono ? `https://wa.me/549${r.telefono.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${r.nombre?.split(' ')[0] || ''}, te recordamos tu turno en Espacio Mimar T el día ${_diaSeleccionado} a las ${r.hora}.`)}` : '';
+            return `<div class="reserva-item" id="ri-${r._id}">
+                <div class="reserva-hora">${r.hora || '--:--'}</div>
+                <div class="reserva-info">
+                    <div class="reserva-nombre">${escHtml(r.nombre || 'Sin nombre')}</div>
+                    <div class="reserva-servicio">${escHtml(r.servicio || '')}${r.dni ? ` · DNI: ${escHtml(r.dni)}` : ''}${r.notas ? ` · ${escHtml(r.notas)}` : ''}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+                    <span class="reserva-estado ${estadoCls}">${estadoLabel}</span>
+                    ${waHref ? `<a class="wa-btn" href="${waHref}" target="_blank">WA</a>` : ''}
+                    <select class="btn-icono" style="padding:5px 7px;font-size:11px;cursor:pointer;"
+                        onchange="cambiarEstado('${r._id}', this.value, '${_diaSeleccionado}')">
+                        <option value="">Estado</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="confirmada">Confirmada</option>
+                        <option value="realizada">Realizada</option>
+                        <option value="cancelada">Cancelada</option>
+                    </select>
+                    <button class="btn-icono" onclick="eliminarTurno('${r._id}','${_diaSeleccionado}')" style="color:rgba(248,113,113,0.65);border-color:rgba(248,113,113,0.20);">✕</button>
+                </div>
+            </div>`;
+        }).join('');
+    };
+
+    window.cambiarEstado = async (id, nuevoEstado, fecha) => {
+        if (!nuevoEstado) return;
+        try {
+            await updateDoc(doc(db, COLECCION, id), { estado: nuevoEstado, updatedAt: serverTimestamp() });
+            mostrarAvisoDepi(`Estado → ${nuevoEstado}`);
+            await verDia(fecha);
+        } catch(e) {
+            console.error(e);
+            mostrarAvisoDepi('Error al cambiar estado');
+        }
+    };
+
+    window.eliminarTurno = async (id, fecha) => {
+        if (!confirm('¿Eliminar este turno? No se puede deshacer.')) return;
+        try {
+            const ref = doc(db, COLECCION, id);
+            await updateDoc(ref, { estado: 'cancelada', eliminado: true, updatedAt: serverTimestamp() });
+            mostrarAvisoDepi('Turno eliminado');
+            await verDia(fecha);
+            await cargarCalendario();
+        } catch(e) {
+            console.error(e);
+            mostrarAvisoDepi('Error al eliminar');
+        }
+    };
+
+    // ════════════════════════════════
+    // REGISTRAR TURNO
+    // ════════════════════════════════
+    // Prefill con la fecha de hoy al abrir la sección
+    const hoyStr = () => {
+        const h = new Date();
+        return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`;
+    };
+
+    window.guardarTurnoDepi = async () => {
+        const fb = document.getElementById('rFeedback');
+        fb.className = 'feedback';
+        const nombre   = document.getElementById('rNombre').value.trim();
+        const dni      = document.getElementById('rDni').value.trim();
+        const tel      = document.getElementById('rTelefono').value.trim();
+        const fecha    = document.getElementById('rFecha').value;
+        const hora     = document.getElementById('rHora').value;
+        const servicio = document.getElementById('rServicio').value;
+        const estado   = document.getElementById('rEstado').value;
+        const notas    = document.getElementById('rNotas').value.trim();
+
+        if (!nombre || !fecha || !hora || !servicio) {
+            fb.className = 'feedback err';
+            fb.textContent = 'Completá al menos: nombre, fecha, hora y servicio.';
+            return;
+        }
+
+        const btn = document.getElementById('btnGuardarTurno');
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+        fb.className = 'feedback';
+        fb.textContent = '';
+
+        try {
+            await addDoc(collection(db, COLECCION), {
+                nombre, dni, telefono: tel, fecha, hora,
+                servicio, estado, notas,
+                origen: 'admin',
+                createdAt: serverTimestamp()
+            });
+            fb.className = 'feedback ok';
+            fb.textContent = '✓ Turno registrado correctamente';
+            limpiarFormRegistro();
+            await cargarCalendario();
+        } catch(e) {
+            console.error(e);
+            fb.className = 'feedback err';
+            fb.textContent = 'Error al guardar. Revisá la conexión.';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Guardar turno';
+        }
+    };
+
+    window.limpiarFormRegistro = () => {
+        document.getElementById('rNombre').value = '';
+        document.getElementById('rDni').value = '';
+        document.getElementById('rTelefono').value = '';
+        document.getElementById('rFecha').value = _diaRegistroPrefill || hoyStr();
+        document.getElementById('rHora').value = '';
+        document.getElementById('rServicio').value = '';
+        document.getElementById('rEstado').value = 'pendiente';
+        document.getElementById('rNotas').value = '';
+        const fb = document.getElementById('rFeedback');
+        fb.className = 'feedback';
+        fb.textContent = '';
+    };
+
+    // Inicializar fecha del form
+    document.getElementById('rFecha').value = hoyStr();
+
+    // ════════════════════════════════
+    // BUSCAR
+    // ════════════════════════════════
+    window.buscarTurnos = async () => {
+        const q = document.getElementById('buscarInput').value.trim().toLowerCase();
+        const cont = document.getElementById('buscarResultados');
+        if (!q) {
+            cont.innerHTML = '<div style="color:var(--texto-suave);font-size:13px;">Ingresá un nombre o DNI para buscar.</div>';
+            return;
+        }
+        cont.innerHTML = '<div style="color:var(--texto-suave);font-size:13px;padding:8px 0;">Buscando...</div>';
+        try {
+            const snap = await getDocs(collection(db, COLECCION));
+            const resultados = [];
+            snap.forEach(d => {
+                const data = d.data();
+                if (data.eliminado) return;
+                const nombre = (data.nombre || '').toLowerCase();
+                const dni    = (data.dni || '').toLowerCase();
+                if (nombre.includes(q) || dni.includes(q)) {
+                    resultados.push({ _id: d.id, ...data });
+                }
+            });
+            resultados.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+            if (!resultados.length) {
+                cont.innerHTML = '<div style="color:var(--texto-suave);font-size:13px;padding:8px 0;">Sin resultados para "' + escHtml(q) + '".</div>';
+                return;
+            }
+            cont.innerHTML = resultados.map(r => {
+                const estadoCls = `estado-${r.estado || 'pendiente'}`;
+                const estadoLabel = { pendiente: 'Pendiente', confirmada: 'Confirmada', cancelada: 'Cancelada', realizada: 'Realizada' }[r.estado] || r.estado || 'Pendiente';
+                const waHref = r.telefono ? `https://wa.me/549${r.telefono.replace(/\D/g,'')}` : '';
+                return `<div class="search-result-item">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;flex-wrap:wrap;">
+                        <strong style="font-size:14px;">${escHtml(r.nombre || '—')}</strong>
+                        <span class="reserva-estado ${estadoCls}">${estadoLabel}</span>
+                    </div>
+                    <div style="font-size:12px;color:var(--texto-suave);line-height:1.7;">
+                        📅 ${r.fecha || '—'} &nbsp;🕐 ${r.hora || '—'} &nbsp;
+                        🌿 ${escHtml(r.servicio || '—')}
+                        ${r.dni ? `<br>DNI: ${escHtml(r.dni)}` : ''}
+                        ${r.telefono ? `&nbsp;<a class="wa-btn" href="${waHref}" target="_blank">WhatsApp</a>` : ''}
+                        ${r.notas ? `<br>📝 ${escHtml(r.notas)}` : ''}
+                    </div>
+                    <div style="margin-top:8px;display:flex;gap:6px;">
+                        <select class="btn-icono" style="font-size:11px;padding:4px 7px;cursor:pointer;"
+                            onchange="cambiarEstado('${r._id}',this.value,'${r.fecha}')">
+                            <option value="">Cambiar estado</option>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="confirmada">Confirmada</option>
+                            <option value="realizada">Realizada</option>
+                            <option value="cancelada">Cancelada</option>
+                        </select>
+                        <button class="btn-icono" onclick="verDia('${r.fecha}');irA('agenda')" style="font-size:11px;padding:4px 9px;">Ver día →</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch(e) {
+            console.error(e);
+            cont.innerHTML = '<div style="color:#f87171;font-size:13px;">Error al buscar. Revisá la conexión.</div>';
+        }
+    };
+
+    // ════════════════════════════════
+    // UTILS
+    // ════════════════════════════════
+    const fmtFecha = (d) =>
+        `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+    const escHtml = (v) => (v ?? '').toString()
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;');
+
+    let _avisoTimer;
+    const mostrarAvisoDepi = (msg) => {
+        const el = document.getElementById('avisoDepi');
+        el.textContent = msg;
+        el.classList.add('visible');
+        clearTimeout(_avisoTimer);
+        _avisoTimer = setTimeout(() => el.classList.remove('visible'), 2800);
+    };
+    window.mostrarAvisoDepi = mostrarAvisoDepi;
+</script>
+</body>
+</html>

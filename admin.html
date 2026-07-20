@@ -709,8 +709,10 @@
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">Pacientes</button>
                 <button class="btn-nav" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">Pedidos de Kit</button>
                 <button class="btn-nav" id="btn-export" onclick="navegar('export')">Exportar</button>
+                <button class="btn-nav" id="btn-calculadora" onclick="navegar('calculadora')" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.28);color:rgba(200,186,255,0.88);">🧮 Calculadora</button>
                 <button class="btn-nav" id="btn-ultimos-movimientos" onclick="mostrarUltimosMovimientos()">Últimos movimientos</button>
                 <a class="btn-nav" href="/fechagimena.html" target="_blank" style="text-decoration:none;background:rgba(180,238,210,0.12);border-color:rgba(160,218,190,0.28);color:rgba(200,240,220,0.92);font-weight:700">Ver agenda (vista Gimena)</a>
+                <a class="btn-nav" href="/admin-depi.html" target="_blank" style="text-decoration:none;background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.28);color:rgba(196,198,255,0.88);font-weight:700;">💜 Admin Depilación</a>
                 <button class="btn-nav" onclick="cerrarSesion()">Salir</button>
                 <button class="btn-nav" id="btn-control" onclick="navegar('control')" style="margin-top:4px;background:rgba(210,168,178,0.10);border-color:rgba(195,150,163,0.28);color:rgba(228,195,208,0.85);font-size:12px;font-weight:700;letter-spacing:.04em;">⚙ Configuración avanzada</button>
             </div>
@@ -1036,6 +1038,57 @@
                 </div>
 
             </div><!-- /sec-control -->
+
+            <!-- ══ CALCULADORA DE SERVICIOS ══ -->
+            <div id="sec-calculadora" class="section">
+
+                <div class="detalle-dia-card">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.2em;">⏱ Duración de Servicios</h3>
+                    <p style="font-size:13px;margin:0 0 16px;color:rgba(165,205,188,0.70);">Definí cuántos minutos dura cada servicio. Esto afecta el cálculo de combinaciones y el planificador del día.</p>
+                    <div id="calc-tabla-servicios" style="min-height:60px;">
+                        <div style="color:rgba(165,205,188,0.5);font-size:13px;">Tocá "🧮 Calculadora" en el menú para cargar...</div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+                        <button class="btn-mini" onclick="guardarDuracionesCalc()" style="padding:9px 20px;">Guardar duraciones</button>
+                    </div>
+                    <div id="calc-duraciones-feedback" style="display:none;margin-top:10px;padding:9px 13px;border-radius:10px;font-size:13px;font-weight:600;"></div>
+                </div>
+
+                <div class="detalle-dia-card">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.2em;">🔗 Combinaciones Permitidas</h3>
+                    <p style="font-size:13px;margin:0 0 16px;color:rgba(165,205,188,0.70);">Marcá qué servicios pueden hacerse juntos en la misma jornada. Las combinaciones son simétricas automáticamente.</p>
+                    <div id="calc-matriz-combinaciones">
+                        <div style="color:rgba(165,205,188,0.5);font-size:13px;">Cargá los servicios primero.</div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+                        <button class="btn-mini" onclick="guardarCombinacionesCalc()" style="padding:9px 20px;">Guardar combinaciones</button>
+                    </div>
+                    <div id="calc-combinaciones-feedback" style="display:none;margin-top:10px;padding:9px 13px;border-radius:10px;font-size:13px;font-weight:600;"></div>
+                </div>
+
+                <div class="detalle-dia-card">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.2em;">📅 Planificador del Día</h3>
+                    <p style="font-size:13px;margin:0 0 16px;color:rgba(165,205,188,0.70);">Ingresá tus horarios de trabajo y calculá cuántas pacientes podés atender por servicio o combinación.</p>
+                    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:16px;">
+                        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(165,205,188,0.85);">
+                            <span style="font-weight:600;">Desde:</span>
+                            <input type="time" id="calc-inicio" value="08:00" style="background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.12);border-radius:8px;padding:7px 10px;color:rgba(220,240,232,0.9);font-size:13px;outline:none;">
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(165,205,188,0.85);">
+                            <span style="font-weight:600;">Hasta:</span>
+                            <input type="time" id="calc-fin" value="20:00" style="background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.12);border-radius:8px;padding:7px 10px;color:rgba(220,240,232,0.9);font-size:13px;outline:none;">
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(165,205,188,0.85);">
+                            <span style="font-weight:600;">Pausa entre turnos:</span>
+                            <input type="number" id="calc-pausa" value="15" min="0" step="5" style="width:64px;background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.12);border-radius:8px;padding:7px 10px;color:rgba(220,240,232,0.9);font-size:13px;outline:none;text-align:center;">
+                            <span style="font-size:12px;color:rgba(165,205,188,0.55);">min</span>
+                        </div>
+                        <button class="btn-mini" onclick="calcularCapacidadDia()" style="padding:9px 20px;">Calcular</button>
+                    </div>
+                    <div id="calc-resultado-dia"></div>
+                </div>
+
+            </div><!-- /sec-calculadora -->
 
         </div>
     </div>
@@ -4132,6 +4185,7 @@
             if (s === 'pedidos-kit') window.cargarPedidosKit();
             if (s === 'control') window.cargarSeccionControl();
             if (s === 'clientes') filtrarListadoClientes();
+            if (s === 'calculadora') window.cargarCalculadora();
         };
         
         // === SÁBADOS HORARIOS :30 ===
@@ -5022,6 +5076,224 @@
                 mostrarAviso("Error al quitar el día.");
             }
         };
+
+        // ══════════════════════════════════════════
+        // CALCULADORA DE SERVICIOS
+        // ══════════════════════════════════════════
+        let _calcServicios = [];
+
+        window.cargarCalculadora = async () => {
+            document.getElementById('calc-tabla-servicios').innerHTML = '<div style="color:rgba(165,205,188,0.5);font-size:13px;padding:8px 0;">Cargando servicios...</div>';
+            try {
+                const snap = await getDocs(collection(db, 'services'));
+                _calcServicios = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    if (data.activo !== false) {
+                        _calcServicios.push({
+                            _id: d.id,
+                            nombre: data.nombre || '',
+                            duracion: Number(data.duracion) || 60,
+                            combinaciones: Array.isArray(data.combinaciones) ? data.combinaciones : [],
+                            orden: data.orden || 99
+                        });
+                    }
+                });
+                _calcServicios.sort((a, b) => a.orden - b.orden);
+                _renderCalcTabla();
+                _renderCalcMatriz();
+            } catch (err) {
+                console.error("cargarCalculadora:", err);
+                document.getElementById('calc-tabla-servicios').innerHTML = '<div style="color:#f87171;font-size:13px;padding:8px 0;">Error al cargar servicios.</div>';
+            }
+        };
+
+        const _renderCalcTabla = () => {
+            const cont = document.getElementById('calc-tabla-servicios');
+            if (!_calcServicios.length) {
+                cont.innerHTML = '<div style="color:rgba(165,205,188,0.5);font-size:13px;padding:8px 0;">No hay servicios activos. Agregá servicios desde ⚙ Configuración avanzada.</div>';
+                return;
+            }
+            const rows = _calcServicios.map((s, i) => {
+                const h = Math.floor(s.duracion / 60);
+                const m = s.duracion % 60;
+                const label = h > 0 ? `${h}h${m ? ` ${m}min` : ''}` : `${m}min`;
+                return `<tr>
+                    <td style="padding:9px 10px;font-weight:600;color:rgba(200,235,218,0.9);font-size:13px;">${escapeHtml(s.nombre)}</td>
+                    <td style="padding:9px 10px;text-align:center;">
+                        <input type="number" min="5" step="5" value="${s.duracion}"
+                            style="width:78px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:rgba(220,240,232,0.9);padding:6px 8px;font-size:13px;text-align:center;outline:none;"
+                            oninput="_calcServicios[${i}].duracion=Math.max(5,Number(this.value)||5);document.getElementById('calc-lbl-${i}').textContent=_calcFmtMin(_calcServicios[${i}].duracion)">
+                    </td>
+                    <td id="calc-lbl-${i}" style="padding:9px 10px;text-align:center;color:rgba(165,205,188,0.65);font-size:12px;min-width:70px;">${label}</td>
+                </tr>`;
+            }).join('');
+            cont.innerHTML = `<table style="width:100%;border-collapse:collapse;">
+                <thead><tr>
+                    <th style="text-align:left;padding:6px 10px 10px;color:rgba(165,205,188,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(255,255,255,0.07);">Servicio</th>
+                    <th style="text-align:center;padding:6px 10px 10px;color:rgba(165,205,188,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(255,255,255,0.07);">Minutos</th>
+                    <th style="text-align:center;padding:6px 10px 10px;color:rgba(165,205,188,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(255,255,255,0.07);">= Tiempo</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+        };
+
+        const _calcFmtMin = (min) => {
+            const h = Math.floor(min / 60), m = min % 60;
+            return h > 0 ? `${h}h${m ? ` ${m}min` : ''}` : `${m}min`;
+        };
+
+        const _renderCalcMatriz = () => {
+            const cont = document.getElementById('calc-matriz-combinaciones');
+            if (_calcServicios.length < 2) {
+                cont.innerHTML = '<div style="color:rgba(165,205,188,0.5);font-size:13px;padding:8px 0;">Necesitás al menos 2 servicios para definir combinaciones.</div>';
+                return;
+            }
+            const headers = _calcServicios.map(s =>
+                `<th style="padding:6px 8px;color:rgba(165,205,188,0.55);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;writing-mode:vertical-rl;transform:rotate(180deg);min-width:38px;white-space:nowrap;max-width:54px;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(s.nombre)}">${escapeHtml(s.nombre.length > 14 ? s.nombre.slice(0,13)+'…' : s.nombre)}</th>`
+            ).join('');
+            const rows = _calcServicios.map((a, i) =>
+                `<tr>
+                    <td style="padding:8px 10px;font-weight:600;color:rgba(200,235,218,0.9);font-size:12px;white-space:nowrap;">${escapeHtml(a.nombre)}</td>
+                    ${_calcServicios.map((b, j) => {
+                        if (i === j) return `<td style="background:rgba(255,255,255,0.02);padding:8px;"></td>`;
+                        const checked = a.combinaciones.includes(b.nombre);
+                        return `<td style="text-align:center;padding:8px;">
+                            <input type="checkbox" ${checked ? 'checked' : ''}
+                                style="width:16px;height:16px;accent-color:#4ea37f;cursor:pointer;"
+                                onchange="window._calcToggleComb(${i},${j},this.checked)">
+                        </td>`;
+                    }).join('')}
+                </tr>`
+            ).join('');
+            cont.innerHTML = `<div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead><tr>
+                        <th style="min-width:120px;padding:6px 10px 40px;"></th>
+                        ${headers}
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            <p style="font-size:11px;color:rgba(165,205,188,0.45);margin:10px 0 0;line-height:1.6;">
+                Tildá las casillas donde dos servicios puedan hacerse juntos en la misma jornada. Las combinaciones se guardan simétricamente (si A combina con B, B también combina con A).
+            </p>`;
+        };
+
+        window._calcToggleComb = (i, j, checked) => {
+            const a = _calcServicios[i], b = _calcServicios[j];
+            if (checked) {
+                if (!a.combinaciones.includes(b.nombre)) a.combinaciones.push(b.nombre);
+                if (!b.combinaciones.includes(a.nombre)) b.combinaciones.push(a.nombre);
+            } else {
+                a.combinaciones = a.combinaciones.filter(n => n !== b.nombre);
+                b.combinaciones = b.combinaciones.filter(n => n !== a.nombre);
+            }
+            _renderCalcMatriz();
+        };
+
+        window.guardarDuracionesCalc = async () => {
+            const fb = document.getElementById('calc-duraciones-feedback');
+            fb.style.display = 'block';
+            fb.style.background = 'rgba(255,255,255,0.05)';
+            fb.style.color = 'rgba(165,205,188,0.8)';
+            fb.textContent = 'Guardando...';
+            try {
+                await Promise.all(_calcServicios.map(s =>
+                    setDoc(doc(db, 'services', s._id), { duracion: s.duracion }, { merge: true })
+                ));
+                fb.style.background = 'rgba(74,222,128,0.10)';
+                fb.style.color = '#4ade80';
+                fb.textContent = '✓ Duraciones guardadas correctamente';
+                _renderCalcTabla();
+            } catch (err) {
+                console.error("guardarDuracionesCalc:", err);
+                fb.style.background = 'rgba(248,113,113,0.10)';
+                fb.style.color = '#f87171';
+                fb.textContent = 'Error al guardar. Intentá de nuevo.';
+            }
+            setTimeout(() => { fb.style.display = 'none'; }, 3500);
+        };
+
+        window.guardarCombinacionesCalc = async () => {
+            const fb = document.getElementById('calc-combinaciones-feedback');
+            fb.style.display = 'block';
+            fb.style.background = 'rgba(255,255,255,0.05)';
+            fb.style.color = 'rgba(165,205,188,0.8)';
+            fb.textContent = 'Guardando...';
+            try {
+                await Promise.all(_calcServicios.map(s =>
+                    setDoc(doc(db, 'services', s._id), { combinaciones: s.combinaciones }, { merge: true })
+                ));
+                fb.style.background = 'rgba(74,222,128,0.10)';
+                fb.style.color = '#4ade80';
+                fb.textContent = '✓ Combinaciones guardadas';
+            } catch (err) {
+                console.error("guardarCombinacionesCalc:", err);
+                fb.style.background = 'rgba(248,113,113,0.10)';
+                fb.style.color = '#f87171';
+                fb.textContent = 'Error al guardar. Intentá de nuevo.';
+            }
+            setTimeout(() => { fb.style.display = 'none'; }, 3500);
+        };
+
+        window.calcularCapacidadDia = () => {
+            const inicio = document.getElementById('calc-inicio').value;
+            const fin = document.getElementById('calc-fin').value;
+            const pausa = Math.max(0, Number(document.getElementById('calc-pausa').value) || 0);
+            const cont = document.getElementById('calc-resultado-dia');
+            if (!inicio || !fin) { cont.innerHTML = ''; return; }
+            const [ih, im] = inicio.split(':').map(Number);
+            const [fh, fm] = fin.split(':').map(Number);
+            const totalMin = (fh * 60 + fm) - (ih * 60 + im);
+            if (totalMin <= 0) {
+                cont.innerHTML = '<div style="color:#f87171;font-size:13px;padding:10px 0;">El horario de fin debe ser posterior al de inicio.</div>';
+                return;
+            }
+            if (!_calcServicios.length) {
+                cont.innerHTML = '<div style="color:rgba(165,205,188,0.5);font-size:13px;padding:10px 0;">Cargá los servicios primero.</div>';
+                return;
+            }
+            const rowStyle = 'display:flex;justify-content:space-between;align-items:center;padding:10px 13px;border-radius:10px;margin-bottom:6px;';
+            const singlesHtml = _calcServicios.map(s => {
+                const n = Math.floor(totalMin / (s.duracion + pausa));
+                return `<div style="${rowStyle}background:rgba(78,163,127,0.10);">
+                    <span style="font-size:13px;font-weight:600;color:rgba(200,235,218,0.9);">${escapeHtml(s.nombre)}</span>
+                    <span style="font-size:12px;color:rgba(165,205,188,0.7);">${s.duracion}min → <strong style="color:#4ade80;font-size:14px;">${n}</strong> <span style="color:rgba(165,205,188,0.6);">pacientes/día</span></span>
+                </div>`;
+            }).join('');
+            const combosVistas = new Set();
+            const combosRows = [];
+            _calcServicios.forEach(a => {
+                (a.combinaciones || []).forEach(bNombre => {
+                    const b = _calcServicios.find(x => x.nombre === bNombre);
+                    if (!b) return;
+                    const key = [a.nombre, b.nombre].sort().join('|');
+                    if (combosVistas.has(key)) return;
+                    combosVistas.add(key);
+                    const dur = a.duracion + b.duracion;
+                    const n = Math.floor(totalMin / (dur + pausa));
+                    combosRows.push(`<div style="${rowStyle}background:rgba(139,92,246,0.10);">
+                        <span style="font-size:13px;font-weight:600;color:rgba(216,200,255,0.9);">${escapeHtml(a.nombre)} <span style="color:rgba(190,175,230,0.5);">+</span> ${escapeHtml(b.nombre)}</span>
+                        <span style="font-size:12px;color:rgba(190,175,230,0.7);">${dur}min → <strong style="color:#a78bfa;font-size:14px;">${n}</strong> <span style="color:rgba(190,175,230,0.6);">pacientes/día</span></span>
+                    </div>`);
+                });
+            });
+            const jh = Math.floor(totalMin / 60), jm = totalMin % 60;
+            cont.innerHTML = `
+                <div style="font-size:11px;color:rgba(165,205,188,0.45);margin-bottom:14px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:0 2px;">
+                    Jornada de ${jh}h${jm ? ` ${jm}min` : ''} · Pausa entre turnos: ${pausa}min
+                </div>
+                <div style="margin-bottom:14px;">
+                    <div style="font-size:11px;font-weight:700;color:rgba(165,205,188,0.45);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;padding:0 2px;">Servicios solos</div>
+                    ${singlesHtml}
+                </div>
+                ${combosRows.length ? `<div>
+                    <div style="font-size:11px;font-weight:700;color:rgba(190,175,230,0.45);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;padding:0 2px;">Combinaciones</div>
+                    ${combosRows.join('')}
+                </div>` : '<div style="color:rgba(165,205,188,0.35);font-size:12px;padding:4px 2px;">No hay combinaciones definidas aún.</div>'}`;
+        };
+        // ══ FIN CALCULADORA ══
 
     </script>
     <!-- Modal: Registrar turno manualmente -->
