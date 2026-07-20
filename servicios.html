@@ -469,9 +469,51 @@
             return s.charAt(0).toUpperCase() + s.slice(1);
         };
 
+        // Descripciones de referencia: se usan para agregar servicios faltantes
+        // Y también para actualizar la descripción/duración de los que ya están en Firestore
         const SERVICIOS_EXTRAS = [
-            { nombre: "Facial LED Regenerativo", duracion: 30, descripcion: "Tratamiento no invasivo con cabina LED profesional que estimula colágeno y elastina. Ideal para piel sensible.", icono: "✨", img: "img/facial.jpg", orden: 7 },
-            { nombre: "💎 Reafirmación Integral de Brazos", duracion: 60, descripcion: "Tratamiento orientado a mejorar la flacidez del brazo mediante un abordaje integral dermocosmiátrico.", icono: "💎", img: "img/mioup.jpg", orden: 8 }
+            {
+                nombre: "Evaluación Inicial",
+                duracion: "30 min",
+                descripcion: "Primera consulta personalizada para analizar el estado de tu piel y cuerpo, definir objetivos y armar el plan de tratamiento ideal para vos.",
+                icono: "📋", orden: 1
+            },
+            {
+                nombre: "Radiofrecuencia Fraccionada",
+                duracion: "30 a 60 min según la zona",
+                descripcion: "Estimula la producción natural de colágeno para mejorar la textura de la piel, reducir la flacidez, suavizar cicatrices de acné, poros dilatados y líneas de expresión.",
+                icono: "⚡", orden: 2
+            },
+            {
+                nombre: "Mio Up",
+                duracion: "30 min por zona",
+                descripcion: "Estimulación muscular de alta intensidad que fortalece, tonifica y ayuda a definir la musculatura. Complementa los tratamientos corporales para potenciar los resultados.",
+                icono: "💪", orden: 3
+            },
+            {
+                nombre: "Sesión Detox",
+                duracion: "120 min",
+                descripcion: "Combina manta térmica, presoterapia y plataforma vibratoria para favorecer el drenaje linfático, aliviar la sensación de pesadez y brindar un momento de bienestar y relajación profunda.",
+                icono: "🌿", orden: 4
+            },
+            {
+                nombre: "Facial de Mantenimiento",
+                duracion: "60 min",
+                descripcion: "Tratamiento personalizado para mantener la piel sana, hidratada y luminosa. Se adapta a las necesidades de cada paciente y ayuda a prolongar los resultados de otros procedimientos.",
+                icono: "💎", orden: 5
+            },
+            {
+                nombre: "Facial LED Regenerativo",
+                duracion: "30 min",
+                descripcion: "Tratamiento no invasivo con cabina LED profesional que estimula colágeno y elastina. Ideal para piel sensible. Resultados visibles desde la primera sesión.",
+                icono: "✨", orden: 6
+            },
+            {
+                nombre: "Reafirmación Integral de Brazos",
+                duracion: "60 min",
+                descripcion: "Protocolo enfocado en mejorar la firmeza, textura y contorno del brazo mediante un abordaje dermocosmiátrico integral. Resultados visibles en pocas sesiones.",
+                icono: "💪", orden: 7
+            }
         ];
 
         const dniSesion = localStorage.getItem("clienteDNI");
@@ -498,7 +540,14 @@
                 });
 
                 SERVICIOS_EXTRAS.forEach(extra => {
-                    if (!servicios.some(s => s.nombre === extra.nombre)) servicios.push(extra);
+                    const existente = servicios.find(s => s.nombre === extra.nombre);
+                    if (existente) {
+                        existente.descripcion = extra.descripcion;
+                        existente.duracion = extra.duracion;
+                        if (extra.icono) existente.icono = extra.icono;
+                    } else {
+                        servicios.push(extra);
+                    }
                 });
 
                 servicios.push({
@@ -525,12 +574,13 @@
                     } else {
                         const imgHtml = s.img ? `<div class="servicio-media"><img src="${s.img}" alt="${s.nombre}"></div>` : "";
                         const icono = s.icono || "🌿";
+                        const durLabel = typeof s.duracion === "number" ? `${s.duracion} min` : (s.duracion || "");
                         div.innerHTML = `
                             <div>
                                 ${imgHtml}
                                 <div class="servicio-head">
                                     <div class="servicio-icono">${icono}</div>
-                                    <div><h3>${s.nombre}</h3><div class="duracion">${s.duracion} min</div></div>
+                                    <div><h3>${s.nombre}</h3><div class="duracion">${durLabel}</div></div>
                                 </div>
                                 <p style="font-family:'Jost',sans-serif; font-size:0.85rem; line-height:1.65; color:var(--text-secondary);">${s.descripcion}</p>
                             </div>
