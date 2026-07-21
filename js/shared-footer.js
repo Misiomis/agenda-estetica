@@ -2,12 +2,12 @@
     const FOOTER_TEXT = "Todos los derechos reservados";
     const BRAND_TEXT = "Espacio Mimar T";
     const STYLE_ID = "shared-site-footer-style";
-    const ADMIN_PAGES = new Set(["admin.html", "login-admin.html", "upload.html", "panel.html", "cargarclientes.html"]);
+    const ADMIN_PAGES = new Set(["admin.html", "login-admin.html", "upload.html", "panel.html", "cargarclientes.html", "inicio.html"]);
     const SHARED_FLOW_PAGES = new Set(["politica.html"]);
-    const MAINTENANCE_MODE_ENABLED = false;
-    const MAINTENANCE_PAGE = "maintenance.html";
+    const MAINTENANCE_MODE_ENABLED = true;
+    const MAINTENANCE_PAGE = "index.html";
     const FLOW_CONFIG_DOC = "jornadaEspecial";
-    const FLOW_NORMAL_LANDING = "index.html";
+    const FLOW_NORMAL_LANDING = "inicio.html";
     const JORNADA_LANDINGS = new Set(["jornadacrio.html", "jornadaradio.html", "jornadadetox.html"]);
     const JORNADA_TYPE_PAGES = { crio: "jornadacrio.html", radio: "jornadaradio.html", detox: "jornadadetox.html" };
     const FLOW_APP_NAME = "shared-footer-router";
