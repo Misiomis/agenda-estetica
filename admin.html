@@ -4807,6 +4807,27 @@
             } finally { mostrarLoader(false); }
         };
 
+        const _confirmarModal = (titulo, texto, labelOk = 'Confirmar') => new Promise(resolve => {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `
+                <div class="modal-card delicado" style="max-width:400px;text-align:center;padding:28px 24px;">
+                    <div style="font-size:28px;margin-bottom:12px;">🔒</div>
+                    <h3 style="margin:0 0 10px;font-size:17px;">${titulo}</h3>
+                    <p style="margin:0 0 22px;font-size:13px;line-height:1.6;">${texto}</p>
+                    <div style="display:flex;gap:10px;justify-content:center;">
+                        <button id="_cm-cancel" style="flex:1;max-width:140px;padding:10px 0;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.06);color:rgba(165,205,188,0.80);font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+                        <button id="_cm-ok" style="flex:1;max-width:160px;padding:10px 0;border-radius:12px;border:none;background:linear-gradient(135deg,rgba(200,80,80,0.75),rgba(165,50,50,0.85));color:#fff;font-size:13px;font-weight:700;cursor:pointer;">${labelOk}</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            const clean = (val) => { overlay.remove(); resolve(val); };
+            overlay.querySelector('#_cm-ok').onclick    = () => clean(true);
+            overlay.querySelector('#_cm-cancel').onclick = () => clean(false);
+            overlay.addEventListener('click', e => { if (e.target === overlay) clean(false); });
+        });
+
         const _bloquearTodosLosHorariosDia = async (fecha) => {
             const horas = [...obtenerHorariosDia(fecha)];
             await Promise.all(horas.map(async hora => {
@@ -4819,7 +4840,7 @@
         };
 
         window.bloquearDiaCompletoYRefrescar = async function(fecha) {
-            if (!confirm(`¿Bloquear todos los horarios del ${formatoFechaISO(fecha)}?`)) return;
+            if (!await _confirmarModal('Bloquear día', `¿Bloquear todos los horarios del<br><strong>${formatoFechaISO(fecha)}</strong>?`, 'Sí, bloquear')) return;
             try {
                 mostrarLoader(true);
                 await _bloquearTodosLosHorariosDia(fecha);
@@ -4837,7 +4858,7 @@
             const hastaD = new Date(d);
             hastaD.setDate(hastaD.getDate() + 6);
             const hastaStr = hastaD.toISOString().slice(0, 10);
-            if (!confirm(`¿Bloquear todos los horarios de la semana del ${formatoFechaISO(fecha)} al ${formatoFechaISO(hastaStr)}?`)) return;
+            if (!await _confirmarModal('Bloquear semana', `¿Bloquear todos los horarios del<br><strong>${formatoFechaISO(fecha)}</strong> al <strong>${formatoFechaISO(hastaStr)}</strong>?`, 'Sí, bloquear semana')) return;
             try {
                 mostrarLoader(true);
                 const cur = new Date(fecha + 'T00:00:00');
