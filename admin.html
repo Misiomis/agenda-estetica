@@ -839,8 +839,30 @@
             </div>
             <div id="sec-pedidos-kit" class="section">
                 <div class="detalle-dia-card">
-                    <h3 style="margin-top:0">Pedidos de Kit Facial</h3>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                        <h3 style="margin:0">Pedidos de Kit Facial</h3>
+                        <button onclick="abrirFormularioKitAdmin()" style="background:linear-gradient(135deg,rgba(53,122,92,0.80),rgba(40,100,75,0.90));color:#fff;border:none;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;">+ Solicitar nuevo kit</button>
+                    </div>
                     <p style="font-size:13px; margin:0 0 14px 0;">Pacientes que solicitaron su kit facial domiciliario.</p>
+                    <div id="formNuevoKitAdmin" style="display:none;background:rgba(53,122,92,0.10);border:1px solid rgba(114,189,153,0.25);border-radius:14px;padding:16px;margin-bottom:16px;">
+                        <h4 style="margin:0 0 12px;font-size:14px;color:rgba(140,220,185,0.95);">Nuevo pedido de kit</h4>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                            <div>
+                                <label style="display:block;font-size:12px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:5px;">Nombre del paciente</label>
+                                <input type="text" id="kitAdminNombre" placeholder="Ej: Ricardo S." style="width:100%;padding:9px 10px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:12px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:5px;">DNI (opcional)</label>
+                                <input type="text" id="kitAdminDni" placeholder="DNI del paciente" style="width:100%;padding:9px 10px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;box-sizing:border-box;">
+                            </div>
+                        </div>
+                        <div style="font-size:12px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:8px;">Productos</div>
+                        <div id="kitAdminProductosList" style="margin-bottom:14px;display:flex;flex-direction:column;gap:6px;">Cargando...</div>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="confirmarKitAdmin()" style="flex:1;background:linear-gradient(135deg,#3f8f6f,#2a6e52);color:#fff;border:none;padding:10px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">✓ Confirmar pedido</button>
+                            <button onclick="cerrarFormKitAdmin()" style="background:rgba(255,255,255,0.07);color:rgba(165,205,188,0.80);border:1px solid rgba(255,255,255,0.12);padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+                        </div>
+                    </div>
                     <div id="listaPedidosKit" style="font-size:13px;">Cargando pedidos...</div>
                 </div>
             </div>
@@ -2226,11 +2248,18 @@
                     <div style="flex:1;font-size:12px;color:rgba(165,205,188,0.60);">¿Querés reservar este día para una Jornada Especial?</div>
                     <button class="btn-mini" onclick="marcarDiaJornadaYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 12px;border-color:rgba(245,158,11,0.4);color:rgba(252,211,77,0.90);">✦ Marcar como Jornada</button>
                 </div>`;
+            const bloqueoRapidoHTML = `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px dashed rgba(200,80,80,0.28);">
+                <span style="font-size:15px;">🔒</span>
+                <div style="flex:1;font-size:12px;color:rgba(165,205,188,0.50);">Bloquear días del calendario</div>
+                <button class="btn-mini" onclick="bloquearDiaCompletoYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(200,80,80,0.35);color:rgba(220,130,130,0.90);">🔒 Día</button>
+                <button class="btn-mini" onclick="bloquearSemanaYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(200,80,80,0.35);color:rgba(220,130,130,0.90);">🔒 Semana</button>
+            </div>`;
             const gestorHTML = `
                 <div class="horarios-admin-card">
                     <h4>Gestión de horarios del ${formatoFechaISO(f)}</h4>
                     ${jornadaBannerHTML}
                     ${sabadoBannerHTML}
+                    ${bloqueoRapidoHTML}
                     <div class="horarios-admin-list">${horariosHTML}</div>
                 </div>
             `;
@@ -4058,6 +4087,76 @@
             }
         };
         
+        let _kitAdminProds = [];
+
+        window.abrirFormularioKitAdmin = async function() {
+            const form = document.getElementById('formNuevoKitAdmin');
+            if (!form) return;
+            form.style.display = 'block';
+            document.getElementById('kitAdminNombre').value = '';
+            document.getElementById('kitAdminDni').value = '';
+            const listEl = document.getElementById('kitAdminProductosList');
+            listEl.innerHTML = 'Cargando...';
+            _kitAdminProds = [];
+            try {
+                const snap = await getDoc(doc(db, 'configuracion', 'kitProductos'));
+                const base = (snap.exists() && Array.isArray(snap.data().productos) && snap.data().productos.length)
+                    ? snap.data().productos : KIT_PRODUCTOS_DEFAULT;
+                _kitAdminProds = base.map(p => ({ nombre: p.nombre || '', precio: Number(p.precio) || 0, sel: false }));
+            } catch(e) {
+                _kitAdminProds = KIT_PRODUCTOS_DEFAULT.map(p => ({ ...p, sel: false }));
+            }
+            _renderKitAdminProds();
+            form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
+
+        function _renderKitAdminProds() {
+            const el = document.getElementById('kitAdminProductosList');
+            if (!el) return;
+            el.innerHTML = _kitAdminProds.map((p, i) => `
+                <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.05);cursor:pointer;border:1px solid ${p.sel ? 'rgba(53,122,92,0.45)' : 'rgba(255,255,255,0.09)'};">
+                    <input type="checkbox" ${p.sel ? 'checked' : ''} onchange="_kitAdminProds[${i}].sel=this.checked;_renderKitAdminProds()" style="accent-color:#3f8f6f;width:15px;height:15px;cursor:pointer;">
+                    <span style="flex:1;font-size:13px;">${escapeHtml(p.nombre)}</span>
+                    <span style="font-size:12px;font-weight:700;color:rgba(140,220,185,0.90);">$${Number(p.precio).toLocaleString('es-AR')}</span>
+                </label>
+            `).join('');
+        }
+
+        window.cerrarFormKitAdmin = function() {
+            const form = document.getElementById('formNuevoKitAdmin');
+            if (form) form.style.display = 'none';
+        };
+
+        window.confirmarKitAdmin = async function() {
+            const nombre = (document.getElementById('kitAdminNombre')?.value || '').trim();
+            const dni = (document.getElementById('kitAdminDni')?.value || '').trim();
+            if (!nombre) { mostrarAviso('Ingresá el nombre del paciente'); return; }
+            const seleccionados = _kitAdminProds.filter(p => p.sel);
+            if (!seleccionados.length) { mostrarAviso('Seleccioná al menos un producto'); return; }
+            const productos = seleccionados.map(p => p.nombre);
+            const productosDetalle = seleccionados.map(p => ({ precio: p.precio }));
+            const totalPedido = seleccionados.reduce((s, p) => s + (Number(p.precio) || 0), 0);
+            try {
+                mostrarLoader(true);
+                await addDoc(collection(db, 'pedidosKit'), {
+                    nombrePaciente: nombre,
+                    dni: dni || '',
+                    productos,
+                    productosDetalle,
+                    totalPedido,
+                    estado: 'pendiente',
+                    origen: 'admin',
+                    createdAt: new Date().toISOString()
+                });
+                mostrarAviso(`Kit solicitado para ${nombre} ✓`);
+                cerrarFormKitAdmin();
+                await cargarPedidosKit();
+            } catch(e) {
+                console.error(e);
+                mostrarAviso('No se pudo guardar el pedido');
+            } finally { mostrarLoader(false); }
+        };
+
         window.enviarWaKit = async function(pedidoId, dni, nombre) {
             var phone = '';
             if (dni) {
@@ -4650,6 +4749,48 @@
                 mostrarAviso("Bloqueo eliminado ✓");
             } catch(e) {
                 mostrarAviso("No se pudo eliminar el bloqueo");
+            } finally { mostrarLoader(false); }
+        };
+
+        window.bloquearDiaCompletoYRefrescar = async function(fecha) {
+            const motivo = prompt(`Motivo del bloqueo para ${formatoFechaISO(fecha)}:`, "Día bloqueado");
+            if (motivo === null) return;
+            try {
+                mostrarLoader(true);
+                await leerBloqueos();
+                const rangeId = `${fecha}_${fecha}`;
+                _bloqueosDias = _bloqueosDias.filter(r => r.id !== rangeId);
+                _bloqueosDias.push({ id: rangeId, desde: fecha, hasta: fecha, motivo: motivo.trim() || "Día bloqueado" });
+                await guardarBloqueos();
+                mostrarAviso(`Día ${fecha} bloqueado ✓`);
+                const sel = document.querySelector('.day.selected');
+                if (sel) await verTurnos(fecha, sel);
+            } catch(e) {
+                console.error(e);
+                mostrarAviso("No se pudo bloquear el día");
+            } finally { mostrarLoader(false); }
+        };
+
+        window.bloquearSemanaYRefrescar = async function(fecha) {
+            const d = new Date(fecha + 'T00:00:00');
+            const hastaD = new Date(d);
+            hastaD.setDate(hastaD.getDate() + 6);
+            const hastaStr = hastaD.toISOString().slice(0, 10);
+            const motivo = prompt(`Bloquear semana del ${formatoFechaISO(fecha)} al ${formatoFechaISO(hastaStr)}.\nMotivo:`, "Semana bloqueada");
+            if (motivo === null) return;
+            try {
+                mostrarLoader(true);
+                await leerBloqueos();
+                const rangeId = `${fecha}_${hastaStr}`;
+                _bloqueosDias = _bloqueosDias.filter(r => r.id !== rangeId);
+                _bloqueosDias.push({ id: rangeId, desde: fecha, hasta: hastaStr, motivo: motivo.trim() || "Semana bloqueada" });
+                await guardarBloqueos();
+                mostrarAviso(`Semana del ${fecha} al ${hastaStr} bloqueada ✓`);
+                const sel = document.querySelector('.day.selected');
+                if (sel) await verTurnos(fecha, sel);
+            } catch(e) {
+                console.error(e);
+                mostrarAviso("No se pudo bloquear la semana");
             } finally { mostrarLoader(false); }
         };
 
