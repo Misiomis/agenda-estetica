@@ -4752,16 +4752,22 @@
             } finally { mostrarLoader(false); }
         };
 
+        const _bloquearTodosLosHorariosDia = async (fecha) => {
+            const horas = [...obtenerHorariosDia(fecha)];
+            await Promise.all(horas.map(async hora => {
+                const idDoc = docIdBloqueo(fecha, hora);
+                await setDoc(doc(db, "calendarExceptions", idDoc), {
+                    fecha, hora, blocked: true, updatedAt: serverTimestamp()
+                }, { merge: true });
+                bloqueosHorarios.set(keyBloqueo(fecha, hora), { id: idDoc, fecha, hora, blocked: true });
+            }));
+        };
+
         window.bloquearDiaCompletoYRefrescar = async function(fecha) {
-            const motivo = prompt(`Motivo del bloqueo para ${formatoFechaISO(fecha)}:`, "Día bloqueado");
-            if (motivo === null) return;
+            if (!confirm(`¿Bloquear todos los horarios del ${formatoFechaISO(fecha)}?`)) return;
             try {
                 mostrarLoader(true);
-                await leerBloqueos();
-                const rangeId = `${fecha}_${fecha}`;
-                _bloqueosDias = _bloqueosDias.filter(r => r.id !== rangeId);
-                _bloqueosDias.push({ id: rangeId, desde: fecha, hasta: fecha, motivo: motivo.trim() || "Día bloqueado" });
-                await guardarBloqueos();
+                await _bloquearTodosLosHorariosDia(fecha);
                 mostrarAviso(`Día ${fecha} bloqueado ✓`);
                 const sel = document.querySelector('.day.selected');
                 if (sel) await verTurnos(fecha, sel);
@@ -4776,15 +4782,14 @@
             const hastaD = new Date(d);
             hastaD.setDate(hastaD.getDate() + 6);
             const hastaStr = hastaD.toISOString().slice(0, 10);
-            const motivo = prompt(`Bloquear semana del ${formatoFechaISO(fecha)} al ${formatoFechaISO(hastaStr)}.\nMotivo:`, "Semana bloqueada");
-            if (motivo === null) return;
+            if (!confirm(`¿Bloquear todos los horarios de la semana del ${formatoFechaISO(fecha)} al ${formatoFechaISO(hastaStr)}?`)) return;
             try {
                 mostrarLoader(true);
-                await leerBloqueos();
-                const rangeId = `${fecha}_${hastaStr}`;
-                _bloqueosDias = _bloqueosDias.filter(r => r.id !== rangeId);
-                _bloqueosDias.push({ id: rangeId, desde: fecha, hasta: hastaStr, motivo: motivo.trim() || "Semana bloqueada" });
-                await guardarBloqueos();
+                const cur = new Date(fecha + 'T00:00:00');
+                while (cur.toISOString().slice(0, 10) <= hastaStr) {
+                    await _bloquearTodosLosHorariosDia(cur.toISOString().slice(0, 10));
+                    cur.setDate(cur.getDate() + 1);
+                }
                 mostrarAviso(`Semana del ${fecha} al ${hastaStr} bloqueada ✓`);
                 const sel = document.querySelector('.day.selected');
                 if (sel) await verTurnos(fecha, sel);
