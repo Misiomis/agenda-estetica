@@ -846,14 +846,20 @@
                     <p style="font-size:13px; margin:0 0 14px 0;">Pacientes que solicitaron su kit facial domiciliario.</p>
                     <div id="formNuevoKitAdmin" style="display:none;background:rgba(53,122,92,0.10);border:1px solid rgba(114,189,153,0.25);border-radius:14px;padding:16px;margin-bottom:16px;">
                         <h4 style="margin:0 0 12px;font-size:14px;color:rgba(140,220,185,0.95);">Nuevo pedido de kit</h4>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-                            <div>
-                                <label style="display:block;font-size:12px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:5px;">Nombre del paciente</label>
-                                <input type="text" id="kitAdminNombre" placeholder="Ej: Ricardo S." style="width:100%;padding:9px 10px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;box-sizing:border-box;">
+                        <div style="margin-bottom:10px;">
+                            <label style="display:block;font-size:12px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:5px;">Nombre de usuario</label>
+                            <div style="position:relative;">
+                                <input type="text" id="kitAdminBusqueda" placeholder="Escribí el nombre del paciente..." autocomplete="off" oninput="buscarPacienteKitAdmin(this.value)" style="width:100%;padding:9px 10px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;box-sizing:border-box;">
+                                <div id="kitAdminSugerencias" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:#132018;border:1px solid rgba(114,189,153,0.30);border-top:none;border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,0.35);"></div>
                             </div>
-                            <div>
-                                <label style="display:block;font-size:12px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:5px;">DNI (opcional)</label>
-                                <input type="text" id="kitAdminDni" placeholder="DNI del paciente" style="width:100%;padding:9px 10px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;box-sizing:border-box;">
+                        </div>
+                        <div id="kitAdminPacienteSeleccionado" style="display:none;background:rgba(53,122,92,0.15);border:1px solid rgba(114,189,153,0.30);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <div style="font-size:13px;">
+                                    <strong id="kitAdminPacienteNombre" style="color:rgba(220,242,232,0.95);"></strong>
+                                    <span style="color:rgba(165,205,188,0.55);font-size:12px;margin-left:8px;">DNI: <span id="kitAdminPacienteDni"></span></span>
+                                </div>
+                                <button onclick="limpiarPacienteKitAdmin()" style="background:none;border:none;color:rgba(220,130,130,0.80);cursor:pointer;font-size:20px;line-height:1;padding:0 2px;">×</button>
                             </div>
                         </div>
                         <div style="font-size:12px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:8px;">Productos</div>
@@ -4088,13 +4094,54 @@
         };
         
         let _kitAdminProds = [];
+        let _kitAdminPaciente = null;
+
+        window.buscarPacienteKitAdmin = function(val) {
+            const q = val.trim().toLowerCase();
+            const sug = document.getElementById('kitAdminSugerencias');
+            if (!sug) return;
+            if (q.length < 2) { sug.style.display = 'none'; return; }
+            const matches = todasLosPacientes
+                .filter(p => (p.fullName || '').toLowerCase().includes(q) || (p.username || '').toLowerCase().includes(q))
+                .slice(0, 8);
+            if (!matches.length) { sug.style.display = 'none'; return; }
+            sug.style.display = 'block';
+            sug.innerHTML = matches.map(p => `
+                <div onclick="seleccionarPacienteKitAdmin('${escapeHtml(p.dni)}')" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.07);font-size:13px;" onmouseover="this.style.background='rgba(53,122,92,0.20)'" onmouseout="this.style.background=''">
+                    <span style="color:rgba(220,242,232,0.92);font-weight:600;">${escapeHtml(p.fullName || p.username || p.dni)}</span>
+                    ${p.username ? `<span style="color:rgba(140,220,185,0.55);font-size:11px;margin-left:6px;">@${escapeHtml(p.username)}</span>` : ''}
+                    <span style="color:rgba(165,205,188,0.40);font-size:11px;float:right;">DNI ${escapeHtml(p.dni)}</span>
+                </div>
+            `).join('');
+        };
+
+        window.seleccionarPacienteKitAdmin = function(dni) {
+            const p = todasLosPacientes.find(x => x.dni === dni);
+            if (!p) return;
+            _kitAdminPaciente = p;
+            document.getElementById('kitAdminBusqueda').value = p.fullName || p.username || '';
+            document.getElementById('kitAdminSugerencias').style.display = 'none';
+            document.getElementById('kitAdminPacienteNombre').textContent = p.fullName || p.username || '';
+            document.getElementById('kitAdminPacienteDni').textContent = p.dni;
+            document.getElementById('kitAdminPacienteSeleccionado').style.display = 'block';
+        };
+
+        window.limpiarPacienteKitAdmin = function() {
+            _kitAdminPaciente = null;
+            document.getElementById('kitAdminBusqueda').value = '';
+            document.getElementById('kitAdminSugerencias').style.display = 'none';
+            document.getElementById('kitAdminPacienteSeleccionado').style.display = 'none';
+            document.getElementById('kitAdminBusqueda').focus();
+        };
 
         window.abrirFormularioKitAdmin = async function() {
             const form = document.getElementById('formNuevoKitAdmin');
             if (!form) return;
             form.style.display = 'block';
-            document.getElementById('kitAdminNombre').value = '';
-            document.getElementById('kitAdminDni').value = '';
+            _kitAdminPaciente = null;
+            document.getElementById('kitAdminBusqueda').value = '';
+            document.getElementById('kitAdminSugerencias').style.display = 'none';
+            document.getElementById('kitAdminPacienteSeleccionado').style.display = 'none';
             const listEl = document.getElementById('kitAdminProductosList');
             listEl.innerHTML = 'Cargando...';
             _kitAdminProds = [];
@@ -4125,12 +4172,15 @@
         window.cerrarFormKitAdmin = function() {
             const form = document.getElementById('formNuevoKitAdmin');
             if (form) form.style.display = 'none';
+            _kitAdminPaciente = null;
+            const sug = document.getElementById('kitAdminSugerencias');
+            if (sug) sug.style.display = 'none';
         };
 
         window.confirmarKitAdmin = async function() {
-            const nombre = (document.getElementById('kitAdminNombre')?.value || '').trim();
-            const dni = (document.getElementById('kitAdminDni')?.value || '').trim();
-            if (!nombre) { mostrarAviso('Ingresá el nombre del paciente'); return; }
+            if (!_kitAdminPaciente) { mostrarAviso('Seleccioná un paciente de la lista'); return; }
+            const nombre = _kitAdminPaciente.fullName || _kitAdminPaciente.username || '';
+            const dni = _kitAdminPaciente.dni || '';
             const seleccionados = _kitAdminProds.filter(p => p.sel);
             if (!seleccionados.length) { mostrarAviso('Seleccioná al menos un producto'); return; }
             const productos = seleccionados.map(p => p.nombre);
