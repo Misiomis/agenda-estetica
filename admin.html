@@ -4157,12 +4157,17 @@
             form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         };
 
+        window.toggleKitAdminProd = function(i, val) {
+            if (_kitAdminProds[i]) _kitAdminProds[i].sel = val;
+            _renderKitAdminProds();
+        };
+
         function _renderKitAdminProds() {
             const el = document.getElementById('kitAdminProductosList');
             if (!el) return;
             el.innerHTML = _kitAdminProds.map((p, i) => `
                 <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.05);cursor:pointer;border:1px solid ${p.sel ? 'rgba(53,122,92,0.45)' : 'rgba(255,255,255,0.09)'};">
-                    <input type="checkbox" ${p.sel ? 'checked' : ''} onchange="_kitAdminProds[${i}].sel=this.checked;_renderKitAdminProds()" style="accent-color:#3f8f6f;width:15px;height:15px;cursor:pointer;">
+                    <input type="checkbox" ${p.sel ? 'checked' : ''} onchange="toggleKitAdminProd(${i}, this.checked)" style="accent-color:#3f8f6f;width:15px;height:15px;cursor:pointer;">
                     <span style="flex:1;font-size:13px;">${escapeHtml(p.nombre)}</span>
                     <span style="font-size:12px;font-weight:700;color:rgba(140,220,185,0.90);">$${Number(p.precio).toLocaleString('es-AR')}</span>
                 </label>
