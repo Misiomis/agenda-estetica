@@ -4,7 +4,7 @@
     const STYLE_ID = "shared-site-footer-style";
     const ADMIN_PAGES = new Set(["admin.html", "login-admin.html", "upload.html", "panel.html", "cargarclientes.html", "inicio.html"]);
     const SHARED_FLOW_PAGES = new Set(["politica.html"]);
-    const MAINTENANCE_MODE_ENABLED = true;
+    const MAINTENANCE_MODE_ENABLED = false;
     const MAINTENANCE_PAGE = "index.html";
     const FLOW_CONFIG_DOC = "jornadaEspecial";
     const FLOW_NORMAL_LANDING = "inicio.html";
