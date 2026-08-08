@@ -868,48 +868,66 @@
 <body>
 
 <!-- ── Aviso reservas en pausa ── -->
-<div id="overlay-reservas" style="position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse 70% 50% at 50% 35%,rgba(53,122,92,0.16),transparent 65%),linear-gradient(160deg,#060e0b 0%,#0c2218 55%,#071a12 100%);">
-    <div style="text-align:center;max-width:440px;width:100%;animation:_ovFadeUp 0.75s cubic-bezier(0.22,0.82,0.44,1) both;">
+<div id="overlay-reservas" style="position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:24px;overflow:hidden;background:radial-gradient(ellipse 80% 55% at 50% 30%,rgba(53,122,92,0.13),transparent 65%),linear-gradient(160deg,#060e0b 0%,#0c2218 55%,#071a12 100%);">
+
+    <div id="_ov-pts" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;"></div>
+
+    <!-- Corners -->
+    <div style="position:absolute;top:20px;left:20px;width:28px;height:28px;border-top:1px solid rgba(60,179,113,0.18);border-left:1px solid rgba(60,179,113,0.18);pointer-events:none;"></div>
+    <div style="position:absolute;top:20px;right:20px;width:28px;height:28px;border-top:1px solid rgba(60,179,113,0.18);border-right:1px solid rgba(60,179,113,0.18);pointer-events:none;"></div>
+    <div style="position:absolute;bottom:20px;left:20px;width:28px;height:28px;border-bottom:1px solid rgba(60,179,113,0.18);border-left:1px solid rgba(60,179,113,0.18);pointer-events:none;"></div>
+    <div style="position:absolute;bottom:20px;right:20px;width:28px;height:28px;border-bottom:1px solid rgba(60,179,113,0.18);border-right:1px solid rgba(60,179,113,0.18);pointer-events:none;"></div>
+
+    <div style="text-align:center;max-width:430px;width:100%;position:relative;z-index:1;animation:_ovUp 0.80s cubic-bezier(0.22,0.82,0.44,1) both;">
 
         <img src="img/logo.png" alt="Espacio Mimar T"
-             style="width:76px;height:76px;object-fit:contain;border-radius:50%;border:1px solid rgba(60,179,113,0.22);padding:10px;background:rgba(60,179,113,0.07);box-shadow:0 0 36px rgba(60,179,113,0.13);margin-bottom:22px;">
+             style="width:72px;height:72px;object-fit:contain;border-radius:50%;border:1px solid rgba(60,179,113,0.20);padding:10px;background:rgba(60,179,113,0.06);box-shadow:0 0 40px rgba(60,179,113,0.13);margin-bottom:22px;">
 
-        <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.72rem;letter-spacing:0.24em;text-transform:uppercase;color:rgba(165,205,188,0.50);margin:0 0 14px;">Espacio Mimar T</p>
+        <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.68rem;letter-spacing:0.28em;text-transform:uppercase;color:rgba(165,205,188,0.42);margin:0 0 18px;">Espacio Mimar T</p>
 
-        <div style="display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:22px;">
-            <div style="flex:1;max-width:56px;height:1px;background:linear-gradient(90deg,transparent,rgba(60,179,113,0.28));"></div>
-            <span style="color:rgba(74,222,128,0.50);font-size:11px;">✦</span>
-            <div style="flex:1;max-width:56px;height:1px;background:linear-gradient(270deg,transparent,rgba(60,179,113,0.28));"></div>
+        <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:22px;">
+            <div style="flex:1;max-width:50px;height:1px;background:linear-gradient(90deg,transparent,rgba(60,179,113,0.24));"></div>
+            <svg width="7" height="7" viewBox="0 0 7 7" fill="rgba(74,222,128,0.42)"><rect x="3.5" y="0" width="4.95" height="4.95" transform="rotate(45 3.5 3.5)" transform-origin="3.5 3.5"/></svg>
+            <div style="flex:1;max-width:50px;height:1px;background:linear-gradient(270deg,transparent,rgba(60,179,113,0.24));"></div>
         </div>
 
-        <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.70rem;letter-spacing:0.20em;text-transform:uppercase;color:rgba(165,205,188,0.45);margin:0 0 6px;">Nuevo espacio · Nueva etapa</p>
+        <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:0.68rem;letter-spacing:0.20em;text-transform:uppercase;color:rgba(165,205,188,0.38);margin:0 0 8px;">Nuevo espacio · Nueva etapa</p>
 
-        <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(2rem,6.5vw,2.8rem);font-weight:300;color:#fff;line-height:1.18;letter-spacing:0.01em;margin:0 0 8px;">Prontito abrimos<br><em style="font-style:italic;color:#4ade80;">la agenda</em> 🌿</h1>
+        <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(1.95rem,6.5vw,2.75rem);font-weight:300;color:#fff;line-height:1.18;letter-spacing:0.01em;margin:0 0 18px;">Prontito abrimos<br><em style="font-style:italic;color:#4ade80;">la agenda</em></h1>
 
-        <p style="font-size:0.84rem;color:rgba(165,205,188,0.60);line-height:1.80;margin:0 0 6px;font-weight:400;">
-            Falta muy poquito. Estate atenta/o.
+        <p style="font-size:0.84rem;color:rgba(165,205,188,0.58);line-height:1.80;margin:0 0 8px;font-weight:400;">Falta muy poquito. Estate atenta/o.</p>
+        <p style="font-size:0.79rem;color:rgba(165,205,188,0.34);line-height:1.75;margin:0 0 28px;font-weight:300;display:flex;align-items:center;justify-content:center;gap:7px;">
+            Para nosotros no sos un número — sos muy especial
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(140,210,180,0.45)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </p>
-        <p style="font-size:0.80rem;color:rgba(165,205,188,0.38);line-height:1.75;margin:0 0 28px;font-weight:300;">
-            Para nosotros no sos un número — sos muy especial ♥
-        </p>
 
-        <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(60,179,113,0.18),transparent);margin:0 auto 26px;max-width:140px;"></div>
+        <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(60,179,113,0.15),transparent);margin:0 auto 26px;max-width:110px;"></div>
 
         <div style="display:flex;flex-direction:column;gap:14px;align-items:center;">
             <a href="/kit-facial.html"
-               style="display:inline-flex;align-items:center;gap:9px;padding:13px 30px;border-radius:100px;border:1px solid rgba(60,179,113,0.32);background:rgba(60,179,113,0.09);color:#4ade80;text-decoration:none;font-family:'Montserrat',sans-serif;font-size:0.80rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;transition:all 0.22s ease;"
-               onmouseover="this.style.background='rgba(60,179,113,0.17)';this.style.borderColor='rgba(60,179,113,0.52)';this.style.transform='translateY(-2px)'"
-               onmouseout="this.style.background='rgba(60,179,113,0.09)';this.style.borderColor='rgba(60,179,113,0.32)';this.style.transform='translateY(0)'">
-                🌿 Solicitar kit facial
+               style="display:inline-flex;align-items:center;gap:10px;padding:13px 30px;border-radius:100px;border:1px solid rgba(60,179,113,0.28);background:rgba(60,179,113,0.07);color:#4ade80;text-decoration:none;font-family:'Montserrat',sans-serif;font-size:0.79rem;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;transition:all 0.22s ease;"
+               onmouseover="this.style.background='rgba(60,179,113,0.15)';this.style.borderColor='rgba(60,179,113,0.48)';this.style.transform='translateY(-2px)'"
+               onmouseout="this.style.background='rgba(60,179,113,0.07)';this.style.borderColor='rgba(60,179,113,0.28)';this.style.transform=''">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l1 5H8z"/><rect x="5" y="8" width="14" height="13" rx="2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
+                Solicitar kit facial
             </a>
             <a href="/servicios.html"
-               style="font-size:0.76rem;color:rgba(165,205,188,0.40);text-decoration:none;font-family:'Montserrat',sans-serif;letter-spacing:0.05em;transition:color 0.2s;"
-               onmouseover="this.style.color='rgba(165,205,188,0.72)'"
-               onmouseout="this.style.color='rgba(165,205,188,0.40)'">← Ver servicios</a>
+               style="display:inline-flex;align-items:center;gap:6px;font-size:0.74rem;color:rgba(165,205,188,0.36);text-decoration:none;font-family:'Montserrat',sans-serif;letter-spacing:0.05em;transition:color 0.2s;"
+               onmouseover="this.style.color='rgba(165,205,188,0.68)'"
+               onmouseout="this.style.color='rgba(165,205,188,0.36)'">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Ver servicios
+            </a>
         </div>
     </div>
 </div>
-<style>@keyframes _ovFadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}</style>
+<style>
+@keyframes _ovUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes _ovFloat{0%{transform:translateY(100vh);opacity:0}10%{opacity:1}90%{opacity:0.25}100%{transform:translateY(-30px);opacity:0}}
+</style>
+<script>
+(function(){var c=document.getElementById('_ov-pts');if(!c)return;for(var i=0;i<16;i++){var p=document.createElement('div');p.style.cssText='position:absolute;border-radius:50%;background:rgba(74,222,128,0.15);animation:_ovFloat linear infinite;pointer-events:none;left:'+Math.random()*100+'%;width:'+(1+Math.random()*1.5)+'px;height:'+(1+Math.random()*1.5)+'px;animation-duration:'+(10+Math.random()*16)+'s;animation-delay:'+(-Math.random()*22)+'s;';c.appendChild(p);}})();
+</script>
 <!-- ── / Aviso reservas en pausa ── -->
 
 <header class="hero">
@@ -920,7 +938,7 @@
             <img src="img/logo.png" class="logo" alt="Espacio Mimar T">
         </div>
         <p class="hero-title-overlay">¿Cuándo te mimamos?</p>
-        <p class="hero-sub-overlay">Elegí el momento — nosotras hacemos el resto 🌿</p>
+        <p class="hero-sub-overlay">Elegí el momento — nosotras hacemos el resto.</p>
     </div>
 </header>
 <script>
