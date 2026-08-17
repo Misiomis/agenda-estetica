@@ -7,6 +7,12 @@ service cloud.firestore {
         && request.auth.token.email == "espaciomimart36@gmail.com";
     }
 
+    function esAdminDepi() {
+      return request.auth != null
+        && (request.auth.token.email == "espaciomimart36@gmail.com"
+         || request.auth.token.email == "depi.mimart@gmail.com");
+    }
+
     function noCambiaCamposAdmin() {
       return !(request.resource.data.diff(resource.data).affectedKeys()
                .hasAny(['membershipActive', 'membresia', 'hoursBalance', 'role']));
@@ -53,6 +59,15 @@ service cloud.firestore {
     match /services/{serviceId} {
       allow read:   if true;
       allow write:  if esAdmin();
+    }
+
+    match /reservas_depi/{reservaId} {
+      allow read, create, update, delete: if esAdminDepi();
+    }
+
+    match /consultas/{consultaId} {
+      allow create: if true;
+      allow read, update, delete: if esAdmin();
     }
 
     match /pedidosKit/{pedidoId} {

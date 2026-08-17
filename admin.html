@@ -708,6 +708,10 @@
                 <button class="btn-nav" id="btn-buscador-sesiones" onclick="navegar('buscador-sesiones')">Buscador de sesiones</button>
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">Pacientes</button>
                 <button class="btn-nav" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">Pedidos de Kit</button>
+                <button class="btn-nav" id="btn-consultas" onclick="navegar('consultas')" style="position:relative;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.28);color:rgba(140,225,185,0.90);">
+                    Consultas Iniciales
+                    <span id="consultas-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:#e53935;color:#fff;font-size:10px;font-weight:800;border-radius:999px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px;"></span>
+                </button>
                 <button class="btn-nav" id="btn-export" onclick="navegar('export')">Exportar</button>
                 <button class="btn-nav" id="btn-calculadora" onclick="navegar('calculadora')" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.28);color:rgba(200,186,255,0.88);">🧮 Calculadora</button>
                 <button class="btn-nav" id="btn-ultimos-movimientos" onclick="mostrarUltimosMovimientos()">Últimos movimientos</button>
@@ -1117,6 +1121,28 @@
                 </div>
 
             </div><!-- /sec-calculadora -->
+
+            <!-- ══ CONSULTAS INICIALES ══ -->
+            <div id="sec-consultas" class="section">
+                <div class="detalle-dia-card" style="margin-bottom:18px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+                        <div style="flex:1;">
+                            <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif;font-size:1.3em;color:rgba(165,205,188,0.95);">Consultas Iniciales</h3>
+                            <p style="margin:0;font-size:12.5px;color:rgba(165,205,188,0.52);">Turnos agendados desde la web — sin login de paciente</p>
+                        </div>
+                        <button class="btn-mini" onclick="cargarConsultas()" style="padding:9px 16px;">↻ Actualizar</button>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+                        <button class="btn-mini" id="filtro-consultas-todos" onclick="filtrarConsultas('todos')" style="background:rgba(74,222,128,0.15);border-color:rgba(74,222,128,0.40);">Todos</button>
+                        <button class="btn-mini" id="filtro-consultas-pendiente" onclick="filtrarConsultas('pendiente')">Pendientes</button>
+                        <button class="btn-mini" id="filtro-consultas-confirmada" onclick="filtrarConsultas('confirmada')">Confirmadas</button>
+                        <button class="btn-mini" id="filtro-consultas-cancelada" onclick="filtrarConsultas('cancelada')">Canceladas</button>
+                    </div>
+                    <div id="consultas-lista" style="display:flex;flex-direction:column;gap:12px;">
+                        <div style="text-align:center;padding:24px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando consultas...</div>
+                    </div>
+                </div>
+            </div><!-- /sec-consultas -->
 
         </div>
     </div>
@@ -1804,8 +1830,9 @@
                     .forEach((h) => horas.add(h));
             });
             if (!horas.size) {
-                ['07:00','08:00','09:00','10:00','11:00','12:00',
-                 '15:00','16:00','17:00','18:00','19:00','20:00','21:00'].forEach(h => horas.add(h));
+                // Sistema de turnos de 30 minutos
+                ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30',
+                 '15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00'].forEach(h => horas.add(h));
             }
             return [...horas].sort((a, b) => a.localeCompare(b));
         };
@@ -1857,14 +1884,16 @@
         };
         
         let _sabado30Activo = false;
-        const HORAS_SABADO_30 = ["07:00","08:00","09:00","10:00","11:00","12:00","16:30","17:30","18:30","19:30","20:30","21:30"];
+        const SLOTS_30_COMPLETOS = [
+            "07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30",
+            "15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30","21:00"
+        ];
 
         const obtenerHorariosDia = (fecha) => {
             const [y,m,d] = fecha.split('-').map(Number);
-            const esSabado = new Date(y, m-1, d).getDay() === 6;
             const baseHoras = Array.isArray(HORARIOS_OVERRIDE_POR_FECHA[fecha])
                 ? HORARIOS_OVERRIDE_POR_FECHA[fecha]
-                : (esSabado && _sabado30Activo ? HORAS_SABADO_30 : horariosDisponibles);
+                : SLOTS_30_COMPLETOS;
             const base = new Set(baseHoras);
             todasLasReservas
                 .filter(r => esReservaActiva(r) && r.fecha === fecha)
@@ -4325,6 +4354,138 @@
             if (e.key === 'Escape') cerrarModalPrecioKit();
         });
 
+        // ═══════════════════════════════════════════
+        // CONSULTAS INICIALES
+        // ═══════════════════════════════════════════
+        let _consultasCache = [];
+        let _filtroConsultas = 'todos';
+
+        const DIAS_ES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+        const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+        const fechaLindaConsulta = (iso) => {
+            if (!iso) return '-';
+            const [y,m,d] = iso.split('-').map(Number);
+            const f = new Date(y,m-1,d);
+            return `${DIAS_ES[f.getDay()]} ${String(d).padStart(2,'0')} de ${MESES_ES[m-1]} ${y}`;
+        };
+
+        window.cargarConsultas = async function() {
+            const cont = document.getElementById('consultas-lista');
+            if (!cont) return;
+            cont.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando...</div>';
+            try {
+                const snap = await getDocs(collection(db,'consultas'));
+                _consultasCache = [];
+                snap.forEach(d => _consultasCache.push({ id: d.id, ...d.data() }));
+                _consultasCache.sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || (b.hora||'').localeCompare(a.hora||''));
+
+                // Badge de pendientes
+                const pendientes = _consultasCache.filter(c => (c.estado||'pendiente') === 'pendiente').length;
+                const badge = document.getElementById('consultas-badge');
+                if (badge) {
+                    badge.textContent = pendientes || '';
+                    badge.style.display = pendientes ? 'inline-block' : 'none';
+                }
+
+                window.renderConsultas();
+            } catch(e) {
+                console.error('Error cargando consultas:', e);
+                cont.innerHTML = '<div style="color:rgba(255,100,100,0.70);padding:16px;font-size:13px;">Error al cargar consultas. Verificá los permisos de Firestore.</div>';
+            }
+        };
+
+        window.filtrarConsultas = function(filtro) {
+            _filtroConsultas = filtro;
+            ['todos','pendiente','confirmada','cancelada'].forEach(f => {
+                const btn = document.getElementById(`filtro-consultas-${f}`);
+                if (btn) btn.style.background = f === filtro ? 'rgba(74,222,128,0.18)' : '';
+                if (btn) btn.style.borderColor = f === filtro ? 'rgba(74,222,128,0.45)' : '';
+            });
+            window.renderConsultas();
+        };
+
+        window.renderConsultas = function() {
+            const cont = document.getElementById('consultas-lista');
+            if (!cont) return;
+            const lista = _filtroConsultas === 'todos'
+                ? _consultasCache
+                : _consultasCache.filter(c => (c.estado||'pendiente') === _filtroConsultas);
+
+            if (!lista.length) {
+                cont.innerHTML = `<div style="text-align:center;padding:28px;color:rgba(165,205,188,0.35);font-size:13px;">
+                    ${_filtroConsultas === 'todos' ? 'No hay consultas registradas aún.' : `No hay consultas con estado "${_filtroConsultas}".`}
+                </div>`;
+                return;
+            }
+
+            cont.innerHTML = lista.map(c => {
+                const estado = c.estado || 'pendiente';
+                const estadoColor = estado === 'confirmada' ? '#4ade80' : estado === 'cancelada' ? 'rgba(255,100,100,0.75)' : '#fbbf24';
+                const estadoLabel = estado === 'confirmada' ? 'Confirmada' : estado === 'cancelada' ? 'Cancelada' : 'Pendiente';
+                const pago = c.metodoPago === 'transferencia' ? 'Transferencia' : c.metodoPago === 'efectivo' ? 'Efectivo' : (c.metodoPago||'-');
+                const waMsg = encodeURIComponent(`Hola ${c.nombre?.split(' ')[0] || ''}, te confirmamos tu consulta inicial en Espacio Mimar T para el ${fechaLindaConsulta(c.fecha)} a las ${c.hora} hs. ¡Te esperamos!`);
+                const waLink = c.telefono ? `https://wa.me/54${c.telefono.replace(/\D/g,'')}?text=${waMsg}` : '';
+                return `
+                <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(60,179,113,0.14);border-radius:18px;padding:18px 20px;position:relative;">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+                        <span style="background:rgba(${estado==='confirmada'?'74,222,128':estado==='cancelada'?'255,100,100':'251,191,36'},0.15);border:1px solid rgba(${estado==='confirmada'?'74,222,128':estado==='cancelada'?'255,100,100':'251,191,36'},0.35);color:${estadoColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.06em;">${estadoLabel}</span>
+                        <strong style="font-size:15px;color:rgba(220,242,232,0.92);flex:1;">${c.nombre||'Sin nombre'}</strong>
+                        <span style="font-size:12px;color:rgba(165,205,188,0.50);">DNI: ${c.dni||'-'}</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+                        <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:8px 12px;">
+                            <div style="font-size:10px;color:rgba(165,205,188,0.40);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Turno</div>
+                            <div style="font-size:13px;color:rgba(220,242,232,0.85);font-weight:600;">${fechaLindaConsulta(c.fecha)}</div>
+                            <div style="font-size:13px;color:rgba(220,242,232,0.85);font-weight:600;">${c.hora||'-'} hs</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:8px 12px;">
+                            <div style="font-size:10px;color:rgba(165,205,188,0.40);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Datos</div>
+                            <div style="font-size:12.5px;color:rgba(220,242,232,0.75);">Tel: ${c.telefono||'-'}</div>
+                            <div style="font-size:12.5px;color:rgba(220,242,232,0.75);">Edad: ${c.edad||'-'} · ${c.domicilio||'-'}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span style="font-size:12px;color:rgba(165,205,188,0.50);">Pago: ${pago}</span>
+                        <div style="flex:1;"></div>
+                        ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.28);color:rgba(100,230,150,0.88);font-size:11.5px;font-weight:700;text-decoration:none;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            WhatsApp
+                        </a>` : ''}
+                        ${estado !== 'confirmada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:6px 12px;font-size:11.5px;background:rgba(74,222,128,0.14);border-color:rgba(74,222,128,0.35);color:#4ade80;">✓ Confirmar</button>` : ''}
+                        ${estado !== 'cancelada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','cancelada')" style="padding:6px 12px;font-size:11.5px;background:rgba(255,100,100,0.08);border-color:rgba(255,100,100,0.25);color:rgba(255,130,130,0.85);">✕ Cancelar</button>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        };
+
+        window.cambiarEstadoConsulta = async function(id, nuevoEstado) {
+            try {
+                await updateDoc(doc(db,'consultas',id), { estado: nuevoEstado, updatedAt: serverTimestamp() });
+                const c = _consultasCache.find(x => x.id === id);
+                if (c) c.estado = nuevoEstado;
+                // Actualizar badge
+                const pendientes = _consultasCache.filter(c => (c.estado||'pendiente') === 'pendiente').length;
+                const badge = document.getElementById('consultas-badge');
+                if (badge) { badge.textContent = pendientes||''; badge.style.display = pendientes ? 'inline-block' : 'none'; }
+                window.renderConsultas();
+            } catch(e) {
+                console.error('Error actualizando consulta:', e);
+                mostrarAviso('No se pudo actualizar el estado');
+            }
+        };
+
+        // Verificar consultas pendientes al cargar el panel (badge)
+        (async function verificarConsultasPendientes() {
+            try {
+                const snap = await getDocs(query(collection(db,'consultas'), where('estado','==','pendiente')));
+                if (snap.size > 0) {
+                    const badge = document.getElementById('consultas-badge');
+                    if (badge) { badge.textContent = snap.size; badge.style.display = 'inline-block'; }
+                }
+            } catch(e) { /* silencioso — permisos se verifican al abrir la sección */ }
+        })();
+
         window.toggleMenuNav = () => {
             const nav = document.getElementById('menuNav');
             if (nav) nav.classList.toggle('open');
@@ -4340,6 +4501,7 @@
             if (s === 'control') window.cargarSeccionControl();
             if (s === 'clientes') filtrarListadoClientes();
             if (s === 'calculadora') window.cargarCalculadora();
+            if (s === 'consultas') window.cargarConsultas();
         };
         
         // === SÁBADOS HORARIOS :30 ===
