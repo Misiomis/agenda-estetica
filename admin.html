@@ -371,7 +371,8 @@
         }
         .mreg-btn-confirm:hover { filter: brightness(1.06); box-shadow: 0 10px 24px rgba(78,163,127,0.38); }
         .mreg-btn-confirm:disabled { background: rgba(255,255,255,0.10); box-shadow: none; cursor: not-allowed; filter: none; color: rgba(165,205,188,0.40); }
-        #mreg-btn-extra.activo { background: rgba(78,163,127,0.15) !important; border-color: #4ea37f; color: #4ea37f; font-weight: 600; }
+        #mreg-btn-extra30.activo { background: rgba(90,139,171,0.15) !important; border-color: #5a8fab; color: #5a8fab; font-weight: 600; }
+        #mreg-btn-extra60.activo { background: rgba(122,90,171,0.15) !important; border-color: #7a5aab; color: #7a5aab; font-weight: 600; }
 
         /* ── Modal cambio de servicio ── */
         #modal-cambio-servicio-overlay {
@@ -2148,6 +2149,13 @@
                     ? `<span style="display:inline-block;background:rgba(60,100,200,0.14);color:rgba(130,170,240,0.95);border:1px solid rgba(70,120,210,0.28);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">Duo</span>`
                     : '';
 
+                // Badge extension de tiempo
+                const extBadge = r.duracionMinutos >= 90
+                    ? `<span style="display:inline-block;background:rgba(122,90,171,0.15);color:rgba(150,110,210,0.95);border:1px solid rgba(150,110,210,0.35);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">⏱ +60 min</span>`
+                    : r.duracionMinutos >= 60
+                        ? `<span style="display:inline-block;background:rgba(90,139,171,0.15);color:rgba(90,139,171,0.95);border:1px solid rgba(90,139,171,0.35);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">⏱ +30 min</span>`
+                        : '';
+
                 // Nota para paciente 1 (o unico)
                 const notaDisplay1 = tieneNota ? `
                     <div id="nd-${r.id}" style="margin-top:8px; background:rgba(53,122,92,0.12); border:1px solid rgba(114,189,153,0.22); border-radius:10px; padding:10px 34px 10px 10px; font-size:13px; color:rgba(180,230,210,0.92); white-space:pre-wrap; position:relative">${escapeHtml(r.detalleSesion)}<button title="Editar" onclick="activarEdicionNotaAdmin('${r.id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:12px; color:rgba(140,210,180,0.80)">Editar</button></div>
@@ -2216,7 +2224,7 @@
 
                 return `
                 <div class="detalle-dia-card">
-                    ${renderTagOrigen(r)}${duoBadge}<br>
+                    ${renderTagOrigen(r)}${duoBadge}${extBadge}<br>
                     ${pac1label}<b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(r.nombreLimpio || 'Sin nombre')}</b> - ${escapeHtml(r.hora || '--:--')} hs<br>
                     <small>${escapeHtml(r.servicio || 'Servicio')}</small>
                     ${notaDisplay1}
@@ -2249,23 +2257,29 @@
                 const bloqueo  = bloqueosHorarios.has(keyBloqueo(f, hora));
                 const motivoBloqueo = bloqueo ? escapeHtml((bloqueosHorarios.get(keyBloqueo(f, hora))?.reason || 'No disponible')) : '';
                 const prevHora = restarMediaHora(hora);
-                const reservaPrev = (!reserva && !consulta && !bloqueo && prevHora) ? reservasPorHora.get(prevHora) : null;
-                const extendido = !!(reservaPrev && (reservaPrev.duracionMinutos >= 60));
+                const prev2Hora = prevHora ? restarMediaHora(prevHora) : null;
+                const reservaPrev  = (!reserva && !consulta && !bloqueo && prevHora)  ? reservasPorHora.get(prevHora)  : null;
+                const reservaPrev2 = (!reserva && !consulta && !bloqueo && prev2Hora) ? reservasPorHora.get(prev2Hora) : null;
+                // Es extension si el slot anterior tiene duracion >= 60 (+30min extra) O el de dos antes tiene >= 90 (+60min extra)
+                const extendidoDE = reservaPrev  && reservaPrev.duracionMinutos  >= 60  ? reservaPrev  : null;
+                const extendidoDDE = reservaPrev2 && reservaPrev2.duracionMinutos >= 90  ? reservaPrev2 : null;
+                const reservaExt = extendidoDE || extendidoDDE;
+                const extPill = extendidoDDE ? '+60 min (2da parte)' : '+30 min (ext.)';
                 const estado = bloqueo
                     ? `<span class="pill bloqueado">${motivoBloqueo}</span>`
                     : reserva
                         ? '<span class="pill reservado">Reservado</span>'
                         : consulta
                             ? '<span class="pill reservado">Consulta Inicial</span>'
-                            : extendido
-                                ? '<span class="pill reservado">+30 min</span>'
+                            : reservaExt
+                                ? `<span class="pill reservado">${extPill}</span>`
                                 : '<span class="pill disponible">Disponible</span>';
                 const label = reserva
                     ? `${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(reserva.servicio || 'Servicio')}`
                     : consulta
                         ? `${escapeHtml(consulta.nombre || 'Paciente')} · DNI ${escapeHtml(consulta.dni || '')} · ${escapeHtml(consulta.estado || 'pendiente')}`
-                        : extendido
-                            ? `${escapeHtml(reservaPrev.nombreLimpio || 'Paciente')} · ${escapeHtml(reservaPrev.servicio || '')} (ext.)`
+                        : reservaExt
+                            ? `${escapeHtml(reservaExt.nombreLimpio || 'Paciente')} · ${escapeHtml(reservaExt.servicio || '')} (ext.)`
                             : 'Sin reserva';
                 const accionBloqueo = bloqueo
                     ? `<button class="btn-mini" onclick="toggleBloqueoHorario('${f}','${hora}')">Desbloquear</button>`
@@ -2276,7 +2290,7 @@
                         ? `<button class="btn-mini" style="border-color:#b5cce8;color:#2e61b1;background:#eef5ff" onclick="toggleDuoHorario('${f}','${hora}')">Quitar Duo</button>`
                         : `<button class="btn-mini" style="border-color:#b5cce8;color:#2e61b1;background:#f3f8ff" onclick="toggleDuoHorario('${f}','${hora}')">Sesion Duo</button>`)
                     : '';
-                const botonRegistrar = (!bloqueo && !reserva && !consulta && !extendido)
+                const botonRegistrar = (!bloqueo && !reserva && !consulta && !reservaExt)
                     ? `<button class="btn-mini" onclick="registrarReservaManual('${f}','${hora}')">Registrar</button>`
                     : '';
                 const botonCancelar = (bloqueo && reserva)
@@ -3087,6 +3101,18 @@
                         reserva.nombreLimpio || reserva.cliente || "Paciente"
                     );
 
+                    // Eliminar slots de extension en calendarExceptions
+                    if (reserva.duracionMinutos > 30) {
+                        const slotsExtra = reserva.duracionMinutos >= 90 ? 2 : 1;
+                        const idxBase = SLOTS_30_COMPLETOS.indexOf(normalizarHora(reserva.hora));
+                        for (let i = 1; i <= slotsExtra && idxBase + i < SLOTS_30_COMPLETOS.length; i++) {
+                            const extHora = SLOTS_30_COMPLETOS[idxBase + i];
+                            const extId = `ext_${reserva.fecha}_${extHora.replace(':','h')}`;
+                            try { await deleteDoc(doc(db, "calendarExceptions", extId)); } catch(_) {}
+                            bloqueosHorarios.delete(keyBloqueo(reserva.fecha, extHora));
+                        }
+                    }
+
                     // Buscar teléfono registrado del cliente (no el número de la reserva)
                     const pacienteNombre = reserva.nombreLimpio || reserva.cliente || reserva.clienteNombre || 'Paciente';
                     let telefonoRegistrado = "";
@@ -3134,7 +3160,7 @@
         };
         
         /* ── Estado del modal de registro ── */
-        let _mreg_fecha = null, _mreg_hora = null, _mreg_clienteSeleccionado = null, _mreg_debounce = null, _mreg_extraMinutos = false;
+        let _mreg_fecha = null, _mreg_hora = null, _mreg_clienteSeleccionado = null, _mreg_debounce = null, _mreg_extraMinutos = 0;
 
         /* ── Helper compartido: seleccionar chip ── */
         window.seleccionarChipServicio = (el, hiddenId) => {
@@ -3188,15 +3214,17 @@
             _mreg_fecha = fecha;
             _mreg_hora = horaNormalizada;
             _mreg_clienteSeleccionado = null;
-            _mreg_extraMinutos = false;
+            _mreg_extraMinutos = 0;
 
             document.getElementById('mreg-fecha-label').textContent = `${formatoFechaISO(fecha)} · ${horaNormalizada} hs`;
             document.getElementById('mreg-nombre-input').value = '';
             document.getElementById('mreg-resultados').innerHTML = '';
             document.getElementById('mreg-btn-confirmar').disabled = true;
             document.getElementById('mreg-servicio-hidden').value = '';
-            const btnExtra = document.getElementById('mreg-btn-extra');
-            if (btnExtra) { btnExtra.classList.remove('activo'); btnExtra.textContent = '+ 30 min extra'; }
+            const btn30 = document.getElementById('mreg-btn-extra30');
+            const btn60 = document.getElementById('mreg-btn-extra60');
+            if (btn30) { btn30.classList.remove('activo'); btn30.textContent = '+ 30 min extra'; }
+            if (btn60) { btn60.classList.remove('activo'); btn60.textContent = '+ 60 min extra'; }
 
             document.getElementById('modal-registrar-overlay').classList.add('open');
             setTimeout(() => document.getElementById('mreg-nombre-input').focus(), 80);
@@ -3207,15 +3235,15 @@
         window.cerrarModalRegistrar = () => {
             document.getElementById('modal-registrar-overlay').classList.remove('open');
             _mreg_clienteSeleccionado = null;
-            _mreg_extraMinutos = false;
+            _mreg_extraMinutos = 0;
         };
 
-        window.toggleExtraMinutos = () => {
-            _mreg_extraMinutos = !_mreg_extraMinutos;
-            const btn = document.getElementById('mreg-btn-extra');
-            if (!btn) return;
-            btn.classList.toggle('activo', _mreg_extraMinutos);
-            btn.textContent = _mreg_extraMinutos ? '✓ 30 min extra activados' : '+ 30 min extra';
+        window.setExtraMinutos = (minutos) => {
+            _mreg_extraMinutos = (_mreg_extraMinutos === minutos) ? 0 : minutos;
+            const btn30 = document.getElementById('mreg-btn-extra30');
+            const btn60 = document.getElementById('mreg-btn-extra60');
+            if (btn30) { btn30.classList.toggle('activo', _mreg_extraMinutos === 30); btn30.textContent = _mreg_extraMinutos === 30 ? '✓ +30 min activados' : '+ 30 min extra'; }
+            if (btn60) { btn60.classList.toggle('activo', _mreg_extraMinutos === 60); btn60.textContent = _mreg_extraMinutos === 60 ? '✓ +60 min activados' : '+ 60 min extra'; }
         };
 
         document.getElementById('mreg-nombre-input').addEventListener('input', (e) => {
@@ -3275,6 +3303,60 @@
             if (!servicioIngresado) { mostrarAviso("Seleccioná un servicio"); return; }
             const clienteSnap = { ..._mreg_clienteSeleccionado };
             const fechaSnap = _mreg_fecha, horaSnap = _mreg_hora;
+
+            // Calcular slots de extension necesarios
+            const slotsExtra = _mreg_extraMinutos === 60 ? 2 : _mreg_extraMinutos === 30 ? 1 : 0;
+            const durMin = slotsExtra === 2 ? 90 : slotsExtra === 1 ? 60 : 30;
+            let slotsExtension = [];
+            if (slotsExtra > 0) {
+                const idxBase = SLOTS_30_COMPLETOS.indexOf(normalizarHora(horaSnap));
+                for (let i = 1; i <= slotsExtra; i++) {
+                    if (idxBase + i < SLOTS_30_COMPLETOS.length) slotsExtension.push(SLOTS_30_COMPLETOS[idxBase + i]);
+                }
+                if (slotsExtension.length < slotsExtra) {
+                    mostrarAviso(`El horario ${horaSnap} no tiene suficientes slots después para extender ${_mreg_extraMinutos} min`);
+                    return;
+                }
+                // Verificar que los slots de extension estén libres
+                const conflictos = slotsExtension.filter(extHora => {
+                    const reservado = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === normalizarHora(extHora));
+                    const bloqueado = bloqueosHorarios.has(keyBloqueo(fechaSnap, extHora));
+                    return reservado || bloqueado;
+                });
+                if (conflictos.length > 0) {
+                    // Buscar alternativas disponibles en ese dia
+                    const alternativas = [];
+                    for (let i = 0; i <= SLOTS_30_COMPLETOS.length - 1 - slotsExtra; i++) {
+                        const cand = SLOTS_30_COMPLETOS[i];
+                        let libre = true;
+                        for (let j = 0; j <= slotsExtra; j++) {
+                            const testHora = SLOTS_30_COMPLETOS[i + j];
+                            if (todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === normalizarHora(testHora))
+                                || bloqueosHorarios.has(keyBloqueo(fechaSnap, testHora))) {
+                                libre = false; break;
+                            }
+                        }
+                        if (libre) alternativas.push(cand);
+                        if (alternativas.length >= 3) break;
+                    }
+                    // Mostrar overlay de conflicto amigable
+                    const altTexto = alternativas.length > 0
+                        ? `Horarios disponibles con esa duración:\n${alternativas.map(h => '• ' + h + ' hs').join('\n')}`
+                        : 'No hay horarios disponibles ese día para esa duración.';
+                    const ov = document.createElement('div');
+                    ov.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px';
+                    ov.innerHTML = `
+                        <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:28px 24px 22px">
+                            <p style="font-family:'Playfair Display',serif;font-size:17px;color:#2f5a47;text-align:center;margin:0 0 10px">Horario no disponible</p>
+                            <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 8px">El turno de <b>${horaSnap} hs</b> con <b>+${_mreg_extraMinutos} min extra</b> necesita que ${conflictos.map(h=>h+' hs').join(' y ')} también esté${conflictos.length>1?'n':''} libre${conflictos.length>1?'s':''}.</p>
+                            <p style="font-size:13px;color:#6a8e7f;text-align:center;white-space:pre-line;margin:0 0 20px">${altTexto}</p>
+                            <button onclick="this.closest('div[style]').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.28)">Entendido</button>
+                        </div>`;
+                    document.body.appendChild(ov);
+                    return;
+                }
+            }
+
             try {
                 mostrarLoader(true);
                 cerrarModalRegistrar();
@@ -3294,16 +3376,25 @@
                     status: "confirmado",
                     estado: "confirmado",
                     reminderSent: false,
-                    duracionMinutos: _mreg_extraMinutos ? 60 : 30,
+                    duracionMinutos: durMin,
                     timestamp: serverTimestamp(),
                     creadoPor: "admin_manual"
                 };
                 const ref = await addDoc(collection(db, "reservas"), reservaNueva);
+                // Bloquear slots de extension en calendarExceptions
+                for (const extHora of slotsExtension) {
+                    const extId = `ext_${fechaSnap}_${extHora.replace(':','h')}`;
+                    await setDoc(doc(db, "calendarExceptions", extId), {
+                        fecha: fechaSnap, hora: extHora, blocked: true,
+                        tipo: 'extension', reservaId: ref.id
+                    });
+                    bloqueosHorarios.set(keyBloqueo(fechaSnap, extHora), { id: extId, fecha: fechaSnap, hora: extHora, blocked: true });
+                }
                 todasLasReservas.push({ id: ref.id, ...reservaNueva, nombreLimpio: clienteSnap.nombre });
                 actualizarKPIs();
                 poblarServiciosFiltro();
                 verTurnos(fechaSnap, document.querySelector('.day.selected'));
-                mostrarAviso("Reserva creada");
+                mostrarAviso(slotsExtension.length > 0 ? `Reserva creada · ${slotsExtension.length} slot${slotsExtension.length>1?'s':''} de extension bloqueados` : "Reserva creada");
             } catch(error) {
                 console.error(error);
                 mostrarAviso("No se pudo registrar la reserva");
@@ -3371,6 +3462,17 @@
                     [reserva.servicio, reserva.dni ? `DNI ${reserva.dni}` : ""].filter(Boolean).join(" · "),
                     reserva.nombreLimpio || reserva.cliente || "Paciente"
                 );
+                // Eliminar slots de extension en calendarExceptions
+                if (reserva.duracionMinutos > 30) {
+                    const slotsExtra = reserva.duracionMinutos >= 90 ? 2 : 1;
+                    const idxBase = SLOTS_30_COMPLETOS.indexOf(normalizarHora(reserva.hora));
+                    for (let i = 1; i <= slotsExtra && idxBase + i < SLOTS_30_COMPLETOS.length; i++) {
+                        const extHora = SLOTS_30_COMPLETOS[idxBase + i];
+                        const extId = `ext_${reserva.fecha}_${extHora.replace(':','h')}`;
+                        try { await deleteDoc(doc(db, "calendarExceptions", extId)); } catch(_) {}
+                        bloqueosHorarios.delete(keyBloqueo(reserva.fecha, extHora));
+                    }
+                }
                 todasLasReservas = todasLasReservas.filter(r => r.id !== idReserva);
                 actualizarKPIs();
                 poblarServiciosFiltro();
@@ -5775,15 +5877,19 @@
             <label class="mreg-field-label">Servicio</label>
             <div class="mreg-chips-grid" id="mreg-chips-grid"></div>
             <input type="hidden" id="mreg-servicio-hidden" value="">
-            <div style="margin:10px 0 4px">
-                <button type="button" id="mreg-btn-extra"
-                    onclick="toggleExtraMinutos()"
-                    style="width:100%;padding:9px 0;border-radius:10px;border:1.5px dashed #b5cce8;background:transparent;color:#5a8fab;font-size:13px;cursor:pointer;transition:all .2s;"
-                    onmouseover="this.style.background='#eef5ff'" onmouseout="if(!_mreg_extraMinutos)this.style.background='transparent'">
+            <div style="margin:10px 0 4px;display:flex;gap:8px">
+                <button type="button" id="mreg-btn-extra30"
+                    onclick="setExtraMinutos(30)"
+                    style="flex:1;padding:9px 0;border-radius:10px;border:1.5px dashed #b5cce8;background:transparent;color:#5a8fab;font-size:13px;cursor:pointer;transition:all .2s;">
                     + 30 min extra
                 </button>
+                <button type="button" id="mreg-btn-extra60"
+                    onclick="setExtraMinutos(60)"
+                    style="flex:1;padding:9px 0;border-radius:10px;border:1.5px dashed #c8b5e8;background:transparent;color:#7a5aab;font-size:13px;cursor:pointer;transition:all .2s;">
+                    + 60 min extra
+                </button>
             </div>
-            <p style="font-size:11px;color:#8aabb8;margin:2px 0 10px;text-align:center">Solo para casos excepcionales donde el turno ocupa 1 hora</p>
+            <p style="font-size:11px;color:#8aabb8;margin:2px 0 10px;text-align:center">Solo para casos excepcionales · bloquea el/los siguiente(s) horario(s)</p>
             <div class="mreg-actions">
                 <button class="mreg-btn-cancel" onclick="cerrarModalRegistrar()">Cancelar</button>
                 <button class="mreg-btn-confirm" id="mreg-btn-confirmar" disabled onclick="confirmarRegistroManual()">Registrar turno</button>
