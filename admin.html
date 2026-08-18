@@ -1555,6 +1555,7 @@
         let fechaActual = new Date();
         let fechaSeleccionada = "";
         let todasLasReservas = [];
+        let todasLasConsultas = [];
         let todasLasHistorias = [];
         let todasLosPacientes = [];
         let dniClienteCargado = "";
@@ -1960,7 +1961,8 @@
                     getDocs(collection(db, "historias")),
                     getDocs(collection(db, "clients")),
                     getDocs(collection(db, "horarios")),
-                    getDocs(collection(db, "calendarExceptions"))
+                    getDocs(collection(db, "calendarExceptions")),
+                    getDocs(collection(db, "consultas"))
                 ]);
 
                 const snapR = resultados[0].status === 'fulfilled' ? resultados[0].value : { docs: [] };
@@ -1968,6 +1970,8 @@
                 const snapC = resultados[2].status === 'fulfilled' ? resultados[2].value : { docs: [] };
                 const snapHorarios = resultados[3].status === 'fulfilled' ? resultados[3].value : { docs: [] };
                 const snapBloqueos = resultados[4].status === 'fulfilled' ? resultados[4].value : { docs: [] };
+                const snapConsultas = resultados[5].status === 'fulfilled' ? resultados[5].value : { docs: [] };
+                todasLasConsultas = (snapConsultas.docs || []).map(d => ({ id: d.id, ...d.data() })).filter(c => !['cancelada','cancelado'].includes((c.estado||'').toLowerCase()));
 
                 if (resultados[0].status === 'rejected') console.warn("Error permisos Reservas:", resultados[0].reason);
                 if (resultados[1].status === 'rejected') console.warn("Error permisos Historias:", resultados[1].reason);
@@ -2229,15 +2233,25 @@
             }).join('') : '<p style="text-align:center; opacity:0.5">Sin turnos.</p>';
             
             const reservasPorHora = new Map(filtrados.map(r => [normalizarHora(r.hora), r]));
+            const consultasPorHora = new Map(todasLasConsultas.filter(c => c.fecha === f).map(c => [normalizarHora(c.hora), c]));
             const horarios = obtenerHorariosDia(f);
             const horariosHTML = horarios.map((hora) => {
-                const reserva = reservasPorHora.get(hora);
-                const bloqueo = bloqueosHorarios.has(keyBloqueo(f, hora));
+                const reserva  = reservasPorHora.get(hora);
+                const consulta = !reserva ? consultasPorHora.get(hora) : null;
+                const bloqueo  = bloqueosHorarios.has(keyBloqueo(f, hora));
                 const motivoBloqueo = bloqueo ? escapeHtml((bloqueosHorarios.get(keyBloqueo(f, hora))?.reason || 'No disponible')) : '';
-                const estado = bloqueo ? `<span class="pill bloqueado">${motivoBloqueo}</span>` : (reserva ? '<span class="pill reservado">Reservado</span>' : '<span class="pill disponible">Disponible</span>');
+                const estado = bloqueo
+                    ? `<span class="pill bloqueado">${motivoBloqueo}</span>`
+                    : reserva
+                        ? '<span class="pill reservado">Reservado</span>'
+                        : consulta
+                            ? '<span class="pill reservado" style="background:rgba(74,222,128,0.18);color:#4ae690;">Consulta Inicial</span>'
+                            : '<span class="pill disponible">Disponible</span>';
                 const label = reserva
                     ? `${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(reserva.servicio || 'Servicio')}`
-                    : 'Sin reserva';
+                    : consulta
+                        ? `${escapeHtml(consulta.nombre || 'Paciente')} · DNI ${escapeHtml(consulta.dni || '')} · ${escapeHtml(consulta.estado || 'pendiente')}`
+                        : 'Sin reserva';
                 const accionBloqueo = bloqueo
                     ? `<button class="btn-mini" onclick="toggleBloqueoHorario('${f}','${hora}')">Desbloquear</button>`
                     : `<button class="btn-mini alerta" onclick="toggleBloqueoHorario('${f}','${hora}')">Bloquear</button>`;
@@ -2247,7 +2261,7 @@
                         ? `<button class="btn-mini" style="border-color:#b5cce8;color:#2e61b1;background:#eef5ff" onclick="toggleDuoHorario('${f}','${hora}')">Quitar Duo</button>`
                         : `<button class="btn-mini" style="border-color:#b5cce8;color:#2e61b1;background:#f3f8ff" onclick="toggleDuoHorario('${f}','${hora}')">Sesion Duo</button>`)
                     : '';
-                const botonRegistrar = (!bloqueo && !reserva)
+                const botonRegistrar = (!bloqueo && !reserva && !consulta)
                     ? `<button class="btn-mini" onclick="registrarReservaManual('${f}','${hora}')">Registrar</button>`
                     : '';
                 const botonCancelar = (bloqueo && reserva)
