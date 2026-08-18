@@ -523,7 +523,8 @@
         .day-name { font-size: 11px; color: rgba(140,190,170,0.68); font-weight: 700; text-transform: uppercase; padding-bottom: 6px; }
         .day { padding: 10px 4px; min-height: 42px; border-radius: 12px; font-size: 13px; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); transition: 0.2s; color: rgba(205,232,218,0.82); display: flex; align-items: center; justify-content: center; }
         .day:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
-        .day.has-reserva { background: rgba(53,122,92,0.20); border: 1.5px solid rgba(114,189,153,0.45); color: rgba(160,230,200,0.96); font-weight: 700; }
+        .day { background: rgba(78,163,127,0.12); border: 1px solid rgba(78,200,150,0.22); color: rgba(140,220,180,0.85); }
+        .day.has-reserva { background: rgba(255,160,50,0.14); border: 1.5px solid rgba(255,160,50,0.32); color: rgba(255,185,80,0.95); font-weight: 700; }
         .day.day-closed { background: rgba(165,80,90,0.12); border: 1.5px solid rgba(200,100,110,0.30); color: rgba(220,140,150,0.90); }
         .day.day-full { background: linear-gradient(135deg,#ff5252,#e53935) !important; border-color: #e53935 !important; color: #fff !important; font-weight: 800; }
         .day.selected { background: var(--verde) !important; color: white !important; }
@@ -2693,7 +2694,7 @@
                 );
                 const horasAdminDia = [...bloqueosHorarios.entries()]
                     .filter(([k]) => k.startsWith(fStr + '|')).length;
-                const esDiaFullAdmin = !cierreDia && (horasReservadasDia.size + horasAdminDia) >= 13;
+                const esDiaFullAdmin = !cierreDia && (horasReservadasDia.size + horasAdminDia) >= 25;
                 const div = document.createElement("div");
                 div.className = `day ${tiene && !esDiaFullAdmin ? 'has-reserva' : ''} ${cierreDia ? 'day-closed' : ''} ${esDiaFullAdmin ? 'day-full' : ''}`.trim();
                 div.innerText = d;
