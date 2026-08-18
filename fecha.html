@@ -829,7 +829,10 @@ const slotsTomadosDia = (fStr) => {
     bloqueosHorarios.forEach((_, k) => { if (k.startsWith(fStr + "|")) blocks++; });
     return res.size + blocks;
 };
-const esDiaLleno = (fStr) => slotsTomadosDia(fStr) >= TOTAL_SLOTS;
+const esDiaLleno = (fStr) => {
+    const res = reservasPorFecha.get(fStr) || new Set();
+    return SLOTS_DIA.every(hora => res.has(hora) || bloqueosHorarios.has(keyBloqueo(fStr, hora)));
+};
 
 function renderCalendario() {
     const y = fechaActual.getFullYear(), m = fechaActual.getMonth();
