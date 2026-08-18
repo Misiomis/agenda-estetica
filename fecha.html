@@ -797,24 +797,27 @@ function procesarExcepciones(snapshot) {
 }
 
 async function cargarDatos() {
-    // Listener en tiempo real para calendarExceptions
+    // Listener en tiempo real para calendarExceptions (bloqueos hora a hora)
     onSnapshot(collection(db, "calendarExceptions"), async (snapshot) => {
         procesarExcepciones(snapshot);
         renderCalendario();
-        // Si hay un día seleccionado, refrescar sus slots
-        if (fechaSeleccionada) {
-            const fStr = fechaAString(fechaSeleccionada);
-            await cargarHorarios(fStr);
-        }
+        if (fechaSeleccionada) await cargarHorarios(fechaAString(fechaSeleccionada));
     });
-    try {
-        const bSnap = await getDoc(doc(db,"configuracion","bloqueos"));
-        if (bSnap.exists()) {
-            const bd = bSnap.data();
-            mesesBloqueados      = new Set(Array.isArray(bd.meses)?bd.meses:[]);
-            rangosDiasBloqueados = Array.isArray(bd.rangos)?bd.rangos.filter(r=>r.desde&&r.hasta):[];
+
+    // Listener en tiempo real para configuracion/bloqueos (rangos de días/meses)
+    onSnapshot(doc(db, "configuracion", "bloqueos"), async (snap) => {
+        if (snap.exists()) {
+            const bd = snap.data();
+            mesesBloqueados      = new Set(Array.isArray(bd.meses) ? bd.meses : []);
+            rangosDiasBloqueados = Array.isArray(bd.rangos) ? bd.rangos.filter(r => r.desde && r.hasta) : [];
+        } else {
+            mesesBloqueados = new Set();
+            rangosDiasBloqueados = [];
         }
-    } catch(e) {}
+        renderCalendario();
+        if (fechaSeleccionada) await cargarHorarios(fechaAString(fechaSeleccionada));
+    });
+
     await cargarReservasMes();
     renderCalendario();
 }
