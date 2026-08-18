@@ -1074,6 +1074,56 @@ exports.enviarNotificacionKitFacial = onRequest({ invoker: "public" }, async (re
     }
 });
 
+exports.enviarNotificacionConsulta = onRequest({ invoker: "public" }, async (req, res) => {
+
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") return res.status(204).send("");
+    if (req.method !== "POST") return res.status(405).json({ error: "Metodo no permitido" });
+
+    try {
+        const { nombre, fecha, hora, metodoPago } = req.body || {};
+
+        if (!nombre || !fecha || !hora) {
+            return res.status(400).json({ error: "Faltan campos obligatorios." });
+        }
+
+        const [y, m, d] = String(fecha).split('-');
+        const fechaFormateada = (d && m && y) ? `${d}/${m}/${y}` : fecha;
+        const horaTexto = limpiarHora(hora) ? `${limpiarHora(hora)} hs` : String(hora);
+        const pagoTexto = metodoPago === 'transferencia' ? 'Transferencia' : 'Efectivo';
+
+        const whatsappConfig = getWhatsAppConfig();
+
+        const envio = await enviarTemplateWhatsApp({
+            telefono: "3764291807",
+            templateName: "nueva_reserva",
+            templateLang: "es_AR",
+            bodyParameters: [
+                { placeholder: "{{1}} nombre",     value: String(nombre).trim() || "Paciente" },
+                { placeholder: "{{2}} fecha",       value: fechaFormateada },
+                { placeholder: "{{3}} hora",        value: horaTexto },
+                { placeholder: "{{4}} metodoPago",  value: pagoTexto }
+            ],
+            whatsappConfig
+        });
+
+        return res.status(200).json({
+            status: "enviado",
+            whatsappSent: true,
+            data: envio?.response?.data || null
+        });
+
+    } catch (error) {
+        console.error("enviarNotificacionConsulta error:", error.response?.data || error.message);
+        return res.status(500).json({
+            error: "Error al enviar notificación",
+            detalles: error.response?.data || error.message
+        });
+    }
+});
+
 exports.enviarResumenSesion = onRequest({ invoker: "public" }, async (req, res) => {
 
     res.set("Access-Control-Allow-Origin", "*");

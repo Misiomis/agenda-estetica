@@ -300,6 +300,20 @@
         .mc-field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
         .mc-label{font-size:10px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(165,205,188,0.40);display:block;margin-bottom:5px;}
 
+        /* ── Drum Date Picker ── */
+        .drum-outer{position:relative;border-radius:14px;border:1.5px solid rgba(60,179,113,0.18);background:rgba(10,22,16,0.60);overflow:hidden;margin-bottom:11px;user-select:none;}
+        .drum-lbl-row{display:grid;grid-template-columns:1.1fr 1.8fr 1.1fr;height:24px;border-bottom:1px solid rgba(60,179,113,0.10);}
+        .drum-lbl-row>div{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(165,205,188,0.30);}
+        .drum-scroll-area{display:grid;grid-template-columns:1.1fr 1.8fr 1.1fr;height:154px;overflow:hidden;}
+        .drum-col{overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-height:0;}
+        .drum-col::-webkit-scrollbar{display:none;}
+        .drum-spacer{height:55px;pointer-events:none;flex-shrink:0;}
+        .drum-item{height:44px;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:rgba(165,205,188,0.28);padding:0 4px;text-align:center;transition:none;}
+        .drum-bar{position:absolute;top:79px;left:0;right:0;height:44px;background:rgba(74,222,128,0.06);border-top:1px solid rgba(74,222,128,0.25);border-bottom:1px solid rgba(74,222,128,0.25);pointer-events:none;z-index:3;}
+        .drum-fade{position:absolute;left:0;right:0;height:55px;pointer-events:none;z-index:4;}
+        .drum-fade-t{top:24px;background:linear-gradient(to bottom,rgba(10,22,16,0.96) 0%,rgba(10,22,16,0) 100%);}
+        .drum-fade-b{bottom:0;background:linear-gradient(to top,rgba(10,22,16,0.96) 0%,rgba(10,22,16,0) 100%);}
+
         .mc-btn{
             width:100%;padding:15px;margin-top:6px;
             background:linear-gradient(135deg,#4ea37f,#357a5c);
@@ -496,17 +510,23 @@
             </div>
 
             <input class="mc-field" type="text" id="mcNombre" placeholder="Nombre completo *" autocomplete="name">
-            <div class="mc-field-row">
-                <input class="mc-field" type="text" id="mcDni" placeholder="DNI *" inputmode="numeric" style="margin-bottom:0;">
-                <div>
-                    <label class="mc-label" for="mcFechaNac">Fecha de nacimiento *</label>
-                    <input class="mc-field" type="date" id="mcFechaNac" style="margin-bottom:0;">
+            <input class="mc-field" type="text" id="mcDni" placeholder="DNI *" inputmode="numeric">
+            <label class="mc-label" style="margin-top:2px;">Fecha de nacimiento *</label>
+            <div class="drum-outer" id="drumPicker">
+                <div class="drum-lbl-row"><div>Día</div><div>Mes</div><div>Año</div></div>
+                <div class="drum-scroll-area">
+                    <div class="drum-col" id="drumDia"></div>
+                    <div class="drum-col" id="drumMes"></div>
+                    <div class="drum-col" id="drumAnio"></div>
                 </div>
+                <div class="drum-bar"></div>
+                <div class="drum-fade drum-fade-t"></div>
+                <div class="drum-fade drum-fade-b"></div>
             </div>
-            <div style="height:11px;"></div>
+            <input class="mc-field" type="number" id="mcEdad" placeholder="Edad *" inputmode="numeric" min="1" max="120">
             <input class="mc-field" type="text" id="mcDomicilio" placeholder="Domicilio (calle y número) *" autocomplete="street-address">
             <input class="mc-field" type="tel" id="mcTelefono" placeholder="WhatsApp / Teléfono *" autocomplete="tel" inputmode="tel">
-            <input class="mc-field" type="email" id="mcEmail" placeholder="Email (opcional)" autocomplete="email" inputmode="email">
+            <input class="mc-field" type="email" id="mcEmail" placeholder="Email *" autocomplete="email" inputmode="email">
 
             <button class="mc-btn" id="mcBtnPaso2" onclick="irPaso2()">Continuar →</button>
         </div>
@@ -603,6 +623,70 @@ const hoy = new Date(); hoy.setHours(0,0,0,0);
 let excepciones = {}, bloqueosHorarios = new Map();
 let rangosDiasBloqueados = [], mesesBloqueados = new Set();
 let reservasPorFecha = new Map();
+
+// ── Drum Date Picker ──
+const DRUM_DIAS  = Array.from({length:31}, (_,i) => String(i+1).padStart(2,'0'));
+const DRUM_MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const DRUM_ANIO0 = new Date().getFullYear();
+const DRUM_ANIOS = Array.from({length:100}, (_,i) => String(DRUM_ANIO0 - i));
+const DRUM_ITH   = 44;
+
+function buildDrumCol(el, items, initIdx) {
+    const sp1 = document.createElement('div'); sp1.className = 'drum-spacer'; el.appendChild(sp1);
+    items.forEach(v => { const d = document.createElement('div'); d.className = 'drum-item'; d.textContent = v; el.appendChild(d); });
+    const sp2 = document.createElement('div'); sp2.className = 'drum-spacer'; el.appendChild(sp2);
+    el.scrollTop = initIdx * DRUM_ITH;
+    refreshDrum(el);
+    let snapTimer;
+    el.addEventListener('scroll', () => {
+        refreshDrum(el);
+        clearTimeout(snapTimer);
+        snapTimer = setTimeout(() => {
+            const i = Math.round(el.scrollTop / DRUM_ITH);
+            el.scrollTo({top: i * DRUM_ITH, behavior: 'smooth'});
+            autoFillEdad();
+        }, 180);
+    }, {passive: true});
+}
+
+function refreshDrum(el) {
+    const cur = el.scrollTop / DRUM_ITH;
+    el.querySelectorAll('.drum-item').forEach((it, i) => {
+        const d = Math.abs(i - cur);
+        if (d < 0.6)      { it.style.color = 'rgba(220,242,232,0.95)'; it.style.fontSize = '16px'; it.style.fontWeight = '700'; }
+        else if (d < 1.6) { it.style.color = 'rgba(165,205,188,0.50)'; it.style.fontSize = '14px'; it.style.fontWeight = '500'; }
+        else               { it.style.color = 'rgba(165,205,188,0.18)'; it.style.fontSize = '12px'; it.style.fontWeight = '400'; }
+    });
+}
+
+function drumIdx(el, max) { return Math.max(0, Math.min(Math.round(el.scrollTop / DRUM_ITH), max - 1)); }
+
+function getFechaNacDrum() {
+    const dia  = DRUM_DIAS[drumIdx(document.getElementById('drumDia'), DRUM_DIAS.length)];
+    const mesN = drumIdx(document.getElementById('drumMes'), DRUM_MESES.length);
+    const anio = DRUM_ANIOS[drumIdx(document.getElementById('drumAnio'), DRUM_ANIOS.length)];
+    return `${anio}-${String(mesN + 1).padStart(2,'0')}-${dia}`;
+}
+
+function autoFillEdad() {
+    const [y, m, d] = getFechaNacDrum().split('-').map(Number);
+    if (!y || !m || !d) return;
+    const hoy = new Date();
+    let e = hoy.getFullYear() - y;
+    if (hoy.getMonth() + 1 < m || (hoy.getMonth() + 1 === m && hoy.getDate() < d)) e--;
+    const el = document.getElementById('mcEdad');
+    if (el && e >= 0 && e <= 120) el.value = e;
+}
+
+let drumBuilt = false;
+function initDrumPickers() {
+    if (drumBuilt) return;
+    drumBuilt = true;
+    buildDrumCol(document.getElementById('drumDia'),  DRUM_DIAS,  0);
+    buildDrumCol(document.getElementById('drumMes'),  DRUM_MESES, 0);
+    buildDrumCol(document.getElementById('drumAnio'), DRUM_ANIOS, 30);
+    autoFillEdad();
+}
 
 // ── Estado del formulario ──
 let _metodoPago = null;
@@ -866,6 +950,7 @@ document.getElementById("reservarBtn").onclick = () => {
     _metodoPago = null;
     irPaso1();
     document.getElementById("modalConsulta").classList.add("open");
+    initDrumPickers();
 };
 
 document.getElementById("mcClose").onclick = () => document.getElementById("modalConsulta").classList.remove("open");
@@ -880,17 +965,22 @@ window.irPaso1 = function() {
 };
 
 window.irPaso2 = function() {
-    const nombre   = document.getElementById("mcNombre").value.trim();
-    const dni      = document.getElementById("mcDni").value.trim();
-    const fechaNac = document.getElementById("mcFechaNac").value;
-    const domicilio= document.getElementById("mcDomicilio").value.trim();
-    const telefono = document.getElementById("mcTelefono").value.trim();
+    const nombre    = document.getElementById("mcNombre").value.trim();
+    const dni       = document.getElementById("mcDni").value.trim();
+    const fechaNac  = getFechaNacDrum();
+    const edad      = document.getElementById("mcEdad").value.trim();
+    const domicilio = document.getElementById("mcDomicilio").value.trim();
+    const telefono  = document.getElementById("mcTelefono").value.trim();
+    const email     = document.getElementById("mcEmail").value.trim();
 
     if (!nombre) { alertCampo("mcNombre","Ingresá tu nombre completo"); return; }
     if (!dni || !/^\d{7,9}$/.test(dni.replace(/\./g,""))) { alertCampo("mcDni","DNI inválido"); return; }
-    if (!fechaNac) { alertCampo("mcFechaNac","Ingresá tu fecha de nacimiento"); return; }
+    const [fnY, fnM, fnD] = fechaNac.split('-').map(Number);
+    if (new Date(fnY, fnM-1, fnD) >= new Date()) { alertCampo("drumPicker","La fecha de nacimiento no puede ser futura"); return; }
+    if (!edad || isNaN(parseInt(edad)) || parseInt(edad) < 1 || parseInt(edad) > 120) { alertCampo("mcEdad","Ingresá tu edad"); return; }
     if (!domicilio) { alertCampo("mcDomicilio","Ingresá tu domicilio"); return; }
     if (!telefono) { alertCampo("mcTelefono","Ingresá tu número de WhatsApp"); return; }
+    if (!email || !email.includes('@')) { alertCampo("mcEmail","Ingresá un email válido"); return; }
 
     document.getElementById("mcStep1").classList.remove("active");
     document.getElementById("mcStep2").classList.add("active");
@@ -903,10 +993,11 @@ window.irPaso2 = function() {
 
 function alertCampo(id, msg) {
     const el = document.getElementById(id);
-    if (!el) return;
-    el.style.borderColor = "rgba(255,100,100,0.60)";
-    el.focus();
-    setTimeout(() => el.style.borderColor = "", 2400);
+    if (el) {
+        el.style.borderColor = "rgba(255,100,100,0.60)";
+        if (el.focus && el.tagName === 'INPUT') el.focus();
+        setTimeout(() => el.style.borderColor = "", 2400);
+    }
     // toast mini
     let t = document.getElementById("_mc_toast");
     if (!t) { t = document.createElement("div"); t.id="_mc_toast"; t.style.cssText="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(200,60,60,0.92);color:#fff;padding:9px 18px;border-radius:10px;font-size:13px;font-weight:700;z-index:99999;pointer-events:none;transition:opacity .3s;"; document.body.appendChild(t); }
@@ -934,28 +1025,21 @@ window.confirmarConsulta = async function() {
     const btn = document.getElementById("mcBtnConfirmar");
     btn.disabled = true; btn.textContent = "Guardando...";
 
-    const nombre   = document.getElementById("mcNombre").value.trim();
-    const dniRaw   = document.getElementById("mcDni").value.trim().replace(/\./g,"");
-    const fechaNac = document.getElementById("mcFechaNac").value;
-    const domicilio= document.getElementById("mcDomicilio").value.trim();
-    const telefono = document.getElementById("mcTelefono").value.trim();
-    const email    = document.getElementById("mcEmail").value.trim();
-    const fStr     = fechaAString(fechaSeleccionada);
-
-    const calcEdad = (fnac) => {
-        const [y,m,d] = fnac.split("-").map(Number);
-        const hoyD = new Date();
-        let edad = hoyD.getFullYear() - y;
-        if (hoyD.getMonth()+1 < m || (hoyD.getMonth()+1 === m && hoyD.getDate() < d)) edad--;
-        return edad;
-    };
+    const nombre    = document.getElementById("mcNombre").value.trim();
+    const dniRaw    = document.getElementById("mcDni").value.trim().replace(/\./g,"");
+    const fechaNac  = getFechaNacDrum();
+    const edad      = parseInt(document.getElementById("mcEdad").value.trim()) || 0;
+    const domicilio = document.getElementById("mcDomicilio").value.trim();
+    const telefono  = document.getElementById("mcTelefono").value.trim();
+    const email     = document.getElementById("mcEmail").value.trim();
+    const fStr      = fechaAString(fechaSeleccionada);
 
     try {
         await addDoc(collection(db,"consultas"), {
             nombre,
             dni: dniRaw,
             fechaNacimiento: fechaNac,
-            edad: calcEdad(fechaNac),
+            edad,
             domicilio,
             telefono,
             email: email || null,
@@ -965,6 +1049,13 @@ window.confirmarConsulta = async function() {
             estado: "pendiente",
             createdAt: serverTimestamp()
         });
+
+        // Notificar a Gimena (fire-and-forget, no bloquea la UI)
+        fetch("https://us-central1-estetica-8d067.cloudfunctions.net/enviarNotificacionConsulta", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ nombre, fecha: fStr, hora: horaSeleccionada, metodoPago: _metodoPago })
+        }).catch(() => {});
 
         // Mostrar éxito
         document.getElementById("mcStep2").classList.remove("active");
