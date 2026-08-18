@@ -4507,6 +4507,13 @@
                 await updateDoc(doc(db,'consultas',id), { estado: nuevoEstado, updatedAt: serverTimestamp() });
                 const c = _consultasCache.find(x => x.id === id);
                 if (c) c.estado = nuevoEstado;
+
+                // Si se cancela, liberar el slot en calendarExceptions
+                if (['cancelada','cancelado'].includes(nuevoEstado) && c?.fecha && c?.hora) {
+                    const blockId = `consulta_${c.fecha}_${normalizarHora(c.hora).replace(':', '-')}`;
+                    deleteDoc(doc(db, 'calendarExceptions', blockId)).catch(() => {});
+                }
+
                 // Actualizar badge
                 const pendientes = _consultasCache.filter(c => (c.estado||'pendiente') === 'pendiente').length;
                 const badge = document.getElementById('consultas-badge');

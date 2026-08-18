@@ -1104,7 +1104,7 @@ window.confirmarConsulta = async function() {
             return;
         }
 
-        await addDoc(collection(db,"consultas"), {
+        const consultaRef = await addDoc(collection(db,"consultas"), {
             nombre,
             dni: dniRaw,
             fechaNacimiento: fechaNac,
@@ -1118,6 +1118,17 @@ window.confirmarConsulta = async function() {
             estado: "pendiente",
             createdAt: serverTimestamp()
         });
+
+        // Bloquear el slot en calendarExceptions para que sea visible públicamente
+        const blockId = `consulta_${fStr}_${horaSeleccionada.replace(':', '-')}`;
+        setDoc(doc(db, "calendarExceptions", blockId), {
+            fecha: fStr,
+            hora: horaSeleccionada,
+            blocked: true,
+            tipo: "consulta",
+            consultaId: consultaRef.id,
+            updatedAt: serverTimestamp()
+        }).catch(() => {});
 
         // Guardar/actualizar perfil del paciente en clients (auto-completado futuro)
         setDoc(doc(db, "clients", dniRaw), {
