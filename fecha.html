@@ -537,6 +537,7 @@
             <p class="mc-eyebrow">Paso 2 de 2</p>
             <h2 class="mc-title">¿Cómo abonás?</h2>
             <p class="mc-sub">$25.000 · pago en el momento de la consulta.</p>
+            <p style="font-size:12px;font-weight:700;color:rgba(106,230,164,0.80);text-align:center;margin:-10px 0 14px;letter-spacing:.01em;">Este valor es 100% reintegrable al elegir tu tratamiento.</p>
 
             <div class="mc-pago-grid">
                 <button class="mc-pago-opt" id="pagoEfectivo" onclick="seleccionarPago('efectivo')">
@@ -577,7 +578,7 @@
             <div id="mcSuccessTransfer" style="display:none;margin-bottom:12px;">
                 <a id="mcWaComprobante" href="#" target="_blank" rel="noopener" class="mc-wa-btn">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                    Enviar comprobante a Gimena
+                    Enviar comprobante a administración
                 </a>
             </div>
             <button class="mc-btn" onclick="window.location.href='/'">Volver al inicio</button>
@@ -586,7 +587,7 @@
 </div>
 
 <script type="module">
-import { db, doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "/js/firebase-web.js";
+import { db, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "/js/firebase-web.js";
 import { cargarTemaYAnuncio } from "/js/theme-loader.js";
 
 // ── Slots de 30 minutos ──
@@ -676,6 +677,21 @@ function autoFillEdad() {
     if (hoy.getMonth() + 1 < m || (hoy.getMonth() + 1 === m && hoy.getDate() < d)) e--;
     const el = document.getElementById('mcEdad');
     if (el && e >= 0 && e <= 120) el.value = e;
+}
+
+function setDrumDate(fechaStr) {
+    const [y, m, d] = (fechaStr || '').split('-').map(Number);
+    if (!y || !m || !d) return;
+    const dEl = document.getElementById('drumDia');
+    const mEl = document.getElementById('drumMes');
+    const aEl = document.getElementById('drumAnio');
+    const anioIdx = DRUM_ANIOS.indexOf(String(y));
+    if (!dEl || !mEl || !aEl || anioIdx === -1) return;
+    dEl.scrollTop = (d - 1) * DRUM_ITH;
+    mEl.scrollTop = (m - 1) * DRUM_ITH;
+    aEl.scrollTop = anioIdx * DRUM_ITH;
+    refreshDrum(dEl); refreshDrum(mEl); refreshDrum(aEl);
+    autoFillEdad();
 }
 
 let drumBuilt = false;
@@ -955,6 +971,27 @@ document.getElementById("reservarBtn").onclick = () => {
 
 document.getElementById("mcClose").onclick = () => document.getElementById("modalConsulta").classList.remove("open");
 
+// ── Auto-completar datos desde Firestore cuando ingresa el DNI ──
+document.getElementById("mcDni").addEventListener("blur", async () => {
+    const dniRaw = document.getElementById("mcDni").value.trim().replace(/\./g,"");
+    if (!/^\d{7,9}$/.test(dniRaw)) return;
+    try {
+        const snap = await getDoc(doc(db, "clients", dniRaw));
+        if (!snap.exists()) return;
+        const c = snap.data() || {};
+        const nombre = document.getElementById("mcNombre");
+        const domicilio = document.getElementById("mcDomicilio");
+        const telefono = document.getElementById("mcTelefono");
+        const email = document.getElementById("mcEmail");
+        if (!nombre.value && (c.nombre || c.fullName)) nombre.value = c.nombre || c.fullName;
+        if (!domicilio.value && c.domicilio) domicilio.value = c.domicilio;
+        if (!telefono.value && (c.telefono || c.phone)) telefono.value = c.telefono || c.phone;
+        if (!email.value && c.email) email.value = c.email;
+        if (c.fechaNacimiento && drumBuilt) setDrumDate(c.fechaNacimiento);
+        if (c.edad) { const eEl = document.getElementById("mcEdad"); if (eEl && !eEl.value) eEl.value = c.edad; }
+    } catch(e) {}
+});
+
 // ── Navegación de pasos ──
 window.irPaso1 = function() {
     document.getElementById("mcStep1").classList.add("active");
@@ -1049,6 +1086,15 @@ window.confirmarConsulta = async function() {
             estado: "pendiente",
             createdAt: serverTimestamp()
         });
+
+        // Guardar/actualizar perfil del paciente en clients (auto-completado futuro)
+        setDoc(doc(db, "clients", dniRaw), {
+            dni: dniRaw,
+            nombre, fullName: nombre,
+            domicilio, telefono, email: email || null,
+            fechaNacimiento: fechaNac, edad,
+            updatedAt: serverTimestamp()
+        }, { merge: true }).catch(() => {});
 
         // Notificar a Gimena (fire-and-forget, no bloquea la UI)
         fetch("https://us-central1-estetica-8d067.cloudfunctions.net/enviarNotificacionConsulta", {
