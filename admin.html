@@ -1888,8 +1888,8 @@
         
         let _sabado30Activo = false;
         const SLOTS_30_COMPLETOS = [
-            "07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30",
-            "15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30","21:00"
+            "07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30",
+            "13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30"
         ];
 
         const obtenerHorariosDia = (fecha) => {
@@ -2317,6 +2317,7 @@
                 <div style="flex:1;font-size:12px;color:rgba(165,205,188,0.50);">Bloquear días del calendario</div>
                 <button class="btn-mini" onclick="bloquearDiaCompletoYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(200,80,80,0.35);color:rgba(220,130,130,0.90);">🔒 Día</button>
                 <button class="btn-mini" onclick="bloquearSemanaYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(200,80,80,0.35);color:rgba(220,130,130,0.90);">🔒 Semana</button>
+                <button class="btn-mini" onclick="desbloquearSemanaYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(80,180,130,0.35);color:rgba(100,210,160,0.90);">🔓 Semana</button>
             </div>`;
             const gestorHTML = `
                 <div class="horarios-admin-card">
@@ -5076,6 +5077,37 @@
             } catch(e) {
                 console.error(e);
                 mostrarAviso("No se pudo bloquear la semana");
+            } finally { mostrarLoader(false); }
+        };
+
+        const _desbloquearTodosLosHorariosDia = async (fecha) => {
+            const keysDelDia = [...bloqueosHorarios.entries()]
+                .filter(([k]) => k.startsWith(fecha + '|'))
+                .map(([k, v]) => ({ key: k, id: v.id || docIdBloqueo(fecha, v.hora), hora: v.hora }));
+            await Promise.all(keysDelDia.map(async ({ key, id }) => {
+                try { await deleteDoc(doc(db, "calendarExceptions", id)); } catch(e) {}
+                bloqueosHorarios.delete(key);
+            }));
+        };
+
+        window.desbloquearSemanaYRefrescar = async function(fecha) {
+            const d = new Date(fecha + 'T00:00:00');
+            const hastaD = new Date(d); hastaD.setDate(hastaD.getDate() + 6);
+            const hastaStr = hastaD.toISOString().slice(0, 10);
+            if (!await _confirmarModal('Desbloquear semana', `¿Desbloquear todos los horarios del<br><strong>${formatoFechaISO(fecha)}</strong> al <strong>${formatoFechaISO(hastaStr)}</strong>?`, 'Sí, desbloquear')) return;
+            try {
+                mostrarLoader(true);
+                const cur = new Date(fecha + 'T00:00:00');
+                while (cur.toISOString().slice(0, 10) <= hastaStr) {
+                    await _desbloquearTodosLosHorariosDia(cur.toISOString().slice(0, 10));
+                    cur.setDate(cur.getDate() + 1);
+                }
+                mostrarAviso(`Semana del ${fecha} al ${hastaStr} desbloqueada ✓`);
+                const sel = document.querySelector('.day.selected');
+                if (sel) verTurnos(fecha, sel);
+            } catch(e) {
+                console.error(e);
+                mostrarAviso("No se pudo desbloquear la semana");
             } finally { mostrarLoader(false); }
         };
 

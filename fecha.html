@@ -589,14 +589,15 @@
 </div>
 
 <script type="module">
-import { db, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "/js/firebase-web.js";
+import { db, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot } from "/js/firebase-web.js";
 import { cargarTemaYAnuncio } from "/js/theme-loader.js";
 
-// ── Slots de 30 minutos ──
-const SLOTS_MANANA = ["07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30"];
-const SLOTS_TARDE  = ["15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30","21:00"];
-const SLOTS_DIA    = [...SLOTS_MANANA, ...SLOTS_TARDE];
-const TOTAL_SLOTS  = SLOTS_DIA.length; // 25
+// ── Slots de 30 minutos: 07:30 → 20:30 corridos ──
+const SLOTS_DIA = Array.from({length: 27}, (_, i) => {
+    const t = 7 * 60 + 30 + i * 30;
+    return `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
+});
+const TOTAL_SLOTS = SLOTS_DIA.length; // 27
 
 const normalizarHora = (hora) => {
     const txt = (hora || "").toString().replace(/\s*hs$/i,"").trim();
@@ -777,10 +778,9 @@ const obtenerHorasOcupadas = async (fStr) => {
     return [...horas].sort((a,b) => a.localeCompare(b));
 };
 
-async function cargarDatos() {
-    const exSnap = await getDocs(collection(db,"calendarExceptions"));
+function procesarExcepciones(snapshot) {
     excepciones = {}; bloqueosHorarios = new Map();
-    exSnap.forEach(docSnap => {
+    snapshot.forEach(docSnap => {
         const data = docSnap.data() || {};
         const idEsFecha = /^\d{4}-\d{2}-\d{2}$/.test(docSnap.id);
         const fechaEx = ((data.fecha||"")||(idEsFecha?docSnap.id:"")).toString();
@@ -793,6 +793,19 @@ async function cargarDatos() {
             return;
         }
         if (fechaEx) excepciones[fechaEx] = data.reason || "Cerrado";
+    });
+}
+
+async function cargarDatos() {
+    // Listener en tiempo real para calendarExceptions
+    onSnapshot(collection(db, "calendarExceptions"), async (snapshot) => {
+        procesarExcepciones(snapshot);
+        renderCalendario();
+        // Si hay un día seleccionado, refrescar sus slots
+        if (fechaSeleccionada) {
+            const fStr = fechaAString(fechaSeleccionada);
+            await cargarHorarios(fStr);
+        }
     });
     try {
         const bSnap = await getDoc(doc(db,"configuracion","bloqueos"));
@@ -1077,6 +1090,14 @@ window.confirmarConsulta = async function() {
     const fStr      = fechaAString(fechaSeleccionada);
 
     try {
+        // Verificar que el slot sigue libre (anti double-booking)
+        const ocupadosAhora = await obtenerHorasOcupadas(fStr);
+        if (ocupadosAhora.includes(horaSeleccionada) || bloqueosHorarios.has(keyBloqueo(fStr, horaSeleccionada))) {
+            mostrarAviso("Horario no disponible", "Este turno acaba de ser ocupado por otra persona. Por favor elegí otro horario.");
+            btn.disabled = false; btn.textContent = "Confirmar turno";
+            return;
+        }
+
         await addDoc(collection(db,"consultas"), {
             nombre,
             dni: dniRaw,
