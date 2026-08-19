@@ -2340,7 +2340,9 @@
                 <div style="flex:1;font-size:12px;color:rgba(165,205,188,0.50);">Bloquear días del calendario</div>
                 <button class="btn-mini" onclick="bloquearDiaCompletoYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(200,80,80,0.35);color:rgba(220,130,130,0.90);">🔒 Día</button>
                 <button class="btn-mini" onclick="bloquearSemanaYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(200,80,80,0.35);color:rgba(220,130,130,0.90);">🔒 Semana</button>
+                <button class="btn-mini" onclick="bloquearMesYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(200,80,80,0.35);color:rgba(220,130,130,0.90);">🔒 Mes</button>
                 <button class="btn-mini" onclick="desbloquearSemanaYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(80,180,130,0.35);color:rgba(100,210,160,0.90);">🔓 Semana</button>
+                <button class="btn-mini" onclick="desbloquearMesYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(80,180,130,0.35);color:rgba(100,210,160,0.90);">🔓 Mes</button>
             </div>`;
             const gestorHTML = `
                 <div class="horarios-admin-card">
@@ -5232,6 +5234,54 @@
             } catch(e) {
                 console.error(e);
                 mostrarAviso("No se pudo desbloquear la semana");
+            } finally { mostrarLoader(false); }
+        };
+
+        window.bloquearMesYRefrescar = async function(fecha) {
+            const d = new Date(fecha + 'T00:00:00');
+            const anio = d.getFullYear(), mes = d.getMonth();
+            const primerDia = `${anio}-${String(mes + 1).padStart(2,'0')}-01`;
+            const ultimoDia = new Date(anio, mes + 1, 0);
+            const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2,'0')}-${String(ultimoDia.getDate()).padStart(2,'0')}`;
+            const nombreMes = d.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+            if (!await _confirmarModal('Bloquear mes', `¿Bloquear todos los horarios libres de <strong>${nombreMes}</strong>?<br><small style="color:#a0b8af">Los turnos ya reservados no se tocan.</small>`, 'Sí, bloquear mes')) return;
+            try {
+                mostrarLoader(true);
+                const cur = new Date(primerDia + 'T00:00:00');
+                while (cur.toISOString().slice(0, 10) <= ultimoDiaStr) {
+                    await _bloquearTodosLosHorariosDia(cur.toISOString().slice(0, 10));
+                    cur.setDate(cur.getDate() + 1);
+                }
+                mostrarAviso(`Mes de ${nombreMes} bloqueado ✓`);
+                const sel = document.querySelector('.day.selected');
+                if (sel) await verTurnos(fecha, sel);
+            } catch(e) {
+                console.error(e);
+                mostrarAviso("No se pudo bloquear el mes");
+            } finally { mostrarLoader(false); }
+        };
+
+        window.desbloquearMesYRefrescar = async function(fecha) {
+            const d = new Date(fecha + 'T00:00:00');
+            const anio = d.getFullYear(), mes = d.getMonth();
+            const primerDia = `${anio}-${String(mes + 1).padStart(2,'0')}-01`;
+            const ultimoDia = new Date(anio, mes + 1, 0);
+            const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2,'0')}-${String(ultimoDia.getDate()).padStart(2,'0')}`;
+            const nombreMes = d.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+            if (!await _confirmarModal('Desbloquear mes', `¿Desbloquear todos los horarios de <strong>${nombreMes}</strong>?<br><small style="color:#a0b8af">Solo se eliminan bloqueos manuales — las reservas no se tocan.</small>`, 'Sí, desbloquear mes')) return;
+            try {
+                mostrarLoader(true);
+                const cur = new Date(primerDia + 'T00:00:00');
+                while (cur.toISOString().slice(0, 10) <= ultimoDiaStr) {
+                    await _desbloquearTodosLosHorariosDia(cur.toISOString().slice(0, 10));
+                    cur.setDate(cur.getDate() + 1);
+                }
+                mostrarAviso(`Mes de ${nombreMes} desbloqueado ✓`);
+                const sel = document.querySelector('.day.selected');
+                if (sel) verTurnos(fecha, sel);
+            } catch(e) {
+                console.error(e);
+                mostrarAviso("No se pudo desbloquear el mes");
             } finally { mostrarLoader(false); }
         };
 
