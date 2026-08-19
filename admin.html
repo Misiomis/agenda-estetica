@@ -1215,6 +1215,15 @@
         const normalizarDNI = (v) => (v ?? "").toString().replace(/\D/g, '');
         const normalizarNombreKey = (v) => borrarEtiquetaDNI(v || "").toLowerCase().replace(/\s+/g, ' ').trim();
         const normalizarTelefono = (v) => (v ?? "").toString().trim();
+        const normalizarWA = (tel) => {
+            const d = (tel||'').replace(/\D/g,'');
+            if(!d) return '';
+            if(d.startsWith('549') && d.length >= 12) return d;
+            if(d.startsWith('54') && d.length >= 11) return '549'+d.slice(2);
+            if(d.length === 10) return '549'+d;
+            if(d.length === 11 && d.startsWith('9')) return '54'+d;
+            return '549'+d;
+        };
         const generarUsername = (nombre) => (nombre || "")
             .toString()
             .normalize('NFD')
@@ -1618,7 +1627,7 @@
                 r.title,
                 r.servicio
             ].map((value) => (value || '').toString().trim().toLowerCase()).filter(Boolean);
-            const phone = normalizarTelefono(r.phone ?? r.telefono ?? '');
+            const phone = normalizarWA(r.phone ?? r.telefono ?? '');
             const dni = normalizarDNI(r.dni ?? r.clienteDni ?? r.documento ?? r.document ?? '');
             const mencionaBloqueo = textos.some((texto) => /bloquead[oa].*admin|admin.*bloquead[oa]/i.test(texto));
             const servicioNoDisponible = textos.includes('no disponible');
@@ -4587,36 +4596,53 @@
                 const estadoColor = estado === 'confirmada' ? '#4ade80' : estado === 'cancelada' ? 'rgba(255,100,100,0.75)' : '#fbbf24';
                 const estadoLabel = estado === 'confirmada' ? 'Confirmada' : estado === 'cancelada' ? 'Cancelada' : 'Pendiente';
                 const pago = c.metodoPago === 'transferencia' ? 'Transferencia' : c.metodoPago === 'efectivo' ? 'Efectivo' : (c.metodoPago||'-');
-                const waMsg = encodeURIComponent(`Hola ${c.nombre?.split(' ')[0] || ''}, te confirmamos tu consulta inicial en Espacio Mimar T para el ${fechaLindaConsulta(c.fecha)} a las ${c.hora} hs. ¡Te esperamos!`);
-                const waLink = c.telefono ? `https://wa.me/54${c.telefono.replace(/\D/g,'')}?text=${waMsg}` : '';
+                const waPhone = normalizarWA(c.telefono||c.phone||'');
+                const primerNombre = (c.nombre||'').split(' ')[0] || '';
+                const fechaVis = fechaLindaConsulta(c.fecha);
+                const waConfirm = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}, te confirmamos tu consulta inicial en Espacio Mimar T para el ${fechaVis} a las ${c.hora} hs. ¡Te esperamos!`)}` : '';
+                const waRecordar = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}, te recordamos tu consulta inicial en Espacio Mimar T mañana ${fechaVis} a las ${c.hora} hs. Ante cualquier duda, escribinos.`)}` : '';
+                const waAvisoCanc = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}, queremos avisarte que tu consulta inicial en Espacio Mimar T del ${fechaVis} a las ${c.hora} hs no puede realizarse. Comunicáte con nosotros para reprogramar.`)}` : '';
+                const recId = `rec-c-${c.id}`;
+                const msg1 = encodeURIComponent(`Hola ${primerNombre}, acordate de tomar agua durante el día de hoy. Es fundamental para maximizar los resultados del tratamiento. Espacio Mimar T.`);
+                const msg2 = encodeURIComponent(`Hola ${primerNombre}, recordá el uso de faja o ropa de compresión según las indicaciones recibidas. Espacio Mimar T.`);
+                const msgMioUp = encodeURIComponent(`Hola ${primerNombre}, te recomendamos potenciar tu tratamiento con MIO UP. Escribinos si querés más información. Espacio Mimar T.`);
+                const msgFraxis = encodeURIComponent(`Hola ${primerNombre}, te recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información. Espacio Mimar T.`);
                 return `
                 <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(60,179,113,0.14);border-radius:18px;padding:18px 20px;position:relative;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
                         <span style="background:rgba(${estado==='confirmada'?'74,222,128':estado==='cancelada'?'255,100,100':'251,191,36'},0.15);border:1px solid rgba(${estado==='confirmada'?'74,222,128':estado==='cancelada'?'255,100,100':'251,191,36'},0.35);color:${estadoColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.06em;">${estadoLabel}</span>
-                        <strong style="font-size:15px;color:rgba(220,242,232,0.92);flex:1;">${c.nombre||'Sin nombre'}</strong>
+                        <strong style="font-size:15px;color:rgba(220,242,232,0.92);flex:1;">${escapeHtml(c.nombre||'Sin nombre')}</strong>
                         <span style="font-size:12px;color:rgba(165,205,188,0.50);">DNI: ${c.dni||'-'}</span>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
                         <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:8px 12px;">
                             <div style="font-size:10px;color:rgba(165,205,188,0.40);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Turno</div>
-                            <div style="font-size:13px;color:rgba(220,242,232,0.85);font-weight:600;">${fechaLindaConsulta(c.fecha)}</div>
+                            <div style="font-size:13px;color:rgba(220,242,232,0.85);font-weight:600;">${fechaVis}</div>
                             <div style="font-size:13px;color:rgba(220,242,232,0.85);font-weight:600;">${c.hora||'-'} hs</div>
                         </div>
                         <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:8px 12px;">
                             <div style="font-size:10px;color:rgba(165,205,188,0.40);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Datos</div>
-                            <div style="font-size:12.5px;color:rgba(220,242,232,0.75);">Tel: ${c.telefono||'-'}</div>
-                            <div style="font-size:12.5px;color:rgba(220,242,232,0.75);">Edad: ${c.edad||'-'} · ${c.domicilio||'-'}</div>
+                            <div style="font-size:12.5px;color:rgba(220,242,232,0.75);">Tel: ${escapeHtml(c.telefono||c.phone||'-')}</div>
+                            <div style="font-size:12.5px;color:rgba(220,242,232,0.75);">Edad: ${c.edad||'-'} · ${escapeHtml(c.domicilio||'-')}</div>
                         </div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                        <span style="font-size:12px;color:rgba(165,205,188,0.50);">Pago: ${pago}</span>
-                        <div style="flex:1;"></div>
-                        ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.28);color:rgba(100,230,150,0.88);font-size:11.5px;font-weight:700;text-decoration:none;">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                            WhatsApp
-                        </a>` : ''}
-                        ${estado !== 'confirmada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:6px 12px;font-size:11.5px;background:rgba(74,222,128,0.14);border-color:rgba(74,222,128,0.35);color:#4ade80;">✓ Confirmar</button>` : ''}
-                        ${estado !== 'cancelada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','cancelada')" style="padding:6px 12px;font-size:11.5px;background:rgba(255,100,100,0.08);border-color:rgba(255,100,100,0.25);color:rgba(255,130,130,0.85);">✕ Cancelar</button>` : ''}
+                    <p style="margin:0 0 10px;font-size:12px;color:rgba(165,205,188,0.45);">Pago: ${pago} · Email: ${escapeHtml(c.email||'-')}</p>
+                    <div class="grid-acciones" style="margin-bottom:10px;">
+                        ${waConfirm ? `<a href="${waConfirm}" target="_blank" rel="noopener" class="btn-ws btn-confirmar" style="display:flex;align-items:center;justify-content:center;">Confirmar</a>` : `<button class="btn-ws btn-confirmar" disabled style="opacity:.3">Confirmar</button>`}
+                        ${waRecordar ? `<a href="${waRecordar}" target="_blank" rel="noopener" class="btn-ws btn-recordar" style="display:flex;align-items:center;justify-content:center;">Recordar</a>` : `<button class="btn-ws btn-recordar" disabled style="opacity:.3">Recordar</button>`}
+                        ${waAvisoCanc ? `<a href="${waAvisoCanc}" target="_blank" rel="noopener" class="btn-ws btn-cancelar" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">Avisar Canc.</a>` : `<button class="btn-ws btn-cancelar" disabled style="opacity:.3">Avisar Canc.</button>`}
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        ${estado !== 'confirmada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:9px 12px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;width:100%;">✓ Marcar como confirmada</button>` : ''}
+                        ${estado !== 'cancelada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','cancelada')" style="padding:9px 12px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);width:100%;">✕ Cancelar consulta</button>` : ''}
+                        <button onclick="borrarConsulta('${c.id}','${escapeHtml(c.nombre||'')}','${c.fecha}','${c.hora||''}')" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(255,100,100,0.18);background:rgba(255,100,100,0.05);color:rgba(200,100,100,0.70);font-weight:700;cursor:pointer;font-size:12px;">🗑 Borrar consulta</button>
+                        <button onclick="(function(){var m=document.getElementById('${recId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(150,185,245,0.90);font-weight:700;cursor:pointer;font-size:12px">📋 Enviar Recomendaciones</button>
+                        <div id="${recId}" style="display:none;flex-direction:column;gap:6px;background:rgba(60,100,200,0.06);border:1px solid rgba(60,100,200,0.15);border-radius:10px;padding:10px;">
+                            <a href="https://wa.me/${waPhone}?text=${msg1}" target="_blank" rel="noopener noreferrer" style="display:block;padding:10px 12px;border-radius:8px;background:#25d366;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💧 Tomar agua hoy</a>
+                            <a href="https://wa.me/${waPhone}?text=${msg2}" target="_blank" rel="noopener noreferrer" style="display:block;padding:10px 12px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">🩺 Uso de faja</a>
+                            <a href="https://wa.me/${waPhone}?text=${msgMioUp}" target="_blank" rel="noopener noreferrer" style="display:block;padding:10px 12px;border-radius:8px;background:linear-gradient(135deg,#6a3fa5,#4a2d82);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💪 MIO UP</a>
+                            <a href="https://wa.me/${waPhone}?text=${msgFraxis}" target="_blank" rel="noopener noreferrer" style="display:block;padding:10px 12px;border-radius:8px;background:linear-gradient(135deg,#c0506e,#8c2a46);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">✨ FRAXIS Facial</a>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
@@ -4642,6 +4668,25 @@
             } catch(e) {
                 console.error('Error actualizando consulta:', e);
                 mostrarAviso('No se pudo actualizar el estado');
+            }
+        };
+
+        window.borrarConsulta = async function(id, nombre, fecha, hora) {
+            if (!confirm(`¿Borrar la consulta de ${nombre}? Esta acción no se puede deshacer.`)) return;
+            try {
+                await deleteDoc(doc(db,'consultas',id));
+                if (fecha && hora) {
+                    const blockId = `consulta_${fecha}_${normalizarHora(hora).replace(':','-')}`;
+                    deleteDoc(doc(db,'calendarExceptions',blockId)).catch(()=>{});
+                }
+                _consultasCache = _consultasCache.filter(c => c.id !== id);
+                const pendientes = _consultasCache.filter(c => (c.estado||'pendiente') === 'pendiente').length;
+                const badge = document.getElementById('consultas-badge');
+                if (badge) { badge.textContent = pendientes||''; badge.style.display = pendientes ? 'inline-block' : 'none'; }
+                window.renderConsultas();
+            } catch(e) {
+                console.error('Error borrando consulta:', e);
+                mostrarAviso('No se pudo borrar la consulta');
             }
         };
 
