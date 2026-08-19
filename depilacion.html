@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espacio Mimar T | Depilación Definitiva con Láser Diodo</title>
+    <link rel="stylesheet" href="mobile-fixes.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --verde:#72bd99;--verde-strong:#4f9777;--verde-oscuro:#1e5a3e;
+            --bg:#060e0b;--ink:rgba(220,242,232,0.95);--muted:rgba(165,205,188,0.65);
+            --card-shadow:0 16px 40px rgba(0,0,0,0.35);--radius-xl:24px;
+            --depi:#a855f7;--depi-light:rgba(168,85,247,0.15);--depi-border:rgba(168,85,247,0.30);
+        }
+        *{box-sizing:border-box}
+        body{margin:0;background:radial-gradient(circle at 8% 15%,rgba(53,122,92,0.18),transparent 38%),radial-gradient(circle at 90% 8%,rgba(80,30,120,0.12),transparent 32%),linear-gradient(160deg,#060e0b 0%,#0c2218 55%,#071a12 100%);font-family:'Montserrat',sans-serif;color:var(--ink);overflow-x:hidden;min-height:100vh;line-height:1.42;-webkit-font-smoothing:antialiased;}
+        .hero{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 16px 36px;min-height:clamp(220px,36vh,320px);overflow:hidden;}
+        .hero-img-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;transform:scale(1.04);filter:saturate(1.1) brightness(0.70);transition:transform 8s ease-out;}
+        .hero-img-bg.loaded{transform:scale(1.0)}
+        .hero-glass-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,14,11,0.50) 0%,rgba(10,26,18,0.72) 60%,rgba(6,14,11,0.92) 100%);}
+        .hero-top-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;width:100%;}
+        .logo-shell{width:clamp(72px,15vw,92px);height:clamp(72px,15vw,92px);border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.14);border:1.5px solid rgba(255,255,255,0.42);box-shadow:0 8px 28px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.32);backdrop-filter:blur(8px);margin-bottom:14px;}
+        .logo{width:68%;height:68%;display:block;object-fit:cover;border-radius:50%;}
+        .hero-eyebrow{font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(165,205,188,0.52);margin:0 0 10px;}
+        .hero-title{color:#fff;font-family:'Cormorant Garamond',serif;font-size:clamp(26px,5.5vw,46px);font-weight:300;line-height:1.12;margin:0 0 8px;text-shadow:0 4px 20px rgba(0,0,0,0.35);letter-spacing:0.01em;}
+        .hero-title em{font-style:italic;color:#c084fc;}
+        .hero-sub{color:rgba(255,255,255,0.60);font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;margin:0;}
+        .container{max-width:980px;margin:auto;padding:24px 20px;position:relative;}
+        .container>*{animation:fadeUp .4s ease both;}
+        .container>*:nth-child(2){animation-delay:.05s;}.container>*:nth-child(3){animation-delay:.10s;}.container>*:nth-child(4){animation-delay:.14s;}
+
+        /* ── Aviso block ── */
+        .aviso-bloque{background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.18);border-radius:16px;padding:18px 20px;margin-bottom:20px;display:flex;flex-direction:column;gap:10px;}
+        .aviso-item{font-size:12.5px;color:rgba(220,242,232,0.70);line-height:1.65;padding-left:12px;border-left:2px solid rgba(168,85,247,0.35);}
+        .aviso-item strong{color:rgba(220,242,232,0.90);}
+
+        /* ── Precios ── */
+        .precios-section{background:linear-gradient(145deg,rgba(8,22,16,0.88) 0%,rgba(15,40,28,0.84) 100%);border:1px solid rgba(60,179,113,0.18);border-radius:var(--radius-xl);padding:22px 24px;margin-bottom:20px;box-shadow:var(--card-shadow);}
+        .precios-title{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,3vw,26px);color:#fff;font-weight:500;margin:0 0 4px;}
+        .precios-subtitle{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(165,205,188,0.45);margin:0 0 18px;}
+        .precios-grupo{margin-bottom:20px;}
+        .precios-grupo-label{font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(165,205,188,0.45);margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(60,179,113,0.12);}
+        .combo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;}
+        .combo-card{background:rgba(255,255,255,0.04);border:1px solid rgba(60,179,113,0.14);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;transition:border-color .2s;}
+        .combo-card:hover{border-color:rgba(168,85,247,0.35);}
+        .combo-nombre{font-size:13px;font-weight:700;color:rgba(220,242,232,0.92);letter-spacing:.02em;}
+        .combo-detalle{font-size:11.5px;color:rgba(165,205,188,0.55);line-height:1.5;}
+        .combo-precio{font-size:15px;font-weight:700;color:#c084fc;margin-top:4px;}
+        .precio-nota-tech{font-size:11px;color:rgba(165,205,188,0.38);margin-top:14px;text-align:center;line-height:1.6;}
+
+        /* ── Consentimiento accordion ── */
+        .consent-accordion{background:rgba(255,255,255,0.025);border:1px solid rgba(168,85,247,0.15);border-radius:16px;margin-bottom:20px;overflow:hidden;}
+        .consent-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;cursor:pointer;user-select:none;}
+        .consent-header-text{font-size:12px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(165,205,188,0.60);}
+        .consent-chevron{font-size:16px;color:rgba(165,205,188,0.40);transition:transform .3s;}
+        .consent-accordion.open .consent-chevron{transform:rotate(180deg);}
+        .consent-body{display:none;padding:0 20px 20px;}
+        .consent-accordion.open .consent-body{display:block;}
+        .consent-section{margin-bottom:16px;}
+        .consent-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(165,205,188,0.50);margin:0 0 6px;}
+        .consent-text{font-size:12px;color:rgba(165,205,188,0.62);line-height:1.72;}
+        .consent-text ul{margin:6px 0;padding-left:18px;}
+        .consent-text li{margin-bottom:4px;}
+        .consent-firma{margin-top:16px;padding:12px 14px;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.18);border-radius:10px;font-size:11.5px;color:rgba(165,205,188,0.55);line-height:1.6;}
+
+        /* ── Instrucción ── */
+        .instruccion{text-align:center;font-size:12.5px;color:rgba(165,205,188,0.55);font-weight:500;letter-spacing:.03em;margin:0 0 10px;}
+
+        /* ── Calendario ── */
+        .calendario{background:rgba(255,255,255,0.94);border-radius:var(--radius-xl);border:1px solid rgba(90,144,119,0.12);box-shadow:var(--card-shadow);padding:22px;margin-bottom:24px;width:100%;}
+        .mes{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;font-weight:600;}
+        #mes{font-weight:700;letter-spacing:.4px;color:#2e4a3f;text-transform:capitalize;}
+        .mes button{border:none;background:linear-gradient(135deg,#77c39f,#4b9d79);color:#fff;padding:9px 15px;border-radius:10px;cursor:pointer;transition:transform .18s,box-shadow .18s;box-shadow:0 6px 16px rgba(63,143,111,0.24);}
+        .mes button:hover{transform:translateY(-1px);}
+        .mes button:disabled{opacity:.4;cursor:not-allowed;}
+        .semana{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:10px;font-weight:700;color:#6b7872;font-size:11px;text-transform:uppercase;letter-spacing:.5px;text-align:center;}
+        .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+        .dia{text-align:center;padding:8px 4px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;color:#2a4a3e;background:transparent;}
+        .dia.dia-libre{background:rgba(74,222,128,0.12);color:#2e7d52;}
+        .dia.dia-libre:hover{background:rgba(74,222,128,0.26);transform:scale(1.08);}
+        .dia.dia-parcial{background:rgba(251,146,60,0.14);color:#b45309;}
+        .dia.dia-parcial:hover{background:rgba(251,146,60,0.26);transform:scale(1.08);}
+        .dia.seleccionado{background:linear-gradient(135deg,#4f9777,#2e6b4f);color:#fff;box-shadow:0 4px 14px rgba(63,143,111,0.32);}
+        .dia.pasado{color:#c0cdc8;cursor:default;}
+        .dia.domingo{color:#d4b8b8;cursor:default;}
+        .dia.bloqueado{color:#bbb;cursor:not-allowed;text-decoration:line-through;}
+        .dia.lleno{color:#d07878;cursor:not-allowed;text-decoration:line-through;}
+
+        /* ── Horarios ── */
+        .horarios{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+        .hora{padding:11px 6px;border-radius:12px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid rgba(60,179,113,0.25);background:rgba(255,255,255,0.05);color:rgba(165,205,188,0.80);transition:all .18s;animation:fadeInSlot .3s ease both;}
+        .hora:hover:not(.ocupado){background:rgba(60,179,113,0.18);border-color:#3fb87a;color:#fff;transform:scale(1.04);}
+        .hora.selected{background:linear-gradient(135deg,#4f9777,#2e6b4f);border-color:#4f9777;color:#fff;box-shadow:0 4px 12px rgba(63,143,111,0.30);}
+        .hora.ocupado{background:rgba(255,255,255,0.02);border-color:rgba(165,165,165,0.12);color:rgba(165,205,188,0.22);cursor:not-allowed;text-decoration:line-through;}
+
+        /* ── Resumen ── */
+        .selection-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+        .summary-card{background:rgba(255,255,255,0.04);border:1px solid rgba(60,179,113,0.14);border-radius:16px;padding:14px 16px;}
+        .summary-label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(165,205,188,0.40);margin-bottom:4px;}
+        .summary-value{display:block;font-size:14px;font-weight:600;color:rgba(220,242,232,0.85);}
+        .summary-value.placeholder{color:rgba(165,205,188,0.28);font-weight:400;font-size:12px;}
+        .boton{width:100%;padding:17px;border:none;border-radius:16px;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.02em;box-shadow:0 8px 28px rgba(124,58,237,0.35);transition:filter .2s,box-shadow .2s;}
+        .boton:hover:not(:disabled){filter:brightness(1.06);box-shadow:0 12px 36px rgba(124,58,237,0.45);}
+        .boton:disabled{background:rgba(255,255,255,0.08);color:rgba(165,205,188,0.30);cursor:not-allowed;box-shadow:none;}
+
+        /* ── Modal multi-step ── */
+        .mc-overlay{display:none;position:fixed;inset:0;z-index:9000;background:rgba(6,14,11,0.82);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px;}
+        .mc-overlay.open{display:flex;}
+        .mc-box{width:100%;max-width:460px;max-height:92vh;overflow-y:auto;background:linear-gradient(165deg,#0e2a1e 0%,#081812 100%);border:1px solid rgba(60,179,113,0.22);border-radius:var(--radius-xl);padding:28px 24px;box-shadow:0 32px 72px rgba(0,0,0,0.55);position:relative;}
+        .mc-close{position:absolute;top:14px;right:16px;background:none;border:none;color:rgba(165,205,188,0.45);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;}
+        .mc-progress{display:flex;align-items:center;gap:0;margin-bottom:24px;}
+        .mc-dot{width:30px;height:30px;border-radius:50%;border:2px solid rgba(60,179,113,0.30);background:transparent;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:rgba(165,205,188,0.40);flex-shrink:0;transition:all .3s;}
+        .mc-dot.active{background:linear-gradient(135deg,#a855f7,#7c3aed);border-color:#a855f7;color:#fff;box-shadow:0 4px 14px rgba(124,58,237,0.40);}
+        .mc-dot.done{background:rgba(60,179,113,0.20);border-color:#3fb87a;color:#3fb87a;}
+        .mc-line{flex:1;height:2px;background:rgba(60,179,113,0.15);}
+        .mc-step{display:none;}
+        .mc-step.active{display:block;}
+        .mc-eyebrow{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(165,205,188,0.38);margin:0 0 6px;}
+        .mc-title{font-family:'Cormorant Garamond',serif;font-size:24px;color:#fff;font-weight:500;margin:0 0 6px;}
+        .mc-sub{font-size:12.5px;color:rgba(165,205,188,0.55);margin:0 0 18px;line-height:1.55;}
+        .mc-turno-pill{display:inline-flex;align-items:center;gap:7px;background:rgba(60,179,113,0.08);border:1px solid rgba(60,179,113,0.20);border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;color:rgba(165,205,188,0.70);margin-bottom:16px;}
+        .mc-field{width:100%;padding:12px 14px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(60,179,113,0.18);border-radius:12px;color:var(--ink);font-family:'Montserrat',sans-serif;font-size:13px;margin-bottom:10px;outline:none;transition:border-color .2s;}
+        .mc-field:focus{border-color:rgba(168,85,247,0.50);}
+        .mc-label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(165,205,188,0.38);margin-bottom:6px;}
+        .mc-btn{width:100%;padding:14px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;border-radius:14px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:.02em;box-shadow:0 6px 20px rgba(124,58,237,0.35);margin-top:6px;}
+        .mc-btn:hover{filter:brightness(1.06);}
+        .mc-btn-back{background:none;border:none;color:rgba(165,205,188,0.45);font-size:12px;cursor:pointer;padding:0;margin-bottom:12px;}
+        .mc-btn-back:hover{color:rgba(165,205,188,0.75);}
+
+        /* ── Drum date picker ── */
+        .drum-outer{border:1.5px solid rgba(60,179,113,0.18);border-radius:12px;overflow:hidden;margin-bottom:10px;background:rgba(255,255,255,0.03);}
+        .drum-lbl-row{display:grid;grid-template-columns:1fr 1fr 1fr;padding:6px 8px 2px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:rgba(165,205,188,0.32);text-align:center;}
+        .drum-scroll-area{display:grid;grid-template-columns:1fr 1fr 1fr;height:132px;gap:0;}
+        .drum-col{overflow-y:scroll;height:132px;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+        .drum-col::-webkit-scrollbar{display:none;}
+        .drum-spacer{height:44px;flex-shrink:0;}
+        .drum-item{height:44px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:14px;font-weight:600;color:rgba(165,205,188,0.25);transition:color .15s,font-size .15s;}
+        .drum-bar{position:relative;height:0;pointer-events:none;}
+        .drum-fade{position:absolute;left:0;right:0;height:40px;z-index:1;pointer-events:none;}
+        .drum-fade-t{top:-132px;background:linear-gradient(to bottom,rgba(14,42,30,0.92) 0%,transparent 100%);}
+        .drum-fade-b{bottom:0;background:linear-gradient(to top,rgba(14,42,30,0.92) 0%,transparent 100%);}
+
+        /* ── Combo selector ── */
+        .combo-select-grid{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+        .combo-opt{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(60,179,113,0.16);border-radius:12px;cursor:pointer;transition:all .2s;}
+        .combo-opt:hover{border-color:rgba(168,85,247,0.40);background:rgba(168,85,247,0.06);}
+        .combo-opt.selected{border-color:#a855f7;background:rgba(168,85,247,0.12);}
+        .combo-opt-nombre{font-size:12.5px;font-weight:700;color:rgba(220,242,232,0.90);}
+        .combo-opt-detalle{font-size:11px;color:rgba(165,205,188,0.50);margin-top:1px;}
+        .combo-opt-precio{font-size:13px;font-weight:700;color:#c084fc;white-space:nowrap;margin-left:12px;}
+
+        /* ── Pago ── */
+        .mc-pago-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+        .mc-pago-opt{padding:16px 10px;background:rgba(255,255,255,0.04);border:2px solid rgba(60,179,113,0.16);border-radius:14px;cursor:pointer;text-align:center;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;font-weight:600;color:rgba(165,205,188,0.70);}
+        .mc-pago-opt:hover{border-color:rgba(168,85,247,0.40);background:rgba(168,85,247,0.06);}
+        .mc-pago-opt.selected{border-color:#a855f7;background:rgba(168,85,247,0.12);color:rgba(220,242,232,0.92);}
+        .mc-pago-icon{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:rgba(60,179,113,0.10);border:1px solid rgba(60,179,113,0.18);}
+        #infoTransferencia{display:none;background:rgba(60,179,113,0.06);border:1px solid rgba(60,179,113,0.18);border-radius:12px;padding:14px;font-size:12.5px;color:rgba(165,205,188,0.70);line-height:1.6;margin-bottom:14px;}
+        .mc-alias-copy{font-size:11px;padding:4px 10px;border:1px solid rgba(60,179,113,0.28);background:transparent;border-radius:6px;color:rgba(165,205,188,0.55);cursor:pointer;margin-top:6px;}
+
+        /* ── Éxito ── */
+        .mc-success-icon{font-size:44px;text-align:center;margin:0 auto 12px;display:block;}
+        .mc-success-data{background:rgba(255,255,255,0.04);border:1px solid rgba(60,179,113,0.14);border-radius:16px;padding:16px;margin-bottom:18px;}
+        .mc-success-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(60,179,113,0.08);}
+        .mc-success-row:last-child{border-bottom:none;padding-bottom:0;}
+        .mc-success-key{font-size:11px;color:rgba(165,205,188,0.45);font-weight:700;text-transform:uppercase;letter-spacing:.08em;}
+        .mc-success-val{font-size:13px;color:rgba(220,242,232,0.88);font-weight:600;}
+
+        /* ── Modal aviso ── */
+        .modal-mimar{display:none;position:fixed;inset:0;z-index:8000;background:rgba(6,14,11,0.80);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;}
+        .modal-box{background:linear-gradient(165deg,#0e2a1e 0%,#081812 100%);border:1px solid rgba(60,179,113,0.22);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;text-align:center;}
+        .modal-box h4{font-family:'Cormorant Garamond',serif;font-size:20px;color:#fff;margin:0 0 10px;}
+        .modal-box p{font-size:13px;color:rgba(165,205,188,0.65);line-height:1.6;margin:0 0 18px;}
+        .btn-cerrar-aviso{padding:11px 28px;background:linear-gradient(135deg,#4f9777,#2e6b4f);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;}
+
+        @keyframes fadeInSlot{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+        @media(max-width:768px){.container{padding:16px;}.selection-summary{grid-template-columns:1fr;gap:8px;}.horarios{grid-template-columns:repeat(3,1fr);gap:8px;}.combo-grid{grid-template-columns:1fr;}}
+        @media(max-width:480px){.container{padding:12px;}.horarios{grid-template-columns:repeat(2,1fr);}.mc-box{padding:24px 18px;}.mc-pago-grid{grid-template-columns:1fr 1fr;}.boton{font-size:14px;padding:15px;}}
+    </style>
+    <link rel="stylesheet" href="/pro-theme.css">
+</head>
+<body>
+
+<header class="hero">
+    <img src="img/2P.jpg" alt="" class="hero-img-bg" id="heroBgImg" aria-hidden="true">
+    <div class="hero-glass-overlay"></div>
+    <div class="hero-top-content">
+        <div class="logo-shell">
+            <img src="img/logo.png" class="logo" alt="Espacio Mimar T">
+        </div>
+        <p class="hero-eyebrow">Espacio Mimar T</p>
+        <h1 class="hero-title">Depilación definitiva<br><em>Láser Diodo</em></h1>
+        <p class="hero-sub">Elegí tu combo y reservá tu turno</p>
+    </div>
+</header>
+<script>
+    (function(){const bg=document.getElementById('heroBgImg');if(bg){bg.addEventListener('load',()=>bg.classList.add('loaded'));if(bg.complete)bg.classList.add('loaded');}})();
+</script>
+
+<div class="container">
+
+    <!-- Avisos previos -->
+    <div class="aviso-bloque">
+        <div class="aviso-item"><strong>Pago en el momento de la sesión.</strong> Los turnos se abonan en la fecha pactada. No trabajamos con sistema de crédito ni pago diferido.</div>
+        <div class="aviso-item"><strong>Confidencialidad garantizada.</strong> Nuestro equipo trabaja bajo protocolos estrictos de privacidad. Cada sesión es un espacio privado — tratamos tu consulta con la discreción que merece.</div>
+    </div>
+
+    <!-- Lista de precios -->
+    <div class="precios-section">
+        <h2 class="precios-title">Combos de depilación</h2>
+        <p class="precios-subtitle">Láser Diodo · Última tecnología · Precios por sesión</p>
+
+        <div class="precios-grupo">
+            <p class="precios-grupo-label">Para ellas</p>
+            <div class="combo-grid">
+                <div class="combo-card">
+                    <div class="combo-nombre">Mini</div>
+                    <div class="combo-detalle">Rostro + Axilas</div>
+                    <div class="combo-precio">$20.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Esencial</div>
+                    <div class="combo-detalle">Cavado completo + Axilas</div>
+                    <div class="combo-precio">$20.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Favorito</div>
+                    <div class="combo-detalle">½ Pierna + Cavado completo + Axilas</div>
+                    <div class="combo-precio">$30.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Plus</div>
+                    <div class="combo-detalle">½ Pierna + Cavado completo + Tira de cola + Axilas</div>
+                    <div class="combo-precio">$30.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Full Media Pierna</div>
+                    <div class="combo-detalle">½ Pierna + Cavado completo + Tira de cola + Axilas + Rostro</div>
+                    <div class="combo-precio">$35.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Full</div>
+                    <div class="combo-detalle">Pierna entera + Cavado completo + Tira de cola + Axilas + Rostro</div>
+                    <div class="combo-precio">$40.000</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="precios-grupo" style="margin-bottom:0">
+            <p class="precios-grupo-label">Para ellos</p>
+            <div class="combo-grid">
+                <div class="combo-card">
+                    <div class="combo-nombre">Mini</div>
+                    <div class="combo-detalle">Barba + Cuello</div>
+                    <div class="combo-precio">$20.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Rostro</div>
+                    <div class="combo-detalle">Rostro completo</div>
+                    <div class="combo-precio">$25.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Torso</div>
+                    <div class="combo-detalle">Pecho + Abdomen</div>
+                    <div class="combo-precio">$25.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Torso Plus</div>
+                    <div class="combo-detalle">Pecho + Abdomen + Axilas</div>
+                    <div class="combo-precio">$30.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Espalda</div>
+                    <div class="combo-detalle">Espalda + Hombros + Nuca</div>
+                    <div class="combo-precio">$30.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Full Superior</div>
+                    <div class="combo-detalle">Rostro + Pecho + Abdomen + Axilas</div>
+                    <div class="combo-precio">$40.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Full Torso</div>
+                    <div class="combo-detalle">Pecho + Abdomen + Espalda + Hombros</div>
+                    <div class="combo-precio">$40.000</div>
+                </div>
+            </div>
+        </div>
+        <p class="precio-nota-tech">Equipamiento médico-estético de última generación · Protocolos personalizados por fototipo de piel</p>
+    </div>
+
+    <!-- Consentimiento informado (desplegable) -->
+    <div class="consent-accordion" id="consentAccordion">
+        <div class="consent-header" onclick="toggleConsent()">
+            <span class="consent-header-text">Consentimiento Informado · Fotodepilación con Láser Diodo</span>
+            <span class="consent-chevron">▾</span>
+        </div>
+        <div class="consent-body">
+            <div class="consent-section">
+                <p class="consent-section-title">El procedimiento</p>
+                <p class="consent-text">El objetivo del tratamiento es lograr la máxima reducción del vello en las zonas tratadas —entre el 70% y el 80%— siempre que no existan condicionantes hormonales, hereditarios u otros que puedan estimular un crecimiento anormal del vello. La tecnología láser diodo actúa de manera selectiva sobre la melanina: mayor efectividad en vellos oscuros, menor en vellos claros o rojizos, y nula acción sobre vellos blancos (amelánicos).</p>
+            </div>
+            <div class="consent-section">
+                <p class="consent-section-title">Sesiones y periodicidad</p>
+                <p class="consent-text">El número de sesiones varía según cada persona, con un promedio de 6 a 8. Las sesiones iniciales se realizan cada 30 a 45 días. El profesional evaluará la evolución en cada visita y ajustará la frecuencia según corresponda. El cumplimiento de la periodicidad indicada es fundamental para obtener los resultados esperados.</p>
+            </div>
+            <div class="consent-section">
+                <p class="consent-section-title">Efectos esperables</p>
+                <p class="consent-text">Durante y después de cada sesión puede percibirse calor en la piel, sensación de calor intenso en zonas de mayor densidad pilosa y enrojecimiento que remite en 24 a 48 horas. En la mayoría de los casos no se presentan efectos secundarios indeseables. Ocasionalmente puede producirse una quemadura superficial leve (grado I), que tratada adecuadamente evoluciona sin secuelas. Ante cualquier reacción, comunicarse de inmediato con el equipo del Espacio.</p>
+            </div>
+            <div class="consent-section">
+                <p class="consent-section-title">Cuidados obligatorios</p>
+                <p class="consent-text">Es indispensable evitar la exposición al sol y a fuentes de rayos ultravioletas (camas solares) durante todo el tratamiento. Se recomienda el uso de protector solar para prevenir manchas cutáneas derivadas de la mayor concentración de melanina.</p>
+            </div>
+            <div class="consent-section">
+                <p class="consent-section-title">Contraindicaciones — informá si tenés alguna de estas condiciones</p>
+                <p class="consent-text"><ul>
+                    <li>Embarazo o período de lactancia</li>
+                    <li>Presencia de neoplasias, fibromas o miomas</li>
+                    <li>Enfermedades infecto-contagiosas o autoinmunes</li>
+                    <li>Flebitis, trombosis o patologías vasculares activas</li>
+                    <li>Uso de anticoagulantes o marcapasos</li>
+                    <li>Problemas circulatorios graves o hipertensión no controlada</li>
+                    <li>Infecciones activas en la piel o alergias al frío</li>
+                    <li>Trastornos hormono-metabólicos no controlados</li>
+                </ul></p>
+            </div>
+            <div class="consent-section">
+                <p class="consent-section-title">Mantenimiento</p>
+                <p class="consent-text">Una vez completado el tratamiento inicial, pueden surgir nuevas sesiones de mantenimiento a partir de los 2 a 3 meses, sujetas a evaluación profesional. Factores como cambios hormonales, embarazo, estrés o tratamientos médicos pueden influir en la reaparición del vello. Estas sesiones no están incluidas en el tratamiento acordado.</p>
+            </div>
+            <div class="consent-firma">
+                Al confirmar tu turno, declarás haber leído y comprendido este consentimiento, no presentar contraindicaciones que no hayas informado, y aceptar las condiciones del tratamiento. Si tu estado de salud se modifica antes de la sesión, debés informarlo al equipo con anticipación.
+            </div>
+        </div>
+    </div>
+
+    <p class="instruccion">Elegí el día y el horario de tu sesión</p>
+
+    <!-- Calendario -->
+    <div class="calendario">
+        <div class="mes">
+            <button id="btnMesAnterior">◀</button>
+            <div id="mes"></div>
+            <button id="btnMesSiguiente">▶</button>
+        </div>
+        <div class="semana"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>
+        <div class="grid" id="dias"></div>
+    </div>
+
+    <div class="horarios" id="horarios"></div>
+
+    <div class="selection-summary" aria-live="polite">
+        <div class="summary-card">
+            <span class="summary-label">Fecha elegida</span>
+            <strong class="summary-value placeholder" id="summaryDateValue">Ningún día elegido</strong>
+        </div>
+        <div class="summary-card">
+            <span class="summary-label">Horario elegido</span>
+            <strong class="summary-value placeholder" id="summaryTimeValue">Primero elegí tu día</strong>
+        </div>
+    </div>
+
+    <button class="boton" id="reservarBtn" disabled>Continuar con mis datos →</button>
+</div>
+
+<!-- Modal aviso -->
+<div id="modalMimar" class="modal-mimar">
+    <div class="modal-box">
+        <h4 id="modalTitulo">Aviso</h4>
+        <p id="modalMsg"></p>
+        <button class="btn-cerrar-aviso" id="btnFinalizarModal">Entendido</button>
+    </div>
+</div>
+
+<!-- Modal menor de edad -->
+<div id="modalMenorDepi" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(6,14,11,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
+    <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#0c2218 0%,#071a12 100%);border:1px solid rgba(168,85,247,0.25);border-radius:24px;padding:32px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+        <p style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;text-align:center;margin:0 0 12px;font-weight:500;">Atención</p>
+        <p style="font-size:14px;color:rgba(220,242,232,0.80);text-align:center;line-height:1.65;margin:0 0 24px;">Si sos menor de edad, es obligatorio que asistas a la sesión <strong style="color:#c084fc">acompañado/a por uno de tus padres o tutores legales</strong>. Sin esa presencia no es posible brindarte atención, incluso si ya tenés el turno reservado.</p>
+        <button id="_menorDepiOkBtn" style="width:100%;padding:14px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;">Entendido, continúo con la reserva</button>
+        <button id="_menorDepiCancelBtn" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(168,85,247,0.22);border-radius:14px;color:rgba(165,205,188,0.60);font-size:13px;cursor:pointer;">Volver</button>
+    </div>
+</div>
+
+<!-- Modal multi-step: datos + combo + pago -->
+<div id="modalDepi" class="mc-overlay">
+    <div class="mc-box">
+        <button class="mc-close" id="mcClose">×</button>
+        <div class="mc-progress">
+            <div class="mc-dot active" id="dot1">1</div>
+            <div class="mc-line"></div>
+            <div class="mc-dot" id="dot2">2</div>
+            <div class="mc-line"></div>
+            <div class="mc-dot" id="dot3">3</div>
+        </div>
+
+        <!-- Step 1: Datos + Combo -->
+        <div class="mc-step active" id="mcStep1">
+            <p class="mc-eyebrow">Paso 1 de 2</p>
+            <h2 class="mc-title">Tus datos</h2>
+            <p class="mc-sub">Completá tus datos y elegí el combo de la sesión.</p>
+            <div id="mcTurnoPill" class="mc-turno-pill">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span id="mcTurnoPillText">Cargando...</span>
+            </div>
+
+            <input class="mc-field" type="text" id="mcNombre" placeholder="Nombre completo *" autocomplete="name">
+            <input class="mc-field" type="text" id="mcDni" placeholder="DNI *" inputmode="numeric">
+            <label class="mc-label" style="margin-top:2px;">Fecha de nacimiento *</label>
+            <div class="drum-outer" id="drumPicker">
+                <div class="drum-lbl-row"><div>Día</div><div>Mes</div><div>Año</div></div>
+                <div class="drum-scroll-area">
+                    <div class="drum-col" id="drumDia"></div>
+                    <div class="drum-col" id="drumMes"></div>
+                    <div class="drum-col" id="drumAnio"></div>
+                </div>
+                <div class="drum-bar"></div>
+                <div class="drum-fade drum-fade-t"></div>
+                <div class="drum-fade drum-fade-b"></div>
+            </div>
+            <input class="mc-field" type="number" id="mcEdad" placeholder="Edad *" inputmode="numeric" min="1" max="120">
+            <input class="mc-field" type="text" id="mcDomicilio" placeholder="Domicilio (calle y número) *" autocomplete="street-address">
+            <input class="mc-field" type="tel" id="mcTelefono" placeholder="WhatsApp / Teléfono *" autocomplete="tel" inputmode="tel">
+            <input class="mc-field" type="email" id="mcEmail" placeholder="Email (opcional)" autocomplete="email" inputmode="email">
+
+            <label class="mc-label" style="margin-top:6px;">Combo a realizar *</label>
+            <div class="combo-select-grid" id="comboSelectGrid">
+                <!-- poblado por JS -->
+            </div>
+
+            <button class="mc-btn" id="mcBtnPaso2" onclick="irPaso2()">Continuar →</button>
+        </div>
+
+        <!-- Step 2: Pago -->
+        <div class="mc-step" id="mcStep2">
+            <button class="mc-btn-back" onclick="irPaso1()">← Volver</button>
+            <p class="mc-eyebrow">Paso 2 de 2</p>
+            <h2 class="mc-title">¿Cómo abonás?</h2>
+            <p class="mc-sub" id="mcSubPago">Pago en el momento de la sesión.</p>
+
+            <div class="mc-pago-grid">
+                <button class="mc-pago-opt" id="pagoEfectivo" onclick="seleccionarPago('efectivo')">
+                    <span class="mc-pago-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    </span>
+                    <span>Efectivo</span>
+                </button>
+                <button class="mc-pago-opt" id="pagoTransferencia" onclick="seleccionarPago('transferencia')">
+                    <span class="mc-pago-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+                    </span>
+                    <span>Transferencia</span>
+                </button>
+            </div>
+            <div id="infoTransferencia">
+                <strong style="display:block;margin-bottom:4px;color:rgba(165,205,188,0.80);">Datos para transferir:</strong>
+                Alias: <strong>farmaciacentral36</strong><br>
+                Titular: Gimena Knack<br>
+                <button class="mc-alias-copy" onclick="copiarAlias()">Copiar alias</button>
+                <p style="margin:10px 0 0;font-size:11.5px;color:rgba(165,205,188,0.50);">Enviá el comprobante por WhatsApp al confirmar el turno.</p>
+            </div>
+            <button class="mc-btn" id="mcBtnConfirmar" disabled onclick="confirmarDepi()">Confirmar turno</button>
+        </div>
+
+        <!-- Step 3: Éxito -->
+        <div class="mc-step" id="mcStep3">
+            <span class="mc-success-icon">✓</span>
+            <h2 class="mc-title" style="text-align:center;margin-bottom:6px;">Turno confirmado</h2>
+            <p class="mc-sub" style="text-align:center;">Tu sesión quedó agendada. Te esperamos.</p>
+            <div class="mc-success-data" id="mcSuccessData"></div>
+            <div id="mcSuccessTransfer" style="display:none;background:rgba(60,179,113,0.06);border:1px solid rgba(60,179,113,0.18);border-radius:12px;padding:14px;margin-bottom:14px;font-size:12.5px;color:rgba(165,205,188,0.65);line-height:1.6;">
+                Recordá enviar el comprobante de transferencia por WhatsApp para confirmar tu lugar.
+                <a id="mcWaComprobante" href="#" target="_blank" rel="noopener" style="display:block;margin-top:10px;padding:10px;background:#25d366;color:#fff;border-radius:10px;text-align:center;font-weight:700;font-size:13px;text-decoration:none;">Enviar comprobante</a>
+            </div>
+            <a href="/" style="display:block;text-align:center;color:rgba(165,205,188,0.45);font-size:12px;margin-top:10px;text-decoration:none;">Volver al inicio</a>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { auth, db, onAuthStateChanged, collection, getDocs, doc, addDoc, setDoc, getDoc, query, where, serverTimestamp, onSnapshot } from "/js/firebase-web.js";
+
+const SLOTS_DIA = Array.from({length:27}, (_, i) => {
+    const t = 7*60+30+i*30;
+    return `${String(Math.floor(t/60)).padStart(2,"0")}:${String(t%60).padStart(2,"0")}`;
+});
+const normalizarHora = (hora) => {
+    const txt = (hora||"").toString().replace(/\s*hs$/i,"").trim();
+    const m = txt.match(/^(\d{1,2})[:.](\d{2})$/);
+    if(!m) return "";
+    const hh=Number(m[1]),mm=Number(m[2]);
+    if(hh<0||hh>23||mm<0||mm>59) return "";
+    return `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+};
+const keyBloqueo = (fecha,hora) => `${fecha}|${hora}`;
+const esReservaActiva = (r) => {
+    const estados=[r?.estado,r?.status].map(v=>(v||"").toLowerCase()).filter(Boolean);
+    return !estados.includes("cancelado");
+};
+const formatearFechaLinda = (fecha) => {
+    if(!fecha) return "";
+    const dias=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+    const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+    return `${dias[fecha.getDay()]} ${String(fecha.getDate()).padStart(2,"0")} de ${meses[fecha.getMonth()]}`;
+};
+const fechaAString = (f) => `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,"0")}-${String(f.getDate()).padStart(2,"0")}`;
+
+let fechaActual=new Date(), fechaSeleccionada=null, horaSeleccionada=null;
+const hoy=new Date(); hoy.setHours(0,0,0,0);
+let excepciones={}, bloqueosHorarios=new Map();
+let rangosDiasBloqueados=[], mesesBloqueados=new Set();
+let reservasPorFecha=new Map();
+
+// ── Combos ──
+const COMBOS_ELLAS = [
+    {id:"mini-e",   nombre:"Mini",            detalle:"Rostro + Axilas",                                          precio:"$20.000"},
+    {id:"esenc-e",  nombre:"Esencial",         detalle:"Cavado completo + Axilas",                                 precio:"$20.000"},
+    {id:"fav-e",    nombre:"Favorito",         detalle:"½ Pierna + Cavado completo + Axilas",                      precio:"$30.000"},
+    {id:"plus-e",   nombre:"Plus",             detalle:"½ Pierna + Cavado completo + Tira de cola + Axilas",       precio:"$30.000"},
+    {id:"fullm-e",  nombre:"Full Media Pierna",detalle:"½ Pierna + Cavado + Tira de cola + Axilas + Rostro",       precio:"$35.000"},
+    {id:"full-e",   nombre:"Full",             detalle:"Pierna entera + Cavado + Tira de cola + Axilas + Rostro",  precio:"$40.000"},
+];
+const COMBOS_ELLOS = [
+    {id:"mini-o",   nombre:"Mini",             detalle:"Barba + Cuello",                          precio:"$20.000"},
+    {id:"rost-o",   nombre:"Rostro",            detalle:"Rostro completo",                         precio:"$25.000"},
+    {id:"torso-o",  nombre:"Torso",             detalle:"Pecho + Abdomen",                         precio:"$25.000"},
+    {id:"torsoplus-o",nombre:"Torso Plus",      detalle:"Pecho + Abdomen + Axilas",                precio:"$30.000"},
+    {id:"espal-o",  nombre:"Espalda",           detalle:"Espalda + Hombros + Nuca",                precio:"$30.000"},
+    {id:"fullsup-o",nombre:"Full Superior",     detalle:"Rostro + Pecho + Abdomen + Axilas",       precio:"$40.000"},
+    {id:"fulltorso-o",nombre:"Full Torso",      detalle:"Pecho + Abdomen + Espalda + Hombros",     precio:"$40.000"},
+];
+let comboSeleccionado = null;
+
+function buildComboGrid() {
+    const grid = document.getElementById("comboSelectGrid");
+    const todos = [
+        {grupo:"Para ellas", combos:COMBOS_ELLAS},
+        {grupo:"Para ellos", combos:COMBOS_ELLOS},
+    ];
+    grid.innerHTML = todos.map(g => `
+        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:rgba(165,205,188,0.32);margin:4px 0 4px">${g.grupo}</div>
+        ${g.combos.map(c => `
+            <div class="combo-opt" id="comboOpt_${c.id}" onclick="seleccionarCombo('${c.id}','${g.grupo}','${c.nombre}','${c.detalle}','${c.precio}')">
+                <div><div class="combo-opt-nombre">${c.nombre}</div><div class="combo-opt-detalle">${c.detalle}</div></div>
+                <div class="combo-opt-precio">${c.precio}</div>
+            </div>`).join('')}
+    `).join('');
+}
+
+window.seleccionarCombo = (id, grupo, nombre, detalle, precio) => {
+    document.querySelectorAll(".combo-opt").forEach(el => el.classList.remove("selected"));
+    document.getElementById("comboOpt_" + id)?.classList.add("selected");
+    comboSeleccionado = {id, grupo, nombre, detalle, precio};
+};
+
+// ── Drum Date Picker ──
+const DRUM_DIAS=Array.from({length:31},(_,i)=>String(i+1).padStart(2,'0'));
+const DRUM_MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const DRUM_ANIO0=new Date().getFullYear();
+const DRUM_ANIOS=Array.from({length:100},(_,i)=>String(DRUM_ANIO0-i));
+const DRUM_ITH=44;
+let drumBuilt=false;
+
+function buildDrumCol(el,items,initIdx){
+    const sp1=document.createElement('div');sp1.className='drum-spacer';el.appendChild(sp1);
+    items.forEach(v=>{const d=document.createElement('div');d.className='drum-item';d.textContent=v;el.appendChild(d);});
+    const sp2=document.createElement('div');sp2.className='drum-spacer';el.appendChild(sp2);
+    el.scrollTop=initIdx*DRUM_ITH; refreshDrum(el);
+    let st;
+    el.addEventListener('scroll',()=>{refreshDrum(el);clearTimeout(st);st=setTimeout(()=>{const i=Math.round(el.scrollTop/DRUM_ITH);el.scrollTo({top:i*DRUM_ITH,behavior:'smooth'});autoFillEdad();},180);},{passive:true});
+}
+function refreshDrum(el){
+    const cur=el.scrollTop/DRUM_ITH;
+    el.querySelectorAll('.drum-item').forEach((it,i)=>{const d=Math.abs(i-cur);if(d<0.6){it.style.color='rgba(220,242,232,0.95)';it.style.fontSize='16px';it.style.fontWeight='700';}else if(d<1.6){it.style.color='rgba(165,205,188,0.50)';it.style.fontSize='14px';it.style.fontWeight='500';}else{it.style.color='rgba(165,205,188,0.18)';it.style.fontSize='12px';it.style.fontWeight='400';}});
+}
+function drumIdx(el,max){return Math.max(0,Math.min(Math.round(el.scrollTop/DRUM_ITH),max-1));}
+function getFechaNacDrum(){
+    const dia=DRUM_DIAS[drumIdx(document.getElementById('drumDia'),DRUM_DIAS.length)];
+    const mesN=drumIdx(document.getElementById('drumMes'),DRUM_MESES.length);
+    const anio=DRUM_ANIOS[drumIdx(document.getElementById('drumAnio'),DRUM_ANIOS.length)];
+    return `${anio}-${String(mesN+1).padStart(2,'0')}-${dia}`;
+}
+function autoFillEdad(){
+    const[y,m,d]=getFechaNacDrum().split('-').map(Number);if(!y||!m||!d)return;
+    const h=new Date();let e=h.getFullYear()-y;
+    if(h.getMonth()+1<m||(h.getMonth()+1===m&&h.getDate()<d))e--;
+    const el=document.getElementById('mcEdad');if(el&&e>=0&&e<=120)el.value=e;
+}
+function setDrumDate(fechaStr){
+    const[y,m,d]=(fechaStr||'').split('-').map(Number);if(!y||!m||!d)return;
+    const dEl=document.getElementById('drumDia'),mEl=document.getElementById('drumMes'),aEl=document.getElementById('drumAnio');
+    const aIdx=DRUM_ANIOS.indexOf(String(y));if(!dEl||!mEl||!aEl||aIdx===-1)return;
+    dEl.scrollTop=(d-1)*DRUM_ITH;mEl.scrollTop=(m-1)*DRUM_ITH;aEl.scrollTop=aIdx*DRUM_ITH;
+    refreshDrum(dEl);refreshDrum(mEl);refreshDrum(aEl);autoFillEdad();
+}
+function initDrumPickers(){
+    if(drumBuilt)return;drumBuilt=true;
+    buildDrumCol(document.getElementById('drumDia'),DRUM_DIAS,0);
+    buildDrumCol(document.getElementById('drumMes'),DRUM_MESES,0);
+    buildDrumCol(document.getElementById('drumAnio'),DRUM_ANIOS,30);
+    autoFillEdad();
+}
+
+let _metodoPago=null;
+
+// ── Calendario ──
+async function cargarReservasMes(){
+    const y=fechaActual.getFullYear(),m=fechaActual.getMonth();
+    const mesStr=`${y}-${String(m+1).padStart(2,"0")}`;
+    try{
+        const snap=await getDocs(query(collection(db,"reservas"),where("fecha",">=",mesStr+"-01"),where("fecha","<=",mesStr+"-31")));
+        reservasPorFecha=new Map();
+        snap.forEach(d=>{
+            const dat=d.data();if(!dat.fecha||!dat.hora)return;
+            if(["cancelado"].includes((dat.status||"").toLowerCase())||["cancelado"].includes((dat.estado||"").toLowerCase()))return;
+            const h=normalizarHora(dat.hora);if(!h)return;
+            if(!reservasPorFecha.has(dat.fecha))reservasPorFecha.set(dat.fecha,new Set());
+            reservasPorFecha.get(dat.fecha).add(h);
+        });
+        try{
+            const snapC=await getDocs(query(collection(db,"consultas"),where("fecha",">=",mesStr+"-01"),where("fecha","<=",mesStr+"-31")));
+            snapC.forEach(d=>{
+                const dat=d.data();if(!dat.fecha||!dat.hora)return;
+                if(["cancelada","cancelado"].includes((dat.estado||"").toLowerCase()))return;
+                const h=normalizarHora(dat.hora);if(!h)return;
+                if(!reservasPorFecha.has(dat.fecha))reservasPorFecha.set(dat.fecha,new Set());
+                reservasPorFecha.get(dat.fecha).add(h);
+            });
+        }catch(e){}
+    }catch(e){console.warn("cargarReservasMes:",e?.code||e?.message);}
+}
+const obtenerHorasOcupadas=async(fStr)=>{
+    const horas=new Set();
+    const snap=await getDocs(query(collection(db,"reservas"),where("fecha","==",fStr)));
+    snap.forEach(d=>{const dat=d.data()||{};if(!esReservaActiva(dat))return;const h=normalizarHora(dat.hora||dat.hour||"");if(h)horas.add(h);});
+    try{
+        const snapC=await getDocs(query(collection(db,"consultas"),where("fecha","==",fStr)));
+        snapC.forEach(d=>{const dat=d.data()||{};if(["cancelada","cancelado"].includes((dat.estado||"").toLowerCase()))return;const h=normalizarHora(dat.hora||"");if(h)horas.add(h);});
+    }catch(e){}
+    bloqueosHorarios.forEach((blq)=>{if((blq?.fecha||"")!==fStr)return;const h=normalizarHora(blq.hora||"");if(h)horas.add(h);});
+    return [...horas].sort((a,b)=>a.localeCompare(b));
+};
+function procesarExcepciones(snapshot){
+    excepciones={};bloqueosHorarios=new Map();
+    snapshot.forEach(docSnap=>{
+        const data=docSnap.data()||{};
+        const idEsFecha=/^\d{4}-\d{2}-\d{2}$/.test(docSnap.id);
+        const fechaEx=((data.fecha||"")||(idEsFecha?docSnap.id:"")).toString();
+        const horaEx=normalizarHora(data.hora||data.hour||"");
+        const activo=data.active!==false;
+        const esBloqueo=data.type==="blocked"||data.blocked===true;
+        if(!activo||!esBloqueo)return;
+        if(fechaEx&&horaEx){bloqueosHorarios.set(keyBloqueo(fechaEx,horaEx),{id:docSnap.id,...data,fecha:fechaEx,hora:horaEx});return;}
+        if(fechaEx)excepciones[fechaEx]=data.reason||"Cerrado";
+    });
+}
+async function cargarDatos(){
+    onSnapshot(collection(db,"calendarExceptions"),async(snapshot)=>{
+        procesarExcepciones(snapshot);renderCalendario();
+        if(fechaSeleccionada)await cargarHorarios(fechaAString(fechaSeleccionada));
+    });
+    onSnapshot(doc(db,"configuracion","bloqueos"),async(snap)=>{
+        if(snap.exists()){const bd=snap.data();mesesBloqueados=new Set(Array.isArray(bd.meses)?bd.meses:[]);rangosDiasBloqueados=Array.isArray(bd.rangos)?bd.rangos.filter(r=>r.desde&&r.hasta):[];}
+        else{mesesBloqueados=new Set();rangosDiasBloqueados=[];}
+        renderCalendario();if(fechaSeleccionada)await cargarHorarios(fechaAString(fechaSeleccionada));
+    });
+    await cargarReservasMes();renderCalendario();
+}
+const esDiaBloqueadoPorAdmin=(fStr)=>rangosDiasBloqueados.some(r=>fStr>=r.desde&&fStr<=r.hasta);
+const slotsTomadosDia=(fStr)=>{const res=reservasPorFecha.get(fStr)||new Set();let blocks=0;bloqueosHorarios.forEach((_,k)=>{if(k.startsWith(fStr+"|"))blocks++;});return res.size+blocks;};
+const esDiaLleno=(fStr)=>{const res=reservasPorFecha.get(fStr)||new Set();return SLOTS_DIA.every(hora=>res.has(hora)||bloqueosHorarios.has(keyBloqueo(fStr,hora)));};
+
+function renderCalendario(){
+    const y=fechaActual.getFullYear(),m=fechaActual.getMonth();
+    const mesNombres=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    document.getElementById("mes").innerText=`${mesNombres[m]} ${y}`;
+    const mesKey=`${y}-${String(m+1).padStart(2,"0")}`;
+    const bloqueado=mesesBloqueados.has(mesKey)||y>2026||(y===2026&&m>11);
+    const btnSig=document.getElementById("btnMesSiguiente");
+    btnSig.disabled=bloqueado||(y===2026&&m===11);
+    const cont=document.getElementById("dias");cont.innerHTML="";
+    if(bloqueado){cont.innerHTML=`<div style="grid-column:1/-1;padding:28px 16px;text-align:center;color:rgba(165,205,188,0.45);font-size:13px;font-weight:600;border-radius:14px;border:1px dashed rgba(60,179,113,0.16);background:rgba(8,22,16,0.40);">Los turnos para este período se habilitarán pronto.</div>`;document.getElementById("horarios").innerHTML="";document.getElementById("reservarBtn").disabled=true;return;}
+    const diasMes=new Date(y,m+1,0).getDate();
+    let offset=new Date(y,m,1).getDay();offset=offset===0?6:offset-1;
+    for(let i=0;i<offset;i++)cont.appendChild(document.createElement("div"));
+    for(let d=1;d<=diasMes;d++){
+        const fStr=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+        const f=new Date(y,m,d);f.setHours(0,0,0,0);
+        const div=document.createElement("div");div.className="dia";div.innerText=d;
+        if(f.getDay()===0)div.classList.add("domingo");
+        else if(f<hoy)div.classList.add("pasado");
+        else if(esDiaBloqueadoPorAdmin(fStr)){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("No disponible","Este día no tiene turnos disponibles.");}
+        else if(excepciones[fStr]){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("Cerrado",excepciones[fStr]);}
+        else if(esDiaLleno(fStr)){div.classList.add("lleno");div.onclick=()=>mostrarAviso("Sin cupos","Los turnos de este día están completos. Elegí otro día.");}
+        else{const tomados=slotsTomadosDia(fStr);div.classList.add(tomados>0?"dia-parcial":"dia-libre");div.onclick=()=>seleccionarDia(f,fStr,div);}
+        cont.appendChild(div);
+    }
+}
+function seleccionarDia(f,fStr,div){
+    document.querySelectorAll(".dia").forEach(e=>e.classList.remove("seleccionado"));
+    div.classList.add("seleccionado");fechaSeleccionada=f;horaSeleccionada=null;
+    actualizarResumen();cargarHorarios(fStr);
+}
+async function cargarHorarios(fStr){
+    const cont=document.getElementById("horarios");
+    horaSeleccionada=null;document.getElementById("reservarBtn").disabled=true;actualizarResumen();
+    cont.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(165,205,188,0.45);font-size:13px;">Buscando turnos...</div>`;
+    if(excepciones[fStr]){cont.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(255,120,120,0.70);font-size:13px;">Día cerrado: ${excepciones[fStr]}</div>`;return;}
+    const ocupados=await obtenerHorasOcupadas(fStr);cont.innerHTML="";
+    SLOTS_DIA.forEach((hora,idx)=>{
+        const div=document.createElement("div");div.className="hora";div.innerText=hora;div.style.animationDelay=`${Math.min(idx*40,400)}ms`;
+        const bloqueado=bloqueosHorarios.has(keyBloqueo(fStr,hora));const ocupado=ocupados.includes(hora);
+        if(bloqueado||ocupado){div.classList.add("ocupado");}
+        else{div.onclick=()=>{horaSeleccionada=hora;document.querySelectorAll(".hora").forEach(e=>e.classList.remove("selected"));div.classList.add("selected");actualizarResumen();document.getElementById("reservarBtn").disabled=false;};}
+        cont.appendChild(div);
+    });
+}
+function actualizarResumen(){
+    const sv=document.getElementById("summaryDateValue"),st=document.getElementById("summaryTimeValue");
+    if(fechaSeleccionada){sv.textContent=formatearFechaLinda(fechaSeleccionada);sv.classList.remove("placeholder");}
+    else{sv.textContent="Ningún día elegido";sv.classList.add("placeholder");}
+    if(horaSeleccionada){st.textContent=`${horaSeleccionada} hs`;st.classList.remove("placeholder");}
+    else{st.textContent="Primero elegí tu día";st.classList.add("placeholder");}
+}
+function mostrarAviso(titulo,msg){
+    document.getElementById("modalTitulo").innerText=titulo;
+    document.getElementById("modalMsg").innerHTML=msg;
+    document.getElementById("modalMimar").style.display="flex";
+}
+document.getElementById("btnFinalizarModal").onclick=()=>document.getElementById("modalMimar").style.display="none";
+document.getElementById("btnMesSiguiente").onclick=async()=>{const y=fechaActual.getFullYear(),m=fechaActual.getMonth();if(y>2026||(y===2026&&m>=11))return;fechaActual.setMonth(m+1);await cargarReservasMes();renderCalendario();};
+document.getElementById("btnMesAnterior").onclick=async()=>{fechaActual.setMonth(fechaActual.getMonth()-1);await cargarReservasMes();renderCalendario();};
+(function(){const grid=document.getElementById("dias");if(!grid)return;let sx=0;grid.addEventListener("touchstart",e=>{sx=e.touches[0].clientX;},{passive:true});grid.addEventListener("touchend",e=>{const diff=sx-e.changedTouches[0].clientX;if(Math.abs(diff)>60){if(diff>0)document.getElementById("btnMesSiguiente").click();else document.getElementById("btnMesAnterior").click();}},{passive:true});})();
+
+document.getElementById("reservarBtn").onclick=()=>{
+    if(!fechaSeleccionada||!horaSeleccionada)return;
+    const pill=document.getElementById("mcTurnoPillText");
+    if(pill)pill.textContent=`${formatearFechaLinda(fechaSeleccionada)} · ${horaSeleccionada} hs`;
+    _metodoPago=null;irPaso1();
+    document.getElementById("modalDepi").classList.add("open");
+    initDrumPickers();buildComboGrid();
+};
+document.getElementById("mcClose").onclick=()=>document.getElementById("modalDepi").classList.remove("open");
+
+document.getElementById("mcDni").addEventListener("blur",async()=>{
+    const dniRaw=document.getElementById("mcDni").value.trim().replace(/\./g,"");
+    if(!/^\d{7,9}$/.test(dniRaw))return;
+    try{
+        const snap=await getDoc(doc(db,"clients",dniRaw));if(!snap.exists())return;
+        const c=snap.data()||{};
+        const nombre=document.getElementById("mcNombre"),domicilio=document.getElementById("mcDomicilio"),telefono=document.getElementById("mcTelefono"),email=document.getElementById("mcEmail");
+        if(!nombre.value&&(c.nombre||c.fullName))nombre.value=c.nombre||c.fullName;
+        if(!domicilio.value&&c.domicilio)domicilio.value=c.domicilio;
+        if(!telefono.value&&(c.telefono||c.phone))telefono.value=c.telefono||c.phone;
+        if(!email.value&&c.email)email.value=c.email;
+        if(c.fechaNacimiento&&drumBuilt)setDrumDate(c.fechaNacimiento);
+        if(c.edad){const eEl=document.getElementById('mcEdad');if(eEl&&!eEl.value)eEl.value=c.edad;}
+    }catch(e){}
+});
+
+window.irPaso1=function(){
+    document.getElementById("mcStep1").classList.add("active");
+    document.getElementById("mcStep2").classList.remove("active");
+    document.getElementById("mcStep3").classList.remove("active");
+    document.getElementById("dot1").classList.add("active");document.getElementById("dot1").classList.remove("done");
+    document.getElementById("dot2").classList.remove("active","done");
+    document.getElementById("dot3").classList.remove("active","done");
+};
+
+function alertCampo(id,msg){
+    const el=document.getElementById(id);
+    if(el){el.style.borderColor="rgba(255,100,100,0.60)";if(el.focus&&el.tagName==='INPUT')el.focus();setTimeout(()=>el.style.borderColor="",2400);}
+    let t=document.getElementById("_mc_toast");
+    if(!t){t=document.createElement("div");t.id="_mc_toast";t.style.cssText="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(200,60,60,0.92);color:#fff;padding:9px 18px;border-radius:10px;font-size:13px;font-weight:700;z-index:99999;pointer-events:none;transition:opacity .3s;";document.body.appendChild(t);}
+    t.textContent=msg;t.style.opacity="1";clearTimeout(t._tid);t._tid=setTimeout(()=>{t.style.opacity="0";},2200);
+}
+
+window.irPaso2=function(){
+    const nombre=document.getElementById("mcNombre").value.trim();
+    const dni=document.getElementById("mcDni").value.trim();
+    const fechaNac=getFechaNacDrum();
+    const edad=document.getElementById("mcEdad").value.trim();
+    const domicilio=document.getElementById("mcDomicilio").value.trim();
+    const telefono=document.getElementById("mcTelefono").value.trim();
+
+    if(!nombre){alertCampo("mcNombre","Ingresá tu nombre completo");return;}
+    if(!dni||!/^\d{7,9}$/.test(dni.replace(/\./g,""))){alertCampo("mcDni","DNI inválido");return;}
+    const[fnY,fnM,fnD]=fechaNac.split('-').map(Number);
+    if(new Date(fnY,fnM-1,fnD)>=new Date()){alertCampo("drumPicker","La fecha de nacimiento no puede ser futura");return;}
+    if(!edad||isNaN(parseInt(edad))||parseInt(edad)<1||parseInt(edad)>120){alertCampo("mcEdad","Ingresá tu edad");return;}
+    if(!domicilio){alertCampo("mcDomicilio","Ingresá tu domicilio");return;}
+    if(!telefono){alertCampo("mcTelefono","Ingresá tu número de WhatsApp");return;}
+    if(!comboSeleccionado){alertCampo("comboSelectGrid","Elegí un combo");return;}
+
+    const avanzar=()=>{
+        document.getElementById("mcStep1").classList.remove("active");
+        document.getElementById("mcStep2").classList.add("active");
+        document.getElementById("dot1").classList.remove("active");document.getElementById("dot1").classList.add("done");
+        document.getElementById("dot2").classList.add("active");
+        const sub=document.getElementById("mcSubPago");
+        if(sub)sub.textContent=`${comboSeleccionado.nombre} · ${comboSeleccionado.precio} · Pago en el momento de la sesión.`;
+        _metodoPago=null;document.getElementById("mcBtnConfirmar").disabled=true;
+    };
+    if(parseInt(edad)<18){
+        const ov=document.getElementById("modalMenorDepi");ov.style.display="flex";
+        document.getElementById("_menorDepiOkBtn").onclick=()=>{ov.style.display="none";avanzar();};
+        document.getElementById("_menorDepiCancelBtn").onclick=()=>{ov.style.display="none";};
+        return;
+    }
+    avanzar();
+};
+
+window.seleccionarPago=function(tipo){
+    _metodoPago=tipo;
+    document.getElementById("pagoEfectivo").classList.toggle("selected",tipo==="efectivo");
+    document.getElementById("pagoTransferencia").classList.toggle("selected",tipo==="transferencia");
+    document.getElementById("infoTransferencia").style.display=tipo==="transferencia"?"block":"none";
+    document.getElementById("mcBtnConfirmar").disabled=false;
+};
+window.copiarAlias=function(){
+    navigator.clipboard?.writeText("farmaciacentral36").then(()=>{
+        const btn=document.querySelector(".mc-alias-copy");
+        if(btn){btn.textContent="¡Copiado!";setTimeout(()=>btn.textContent="Copiar alias",1800);}
+    });
+};
+
+window.confirmarDepi=async function(){
+    if(!_metodoPago)return;
+    const btn=document.getElementById("mcBtnConfirmar");
+    btn.disabled=true;btn.textContent="Guardando...";
+    const nombre=document.getElementById("mcNombre").value.trim();
+    const dniRaw=document.getElementById("mcDni").value.trim().replace(/\./g,"");
+    const fechaNac=getFechaNacDrum();
+    const edad=parseInt(document.getElementById("mcEdad").value.trim())||0;
+    const domicilio=document.getElementById("mcDomicilio").value.trim();
+    const telefono=document.getElementById("mcTelefono").value.trim();
+    const email=document.getElementById("mcEmail").value.trim();
+    const fStr=fechaAString(fechaSeleccionada);
+    try{
+        // Anti double-booking
+        const ocupadosAhora=await obtenerHorasOcupadas(fStr);
+        if(ocupadosAhora.includes(horaSeleccionada)||bloqueosHorarios.has(keyBloqueo(fStr,horaSeleccionada))){
+            mostrarAviso("Horario no disponible","Este turno acaba de ser tomado. Por favor elegí otro horario.");
+            btn.disabled=false;btn.textContent="Confirmar turno";return;
+        }
+        await addDoc(collection(db,"reservas"),{
+            cliente:nombre,clienteNombre:nombre,nombre,title:nombre,displayName:nombre,
+            phone:telefono,telefono,dni:dniRaw,
+            servicio:comboSeleccionado.nombre,
+            combo:`${comboSeleccionado.nombre} — ${comboSeleccionado.detalle}`,
+            comboPrecio:comboSeleccionado.precio,
+            comboGrupo:comboSeleccionado.grupo,
+            fecha:fStr,hora:horaSeleccionada,
+            tipo:"depilacion",
+            metodoPago:_metodoPago,
+            status:"confirmado",estado:"confirmado",
+            fechaNacimiento:fechaNac,edad,domicilio,email:email||null,
+            duracionMinutos:30,reminderSent:false,
+            creadoPor:"paciente_web",
+            timestamp:serverTimestamp(),createdAt:serverTimestamp()
+        });
+        // Bloquear slot en calendarExceptions
+        const blockId=`reserva_${fStr}_${horaSeleccionada.replace(':','-')}`;
+        setDoc(doc(db,"calendarExceptions",blockId),{fecha:fStr,hora:horaSeleccionada,blocked:true,tipo:"reserva",updatedAt:serverTimestamp()}).catch(()=>{});
+        // Actualizar perfil cliente
+        setDoc(doc(db,"clients",dniRaw),{dni:dniRaw,nombre,fullName:nombre,domicilio,telefono,email:email||null,fechaNacimiento:fechaNac,edad,updatedAt:serverTimestamp()},{merge:true}).catch(()=>{});
+        // Pantalla de éxito
+        document.getElementById("mcStep2").classList.remove("active");
+        document.getElementById("mcStep3").classList.add("active");
+        document.getElementById("dot2").classList.remove("active");document.getElementById("dot2").classList.add("done");
+        document.getElementById("dot3").classList.add("active");
+        const fechaLinda=formatearFechaLinda(fechaSeleccionada);
+        document.getElementById("mcSuccessData").innerHTML=`
+            <div class="mc-success-row"><span class="mc-success-key">Turno</span><span class="mc-success-val">${fechaLinda}</span></div>
+            <div class="mc-success-row"><span class="mc-success-key">Horario</span><span class="mc-success-val">${horaSeleccionada} hs</span></div>
+            <div class="mc-success-row"><span class="mc-success-key">Nombre</span><span class="mc-success-val">${nombre}</span></div>
+            <div class="mc-success-row"><span class="mc-success-key">Combo</span><span class="mc-success-val">${comboSeleccionado.nombre}</span></div>
+            <div class="mc-success-row"><span class="mc-success-key">Precio</span><span class="mc-success-val">${comboSeleccionado.precio}</span></div>
+            <div class="mc-success-row"><span class="mc-success-key">Pago</span><span class="mc-success-val">${_metodoPago==="transferencia"?"Transferencia":"Efectivo al llegar"}</span></div>
+        `;
+        if(_metodoPago==="transferencia"){
+            const msg=encodeURIComponent(`Hola Gime, te comparto el comprobante de transferencia. Soy ${nombre}, reservé para el ${fechaLinda} a las ${horaSeleccionada} hs — Combo ${comboSeleccionado.nombre}.`);
+            document.getElementById("mcWaComprobante").href=`https://wa.me/5493764291807?text=${msg}`;
+            document.getElementById("mcSuccessTransfer").style.display="block";
+        }
+    }catch(e){
+        console.error("Error guardando reserva de depilación:",e);
+        btn.disabled=false;btn.textContent="Confirmar turno";
+        alertCampo("mcBtnConfirmar","Error al guardar. Intentá de nuevo.");
+    }
+};
+
+window.toggleConsent=function(){
+    document.getElementById("consentAccordion").classList.toggle("open");
+};
+
+async function iniciar(){await cargarDatos();}
+iniciar();
+</script>
+</body>
+</html>

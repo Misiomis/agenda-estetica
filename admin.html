@@ -784,6 +784,7 @@
                         <option value="">Todos los orígenes</option>
                         <option value="jornada">Solo jornada</option>
                         <option value="normal">Solo normales</option>
+                        <option value="depilacion">Solo Depilación</option>
                     </select>
                     <input type="date" id="filtroDesde" class="select-input" onchange="filtrarReservasInput()" title="Desde">
                     <input type="date" id="filtroHasta" class="select-input" onchange="filtrarReservasInput()" title="Hasta">
@@ -1586,6 +1587,7 @@
         
         const resolverMembresiaActiva = (c = {}) => c.membershipActive === true || c.membresia === true;
         const resolverOrigenReserva = (r = {}) => {
+            if ((r.tipo || '').toLowerCase() === 'depilacion') return 'depilacion';
             const origen = (r.origen || '').toString().trim().toLowerCase();
             if (origen === 'jornada') return 'jornada';
             if (origen === 'normal') return 'normal';
@@ -1594,11 +1596,13 @@
             if (creadoPor === 'admin_manual') return 'normal';
             return 'normal';
         };
-        
+
         const renderTagOrigen = (r = {}) => {
             const origen = resolverOrigenReserva(r);
-            const labels = { jornada: 'Jornada', normal: 'Normal' };
-            return `<span class="tag-origen ${origen}">${labels[origen] || 'Normal'}</span>`;
+            const labels = { jornada: 'Jornada', normal: 'Normal', depilacion: 'Depilación' };
+            const colors = { depilacion: 'background:rgba(168,85,247,0.18);color:rgba(216,180,254,0.90);border-color:rgba(168,85,247,0.35)' };
+            const style = colors[origen] ? `style="${colors[origen]}"` : '';
+            return `<span class="tag-origen ${origen !== 'depilacion' ? origen : ''}" ${style}>${labels[origen] || 'Normal'}</span>`;
         };
         
         const esReservaBloqueoAdmin = (r = {}) => {
@@ -2379,7 +2383,7 @@
                 const fechaReserva = r.fecha || "";
                 const okNombre = txt.length < 2 || nombre.includes(txt);
                 const okServicio = !servicio || servicioReserva === servicio;
-                const okOrigen = !origen || origenReserva === origen;
+                const okOrigen = !origen || origenReserva === origen || (origen === 'depilacion' && (r.tipo || '').toLowerCase() === 'depilacion');
                 const okDesde = !desde || fechaReserva >= desde;
                 const okHasta = !hasta || fechaReserva <= hasta;
                 return okNombre && okServicio && okOrigen && okDesde && okHasta;

@@ -1043,13 +1043,27 @@ window.irPaso2 = function() {
     if (!telefono) { alertCampo("mcTelefono","Ingresá tu número de WhatsApp"); return; }
     if (!email || !email.includes('@')) { alertCampo("mcEmail","Ingresá un email válido"); return; }
 
-    document.getElementById("mcStep1").classList.remove("active");
-    document.getElementById("mcStep2").classList.add("active");
-    document.getElementById("mcStep3").classList.remove("active");
-    document.getElementById("dot1").classList.remove("active"); document.getElementById("dot1").classList.add("done");
-    document.getElementById("dot2").classList.add("active");
-    _metodoPago = null;
-    document.getElementById("mcBtnConfirmar").disabled = true;
+    const avanzarPaso2 = () => {
+        document.getElementById("mcStep1").classList.remove("active");
+        document.getElementById("mcStep2").classList.add("active");
+        document.getElementById("mcStep3").classList.remove("active");
+        document.getElementById("dot1").classList.remove("active"); document.getElementById("dot1").classList.add("done");
+        document.getElementById("dot2").classList.add("active");
+        _metodoPago = null;
+        document.getElementById("mcBtnConfirmar").disabled = true;
+    };
+
+    if (parseInt(edad) < 18) {
+        const ov = document.getElementById("modalMenorConsulta");
+        if (ov) {
+            ov.style.display = "flex";
+            document.getElementById("_menorOkBtn").onclick = () => { ov.style.display = "none"; avanzarPaso2(); };
+            document.getElementById("_menorCancelBtn").onclick = () => { ov.style.display = "none"; };
+        } else avanzarPaso2();
+        return;
+    }
+
+    avanzarPaso2();
 };
 
 function alertCampo(id, msg) {
@@ -1180,5 +1194,14 @@ async function iniciar() {
 iniciar();
 </script>
 <script src="/js/shared-footer.js"></script>
+<!-- Modal aviso menores de edad -->
+<div id="modalMenorConsulta" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(6,14,11,0.82);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
+    <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#0c2218 0%,#071a12 100%);border:1px solid rgba(60,179,113,0.22);border-radius:24px;padding:32px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+        <p style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;text-align:center;margin:0 0 12px;font-weight:500;">Atención</p>
+        <p style="font-size:14px;color:rgba(220,242,232,0.80);text-align:center;line-height:1.65;margin:0 0 24px;">Si sos menor de edad, es obligatorio que asistas a la consulta <strong style="color:rgba(106,230,164,0.9)">acompañado/a por uno de tus padres o tutores legales</strong>. Sin esa presencia no es posible brindarte atención, incluso si ya tenés el turno reservado.</p>
+        <button id="_menorOkBtn" style="width:100%;padding:14px;background:linear-gradient(135deg,#3fb87a,#2a8f5c);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;letter-spacing:.02em;">Entendido, continúo con la reserva</button>
+        <button id="_menorCancelBtn" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(60,179,113,0.28);border-radius:14px;color:rgba(165,205,188,0.70);font-size:13px;cursor:pointer;">Volver</button>
+    </div>
+</div>
 </body>
 </html>
