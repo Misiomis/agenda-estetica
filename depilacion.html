@@ -208,10 +208,15 @@
         <div class="aviso-item"><strong>Confidencialidad garantizada.</strong> Nuestro equipo trabaja bajo protocolos estrictos de privacidad. Cada sesión es un espacio privado — tratamos tu consulta con la discreción que merece.</div>
     </div>
 
-    <!-- Lista de precios -->
-    <div class="precios-section">
-        <h2 class="precios-title">Combos de depilación</h2>
-        <p class="precios-subtitle">Láser Diodo · Última tecnología · Precios por sesión</p>
+    <!-- Lista de precios (acordeón) -->
+    <div class="consent-accordion open" id="preciosAccordion">
+        <div class="consent-header" onclick="togglePrecios()">
+            <span class="consent-header-text">Combos de depilación · Precios por sesión</span>
+            <span class="consent-chevron">▾</span>
+        </div>
+        <div class="consent-body" style="padding-top:4px;">
+    <div class="precios-section" style="border:none;background:none;padding:8px 0 0;box-shadow:none;margin-bottom:0;">
+        <p class="precios-subtitle" style="margin-top:0;">Láser Diodo · Última tecnología · Precios por sesión</p>
 
         <div class="precios-grupo">
             <p class="precios-grupo-label">Para ellas</p>
@@ -290,6 +295,8 @@
             </div>
         </div>
         <p class="precio-nota-tech">Equipamiento médico-estético de última generación · Protocolos personalizados por fototipo de piel</p>
+    </div>
+        </div>
     </div>
 
     <!-- Consentimiento informado (desplegable) -->
@@ -380,7 +387,7 @@
 <div id="modalMenorDepi" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(6,14,11,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
     <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#0c2218 0%,#071a12 100%);border:1px solid rgba(168,85,247,0.25);border-radius:24px;padding:32px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
         <p style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;text-align:center;margin:0 0 12px;font-weight:500;">Atención</p>
-        <p style="font-size:14px;color:rgba(220,242,232,0.80);text-align:center;line-height:1.65;margin:0 0 24px;">Si sos menor de edad, es obligatorio que asistas a la sesión <strong style="color:#c084fc">acompañado/a por uno de tus padres o tutores legales</strong>. Sin esa presencia no es posible brindarte atención, incluso si ya tenés el turno reservado.</p>
+        <p style="font-size:14px;color:rgba(220,242,232,0.80);text-align:center;line-height:1.70;margin:0 0 24px;"><strong style="color:#c084fc">Si sos menor de edad</strong>, es obligatorio que asistas acompañado/a de un padre, madre o tutor legal — sin esa presencia no podemos atenderte, aun teniendo turno reservado.<br><br>Si sos mayor de edad, podés continuar normalmente.</p>
         <button id="_menorDepiOkBtn" style="width:100%;padding:14px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;">Entendido, continúo con la reserva</button>
         <button id="_menorDepiCancelBtn" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(168,85,247,0.22);border-radius:14px;color:rgba(165,205,188,0.60);font-size:13px;cursor:pointer;">Volver</button>
     </div>
@@ -408,7 +415,8 @@
                 <span id="mcTurnoPillText">Cargando...</span>
             </div>
 
-            <input class="mc-field" type="text" id="mcNombre" placeholder="Nombre completo *" autocomplete="name">
+            <input class="mc-field" type="text" id="mcNombre" placeholder="Por favor respetá el orden: Nombre Apellido *" autocomplete="name">
+            <p style="font-size:11px;color:rgba(165,205,188,0.38);margin:-4px 0 9px 2px;">Ej: <strong style="color:rgba(165,205,188,0.55)">María López</strong> — primero el nombre, luego el apellido</p>
             <input class="mc-field" type="text" id="mcDni" placeholder="DNI *" inputmode="numeric">
             <label class="mc-label" style="margin-top:2px;">Fecha de nacimiento *</label>
             <div class="drum-outer" id="drumPicker">
@@ -537,19 +545,34 @@ let comboSeleccionado = null;
 
 function buildComboGrid() {
     const grid = document.getElementById("comboSelectGrid");
-    const todos = [
-        {grupo:"Para ellas", combos:COMBOS_ELLAS},
-        {grupo:"Para ellos", combos:COMBOS_ELLOS},
+    const grupos = [
+        {id:"ellas", grupo:"Para ellas", combos:COMBOS_ELLAS},
+        {id:"ellos", grupo:"Para ellos", combos:COMBOS_ELLOS},
     ];
-    grid.innerHTML = todos.map(g => `
-        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:rgba(165,205,188,0.32);margin:4px 0 4px">${g.grupo}</div>
-        ${g.combos.map(c => `
-            <div class="combo-opt" id="comboOpt_${c.id}" onclick="seleccionarCombo('${c.id}','${g.grupo}','${c.nombre}','${c.detalle}','${c.precio}')">
-                <div><div class="combo-opt-nombre">${c.nombre}</div><div class="combo-opt-detalle">${c.detalle}</div></div>
-                <div class="combo-opt-precio">${c.precio}</div>
-            </div>`).join('')}
+    grid.innerHTML = grupos.map(g => `
+        <div onclick="toggleComboGrupo('${g.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(60,179,113,0.18);border-radius:12px;cursor:pointer;transition:border-color .2s;user-select:none;">
+            <span style="font-size:11.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(165,205,188,0.60);">${g.grupo}</span>
+            <span id="chev_${g.id}" style="color:rgba(165,205,188,0.40);font-size:15px;transition:transform .25s;">▾</span>
+        </div>
+        <div id="comboGrupo_${g.id}" style="display:none;flex-direction:column;gap:6px;padding:2px 2px 6px;">
+            ${g.combos.map(c => `
+                <div class="combo-opt" id="comboOpt_${c.id}" onclick="seleccionarCombo('${c.id}','${g.grupo}','${c.nombre}','${c.detalle}','${c.precio}')">
+                    <div><div class="combo-opt-nombre">${c.nombre}</div><div class="combo-opt-detalle">${c.detalle}</div></div>
+                    <div class="combo-opt-precio">${c.precio}</div>
+                </div>`).join('')}
+        </div>
     `).join('');
 }
+
+window.toggleComboGrupo = (id) => {
+    const body = document.getElementById('comboGrupo_' + id);
+    const chev = document.getElementById('chev_' + id);
+    if (!body) return;
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'flex';
+    body.style.flexDirection = 'column';
+    if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
+};
 
 window.seleccionarCombo = (id, grupo, nombre, detalle, precio) => {
     document.querySelectorAll(".combo-opt").forEach(el => el.classList.remove("selected"));
@@ -752,8 +775,13 @@ document.getElementById("mcDni").addEventListener("blur",async()=>{
     try{
         const snap=await getDoc(doc(db,"clients",dniRaw));if(!snap.exists())return;
         const c=snap.data()||{};
-        const nombre=document.getElementById("mcNombre"),domicilio=document.getElementById("mcDomicilio"),telefono=document.getElementById("mcTelefono"),email=document.getElementById("mcEmail");
-        if(!nombre.value&&(c.nombre||c.fullName))nombre.value=c.nombre||c.fullName;
+        const nombreEl=document.getElementById("mcNombre"),domicilio=document.getElementById("mcDomicilio"),telefono=document.getElementById("mcTelefono"),email=document.getElementById("mcEmail");
+        const nombreGuardado=c.nombre||c.fullName||'';
+        if(nombreGuardado){
+            nombreEl.value=nombreGuardado;nombreEl.readOnly=true;
+            nombreEl.style.background='rgba(60,179,113,0.05)';nombreEl.style.borderColor='rgba(60,179,113,0.25)';nombreEl.style.color='rgba(165,205,188,0.65)';nombreEl.style.cursor='not-allowed';
+            if(!document.getElementById('_notaNombreFijo')){const n=document.createElement('p');n.id='_notaNombreFijo';n.style.cssText='font-size:11px;color:rgba(165,205,188,0.45);margin:-4px 0 9px 2px;';n.innerHTML='<strong style="color:rgba(60,179,113,0.60)">✓ Nombre cargado desde tu perfil.</strong> Para modificarlo contactanos.';nombreEl.parentNode.insertBefore(n,nombreEl.nextSibling);}
+        }else{nombreEl.readOnly=false;nombreEl.style.cssText='';const n=document.getElementById('_notaNombreFijo');if(n)n.remove();}
         if(!domicilio.value&&c.domicilio)domicilio.value=c.domicilio;
         if(!telefono.value&&(c.telefono||c.phone))telefono.value=c.telefono||c.phone;
         if(!email.value&&c.email)email.value=c.email;
@@ -805,13 +833,9 @@ window.irPaso2=function(){
         if(sub)sub.textContent=`${comboSeleccionado.nombre} · ${comboSeleccionado.precio} · Pago en el momento de la sesión.`;
         _metodoPago=null;document.getElementById("mcBtnConfirmar").disabled=true;
     };
-    if(parseInt(edad)<18){
-        const ov=document.getElementById("modalMenorDepi");ov.style.display="flex";
-        document.getElementById("_menorDepiOkBtn").onclick=()=>{ov.style.display="none";avanzar();};
-        document.getElementById("_menorDepiCancelBtn").onclick=()=>{ov.style.display="none";};
-        return;
-    }
-    avanzar();
+    const ov=document.getElementById("modalMenorDepi");ov.style.display="flex";
+    document.getElementById("_menorDepiOkBtn").onclick=()=>{ov.style.display="none";avanzar();};
+    document.getElementById("_menorDepiCancelBtn").onclick=()=>{ov.style.display="none";};
 };
 
 window.seleccionarPago=function(tipo){
@@ -896,6 +920,9 @@ window.confirmarDepi=async function(){
 
 window.toggleConsent=function(){
     document.getElementById("consentAccordion").classList.toggle("open");
+};
+window.togglePrecios=function(){
+    document.getElementById("preciosAccordion").classList.toggle("open");
 };
 
 async function iniciar(){await cargarDatos();}

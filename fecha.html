@@ -511,7 +511,8 @@
                 <span id="mcTurnoPillText">Cargando...</span>
             </div>
 
-            <input class="mc-field" type="text" id="mcNombre" placeholder="Nombre completo *" autocomplete="name">
+            <input class="mc-field" type="text" id="mcNombre" placeholder="Por favor respetá el orden: Nombre Apellido *" autocomplete="name">
+            <p style="font-size:11px;color:rgba(165,205,188,0.38);margin:-4px 0 9px 2px;">Ej: <strong style="color:rgba(165,205,188,0.55)">María López</strong> — primero el nombre, luego el apellido</p>
             <input class="mc-field" type="text" id="mcDni" placeholder="DNI *" inputmode="numeric">
             <label class="mc-label" style="margin-top:2px;">Fecha de nacimiento *</label>
             <div class="drum-outer" id="drumPicker">
@@ -1003,11 +1004,16 @@ document.getElementById("mcDni").addEventListener("blur", async () => {
         const snap = await getDoc(doc(db, "clients", dniRaw));
         if (!snap.exists()) return;
         const c = snap.data() || {};
-        const nombre = document.getElementById("mcNombre");
+        const nombreEl = document.getElementById("mcNombre");
         const domicilio = document.getElementById("mcDomicilio");
         const telefono = document.getElementById("mcTelefono");
         const email = document.getElementById("mcEmail");
-        if (!nombre.value && (c.nombre || c.fullName)) nombre.value = c.nombre || c.fullName;
+        const nombreGuardado = c.nombre || c.fullName || '';
+        if (nombreGuardado) {
+            nombreEl.value = nombreGuardado; nombreEl.readOnly = true;
+            nombreEl.style.background = 'rgba(60,179,113,0.05)'; nombreEl.style.borderColor = 'rgba(60,179,113,0.25)'; nombreEl.style.color = 'rgba(165,205,188,0.65)'; nombreEl.style.cursor = 'not-allowed';
+            if (!document.getElementById('_notaNombreFijo')) { const n = document.createElement('p'); n.id = '_notaNombreFijo'; n.style.cssText = 'font-size:11px;color:rgba(165,205,188,0.45);margin:-4px 0 9px 2px;'; n.innerHTML = '<strong style="color:rgba(60,179,113,0.60)">✓ Nombre cargado desde tu perfil.</strong> Para modificarlo contactanos.'; nombreEl.parentNode.insertBefore(n, nombreEl.nextSibling); }
+        } else { nombreEl.readOnly = false; nombreEl.style.cssText = ''; const n = document.getElementById('_notaNombreFijo'); if (n) n.remove(); }
         if (!domicilio.value && c.domicilio) domicilio.value = c.domicilio;
         if (!telefono.value && (c.telefono || c.phone)) telefono.value = c.telefono || c.phone;
         if (!email.value && c.email) email.value = c.email;
@@ -1053,17 +1059,12 @@ window.irPaso2 = function() {
         document.getElementById("mcBtnConfirmar").disabled = true;
     };
 
-    if (parseInt(edad) < 18) {
-        const ov = document.getElementById("modalMenorConsulta");
-        if (ov) {
-            ov.style.display = "flex";
-            document.getElementById("_menorOkBtn").onclick = () => { ov.style.display = "none"; avanzarPaso2(); };
-            document.getElementById("_menorCancelBtn").onclick = () => { ov.style.display = "none"; };
-        } else avanzarPaso2();
-        return;
-    }
-
-    avanzarPaso2();
+    const ov = document.getElementById("modalMenorConsulta");
+    if (ov) {
+        ov.style.display = "flex";
+        document.getElementById("_menorOkBtn").onclick = () => { ov.style.display = "none"; avanzarPaso2(); };
+        document.getElementById("_menorCancelBtn").onclick = () => { ov.style.display = "none"; };
+    } else avanzarPaso2();
 };
 
 function alertCampo(id, msg) {
@@ -1198,7 +1199,7 @@ iniciar();
 <div id="modalMenorConsulta" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(6,14,11,0.82);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
     <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#0c2218 0%,#071a12 100%);border:1px solid rgba(60,179,113,0.22);border-radius:24px;padding:32px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
         <p style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;text-align:center;margin:0 0 12px;font-weight:500;">Atención</p>
-        <p style="font-size:14px;color:rgba(220,242,232,0.80);text-align:center;line-height:1.65;margin:0 0 24px;">Si sos menor de edad, es obligatorio que asistas a la consulta <strong style="color:rgba(106,230,164,0.9)">acompañado/a por uno de tus padres o tutores legales</strong>. Sin esa presencia no es posible brindarte atención, incluso si ya tenés el turno reservado.</p>
+        <p style="font-size:14px;color:rgba(220,242,232,0.80);text-align:center;line-height:1.70;margin:0 0 24px;"><strong style="color:rgba(106,230,164,0.9)">Si sos menor de edad</strong>, es obligatorio que asistas acompañado/a de un padre, madre o tutor legal — sin esa presencia no podemos atenderte, aun teniendo turno reservado.<br><br>Si sos mayor de edad, podés continuar normalmente.</p>
         <button id="_menorOkBtn" style="width:100%;padding:14px;background:linear-gradient(135deg,#3fb87a,#2a8f5c);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;letter-spacing:.02em;">Entendido, continúo con la reserva</button>
         <button id="_menorCancelBtn" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(60,179,113,0.28);border-radius:14px;color:rgba(165,205,188,0.70);font-size:13px;cursor:pointer;">Volver</button>
     </div>
