@@ -435,6 +435,16 @@
     </div>
 </div>
 
+<!-- Modal próximamente -->
+<div id="modalProximamente" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(6,14,11,0.93);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px;">
+    <div style="width:100%;max-width:420px;background:linear-gradient(165deg,#0d1a0e 0%,#07100a 100%);border:1px solid rgba(60,179,113,0.28);border-radius:24px;padding:34px 26px;box-shadow:0 32px 72px rgba(0,0,0,0.65);text-align:center;">
+        <div style="font-size:44px;margin-bottom:14px;">✨</div>
+        <p style="font-family:'Cormorant Garamond',serif;font-size:24px;color:#b8e8c8;margin:0 0 12px;font-weight:600;">¡Muy pronto!</p>
+        <p style="font-size:14px;color:rgba(165,205,188,0.78);line-height:1.70;margin:0 0 22px;">Estamos preparando todo para que puedas reservar tu turno de <strong style="color:rgba(255,185,60,0.90);">depilación láser</strong> desde acá.<br><br><span style="color:rgba(165,205,188,0.55);font-size:13px;">A partir de la semana que viene habilitamos los turnos.</span></p>
+        <button onclick="document.getElementById('modalProximamente').style.display='none';" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(60,179,113,0.18),rgba(60,179,113,0.08));border:1px solid rgba(60,179,113,0.30);border-radius:14px;color:rgba(165,205,188,0.85);font-size:14px;font-weight:600;cursor:pointer;">Entendido</button>
+    </div>
+</div>
+
 <!-- Modal menor de edad -->
 <div id="modalMenorDepi" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(6,14,11,0.90);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
     <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#1a0606 0%,#110404 100%);border:2px solid rgba(255,80,80,0.40);border-radius:24px;padding:32px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
@@ -824,8 +834,13 @@ const _abrirModalDepi=()=>{
     document.getElementById("modalDepi").classList.add("open");
     initDrumPickers();buildComboGrid();
 };
+const TURNOS_HABILITADOS = false;
 document.getElementById("reservarBtn").onclick=()=>{
     if(!fechaSeleccionada||!horaSeleccionada)return;
+    if(!TURNOS_HABILITADOS){
+        document.getElementById("modalProximamente").style.display="flex";
+        return;
+    }
     const ov=document.getElementById("modalContraindicaciones");
     ov.style.display="flex";
     document.getElementById("btnContraindicacionesOk").onclick=()=>{ov.style.display="none";_abrirModalDepi();};

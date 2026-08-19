@@ -1159,7 +1159,7 @@ window.confirmarConsulta = async function() {
             method: "POST",
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({ servicio: 'Consulta Inicial', nombre, fecha: fStr, hora: horaSeleccionada, metodoPago: _metodoPago, dni: dniRaw, fechaNacimiento: fechaNac, edad, domicilio, telefono, email })
-        }).catch(() => {});
+        }).then(r=>r.json()).then(j=>{ if(!j.whatsappSent) console.error('[WA] notif fallo:',j); }).catch(e=>console.error('[WA] fetch error:',e));
 
         // Mostrar éxito
         document.getElementById("mcStep2").classList.remove("active");
