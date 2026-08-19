@@ -483,7 +483,7 @@
                 <div class="drum-fade drum-fade-b"></div>
             </div>
             <input class="mc-field" type="number" id="mcEdad" placeholder="Edad *" inputmode="numeric" min="1" max="120">
-            <input class="mc-field" type="text" id="mcDomicilio" placeholder="Domicilio (calle y número) *" autocomplete="street-address">
+            <input class="mc-field" type="text" id="mcDomicilio" placeholder="Barrio / Localidad *" autocomplete="address-level2">
             <input class="mc-field" type="tel" id="mcTelefono" placeholder="WhatsApp / Teléfono *" autocomplete="tel" inputmode="tel">
             <input class="mc-field" type="email" id="mcEmail" placeholder="Email (opcional)" autocomplete="email" inputmode="email">
 
@@ -884,7 +884,7 @@ window.irPaso2=function(){
     const[fnY,fnM,fnD]=fechaNac.split('-').map(Number);
     if(new Date(fnY,fnM-1,fnD)>=new Date()){alertCampo("drumPicker","La fecha de nacimiento no puede ser futura");return;}
     if(!edad||isNaN(parseInt(edad))||parseInt(edad)<1||parseInt(edad)>120){alertCampo("mcEdad","Ingresá tu edad");return;}
-    if(!domicilio){alertCampo("mcDomicilio","Ingresá tu domicilio");return;}
+    if(!domicilio){alertCampo("mcDomicilio","Ingresá tu barrio o localidad");return;}
     if(!telefono){alertCampo("mcTelefono","Ingresá tu número de WhatsApp");return;}
     if(!comboSeleccionado){alertCampo("comboSelectGrid","Elegí un combo");return;}
 
