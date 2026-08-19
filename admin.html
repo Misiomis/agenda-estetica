@@ -2267,27 +2267,28 @@
                     ? ''
                     : bloqueo ? escapeHtml(bloqueoData?.reason || 'No disponible') : '';
 
-                const estado = esExtension
-                    ? `<span class="pill reservado">${reservaBaseExt ? 'Turno ext.' : 'Turno ext.'}</span>`
-                    : bloqueo
-                        ? `<span class="pill bloqueado">${motivoBloqueo}</span>`
-                        : reserva
-                            ? '<span class="pill reservado">Reservado</span>'
-                            : consulta
-                                ? '<span class="pill reservado">Consulta Inicial</span>'
+                // Reserva y consulta tienen prioridad visual sobre cualquier bloqueo (salvo extension)
+                const estado = reserva
+                    ? '<span class="pill reservado">Reservado</span>'
+                    : consulta
+                        ? '<span class="pill reservado">Consulta Inicial</span>'
+                        : esExtension
+                            ? `<span class="pill reservado">Turno ext.</span>`
+                            : bloqueo
+                                ? `<span class="pill bloqueado">${motivoBloqueo}</span>`
                                 : '<span class="pill disponible">Disponible</span>';
 
-                const label = esExtension
-                    ? (reservaBaseExt
-                        ? `${escapeHtml(reservaBaseExt.nombreLimpio || 'Paciente')} · ${escapeHtml(reservaBaseExt.servicio || 'Servicio')} (ext.)`
-                        : 'Turno extendido')
-                    : reserva
-                        ? `${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(reserva.servicio || 'Servicio')}`
-                        : consulta
-                            ? `${escapeHtml(consulta.nombre || 'Paciente')} · DNI ${escapeHtml(consulta.dni || '')} · ${escapeHtml(consulta.estado || 'pendiente')}`
+                const label = reserva
+                    ? `${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(reserva.servicio || 'Servicio')}`
+                    : consulta
+                        ? `${escapeHtml(consulta.nombre || 'Paciente')} · DNI ${escapeHtml(consulta.dni || '')} · ${escapeHtml(consulta.estado || 'pendiente')}`
+                        : esExtension
+                            ? (reservaBaseExt
+                                ? `${escapeHtml(reservaBaseExt.nombreLimpio || 'Paciente')} · ${escapeHtml(reservaBaseExt.servicio || 'Servicio')} (ext.)`
+                                : 'Turno extendido')
                             : bloqueo ? '' : 'Sin reserva';
 
-                const accionBloqueo = esExtension
+                const accionBloqueo = (esExtension || reserva || consulta)
                     ? ''
                     : bloqueo
                         ? `<button class="btn-mini" onclick="toggleBloqueoHorario('${f}','${hora}')">Desbloquear</button>`
@@ -5152,7 +5153,13 @@
 
         const _bloquearTodosLosHorariosDia = async (fecha) => {
             const horas = [...obtenerHorariosDia(fecha)];
-            await Promise.all(horas.map(async hora => {
+            // Slots con reserva o consulta activa — NO se bloquean
+            const reservados = new Set([
+                ...todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === fecha).map(r => normalizarHora(r.hora)),
+                ...todasLasConsultas.filter(c => c.fecha === fecha).map(c => normalizarHora(c.hora))
+            ]);
+            const horasLibres = horas.filter(h => !reservados.has(h) && !bloqueosHorarios.has(keyBloqueo(fecha, h)));
+            await Promise.all(horasLibres.map(async hora => {
                 const idDoc = docIdBloqueo(fecha, hora);
                 await setDoc(doc(db, "calendarExceptions", idDoc), {
                     fecha, hora, blocked: true, updatedAt: serverTimestamp()
