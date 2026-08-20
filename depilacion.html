@@ -632,6 +632,7 @@ const DEPI_HORARIOS = {
     6: ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30']          // sábado
 };
 const DEPI_DIAS = new Set([3, 5, 6]);
+const FECHA_INICIO_DEPI = '2026-08-26'; // primera semana disponible
 const _slotsParaDia = (fStr) => {
     const d = new Date(fStr + 'T12:00:00');
     return DEPI_HORARIOS[d.getDay()] || [];
@@ -851,6 +852,7 @@ function renderCalendario(){
         if(f.getDay()===0)div.classList.add("domingo");
         else if(f<hoy)div.classList.add("pasado");
         else if(!DEPI_DIAS.has(f.getDay())){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("Sin turnos","Los turnos de depilación láser están disponibles los miércoles, viernes y sábados.");}
+        else if(fStr < FECHA_INICIO_DEPI){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("Próximamente","Los turnos de depilación comienzan la semana del 26 de agosto. ¡Pronto vas a poder reservar tu turno! 💜");}
         else if(esDiaBloqueadoPorAdmin(fStr)){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("No disponible","Este día no tiene turnos disponibles.");}
         else if(excepciones[fStr]){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("Cerrado",excepciones[fStr]);}
         else if(esDiaLleno(fStr)){div.classList.add("lleno");div.onclick=()=>mostrarAviso("Sin cupos","Los turnos de este día están completos. Elegí otro día.");}
