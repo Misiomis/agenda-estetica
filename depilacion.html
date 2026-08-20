@@ -625,10 +625,19 @@
 <script type="module">
 import { auth, db, onAuthStateChanged, collection, getDocs, doc, addDoc, setDoc, getDoc, query, where, serverTimestamp, onSnapshot } from "/js/firebase-web.js";
 
-const SLOTS_DIA = Array.from({length:27}, (_, i) => {
-    const t = 7*60+30+i*30;
-    return `${String(Math.floor(t/60)).padStart(2,"0")}:${String(t%60).padStart(2,"0")}`;
-});
+// Horarios específicos para depilación láser por día de la semana
+const DEPI_HORARIOS = {
+    3: ['07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30'], // miércoles
+    5: ['15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30'], // viernes
+    6: ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30']          // sábado
+};
+const DEPI_DIAS = new Set([3, 5, 6]);
+const _slotsParaDia = (fStr) => {
+    const d = new Date(fStr + 'T12:00:00');
+    return DEPI_HORARIOS[d.getDay()] || [];
+};
+// Fallback para código legacy que usa SLOTS_DIA
+const SLOTS_DIA = Object.values(DEPI_HORARIOS).flat().filter((v,i,a)=>a.indexOf(v)===i).sort();
 const normalizarHora = (hora) => {
     const txt = (hora||"").toString().replace(/\s*hs$/i,"").trim();
     const m = txt.match(/^(\d{1,2})[:.](\d{2})$/);
@@ -774,7 +783,7 @@ async function cargarReservasMes(){
     const y=fechaActual.getFullYear(),m=fechaActual.getMonth();
     const mesStr=`${y}-${String(m+1).padStart(2,"0")}`;
     try{
-        const snap=await getDocs(query(collection(db,"reservas"),where("fecha",">=",mesStr+"-01"),where("fecha","<=",mesStr+"-31")));
+        const snap=await getDocs(query(collection(db,"reservasDepi"),where("fecha",">=",mesStr+"-01"),where("fecha","<=",mesStr+"-31")));
         reservasPorFecha=new Map();
         snap.forEach(d=>{
             const dat=d.data();if(!dat.fecha||!dat.hora)return;
@@ -783,26 +792,12 @@ async function cargarReservasMes(){
             if(!reservasPorFecha.has(dat.fecha))reservasPorFecha.set(dat.fecha,new Set());
             reservasPorFecha.get(dat.fecha).add(h);
         });
-        try{
-            const snapC=await getDocs(query(collection(db,"consultas"),where("fecha",">=",mesStr+"-01"),where("fecha","<=",mesStr+"-31")));
-            snapC.forEach(d=>{
-                const dat=d.data();if(!dat.fecha||!dat.hora)return;
-                if(["cancelada","cancelado"].includes((dat.estado||"").toLowerCase()))return;
-                const h=normalizarHora(dat.hora);if(!h)return;
-                if(!reservasPorFecha.has(dat.fecha))reservasPorFecha.set(dat.fecha,new Set());
-                reservasPorFecha.get(dat.fecha).add(h);
-            });
-        }catch(e){}
     }catch(e){console.warn("cargarReservasMes:",e?.code||e?.message);}
 }
 const obtenerHorasOcupadas=async(fStr)=>{
     const horas=new Set();
-    const snap=await getDocs(query(collection(db,"reservas"),where("fecha","==",fStr)));
-    snap.forEach(d=>{const dat=d.data()||{};if(!esReservaActiva(dat))return;const h=normalizarHora(dat.hora||dat.hour||"");if(h)horas.add(h);});
-    try{
-        const snapC=await getDocs(query(collection(db,"consultas"),where("fecha","==",fStr)));
-        snapC.forEach(d=>{const dat=d.data()||{};if(["cancelada","cancelado"].includes((dat.estado||"").toLowerCase()))return;const h=normalizarHora(dat.hora||"");if(h)horas.add(h);});
-    }catch(e){}
+    const snap=await getDocs(query(collection(db,"reservasDepi"),where("fecha","==",fStr)));
+    snap.forEach(d=>{const dat=d.data()||{};if(!esReservaActiva(dat))return;const h=normalizarHora(dat.hora||"");if(h)horas.add(h);});
     bloqueosHorarios.forEach((blq)=>{if((blq?.fecha||"")!==fStr)return;const h=normalizarHora(blq.hora||"");if(h)horas.add(h);});
     return [...horas].sort((a,b)=>a.localeCompare(b));
 };
@@ -821,7 +816,7 @@ function procesarExcepciones(snapshot){
     });
 }
 async function cargarDatos(){
-    onSnapshot(collection(db,"calendarExceptions"),async(snapshot)=>{
+    onSnapshot(collection(db,"calendarExceptionsDepi"),async(snapshot)=>{
         procesarExcepciones(snapshot);renderCalendario();
         if(fechaSeleccionada)await cargarHorarios(fechaAString(fechaSeleccionada));
     });
@@ -834,7 +829,7 @@ async function cargarDatos(){
 }
 const esDiaBloqueadoPorAdmin=(fStr)=>rangosDiasBloqueados.some(r=>fStr>=r.desde&&fStr<=r.hasta);
 const slotsTomadosDia=(fStr)=>{const res=reservasPorFecha.get(fStr)||new Set();let blocks=0;bloqueosHorarios.forEach((_,k)=>{if(k.startsWith(fStr+"|"))blocks++;});return res.size+blocks;};
-const esDiaLleno=(fStr)=>{const res=reservasPorFecha.get(fStr)||new Set();return SLOTS_DIA.every(hora=>res.has(hora)||bloqueosHorarios.has(keyBloqueo(fStr,hora)));};
+const esDiaLleno=(fStr)=>{const slots=_slotsParaDia(fStr);if(!slots.length)return true;const res=reservasPorFecha.get(fStr)||new Set();return slots.every(hora=>res.has(hora)||bloqueosHorarios.has(keyBloqueo(fStr,hora)));};
 
 function renderCalendario(){
     const y=fechaActual.getFullYear(),m=fechaActual.getMonth();
@@ -855,6 +850,7 @@ function renderCalendario(){
         const div=document.createElement("div");div.className="dia";div.innerText=d;
         if(f.getDay()===0)div.classList.add("domingo");
         else if(f<hoy)div.classList.add("pasado");
+        else if(!DEPI_DIAS.has(f.getDay())){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("Sin turnos","Los turnos de depilación láser están disponibles los miércoles, viernes y sábados.");}
         else if(esDiaBloqueadoPorAdmin(fStr)){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("No disponible","Este día no tiene turnos disponibles.");}
         else if(excepciones[fStr]){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("Cerrado",excepciones[fStr]);}
         else if(esDiaLleno(fStr)){div.classList.add("lleno");div.onclick=()=>mostrarAviso("Sin cupos","Los turnos de este día están completos. Elegí otro día.");}
@@ -873,7 +869,9 @@ async function cargarHorarios(fStr){
     cont.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(165,205,188,0.45);font-size:13px;">Buscando turnos...</div>`;
     if(excepciones[fStr]){cont.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(255,120,120,0.70);font-size:13px;">Día cerrado: ${excepciones[fStr]}</div>`;return;}
     const ocupados=await obtenerHorasOcupadas(fStr);cont.innerHTML="";
-    SLOTS_DIA.forEach((hora,idx)=>{
+    const _slots=_slotsParaDia(fStr);
+    if(!_slots.length){cont.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(255,120,120,0.70);font-size:13px;">No hay turnos disponibles para este día.</div>';return;}
+    _slots.forEach((hora,idx)=>{
         const div=document.createElement("div");div.className="hora";div.innerText=hora;div.style.animationDelay=`${Math.min(idx*40,400)}ms`;
         const bloqueado=bloqueosHorarios.has(keyBloqueo(fStr,hora));const ocupado=ocupados.includes(hora);
         if(bloqueado||ocupado){div.classList.add("ocupado");}
@@ -905,7 +903,7 @@ const _abrirModalDepi=()=>{
     document.getElementById("modalDepi").classList.add("open");
     initDrumPickers();buildComboGrid();
 };
-const TURNOS_HABILITADOS = false;
+const TURNOS_HABILITADOS = true;
 document.getElementById("reservarBtn").onclick=()=>{
     if(!fechaSeleccionada||!horaSeleccionada)return;
     if(!TURNOS_HABILITADOS){
@@ -1040,7 +1038,7 @@ window.confirmarDepi=async function(){
                 btn.disabled=false;btn.textContent="Confirmar turno";return;
             }
         }
-        const reservaRef=await addDoc(collection(db,"reservas"),{
+        const reservaRef=await addDoc(collection(db,"reservasDepi"),{
             cliente:nombre,clienteNombre:nombre,nombre,title:nombre,displayName:nombre,
             phone:telefono,telefono,dni:dniRaw,
             servicio:comboSeleccionado.nombre,
@@ -1057,13 +1055,15 @@ window.confirmarDepi=async function(){
             timestamp:serverTimestamp(),createdAt:serverTimestamp()
         });
         // Bloquear slot base
-        const blockId=`reserva_${fStr}_${horaSeleccionada.replace(':','-')}`;
-        setDoc(doc(db,"calendarExceptions",blockId),{fecha:fStr,hora:horaSeleccionada,blocked:true,tipo:"reserva",updatedAt:serverTimestamp()}).catch(()=>{});
+        const blockId=`depi_${fStr}_${horaSeleccionada.replace(':','-')}`;
+        setDoc(doc(db,"calendarExceptionsDepi",blockId),{fecha:fStr,hora:horaSeleccionada,blocked:true,tipo:"reserva",reservaId:reservaRef.id,updatedAt:serverTimestamp()}).catch(()=>{});
         // Bloquear slot extra si 60 min
-        if(durMin===60&&SLOTS_DIA[idxBase+1]){
-            const horaExt=SLOTS_DIA[idxBase+1];
-            const extId=`ext_${fStr}_${horaExt.replace(':','h')}`;
-            setDoc(doc(db,"calendarExceptions",extId),{fecha:fStr,hora:horaExt,blocked:true,tipo:'extension',reservaId:reservaRef.id,updatedAt:serverTimestamp()}).catch(()=>{});
+        const _slotsHoy=_slotsParaDia(fStr);
+        const _idxBase=_slotsHoy.indexOf(normalizarHora(horaSeleccionada));
+        if(durMin===60&&_slotsHoy[_idxBase+1]){
+            const horaExt=_slotsHoy[_idxBase+1];
+            const extId=`depi_ext_${fStr}_${horaExt.replace(':','h')}`;
+            setDoc(doc(db,"calendarExceptionsDepi",extId),{fecha:fStr,hora:horaExt,blocked:true,tipo:'extension',reservaId:reservaRef.id,updatedAt:serverTimestamp()}).catch(()=>{});
         }
         // Actualizar perfil cliente
         setDoc(doc(db,"clients",dniRaw),{dni:dniRaw,nombre,fullName:nombre,domicilio,telefono,email:email||null,fechaNacimiento:fechaNac,edad,updatedAt:serverTimestamp()},{merge:true}).catch(()=>{});

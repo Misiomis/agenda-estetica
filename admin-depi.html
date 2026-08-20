@@ -165,6 +165,12 @@
         .cal-day.seleccionado { background: var(--acento-suave); border-color: var(--acento); color: rgba(216,200,255,0.95); }
         .cal-day.vacio { cursor: default; pointer-events: none; }
         .cal-day.pasado { opacity: 0.4; }
+        .cal-day.no-depi { opacity: 0.22; cursor: default; pointer-events: none; }
+        .cal-day.bloqueado-depi { border-color: rgba(248,113,113,0.30); color: rgba(248,113,113,0.60); background: rgba(248,113,113,0.06); }
+        .slot-row { display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;margin-bottom:5px;border:1px solid var(--borde);background:rgba(255,255,255,0.025); }
+        .slot-hora { font-size:14px;font-weight:800;color:rgba(167,139,250,0.90);min-width:46px; }
+        .slot-libre { color:var(--texto-suave);font-size:12px;flex:1; }
+        .slot-bloqueado-label { color:rgba(248,113,113,0.70);font-size:12px;flex:1; }
 
         /* ── DÍA DETALLE ── */
         .reserva-item {
@@ -312,6 +318,7 @@
         <button class="nav-btn" id="navRegistrar" onclick="irA('registrar')">➕ Nuevo turno</button>
         <button class="nav-btn" id="navBuscar" onclick="irA('buscar')">🔍 Buscar</button>
         <div class="nav-divider"></div>
+        <a class="nav-btn" href="/admin.html" style="text-decoration:none;color:var(--texto-suave);font-size:12px;">← Volver a Admin</a>
         <button class="nav-exit" onclick="cerrarSesionDepi()">Cerrar sesión</button>
     </nav>
 
@@ -333,7 +340,10 @@
                 <div class="card">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
                         <h4 style="margin-bottom:0;" id="diaDetalleTitle">Turnos del día</h4>
-                        <button class="btn-outline" onclick="irARegistrarDia()">+ Agregar turno</button>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="btn-outline" onclick="irARegistrarDia()">+ Agregar turno</button>
+                            <button class="btn-outline" style="border-color:rgba(248,113,113,0.35);color:rgba(248,113,113,0.75);background:rgba(248,113,113,0.06);" onclick="bloquearDiaDepi()">🔒 Bloquear día</button>
+                        </div>
                     </div>
                     <div id="diaDetalleContenido">
                         <div style="color:var(--texto-suave);font-size:13px;padding:12px 0 4px;">No hay turnos para este día.</div>
@@ -450,7 +460,7 @@
     import {
         auth, db,
         signInWithEmailAndPassword, onAuthStateChanged, signOut,
-        collection, getDocs, doc, setDoc, addDoc, updateDoc, getDoc,
+        collection, getDocs, doc, setDoc, addDoc, updateDoc, deleteDoc, getDoc,
         serverTimestamp, query, where
     } from "/js/firebase-web.js";
 
@@ -461,13 +471,26 @@
         "depi.mimart@gmail.com"        // ← cambiar por el email real de la profesional
     ];
 
-    const COLECCION = "reservas_depi";
+    const COLECCION    = "reservasDepi";
+    const COLECCION_EX = "calendarExceptionsDepi";
+
+    const DEPI_HORARIOS = {
+        3: ['07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30'],
+        5: ['15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30'],
+        6: ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30']
+    };
+    const DEPI_DIAS = new Set([3, 5, 6]);
+    const _slotsParaDia = (fStr) => {
+        const d = new Date(fStr + 'T12:00:00');
+        return DEPI_HORARIOS[d.getDay()] || [];
+    };
 
     // ── Estado
     let _calMes = new Date().getMonth();
     let _calAnio = new Date().getFullYear();
     let _diaSeleccionado = null;
-    let _reservasDia = {};   // { "YYYY-MM-DD": [docs] }
+    let _reservasDia = {};
+    let _excepcionesDia = {};
     let _diaRegistroPrefill = null;
 
     // ════════════════════════════════
@@ -554,35 +577,40 @@
         const fechaMax = fmtFecha(ultimoDia);
 
         let diasConReservas = new Set();
+        let diasBloqueados = new Set();
         try {
-            const snap = await getDocs(query(
-                collection(db, COLECCION),
-                where('fecha', '>=', fechaMin),
-                where('fecha', '<=', fechaMax)
-            ));
-            snap.forEach(d => {
-                const f = d.data().fecha;
-                if (f) diasConReservas.add(f);
-            });
+            const [snapR, snapEx] = await Promise.all([
+                getDocs(query(collection(db, COLECCION), where('fecha', '>=', fechaMin), where('fecha', '<=', fechaMax))),
+                getDocs(query(collection(db, COLECCION_EX), where('fecha', '>=', fechaMin), where('fecha', '<=', fechaMax)))
+            ]);
+            snapR.forEach(d => { const f = d.data().fecha; if (f) diasConReservas.add(f); });
+            snapEx.forEach(d => { const dat = d.data(); if (dat.fecha && dat.tipo === 'dia') diasBloqueados.add(dat.fecha); });
         } catch(e) {
             console.error("cargarCalendario:", e);
         }
 
         // Generar celdas
-        const offset = primerDia.getDay(); // 0=Dom
+        const offset = primerDia.getDay();
         let celdas = '';
         for (let i = 0; i < offset; i++) celdas += `<div class="cal-day vacio"></div>`;
         const hoy = fmtFecha(new Date());
         const totalDias = ultimoDia.getDate();
         for (let d = 1; d <= totalDias; d++) {
             const fecha = `${_calAnio}-${String(_calMes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dow = new Date(fecha + 'T12:00:00').getDay();
+            if (!DEPI_DIAS.has(dow)) {
+                celdas += `<div class="cal-day no-depi">${d}</div>`;
+                continue;
+            }
             const esHoy = fecha === hoy;
             const tieneTurnos = diasConReservas.has(fecha);
+            const esBloq = diasBloqueados.has(fecha);
             const esSel = fecha === _diaSeleccionado;
             const esPasado = fecha < hoy;
             let cls = 'cal-day';
             if (esHoy) cls += ' hoy';
             if (tieneTurnos) cls += ' tiene-reservas';
+            if (esBloq) cls += ' bloqueado-depi';
             if (esSel) cls += ' seleccionado';
             if (esPasado && !esHoy) cls += ' pasado';
             celdas += `<button class="${cls}" onclick="verDia('${fecha}')">${d}</button>`;
@@ -610,52 +638,153 @@
         });
 
         try {
-            const snap = await getDocs(query(
-                collection(db, COLECCION),
-                where('fecha', '==', fecha)
-            ));
+            const [snapR, snapEx] = await Promise.all([
+                getDocs(query(collection(db, COLECCION), where('fecha', '==', fecha))),
+                getDocs(query(collection(db, COLECCION_EX), where('fecha', '==', fecha)))
+            ]);
             const reservas = [];
-            snap.forEach(d => reservas.push({ _id: d.id, ...d.data() }));
+            snapR.forEach(d => { if (!d.data().eliminado) reservas.push({ _id: d.id, ...d.data() }); });
             reservas.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
             _reservasDia[fecha] = reservas;
-            renderDiaDetalle(reservas);
+
+            // Build exceptions map for this day
+            const exInfo = { diaBloqueado: false, slots: {} };
+            snapEx.forEach(d => {
+                const dat = d.data();
+                if (dat.tipo === 'dia') exInfo.diaBloqueado = true;
+                if (dat.tipo === 'slot' && dat.hora) exInfo.slots[dat.hora] = d.id;
+            });
+            _excepcionesDia[fecha] = exInfo;
+
+            renderDiaDetalle(fecha, reservas, exInfo);
         } catch(e) {
             console.error("verDia:", e);
             cont.innerHTML = '<div style="color:#f87171;font-size:13px;">Error al cargar turnos.</div>';
         }
     };
 
-    const renderDiaDetalle = (reservas) => {
+    const _fmtFechaLarga = (fStr) => {
+        const [a, m, d] = fStr.split('-');
+        const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        return `${parseInt(d)} de ${meses[parseInt(m)-1]} de ${a}`;
+    };
+
+    const _msgRecordatorio = (r, fStr) => {
+        const hoy = new Date(), pad = n => String(n).padStart(2,'0');
+        const hoyISO = `${hoy.getFullYear()}-${pad(hoy.getMonth()+1)}-${pad(hoy.getDate())}`;
+        const man = new Date(hoy); man.setDate(hoy.getDate()+1);
+        const manISO = `${man.getFullYear()}-${pad(man.getMonth()+1)}-${pad(man.getDate())}`;
+        const cuando = fStr === manISO ? `mañana, ${_fmtFechaLarga(fStr)},` : fStr === hoyISO ? `hoy (${_fmtFechaLarga(fStr)})` : `el ${_fmtFechaLarga(fStr)}`;
+        return `Hola ${(r.nombre||'').split(' ')[0]} 💜 Te recordamos tu sesión de depilación láser en Espacio Mimar T ${cuando} a las ${r.hora} hs.\n\nTe pedimos que llegues puntual y con la zona bien rasurada (no depilada con cera ni pinzas).\n\n¡Nos vemos pronto! 🌿\nEspacio Mimar T`;
+    };
+
+    const _msgPostDepi = (r) => {
+        return `✨ Cuidados después de tu sesión de depilación láser\n\nHola ${(r.nombre||'').split(' ')[0]} 💜 ¡Muchas gracias por tu visita a Espacio Mimar T! Aquí te dejamos algunos cuidados importantes para las próximas horas:\n\n• Evitá exponerte al sol o calor intenso (sauna, jacuzzi) las primeras 48 hs\n• No rasurar la zona por al menos 5 días\n• Aplicá crema hidratante o gel de aloe vera para calmar la piel\n• Evitá ropa ajustada sobre la zona tratada\n• Si sentís mucho enrojecimiento, podés aplicar frío (no hielo directo)\n\n¿Tenés alguna consulta? Escribinos cuando quieras 🤍\nEspacio Mimar T`;
+    };
+
+    const renderDiaDetalle = (fecha, reservas, exInfo) => {
         const cont = document.getElementById('diaDetalleContenido');
-        if (!reservas.length) {
-            cont.innerHTML = '<div style="color:var(--texto-suave);font-size:13px;padding:8px 0;">No hay turnos registrados para este día.</div>';
+        const slots = _slotsParaDia(fecha);
+
+        if (exInfo.diaBloqueado) {
+            cont.innerHTML = `<div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);border-radius:10px;padding:13px 16px;color:rgba(248,113,113,0.80);font-size:13px;font-weight:600;margin-bottom:12px;">
+                🔒 Día bloqueado
+                <button class="btn-icono" style="margin-left:12px;font-size:11px;" onclick="desbloquearDiaDepi('${fecha}')">Desbloquear</button>
+            </div>`;
+        }
+
+        if (!slots.length) {
+            cont.innerHTML += '<div style="color:var(--texto-suave);font-size:13px;padding:8px 0;">Sin horarios disponibles para este día.</div>';
             return;
         }
-        cont.innerHTML = reservas.map(r => {
-            const estadoCls = `estado-${r.estado || 'pendiente'}`;
-            const estadoLabel = { pendiente: 'Pendiente', confirmada: 'Confirmada', cancelada: 'Cancelada', realizada: 'Realizada' }[r.estado || 'pendiente'] || r.estado;
-            const waHref = r.telefono ? `https://wa.me/549${r.telefono.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${r.nombre?.split(' ')[0] || ''}, te recordamos tu turno en Espacio Mimar T el día ${_diaSeleccionado} a las ${r.hora}.`)}` : '';
-            return `<div class="reserva-item" id="ri-${r._id}">
-                <div class="reserva-hora">${r.hora || '--:--'}</div>
-                <div class="reserva-info">
-                    <div class="reserva-nombre">${escHtml(r.nombre || 'Sin nombre')}</div>
-                    <div class="reserva-servicio">${escHtml(r.servicio || '')}${r.dni ? ` · DNI: ${escHtml(r.dni)}` : ''}${r.notas ? ` · ${escHtml(r.notas)}` : ''}</div>
-                </div>
-                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
-                    <span class="reserva-estado ${estadoCls}">${estadoLabel}</span>
-                    ${waHref ? `<a class="wa-btn" href="${waHref}" target="_blank">WA</a>` : ''}
-                    <select class="btn-icono" style="padding:5px 7px;font-size:11px;cursor:pointer;"
-                        onchange="cambiarEstado('${r._id}', this.value, '${_diaSeleccionado}')">
-                        <option value="">Estado</option>
-                        <option value="pendiente">Pendiente</option>
-                        <option value="confirmada">Confirmada</option>
-                        <option value="realizada">Realizada</option>
-                        <option value="cancelada">Cancelada</option>
-                    </select>
-                    <button class="btn-icono" onclick="eliminarTurno('${r._id}','${_diaSeleccionado}')" style="color:rgba(248,113,113,0.65);border-color:rgba(248,113,113,0.20);">✕</button>
-                </div>
-            </div>`;
-        }).join('');
+
+        const reservasPorHora = {};
+        reservas.forEach(r => { reservasPorHora[r.hora] = r; });
+
+        const rows = slots.map(hora => {
+            const r = reservasPorHora[hora];
+            const isBloqSlot = !!exInfo.slots[hora];
+
+            if (r) {
+                const estadoCls = `estado-${r.estado || 'pendiente'}`;
+                const estadoLabel = { pendiente: 'Pendiente', confirmada: 'Confirmada', cancelada: 'Cancelada', realizada: 'Realizada' }[r.estado || 'pendiente'] || r.estado;
+                const telNum = r.telefono ? r.telefono.replace(/\D/g,'') : '';
+                const telWA = telNum.length >= 10 ? (telNum.startsWith('54') ? telNum : `549${telNum}`) : '';
+                const waRec = telWA ? `<a class="wa-btn" href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgRecordatorio(r, fecha))}" target="_blank" title="Recordatorio">💬 Recordatorio</a>` : '';
+                const waPost = telWA ? `<a class="wa-btn" href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgPostDepi(r))}" target="_blank" title="Post-sesión" style="border-color:rgba(167,139,250,0.30);background:rgba(167,139,250,0.10);color:#a78bfa;">💜 Post-sesión</a>` : '';
+                return `<div class="reserva-item" id="ri-${r._id}">
+                    <div class="reserva-hora">${hora}</div>
+                    <div class="reserva-info">
+                        <div class="reserva-nombre">${escHtml(r.nombre || 'Sin nombre')}</div>
+                        <div class="reserva-servicio">${escHtml(r.servicio || '')}${r.dni ? ` · DNI: ${escHtml(r.dni)}` : ''}${r.notas ? `<br>📝 ${escHtml(r.notas)}` : ''}</div>
+                        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">${waRec}${waPost}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+                        <span class="reserva-estado ${estadoCls}">${estadoLabel}</span>
+                        <select class="btn-icono" style="padding:5px 7px;font-size:11px;cursor:pointer;"
+                            onchange="cambiarEstado('${r._id}',this.value,'${fecha}')">
+                            <option value="">Estado</option>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="confirmada">Confirmada</option>
+                            <option value="realizada">Realizada</option>
+                            <option value="cancelada">Cancelada</option>
+                        </select>
+                        <button class="btn-icono" onclick="eliminarTurno('${r._id}','${fecha}')" style="color:rgba(248,113,113,0.65);border-color:rgba(248,113,113,0.20);" title="Eliminar turno">✕</button>
+                    </div>
+                </div>`;
+            } else if (isBloqSlot) {
+                return `<div class="slot-row" style="border-color:rgba(248,113,113,0.20);background:rgba(248,113,113,0.04);">
+                    <div class="slot-hora">${hora}</div>
+                    <div class="slot-bloqueado-label">🔒 Bloqueado</div>
+                    <button class="btn-icono" style="font-size:11px;" onclick="desbloquearSlotDepi('${exInfo.slots[hora]}','${fecha}')">Desbloquear</button>
+                </div>`;
+            } else {
+                return `<div class="slot-row">
+                    <div class="slot-hora">${hora}</div>
+                    <div class="slot-libre">Libre</div>
+                    <button class="btn-icono" style="font-size:11px;color:rgba(248,113,113,0.65);border-color:rgba(248,113,113,0.20);" onclick="bloquearSlotDepi('${hora}','${fecha}')">🔒 Bloquear</button>
+                </div>`;
+            }
+        });
+
+        const existingBloq = exInfo.diaBloqueado ? cont.innerHTML : '';
+        cont.innerHTML = existingBloq + (rows.join('') || '<div style="color:var(--texto-suave);font-size:13px;padding:8px 0;">Sin turnos registrados.</div>');
+    };
+
+    window.bloquearDiaDepi = async () => {
+        const fecha = _diaSeleccionado;
+        if (!fecha) return;
+        if (!confirm(`¿Bloquear el día ${fecha}? No se podrán reservar turnos ese día.`)) return;
+        try {
+            await setDoc(doc(db, COLECCION_EX, `depi_${fecha}_dia`), { fecha, tipo: 'dia', bloqueado: true, updatedAt: serverTimestamp() });
+            mostrarAvisoDepi('Día bloqueado');
+            await Promise.all([verDia(fecha), cargarCalendario()]);
+        } catch(e) { console.error(e); mostrarAvisoDepi('Error al bloquear'); }
+    };
+
+    window.desbloquearDiaDepi = async (fecha) => {
+        try {
+            await deleteDoc(doc(db, COLECCION_EX, `depi_${fecha}_dia`));
+            mostrarAvisoDepi('Día desbloqueado');
+            await Promise.all([verDia(fecha), cargarCalendario()]);
+        } catch(e) { console.error(e); mostrarAvisoDepi('Error al desbloquear'); }
+    };
+
+    window.bloquearSlotDepi = async (hora, fecha) => {
+        try {
+            const docId = `depi_${fecha}_${hora.replace(':','')}`;
+            await setDoc(doc(db, COLECCION_EX, docId), { fecha, hora, tipo: 'slot', bloqueado: true, updatedAt: serverTimestamp() });
+            mostrarAvisoDepi(`${hora} bloqueado`);
+            await verDia(fecha);
+        } catch(e) { console.error(e); mostrarAvisoDepi('Error al bloquear slot'); }
+    };
+
+    window.desbloquearSlotDepi = async (docId, fecha) => {
+        try {
+            await deleteDoc(doc(db, COLECCION_EX, docId));
+            mostrarAvisoDepi('Slot desbloqueado');
+            await verDia(fecha);
+        } catch(e) { console.error(e); mostrarAvisoDepi('Error al desbloquear slot'); }
     };
 
     window.cambiarEstado = async (id, nuevoEstado, fecha) => {
