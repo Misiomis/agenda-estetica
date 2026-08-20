@@ -2155,7 +2155,12 @@
                 </div>
             ` : "";
             const filtrados = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === f).sort((a,b) => a.hora.localeCompare(b.hora));
-            const reservasHTML = filtrados.length ? filtrados.map(r => {
+            const consultasDia = todasLasConsultas.filter(c => c.fecha === f && !['cancelada','cancelado'].includes((c.estado||'').toLowerCase())).sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
+
+            const _MSG_PRE_CONSULTA = encodeURIComponent('✨ ¡Es un gusto recibirte en Espacio MimarT!\n\nEstamos muy felices de acompañarte en esta primera consulta, donde vamos a conocerte, escuchar qué te gustaría mejorar y comenzar a planificar juntos tus próximos tratamientos, teniendo en cuenta tus objetivos, tiempos y presupuesto.\n\nPara poder realizar una evaluación cómoda y completa, te pedimos que el día de tu consulta:\n\n• Asistas con ropa cómoda, preferentemente deportiva y no ajustada.\n• En lo posible, utilices ropa interior sin metales, idealmente de color negro.\n• Vengas sin maquillaje.\n• No lleves joyas, cadenas, pulseras ni accesorios metálicos.\n• Seas puntual con el horario pactado, ya que reservamos ese momento especialmente para vos.\n\nDurante la consulta vamos a evaluar diferentes aspectos y conversar sobre las alternativas que mejor se adapten a lo que estás buscando.\n\n🤍 Queremos que este sea el comienzo de un proceso pensado especialmente para vos.\n\nEspacio MimarT\nUn lugar pensado para vos.');
+
+            // Cards de reservas → {hora, html}
+            const itemsReservas = filtrados.map(r => { const _rHtml = (() => {
                 const esDuo     = r.duo === true;
                 const tieneNota = !!(r.detalleSesion && r.detalleSesion.trim());
                 const tieneNota2= !!(r.detalleSesion2 && r.detalleSesion2.trim());
@@ -2255,8 +2260,62 @@
                     <button class="btn-delete-reserva" onclick="borrarReserva('${r.id}')">Borrar reserva</button>
                     ${btnEnviar1}${btnEnviar2}
                     ${btnRec}
+                </div>`; })(); return {hora: r.hora||'', html: _rHtml}; });
+
+            // Cards de consultas → {hora, html}
+            const itemsConsultas = consultasDia.map(c => {
+                const _cWa = normalizarWA(c.telefono || c.phone || '');
+                const _cN1 = (c.nombre || '').split(' ')[0] || '';
+                const _MESES2 = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+                const _fmtF2 = (iso) => { const [y,m,d] = String(iso||'').split('-').map(Number); return d&&m&&y?`${d} de ${_MESES2[m-1]} de ${y}`:iso; };
+                const _cFecha = _fmtF2(c.fecha || f);
+                const _cEst = c.estado || 'pendiente';
+                const _cEstColor = _cEst==='confirmada'?'#4ade80':_cEst==='cancelada'?'rgba(255,100,100,0.75)':'#fbbf24';
+                const _cEstLabel = _cEst==='confirmada'?'Confirmada':_cEst==='cancelada'?'Cancelada':'Pendiente';
+                const _cPago = c.metodoPago==='transferencia'?'Transferencia':c.metodoPago==='efectivo'?'Efectivo':(c.metodoPago||'-');
+                const _cRecId = `rec-cv-${c.id}`;
+                const _mkWaC = (href, cls, lbl) => href
+                    ? `<a href="${href}" target="_blank" rel="noopener" class="btn-ws ${cls}" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">${lbl}</a>`
+                    : `<button class="btn-ws ${cls}" disabled style="opacity:.3">${lbl}</button>`;
+                const _encMsg = (t) => encodeURIComponent(t);
+                const _waConf2 = _cWa ? `https://wa.me/${_cWa}?text=${_encMsg(`Hola ${_cN1}, te confirmamos tu consulta inicial en Espacio Mimar T para el ${_cFecha} a las ${c.hora} hs. ¡Te esperamos!`)}` : '';
+                const _waRec2  = _cWa ? `https://wa.me/${_cWa}?text=${_encMsg(`Hola ${_cN1}, te recordamos tu consulta inicial en Espacio Mimar T mañana ${_cFecha} a las ${c.hora} hs. Ante cualquier duda, escribinos.`)}` : '';
+                const _waCanc2 = _cWa ? `https://wa.me/${_cWa}?text=${_encMsg(`Hola ${_cN1}, queremos avisarte que tu consulta inicial en Espacio Mimar T del ${_cFecha} a las ${c.hora} hs no puede realizarse. Comunicáte con nosotros para reprogramar.`)}` : '';
+                const _m1c = _encMsg(`Hola ${_cN1}, acordate de tomar agua durante el día de hoy. Espacio Mimar T.`);
+                const _m2c = _encMsg(`Hola ${_cN1}, recordá el uso de faja o ropa de compresión según las indicaciones recibidas. Espacio Mimar T.`);
+                const _mMioC = _encMsg(`Hola ${_cN1}, te recomendamos potenciar tu tratamiento con MIO UP. Escribinos si querés más información. Espacio Mimar T.`);
+                const _mFraxC = _encMsg(`Hola ${_cN1}, te recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información. Espacio Mimar T.`);
+                const _html = `
+                <div class="detalle-dia-card" style="border-left:3px solid rgba(251,191,36,0.50);">
+                    <span style="display:inline-block;background:rgba(251,191,36,0.14);color:${_cEstColor};border:1px solid rgba(251,191,36,0.30);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;letter-spacing:.06em;">Consulta Inicial · ${_cEstLabel}</span><br>
+                    <b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(c.nombre||'Sin nombre')}</b> - ${escapeHtml(c.hora||'--:--')} hs<br>
+                    <small>Tel: ${escapeHtml(c.telefono||c.phone||'-')} · Edad: ${c.edad||'-'} · ${escapeHtml(c.domicilio||'-')}</small>
+                    <div class="grid-acciones" style="margin-top:8px;">
+                        ${_mkWaC(_waConf2,'btn-confirmar','Confirmar')}
+                        ${_mkWaC(_waRec2,'btn-recordar','Recordar')}
+                        ${_mkWaC(_waCanc2,'btn-cancelar','Avisar Canc.')}
+                    </div>
+                    ${_cWa?`<a href="https://wa.me/${_cWa}?text=${_MSG_PRE_CONSULTA}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;margin-top:8px;padding:10px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(252,211,77,0.92);font-weight:700;font-size:13px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
+                    <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+                        ${_cEst!=='confirmada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:9px 12px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;width:100%;">✓ Marcar como confirmada</button>`:''}
+                        ${_cEst!=='cancelada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','cancelada')" style="padding:9px 12px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);width:100%;">✕ Cancelar consulta</button>`:''}
+                        <button onclick="borrarConsulta('${c.id}','${escapeHtml(c.nombre||'')}','${c.fecha||f}','${c.hora||''}')" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(255,100,100,0.18);background:rgba(255,100,100,0.05);color:rgba(200,100,100,0.70);font-weight:700;cursor:pointer;font-size:12px;">🗑 Borrar consulta</button>
+                        ${_cWa?`
+                        <button onclick="(function(){var m=document.getElementById('${_cRecId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(150,185,245,0.90);font-weight:700;cursor:pointer;font-size:12px;">📋 Enviar Recomendaciones post-sesión</button>
+                        <div id="${_cRecId}" style="display:none;flex-direction:column;gap:6px;background:rgba(60,100,200,0.06);border:1px solid rgba(60,100,200,0.15);border-radius:10px;padding:10px;">
+                            <a href="https://wa.me/${_cWa}?text=${_m1c}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:#25d366;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💧 Tomar agua hoy</a>
+                            <a href="https://wa.me/${_cWa}?text=${_m2c}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">🩺 Uso de faja</a>
+                            <a href="https://wa.me/${_cWa}?text=${_mMioC}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:linear-gradient(135deg,#6a3fa5,#4a2d82);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💪 MIO UP</a>
+                            <a href="https://wa.me/${_cWa}?text=${_mFraxC}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:linear-gradient(135deg,#c0506e,#8c2a46);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">✨ FRAXIS Facial</a>
+                        </div>`:''}
+                    </div>
                 </div>`;
-            }).join('') : '<p style="text-align:center; opacity:0.5">Sin turnos.</p>';
+                return {hora: c.hora||'', html: _html};
+            });
+
+            // Mezclar y ordenar cronológicamente
+            const _todosItems = [...itemsReservas, ...itemsConsultas].sort((a,b) => a.hora.localeCompare(b.hora));
+            const reservasHTML = _todosItems.length ? _todosItems.map(i => i.html).join('') : '<p style="text-align:center; opacity:0.5">Sin turnos.</p>';
             
             const reservasPorHora = new Map(filtrados.map(r => [normalizarHora(r.hora), r]));
             const consultasPorHora = new Map(todasLasConsultas.filter(c => c.fecha === f).map(c => [normalizarHora(c.hora), c]));
@@ -2355,7 +2414,8 @@
                             ${_cpEst!=='confirmada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${consulta.id}','confirmada')" style="padding:8px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;width:100%;">✓ Marcar como confirmada</button>`:''}
                             ${_cpEst!=='cancelada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${consulta.id}','cancelada')" style="padding:8px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);width:100%;">✕ Cancelar consulta</button>`:''}
                             <button onclick="borrarConsulta('${consulta.id}','${escapeHtml(consulta.nombre||'')}','${consulta.fecha||f}','${_cpHora}')" style="width:100%;padding:8px;border-radius:10px;border:1.5px solid rgba(255,100,100,0.18);background:rgba(255,100,100,0.05);color:rgba(200,100,100,0.70);font-weight:700;cursor:pointer;font-size:12px;">🗑 Borrar consulta</button>
-                            <button onclick="(function(){var m=document.getElementById('${_cpRecId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:8px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(150,185,245,0.90);font-weight:700;cursor:pointer;font-size:12px;">📋 Enviar Recomendaciones</button>
+                            ${_cpWa?`<a href="https://wa.me/${_cpWa}?text=${_cpMsg('✨ ¡Es un gusto recibirte en Espacio MimarT!\n\nEstamos muy felices de acompañarte en esta primera consulta, donde vamos a conocerte, escuchar qué te gustaría mejorar y comenzar a planificar juntos tus próximos tratamientos, teniendo en cuenta tus objetivos, tiempos y presupuesto.\n\nPara poder realizar una evaluación cómoda y completa, te pedimos que el día de tu consulta:\n\n• Asistas con ropa cómoda, preferentemente deportiva y no ajustada.\n• En lo posible, utilices ropa interior sin metales, idealmente de color negro.\n• Vengas sin maquillaje.\n• No lleves joyas, cadenas, pulseras ni accesorios metálicos.\n• Seas puntual con el horario pactado, ya que reservamos ese momento especialmente para vos.\n\nDurante la consulta vamos a evaluar diferentes aspectos y conversar sobre las alternativas que mejor se adapten a lo que estás buscando.\n\n🤍 Queremos que este sea el comienzo de un proceso pensado especialmente para vos.\n\nEspacio MimarT\nUn lugar pensado para vos.')}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:9px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(252,211,77,0.92);font-weight:700;font-size:12px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
+                            <button onclick="(function(){var m=document.getElementById('${_cpRecId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:8px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(150,185,245,0.90);font-weight:700;cursor:pointer;font-size:12px;">📋 Enviar Recomendaciones post-sesión</button>
                             <div id="${_cpRecId}" style="display:none;flex-direction:column;gap:6px;background:rgba(60,100,200,0.06);border:1px solid rgba(60,100,200,0.15);border-radius:10px;padding:10px;">
                                 <a href="https://wa.me/${_cpWa}?text=${_m1}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:#25d366;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💧 Tomar agua hoy</a>
                                 <a href="https://wa.me/${_cpWa}?text=${_m2}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">🩺 Uso de faja</a>
@@ -4682,7 +4742,8 @@
                         ${estado !== 'confirmada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:9px 12px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;width:100%;">✓ Marcar como confirmada</button>` : ''}
                         ${estado !== 'cancelada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','cancelada')" style="padding:9px 12px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);width:100%;">✕ Cancelar consulta</button>` : ''}
                         <button onclick="borrarConsulta('${c.id}','${escapeHtml(c.nombre||'')}','${c.fecha}','${c.hora||''}')" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(255,100,100,0.18);background:rgba(255,100,100,0.05);color:rgba(200,100,100,0.70);font-weight:700;cursor:pointer;font-size:12px;">🗑 Borrar consulta</button>
-                        <button onclick="(function(){var m=document.getElementById('${recId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(150,185,245,0.90);font-weight:700;cursor:pointer;font-size:12px">📋 Enviar Recomendaciones</button>
+                        ${waPhone?`<a href="https://wa.me/${waPhone}?text=${encodeURIComponent('✨ ¡Es un gusto recibirte en Espacio MimarT!\n\nEstamos muy felices de acompañarte en esta primera consulta, donde vamos a conocerte, escuchar qué te gustaría mejorar y comenzar a planificar juntos tus próximos tratamientos, teniendo en cuenta tus objetivos, tiempos y presupuesto.\n\nPara poder realizar una evaluación cómoda y completa, te pedimos que el día de tu consulta:\n\n• Asistas con ropa cómoda, preferentemente deportiva y no ajustada.\n• En lo posible, utilices ropa interior sin metales, idealmente de color negro.\n• Vengas sin maquillaje.\n• No lleves joyas, cadenas, pulseras ni accesorios metálicos.\n• Seas puntual con el horario pactado, ya que reservamos ese momento especialmente para vos.\n\nDurante la consulta vamos a evaluar diferentes aspectos y conversar sobre las alternativas que mejor se adapten a lo que estás buscando.\n\n🤍 Queremos que este sea el comienzo de un proceso pensado especialmente para vos.\n\nEspacio MimarT\nUn lugar pensado para vos.')}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(252,211,77,0.92);font-weight:700;font-size:13px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
+                        <button onclick="(function(){var m=document.getElementById('${recId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(150,185,245,0.90);font-weight:700;cursor:pointer;font-size:12px">📋 Enviar Recomendaciones post-sesión</button>
                         <div id="${recId}" style="display:none;flex-direction:column;gap:6px;background:rgba(60,100,200,0.06);border:1px solid rgba(60,100,200,0.15);border-radius:10px;padding:10px;">
                             <a href="https://wa.me/${waPhone}?text=${msg1}" target="_blank" rel="noopener noreferrer" style="display:block;padding:10px 12px;border-radius:8px;background:#25d366;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💧 Tomar agua hoy</a>
                             <a href="https://wa.me/${waPhone}?text=${msg2}" target="_blank" rel="noopener noreferrer" style="display:block;padding:10px 12px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">🩺 Uso de faja</a>
