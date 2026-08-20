@@ -620,24 +620,38 @@
             });
         };
 
-        // Verifica que el DNI exista en clients O en consultas
+        const _mostrarVerif = () => {
+            document.getElementById("verificDNIScreen").style.display = "block";
+            document.getElementById("contenidoKit").style.display = "none";
+            document.getElementById("noLoggedIn").style.display = "none";
+            document.getElementById("successScreen").style.display = "none";
+            const inp = document.getElementById("kitDniInput");
+            if (inp) inp.value = '';
+        };
+
+        // Verifica que el DNI exista en clients (paciente registrado)
         const verificarAccesoKit = async (dniRaw) => {
             const dni = String(dniRaw || '').replace(/\D/g, '');
             if (!dni) return false;
-            // Primero: doc directo en clients/{dni}
-            const clientSnap = await getDoc(doc(db, 'clients', dni));
-            if (clientSnap.exists()) return true;
-            // Segundo: alguna consulta con ese DNI
-            const q = query(collection(db, 'consultas'), where('dni', '==', dni));
-            const qSnap = await getDocs(q);
-            return !qSnap.empty;
+            try {
+                const clientSnap = await getDoc(doc(db, 'clients', dni));
+                if (clientSnap.exists()) return true;
+            } catch (e) {
+                console.error('[Kit] Error consultando clients:', e);
+            }
+            // También acepta si tiene consulta registrada
+            try {
+                const q = query(collection(db, 'consultas'), where('dni', '==', dni));
+                const qSnap = await getDocs(q);
+                if (!qSnap.empty) return true;
+            } catch (e) {
+                console.warn('[Kit] No se pudo verificar consultas (permisos):', e.code || e.message);
+            }
+            return false;
         };
 
         const checkAuthAndLoad = () => {
-            // Siempre arranca con la pantalla de verificación
-            document.getElementById("contenidoKit").style.display = "none";
-            document.getElementById("noLoggedIn").style.display = "none";
-            document.getElementById("verificDNIScreen").style.display = "block";
+            _mostrarVerif();
         };
 
         window._verificarDNIKit = async () => {
@@ -652,7 +666,12 @@
             btn.disabled = true;
             btn.textContent = 'Verificando...';
 
-            const tiene = await verificarAccesoKit(dni);
+            let tiene = false;
+            try {
+                tiene = await verificarAccesoKit(dni);
+            } catch (e) {
+                console.error('[Kit] verificarAccesoKit lanzó excepción:', e);
+            }
             btn.disabled = false;
             btn.textContent = 'Continuar';
 
@@ -662,7 +681,6 @@
                 document.getElementById("contenidoKit").style.display = "block";
                 cargarProductosKit();
             } else {
-                // Mostrar popup amigable sugiriendo consulta inicial
                 document.getElementById("modalSinRegistro").style.display = "flex";
             }
         };
@@ -768,12 +786,9 @@
         document.getElementById("btnSolicitarKit").addEventListener("click", submitKitRequest);
 
         document.getElementById("btnNuevaSolicitud").addEventListener("click", () => {
-            document.getElementById("successScreen").style.display = "none";
-            const contenido = document.getElementById("contenidoKit");
-            contenido.style.display = "block";
-            const btn = document.getElementById("btnSolicitarKit");
-            btn.disabled = false;
-            btn.textContent = "Solicitar Kit";
+            document.getElementById("btnSolicitarKit").disabled = false;
+            document.getElementById("btnSolicitarKit").textContent = "Solicitar Kit";
+            _mostrarVerif();
         });
 
         checkAuthAndLoad();
