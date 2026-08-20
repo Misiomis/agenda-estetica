@@ -1098,6 +1098,10 @@ window.copiarAlias = function() {
 
 window.confirmarConsulta = async function() {
     if (!_metodoPago) return;
+    if (!horaSeleccionada || !/^\d{1,2}:\d{2}$/.test(horaSeleccionada)) {
+        console.error('[consulta] hora inválida al confirmar:', horaSeleccionada);
+        return;
+    }
     const btn = document.getElementById("mcBtnConfirmar");
     btn.disabled = true; btn.textContent = "Guardando...";
 

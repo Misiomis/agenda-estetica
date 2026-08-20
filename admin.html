@@ -2155,7 +2155,15 @@
                 </div>
             ` : "";
             const filtrados = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === f).sort((a,b) => a.hora.localeCompare(b.hora));
-            const consultasDia = todasLasConsultas.filter(c => c.fecha === f && !['cancelada','cancelado'].includes((c.estado||'').toLowerCase())).sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
+            const _seenCIds = new Set();
+            const consultasDia = todasLasConsultas.filter(c => {
+                if (c.fecha !== f) return false;
+                if (['cancelada','cancelado'].includes((c.estado||'').toLowerCase())) return false;
+                if (!c.hora || !/^\d{1,2}:\d{2}$/.test(c.hora)) return false; // sin hora válida → no mostrar
+                if (_seenCIds.has(c.id)) return false;                          // deduplicar por ID
+                _seenCIds.add(c.id);
+                return true;
+            }).sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
 
             const _MSG_PRE_CONSULTA = encodeURIComponent('Hola 🤍 ¡Es un gusto poder recibirte en nuestro nuevo Espacio MimarT!\n\nNos pone muy felices comenzar esta nueva etapa y poder acompañarte, tanto si ya venís siendo parte de nuestro espacio como si recién te estás sumando.\n\nEsta consulta es un momento pensado para vos: para conocerte mejor, escuchar qué te gustaría mejorar, revisar tus objetivos y comenzar a organizar juntos los tratamientos que mejor se adapten a tus necesidades, tus tiempos y también a tu presupuesto.\n\nPara poder realizar una evaluación cómoda y completa, te pedimos que el día de tu consulta:\n\n• Asistas con ropa cómoda, preferentemente deportiva y no ajustada.\n• En lo posible, utilices ropa interior sin metales, idealmente de color negro.\n• Vengas sin maquillaje.\n• No lleves joyas, cadenas, pulseras ni accesorios metálicos.\n• Seas puntual con el horario pactado, ya que reservamos ese momento especialmente para vos.\n\nDurante la consulta vamos a evaluar diferentes aspectos y conversar sobre las alternativas más adecuadas para vos, pudiendo planificar tus próximos tratamientos de una manera personalizada y realista.\n\n🤍 Queremos que esta nueva etapa en Espacio MimarT también sea una nueva forma de acompañarte: más personalizada, más cercana y pensada especialmente para vos.\n\nEspacio MimarT\nUn lugar pensado para vos.');
 
@@ -4662,8 +4670,11 @@
             cont.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando...</div>';
             try {
                 const snap = await getDocs(collection(db,'consultas'));
+                const _seenIds = new Set();
                 _consultasCache = [];
-                snap.forEach(d => _consultasCache.push({ id: d.id, ...d.data() }));
+                snap.forEach(d => {
+                    if (!_seenIds.has(d.id)) { _seenIds.add(d.id); _consultasCache.push({ id: d.id, ...d.data() }); }
+                });
                 _consultasCache.sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || (b.hora||'').localeCompare(a.hora||''));
 
                 // Badge de pendientes
