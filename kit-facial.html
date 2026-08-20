@@ -468,13 +468,34 @@
         </div>
     </section>
 
+    <!-- Modal: DNI no registrado -->
+    <div id="modalSinRegistro" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(6,14,11,0.93);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px;">
+        <div style="width:100%;max-width:420px;background:linear-gradient(165deg,#0d1a0e 0%,#07100a 100%);border:1px solid rgba(60,179,113,0.25);border-radius:24px;padding:34px 26px;box-shadow:0 32px 72px rgba(0,0,0,0.65);text-align:center;">
+            <div style="font-size:48px;margin-bottom:16px;">🌿</div>
+            <p style="font-family:'Cormorant Garamond',serif;font-size:24px;color:#b8e8c8;margin:0 0 14px;font-weight:600;font-style:italic;">¡Hola! Aún no te conocemos</p>
+            <p style="font-size:14px;color:rgba(165,205,188,0.78);line-height:1.70;margin:0 0 8px;">El kit domiciliario está pensado para quienes ya son parte de nuestra comunidad de pacientes.</p>
+            <p style="font-size:13px;color:rgba(165,205,188,0.55);line-height:1.65;margin:0 0 24px;">Sería un placer conocerte y ayudarte a encontrar los productos que realmente le sientan bien a tu piel. ¿Qué te parece si agendamos una <strong style="color:rgba(185,230,205,0.80);">consulta inicial gratuita</strong>? Así Gimena puede recomendarte lo mejor para vos.</p>
+            <a href="/fecha.html" style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,rgba(60,179,113,0.22),rgba(60,179,113,0.10));border:1.5px solid rgba(60,179,113,0.40);border-radius:14px;color:rgba(185,230,205,0.92);font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px;">Agendar mi consulta inicial</a>
+            <button onclick="document.getElementById('modalSinRegistro').style.display='none';" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(165,205,188,0.15);border-radius:14px;color:rgba(165,205,188,0.40);font-size:13px;cursor:pointer;font-family:inherit;">Volver</button>
+        </div>
+    </div>
+
     <main class="section">
         <div class="kit-card">
             <h2>Seleccioná tus productos</h2>
-            
+
+            <!-- Pantalla de verificación de DNI -->
+            <div id="verificDNIScreen" style="display:none;text-align:center;padding:8px 0 16px;">
+                <div style="font-size:36px;margin-bottom:14px;">🌿</div>
+                <p style="font-family:'Cormorant Garamond',serif;font-size:22px;font-style:italic;color:rgba(220,242,232,0.92);margin:0 0 8px;">Espacio exclusivo para pacientes</p>
+                <p style="font-size:13.5px;color:rgba(165,205,188,0.60);margin:0 0 22px;line-height:1.65;">Ingresá tu DNI para verificar tu acceso.</p>
+                <input id="kitDniInput" type="number" placeholder="Tu DNI sin puntos" style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid rgba(165,205,188,0.25);background:rgba(255,255,255,0.05);color:rgba(220,242,232,0.90);font-size:16px;font-family:inherit;outline:none;margin-bottom:12px;text-align:center;" oninput="this.style.borderColor=''" onkeydown="if(event.key==='Enter')window._verificarDNIKit()">
+                <button id="kitDniBtn" onclick="window._verificarDNIKit()" class="btn-submit">Continuar</button>
+            </div>
+
             <div id="feedbackMessage" class="feedback-message" style="display: none;"></div>
 
-            <div id="contenidoKit">
+            <div id="contenidoKit" style="display:none;">
                 <div class="productos-list" id="productosList">
                     <div class="productos-loading">Cargando productos...</div>
                 </div>
@@ -519,7 +540,7 @@
     <script src="/js/mimi-bot.js"></script>
 
     <script type="module">
-        import { db, collection, addDoc, doc, getDoc } from "/js/firebase-web.js";
+        import { db, collection, addDoc, doc, getDoc, getDocs, query, where } from "/js/firebase-web.js";
 
         const PRODUCTOS_DEFAULT = [
             { nombre: "Leche de limpieza",                   precio: 15000 },
@@ -599,19 +620,67 @@
             });
         };
 
-        const checkAuthAndLoad = () => {
-            const { dni, nombre } = getUserData();
+        // Verifica que el DNI exista en clients O en consultas
+        const verificarAccesoKit = async (dniRaw) => {
+            const dni = String(dniRaw || '').replace(/\D/g, '');
+            if (!dni) return false;
+            // Primero: doc directo en clients/{dni}
+            const clientSnap = await getDoc(doc(db, 'clients', dni));
+            if (clientSnap.exists()) return true;
+            // Segundo: alguna consulta con ese DNI
+            const q = query(collection(db, 'consultas'), where('dni', '==', dni));
+            const qSnap = await getDocs(q);
+            return !qSnap.empty;
+        };
+
+        const checkAuthAndLoad = async () => {
             const contenidoKit = document.getElementById("contenidoKit");
             const noLoggedIn = document.getElementById("noLoggedIn");
+            const verif = document.getElementById("verificDNIScreen");
 
-            if (!dni || !nombre || dni === "null") {
-                contenidoKit.style.display = "none";
-                noLoggedIn.style.display = "block";
-                return false;
+            // Si ya verificó antes y tiene datos en localStorage → acceso directo
+            const { dni, nombre } = getUserData();
+            if (dni && nombre && dni !== "null") {
+                const tiene = await verificarAccesoKit(dni);
+                if (tiene) {
+                    contenidoKit.style.display = "block";
+                    noLoggedIn.style.display = "none";
+                    if (verif) verif.style.display = "none";
+                    return true;
+                }
             }
-            contenidoKit.style.display = "block";
+            // Sin datos o DNI no registrado → mostrar pantalla de verificación
+            contenidoKit.style.display = "none";
             noLoggedIn.style.display = "none";
-            return true;
+            if (verif) verif.style.display = "block";
+            return false;
+        };
+
+        window._verificarDNIKit = async () => {
+            const input = document.getElementById("kitDniInput");
+            const btn = document.getElementById("kitDniBtn");
+            const dni = String(input?.value || '').replace(/\D/g, '');
+            if (!dni || dni.length < 7) {
+                input.style.borderColor = 'rgba(255,100,100,0.60)';
+                return;
+            }
+            input.style.borderColor = '';
+            btn.disabled = true;
+            btn.textContent = 'Verificando...';
+
+            const tiene = await verificarAccesoKit(dni);
+            btn.disabled = false;
+            btn.textContent = 'Continuar';
+
+            if (tiene) {
+                // Guardar en localStorage para próximas visitas
+                localStorage.setItem('clienteDNI', dni);
+                document.getElementById("verificDNIScreen").style.display = "none";
+                document.getElementById("contenidoKit").style.display = "block";
+            } else {
+                // Mostrar popup amigable sugiriendo consulta inicial
+                document.getElementById("modalSinRegistro").style.display = "flex";
+            }
         };
 
         const submitKitRequest = async () => {
@@ -723,9 +792,9 @@
             btn.textContent = "Solicitar Kit";
         });
 
-        if (checkAuthAndLoad()) {
-            cargarProductosKit();
-        }
+        checkAuthAndLoad().then(tieneAcceso => {
+            if (tieneAcceso) cargarProductosKit();
+        });
     </script>
 </body>
 </html>

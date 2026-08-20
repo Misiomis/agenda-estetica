@@ -2321,12 +2321,58 @@
                 const botonCancelar = (bloqueo && reserva)
                     ? `<button class="btn-mini alerta" onclick="cancelarTurnoYNotificar('${reserva.id}')">Cancelar y notificar</button>`
                     : '';
+
+                // Panel de acciones inline para consultas en la agenda principal
+                let consultaPanelHTML = '';
+                if (consulta) {
+                    const _cpWa = normalizarWA(consulta.telefono || consulta.phone || '');
+                    const _cpN1 = (consulta.nombre || '').split(' ')[0] || '';
+                    const _MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+                    const _fmtF = (iso) => { const [y,m,d] = String(iso||'').split('-').map(Number); return d&&m&&y?`${d} de ${_MESES[m-1]}`:iso; };
+                    const _cpFecha = _fmtF(consulta.fecha || f);
+                    const _cpHora = consulta.hora || hora;
+                    const _cpEst = consulta.estado || 'pendiente';
+                    const _cpRecId = `rec-ag-${consulta.id}`;
+                    const _cpMsg = (txt) => encodeURIComponent(txt);
+                    const _mkWaBtn = (href, cls, label) => href
+                        ? `<a href="${href}" target="_blank" rel="noopener" class="btn-ws ${cls}" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">${label}</a>`
+                        : `<button class="btn-ws ${cls}" disabled style="opacity:.3">${label}</button>`;
+                    const _waConf = _cpWa ? `https://wa.me/${_cpWa}?text=${_cpMsg(`Hola ${_cpN1}, te confirmamos tu consulta inicial en Espacio Mimar T para el ${_cpFecha} a las ${_cpHora} hs. ¡Te esperamos!`)}` : '';
+                    const _waRec  = _cpWa ? `https://wa.me/${_cpWa}?text=${_cpMsg(`Hola ${_cpN1}, te recordamos tu consulta inicial en Espacio Mimar T mañana ${_cpFecha} a las ${_cpHora} hs. Ante cualquier duda, escribinos.`)}` : '';
+                    const _waCanc = _cpWa ? `https://wa.me/${_cpWa}?text=${_cpMsg(`Hola ${_cpN1}, queremos avisarte que tu consulta inicial en Espacio Mimar T del ${_cpFecha} a las ${_cpHora} hs no puede realizarse. Comunicáte con nosotros para reprogramar.`)}` : '';
+                    const _m1 = _cpMsg(`Hola ${_cpN1}, acordate de tomar agua durante el día de hoy. Es fundamental para maximizar los resultados del tratamiento. Espacio Mimar T.`);
+                    const _m2 = _cpMsg(`Hola ${_cpN1}, recordá el uso de faja o ropa de compresión según las indicaciones recibidas. Espacio Mimar T.`);
+                    const _mMioUp = _cpMsg(`Hola ${_cpN1}, te recomendamos potenciar tu tratamiento con MIO UP. Escribinos si querés más información. Espacio Mimar T.`);
+                    const _mFraxis = _cpMsg(`Hola ${_cpN1}, te recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información. Espacio Mimar T.`);
+                    consultaPanelHTML = `
+                    <div style="margin:-6px 0 10px;padding:12px 14px 10px;background:rgba(60,179,113,0.04);border:1px solid rgba(60,179,113,0.12);border-top:none;border-radius:0 0 14px 14px;">
+                        <div class="grid-acciones" style="margin-bottom:8px;">
+                            ${_mkWaBtn(_waConf,'btn-confirmar','Confirmar')}
+                            ${_mkWaBtn(_waRec,'btn-recordar','Recordar')}
+                            ${_mkWaBtn(_waCanc,'btn-cancelar','Avisar Canc.')}
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:6px;">
+                            ${_cpEst!=='confirmada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${consulta.id}','confirmada')" style="padding:8px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;width:100%;">✓ Marcar como confirmada</button>`:''}
+                            ${_cpEst!=='cancelada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${consulta.id}','cancelada')" style="padding:8px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);width:100%;">✕ Cancelar consulta</button>`:''}
+                            <button onclick="borrarConsulta('${consulta.id}','${escapeHtml(consulta.nombre||'')}','${consulta.fecha||f}','${_cpHora}')" style="width:100%;padding:8px;border-radius:10px;border:1.5px solid rgba(255,100,100,0.18);background:rgba(255,100,100,0.05);color:rgba(200,100,100,0.70);font-weight:700;cursor:pointer;font-size:12px;">🗑 Borrar consulta</button>
+                            <button onclick="(function(){var m=document.getElementById('${_cpRecId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:8px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(150,185,245,0.90);font-weight:700;cursor:pointer;font-size:12px;">📋 Enviar Recomendaciones</button>
+                            <div id="${_cpRecId}" style="display:none;flex-direction:column;gap:6px;background:rgba(60,100,200,0.06);border:1px solid rgba(60,100,200,0.15);border-radius:10px;padding:10px;">
+                                <a href="https://wa.me/${_cpWa}?text=${_m1}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:#25d366;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💧 Tomar agua hoy</a>
+                                <a href="https://wa.me/${_cpWa}?text=${_m2}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">🩺 Uso de faja</a>
+                                <a href="https://wa.me/${_cpWa}?text=${_mMioUp}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:linear-gradient(135deg,#6a3fa5,#4a2d82);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💪 MIO UP</a>
+                                <a href="https://wa.me/${_cpWa}?text=${_mFraxis}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:linear-gradient(135deg,#c0506e,#8c2a46);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">✨ FRAXIS Facial</a>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+
                 return `
                     <div class="hora-row${esExtension ? ' admin-bloqueado' : bloqueo ? ' admin-bloqueado' : ''}">
                         <div class="hora-label">${hora}</div>
                         <div class="hora-status">${estado}${label ? ' · ' + label : ''}</div>
                         <div class="hora-actions">${accionBloqueo}${accionDuo}${botonRegistrar}${botonCancelar}</div>
                     </div>
+                    ${consultaPanelHTML}
                 `;
             }).join('');
             const [_sy,_sm,_sd] = f.split('-').map(Number);

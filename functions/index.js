@@ -1083,16 +1083,24 @@ exports.enviarNotificacionConsulta = onRequest({ invoker: "public" }, async (req
     if (req.method !== "POST") return res.status(405).json({ error: "Metodo no permitido" });
 
     try {
-        const { nombre, fecha, hora, metodoPago } = req.body || {};
+        const { nombre, fecha, hora, metodoPago, servicio, dni, fechaNacimiento, edad, domicilio, telefono, email } = req.body || {};
 
         if (!nombre || !fecha || !hora) {
             return res.status(400).json({ error: "Faltan campos obligatorios." });
         }
 
-        const [y, m, d] = String(fecha).split('-');
-        const fechaFormateada = (d && m && y) ? `${d}/${m}/${y}` : fecha;
-        const horaTexto = limpiarHora(hora) ? `${limpiarHora(hora)} hs` : String(hora);
-        const pagoTexto = metodoPago === 'transferencia' ? 'Transferencia' : 'Efectivo';
+        const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+        const formatFechaES = (iso) => {
+            const [yy, mm, dd] = String(iso || '').split('-').map(Number);
+            if (!dd || !mm || !yy) return iso || '';
+            return `${dd} de ${MESES_ES[mm - 1]} de ${yy}`;
+        };
+
+        const fechaFormateada = formatFechaES(fecha);
+        const fechaNacFormateada = fechaNacimiento ? formatFechaES(fechaNacimiento) : '';
+        const horaTexto = limpiarHora(hora) || String(hora);
+        const servicioTexto = String(servicio || 'Consulta Inicial').trim();
 
         const whatsappConfig = getWhatsAppConfig();
 
@@ -1101,10 +1109,16 @@ exports.enviarNotificacionConsulta = onRequest({ invoker: "public" }, async (req
             templateName: "nueva_reserva",
             templateLang: "es_AR",
             bodyParameters: [
-                { placeholder: "{{1}} nombre",     value: String(nombre).trim() || "Paciente" },
-                { placeholder: "{{2}} fecha",       value: fechaFormateada },
-                { placeholder: "{{3}} hora",        value: horaTexto },
-                { placeholder: "{{4}} metodoPago",  value: pagoTexto }
+                { placeholder: "{{1}} servicio",         value: servicioTexto },
+                { placeholder: "{{2}} fecha",            value: fechaFormateada },
+                { placeholder: "{{3}} hora",             value: horaTexto },
+                { placeholder: "{{4}} nombre",           value: String(nombre).trim() || "Paciente" },
+                { placeholder: "{{5}} dni",              value: String(dni || '').trim() || '-' },
+                { placeholder: "{{6}} fechaNacimiento",  value: fechaNacFormateada || '-' },
+                { placeholder: "{{7}} edad",             value: String(edad || '').trim() || '-' },
+                { placeholder: "{{8}} domicilio",        value: String(domicilio || '').trim() || '-' },
+                { placeholder: "{{9}} telefono",         value: String(telefono || '').trim() || '-' },
+                { placeholder: "{{10}} email",           value: String(email || '').trim() || '-' }
             ],
             whatsappConfig
         });
