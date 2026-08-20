@@ -485,7 +485,7 @@
             <h2>Seleccioná tus productos</h2>
 
             <!-- Pantalla de verificación de DNI -->
-            <div id="verificDNIScreen" style="display:none;text-align:center;padding:8px 0 16px;">
+            <div id="verificDNIScreen" style="display:block;text-align:center;padding:8px 0 16px;">
                 <div style="font-size:36px;margin-bottom:14px;">🌿</div>
                 <p style="font-family:'Cormorant Garamond',serif;font-size:22px;font-style:italic;color:rgba(220,242,232,0.92);margin:0 0 8px;">Espacio exclusivo para pacientes</p>
                 <p style="font-size:13.5px;color:rgba(165,205,188,0.60);margin:0 0 22px;line-height:1.65;">Ingresá tu DNI para verificar tu acceso.</p>
@@ -633,27 +633,11 @@
             return !qSnap.empty;
         };
 
-        const checkAuthAndLoad = async () => {
-            const contenidoKit = document.getElementById("contenidoKit");
-            const noLoggedIn = document.getElementById("noLoggedIn");
-            const verif = document.getElementById("verificDNIScreen");
-
-            // Si ya verificó antes y tiene datos en localStorage → acceso directo
-            const { dni, nombre } = getUserData();
-            if (dni && nombre && dni !== "null") {
-                const tiene = await verificarAccesoKit(dni);
-                if (tiene) {
-                    contenidoKit.style.display = "block";
-                    noLoggedIn.style.display = "none";
-                    if (verif) verif.style.display = "none";
-                    return true;
-                }
-            }
-            // Sin datos o DNI no registrado → mostrar pantalla de verificación
-            contenidoKit.style.display = "none";
-            noLoggedIn.style.display = "none";
-            if (verif) verif.style.display = "block";
-            return false;
+        const checkAuthAndLoad = () => {
+            // Siempre arranca con la pantalla de verificación
+            document.getElementById("contenidoKit").style.display = "none";
+            document.getElementById("noLoggedIn").style.display = "none";
+            document.getElementById("verificDNIScreen").style.display = "block";
         };
 
         window._verificarDNIKit = async () => {
@@ -673,10 +657,10 @@
             btn.textContent = 'Continuar';
 
             if (tiene) {
-                // Guardar en localStorage para próximas visitas
                 localStorage.setItem('clienteDNI', dni);
                 document.getElementById("verificDNIScreen").style.display = "none";
                 document.getElementById("contenidoKit").style.display = "block";
+                cargarProductosKit();
             } else {
                 // Mostrar popup amigable sugiriendo consulta inicial
                 document.getElementById("modalSinRegistro").style.display = "flex";
@@ -792,9 +776,7 @@
             btn.textContent = "Solicitar Kit";
         });
 
-        checkAuthAndLoad().then(tieneAcceso => {
-            if (tieneAcceso) cargarProductosKit();
-        });
+        checkAuthAndLoad();
     </script>
 </body>
 </html>
