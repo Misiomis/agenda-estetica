@@ -2332,6 +2332,8 @@
                 const bloqueoData = bloqueosHorarios.get(keyBloqueo(f, hora));
                 const bloqueo     = !!bloqueoData;
                 const esExtension = bloqueoData?.tipo === 'extension';
+                // Los slots con turno ya se muestran como cards arriba; acá solo van los libres/bloqueados
+                if (reserva || consulta || esExtension) return '';
 
                 // Para slots de extension: encontrar la reserva base por reservaId
                 const reservaBaseExt = esExtension && bloqueoData.reservaId
