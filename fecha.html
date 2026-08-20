@@ -1118,6 +1118,17 @@ window.confirmarConsulta = async function() {
             btn.disabled = false; btn.textContent = "Confirmar turno";
             return;
         }
+        // Verificar que no exista ya una consulta activa en ese horario
+        try {
+            const _cDupQ = query(collection(db,'consultas'), where('fecha','==',fStr), where('hora','==',horaSeleccionada));
+            const _cDupSnap = await getDocs(_cDupQ);
+            const _cDupActiva = _cDupSnap.docs.find(d => !['cancelada','cancelado'].includes((d.data().estado||'').toLowerCase()));
+            if (_cDupActiva) {
+                mostrarAviso("Horario no disponible", "Este turno ya está reservado. Por favor elegí otro horario.");
+                btn.disabled = false; btn.textContent = "Confirmar turno";
+                return;
+            }
+        } catch(_e) { /* permiso denegado: dejamos continuar, la creación fallará naturalmente */ }
 
         const consultaRef = await addDoc(collection(db,"consultas"), {
             nombre,

@@ -435,6 +435,77 @@
     </div>
 </div>
 
+<!-- Modal info pre-sesión depilación -->
+<div id="modalPreSesionDepi" style="display:none;position:fixed;inset:0;z-index:9150;background:rgba(6,14,11,0.94);backdrop-filter:blur(12px);align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;">
+    <div style="width:100%;max-width:500px;margin:auto;background:linear-gradient(165deg,#0e1a0e 0%,#070e07 100%);border:1px solid rgba(60,179,113,0.28);border-radius:24px;padding:0;box-shadow:0 32px 72px rgba(0,0,0,0.65);overflow:hidden;">
+        <div style="padding:22px 22px 0;">
+            <p style="font-family:'Cormorant Garamond',serif;font-size:21px;color:#b8e8c8;text-align:center;margin:0 0 4px;font-weight:600;">Antes de tu sesión</p>
+            <p style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.13em;color:rgba(100,200,140,0.50);text-align:center;margin:0 0 14px;">Leé esta información — es importante para tu seguridad</p>
+        </div>
+        <div id="preSessionScrollDepi" style="overflow-y:auto;max-height:62vh;padding:0 22px 16px;font-size:13px;color:rgba(165,205,188,0.78);line-height:1.65;">
+            <p style="margin:0 0 12px;color:rgba(220,242,232,0.85);">Para que tu sesión sea segura y efectiva, necesitamos que conozcas los siguientes puntos. Tenerlos en cuenta hace una diferencia real en el resultado 🤍</p>
+
+            <p style="font-weight:700;color:rgba(100,210,160,0.90);margin:14px 0 6px;">✂️ Rasurado obligatorio</p>
+            <p style="margin:0 0 8px;">La zona a tratar debe estar <strong>rasurada 24 horas antes de la sesión</strong>, usando máquina de afeitar. No depilarse con cera, pinza ni depiladora eléctrica: el folículo debe estar intacto para que el láser actúe correctamente. Es importante mantener esto durante todo el tratamiento.</p>
+
+            <p style="font-weight:700;color:rgba(100,210,160,0.90);margin:14px 0 6px;">👕 Ropa para la sesión</p>
+            <p style="margin:0 0 8px;">Venir con ropa cómoda y holgada que permita acceder fácilmente a las zonas a tratar. Para zonas íntimas (cavado, pubis, glúteos): <strong>traer ropa interior blanca</strong>, preferentemente de algodón y no ajustada.</p>
+
+            <p style="font-weight:700;color:rgba(100,210,160,0.90);margin:14px 0 6px;">☀️ Sol y bronceado</p>
+            <p style="margin:0 0 8px;">No exponerse al sol directo en los días previos. Se recomienda al menos <strong>72 hs sin sol</strong>, idealmente una semana sin exposición intensa. Si hubo sol, bronceado o autobronceante, avisalo siempre. Usar protector solar FPS 50+ en zonas expuestas.</p>
+            <p style="margin:0 0 8px;color:rgba(255,200,100,0.80);font-weight:600;font-size:12px;">⚠️ No se realiza la sesión sobre piel quemada, muy bronceada o irritada.</p>
+
+            <p style="font-weight:700;color:rgba(100,210,160,0.90);margin:14px 0 6px;">🧴 Productos sobre la piel</p>
+            <p style="margin:0 0 6px;">Antes de la sesión, evitar en la zona a tratar: ácidos, retinoides, despigmentantes, cremas decolorantes, autobronceantes ni productos irritantes.</p>
+            <p style="margin:0 0 8px;font-weight:600;color:rgba(220,242,232,0.88);">El día de la sesión la piel debe estar limpia, seca y sin cremas, aceites, maquillaje, desodorante ni perfume en la zona.</p>
+
+            <p style="font-weight:700;color:rgba(255,200,100,0.90);margin:16px 0 8px;font-size:13.5px;">📋 Antecedentes a informar siempre</p>
+            <p style="margin:0 0 8px;">Antes de cada sesión, por favor avisanos si presentás alguna de las siguientes situaciones. No es para impedir el tratamiento — muchas de ellas solo requieren ajustar los parámetros o coordinar con tu médico:</p>
+            <ul style="margin:0 0 10px;padding-left:16px;color:rgba(165,205,188,0.70);line-height:1.85;">
+                <li>Embarazo o lactancia</li>
+                <li>Bronceado reciente o exposición solar intensa</li>
+                <li>Quemadura solar o fotosensibilidad</li>
+                <li>Uso de medicamentos fotosensibilizantes, isotretinoína o retinoides</li>
+                <li>Inicio, cambio o suspensión de cualquier medicamento</li>
+                <li>Anticoagulantes u otros tratamientos que afecten la coagulación</li>
+                <li>Herpes activo en la zona · Infecciones, heridas o irritación</li>
+                <li>Dermatitis o inflamación de la piel</li>
+                <li>Tendencia a queloides o problemas de cicatrización</li>
+                <li>Diabetes, epilepsia, enfermedades autoinmunes o fotosensibles</li>
+                <li>Cáncer actual o en tratamiento oncológico</li>
+                <li>Trastornos hormonales o circulatorios importantes</li>
+                <li>Tatuajes en la zona a tratar</li>
+                <li>Cirugías o procedimientos recientes</li>
+            </ul>
+            <p style="margin:0 0 10px;font-size:12px;font-style:italic;color:rgba(165,205,188,0.55);">No ocultar medicación, bronceado, embarazo ni cambios de salud. La seguridad del tratamiento depende de la información que nos compartís antes de cada sesión.</p>
+            <p style="text-align:center;font-size:22px;margin:10px 0 4px;">🤍</p>
+        </div>
+        <div style="padding:14px 22px 22px;border-top:1px solid rgba(60,179,113,0.12);">
+            <button id="btnPreSesionContinuar" disabled onclick="document.getElementById('modalPreSesionDepi').style.display='none';const ov=document.getElementById('modalContraindicaciones');ov.style.display='flex';document.getElementById('btnContraindicacionesOk').onclick=()=>{ov.style.display='none';_abrirModalDepi();};document.getElementById('btnContraindicacionesVolver').onclick=()=>{ov.style.display='none';};" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(60,179,113,0.20),rgba(60,179,113,0.10));border:1px solid rgba(60,179,113,0.35);border-radius:14px;color:rgba(165,205,188,0.60);font-size:14px;font-weight:700;cursor:default;margin-bottom:10px;transition:all .3s;">Leí todo — continuar →</button>
+            <button onclick="document.getElementById('modalPreSesionDepi').style.display='none';" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(60,179,113,0.16);border-radius:14px;color:rgba(165,205,188,0.45);font-size:13px;cursor:pointer;">Volver</button>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+    const scrollEl = document.getElementById('preSessionScrollDepi');
+    const btnCont = document.getElementById('btnPreSesionContinuar');
+    if(!scrollEl||!btnCont) return;
+    const _chk = () => {
+        if(scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 60){
+            btnCont.disabled = false;
+            btnCont.style.color = 'rgba(165,205,188,0.92)';
+            btnCont.style.cursor = 'pointer';
+            btnCont.style.background = 'linear-gradient(135deg,rgba(60,179,113,0.30),rgba(60,179,113,0.15))';
+            btnCont.style.borderColor = 'rgba(60,179,113,0.55)';
+        }
+    };
+    scrollEl.addEventListener('scroll', _chk, {passive:true});
+    // Si el contenido es más corto que el viewport, habilitar inmediatamente
+    setTimeout(_chk, 200);
+})();
+</script>
+
 <!-- Modal próximamente -->
 <div id="modalProximamente" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(6,14,11,0.93);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px;">
     <div style="width:100%;max-width:420px;background:linear-gradient(165deg,#0d1a0e 0%,#07100a 100%);border:1px solid rgba(60,179,113,0.28);border-radius:24px;padding:34px 26px;box-shadow:0 32px 72px rgba(0,0,0,0.65);text-align:center;">
@@ -841,10 +912,18 @@ document.getElementById("reservarBtn").onclick=()=>{
         document.getElementById("modalProximamente").style.display="flex";
         return;
     }
-    const ov=document.getElementById("modalContraindicaciones");
-    ov.style.display="flex";
-    document.getElementById("btnContraindicacionesOk").onclick=()=>{ov.style.display="none";_abrirModalDepi();};
-    document.getElementById("btnContraindicacionesVolver").onclick=()=>{ov.style.display="none";};
+    // Mostrar popup info pre-sesión (debe leer hasta el final antes de continuar)
+    const _mps = document.getElementById('modalPreSesionDepi');
+    if(_mps){
+        // Resetear scroll y botón cada vez que se abre
+        const _sc = document.getElementById('preSessionScrollDepi');
+        const _bn = document.getElementById('btnPreSesionContinuar');
+        if(_sc){_sc.scrollTop=0;}
+        if(_bn){_bn.disabled=true;_bn.style.color='rgba(165,205,188,0.60)';_bn.style.cursor='default';_bn.style.background='linear-gradient(135deg,rgba(60,179,113,0.20),rgba(60,179,113,0.10))';_bn.style.borderColor='rgba(60,179,113,0.25)';}
+        _mps.style.display='flex';
+        // Verificar si ya está al fondo (contenido corto)
+        setTimeout(()=>{if(_sc&&_sc.scrollHeight-_sc.clientHeight<60&&_bn){_bn.disabled=false;_bn.style.color='rgba(165,205,188,0.92)';_bn.style.cursor='pointer';_bn.style.background='linear-gradient(135deg,rgba(60,179,113,0.30),rgba(60,179,113,0.15))';_bn.style.borderColor='rgba(60,179,113,0.55)';}},150);
+    }
 };
 document.getElementById("mcClose").onclick=()=>document.getElementById("modalDepi").classList.remove("open");
 
