@@ -281,6 +281,38 @@
             .main-content { padding: 16px 14px; }
         }
 
+        /* ── MODAL CONFIRMACIÓN ── */
+        #modalConfirmDepi {
+            position: fixed; inset: 0; z-index: 9999;
+            background: rgba(9,11,24,0.85); backdrop-filter: blur(10px);
+            display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        #modalConfirmDepi.visible { display: flex; }
+        .confirm-box {
+            background: linear-gradient(160deg,#141128 0%,#0d0b1e 100%);
+            border: 1px solid rgba(124,58,237,0.35);
+            border-radius: 20px; padding: 28px 26px; width: min(380px,92vw);
+            box-shadow: 0 24px 60px rgba(0,0,0,0.70); text-align: center;
+        }
+        .confirm-icon { font-size: 32px; margin-bottom: 10px; }
+        .confirm-titulo { font-family: 'Playfair Display', serif; font-size: 1.25em; color: var(--texto); margin-bottom: 8px; }
+        .confirm-texto { font-size: 13px; color: var(--texto-suave); line-height: 1.6; margin-bottom: 22px; }
+        .confirm-btns { display: flex; gap: 10px; justify-content: center; }
+        .confirm-si {
+            padding: 11px 28px; border-radius: 11px; border: none;
+            background: linear-gradient(135deg,#ef4444,#dc2626);
+            color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
+            font-family: inherit; transition: opacity 0.15s;
+        }
+        .confirm-si:hover { opacity: 0.88; }
+        .confirm-no {
+            padding: 11px 28px; border-radius: 11px;
+            border: 1.5px solid var(--borde); background: transparent;
+            color: var(--texto-suave); font-weight: 600; font-size: 14px;
+            cursor: pointer; font-family: inherit; transition: all 0.15s;
+        }
+        .confirm-no:hover { background: var(--acento-suave); color: var(--texto); }
+
         /* ── AVISO FLOTANTE ── */
         #avisoDepi {
             position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(80px);
@@ -455,6 +487,18 @@
 </div>
 
 <div id="avisoDepi"></div>
+
+<div id="modalConfirmDepi">
+    <div class="confirm-box">
+        <div class="confirm-icon" id="confirmIcon">⚠️</div>
+        <div class="confirm-titulo" id="confirmTitulo">¿Confirmar acción?</div>
+        <div class="confirm-texto" id="confirmTexto"></div>
+        <div class="confirm-btns">
+            <button class="confirm-si" id="confirmSi">Sí, continuar</button>
+            <button class="confirm-no" id="confirmNo">Cancelar</button>
+        </div>
+    </div>
+</div>
 
 <script type="module">
     import {
@@ -728,7 +772,7 @@
                         <span style="font-size:15px;font-weight:800;color:rgba(167,139,250,0.90);min-width:46px;">${hora}</span>
                         <div style="flex:1;">
                             <div class="reserva-nombre">${escHtml(r.nombre || 'Sin nombre')}</div>
-                            <div class="reserva-servicio">${escHtml(r.servicio || '')}${r.dni ? ` · DNI: ${escHtml(r.dni)}` : ''}${r.notas ? ` · ${escHtml(r.notas)}` : ''}</div>
+                            <div class="reserva-servicio">${escHtml(r.servicio || '')}${r.edad ? ` · ${escHtml(r.edad)} años` : ''}${r.dni ? ` · DNI: ${escHtml(r.dni)}` : ''}${r.notas ? ` · ${escHtml(r.notas)}` : ''}</div>
                         </div>
                         <span class="reserva-estado ${estadoCls}">${estadoLabel}</span>
                     </div>
@@ -769,15 +813,22 @@
         cont.innerHTML = existingBloq + (rows.join('') || '<div style="color:var(--texto-suave);font-size:13px;padding:8px 0;">Sin turnos registrados.</div>');
     };
 
-    window.bloquearDiaDepi = async () => {
+    window.bloquearDiaDepi = () => {
         const fecha = _diaSeleccionado;
         if (!fecha) return;
-        if (!confirm(`¿Bloquear el día ${fecha}? No se podrán reservar turnos ese día.`)) return;
-        try {
-            await setDoc(doc(db, COLECCION_EX, `depi_${fecha}_dia`), { fecha, tipo: 'dia', bloqueado: true, updatedAt: serverTimestamp() });
-            mostrarAvisoDepi('Día bloqueado');
-            await Promise.all([verDia(fecha), cargarCalendario()]);
-        } catch(e) { console.error(e); mostrarAvisoDepi('Error al bloquear'); }
+        mostrarConfirmDepi({
+            icono: '🔒',
+            titulo: 'Bloquear día completo',
+            texto: `¿Bloquear el ${fecha}? Ninguna paciente podrá reservar turnos ese día.`,
+            labelSi: 'Sí, bloquear',
+            onSi: async () => {
+                try {
+                    await setDoc(doc(db, COLECCION_EX, `depi_${fecha}_dia`), { fecha, tipo: 'dia', bloqueado: true, updatedAt: serverTimestamp() });
+                    mostrarAvisoDepi('Día bloqueado');
+                    await Promise.all([verDia(fecha), cargarCalendario()]);
+                } catch(e) { console.error(e); mostrarAvisoDepi('Error al bloquear'); }
+            }
+        });
     };
 
     window.desbloquearDiaDepi = async (fecha) => {
@@ -817,18 +868,25 @@
         }
     };
 
-    window.eliminarTurno = async (id, fecha) => {
-        if (!confirm('¿Eliminar este turno? No se puede deshacer.')) return;
-        try {
-            const ref = doc(db, COLECCION, id);
-            await updateDoc(ref, { estado: 'cancelada', eliminado: true, updatedAt: serverTimestamp() });
-            mostrarAvisoDepi('Turno eliminado');
-            await verDia(fecha);
-            await cargarCalendario();
-        } catch(e) {
-            console.error(e);
-            mostrarAvisoDepi('Error al eliminar');
-        }
+    window.eliminarTurno = (id, fecha) => {
+        mostrarConfirmDepi({
+            icono: '🗑',
+            titulo: 'Borrar turno',
+            texto: 'Esta acción es permanente y no se puede deshacer. ¿Querés eliminar este turno?',
+            labelSi: 'Sí, eliminar',
+            onSi: async () => {
+                try {
+                    const ref = doc(db, COLECCION, id);
+                    await updateDoc(ref, { estado: 'cancelada', eliminado: true, updatedAt: serverTimestamp() });
+                    mostrarAvisoDepi('Turno eliminado');
+                    await verDia(fecha);
+                    await cargarCalendario();
+                } catch(e) {
+                    console.error(e);
+                    mostrarAvisoDepi('Error al eliminar');
+                }
+            }
+        });
     };
 
     // ════════════════════════════════
@@ -974,6 +1032,19 @@
     const escHtml = (v) => (v ?? '').toString()
         .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
         .replace(/"/g,'&quot;');
+
+    const mostrarConfirmDepi = ({ icono = '⚠️', titulo, texto, labelSi = 'Sí, continuar', onSi }) => {
+        document.getElementById('confirmIcon').textContent = icono;
+        document.getElementById('confirmTitulo').textContent = titulo;
+        document.getElementById('confirmTexto').textContent = texto;
+        document.getElementById('confirmSi').textContent = labelSi;
+        const modal = document.getElementById('modalConfirmDepi');
+        modal.classList.add('visible');
+        const cerrar = () => modal.classList.remove('visible');
+        document.getElementById('confirmNo').onclick = cerrar;
+        document.getElementById('confirmSi').onclick = () => { cerrar(); onSi(); };
+    };
+    window.mostrarConfirmDepi = mostrarConfirmDepi;
 
     let _avisoTimer;
     const mostrarAvisoDepi = (msg) => {
