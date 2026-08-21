@@ -1585,6 +1585,33 @@
         let fechaSeleccionada = "";
         let todasLasReservas = [];
         let todasLasConsultas = [];
+
+        // ── Sistema de Boxes ──
+        const _BOX_INFO = {
+            1: { label: 'Consultorio', color: '#4ade80', bg: 'rgba(74,222,128,0.13)',  bd: 'rgba(74,222,128,0.33)' },
+            2: { label: 'Corporal',    color: '#60a5fa', bg: 'rgba(96,165,250,0.13)',  bd: 'rgba(96,165,250,0.33)' },
+            3: { label: 'Facial',      color: '#f472b6', bg: 'rgba(244,114,182,0.13)', bd: 'rgba(244,114,182,0.33)' },
+            4: { label: 'Relax',       color: '#a78bfa', bg: 'rgba(167,139,250,0.13)', bd: 'rgba(167,139,250,0.33)' },
+        };
+        // Devuelve qué boxes ocupa/bloquea cada servicio
+        const _inferirBoxes = (servicio, tipo) => {
+            const s = ((servicio || '') + ' ' + (tipo || '')).toLowerCase();
+            // Doctora y Depi: sin bloqueo
+            if (s.includes('doctor') || s.includes('dra.') || /\bdra\b/.test(s) || s.includes('dr.') || s.includes('medic') || s.includes('médic')) return [];
+            // Consulta inicial y Facial: bloquean todo
+            if (s.includes('consulta') || s.includes('diagnostico') || s.includes('diagnóstico')) return [1,2,3,4];
+            if (s.includes('facial') || s.includes('fraxis') || s.includes('dermapen') || s.includes('peeling')) return [1,2,3,4];
+            // Corporal: boxes 2 y 4 (el 4 va incluido en el turno)
+            if (s.includes('corporal') || s.includes('criolipolisis') || s.includes('crioli') || s.includes('cavitac') || s.includes('presot') || s.includes('mio up') || s.includes('remodel') || s.includes('ultrason') || s.includes('bio')) return [2,4];
+            // Relax solo: solo box 4, no bloquea otros
+            if (s.includes('relax') || s.includes('masaj') || s.includes('relajante')) return [4];
+            return []; // desconocido: sin bloqueo por defecto
+        };
+        const _boxBadgesHtml = (boxes) => {
+            if (!boxes || boxes.length === 0) return '';
+            if (boxes.length === 4) return `<span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.05em;background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.30);margin-left:5px;vertical-align:middle;">🔒 Exclusivo</span>`;
+            return boxes.map(b => { const i = _BOX_INFO[b]||{}; return `<span style="display:inline-block;padding:1px 7px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.04em;background:${i.bg};color:${i.color};border:1px solid ${i.bd};margin-left:4px;vertical-align:middle;">B${b}</span>`; }).join('');
+        };
         let todasLasHistorias = [];
         let todasLosPacientes = [];
         let dniClienteCargado = "";
@@ -2270,11 +2297,15 @@
                     ? `<div style="font-size:11px;font-weight:700;color:#2f7c5d;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Paciente 1</div>`
                     : '';
 
+                const _cardBoxes = _inferirBoxes(r.servicio, r.tipo);
+                const _btnOtroBox = _cardBoxes.length === 0
+                    ? `<button class="btn-mini" style="width:100%;margin-top:6px;border-color:rgba(96,165,250,0.40);color:rgba(140,195,255,0.92);background:rgba(96,165,250,0.07);" onclick="registrarReservaManual('${r.fecha}','${r.hora}')">+ Agregar turno en otro box</button>`
+                    : '';
                 return `
                 <div class="detalle-dia-card">
                     ${renderTagOrigen(r)}${duoBadge}${extBadge}<br>
                     ${pac1label}<b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(r.nombreLimpio || 'Sin nombre')}</b> - ${escapeHtml(r.hora || '--:--')} hs<br>
-                    <small>${escapeHtml(r.servicio || 'Servicio')}</small>
+                    <small>${escapeHtml(r.servicio || 'Servicio')}</small>${_boxBadgesHtml(_cardBoxes)}
                     ${notaDisplay1}
                     ${notaDisplay2}
                     <div class="grid-acciones">
@@ -2287,6 +2318,7 @@
                     <button class="btn-delete-reserva" onclick="borrarReserva('${r.id}')">Borrar reserva</button>
                     ${btnEnviar1}${btnEnviar2}
                     ${btnRec}
+                    ${_btnOtroBox}
                 </div>`; })(); return {hora: r.hora||'', html: _rHtml}; });
 
             // Cards de consultas → {hora, html}
@@ -2319,7 +2351,7 @@
                 const _mFraxC = _encMsg(`Hola ${_cN1}, te recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información. Espacio Mimar T.`);
                 const _html = `
                 <div class="detalle-dia-card" style="border-left:3px solid rgba(251,191,36,0.50);">
-                    <span style="display:inline-block;background:rgba(251,191,36,0.14);color:${_cEstColor};border:1px solid rgba(251,191,36,0.30);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;letter-spacing:.06em;">Consulta Inicial · ${_cEstLabel}</span><br>
+                    <span style="display:inline-block;background:rgba(251,191,36,0.14);color:${_cEstColor};border:1px solid rgba(251,191,36,0.30);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;letter-spacing:.06em;">Consulta Inicial · ${_cEstLabel}</span>${_boxBadgesHtml([1,2,3,4])}<br>
                     <b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(c.nombre||'Sin nombre')}</b> - ${escapeHtml(c.hora||'--:--')} hs<br>
                     <small>Tel: ${escapeHtml(c.telefono||c.phone||'-')} · Edad: ${c.edad||'-'} · ${escapeHtml(c.domicilio||'-')}</small>
                     <div class="grid-acciones" style="margin-top:8px;">
@@ -3332,7 +3364,7 @@
         };
         
         /* ── Estado del modal de registro ── */
-        let _mreg_fecha = null, _mreg_hora = null, _mreg_clienteSeleccionado = null, _mreg_debounce = null, _mreg_extraMinutos = 0;
+        let _mreg_fecha = null, _mreg_hora = null, _mreg_clienteSeleccionado = null, _mreg_debounce = null, _mreg_extraMinutos = 0, _mreg_boxesOcupados = new Set();
 
         /* ── Helper compartido: seleccionar chip ── */
         window.seleccionarChipServicio = (el, hiddenId) => {
@@ -3380,15 +3412,25 @@
         window.registrarReservaManual = async (fecha, hora) => {
             const horaNormalizada = normalizarHora(hora);
             if (!horaNormalizada) { mostrarAviso("Hora inválida"); return; }
-            const yaExiste = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fecha && normalizarHora(r.hora) === horaNormalizada);
-            if (yaExiste) { mostrarAviso("Ese horario ya está reservado"); return; }
+
+            // Verificación box-aware: solo bloquear si todos los boxes están tomados
+            const reservasEnHora = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === fecha && normalizarHora(r.hora) === horaNormalizada);
+            _mreg_boxesOcupados = new Set(reservasEnHora.flatMap(r => _inferirBoxes(r.servicio, r.tipo)));
+            if (_mreg_boxesOcupados.has(1) && _mreg_boxesOcupados.has(2) && _mreg_boxesOcupados.has(3) && _mreg_boxesOcupados.has(4)) {
+                mostrarAviso("Ese horario está completamente ocupado (todos los boxes bloqueados)");
+                return;
+            }
 
             _mreg_fecha = fecha;
             _mreg_hora = horaNormalizada;
             _mreg_clienteSeleccionado = null;
             _mreg_extraMinutos = 0;
 
-            document.getElementById('mreg-fecha-label').textContent = `${formatoFechaISO(fecha)} · ${horaNormalizada} hs`;
+            // Mostrar boxes ocupados en el subtítulo del modal
+            const _boxesLabel = _mreg_boxesOcupados.size > 0
+                ? ` · Boxes ocupados: ${[..._mreg_boxesOcupados].map(b => `B${b}`).join(', ')}`
+                : ' · Todos los boxes disponibles';
+            document.getElementById('mreg-fecha-label').textContent = `${formatoFechaISO(fecha)} · ${horaNormalizada} hs${_boxesLabel}`;
             document.getElementById('mreg-nombre-input').value = '';
             document.getElementById('mreg-resultados').innerHTML = '';
             document.getElementById('mreg-btn-confirmar').disabled = true;
@@ -3473,6 +3515,16 @@
             if (!_mreg_clienteSeleccionado) { mostrarAviso("Seleccioná un paciente"); return; }
             const servicioIngresado = document.getElementById('mreg-servicio-hidden').value.trim();
             if (!servicioIngresado) { mostrarAviso("Seleccioná un servicio"); return; }
+
+            // Verificar conflicto de boxes
+            const _boxesNuevos = _inferirBoxes(servicioIngresado, '');
+            const _conflictoBox = _boxesNuevos.find(b => _mreg_boxesOcupados.has(b));
+            if (_conflictoBox !== undefined) {
+                const _bInfo = _BOX_INFO[_conflictoBox]?.label || `Box ${_conflictoBox}`;
+                mostrarAviso(`Conflicto: el Box ${_conflictoBox} (${_bInfo}) ya está ocupado en este horario`);
+                return;
+            }
+
             const clienteSnap = { ..._mreg_clienteSeleccionado };
             const fechaSnap = _mreg_fecha, horaSnap = _mreg_hora;
 
@@ -3550,7 +3602,8 @@
                     reminderSent: false,
                     duracionMinutos: durMin,
                     timestamp: serverTimestamp(),
-                    creadoPor: "admin_manual"
+                    creadoPor: "admin_manual",
+                    boxes: _inferirBoxes(servicioIngresado, '')
                 };
                 const ref = await addDoc(collection(db, "reservas"), reservaNueva);
                 // Bloquear slots de extension en calendarExceptions

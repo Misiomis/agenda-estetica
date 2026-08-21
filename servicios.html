@@ -590,6 +590,43 @@
                     contenedor.appendChild(div);
                 });
                 asignarEventos();
+
+                // Tarjeta "Próximamente" para la Doctora
+                const _FECHA_DOCTORA = '2026-09-10';
+                const _hoyStr = new Date().toISOString().slice(0,10);
+                const _doctorActiva = _hoyStr >= _FECHA_DOCTORA;
+                const _doctorCard = document.createElement('div');
+                _doctorCard.className = 'servicio';
+                _doctorCard.style.cssText = `opacity:${_doctorActiva ? '1' : '0.72'};border:1.5px dashed rgba(255,255,255,0.18);position:relative;overflow:hidden;`;
+                _doctorCard.innerHTML = `
+                    <div>
+                        <div class="servicio-head">
+                            <div class="servicio-icono">🩺</div>
+                            <div>
+                                <h3 style="margin:0">Consulta Médica Especializada</h3>
+                                <div class="duracion">${_doctorActiva ? 'Disponible ahora' : 'Disponible desde el 10 de septiembre'}</div>
+                            </div>
+                        </div>
+                        <p style="font-family:'Jost',sans-serif; font-size:0.85rem; line-height:1.65; color:var(--text-secondary);">
+                            Consulta personalizada con especialista médica. Diagnóstico, orientación terapéutica y acompañamiento profesional.
+                        </p>
+                    </div>
+                    ${_doctorActiva
+                        ? `<button class="btn-reservar" data-nombre="Consulta Médica Especializada">Reservar Turno</button>`
+                        : `<div style="display:flex;align-items:center;gap:8px;padding:11px 14px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.14);margin-top:auto;">
+                                <span style="font-size:15px;">⏳</span>
+                                <span style="font-size:12px;font-weight:600;color:var(--text-secondary);letter-spacing:.04em;">Próximamente · 10 de septiembre</span>
+                           </div>`
+                    }
+                `;
+                contenedor.appendChild(_doctorCard);
+                if (_doctorActiva) {
+                    _doctorCard.querySelector('.btn-reservar').onclick = () => {
+                        localStorage.setItem("servicioSeleccionado", "Consulta Médica Especializada");
+                        const esMiembro = localStorage.getItem("esMiembro") === "1";
+                        window.location.href = esMiembro ? "fecha.html" : "fechaocasional.html";
+                    };
+                }
             } catch (e) { console.error(e); }
         }
 
