@@ -717,29 +717,38 @@
             if (r) {
                 const estadoCls = `estado-${r.estado || 'pendiente'}`;
                 const estadoLabel = { pendiente: 'Pendiente', confirmada: 'Confirmada', cancelada: 'Cancelada', realizada: 'Realizada' }[r.estado || 'pendiente'] || r.estado;
-                const telNum = r.telefono ? r.telefono.replace(/\D/g,'') : '';
+                let telNum = (r.telefono || '').replace(/\D/g,'');
+                if (telNum.startsWith('0')) telNum = telNum.slice(1);
                 const telWA = telNum.length >= 10 ? (telNum.startsWith('54') ? telNum : `549${telNum}`) : '';
-                const waRec = telWA ? `<a class="wa-btn" href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgRecordatorio(r, fecha))}" target="_blank" title="Recordatorio">💬 Recordatorio</a>` : '';
-                const waPost = telWA ? `<a class="wa-btn" href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgPostDepi(r))}" target="_blank" title="Post-sesión" style="border-color:rgba(167,139,250,0.30);background:rgba(167,139,250,0.10);color:#a78bfa;">💜 Post-sesión</a>` : '';
-                return `<div class="reserva-item" id="ri-${r._id}">
-                    <div class="reserva-hora">${hora}</div>
-                    <div class="reserva-info">
-                        <div class="reserva-nombre">${escHtml(r.nombre || 'Sin nombre')}</div>
-                        <div class="reserva-servicio">${escHtml(r.servicio || '')}${r.dni ? ` · DNI: ${escHtml(r.dni)}` : ''}${r.notas ? `<br>📝 ${escHtml(r.notas)}` : ''}</div>
-                        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">${waRec}${waPost}</div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+                const _primerNombre = (r.nombre||'').split(' ')[0];
+                const _msgCanc = encodeURIComponent(`Hola ${_primerNombre} 💜 Te escribimos de Espacio Mimar T para avisarte que tu turno del ${_fmtFechaLarga(fecha)} a las ${hora} hs tuvo que ser cancelado.\n\nLamentamos los inconvenientes. Si querés reprogramarlo, escribinos y buscamos otra fecha para vos. 🌿\nEspacio Mimar T`);
+                const yaConfirmada = (r.estado || '') === 'confirmada';
+                return `<div class="reserva-item" id="ri-${r._id}" style="flex-direction:column;align-items:stretch;gap:10px;padding:16px 18px;">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <span style="font-size:15px;font-weight:800;color:rgba(167,139,250,0.90);min-width:46px;">${hora}</span>
+                        <div style="flex:1;">
+                            <div class="reserva-nombre">${escHtml(r.nombre || 'Sin nombre')}</div>
+                            <div class="reserva-servicio">${escHtml(r.servicio || '')}${r.dni ? ` · DNI: ${escHtml(r.dni)}` : ''}${r.notas ? ` · ${escHtml(r.notas)}` : ''}</div>
+                        </div>
                         <span class="reserva-estado ${estadoCls}">${estadoLabel}</span>
-                        <select class="btn-icono" style="padding:5px 7px;font-size:11px;cursor:pointer;"
-                            onchange="cambiarEstado('${r._id}',this.value,'${fecha}')">
-                            <option value="">Estado</option>
-                            <option value="pendiente">Pendiente</option>
-                            <option value="confirmada">Confirmada</option>
-                            <option value="realizada">Realizada</option>
-                            <option value="cancelada">Cancelada</option>
-                        </select>
-                        <button class="btn-icono" onclick="eliminarTurno('${r._id}','${fecha}')" style="color:rgba(248,113,113,0.65);border-color:rgba(248,113,113,0.20);" title="Eliminar turno">✕</button>
                     </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                        <button onclick="cambiarEstado('${r._id}','confirmada','${fecha}')"
+                            style="padding:10px 0;border-radius:10px;border:none;background:${yaConfirmada?'rgba(74,222,128,0.12)':'linear-gradient(135deg,#22c55e,#16a34a)'};color:${yaConfirmada?'rgba(74,222,128,0.50)':'#fff'};font-weight:700;font-size:13px;cursor:${yaConfirmada?'default':'pointer'};font-family:inherit;"
+                            ${yaConfirmada?'disabled':''}>Confirmar</button>
+                        ${telWA ? `<a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgRecordatorio(r, fecha))}" target="_blank"
+                            style="padding:10px 0;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-weight:700;font-size:13px;text-align:center;text-decoration:none;display:block;">Recordar</a>` :
+                            `<button disabled style="padding:10px 0;border-radius:10px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);font-size:13px;font-family:inherit;cursor:default;">Recordar</button>`}
+                        ${telWA ? `<a href="https://wa.me/${telWA}?text=${_msgCanc}" target="_blank"
+                            style="padding:10px 0;border-radius:10px;background:linear-gradient(135deg,#ca8a04,#a16207);color:#fff;font-weight:700;font-size:13px;text-align:center;text-decoration:none;display:block;">Avisar Canc.</a>` :
+                            `<button disabled style="padding:10px 0;border-radius:10px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);font-size:13px;font-family:inherit;cursor:default;">Avisar Canc.</button>`}
+                    </div>
+                    <button onclick="cambiarEstado('${r._id}','cancelada','${fecha}')"
+                        style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(248,113,113,0.25);background:rgba(248,113,113,0.06);color:rgba(248,113,113,0.75);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;">✕ Cancelar turno</button>
+                    <button onclick="eliminarTurno('${r._id}','${fecha}')"
+                        style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(120,100,60,0.25);background:rgba(120,100,40,0.08);color:rgba(202,180,100,0.70);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;">🗑 Borrar turno</button>
+                    ${telWA ? `<a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgPostDepi(r))}" target="_blank"
+                        style="width:100%;padding:10px;border-radius:10px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);color:rgba(167,139,250,0.85);font-weight:700;font-size:13px;text-align:center;text-decoration:none;display:block;">💜 Enviar cuidados post-sesión</a>` : ''}
                 </div>`;
             } else if (isBloqSlot) {
                 return `<div class="slot-row" style="border-color:rgba(248,113,113,0.20);background:rgba(248,113,113,0.04);">
