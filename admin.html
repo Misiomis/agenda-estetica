@@ -1216,10 +1216,11 @@
         const normalizarNombreKey = (v) => borrarEtiquetaDNI(v || "").toLowerCase().replace(/\s+/g, ' ').trim();
         const normalizarTelefono = (v) => (v ?? "").toString().trim();
         const normalizarWA = (tel) => {
-            const d = (tel||'').replace(/\D/g,'');
+            let d = (tel||'').replace(/\D/g,'');
             if(!d) return '';
             if(d.startsWith('549') && d.length >= 12) return d;
             if(d.startsWith('54') && d.length >= 11) return '549'+d.slice(2);
+            if(d.startsWith('0')) d = d.slice(1); // strip leading 0 (ej: 01121931848 → 1121931848)
             if(d.length === 10) return '549'+d;
             if(d.length === 11 && d.startsWith('9')) return '54'+d;
             return '549'+d;

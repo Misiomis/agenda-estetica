@@ -430,7 +430,7 @@
             <li>Trastornos hormono-metabólicos no controlados</li>
         </ul>
         <p style="font-size:11.5px;color:rgba(165,205,188,0.45);margin:0 0 20px;line-height:1.55;">Si presentás alguna condición, informalo al equipo antes de reservar.</p>
-        <button id="btnContraindicacionesOk" style="width:100%;padding:14px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;letter-spacing:.02em;">Leí y acepto — ninguna condición aplica</button>
+        <button id="btnContraindicacionesOk" style="width:100%;padding:14px;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 4px 20px rgba(239,68,68,0.35);">LEÍ Y ACEPTO — NINGUNA CONDICIÓN APLICA</button>
         <button id="btnContraindicacionesVolver" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(255,160,0,0.20);border-radius:14px;color:rgba(165,205,188,0.50);font-size:13px;cursor:pointer;">Volver</button>
     </div>
 </div>
@@ -481,7 +481,7 @@
             <p style="text-align:center;font-size:22px;margin:10px 0 4px;">🤍</p>
         </div>
         <div style="padding:14px 22px 22px;border-top:1px solid rgba(60,179,113,0.12);">
-            <button id="btnPreSesionContinuar" disabled onclick="document.getElementById('modalPreSesionDepi').style.display='none';const ov=document.getElementById('modalContraindicaciones');ov.style.display='flex';document.getElementById('btnContraindicacionesOk').onclick=()=>{ov.style.display='none';_abrirModalDepi();};document.getElementById('btnContraindicacionesVolver').onclick=()=>{ov.style.display='none';};" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(60,179,113,0.20),rgba(60,179,113,0.10));border:1px solid rgba(60,179,113,0.35);border-radius:14px;color:rgba(165,205,188,0.60);font-size:14px;font-weight:700;cursor:default;margin-bottom:10px;transition:all .3s;">Leí todo — continuar →</button>
+            <button id="btnPreSesionContinuar" disabled style="width:100%;padding:14px;background:rgba(248,113,113,0.10);border:1px solid rgba(248,113,113,0.25);border-radius:14px;color:rgba(248,113,113,0.50);font-size:14px;font-weight:700;cursor:default;margin-bottom:10px;transition:all .3s;letter-spacing:.04em;text-transform:uppercase;">LEÍ TODO — CONTINUAR →</button>
             <button onclick="document.getElementById('modalPreSesionDepi').style.display='none';" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(60,179,113,0.16);border-radius:14px;color:rgba(165,205,188,0.45);font-size:13px;cursor:pointer;">Volver</button>
         </div>
     </div>
@@ -494,10 +494,10 @@
     const _chk = () => {
         if(scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 60){
             btnCont.disabled = false;
-            btnCont.style.color = 'rgba(165,205,188,0.92)';
+            btnCont.style.color = '#fff';
             btnCont.style.cursor = 'pointer';
-            btnCont.style.background = 'linear-gradient(135deg,rgba(60,179,113,0.30),rgba(60,179,113,0.15))';
-            btnCont.style.borderColor = 'rgba(60,179,113,0.55)';
+            btnCont.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+            btnCont.style.borderColor = 'transparent';
         }
     };
     scrollEl.addEventListener('scroll', _chk, {passive:true});
@@ -919,13 +919,26 @@ document.getElementById("reservarBtn").onclick=()=>{
         const _sc = document.getElementById('preSessionScrollDepi');
         const _bn = document.getElementById('btnPreSesionContinuar');
         if(_sc){_sc.scrollTop=0;}
-        if(_bn){_bn.disabled=true;_bn.style.color='rgba(165,205,188,0.60)';_bn.style.cursor='default';_bn.style.background='linear-gradient(135deg,rgba(60,179,113,0.20),rgba(60,179,113,0.10))';_bn.style.borderColor='rgba(60,179,113,0.25)';}
+        if(_bn){_bn.disabled=true;_bn.style.color='rgba(248,113,113,0.50)';_bn.style.cursor='default';_bn.style.background='rgba(248,113,113,0.10)';_bn.style.borderColor='rgba(248,113,113,0.25)';}
         _mps.style.display='flex';
         // Verificar si ya está al fondo (contenido corto)
-        setTimeout(()=>{if(_sc&&_sc.scrollHeight-_sc.clientHeight<60&&_bn){_bn.disabled=false;_bn.style.color='rgba(165,205,188,0.92)';_bn.style.cursor='pointer';_bn.style.background='linear-gradient(135deg,rgba(60,179,113,0.30),rgba(60,179,113,0.15))';_bn.style.borderColor='rgba(60,179,113,0.55)';}},150);
+        setTimeout(()=>{if(_sc&&_sc.scrollHeight-_sc.clientHeight<60&&_bn){_bn.disabled=false;_bn.style.color='#fff';_bn.style.cursor='pointer';_bn.style.background='linear-gradient(135deg,#ef4444,#dc2626)';_bn.style.borderColor='transparent';}},150);
     }
 };
 document.getElementById("mcClose").onclick=()=>document.getElementById("modalDepi").classList.remove("open");
+
+// Flujo pre-sesión → contraindicaciones → form (deben estar en el módulo para acceder a _abrirModalDepi)
+document.getElementById('btnPreSesionContinuar').onclick=()=>{
+    document.getElementById('modalPreSesionDepi').style.display='none';
+    document.getElementById('modalContraindicaciones').style.display='flex';
+};
+document.getElementById('btnContraindicacionesOk').onclick=()=>{
+    document.getElementById('modalContraindicaciones').style.display='none';
+    _abrirModalDepi();
+};
+document.getElementById('btnContraindicacionesVolver').onclick=()=>{
+    document.getElementById('modalContraindicaciones').style.display='none';
+};
 
 document.getElementById("mcDni").addEventListener("blur",async()=>{
     const dniRaw=document.getElementById("mcDni").value.trim().replace(/\./g,"");
