@@ -682,9 +682,18 @@
         return `✨ Cuidados después de tu sesión de depilación láser\n\nHola ${(r.nombre||'').split(' ')[0]} 💜 ¡Muchas gracias por tu visita a Espacio Mimar T! Aquí te dejamos algunos cuidados importantes para las próximas horas:\n\n• Evitá exponerte al sol o calor intenso (sauna, jacuzzi) las primeras 48 hs\n• No rasurar la zona por al menos 5 días\n• Aplicá crema hidratante o gel de aloe vera para calmar la piel\n• Evitá ropa ajustada sobre la zona tratada\n• Si sentís mucho enrojecimiento, podés aplicar frío (no hielo directo)\n\n¿Tenés alguna consulta? Escribinos cuando quieras 🤍\nEspacio Mimar T`;
     };
 
+    const _slotsAdminDia = () => {
+        const s = [];
+        for (let h = 7; h < 20; h++) {
+            s.push(`${String(h).padStart(2,'0')}:00`);
+            s.push(`${String(h).padStart(2,'0')}:30`);
+        }
+        return s;
+    };
+
     const renderDiaDetalle = (fecha, reservas, exInfo) => {
         const cont = document.getElementById('diaDetalleContenido');
-        const slots = _slotsParaDia(fecha);
+        const slots = _slotsAdminDia(); // admin ve el día completo 07:00-19:30
 
         if (exInfo.diaBloqueado) {
             cont.innerHTML = `<div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);border-radius:10px;padding:13px 16px;color:rgba(248,113,113,0.80);font-size:13px;font-weight:600;margin-bottom:12px;">
