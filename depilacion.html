@@ -209,7 +209,7 @@
     </div>
 
     <!-- Lista de precios (acordeón) -->
-    <div class="consent-accordion open" id="preciosAccordion">
+    <div class="consent-accordion" id="preciosAccordion">
         <div class="consent-header" onclick="togglePrecios()">
             <span class="consent-header-text">Combos de depilación · Precios por sesión</span>
             <span class="consent-chevron">▾</span>
@@ -413,97 +413,180 @@
     </div>
 </div>
 
-<!-- Modal contraindicaciones -->
-<div id="modalContraindicaciones" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(6,14,11,0.92);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
-    <div style="width:100%;max-width:460px;background:linear-gradient(165deg,#1a1200 0%,#0e0e06 100%);border:1px solid rgba(255,160,0,0.30);border-radius:24px;padding:28px 24px;box-shadow:0 32px 72px rgba(0,0,0,0.60);">
-        <p style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#fff;text-align:center;margin:0 0 4px;font-weight:500;">Contraindicaciones</p>
-        <p style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,185,60,0.55);text-align:center;margin:0 0 16px;">Fotodepilación Láser Diodo · Leé antes de reservar</p>
-        <p style="font-size:13px;color:rgba(220,242,232,0.72);margin:0 0 10px;line-height:1.60;">El procedimiento <strong style="color:rgba(255,185,60,0.90);">no puede realizarse</strong> en presencia de alguna de estas condiciones:</p>
-        <ul style="margin:0 0 14px;padding-left:18px;font-size:13px;color:rgba(165,205,188,0.65);line-height:1.80;">
-            <li>Embarazo o período de lactancia</li>
-            <li>Neoplasias (tumores), fibromas o miomas</li>
-            <li>Enfermedades infecto-contagiosas o autoinmunes</li>
-            <li>Flebitis, trombosis o patologías vasculares activas</li>
-            <li>Tratamiento con anticoagulantes o uso de marcapasos</li>
-            <li>Graves problemas circulatorios o hipertensión no controlada</li>
-            <li>Infecciones activas en la piel · Alergia al frío</li>
-            <li>Trastornos hormono-metabólicos no controlados</li>
-        </ul>
-        <p style="font-size:11.5px;color:rgba(165,205,188,0.45);margin:0 0 20px;line-height:1.55;">Si presentás alguna condición, informalo al equipo antes de reservar.</p>
-        <button id="btnContraindicacionesOk" style="width:100%;padding:14px;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 4px 20px rgba(239,68,68,0.35);">LEÍ Y ACEPTO — NINGUNA CONDICIÓN APLICA</button>
-        <button id="btnContraindicacionesVolver" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(255,160,0,0.20);border-radius:14px;color:rgba(165,205,188,0.50);font-size:13px;cursor:pointer;">Volver</button>
+<!-- Modal unificado: Antes de reservar (2 pasos) -->
+<div id="modalAntesDeReservar" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(6,14,11,0.92);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:12px 16px;">
+<style>
+.abr-modal{width:100%;max-width:640px;max-height:94vh;background:linear-gradient(165deg,#0d1f15 0%,#080f0a 100%);border:1px solid rgba(60,179,113,0.22);border-radius:22px;box-shadow:0 32px 80px rgba(0,0,0,0.62);display:flex;flex-direction:column;overflow:hidden;}
+.abr-header{padding:18px 22px 14px;flex-shrink:0;border-bottom:1px solid rgba(60,179,113,0.10);}
+.abr-header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+.abr-title{font-family:'Cormorant Garamond',serif;font-size:21px;color:#fff;font-weight:500;margin:0;line-height:1.2;}
+.abr-step-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(165,205,188,0.40);margin-top:2px;}
+.abr-close{background:none;border:none;color:rgba(165,205,188,0.38);font-size:22px;cursor:pointer;padding:0 0 0 10px;line-height:1;flex-shrink:0;}
+.abr-progress{display:flex;gap:0;align-items:center;}
+.abr-prog-bar{flex:1;height:3px;background:rgba(60,179,113,0.12);border-radius:2px;overflow:hidden;}
+.abr-prog-bar-fill{height:100%;background:linear-gradient(90deg,#4f9777,#72bd99);border-radius:2px;transition:width .4s ease;}
+.abr-prog-dot{width:22px;height:22px;border-radius:50%;border:2px solid rgba(60,179,113,0.28);background:transparent;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(165,205,188,0.35);flex-shrink:0;transition:all .3s;margin:0 6px;}
+.abr-prog-dot.active{background:linear-gradient(135deg,#4f9777,#2e6b4f);border-color:#4f9777;color:#fff;box-shadow:0 2px 10px rgba(79,151,119,0.35);}
+.abr-prog-dot.done{background:rgba(60,179,113,0.18);border-color:#4ade80;color:#4ade80;}
+.abr-body{flex:1;overflow-y:auto;padding:18px 22px 6px;scrollbar-width:thin;scrollbar-color:rgba(60,179,113,0.22) transparent;}
+.abr-body::-webkit-scrollbar{width:4px;}
+.abr-body::-webkit-scrollbar-track{background:transparent;}
+.abr-body::-webkit-scrollbar-thumb{background:rgba(60,179,113,0.22);border-radius:3px;}
+.abr-footer{padding:14px 22px 20px;flex-shrink:0;border-top:1px solid rgba(60,179,113,0.10);}
+.abr-btn-main{width:100%;padding:14px;background:linear-gradient(135deg,#4f9777,#2e6b4f);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;letter-spacing:.02em;box-shadow:0 6px 18px rgba(46,107,79,0.35);transition:filter .2s;}
+.abr-btn-main:hover{filter:brightness(1.07);}
+.abr-btn-back{width:100%;padding:11px;background:transparent;border:1px solid rgba(60,179,113,0.16);border-radius:14px;color:rgba(165,205,188,0.45);font-size:13px;cursor:pointer;transition:border-color .2s,color .2s;}
+.abr-btn-back:hover{border-color:rgba(60,179,113,0.28);color:rgba(165,205,188,0.65);}
+/* Categorías contraindicaciones */
+.abr-cat{margin-bottom:14px;}
+.abr-cat-title{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(165,205,188,0.38);margin:0 0 7px;padding-bottom:5px;border-bottom:1px solid rgba(60,179,113,0.10);}
+.abr-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:12.5px;color:rgba(165,205,188,0.68);line-height:1.55;}
+.abr-item-dot{width:5px;height:5px;border-radius:50%;background:rgba(248,113,113,0.70);flex-shrink:0;margin-top:5px;}
+.abr-item-dot.amber{background:rgba(251,191,36,0.70);}
+.abr-alert{background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.22);border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;color:rgba(248,113,113,0.85);line-height:1.55;}
+.abr-alert strong{color:#f87171;}
+/* Tarjetas preparación */
+.abr-prep-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px;}
+.abr-prep-card{background:rgba(255,255,255,0.04);border:1px solid rgba(60,179,113,0.14);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px;}
+.abr-prep-icon{font-size:20px;margin-bottom:2px;}
+.abr-prep-card-title{font-size:12px;font-weight:700;color:rgba(220,242,232,0.90);line-height:1.3;}
+.abr-prep-card-sub{font-size:11px;color:rgba(165,205,188,0.52);line-height:1.4;}
+/* Expandible */
+.abr-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:rgba(165,205,188,0.50);border:none;background:none;padding:6px 0;margin-bottom:8px;user-select:none;}
+.abr-toggle:hover{color:rgba(165,205,188,0.75);}
+.abr-toggle-arrow{transition:transform .25s;font-size:10px;}
+.abr-toggle.open .abr-toggle-arrow{transform:rotate(180deg);}
+.abr-expand{display:none;font-size:12px;color:rgba(165,205,188,0.62);line-height:1.72;padding-left:4px;}
+.abr-expand ul{margin:4px 0;padding-left:16px;}
+.abr-expand li{margin-bottom:4px;}
+.abr-expand.open{display:block;}
+.abr-post-nota{background:rgba(168,85,247,0.07);border:1px solid rgba(168,85,247,0.20);border-radius:12px;padding:10px 14px;margin-top:14px;font-size:12px;color:rgba(200,160,255,0.80);line-height:1.55;}
+@media(max-width:480px){.abr-modal{border-radius:18px;}.abr-prep-grid{grid-template-columns:1fr 1fr;gap:8px;}.abr-header{padding:14px 16px 12px;}.abr-body{padding:14px 16px 6px;}.abr-footer{padding:12px 16px 16px;}}
+</style>
+<div class="abr-modal">
+    <!-- Header fijo -->
+    <div class="abr-header">
+        <div class="abr-header-top">
+            <div>
+                <p class="abr-title">Antes de reservar</p>
+                <p class="abr-step-label" id="abrStepLabel">Paso 1 de 2 · Seguridad</p>
+            </div>
+            <button class="abr-close" id="btnAbrClose">×</button>
+        </div>
+        <div class="abr-progress">
+            <div class="abr-prog-dot active" id="abrDot1">1</div>
+            <div class="abr-prog-bar"><div class="abr-prog-bar-fill" id="abrBarFill" style="width:0%"></div></div>
+            <div class="abr-prog-dot" id="abrDot2">2</div>
+        </div>
+    </div>
+
+    <!-- Cuerpo scrollable -->
+    <div class="abr-body" id="abrBody">
+
+        <!-- Paso 1: Contraindicaciones -->
+        <div id="abrStep1">
+            <div class="abr-alert">
+                <strong>⚠ Este procedimiento NO puede realizarse</strong> si tenés alguna de estas condiciones. Si alguna te aplica, comunicate con nosotros antes de reservar.
+            </div>
+
+            <div class="abr-cat">
+                <p class="abr-cat-title">🚫 Restricciones absolutas</p>
+                <div class="abr-item"><div class="abr-item-dot"></div><span><strong style="color:rgba(220,242,232,0.88)">Menores de 18 años</strong> — no atendemos menores bajo ninguna circunstancia</span></div>
+                <div class="abr-item"><div class="abr-item-dot"></div><span>Embarazo o período de lactancia</span></div>
+                <div class="abr-item"><div class="abr-item-dot"></div><span>Neoplasias (tumores), fibromas o miomas</span></div>
+                <div class="abr-item"><div class="abr-item-dot"></div><span>Enfermedades infecto-contagiosas o autoinmunes</span></div>
+                <div class="abr-item"><div class="abr-item-dot"></div><span>Flebitis, trombosis o patologías vasculares activas</span></div>
+                <div class="abr-item"><div class="abr-item-dot"></div><span>Uso de anticoagulantes o marcapasos</span></div>
+                <div class="abr-item"><div class="abr-item-dot"></div><span>Hipertensión no controlada · Graves problemas circulatorios</span></div>
+                <div class="abr-item"><div class="abr-item-dot"></div><span>Infecciones activas en la piel · Alergia al frío</span></div>
+                <div class="abr-item"><div class="abr-item-dot"></div><span>Trastornos hormono-metabólicos no controlados</span></div>
+            </div>
+
+            <div class="abr-cat">
+                <p class="abr-cat-title">⚡ Informar antes de cada sesión</p>
+                <p style="font-size:11.5px;color:rgba(165,205,188,0.45);margin:0 0 8px;line-height:1.5;">Estas condiciones no impiden el tratamiento pero <strong style="color:rgba(165,205,188,0.65)">requieren ajuste de parámetros o consulta médica previa</strong>.</p>
+                <div class="abr-item"><div class="abr-item-dot amber"></div><span>Bronceado reciente · Quemadura solar · Fotosensibilidad</span></div>
+                <div class="abr-item"><div class="abr-item-dot amber"></div><span>Medicamentos fotosensibilizantes, isotretinoína o retinoides</span></div>
+                <div class="abr-item"><div class="abr-item-dot amber"></div><span>Cambio, inicio o suspensión de cualquier medicamento</span></div>
+                <div class="abr-item"><div class="abr-item-dot amber"></div><span>Herpes activo · Dermatitis · Heridas o irritación en zona</span></div>
+                <div class="abr-item"><div class="abr-item-dot amber"></div><span>Queloides · Problemas de cicatrización</span></div>
+                <div class="abr-item"><div class="abr-item-dot amber"></div><span>Diabetes · Epilepsia · Enfermedades fotosensibles</span></div>
+                <div class="abr-item"><div class="abr-item-dot amber"></div><span>Tatuajes en la zona a tratar · Cirugías recientes</span></div>
+            </div>
+        </div>
+
+        <!-- Paso 2: Preparación -->
+        <div id="abrStep2" style="display:none">
+            <p style="font-size:13px;color:rgba(220,242,232,0.82);line-height:1.60;margin:0 0 14px;">Para que tu sesión sea segura y efectiva, tené en cuenta estos puntos clave. 🤍</p>
+
+            <div class="abr-prep-grid">
+                <div class="abr-prep-card">
+                    <div class="abr-prep-icon">✂️</div>
+                    <div class="abr-prep-card-title">Rasurado 24hs antes</div>
+                    <div class="abr-prep-card-sub">Con máquina. Sin cera ni pinzas.</div>
+                </div>
+                <div class="abr-prep-card">
+                    <div class="abr-prep-icon">☀️</div>
+                    <div class="abr-prep-card-title">Sin sol ni bronceado</div>
+                    <div class="abr-prep-card-sub">Al menos 72hs sin sol directo.</div>
+                </div>
+                <div class="abr-prep-card">
+                    <div class="abr-prep-icon">🧴</div>
+                    <div class="abr-prep-card-title">Piel limpia y sin productos</div>
+                    <div class="abr-prep-card-sub">Sin cremas, aceites ni desodorante.</div>
+                </div>
+                <div class="abr-prep-card">
+                    <div class="abr-prep-icon">👕</div>
+                    <div class="abr-prep-card-title">Ropa cómoda</div>
+                    <div class="abr-prep-card-sub">Holgada. Para íntimo: ropa interior blanca.</div>
+                </div>
+            </div>
+
+            <button class="abr-toggle" id="abrToggleDetalles" onclick="toggleAbrDetalles()">
+                <span class="abr-toggle-arrow">▾</span> Ver más detalles de preparación
+            </button>
+            <div class="abr-expand" id="abrDetalles">
+                <p style="margin:0 0 6px;font-weight:600;color:rgba(165,205,188,0.75);">Rasurado:</p>
+                <p style="margin:0 0 10px;">La zona debe estar rasurada con máquina de afeitar — no con cera, pinzas ni depiladora eléctrica, ya que el folículo debe estar intacto para que el láser actúe correctamente.</p>
+                <p style="margin:0 0 6px;font-weight:600;color:rgba(165,205,188,0.75);">Sol y bronceado:</p>
+                <p style="margin:0 0 4px;">Idealmente una semana sin exposición intensa. Si hubo sol, autobronceante o bronceado en cama solar, avisanos. Usar FPS 50+ en zonas expuestas.</p>
+                <p style="margin:0 0 10px;font-size:11.5px;color:rgba(255,200,100,0.78);font-weight:600;">⚠ No se realiza la sesión sobre piel quemada, bronceada o irritada.</p>
+                <p style="margin:0 0 6px;font-weight:600;color:rgba(165,205,188,0.75);">Productos:</p>
+                <p style="margin:0 0 10px;">Antes de la sesión, evitar en la zona: ácidos, retinoides, despigmentantes, autobronceantes. El día de la sesión la piel debe estar limpia, seca, sin maquillaje ni perfume.</p>
+                <p style="margin:0 0 6px;font-weight:600;color:rgba(165,205,188,0.75);">Ropa:</p>
+                <ul style="margin:0 0 0;padding-left:16px;">
+                    <li>Ropa cómoda y holgada que permita acceso fácil a la zona.</li>
+                    <li>Para zonas íntimas: ropa interior blanca, de algodón, no ajustada.</li>
+                </ul>
+            </div>
+
+            <div class="abr-post-nota">
+                💜 <strong style="color:rgba(200,160,255,0.90)">Post sesión · Zona íntima:</strong> Se recomienda abstinencia sexual durante las <strong>24 hs posteriores</strong> a la sesión en zona íntima, para proteger la piel tratada y evitar irritación.
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer fijo -->
+    <div class="abr-footer">
+        <div id="abrFooter1">
+            <button class="abr-btn-main" id="btnAbrContinuar">Continuar, ninguna aplica →</button>
+            <button class="abr-btn-back" id="btnAbrVolver1">Volver al calendario</button>
+        </div>
+        <div id="abrFooter2" style="display:none">
+            <button class="abr-btn-main" id="btnAbrEntendido">Entendido, reservar mi turno →</button>
+            <button class="abr-btn-back" id="btnAbrVolver2">← Paso anterior</button>
+        </div>
     </div>
 </div>
-
-<!-- Modal info pre-sesión depilación -->
-<div id="modalPreSesionDepi" style="display:none;position:fixed;inset:0;z-index:9150;background:rgba(6,14,11,0.94);backdrop-filter:blur(12px);align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;">
-    <div style="width:100%;max-width:500px;margin:auto;background:linear-gradient(165deg,#0e1a0e 0%,#070e07 100%);border:1px solid rgba(60,179,113,0.28);border-radius:24px;padding:0;box-shadow:0 32px 72px rgba(0,0,0,0.65);overflow:hidden;">
-        <div style="padding:22px 22px 0;">
-            <p style="font-family:'Cormorant Garamond',serif;font-size:21px;color:#b8e8c8;text-align:center;margin:0 0 4px;font-weight:600;">Antes de tu sesión</p>
-            <p style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.13em;color:rgba(100,200,140,0.50);text-align:center;margin:0 0 14px;">Leé esta información — es importante para tu seguridad</p>
-        </div>
-        <div id="preSessionScrollDepi" style="overflow-y:auto;max-height:62vh;padding:0 22px 16px;font-size:13px;color:rgba(165,205,188,0.78);line-height:1.65;">
-            <p style="margin:0 0 12px;color:rgba(220,242,232,0.85);">Para que tu sesión sea segura y efectiva, necesitamos que conozcas los siguientes puntos. Tenerlos en cuenta hace una diferencia real en el resultado 🤍</p>
-
-            <p style="font-weight:700;color:rgba(100,210,160,0.90);margin:14px 0 6px;">✂️ Rasurado obligatorio</p>
-            <p style="margin:0 0 8px;">La zona a tratar debe estar <strong>rasurada 24 horas antes de la sesión</strong>, usando máquina de afeitar. No depilarse con cera, pinza ni depiladora eléctrica: el folículo debe estar intacto para que el láser actúe correctamente. Es importante mantener esto durante todo el tratamiento.</p>
-
-            <p style="font-weight:700;color:rgba(100,210,160,0.90);margin:14px 0 6px;">👕 Ropa para la sesión</p>
-            <p style="margin:0 0 8px;">Venir con ropa cómoda y holgada que permita acceder fácilmente a las zonas a tratar. Para zonas íntimas (cavado, pubis, glúteos): <strong>traer ropa interior blanca</strong>, preferentemente de algodón y no ajustada.</p>
-
-            <p style="font-weight:700;color:rgba(100,210,160,0.90);margin:14px 0 6px;">☀️ Sol y bronceado</p>
-            <p style="margin:0 0 8px;">No exponerse al sol directo en los días previos. Se recomienda al menos <strong>72 hs sin sol</strong>, idealmente una semana sin exposición intensa. Si hubo sol, bronceado o autobronceante, avisalo siempre. Usar protector solar FPS 50+ en zonas expuestas.</p>
-            <p style="margin:0 0 8px;color:rgba(255,200,100,0.80);font-weight:600;font-size:12px;">⚠️ No se realiza la sesión sobre piel quemada, muy bronceada o irritada.</p>
-
-            <p style="font-weight:700;color:rgba(100,210,160,0.90);margin:14px 0 6px;">🧴 Productos sobre la piel</p>
-            <p style="margin:0 0 6px;">Antes de la sesión, evitar en la zona a tratar: ácidos, retinoides, despigmentantes, cremas decolorantes, autobronceantes ni productos irritantes.</p>
-            <p style="margin:0 0 8px;font-weight:600;color:rgba(220,242,232,0.88);">El día de la sesión la piel debe estar limpia, seca y sin cremas, aceites, maquillaje, desodorante ni perfume en la zona.</p>
-
-            <p style="font-weight:700;color:rgba(255,200,100,0.90);margin:16px 0 8px;font-size:13.5px;">📋 Antecedentes a informar siempre</p>
-            <p style="margin:0 0 8px;">Antes de cada sesión, por favor avisanos si presentás alguna de las siguientes situaciones. No es para impedir el tratamiento — muchas de ellas solo requieren ajustar los parámetros o coordinar con tu médico:</p>
-            <ul style="margin:0 0 10px;padding-left:16px;color:rgba(165,205,188,0.70);line-height:1.85;">
-                <li>Embarazo o lactancia</li>
-                <li>Bronceado reciente o exposición solar intensa</li>
-                <li>Quemadura solar o fotosensibilidad</li>
-                <li>Uso de medicamentos fotosensibilizantes, isotretinoína o retinoides</li>
-                <li>Inicio, cambio o suspensión de cualquier medicamento</li>
-                <li>Anticoagulantes u otros tratamientos que afecten la coagulación</li>
-                <li>Herpes activo en la zona · Infecciones, heridas o irritación</li>
-                <li>Dermatitis o inflamación de la piel</li>
-                <li>Tendencia a queloides o problemas de cicatrización</li>
-                <li>Diabetes, epilepsia, enfermedades autoinmunes o fotosensibles</li>
-                <li>Cáncer actual o en tratamiento oncológico</li>
-                <li>Trastornos hormonales o circulatorios importantes</li>
-                <li>Tatuajes en la zona a tratar</li>
-                <li>Cirugías o procedimientos recientes</li>
-            </ul>
-            <p style="margin:0 0 10px;font-size:12px;font-style:italic;color:rgba(165,205,188,0.55);">No ocultar medicación, bronceado, embarazo ni cambios de salud. La seguridad del tratamiento depende de la información que nos compartís antes de cada sesión.</p>
-            <p style="text-align:center;font-size:22px;margin:10px 0 4px;">🤍</p>
-        </div>
-        <div style="padding:14px 22px 22px;border-top:1px solid rgba(60,179,113,0.12);">
-            <button id="btnPreSesionContinuar" disabled style="width:100%;padding:14px;background:rgba(248,113,113,0.10);border:1px solid rgba(248,113,113,0.25);border-radius:14px;color:rgba(248,113,113,0.50);font-size:14px;font-weight:700;cursor:default;margin-bottom:10px;transition:all .3s;letter-spacing:.04em;text-transform:uppercase;">LEÍ TODO — CONTINUAR →</button>
-            <button onclick="document.getElementById('modalPreSesionDepi').style.display='none';" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(60,179,113,0.16);border-radius:14px;color:rgba(165,205,188,0.45);font-size:13px;cursor:pointer;">Volver</button>
-        </div>
-    </div>
 </div>
 <script>
-(function(){
-    const scrollEl = document.getElementById('preSessionScrollDepi');
-    const btnCont = document.getElementById('btnPreSesionContinuar');
-    if(!scrollEl||!btnCont) return;
-    const _chk = () => {
-        if(scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 60){
-            btnCont.disabled = false;
-            btnCont.style.color = '#fff';
-            btnCont.style.cursor = 'pointer';
-            btnCont.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
-            btnCont.style.borderColor = 'transparent';
-        }
-    };
-    scrollEl.addEventListener('scroll', _chk, {passive:true});
-    // Si el contenido es más corto que el viewport, habilitar inmediatamente
-    setTimeout(_chk, 200);
-})();
+window.toggleAbrDetalles = function() {
+    const el = document.getElementById('abrDetalles');
+    const btn = document.getElementById('abrToggleDetalles');
+    if (!el || !btn) return;
+    el.classList.toggle('open');
+    btn.classList.toggle('open');
+};
 </script>
 
 <!-- Modal próximamente -->
@@ -516,13 +599,13 @@
     </div>
 </div>
 
-<!-- Modal menor de edad -->
-<div id="modalMenorDepi" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(6,14,11,0.90);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
-    <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#1a0606 0%,#110404 100%);border:2px solid rgba(255,80,80,0.40);border-radius:24px;padding:32px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
-        <p style="font-family:'Cormorant Garamond',serif;font-size:24px;color:#ff6b6b;text-align:center;margin:0 0 14px;font-weight:600;">⚠ Atención</p>
-        <p style="font-size:15px;color:rgba(255,140,140,0.92);text-align:center;line-height:1.72;margin:0 0 24px;font-weight:600;"><strong style="color:#ff4444;font-size:16px;">Si sos menor de edad</strong>, es obligatorio que asistas acompañado/a de un padre, madre o tutor legal.<br><br><span style="color:rgba(255,120,120,0.80);">Sin esa presencia no podemos atenderte, aun teniendo turno reservado.</span><br><br><span style="font-size:13px;color:rgba(200,230,210,0.60);font-weight:400;">Si sos mayor de edad, podés continuar normalmente.</span></p>
-        <button id="_menorDepiOkBtn" style="width:100%;padding:14px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;">Entendido, continúo con la reserva</button>
-        <button id="_menorDepiCancelBtn" style="width:100%;padding:12px;background:transparent;border:1.5px solid rgba(255,80,80,0.25);border-radius:14px;color:rgba(165,205,188,0.55);font-size:13px;cursor:pointer;">Volver</button>
+<!-- Modal menor de edad — bloqueo duro -->
+<div id="modalMenorDepi" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(6,14,11,0.92);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px;">
+    <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#1a0606 0%,#110404 100%);border:2px solid rgba(255,80,80,0.40);border-radius:24px;padding:32px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.5);text-align:center;">
+        <p style="font-size:40px;margin:0 0 10px;">🚫</p>
+        <p style="font-family:'Cormorant Garamond',serif;font-size:22px;color:#ff6b6b;margin:0 0 14px;font-weight:600;">No atendemos menores de edad</p>
+        <p style="font-size:14px;color:rgba(255,140,140,0.85);line-height:1.70;margin:0 0 24px;">La fotodepilación láser <strong style="color:#ff4444;">no se realiza en menores de 18 años</strong> bajo ninguna circunstancia, incluso con autorización o acompañante.</p>
+        <button id="_menorDepiCancelBtn" style="width:100%;padding:13px;background:transparent;border:1.5px solid rgba(255,80,80,0.30);border-radius:14px;color:rgba(220,180,180,0.70);font-size:13px;cursor:pointer;font-weight:600;">Entendido, volver</button>
     </div>
 </div>
 
@@ -912,33 +995,52 @@ document.getElementById("reservarBtn").onclick=()=>{
         document.getElementById("modalProximamente").style.display="flex";
         return;
     }
-    // Mostrar popup info pre-sesión (debe leer hasta el final antes de continuar)
-    const _mps = document.getElementById('modalPreSesionDepi');
-    if(_mps){
-        // Resetear scroll y botón cada vez que se abre
-        const _sc = document.getElementById('preSessionScrollDepi');
-        const _bn = document.getElementById('btnPreSesionContinuar');
-        if(_sc){_sc.scrollTop=0;}
-        if(_bn){_bn.disabled=true;_bn.style.color='rgba(248,113,113,0.50)';_bn.style.cursor='default';_bn.style.background='rgba(248,113,113,0.10)';_bn.style.borderColor='rgba(248,113,113,0.25)';}
-        _mps.style.display='flex';
-        // Verificar si ya está al fondo (contenido corto)
-        setTimeout(()=>{if(_sc&&_sc.scrollHeight-_sc.clientHeight<60&&_bn){_bn.disabled=false;_bn.style.color='#fff';_bn.style.cursor='pointer';_bn.style.background='linear-gradient(135deg,#ef4444,#dc2626)';_bn.style.borderColor='transparent';}},150);
+    // Abrir modal unificado "Antes de reservar" en paso 1
+    const modal = document.getElementById('modalAntesDeReservar');
+    if(modal){
+        document.getElementById('abrStep1').style.display='';
+        document.getElementById('abrStep2').style.display='none';
+        document.getElementById('abrFooter1').style.display='';
+        document.getElementById('abrFooter2').style.display='none';
+        document.getElementById('abrStepLabel').textContent='Paso 1 de 2 · Seguridad';
+        document.getElementById('abrDot1').className='abr-prog-dot active';
+        document.getElementById('abrDot2').className='abr-prog-dot';
+        document.getElementById('abrBarFill').style.width='0%';
+        document.getElementById('abrBody').scrollTop=0;
+        modal.style.display='flex';
     }
 };
 document.getElementById("mcClose").onclick=()=>document.getElementById("modalDepi").classList.remove("open");
 
-// Flujo pre-sesión → contraindicaciones → form (deben estar en el módulo para acceder a _abrirModalDepi)
-document.getElementById('btnPreSesionContinuar').onclick=()=>{
-    document.getElementById('modalPreSesionDepi').style.display='none';
-    document.getElementById('modalContraindicaciones').style.display='flex';
+// Lógica del modal "Antes de reservar"
+const _abrCerrar=()=>{ document.getElementById('modalAntesDeReservar').style.display='none'; };
+const _abrPaso2=()=>{
+    document.getElementById('abrStep1').style.display='none';
+    document.getElementById('abrStep2').style.display='';
+    document.getElementById('abrFooter1').style.display='none';
+    document.getElementById('abrFooter2').style.display='';
+    document.getElementById('abrStepLabel').textContent='Paso 2 de 2 · Preparación';
+    document.getElementById('abrDot1').className='abr-prog-dot done';
+    document.getElementById('abrDot2').className='abr-prog-dot active';
+    document.getElementById('abrBarFill').style.width='100%';
+    document.getElementById('abrBody').scrollTop=0;
 };
-document.getElementById('btnContraindicacionesOk').onclick=()=>{
-    document.getElementById('modalContraindicaciones').style.display='none';
-    _abrirModalDepi();
+const _abrPaso1=()=>{
+    document.getElementById('abrStep1').style.display='';
+    document.getElementById('abrStep2').style.display='none';
+    document.getElementById('abrFooter1').style.display='';
+    document.getElementById('abrFooter2').style.display='none';
+    document.getElementById('abrStepLabel').textContent='Paso 1 de 2 · Seguridad';
+    document.getElementById('abrDot1').className='abr-prog-dot active';
+    document.getElementById('abrDot2').className='abr-prog-dot';
+    document.getElementById('abrBarFill').style.width='0%';
+    document.getElementById('abrBody').scrollTop=0;
 };
-document.getElementById('btnContraindicacionesVolver').onclick=()=>{
-    document.getElementById('modalContraindicaciones').style.display='none';
-};
+document.getElementById('btnAbrClose').onclick=_abrCerrar;
+document.getElementById('btnAbrVolver1').onclick=_abrCerrar;
+document.getElementById('btnAbrContinuar').onclick=_abrPaso2;
+document.getElementById('btnAbrVolver2').onclick=_abrPaso1;
+document.getElementById('btnAbrEntendido').onclick=()=>{ _abrCerrar(); _abrirModalDepi(); };
 
 document.getElementById("mcDni").addEventListener("blur",async()=>{
     const dniRaw=document.getElementById("mcDni").value.trim().replace(/\./g,"");
@@ -1005,7 +1107,6 @@ window.irPaso2=function(){
         _metodoPago=null;document.getElementById("mcBtnConfirmar").disabled=true;
     };
     const ov=document.getElementById("modalMenorDepi");ov.style.display="flex";
-    document.getElementById("_menorDepiOkBtn").onclick=()=>{ov.style.display="none";avanzar();};
     document.getElementById("_menorDepiCancelBtn").onclick=()=>{ov.style.display="none";};
 };
 
