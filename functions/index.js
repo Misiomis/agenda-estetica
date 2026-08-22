@@ -1138,6 +1138,64 @@ exports.enviarNotificacionConsulta = onRequest({ invoker: "public" }, async (req
     }
 });
 
+exports.notificarNuevaReservaDepi = onRequest({ invoker: "public" }, async (req, res) => {
+
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") return res.status(204).send("");
+    if (req.method !== "POST") return res.status(405).json({ error: "Metodo no permitido" });
+
+    try {
+        const { nombre, fecha, hora, combo, precio, metodoPago, telefono, dni, edad } = req.body || {};
+
+        if (!nombre || !fecha || !hora || !combo) {
+            return res.status(400).json({ error: "Faltan campos obligatorios." });
+        }
+
+        const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        const formatFechaES = (iso) => {
+            const [yy, mm, dd] = String(iso || '').split('-').map(Number);
+            if (!dd || !mm || !yy) return iso || '';
+            return `${dd} de ${MESES_ES[mm - 1]} de ${yy}`;
+        };
+
+        const whatsappConfig = getWhatsAppConfig();
+
+        const envio = await enviarTemplateWhatsApp({
+            telefono: "3764291807",
+            templateName: "nueva_reserva",
+            templateLang: "es_AR",
+            bodyParameters: [
+                { placeholder: "{{1}} servicio",        value: `Depilación Láser · ${combo}` },
+                { placeholder: "{{2}} fecha",           value: formatFechaES(fecha) },
+                { placeholder: "{{3}} hora",            value: limpiarHora(hora) || String(hora) },
+                { placeholder: "{{4}} nombre",          value: String(nombre).trim() || "Paciente" },
+                { placeholder: "{{5}} dni",             value: String(dni || '').trim() || '-' },
+                { placeholder: "{{6}} fechaNacimiento", value: '-' },
+                { placeholder: "{{7}} edad",            value: String(edad || '').trim() || '-' },
+                { placeholder: "{{8}} domicilio",       value: String(precio || '').trim() || '-' },
+                { placeholder: "{{9}} telefono",        value: String(telefono || '').trim() || '-' },
+                { placeholder: "{{10}} email",          value: metodoPago === 'transferencia' ? 'Transferencia' : 'Efectivo' }
+            ],
+            whatsappConfig
+        });
+
+        return res.status(200).json({
+            status: "enviado",
+            whatsappSent: true,
+            data: envio?.response?.data || null
+        });
+
+    } catch (error) {
+        console.error("notificarNuevaReservaDepi error:", error.response?.data || error.message);
+        return res.status(500).json({
+            error: "Error al enviar notificación",
+            detalles: error.response?.data || error.message
+        });
+    }
+});
+
 exports.enviarResumenSesion = onRequest({ invoker: "public" }, async (req, res) => {
 
     res.set("Access-Control-Allow-Origin", "*");

@@ -1325,9 +1325,22 @@ window.confirmarDepi=async function(){
             document.getElementById("mcWaComprobante").href=`https://wa.me/5493764291807?text=${msg}`;
             document.getElementById("mcSuccessTransfer").style.display="block";
         }
-        // Notificar a Gimena automáticamente
-        const _msgGimena=encodeURIComponent(`🔔 Nueva reserva · Depilación láser\n👤 ${nombre}${dniRaw?' · DNI '+dniRaw:''}\n📅 ${fechaLinda} · ${horaSeleccionada} hs\n💜 ${comboSeleccionado.nombre} — ${comboSeleccionado.precio}\n💳 ${_metodoPago==="transferencia"?"Transferencia":"Efectivo"}\n📱 ${telefono}`);
-        setTimeout(()=>{ window.open(`https://wa.me/5493764291807?text=${_msgGimena}`,'_blank'); },800);
+        // Notificar a Gimena en segundo plano (Cloud Function, sin abrir nada al paciente)
+        fetch('https://us-central1-estetica-8d067.cloudfunctions.net/notificarNuevaReservaDepi',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                nombre,
+                fecha:fStr,
+                hora:horaSeleccionada,
+                combo:comboSeleccionado.nombre,
+                precio:comboSeleccionado.precio,
+                metodoPago:_metodoPago,
+                telefono,
+                dni:dniRaw||'',
+                edad:String(edad||'')
+            })
+        }).catch(()=>{});
     }catch(e){
         console.error("Error guardando reserva de depilación:",e);
         btn.disabled=false;btn.textContent="Confirmar turno";

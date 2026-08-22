@@ -966,11 +966,22 @@
                 fecha, hora, blocked: true, tipo: 'slot',
                 reservaId: reservaRef.id, updatedAt: serverTimestamp()
             }).catch(() => {});
-            // Notificar a Gimena por WhatsApp
-            const msgGimena = encodeURIComponent(`🔔 Nuevo turno depilación\n👤 ${nombre}${dni ? ' · DNI ' + dni : ''}\n📅 ${fecha} · ${hora} hs\n💜 ${servicio}${notas ? '\n📝 ' + notas : ''}\nTel: ${tel || 'no registrado'}`);
-            window.open(`https://wa.me/5493764291807?text=${msgGimena}`, '_blank');
+            // Notificar a Gimena en segundo plano
+            fetch('https://us-central1-estetica-8d067.cloudfunctions.net/notificarNuevaReservaDepi',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({
+                    nombre, fecha, hora,
+                    combo: servicio,
+                    precio: '',
+                    metodoPago: 'efectivo',
+                    telefono: tel||'',
+                    dni: dni||'',
+                    edad: ''
+                })
+            }).catch(()=>{});
             fb.className = 'feedback ok';
-            fb.textContent = '✓ Turno registrado · WhatsApp de Gimena abierto';
+            fb.textContent = '✓ Turno registrado';
             limpiarFormRegistro();
             await cargarCalendario();
         } catch(e) {
