@@ -349,6 +349,7 @@
         <button class="nav-btn active" id="navAgenda" onclick="irA('agenda')">📅 Agenda</button>
         <button class="nav-btn" id="navRegistrar" onclick="irA('registrar')">➕ Nuevo turno</button>
         <button class="nav-btn" id="navBuscar" onclick="irA('buscar')">🔍 Buscar</button>
+        <button class="nav-btn" id="navCombos" onclick="irA('combos')">⏱ Combos</button>
         <div class="nav-divider"></div>
         <a class="nav-btn" href="/admin.html" style="text-decoration:none;color:var(--texto-suave);font-size:12px;">← Volver a Admin</a>
         <button class="nav-exit" onclick="cerrarSesionDepi()">Cerrar sesión</button>
@@ -483,6 +484,19 @@
             </div>
         </div>
 
+        <!-- ══ COMBOS — DURACIÓN ══ -->
+        <div id="secCombos" class="section">
+            <h2 class="sec-title">Duración por combo</h2>
+            <div class="card">
+                <p style="font-size:13px;color:var(--texto-suave);margin-bottom:18px;line-height:1.6;">Definí cuánto tiempo ocupa cada combo en la agenda. El sistema bloquea automáticamente los slots necesarios al confirmar un turno.</p>
+                <div id="combosAdminGrid" style="display:flex;flex-direction:column;gap:10px;"></div>
+                <div style="margin-top:18px;display:flex;justify-content:flex-end;">
+                    <button class="btn-primary" onclick="guardarDuraciones()">Guardar cambios</button>
+                </div>
+                <div id="combosGuardadoMsg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;color:rgba(74,222,128,0.85);text-align:right;">✓ Guardado</div>
+            </div>
+        </div>
+
     </main>
 </div>
 
@@ -576,8 +590,8 @@
     // ════════════════════════════════
     // NAVEGACIÓN
     // ════════════════════════════════
-    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', buscar: 'secBuscar' };
-    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', buscar: 'navBuscar' };
+    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', buscar: 'secBuscar', combos: 'secCombos' };
+    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', buscar: 'navBuscar', combos: 'navCombos' };
 
     window.irA = (sec) => {
         Object.values(SECCIONES).forEach(id => document.getElementById(id).classList.remove('active'));
@@ -1055,6 +1069,113 @@
         _avisoTimer = setTimeout(() => el.classList.remove('visible'), 2800);
     };
     window.mostrarAvisoDepi = mostrarAvisoDepi;
+
+    // ════════════════════════════════
+    // COMBOS — DURACIÓN
+    // ════════════════════════════════
+    const TODOS_COMBOS = [
+        {grupo:"Para ellas", combos:[
+            {id:"mini-e",       nombre:"Mini",            detalle:"Rostro + Axilas"},
+            {id:"esenc-e",      nombre:"Esencial",         detalle:"Cavado completo + Axilas"},
+            {id:"braz-e",       nombre:"Brazos",           detalle:"Brazos completos"},
+            {id:"mediapierna-e",nombre:"Media Pierna",     detalle:"½ Pierna"},
+            {id:"piernac-e",    nombre:"Pierna Completa",  detalle:"Pierna entera"},
+            {id:"glut-e",       nombre:"Glúteos",          detalle:"Glúteos completos"},
+            {id:"fav-e",        nombre:"Favorito",         detalle:"½ Pierna + Cavado completo + Axilas"},
+            {id:"plus-e",       nombre:"Plus",             detalle:"½ Pierna + Cavado + Tira de cola + Axilas"},
+            {id:"fullm-e",      nombre:"Full Media Pierna",detalle:"½ Pierna + Cavado + Tira + Axilas + Rostro"},
+            {id:"full-e",       nombre:"Full",             detalle:"Pierna entera + Cavado + Tira + Axilas + Rostro"},
+            {id:"fullbody-e",   nombre:"Full Body",        detalle:"Rostro + Axilas + Brazos + Piernas + Cavado + Tira"},
+            {id:"intant-e",     nombre:"Íntimo Anterior",  detalle:"Zona íntima anterior"},
+            {id:"intpos-e",     nombre:"Íntimo Posterior", detalle:"Zona interglútea / perianal"},
+            {id:"intcmp-e",     nombre:"Íntimo Completo",  detalle:"Íntimo anterior + posterior"},
+        ]},
+        {grupo:"Para ellos", combos:[
+            {id:"mini-o",       nombre:"Mini",             detalle:"Barba + Cuello"},
+            {id:"rost-o",       nombre:"Rostro",           detalle:"Rostro completo"},
+            {id:"torso-o",      nombre:"Torso",            detalle:"Pecho + Abdomen"},
+            {id:"torsoplus-o",  nombre:"Torso Plus",       detalle:"Pecho + Abdomen + Axilas"},
+            {id:"espal-o",      nombre:"Espalda",          detalle:"Espalda + Hombros + Nuca"},
+            {id:"mediapierna-o",nombre:"Media Pierna",     detalle:"½ Pierna"},
+            {id:"piernac-o",    nombre:"Pierna Completa",  detalle:"Pierna entera"},
+            {id:"piernaax-o",   nombre:"Piernas Plus",     detalle:"Pierna entera + Axilas"},
+            {id:"glut-o",       nombre:"Glúteos",          detalle:"Glúteos completos"},
+            {id:"fullsup-o",    nombre:"Full Superior",    detalle:"Rostro + Pecho + Abdomen + Axilas"},
+            {id:"fulltorso-o",  nombre:"Full Torso",       detalle:"Pecho + Abdomen + Espalda + Hombros"},
+            {id:"fullbody-o",   nombre:"Full Body",        detalle:"Rostro + Torso + Espalda + Axilas + Brazos + Piernas"},
+            {id:"intant-o",     nombre:"Íntimo Anterior",  detalle:"Zona íntima anterior"},
+            {id:"intpos-o",     nombre:"Íntimo Posterior", detalle:"Zona interglútea / perianal"},
+            {id:"intcmp-o",     nombre:"Íntimo Completo",  detalle:"Íntimo anterior + posterior"},
+        ]},
+    ];
+    const DURACIONES_PRESET = [30, 60, 90, 120];
+    let _duracionesActuales = {};
+
+    const cargarDuraciones = async () => {
+        try {
+            const snap = await getDoc(doc(db, 'config', 'comboDuraciones'));
+            if (snap.exists()) _duracionesActuales = snap.data();
+        } catch(e) {}
+        renderCombosAdmin();
+    };
+
+    const renderCombosAdmin = () => {
+        const grid = document.getElementById('combosAdminGrid');
+        if (!grid) return;
+        grid.innerHTML = TODOS_COMBOS.map(grupo => `
+            <div style="margin-bottom:4px;">
+                <p style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--texto-suave);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--borde);">${grupo.grupo}</p>
+                <div style="display:flex;flex-direction:column;gap:7px;">
+                    ${grupo.combos.map(c => {
+                        const cur = _duracionesActuales[c.id] ?? 60;
+                        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;">
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:13px;font-weight:600;color:var(--texto);">${c.nombre}</div>
+                                <div style="font-size:11px;color:var(--texto-suave);margin-top:1px;">${c.detalle}</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                                ${DURACIONES_PRESET.map(d=>`<button onclick="setDur('${c.id}',${d})" id="durBtn_${c.id}_${d}" style="padding:5px 10px;border-radius:7px;border:1.5px solid ${cur===d?'var(--acento)':'var(--borde)'};background:${cur===d?'var(--acento-suave)':'transparent'};color:${cur===d?'var(--texto)':'var(--texto-suave)'};font-size:11px;font-weight:700;cursor:pointer;">${d}m</button>`).join('')}
+                                <input type="number" id="durCustom_${c.id}" min="5" max="240" step="5" placeholder="min" value="${DURACIONES_PRESET.includes(cur)?'':cur}" style="width:58px;padding:5px 8px;border-radius:7px;border:1.5px solid var(--borde);background:transparent;color:var(--texto);font-size:11px;font-family:inherit;text-align:center;" oninput="setDurCustom('${c.id}',this.value)">
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+        `).join('');
+    };
+
+    window.setDur = (id, min) => {
+        _duracionesActuales[id] = min;
+        document.getElementById('combosGuardadoMsg').style.display = 'none';
+        renderCombosAdmin();
+    };
+    window.setDurCustom = (id, val) => {
+        const n = parseInt(val);
+        if (!isNaN(n) && n >= 5) {
+            _duracionesActuales[id] = n;
+            DURACIONES_PRESET.forEach(d => {
+                const btn = document.getElementById(`durBtn_${id}_${d}`);
+                if (btn) { btn.style.borderColor = 'var(--borde)'; btn.style.background = 'transparent'; btn.style.color = 'var(--texto-suave)'; }
+            });
+        }
+    };
+    window.guardarDuraciones = async () => {
+        try {
+            await setDoc(doc(db, 'config', 'comboDuraciones'), _duracionesActuales);
+            const msg = document.getElementById('combosGuardadoMsg');
+            msg.style.display = 'block';
+            setTimeout(() => { msg.style.display = 'none'; }, 3000);
+        } catch(e) {
+            alert('Error al guardar: ' + e.message);
+        }
+    };
+
+    // Cargar duraciones al entrar a la sección combos
+    const _irAOrig = window.irA;
+    window.irA = (sec) => {
+        _irAOrig(sec);
+        if (sec === 'combos') cargarDuraciones();
+    };
 </script>
 </body>
 </html>

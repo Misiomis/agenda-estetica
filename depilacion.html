@@ -264,6 +264,26 @@
                     <div class="combo-precio">$20.000</div>
                 </div>
                 <div class="combo-card">
+                    <div class="combo-nombre">Brazos</div>
+                    <div class="combo-detalle">Brazos completos</div>
+                    <div class="combo-precio">$20.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Media Pierna</div>
+                    <div class="combo-detalle">½ Pierna</div>
+                    <div class="combo-precio">$15.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Pierna Completa</div>
+                    <div class="combo-detalle">Pierna entera</div>
+                    <div class="combo-precio">$25.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Glúteos</div>
+                    <div class="combo-detalle">Glúteos completos</div>
+                    <div class="combo-precio">$15.000</div>
+                </div>
+                <div class="combo-card">
                     <div class="combo-nombre">Favorito</div>
                     <div class="combo-detalle">½ Pierna + Cavado completo + Axilas</div>
                     <div class="combo-precio">$30.000</div>
@@ -284,6 +304,11 @@
                     <div class="combo-precio">$40.000</div>
                 </div>
                 <div class="combo-card">
+                    <div class="combo-nombre">Full Body</div>
+                    <div class="combo-detalle">Rostro + Axilas + Brazos + Piernas + Cavado + Tira de cola</div>
+                    <div class="combo-precio">$60.000</div>
+                </div>
+                <div class="combo-card">
                     <div class="combo-nombre">Íntimo Anterior</div>
                     <div class="combo-detalle">Zona íntima anterior</div>
                     <div class="combo-precio">$20.000</div>
@@ -294,7 +319,7 @@
                     <div class="combo-precio">$15.000</div>
                 </div>
                 <div class="combo-card">
-                    <div class="combo-nombre">Íntimo Completo 🔥</div>
+                    <div class="combo-nombre">Íntimo Completo</div>
                     <div class="combo-detalle">Íntimo anterior + posterior</div>
                     <div class="combo-precio">$30.000</div>
                 </div>
@@ -330,6 +355,26 @@
                     <div class="combo-precio">$30.000</div>
                 </div>
                 <div class="combo-card">
+                    <div class="combo-nombre">Media Pierna</div>
+                    <div class="combo-detalle">½ Pierna</div>
+                    <div class="combo-precio">$15.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Pierna Completa</div>
+                    <div class="combo-detalle">Pierna entera</div>
+                    <div class="combo-precio">$25.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Piernas Plus</div>
+                    <div class="combo-detalle">Pierna entera + Axilas</div>
+                    <div class="combo-precio">$30.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Glúteos</div>
+                    <div class="combo-detalle">Glúteos completos</div>
+                    <div class="combo-precio">$15.000</div>
+                </div>
+                <div class="combo-card">
                     <div class="combo-nombre">Full Superior</div>
                     <div class="combo-detalle">Rostro + Pecho + Abdomen + Axilas</div>
                     <div class="combo-precio">$40.000</div>
@@ -338,6 +383,11 @@
                     <div class="combo-nombre">Full Torso</div>
                     <div class="combo-detalle">Pecho + Abdomen + Espalda + Hombros</div>
                     <div class="combo-precio">$40.000</div>
+                </div>
+                <div class="combo-card">
+                    <div class="combo-nombre">Full Body</div>
+                    <div class="combo-detalle">Rostro + Torso + Espalda + Axilas + Brazos + Piernas</div>
+                    <div class="combo-precio">$65.000</div>
                 </div>
                 <div class="combo-card">
                     <div class="combo-nombre">Íntimo Anterior</div>
@@ -796,29 +846,43 @@ let excepciones={}, bloqueosHorarios=new Map();
 let rangosDiasBloqueados=[], mesesBloqueados=new Set();
 let reservasPorFecha=new Map();
 
+// ── Duración por combo (cargada desde Firestore, override por admin) ──
+let _comboDuracConfig = {};
+getDoc(doc(db,'config','comboDuraciones')).then(s=>{ if(s.exists()) _comboDuracConfig=s.data(); }).catch(()=>{});
+
 // ── Combos ──
 const COMBOS_ELLAS = [
-    {id:"mini-e",   nombre:"Mini",            detalle:"Rostro + Axilas",                                          precio:"$20.000"},
-    {id:"esenc-e",  nombre:"Esencial",         detalle:"Cavado completo + Axilas",                                 precio:"$20.000"},
-    {id:"fav-e",    nombre:"Favorito",         detalle:"½ Pierna + Cavado completo + Axilas",                      precio:"$30.000"},
-    {id:"plus-e",   nombre:"Plus",             detalle:"½ Pierna + Cavado completo + Tira de cola + Axilas",       precio:"$30.000"},
-    {id:"fullm-e",  nombre:"Full Media Pierna",detalle:"½ Pierna + Cavado + Tira de cola + Axilas + Rostro",       precio:"$35.000"},
-    {id:"full-e",   nombre:"Full",             detalle:"Pierna entera + Cavado + Tira de cola + Axilas + Rostro",  precio:"$40.000"},
-    {id:"intant-e", nombre:"Íntimo Anterior",  detalle:"Zona íntima anterior",                                      precio:"$20.000"},
-    {id:"intpos-e", nombre:"Íntimo Posterior", detalle:"Zona interglútea / perianal",                               precio:"$15.000"},
-    {id:"intcmp-e", nombre:"Íntimo Completo 🔥",detalle:"Íntimo anterior + posterior",                              precio:"$30.000"},
+    {id:"mini-e",       nombre:"Mini",            detalle:"Rostro + Axilas",                                           precio:"$20.000", durMin:60},
+    {id:"esenc-e",      nombre:"Esencial",         detalle:"Cavado completo + Axilas",                                  precio:"$20.000", durMin:60},
+    {id:"braz-e",       nombre:"Brazos",           detalle:"Brazos completos",                                          precio:"$20.000", durMin:60},
+    {id:"mediapierna-e",nombre:"Media Pierna",     detalle:"½ Pierna",                                                  precio:"$15.000", durMin:60},
+    {id:"piernac-e",    nombre:"Pierna Completa",  detalle:"Pierna entera",                                             precio:"$25.000", durMin:60},
+    {id:"glut-e",       nombre:"Glúteos",          detalle:"Glúteos completos",                                         precio:"$15.000", durMin:60},
+    {id:"fav-e",        nombre:"Favorito",         detalle:"½ Pierna + Cavado completo + Axilas",                       precio:"$30.000", durMin:60},
+    {id:"plus-e",       nombre:"Plus",             detalle:"½ Pierna + Cavado completo + Tira de cola + Axilas",        precio:"$30.000", durMin:60},
+    {id:"fullm-e",      nombre:"Full Media Pierna",detalle:"½ Pierna + Cavado + Tira de cola + Axilas + Rostro",        precio:"$35.000", durMin:60},
+    {id:"full-e",       nombre:"Full",             detalle:"Pierna entera + Cavado + Tira de cola + Axilas + Rostro",   precio:"$40.000", durMin:60},
+    {id:"fullbody-e",   nombre:"Full Body",        detalle:"Rostro + Axilas + Brazos + Piernas + Cavado + Tira de cola",precio:"$60.000", durMin:60},
+    {id:"intant-e",     nombre:"Íntimo Anterior",  detalle:"Zona íntima anterior",                                      precio:"$20.000", durMin:60},
+    {id:"intpos-e",     nombre:"Íntimo Posterior", detalle:"Zona interglútea / perianal",                               precio:"$15.000", durMin:60},
+    {id:"intcmp-e",     nombre:"Íntimo Completo",  detalle:"Íntimo anterior + posterior",                               precio:"$30.000", durMin:60},
 ];
 const COMBOS_ELLOS = [
-    {id:"mini-o",   nombre:"Mini",             detalle:"Barba + Cuello",                          precio:"$20.000"},
-    {id:"rost-o",   nombre:"Rostro",            detalle:"Rostro completo",                         precio:"$25.000"},
-    {id:"torso-o",  nombre:"Torso",             detalle:"Pecho + Abdomen",                         precio:"$25.000"},
-    {id:"torsoplus-o",nombre:"Torso Plus",      detalle:"Pecho + Abdomen + Axilas",                precio:"$30.000"},
-    {id:"espal-o",  nombre:"Espalda",           detalle:"Espalda + Hombros + Nuca",                precio:"$30.000"},
-    {id:"fullsup-o",nombre:"Full Superior",     detalle:"Rostro + Pecho + Abdomen + Axilas",       precio:"$40.000"},
-    {id:"fulltorso-o",nombre:"Full Torso",      detalle:"Pecho + Abdomen + Espalda + Hombros",     precio:"$40.000"},
-    {id:"intant-o", nombre:"Íntimo Anterior",  detalle:"Zona íntima anterior",                    precio:"$20.000"},
-    {id:"intpos-o", nombre:"Íntimo Posterior", detalle:"Zona interglútea / perianal",             precio:"$15.000"},
-    {id:"intcmp-o", nombre:"Íntimo Completo 🔥",detalle:"Íntimo anterior + posterior",            precio:"$30.000"},
+    {id:"mini-o",        nombre:"Mini",           detalle:"Barba + Cuello",                                              precio:"$20.000", durMin:60},
+    {id:"rost-o",        nombre:"Rostro",          detalle:"Rostro completo",                                            precio:"$25.000", durMin:60},
+    {id:"torso-o",       nombre:"Torso",           detalle:"Pecho + Abdomen",                                            precio:"$25.000", durMin:60},
+    {id:"torsoplus-o",   nombre:"Torso Plus",      detalle:"Pecho + Abdomen + Axilas",                                   precio:"$30.000", durMin:60},
+    {id:"espal-o",       nombre:"Espalda",         detalle:"Espalda + Hombros + Nuca",                                   precio:"$30.000", durMin:60},
+    {id:"mediapierna-o", nombre:"Media Pierna",    detalle:"½ Pierna",                                                   precio:"$15.000", durMin:60},
+    {id:"piernac-o",     nombre:"Pierna Completa", detalle:"Pierna entera",                                              precio:"$25.000", durMin:60},
+    {id:"piernaax-o",    nombre:"Piernas Plus",    detalle:"Pierna entera + Axilas",                                     precio:"$30.000", durMin:60},
+    {id:"glut-o",        nombre:"Glúteos",         detalle:"Glúteos completos",                                          precio:"$15.000", durMin:60},
+    {id:"fullsup-o",     nombre:"Full Superior",   detalle:"Rostro + Pecho + Abdomen + Axilas",                         precio:"$40.000", durMin:60},
+    {id:"fulltorso-o",   nombre:"Full Torso",      detalle:"Pecho + Abdomen + Espalda + Hombros",                       precio:"$40.000", durMin:60},
+    {id:"fullbody-o",    nombre:"Full Body",       detalle:"Rostro + Torso + Espalda + Axilas + Brazos + Piernas",      precio:"$65.000", durMin:60},
+    {id:"intant-o",      nombre:"Íntimo Anterior", detalle:"Zona íntima anterior",                                       precio:"$20.000", durMin:60},
+    {id:"intpos-o",      nombre:"Íntimo Posterior",detalle:"Zona interglútea / perianal",                                precio:"$15.000", durMin:60},
+    {id:"intcmp-o",      nombre:"Íntimo Completo", detalle:"Íntimo anterior + posterior",                                precio:"$30.000", durMin:60},
 ];
 let comboSeleccionado = null;
 
@@ -1153,8 +1217,12 @@ window.irPaso2=function(){
         if(sub)sub.textContent=`${comboSeleccionado.nombre} · ${comboSeleccionado.precio} · Pago en el momento de la sesión.`;
         _metodoPago=null;document.getElementById("mcBtnConfirmar").disabled=true;
     };
-    const ov=document.getElementById("modalMenorDepi");ov.style.display="flex";
-    document.getElementById("_menorDepiCancelBtn").onclick=()=>{ov.style.display="none";};
+    if(parseInt(edad)<18){
+        const ov=document.getElementById("modalMenorDepi");ov.style.display="flex";
+        document.getElementById("_menorDepiCancelBtn").onclick=()=>{ov.style.display="none";};
+    }else{
+        avanzar();
+    }
 };
 
 window.seleccionarPago=function(tipo){
@@ -1184,20 +1252,21 @@ window.confirmarDepi=async function(){
     const email=document.getElementById("mcEmail").value.trim();
     const fStr=fechaAString(fechaSeleccionada);
     try{
-        // Duración según precio: >$25.000 = 60 min, si no 30 min
-        const precioNum=parseInt((comboSeleccionado.precio||'').replace(/\D/g,''))||0;
-        const durMin=precioNum>25000?60:30;
-        const idxBase=SLOTS_DIA.indexOf(normalizarHora(horaSeleccionada));
+        // Duración: lee override del admin en Firestore, sino usa el durMin del combo (default 60 min)
+        const durMin=(_comboDuracConfig[comboSeleccionado.id]!=null)?_comboDuracConfig[comboSeleccionado.id]:(comboSeleccionado.durMin||60);
+        const slotsHoy=_slotsParaDia(fStr);
+        const idxBase=slotsHoy.indexOf(normalizarHora(horaSeleccionada));
+        const slotsNecesarios=Math.max(1,Math.ceil(durMin/30));
         // Anti double-booking
         const ocupadosAhora=await obtenerHorasOcupadas(fStr);
         if(ocupadosAhora.includes(horaSeleccionada)||bloqueosHorarios.has(keyBloqueo(fStr,horaSeleccionada))){
             mostrarAviso("Horario no disponible","Este turno acaba de ser tomado. Por favor elegí otro horario.");
             btn.disabled=false;btn.textContent="Confirmar turno";return;
         }
-        if(durMin===60){
-            const horaExt=SLOTS_DIA[idxBase+1];
+        for(let i=1;i<slotsNecesarios;i++){
+            const horaExt=slotsHoy[idxBase+i];
             if(!horaExt||ocupadosAhora.includes(horaExt)||bloqueosHorarios.has(keyBloqueo(fStr,horaExt))){
-                mostrarAviso("Sin espacio disponible","El combo elegido requiere 1 hora. El siguiente turno ya está ocupado. Por favor elegí otro horario.");
+                mostrarAviso("Sin espacio disponible",`El combo elegido requiere ${durMin} min. Los siguientes turnos no están disponibles. Elegí otro horario.`);
                 btn.disabled=false;btn.textContent="Confirmar turno";return;
             }
         }
@@ -1220,12 +1289,12 @@ window.confirmarDepi=async function(){
         // Bloquear slot base
         const blockId=`depi_${fStr}_${horaSeleccionada.replace(':','-')}`;
         setDoc(doc(db,"calendarExceptionsDepi",blockId),{fecha:fStr,hora:horaSeleccionada,blocked:true,tipo:"reserva",reservaId:reservaRef.id,updatedAt:serverTimestamp()}).catch(()=>{});
-        // Bloquear slot extra si 60 min
-        const _slotsHoy=_slotsParaDia(fStr);
-        const _idxBase=_slotsHoy.indexOf(normalizarHora(horaSeleccionada));
-        if(durMin===60&&_slotsHoy[_idxBase+1]){
-            const horaExt=_slotsHoy[_idxBase+1];
-            const extId=`depi_ext_${fStr}_${horaExt.replace(':','h')}`;
+        // Bloquear slots extras según duración
+        const _idxBase=slotsHoy.indexOf(normalizarHora(horaSeleccionada));
+        for(let i=1;i<slotsNecesarios;i++){
+            const horaExt=slotsHoy[_idxBase+i];
+            if(!horaExt) break;
+            const extId=`depi_ext_${fStr}_${horaExt.replace(':','h')}_${i}`;
             setDoc(doc(db,"calendarExceptionsDepi",extId),{fecha:fStr,hora:horaExt,blocked:true,tipo:'extension',reservaId:reservaRef.id,updatedAt:serverTimestamp()}).catch(()=>{});
         }
         // Actualizar perfil cliente
