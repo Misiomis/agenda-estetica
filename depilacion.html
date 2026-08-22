@@ -460,7 +460,12 @@
 .abr-expand ul{margin:4px 0;padding-left:16px;}
 .abr-expand li{margin-bottom:4px;}
 .abr-expand.open{display:block;}
-.abr-post-nota{background:rgba(168,85,247,0.07);border:1px solid rgba(168,85,247,0.20);border-radius:12px;padding:10px 14px;margin-top:14px;font-size:12px;color:rgba(200,160,255,0.80);line-height:1.55;}
+.abr-post-nota{background:rgba(168,85,247,0.07);border:1px solid rgba(168,85,247,0.20);border-radius:12px;padding:12px 14px;margin-top:14px;font-size:12px;color:rgba(200,160,255,0.80);line-height:1.65;}
+.abr-cancel-nota{background:rgba(60,179,113,0.05);border:1px solid rgba(60,179,113,0.14);border-radius:12px;padding:12px 14px;margin-top:10px;font-size:11.5px;color:rgba(165,205,188,0.55);line-height:1.60;}
+/* Texto rojo animado */
+@keyframes abr-pulse-red{0%,100%{text-shadow:0 0 0 transparent}50%{text-shadow:0 0 8px rgba(248,113,113,0.45)}}
+.abr-red-pulse{color:#f87171;font-weight:700;animation:abr-pulse-red 2.4s ease-in-out infinite;}
+.abr-warn-red{color:rgba(248,113,113,0.88);font-weight:600;}
 @media(max-width:480px){.abr-modal{border-radius:18px;}.abr-prep-grid{grid-template-columns:1fr 1fr;gap:8px;}.abr-header{padding:14px 16px 12px;}.abr-body{padding:14px 16px 6px;}.abr-footer{padding:12px 16px 16px;}}
 </style>
 <div class="abr-modal">
@@ -486,12 +491,12 @@
         <!-- Paso 1: Contraindicaciones -->
         <div id="abrStep1">
             <div class="abr-alert">
-                <strong>⚠ Este procedimiento NO puede realizarse</strong> si tenés alguna de estas condiciones. Si alguna te aplica, comunicate con nosotros antes de reservar.
+                <strong>⚠ Este procedimiento <span class="abr-red-pulse">NO puede realizarse</span></strong> si tenés alguna de estas condiciones. Si alguna te aplica, comunicate con nosotros antes de reservar.
             </div>
 
             <div class="abr-cat">
                 <p class="abr-cat-title">🚫 Restricciones absolutas</p>
-                <div class="abr-item"><div class="abr-item-dot"></div><span><strong style="color:rgba(220,242,232,0.88)">Menores de 18 años</strong> — no atendemos menores bajo ninguna circunstancia</span></div>
+                <div class="abr-item"><div class="abr-item-dot"></div><span><span class="abr-red-pulse">Menores de 18 años</span> — no atendemos menores bajo ninguna circunstancia</span></div>
                 <div class="abr-item"><div class="abr-item-dot"></div><span>Embarazo o período de lactancia</span></div>
                 <div class="abr-item"><div class="abr-item-dot"></div><span>Neoplasias (tumores), fibromas o miomas</span></div>
                 <div class="abr-item"><div class="abr-item-dot"></div><span>Enfermedades infecto-contagiosas o autoinmunes</span></div>
@@ -550,7 +555,7 @@
                 <p style="margin:0 0 10px;">La zona debe estar rasurada con máquina de afeitar — no con cera, pinzas ni depiladora eléctrica, ya que el folículo debe estar intacto para que el láser actúe correctamente.</p>
                 <p style="margin:0 0 6px;font-weight:600;color:rgba(165,205,188,0.75);">Sol y bronceado:</p>
                 <p style="margin:0 0 4px;">Idealmente una semana sin exposición intensa. Si hubo sol, autobronceante o bronceado en cama solar, avisanos. Usar FPS 50+ en zonas expuestas.</p>
-                <p style="margin:0 0 10px;font-size:11.5px;color:rgba(255,200,100,0.78);font-weight:600;">⚠ No se realiza la sesión sobre piel quemada, bronceada o irritada.</p>
+                <p style="margin:0 0 10px;" class="abr-warn-red">⚠ <span class="abr-red-pulse">No se realiza la sesión</span> sobre piel quemada, bronceada o irritada.</p>
                 <p style="margin:0 0 6px;font-weight:600;color:rgba(165,205,188,0.75);">Productos:</p>
                 <p style="margin:0 0 10px;">Antes de la sesión, evitar en la zona: ácidos, retinoides, despigmentantes, autobronceantes. El día de la sesión la piel debe estar limpia, seca, sin maquillaje ni perfume.</p>
                 <p style="margin:0 0 6px;font-weight:600;color:rgba(165,205,188,0.75);">Ropa:</p>
@@ -561,7 +566,17 @@
             </div>
 
             <div class="abr-post-nota">
-                💜 <strong style="color:rgba(200,160,255,0.90)">Post sesión · Zona íntima:</strong> Se recomienda abstinencia sexual durante las <strong>24 hs posteriores</strong> a la sesión en zona íntima, para proteger la piel tratada y evitar irritación.
+                <p style="margin:0 0 8px;font-size:12.5px;font-weight:700;color:rgba(200,160,255,0.95);">💜 Actividad sexual · Zona íntima</p>
+                <p style="margin:0 0 10px;line-height:1.68;">La piel de la zona íntima es muy sensible al láser. El calor generado durante la sesión eleva temporalmente la temperatura de los tejidos, y cualquier fricción o contacto puede causar irritación, inflamación o incluso lesiones en la piel tratada.</p>
+                <p style="margin:0 0 6px;font-size:12px;"><strong style="color:rgba(220,180,255,0.90)">Antes de la sesión:</strong></p>
+                <p style="margin:0 0 10px;line-height:1.65;font-size:12px;">Se recomienda <span class="abr-red-pulse" style="font-size:12px;">abstinencia sexual las 24 hs previas</span> a la sesión. La zona debe llegar sin irritación, sin microlesiones ni inflamación. Cualquier zona con fricción reciente puede generar mayor sensibilidad o contraindicar el tratamiento en ese punto.</p>
+                <p style="margin:0 0 6px;font-size:12px;"><strong style="color:rgba(220,180,255,0.90)">Después de la sesión:</strong></p>
+                <p style="margin:0;line-height:1.65;font-size:12px;">Es <span class="abr-red-pulse" style="font-size:12px;">obligatorio respetar al menos 24 hs de abstinencia sexual</span> tras la sesión en zona íntima. La piel queda sensible y con los poros abiertos: el contacto puede provocar irritación severa, infección o daño en los folículos tratados, afectando el resultado del tratamiento.</p>
+            </div>
+
+            <div class="abr-cancel-nota">
+                <strong style="color:rgba(165,205,188,0.70);">🗓 ¿Necesitás cancelar tu turno?</strong><br>
+                Si no podés asistir, avisanos con anticipación enviando un mensaje a Gimena por WhatsApp indicando el motivo. Esto nos ayuda a reorganizar la agenda y ofrecerle el turno a otra persona. El turno queda registrado; si cancelás reiteradas veces sin aviso puede afectar tu posibilidad de reservar.
             </div>
         </div>
     </div>

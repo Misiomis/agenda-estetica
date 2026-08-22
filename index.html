@@ -712,6 +712,72 @@ img, video { max-width: 100%; height: auto; }
   .hero-bg-img { transform: none !important; }
   #loader-deco { display: none; }
 }
+
+/* ── POR QUÉ MIMAR T ── */
+.porque-section {
+  padding: clamp(64px, 8vw, 110px) clamp(24px, 5vw, 80px);
+  background: linear-gradient(160deg, #0e1f16 0%, #0b1610 100%);
+}
+.porque-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-top: 48px;
+}
+.porque-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 28px 22px;
+  transition: border-color var(--transition-mid), transform var(--transition-mid);
+}
+.porque-item:hover { border-color: var(--border-mid); transform: translateY(-4px); }
+.porque-icon { font-size: 1.6rem; margin-bottom: 14px; }
+.porque-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.18rem; font-weight: 400;
+  color: var(--text-primary); margin-bottom: 10px; line-height: 1.25;
+}
+.porque-desc {
+  font-family: 'Jost', sans-serif;
+  font-size: 0.82rem; color: var(--text-secondary); line-height: 1.68;
+}
+@media (max-width: 1024px) { .porque-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .porque-grid { grid-template-columns: 1fr; } }
+
+/* ── ACCESO PACIENTES ── */
+.acceso-section {
+  padding: clamp(64px, 8vw, 100px) clamp(24px, 5vw, 80px);
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+}
+.acceso-card {
+  max-width: 520px; width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-xl);
+  padding: clamp(36px, 5vw, 56px);
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}
+.acceso-icon { font-size: 2.4rem; margin-bottom: 16px; }
+.acceso-desc {
+  font-family: 'Jost', sans-serif;
+  font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7;
+}
+
+/* Fix tratamientos toggle — always visible */
+.tratamientos-toggle { display: none !important; }
+.tratamientos-grid { max-height: unset !important; overflow: visible !important; opacity: 1 !important; }
+.tratamientos-cta { max-height: unset !important; overflow: visible !important; opacity: 1 !important; }
+
+/* Tratamientos 3 col desktop */
+@media (min-width: 1024px) {
+  .tratamientos-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+  .porque-grid { grid-template-columns: 1fr 1fr; }
+}
     </style>
 </head>
 <body>
@@ -731,25 +797,23 @@ img, video { max-width: 100%; height: auto; }
             <span class="nav-brand-text">Espacio Mimar T</span>
         </a>
         <nav class="nav-links">
-            <a href="#inicio">Inicio</a>
-            <a href="#espacio">El Espacio</a>
             <a href="#tratamientos">Tratamientos</a>
-            <a href="#testimonios">Testimonios</a>
+            <a href="#espacio">El Espacio</a>
+            <a href="#faq">Preguntas frecuentes</a>
             <a href="#contacto">Contacto</a>
         </nav>
-        <a href="/fecha.html" class="nav-cta">Agendar consulta</a>
+        <a href="/fecha.html" class="nav-cta">Reservar turno</a>
         <button class="hamburger" id="hamburgerBtn" aria-label="Menú" aria-expanded="false">
             <span></span><span></span><span></span>
         </button>
     </header>
     <div class="mobile-menu" id="mobileMenu">
         <nav>
-            <a href="#inicio">Inicio</a>
-            <a href="#espacio">El Espacio</a>
             <a href="#tratamientos">Tratamientos</a>
-            <a href="#testimonios">Testimonios</a>
+            <a href="#espacio">El Espacio</a>
+            <a href="#faq">Preguntas frecuentes</a>
             <a href="#contacto">Contacto</a>
-            <a href="/fecha.html" class="btn-primary">Agendar consulta</a>
+            <a href="/fecha.html" class="btn-primary">Reservar turno</a>
         </nav>
     </div>
 
@@ -768,21 +832,12 @@ img, video { max-width: 100%; height: auto; }
             <h1 class="hero-title">Espacio Mimar T</h1>
             <p class="hero-subtitle">Tratamientos con criterio profesional.<br><em>Cada piel, un protocolo único.</em></p>
             <div class="hero-credentials">Gimena Knack &nbsp;·&nbsp; Farmacéutica MP 1212 &nbsp;·&nbsp; Dermatocosmiatra RC 2319</div>
-            <div class="hero-actions" style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;">
+            <div class="hero-actions">
                 <a href="/fecha.html" class="btn-primary">
-                    Agendar mi consulta inicial
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Reservar turno
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </a>
-                <a href="/depilacion.html" style="display:inline-flex;align-items:center;gap:9px;padding:13px 26px;border-radius:999px;border:1.5px solid rgba(165,205,188,0.35);background:rgba(255,255,255,0.05);color:rgba(220,242,232,0.88);font-family:'Montserrat',sans-serif;font-size:14px;font-weight:600;letter-spacing:.02em;text-decoration:none;transition:all .22s;backdrop-filter:blur(4px);" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.borderColor='rgba(165,205,188,0.60)'" onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(165,205,188,0.35)'">
-                    Agendar turno · Depilación definitiva
-                </a>
-                <a href="/kit-facial.html" style="display:inline-flex;align-items:center;gap:9px;padding:13px 26px;border-radius:999px;border:1.5px solid rgba(165,205,188,0.25);background:rgba(255,255,255,0.03);color:rgba(165,205,188,0.70);font-family:'Montserrat',sans-serif;font-size:14px;font-weight:600;letter-spacing:.02em;text-decoration:none;transition:all .22s;backdrop-filter:blur(4px);" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(165,205,188,0.45)';this.style.color='rgba(220,242,232,0.88)'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='rgba(165,205,188,0.25)';this.style.color='rgba(165,205,188,0.70)'">
-                    🌿 Kit Domiciliario · Cuidado en casa
-                </a>
-            </div>
-            <div style="margin-top:22px;padding:0 8px;display:flex;flex-direction:column;gap:8px;max-width:440px;text-align:center;">
-                <p style="font-size:11.5px;color:rgba(165,205,188,0.52);font-family:'Montserrat',sans-serif;font-weight:500;line-height:1.6;margin:0;">Los turnos se abonan en el momento de la sesión o en la fecha pactada. No trabajamos con sistemas de crédito ni pago diferido.</p>
-                <p style="font-size:11.5px;color:rgba(165,205,188,0.52);font-family:'Montserrat',sans-serif;font-weight:500;line-height:1.6;margin:0;">Nuestro equipo trabaja bajo protocolos estrictos de confidencialidad. Tu sesión es un espacio privado — tratamos cada consulta con la discreción que merece.</p>
+                <a href="#tratamientos" class="btn-ghost">Conocer tratamientos</a>
             </div>
         </div>
         <div class="hero-scroll-hint" aria-hidden="true">
@@ -790,48 +845,13 @@ img, video { max-width: 100%; height: auto; }
         </div>
     </section>
 
-    <!-- ── ESPACIO ── -->
-    <section class="espacio-section" id="espacio" aria-label="Nuestro espacio">
-        <div class="section-header" data-reveal>
-            <span class="section-tag">✦ Nuestro espacio</span>
-            <h2 class="section-title">Un lugar pensado<br><em>para vos</em></h2>
-            <p class="section-desc">Cabinas privadas, equipamiento profesional y un ambiente diseñado para que cada sesión sea una experiencia completa.</p>
-        </div>
-        <div class="espacio-grid">
-            <div class="espacio-grid-main" data-reveal="left">
-                <img src="img/recepcion.webp" alt="Recepción Espacio Mimar T" loading="lazy">
-                <div class="espacio-grid-caption">Recepción</div>
-            </div>
-            <div class="espacio-grid-side" data-reveal="right">
-                <div class="espacio-grid-item"><img src="img/1P.jpg" alt="Cabina 1" loading="lazy"></div>
-                <div class="espacio-grid-item"><img src="img/2P.jpg" alt="Cabina 2" loading="lazy"></div>
-                <div class="espacio-grid-item"><img src="img/placa.jpg" alt="Fachada Espacio Mimar T" loading="lazy"></div>
-            </div>
-        </div>
-        <div class="espacio-carousel" aria-label="Galería del espacio">
-            <div class="espacio-carousel-track">
-                <div class="espacio-carousel-slide"><img src="img/recepcion.webp" alt="Recepción" loading="lazy"></div>
-                <div class="espacio-carousel-slide"><img src="img/1P.jpg" alt="Cabina 1" loading="lazy"></div>
-                <div class="espacio-carousel-slide"><img src="img/2P.jpg" alt="Cabina 2" loading="lazy"></div>
-                <div class="espacio-carousel-slide"><img src="img/3P.jpg" alt="Cabina 3" loading="lazy"></div>
-                <div class="espacio-carousel-slide"><img src="img/placa.jpg" alt="Fachada" loading="lazy"></div>
-            </div>
-            <div class="espacio-carousel-dots"></div>
-        </div>
-    </section>
-
-    <div class="section-divider" aria-hidden="true"><span></span><span class="section-divider-gem">✦</span><span></span></div>
-
     <!-- ── TRATAMIENTOS ── -->
-    <section class="tratamientos-section" id="tratamientos" aria-label="Tratamientos">
+    <section class="tratamientos-section tratamientos-open" id="tratamientos" aria-label="Tratamientos">
         <div class="section-header" data-reveal>
             <span class="section-tag">✦ Tratamientos</span>
-            <h2 class="section-title">Trabajo real<br><em>para piel real</em></h2>
-            <p class="section-desc">Manchas, flacidez, poros, textura, celulitis. Protocolos específicos, no genéricos.</p>
+            <h2 class="section-title">Tratamientos<br><em>pensados para vos</em></h2>
+            <p class="section-desc">Manchas, flacidez, poros, textura, celulitis, depilación definitiva. Protocolos específicos, no genéricos.</p>
         </div>
-        <button class="tratamientos-toggle" id="tratamientosToggle" type="button" onclick="this.closest('.tratamientos-section').classList.toggle('tratamientos-open'); this.querySelector('.toggle-icon').textContent = this.closest('.tratamientos-section').classList.contains('tratamientos-open') ? '▲' : '▼';">
-            Ver tratamientos <span class="toggle-icon">&#9660;</span>
-        </button>
         <div class="tratamientos-grid">
             <div class="tratamiento-card" data-reveal data-reveal-delay="0.1">
                 <div class="tratamiento-card-img-wrap">
@@ -910,7 +930,7 @@ img, video { max-width: 100%; height: auto; }
                     <p class="tratamiento-card-desc">Eliminá el vello de forma permanente con tecnología de última generación. Apta para todo tipo de piel y tono de vello. Resultados visibles desde las primeras sesiones.</p>
                     <div class="tratamiento-card-protocol">Axilas · Ingle · Piernas · Cuerpo completo y más</div>
                     <div class="tratamiento-card-footer">
-                        <a href="/index-depi.html" class="tratamiento-card-link">Ver más</a>
+                        <a href="/depilacion.html" class="tratamiento-card-link">Ver más</a>
                     </div>
                 </div>
             </div>
@@ -922,7 +942,7 @@ img, video { max-width: 100%; height: auto; }
                     <p class="tratamiento-card-desc">Ultrasonido focalizado para reafirmar, elevar y rejuvenecer sin cirugía ni recuperación. Rostro, cuello, abdomen, muslos y más. También disponible criolipólisis para moldear la silueta.</p>
                     <div class="tratamiento-card-protocol">Resultados progresivos · Sin tiempo de recuperación</div>
                     <div class="tratamiento-card-footer">
-                        <a href="/index-depi.html" class="tratamiento-card-link">Ver más</a>
+                        <a href="/depilacion.html" class="tratamiento-card-link">Ver más</a>
                     </div>
                 </div>
             </div>
@@ -930,6 +950,36 @@ img, video { max-width: 100%; height: auto; }
         <div class="tratamientos-cta" style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:48px;" data-reveal>
             <a href="/servicios.html" class="btn-ghost">Ver todos los servicios</a>
             <a href="https://wa.me/5493764291807?text=Hola%20Gime%21%20Vi%20la%20web%20y%20quiero%20consultar%20sobre%20tratamientos." class="btn-ghost" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>
+        </div>
+    </section>
+
+    <!-- ── POR QUÉ MIMAR T ── -->
+    <section class="porque-section" aria-label="Por qué elegirnos">
+        <div class="section-header centered" data-reveal>
+            <span class="section-tag">✦ Por qué Mimar T</span>
+            <h2 class="section-title">Un tratamiento<br><em>pensado para vos</em></h2>
+        </div>
+        <div class="porque-grid" data-reveal>
+            <div class="porque-item">
+                <div class="porque-icon">🔍</div>
+                <h3 class="porque-title">Evaluación personalizada</h3>
+                <p class="porque-desc">Cada tratamiento comienza con una evaluación de tu piel, historial y objetivos. Sin protocolos genéricos.</p>
+            </div>
+            <div class="porque-item">
+                <div class="porque-icon">⚙️</div>
+                <h3 class="porque-title">Parámetros adaptados</h3>
+                <p class="porque-desc">Los parámetros de cada sesión se ajustan según tu respuesta, el fototipo y las condiciones actuales de tu piel.</p>
+            </div>
+            <div class="porque-item">
+                <div class="porque-icon">🏥</div>
+                <h3 class="porque-title">Equipamiento profesional</h3>
+                <p class="porque-desc">Tecnologías seleccionadas por su evidencia y seguridad. Cada equipo elegido por su resultado real.</p>
+            </div>
+            <div class="porque-item">
+                <div class="porque-icon">🤍</div>
+                <h3 class="porque-title">Seguimiento continuo</h3>
+                <p class="porque-desc">Acompañamiento durante todo el proceso. Cada sesión evalúa la evolución y ajusta el camino.</p>
+            </div>
         </div>
     </section>
 
@@ -986,34 +1036,37 @@ img, video { max-width: 100%; height: auto; }
         </div>
     </section>
 
-    <!-- ── FAQ ── -->
-    <section class="faq-section" id="faq" aria-label="Preguntas frecuentes">
-        <div class="faq-grid">
-            <div class="faq-intro" data-reveal="left">
-                <span class="section-tag">✦ Preguntas frecuentes</span>
-                <h2 class="section-title">Todo claro<br><em>antes de reservar</em></h2>
-                <blockquote class="faq-intro-quote">"Creemos que la información clara es el primer paso hacia un tratamiento exitoso."</blockquote>
+    <!-- ── ESPACIO ── -->
+    <section class="espacio-section" id="espacio" aria-label="Nuestro espacio">
+        <div class="section-header" data-reveal>
+            <span class="section-tag">✦ Nuestro espacio</span>
+            <h2 class="section-title">Un espacio pensado<br><em>para cuidarte</em></h2>
+            <p class="section-desc">Cabinas privadas, equipamiento profesional y un ambiente diseñado para que cada sesión sea una experiencia completa.</p>
+        </div>
+        <div class="espacio-grid">
+            <div class="espacio-grid-main" data-reveal="left">
+                <img src="img/recepcion.webp" alt="Recepción Espacio Mimar T" loading="lazy">
+                <div class="espacio-grid-caption">Recepción</div>
             </div>
-            <div class="faq-list" data-reveal="right">
-                <div class="faq-item" data-reveal>
-                    <button class="faq-question" type="button">¿Cómo reservo un turno? <span class="faq-question-icon">+</span></button>
-                    <div class="faq-answer"><div class="faq-answer-inner">Ingresá con tus datos, elegí servicio, fecha y horario. El sistema te guía en cada paso. Menos de 2 minutos.</div></div>
-                </div>
-                <div class="faq-item" data-reveal>
-                    <button class="faq-question" type="button">¿Puedo cambiar o cancelar? <span class="faq-question-icon">+</span></button>
-                    <div class="faq-answer"><div class="faq-answer-inner">Si formás parte de la membresía, podés cancelar con al menos 48 horas de anticipación. Las cancelaciones fuera de ese plazo se consideran turno utilizado.</div></div>
-                </div>
-                <div class="faq-item" data-reveal>
-                    <button class="faq-question" type="button">¿Qué pasa si soy nueva paciente? <span class="faq-question-icon">+</span></button>
-                    <div class="faq-answer"><div class="faq-answer-inner">Iniciá por WhatsApp — te acompañamos en el alta y en la primera consulta para elegir el tratamiento correcto para vos.</div></div>
-                </div>
-                <div class="faq-item" data-reveal>
-                    <button class="faq-question" type="button">¿Recibo confirmación? <span class="faq-question-icon">+</span></button>
-                    <div class="faq-answer"><div class="faq-answer-inner">Siempre. Verás la confirmación en pantalla al reservar y tendrás respaldo de tu turno en todo momento.</div></div>
-                </div>
+            <div class="espacio-grid-side" data-reveal="right">
+                <div class="espacio-grid-item"><img src="img/1P.jpg" alt="Cabina 1" loading="lazy"></div>
+                <div class="espacio-grid-item"><img src="img/2P.jpg" alt="Cabina 2" loading="lazy"></div>
+                <div class="espacio-grid-item"><img src="img/placa.jpg" alt="Fachada Espacio Mimar T" loading="lazy"></div>
             </div>
         </div>
+        <div class="espacio-carousel" aria-label="Galería del espacio">
+            <div class="espacio-carousel-track">
+                <div class="espacio-carousel-slide"><img src="img/recepcion.webp" alt="Recepción" loading="lazy"></div>
+                <div class="espacio-carousel-slide"><img src="img/1P.jpg" alt="Cabina 1" loading="lazy"></div>
+                <div class="espacio-carousel-slide"><img src="img/2P.jpg" alt="Cabina 2" loading="lazy"></div>
+                <div class="espacio-carousel-slide"><img src="img/3P.jpg" alt="Cabina 3" loading="lazy"></div>
+                <div class="espacio-carousel-slide"><img src="img/placa.jpg" alt="Fachada" loading="lazy"></div>
+            </div>
+            <div class="espacio-carousel-dots"></div>
+        </div>
     </section>
+
+    <div class="section-divider" aria-hidden="true"><span></span><span class="section-divider-gem">✦</span><span></span></div>
 
     <!-- ── UBICACIÓN ── -->
     <section class="ubicacion-section" id="contacto" aria-label="Cómo encontrarnos">
@@ -1040,6 +1093,45 @@ img, video { max-width: 100%; height: auto; }
                     <a href="https://share.google/ScmWNYBPdBaswqrmm" target="_blank" class="btn-ghost" rel="noopener" style="display:inline-flex;align-items:center;gap:7px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Dejar reseña</a>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <!-- ── FAQ ── -->
+    <section class="faq-section" id="faq" aria-label="Preguntas frecuentes">
+        <div class="faq-grid">
+            <div class="faq-intro" data-reveal="left">
+                <span class="section-tag">✦ Preguntas frecuentes</span>
+                <h2 class="section-title">Todo claro<br><em>antes de reservar</em></h2>
+                <blockquote class="faq-intro-quote">"Creemos que la información clara es el primer paso hacia un tratamiento exitoso."</blockquote>
+            </div>
+            <div class="faq-list" data-reveal="right">
+                <div class="faq-item">
+                    <button class="faq-question" type="button">¿Cómo reservo un turno? <span class="faq-question-icon">+</span></button>
+                    <div class="faq-answer"><div class="faq-answer-inner">Ingresá con tus datos, elegí servicio, fecha y horario. El sistema te guía en cada paso. Menos de 2 minutos.</div></div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" type="button">¿Puedo cambiar o cancelar? <span class="faq-question-icon">+</span></button>
+                    <div class="faq-answer"><div class="faq-answer-inner">Si formás parte de la membresía, podés cancelar con al menos 48 horas de anticipación. Las cancelaciones fuera de ese plazo se consideran turno utilizado.</div></div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" type="button">¿Qué pasa si soy nueva paciente? <span class="faq-question-icon">+</span></button>
+                    <div class="faq-answer"><div class="faq-answer-inner">Iniciá por WhatsApp — te acompañamos en el alta y en la primera consulta para elegir el tratamiento correcto para vos.</div></div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" type="button">¿Recibo confirmación? <span class="faq-question-icon">+</span></button>
+                    <div class="faq-answer"><div class="faq-answer-inner">Siempre. Verás la confirmación en pantalla al reservar y tendrás respaldo de tu turno en todo momento.</div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── ACCESO PACIENTES ── -->
+    <section class="acceso-section" aria-label="Acceso para pacientes">
+        <div class="acceso-card" data-reveal="scale">
+            <div class="acceso-icon">🌿</div>
+            <h2 class="section-title" style="margin-bottom:10px;">¿Ya sos paciente?</h2>
+            <p class="acceso-desc">Gestioná tus turnos, sesiones y tratamientos desde tu cuenta.</p>
+            <button class="btn-primary" data-modal="login" style="margin-top:24px;">Ingresar a mi cuenta →</button>
         </div>
     </section>
 
