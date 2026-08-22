@@ -349,7 +349,8 @@
         <button class="nav-btn active" id="navAgenda" onclick="irA('agenda')">📅 Agenda</button>
         <button class="nav-btn" id="navRegistrar" onclick="irA('registrar')">➕ Nuevo turno</button>
         <button class="nav-btn" id="navBuscar" onclick="irA('buscar')">🔍 Buscar</button>
-        <button class="nav-btn" id="navCombos" onclick="irA('combos')">⏱ Combos</button>
+        <button class="nav-btn" id="navCombos" onclick="irA('combos')">⏱ Duración</button>
+        <button class="nav-btn" id="navPrecios" onclick="irA('precios')">💲 Precios</button>
         <div class="nav-divider"></div>
         <a class="nav-btn" href="/admin.html" style="text-decoration:none;color:var(--texto-suave);font-size:12px;">← Volver a Admin</a>
         <button class="nav-exit" onclick="cerrarSesionDepi()">Cerrar sesión</button>
@@ -376,6 +377,7 @@
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn-outline" onclick="irARegistrarDia()">+ Agregar turno</button>
                             <button class="btn-outline" style="border-color:rgba(248,113,113,0.35);color:rgba(248,113,113,0.75);background:rgba(248,113,113,0.06);" onclick="bloquearDiaDepi()">🔒 Bloquear día</button>
+                            <button class="btn-outline" style="border-color:rgba(234,179,8,0.35);color:rgba(234,179,8,0.75);background:rgba(234,179,8,0.05);font-size:11px;" onclick="limpiarReservasDia()">🗑 Limpiar reservas</button>
                         </div>
                     </div>
                     <div id="diaDetalleContenido">
@@ -481,6 +483,19 @@
                 <div id="buscarResultados">
                     <div style="color:var(--texto-suave);font-size:13px;">Ingresá un nombre o DNI para buscar.</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ══ PRECIOS ══ -->
+        <div id="secPrecios" class="section">
+            <h2 class="sec-title">Precios de combos</h2>
+            <div class="card">
+                <p style="font-size:13px;color:var(--texto-suave);margin-bottom:18px;line-height:1.6;">Editá el precio de cada combo. Se guarda en la nube y se aplica automáticamente en la página de reservas.</p>
+                <div id="preciosAdminGrid" style="display:flex;flex-direction:column;gap:10px;"></div>
+                <div style="margin-top:18px;display:flex;justify-content:flex-end;">
+                    <button class="btn-primary" onclick="guardarPrecios()">Guardar precios</button>
+                </div>
+                <div id="preciosGuardadoMsg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;color:rgba(74,222,128,0.85);text-align:right;">✓ Guardado</div>
             </div>
         </div>
 
@@ -590,8 +605,8 @@
     // ════════════════════════════════
     // NAVEGACIÓN
     // ════════════════════════════════
-    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', buscar: 'secBuscar', combos: 'secCombos' };
-    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', buscar: 'navBuscar', combos: 'navCombos' };
+    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', buscar: 'secBuscar', combos: 'secCombos', precios: 'secPrecios' };
+    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', buscar: 'navBuscar', combos: 'navCombos', precios: 'navPrecios' };
 
     window.irA = (sec) => {
         Object.values(SECCIONES).forEach(id => document.getElementById(id).classList.remove('active'));
@@ -706,11 +721,13 @@
             _reservasDia[fecha] = reservas;
 
             // Build exceptions map for this day
+            // tipo:'slot' = admin manual block; tipo:'reserva'/'extension' = auto-blocked by patient booking
             const exInfo = { diaBloqueado: false, slots: {} };
             snapEx.forEach(d => {
                 const dat = d.data();
                 if (dat.tipo === 'dia') exInfo.diaBloqueado = true;
-                if (dat.tipo === 'slot' && dat.hora) exInfo.slots[dat.hora] = d.id;
+                if ((dat.tipo === 'slot' || dat.tipo === 'reserva' || dat.tipo === 'extension') && dat.hora)
+                    exInfo.slots[dat.hora] = d.id;
             });
             _excepcionesDia[fecha] = exInfo;
 
@@ -937,14 +954,23 @@
         fb.textContent = '';
 
         try {
-            await addDoc(collection(db, COLECCION), {
+            const reservaRef = await addDoc(collection(db, COLECCION), {
                 nombre, dni, telefono: tel, fecha, hora,
                 servicio, estado, notas,
                 origen: 'admin',
                 createdAt: serverTimestamp()
             });
+            // Bloquear slot en calendarExceptionsDepi para que no se sobreescriba
+            const blockId = `depi_admin_${fecha}_${hora.replace(':','-')}`;
+            setDoc(doc(db, COLECCION_EX, blockId), {
+                fecha, hora, blocked: true, tipo: 'slot',
+                reservaId: reservaRef.id, updatedAt: serverTimestamp()
+            }).catch(() => {});
+            // Notificar a Gimena por WhatsApp
+            const msgGimena = encodeURIComponent(`🔔 Nuevo turno depilación\n👤 ${nombre}${dni ? ' · DNI ' + dni : ''}\n📅 ${fecha} · ${hora} hs\n💜 ${servicio}${notas ? '\n📝 ' + notas : ''}\nTel: ${tel || 'no registrado'}`);
+            window.open(`https://wa.me/5493764291807?text=${msgGimena}`, '_blank');
             fb.className = 'feedback ok';
-            fb.textContent = '✓ Turno registrado correctamente';
+            fb.textContent = '✓ Turno registrado · WhatsApp de Gimena abierto';
             limpiarFormRegistro();
             await cargarCalendario();
         } catch(e) {
@@ -1071,6 +1097,33 @@
     window.mostrarAvisoDepi = mostrarAvisoDepi;
 
     // ════════════════════════════════
+    // LIMPIAR RESERVAS DEL DÍA
+    // ════════════════════════════════
+    window.limpiarReservasDia = async () => {
+        const fecha = _diaSeleccionado;
+        if (!fecha) return;
+        if (!confirm(`¿Borrar TODAS las reservas y bloqueos del día ${fecha}? Esta acción no se puede deshacer.`)) return;
+        try {
+            const [snapR, snapEx] = await Promise.all([
+                getDocs(query(collection(db, COLECCION), where('fecha', '==', fecha))),
+                getDocs(query(collection(db, COLECCION_EX), where('fecha', '==', fecha)))
+            ]);
+            const deletes = [];
+            snapR.forEach(d => deletes.push(deleteDoc(doc(db, COLECCION, d.id))));
+            snapEx.forEach(d => {
+                const t = d.data().tipo;
+                if (t === 'reserva' || t === 'extension' || t === 'slot') deletes.push(deleteDoc(doc(db, COLECCION_EX, d.id)));
+            });
+            await Promise.all(deletes);
+            mostrarAvisoDepi(`Día ${fecha} limpiado (${deletes.length} entradas borradas)`);
+            await verDia(fecha);
+            await cargarCalendario();
+        } catch(e) {
+            alert('Error al limpiar: ' + e.message);
+        }
+    };
+
+    // ════════════════════════════════
     // COMBOS — DURACIÓN
     // ════════════════════════════════
     const TODOS_COMBOS = [
@@ -1170,11 +1223,73 @@
         }
     };
 
-    // Cargar duraciones al entrar a la sección combos
+    // ════════════════════════════════
+    // PRECIOS
+    // ════════════════════════════════
+    let _preciosActuales = {};
+
+    const PRECIOS_DEFAULT = {
+        'mini-e':'$20.000','esenc-e':'$20.000','braz-e':'$20.000','mediapierna-e':'$15.000','piernac-e':'$25.000','glut-e':'$15.000',
+        'fav-e':'$30.000','plus-e':'$30.000','fullm-e':'$35.000','full-e':'$40.000','fullbody-e':'$60.000',
+        'intant-e':'$20.000','intpos-e':'$15.000','intcmp-e':'$30.000',
+        'mini-o':'$20.000','rost-o':'$25.000','torso-o':'$25.000','torsoplus-o':'$30.000','espal-o':'$30.000',
+        'mediapierna-o':'$15.000','piernac-o':'$25.000','piernaax-o':'$30.000','glut-o':'$15.000',
+        'fullsup-o':'$40.000','fulltorso-o':'$40.000','fullbody-o':'$65.000',
+        'intant-o':'$20.000','intpos-o':'$15.000','intcmp-o':'$30.000'
+    };
+
+    const cargarPrecios = async () => {
+        try {
+            const snap = await getDoc(doc(db, 'config', 'comboPrecios'));
+            _preciosActuales = snap.exists() ? snap.data() : { ...PRECIOS_DEFAULT };
+        } catch(e) { _preciosActuales = { ...PRECIOS_DEFAULT }; }
+        renderPreciosAdmin();
+    };
+
+    const renderPreciosAdmin = () => {
+        const grid = document.getElementById('preciosAdminGrid');
+        if (!grid) return;
+        grid.innerHTML = TODOS_COMBOS.map(grupo => `
+            <div style="margin-bottom:4px;">
+                <p style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--texto-suave);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--borde);">${grupo.grupo}</p>
+                <div style="display:flex;flex-direction:column;gap:7px;">
+                    ${grupo.combos.map(c => {
+                        const cur = _preciosActuales[c.id] || PRECIOS_DEFAULT[c.id] || '';
+                        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;">
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:13px;font-weight:600;color:var(--texto);">${c.nombre}</div>
+                                <div style="font-size:11px;color:var(--texto-suave);margin-top:1px;">${c.detalle}</div>
+                            </div>
+                            <input type="text" id="precioInput_${c.id}" value="${cur}" placeholder="$0.000"
+                                style="width:90px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--borde);background:transparent;color:var(--texto);font-size:13px;font-weight:700;font-family:inherit;text-align:right;"
+                                oninput="_preciosActuales['${c.id}']=this.value;document.getElementById('preciosGuardadoMsg').style.display='none';">
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+        `).join('');
+    };
+
+    window.guardarPrecios = async () => {
+        // Sync all input values before saving
+        TODOS_COMBOS.forEach(g => g.combos.forEach(c => {
+            const el = document.getElementById(`precioInput_${c.id}`);
+            if (el) _preciosActuales[c.id] = el.value;
+        }));
+        try {
+            await setDoc(doc(db, 'config', 'comboPrecios'), _preciosActuales);
+            const msg = document.getElementById('preciosGuardadoMsg');
+            msg.style.display = 'block';
+            setTimeout(() => { msg.style.display = 'none'; }, 3000);
+        } catch(e) { alert('Error al guardar: ' + e.message); }
+    };
+
+    // Cargar duraciones/precios al entrar a sus secciones
     const _irAOrig = window.irA;
     window.irA = (sec) => {
         _irAOrig(sec);
         if (sec === 'combos') cargarDuraciones();
+        if (sec === 'precios') cargarPrecios();
     };
 </script>
 </body>

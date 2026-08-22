@@ -846,9 +846,16 @@ let excepciones={}, bloqueosHorarios=new Map();
 let rangosDiasBloqueados=[], mesesBloqueados=new Set();
 let reservasPorFecha=new Map();
 
-// ── Duración por combo (cargada desde Firestore, override por admin) ──
+// ── Duración y precios por combo (cargados desde Firestore, override por admin) ──
 let _comboDuracConfig = {};
-getDoc(doc(db,'config','comboDuraciones')).then(s=>{ if(s.exists()) _comboDuracConfig=s.data(); }).catch(()=>{});
+let _comboPreciosConfig = {};
+Promise.all([
+    getDoc(doc(db,'config','comboDuraciones')),
+    getDoc(doc(db,'config','comboPrecios'))
+]).then(([snapDur, snapPre]) => {
+    if(snapDur.exists()) _comboDuracConfig = snapDur.data();
+    if(snapPre.exists()) { _comboPreciosConfig = snapPre.data(); buildComboGrid(); }
+}).catch(()=>{});
 
 // ── Combos ──
 const COMBOS_ELLAS = [
@@ -899,9 +906,9 @@ function buildComboGrid() {
         </div>
         <div id="comboGrupo_${g.id}" style="display:none;flex-direction:column;gap:6px;padding:2px 2px 6px;">
             ${g.combos.map(c => `
-                <div class="combo-opt" id="comboOpt_${c.id}" onclick="seleccionarCombo('${c.id}','${g.grupo}','${c.nombre}','${c.detalle}','${c.precio}')">
+                <div class="combo-opt" id="comboOpt_${c.id}" onclick="seleccionarCombo('${c.id}','${g.grupo}','${c.nombre}','${c.detalle}','${_comboPreciosConfig[c.id]||c.precio}')">
                     <div><div class="combo-opt-nombre">${c.nombre}</div><div class="combo-opt-detalle">${c.detalle}</div></div>
-                    <div class="combo-opt-precio">${c.precio}</div>
+                    <div class="combo-opt-precio">${_comboPreciosConfig[c.id]||c.precio}</div>
                 </div>`).join('')}
         </div>
     `).join('');
@@ -1318,6 +1325,9 @@ window.confirmarDepi=async function(){
             document.getElementById("mcWaComprobante").href=`https://wa.me/5493764291807?text=${msg}`;
             document.getElementById("mcSuccessTransfer").style.display="block";
         }
+        // Notificar a Gimena automáticamente
+        const _msgGimena=encodeURIComponent(`🔔 Nueva reserva · Depilación láser\n👤 ${nombre}${dniRaw?' · DNI '+dniRaw:''}\n📅 ${fechaLinda} · ${horaSeleccionada} hs\n💜 ${comboSeleccionado.nombre} — ${comboSeleccionado.precio}\n💳 ${_metodoPago==="transferencia"?"Transferencia":"Efectivo"}\n📱 ${telefono}`);
+        setTimeout(()=>{ window.open(`https://wa.me/5493764291807?text=${_msgGimena}`,'_blank'); },800);
     }catch(e){
         console.error("Error guardando reserva de depilación:",e);
         btn.disabled=false;btn.textContent="Confirmar turno";
