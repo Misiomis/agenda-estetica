@@ -3516,14 +3516,27 @@
             const servicioIngresado = document.getElementById('mreg-servicio-hidden').value.trim();
             if (!servicioIngresado) { mostrarAviso("Seleccioná un servicio"); return; }
 
-            // Verificar conflicto de boxes
+            // Verificar conflicto de boxes — re-check en vivo contra todasLasReservas actual
             const _boxesNuevos = _inferirBoxes(servicioIngresado, '');
-            const _conflictoBox = _boxesNuevos.find(b => _mreg_boxesOcupados.has(b));
+            const _reservasVivasAhora = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === horaSnap);
+            const _boxesOcupadosAhora = new Set(_reservasVivasAhora.flatMap(r => _inferirBoxes(r.servicio, r.tipo)));
+            const _conflictoBox = _boxesNuevos.find(b => _boxesOcupadosAhora.has(b));
             if (_conflictoBox !== undefined) {
                 const _bInfo = _BOX_INFO[_conflictoBox]?.label || `Box ${_conflictoBox}`;
                 mostrarAviso(`Conflicto: el Box ${_conflictoBox} (${_bInfo}) ya está ocupado en este horario`);
                 return;
             }
+            // Re-check contra Firestore para prevenir race condition entre sesiones
+            try {
+                const _snapLive = await getDocs(query(collection(db,'reservas'), where('fecha','==',fechaSnap), where('hora','==',horaSnap)));
+                const _boxesLive = new Set();
+                _snapLive.forEach(d => { const r = d.data(); if(esReservaActiva(r)) _inferirBoxes(r.servicio,r.tipo).forEach(b=>_boxesLive.add(b)); });
+                const _cfLive = _boxesNuevos.find(b => _boxesLive.has(b));
+                if (_cfLive !== undefined) {
+                    mostrarAviso(`Horario ocupado (confirmado en servidor). Actualizá la agenda.`);
+                    return;
+                }
+            } catch(_e) { /* si falla el check extra, dejamos continuar — la UI local ya revisó */ }
 
             const clienteSnap = { ..._mreg_clienteSeleccionado };
             const fechaSnap = _mreg_fecha, horaSnap = _mreg_hora;
@@ -3606,6 +3619,14 @@
                     boxes: _inferirBoxes(servicioIngresado, '')
                 };
                 const ref = await addDoc(collection(db, "reservas"), reservaNueva);
+                // Bloquear slot base en calendarExceptions (visible al público inmediatamente)
+                const _baseBlockId = `reserva_admin_${fechaSnap}_${horaSnap.replace(':','-')}`;
+                setDoc(doc(db, "calendarExceptions", _baseBlockId), {
+                    fecha: fechaSnap, hora: horaSnap, blocked: true,
+                    tipo: 'reserva', reservaId: ref.id,
+                    boxes: _inferirBoxes(servicioIngresado, ''),
+                    updatedAt: serverTimestamp()
+                }).catch(() => {});
                 // Bloquear slots de extension en calendarExceptions
                 for (const extHora of slotsExtension) {
                     const extId = `ext_${fechaSnap}_${extHora.replace(':','h')}`;

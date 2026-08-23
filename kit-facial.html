@@ -664,32 +664,29 @@
             }
             input.style.borderColor = '';
             btn.disabled = true;
-            btn.textContent = 'Verificando...';
+            btn.textContent = 'Cargando...';
 
-            let tiene = false;
+            localStorage.setItem('clienteDNI', dni);
+            // Intentar pre-cargar nombre desde Firestore (no bloquea si falla)
             try {
-                tiene = await verificarAccesoKit(dni);
-            } catch (e) {
-                console.error('[Kit] verificarAccesoKit lanzó excepción:', e);
-            }
+                const datos = await getClienteData(dni);
+                if (datos?.fullName || datos?.nombre) {
+                    localStorage.setItem('clienteNombre', datos.fullName || datos.nombre);
+                }
+            } catch(_e) {}
+
             btn.disabled = false;
             btn.textContent = 'Continuar';
-
-            if (tiene) {
-                localStorage.setItem('clienteDNI', dni);
-                document.getElementById("verificDNIScreen").style.display = "none";
-                document.getElementById("contenidoKit").style.display = "block";
-                cargarProductosKit();
-            } else {
-                document.getElementById("modalSinRegistro").style.display = "flex";
-            }
+            document.getElementById("verificDNIScreen").style.display = "none";
+            document.getElementById("contenidoKit").style.display = "block";
+            cargarProductosKit();
         };
 
         const submitKitRequest = async () => {
-            const { dni, nombre } = getUserData();
+            const { dni } = getUserData();
 
-            if (!dni || !nombre) {
-                showFeedback("Necesitás estar logueado para solicitar un kit.", "error");
+            if (!dni) {
+                showFeedback("Ingresá tu DNI para solicitar un kit.", "error");
                 return;
             }
 
@@ -719,7 +716,8 @@
 
             try {
                 const datosCliente = await getClienteData(dni);
-                
+                const nombre = localStorage.getItem('clienteNombre') || datosCliente?.fullName || datosCliente?.nombre || '';
+
                 const pedidoData = {
                     fecha: new Date().toISOString(),
                     productos: productos,

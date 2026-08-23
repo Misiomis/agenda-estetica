@@ -590,7 +590,7 @@
 </div>
 
 <script type="module">
-import { db, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot } from "/js/firebase-web.js";
+import { db, doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot, runTransaction } from "/js/firebase-web.js";
 import { cargarTemaYAnuncio } from "/js/theme-loader.js";
 
 // ── Slots de 30 minutos: 07:30 → 20:30 corridos ──
@@ -1115,24 +1115,28 @@ window.confirmarConsulta = async function() {
     const fStr      = fechaAString(fechaSeleccionada);
 
     try {
-        // Verificar que el slot sigue libre (anti double-booking)
-        const ocupadosAhora = await obtenerHorasOcupadas(fStr);
-        if (ocupadosAhora.includes(horaSeleccionada) || bloqueosHorarios.has(keyBloqueo(fStr, horaSeleccionada))) {
-            mostrarAviso("Horario no disponible", "Este turno acaba de ser ocupado por otra persona. Por favor elegí otro horario.");
+        // ── Bloqueo atómico del slot ─────────────────────────────────────────────
+        // runTransaction garantiza que si dos pacientes intentan el mismo slot
+        // simultáneamente, solo uno gana. El otro recibe SLOT_OCUPADO.
+        const lockId = `consulta_${fStr}_${horaSeleccionada.replace(':','-')}`;
+        const lockRef = doc(db, "calendarExceptions", lockId);
+        try {
+            await runTransaction(db, async (tx) => {
+                const lockSnap = await tx.get(lockRef);
+                if (lockSnap.exists() && lockSnap.data().blocked === true) {
+                    throw new Error("SLOT_OCUPADO");
+                }
+                tx.set(lockRef, {
+                    fecha: fStr, hora: horaSeleccionada,
+                    blocked: true, tipo: "consulta",
+                    updatedAt: serverTimestamp()
+                });
+            });
+        } catch(txErr) {
+            mostrarAviso("Horario no disponible", "Este turno acaba de ser ocupado. Por favor elegí otro horario.");
             btn.disabled = false; btn.textContent = "Confirmar turno";
             return;
         }
-        // Verificar que no exista ya una consulta activa en ese horario
-        try {
-            const _cDupQ = query(collection(db,'consultas'), where('fecha','==',fStr), where('hora','==',horaSeleccionada));
-            const _cDupSnap = await getDocs(_cDupQ);
-            const _cDupActiva = _cDupSnap.docs.find(d => !['cancelada','cancelado'].includes((d.data().estado||'').toLowerCase()));
-            if (_cDupActiva) {
-                mostrarAviso("Horario no disponible", "Este turno ya está reservado. Por favor elegí otro horario.");
-                btn.disabled = false; btn.textContent = "Confirmar turno";
-                return;
-            }
-        } catch(_e) { /* permiso denegado: dejamos continuar, la creación fallará naturalmente */ }
 
         const consultaRef = await addDoc(collection(db,"consultas"), {
             nombre,
@@ -1149,16 +1153,12 @@ window.confirmarConsulta = async function() {
             createdAt: serverTimestamp()
         });
 
-        // Bloquear el slot en calendarExceptions para que sea visible públicamente
-        const blockId = `consulta_${fStr}_${horaSeleccionada.replace(':', '-')}`;
-        setDoc(doc(db, "calendarExceptions", blockId), {
-            fecha: fStr,
-            hora: horaSeleccionada,
-            blocked: true,
-            tipo: "consulta",
-            consultaId: consultaRef.id,
-            updatedAt: serverTimestamp()
-        }).catch(() => {});
+        // Actualizar el lock con el consultaId ahora que ya lo tenemos
+        setDoc(lockRef, {
+            fecha: fStr, hora: horaSeleccionada,
+            blocked: true, tipo: "consulta",
+            consultaId: consultaRef.id, updatedAt: serverTimestamp()
+        }, { merge: true }).catch(() => {});
 
         // Guardar/actualizar perfil del paciente en clients (auto-completado futuro)
         setDoc(doc(db, "clients", dniRaw), {
