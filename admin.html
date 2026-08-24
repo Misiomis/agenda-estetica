@@ -762,8 +762,7 @@
             .grilla-table { min-width: 340px; font-size: 12px; }
             .grilla-th-box { min-width: 66px; font-size: 11px; font-weight: 800; padding: 9px 3px; }
             .grilla-box-sub { display: none; }
-            .gth-full { display: none; }
-            .gth-short { display: inline; }
+            .gth-short { display: none; }
             .grilla-th-hora { width: 38px; min-width: 38px; font-size: 9px; padding: 8px 2px; }
             .grilla-td-hora { font-size: 10px; padding: 0 1px; width: 38px; }
             .grilla-td-box { height: 46px; padding: 2px 2px; }
@@ -3717,6 +3716,8 @@
             const servicioIngresado = document.getElementById('mreg-servicio-hidden').value.trim();
             if (!servicioIngresado) { mostrarAviso("Seleccioná un servicio"); return; }
 
+            const fechaSnap = _mreg_fecha, horaSnap = _mreg_hora;
+
             // Verificar conflicto de boxes — re-check en vivo contra todasLasReservas actual
             const _boxesNuevos = _inferirBoxes(servicioIngresado, '');
             const _reservasVivasAhora = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === horaSnap);
@@ -3748,7 +3749,6 @@
             } catch(_e) { /* si falla el check extra, dejamos continuar — la UI local ya revisó */ }
 
             const clienteSnap = { ..._mreg_clienteSeleccionado };
-            const fechaSnap = _mreg_fecha, horaSnap = _mreg_hora;
 
             // Calcular slots de extension necesarios
             const slotsExtra = _mreg_extraMinutos === 60 ? 2 : _mreg_extraMinutos === 30 ? 1 : 0;
@@ -6635,7 +6635,7 @@
                     rows.push(`<tr class="grilla-sep-row"><td colspan="${COLS}" class="grilla-sep-cell">· · ·</td></tr>`);
                     const miniCols = GRILLA_BOXES.map(b =>
                         `<td style="background:${b.bg};border-color:${b.border}">
-                            <div class="grilla-mini-th">${b.icon} ${b.num > 0 ? 'B'+b.num : 'PV'}</div>
+                            <div class="grilla-mini-th">${b.icon} ${b.label}</div>
                         </td>`
                     ).join('');
                     rows.push(`<tr class="grilla-mini-header"><td class="grilla-td-hora" style="font-size:9px;color:rgba(165,205,188,0.25)">———</td>${miniCols}</tr>`);
