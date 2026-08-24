@@ -904,7 +904,7 @@
                 </div>
                 <div class="grilla-tools">
                     <button class="btn-mini" id="btn-grilla-extra" onclick="grillaToggleExtra()">+ Horarios extra</button>
-                    <button class="btn-mini" onclick="navegar('agenda')" style="border-color:rgba(100,180,140,0.22);color:rgba(140,205,175,0.55);">📅 Vista clásica</button>
+                    <button class="btn-mini" onclick="grillaVistaClasica()" style="border-color:rgba(100,180,140,0.22);color:rgba(140,205,175,0.55);">📅 Vista clásica</button>
                 </div>
                 <div class="grilla-scroll-wrap">
                     <table class="grilla-table" id="grilla-table">
@@ -2475,11 +2475,22 @@
                 const _btnOtroBox = _cardBoxes.length === 0
                     ? `<button class="btn-mini" style="width:100%;margin-top:6px;border-color:rgba(96,165,250,0.40);color:rgba(140,195,255,0.92);background:rgba(96,165,250,0.07);" onclick="registrarReservaManual('${r.fecha}','${r.hora}')">+ Agregar turno en otro box</button>`
                     : '';
+                const _edadR = r.edad || (() => {
+                    const _m = todasLasConsultas.find(c =>
+                        (c.telefono && normalizarTelefono(c.telefono) === normalizarTelefono(r.phone || r.telefono || '')) ||
+                        (c.nombre && c.nombre.toLowerCase().trim() === (r.nombreLimpio||'').toLowerCase().trim())
+                    );
+                    return _m?.edad || null;
+                })();
+                const _boxAsig = r.box ? GRILLA_BOXES.find(b => b.id === r.box) : null;
+                const _boxBadge = _boxAsig
+                    ? `<span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:${_boxAsig.bg};border:1px solid ${_boxAsig.border};margin-left:5px;vertical-align:middle;color:rgba(210,240,225,0.90);">${_boxAsig.icon} ${_boxAsig.label}</span>`
+                    : _boxBadgesHtml(_cardBoxes);
                 return `
                 <div class="detalle-dia-card">
                     ${renderTagOrigen(r)}${duoBadge}${extBadge}<br>
                     ${pac1label}<b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(r.nombreLimpio || 'Sin nombre')}</b> - ${escapeHtml(r.hora || '--:--')} hs<br>
-                    <small>${escapeHtml(r.servicio || 'Servicio')}</small>${_boxBadgesHtml(_cardBoxes)}
+                    <small>${escapeHtml(r.servicio || 'Servicio')}${_edadR ? ` · Edad: ${_edadR}` : ''}</small>${_boxBadge}
                     ${notaDisplay1}
                     ${notaDisplay2}
                     <div class="grid-acciones">
@@ -2523,11 +2534,24 @@
                 const _m2c = _encMsg(`Hola ${_cN1}, recordá el uso de faja o ropa de compresión según las indicaciones recibidas. Espacio Mimar T.`);
                 const _mMioC = _encMsg(`Hola ${_cN1}, te recomendamos potenciar tu tratamiento con MIO UP. Escribinos si querés más información. Espacio Mimar T.`);
                 const _mFraxC = _encMsg(`Hola ${_cN1}, te recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información. Espacio Mimar T.`);
+                const _tieneNotaC = !!(c.detalleSesion && c.detalleSesion.trim());
+                const _notaDisplayC = _tieneNotaC ? `
+                    <div id="ndnc-${c.id}" style="margin-top:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.22);border-radius:10px;padding:10px 34px 10px 10px;font-size:13px;color:rgba(252,211,100,0.90);white-space:pre-wrap;position:relative">${escapeHtml(c.detalleSesion)}<button title="Editar" onclick="activarEdicionNotaConsulta('${c.id}')" style="position:absolute;top:6px;right:8px;background:none;border:none;cursor:pointer;font-size:12px;color:rgba(252,211,100,0.80)">Editar</button></div>
+                    <div id="nenc-${c.id}" style="display:none">
+                        <textarea id="nc-${c.id}" style="width:100%;box-sizing:border-box;margin-top:6px">${escapeHtml(c.detalleSesion)}</textarea>
+                        <div style="display:flex;gap:6px;margin-top:4px">
+                            <button class="btn-save" onclick="guardarNotaConsulta('${c.id}')">Guardar</button>
+                            <button onclick="cancelarEdicionNotaConsulta('${c.id}')" style="border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.07);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;color:rgba(165,205,188,0.85)">Cancelar</button>
+                        </div>
+                    </div>` : `
+                    <textarea id="nc-${c.id}" placeholder="Nota de la sesión..." style="width:100%;box-sizing:border-box;margin-top:8px"></textarea>
+                    <button class="btn-save" onclick="guardarNotaConsulta('${c.id}')">Guardar nota</button>`;
                 const _html = `
                 <div class="detalle-dia-card" style="border-left:3px solid rgba(251,191,36,0.50);">
                     <span style="display:inline-block;background:rgba(251,191,36,0.14);color:${_cEstColor};border:1px solid rgba(251,191,36,0.30);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;letter-spacing:.06em;">Consulta Inicial · ${_cEstLabel}</span>${_boxBadgesHtml([1,2,3,4])}<br>
                     <b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(c.nombre||'Sin nombre')}</b> - ${escapeHtml(c.hora||'--:--')} hs<br>
                     <small>Tel: ${escapeHtml(c.telefono||c.phone||'-')} · Edad: ${c.edad||'-'} · ${escapeHtml(c.domicilio||'-')}</small>
+                    ${_notaDisplayC}
                     <div class="grid-acciones" style="margin-top:8px;">
                         ${_mkWaC(_waConf2,'btn-confirmar','Confirmar')}
                         ${_mkWaC(_waRec2,'btn-recordar','Recordar')}
@@ -3956,7 +3980,40 @@
             document.getElementById(`nd-${id}`).style.display = "block";
             document.getElementById(`ne-${id}`).style.display = "none";
         };
-        
+
+        window.guardarNotaConsulta = async (id) => {
+            const el = document.getElementById(`nc-${id}`);
+            if (!el) return;
+            const nota = el.value.trim();
+            try {
+                mostrarLoader(true);
+                await updateDoc(doc(db, 'consultas', id), { detalleSesion: nota });
+                const idx = todasLasConsultas.findIndex(c => c.id === id);
+                if (idx !== -1) todasLasConsultas[idx].detalleSesion = nota;
+                mostrarAviso('Nota guardada ✓');
+                if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+            } catch(e) {
+                console.error(e);
+                mostrarAviso('No se pudo guardar la nota');
+            } finally { mostrarLoader(false); }
+        };
+
+        window.activarEdicionNotaConsulta = (id) => {
+            document.getElementById(`ndnc-${id}`).style.display = 'none';
+            document.getElementById(`nenc-${id}`).style.display = 'block';
+            document.getElementById(`nc-${id}`).focus();
+        };
+
+        window.cancelarEdicionNotaConsulta = (id) => {
+            document.getElementById(`nenc-${id}`).style.display = 'none';
+            document.getElementById(`ndnc-${id}`).style.display = 'block';
+        };
+
+        window.grillaVistaClasica = () => {
+            verTurnos(_grilla_fecha, null);
+            navegar('agenda');
+        };
+
         window.mostrarAviso = (m, extra = "") => { 
             const c = document.getElementById("toast-container"); 
             const t = document.createElement("div"); 
