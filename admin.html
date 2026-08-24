@@ -1374,7 +1374,8 @@
                             </div>
                             <div>
                                 <label style="display:block;font-size:11px;font-weight:700;color:rgba(165,205,188,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">DNI</label>
-                                <input id="nc-dni" type="text" placeholder="12345678" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(220,242,232,0.92);font-size:14px;outline:none;">
+                                <input id="nc-dni" type="text" placeholder="12345678" oninput="buscarClienteNuevaConsulta()" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(220,242,232,0.92);font-size:14px;outline:none;">
+                                <div id="nc-dni-status" style="font-size:10.5px;margin-top:4px;color:rgba(165,205,188,0.40);min-height:14px;"></div>
                             </div>
                         </div>
                         <div>
@@ -5060,12 +5061,47 @@
             return `${DIAS_ES[f.getDay()]} ${String(d).padStart(2,'0')} de ${MESES_ES[m-1]} ${y}`;
         };
 
+        window.buscarClienteNuevaConsulta = debounce(async () => {
+            const dni = (document.getElementById('nc-dni').value || '').trim();
+            const statusEl = document.getElementById('nc-dni-status');
+            if (dni.length < 6) { if (statusEl) statusEl.textContent = ''; return; }
+            if (statusEl) statusEl.textContent = 'Buscando...';
+            try {
+                const snap = await getDoc(doc(db, 'clients', dni));
+                if (!snap.exists()) {
+                    if (statusEl) statusEl.textContent = '';
+                    return;
+                }
+                const c = snap.data() || {};
+                const nombre   = c.fullName || c.fullLname || c.nombre || c.name || '';
+                const telefono = c.phone || '';
+                if (nombre)   document.getElementById('nc-nombre').value   = nombre;
+                if (telefono) document.getElementById('nc-telefono').value = telefono;
+                // Buscar edad y domicilio en consultas previas del mismo paciente
+                const prevConsulta = [..._consultasCache, ...todasLasConsultas].find(x =>
+                    (telefono && normalizarTelefono(x.telefono||x.phone||'') === normalizarTelefono(telefono)) ||
+                    (nombre && (x.nombre||'').toLowerCase().trim() === nombre.toLowerCase().trim())
+                );
+                if (prevConsulta) {
+                    if (prevConsulta.edad)      document.getElementById('nc-edad').value      = prevConsulta.edad;
+                    if (prevConsulta.domicilio)  document.getElementById('nc-domicilio').value = prevConsulta.domicilio;
+                }
+                if (statusEl) statusEl.style.color = 'rgba(74,222,128,0.80)';
+                if (statusEl) statusEl.textContent = '✓ Datos autocargados';
+            } catch(e) {
+                console.error(e);
+                if (statusEl) statusEl.textContent = '';
+            }
+        }, 400);
+
         window.abrirNuevaConsulta = () => {
             document.getElementById('nc-nombre').value = '';
             document.getElementById('nc-telefono').value = '';
             document.getElementById('nc-edad').value = '';
             document.getElementById('nc-dni').value = '';
             document.getElementById('nc-domicilio').value = '';
+            const st = document.getElementById('nc-dni-status');
+            if (st) { st.textContent = ''; st.style.color = 'rgba(165,205,188,0.40)'; }
             document.getElementById('nc-fecha').value = fechaHoyISO();
             document.getElementById('nc-hora').value = '09:00';
             const m = document.getElementById('modal-nueva-consulta');
