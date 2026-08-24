@@ -737,8 +737,44 @@
         .grilla-celda-default-bloq .gcb-txt { color: rgba(155,160,170,0.40); }
         .grilla-sep-row td { padding: 3px 0 !important; height: auto !important; border: none !important; }
         .grilla-sep-cell { text-align: center; color: rgba(140,180,165,0.18); font-size: 11px; letter-spacing: .2em; }
+        /* ── thead sticky (desktop) ── */
+        .grilla-table thead th {
+            position: sticky; top: 0; z-index: 5;
+            background-color: #111a14; /* fallback sólido para no transparentarse */
+            box-shadow: 0 1px 0 rgba(114,189,153,0.18);
+        }
+        .grilla-th-hora { background-color: #0e1610 !important; }
+        /* ── mini-header entre bloques ── */
+        .grilla-mini-header td {
+            padding: 5px 2px; height: auto;
+            background: rgba(18,28,20,0.96);
+            border-top: 1px solid rgba(114,189,153,0.18) !important;
+            border-bottom: 1px solid rgba(114,189,153,0.18) !important;
+        }
+        .grilla-mini-th {
+            text-align: center; font-size: 11px; font-weight: 800;
+            color: rgba(165,205,188,0.55); letter-spacing: .04em;
+        }
+        /* ── spans full / short ── */
+        .gth-short { display: none; }
+        /* ── mobile vertical ── */
         @media (max-width: 560px) {
-            .grilla-th-box { min-width: 100px; font-size: 10.5px; }
+            .grilla-table { min-width: 340px; font-size: 12px; }
+            .grilla-th-box { min-width: 66px; font-size: 11px; font-weight: 800; padding: 9px 3px; }
+            .grilla-box-sub { display: none; }
+            .gth-full { display: none; }
+            .gth-short { display: inline; }
+            .grilla-th-hora { width: 38px; min-width: 38px; font-size: 9px; padding: 8px 2px; }
+            .grilla-td-hora { font-size: 10px; padding: 0 1px; width: 38px; }
+            .grilla-td-box { height: 46px; padding: 2px 2px; }
+            .grilla-row-15 .grilla-td-box { height: 36px; }
+            .gcl-reg { font-size: 22px; }
+            .gcl-blk { width: 26px; font-size: 13px; color: rgba(165,205,188,0.14); }
+            .grilla-paciente-nombre { font-size: 10.5px; }
+            .grilla-paciente-servicio { font-size: 8.5px; }
+            .grilla-mini-th { font-size: 10.5px; }
+            .gcb-ico { font-size: 11px; }
+            .gcb-txt { font-size: 7px; }
         }
     </style>
 </head>
@@ -875,11 +911,11 @@
                         <thead>
                             <tr>
                                 <th class="grilla-th-hora">Hora</th>
-                                <th class="grilla-th-box" style="background:rgba(200,140,220,0.12)">⬜ Box 1<span class="grilla-box-sub">General</span></th>
-                                <th class="grilla-th-box" style="background:rgba(59,130,246,0.14)">💎 Box 2<span class="grilla-box-sub">Corporal</span></th>
-                                <th class="grilla-th-box" style="background:rgba(167,139,250,0.14)">✨ Box 3<span class="grilla-box-sub">Facial</span></th>
-                                <th class="grilla-th-box" style="background:rgba(52,211,153,0.12)">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></th>
-                                <th class="grilla-th-box" style="background:rgba(251,191,36,0.10)">⚡ Plat. Vibr.<span class="grilla-box-sub">Plataforma</span></th>
+                                <th class="grilla-th-box" style="background:rgba(200,140,220,0.12)"><span class="gth-full">⬜ Box 1<span class="grilla-box-sub">General</span></span><span class="gth-short">⬜ B1</span></th>
+                                <th class="grilla-th-box" style="background:rgba(59,130,246,0.14)"><span class="gth-full">💎 Box 2<span class="grilla-box-sub">Corporal</span></span><span class="gth-short">💎 B2</span></th>
+                                <th class="grilla-th-box" style="background:rgba(167,139,250,0.14)"><span class="gth-full">✨ Box 3<span class="grilla-box-sub">Facial</span></span><span class="gth-short">✨ B3</span></th>
+                                <th class="grilla-th-box" style="background:rgba(52,211,153,0.12)"><span class="gth-full">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></span><span class="gth-short">🌿 B4</span></th>
+                                <th class="grilla-th-box" style="background:rgba(251,191,36,0.10)"><span class="gth-full">⚡ Plat. Vibr.<span class="grilla-box-sub">Plataforma</span></span><span class="gth-short">⚡ PV</span></th>
                             </tr>
                         </thead>
                         <tbody id="grilla-tbody">
@@ -6537,9 +6573,15 @@
                 const isComercial = _esHoraComercial(hora);
                 if (!isComercial && !_grilla_extraSlots) continue;
 
-                // Separador visual entre mañana y tarde
+                // Separador visual + mini-header entre mañana y tarde
                 if (!_grilla_extraSlots && lastHora && lastHora <= '11:30' && hora >= '16:00') {
                     rows.push(`<tr class="grilla-sep-row"><td colspan="${COLS}" class="grilla-sep-cell">· · ·</td></tr>`);
+                    const miniCols = GRILLA_BOXES.map(b =>
+                        `<td style="background:${b.bg};border-color:${b.border}">
+                            <div class="grilla-mini-th">${b.icon} ${b.num > 0 ? 'B'+b.num : 'PV'}</div>
+                        </td>`
+                    ).join('');
+                    rows.push(`<tr class="grilla-mini-header"><td class="grilla-td-hora" style="font-size:9px;color:rgba(165,205,188,0.25)">———</td>${miniCols}</tr>`);
                 }
                 lastHora = hora;
 
