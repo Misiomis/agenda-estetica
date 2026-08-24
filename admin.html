@@ -1320,6 +1320,7 @@
                             <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif;font-size:1.3em;color:rgba(165,205,188,0.95);">Consultas Iniciales</h3>
                             <p style="margin:0;font-size:12.5px;color:rgba(165,205,188,0.52);">Turnos agendados desde la web — sin login de paciente</p>
                         </div>
+                        <button class="btn-mini" onclick="abrirNuevaConsulta()" style="padding:9px 16px;background:rgba(74,222,128,0.12);border-color:rgba(74,222,128,0.35);color:#4ade80;">+ Nueva Consulta</button>
                         <button class="btn-mini" onclick="cargarConsultas()" style="padding:9px 16px;">↻ Actualizar</button>
                     </div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
@@ -1333,6 +1334,60 @@
                     </div>
                 </div>
             </div><!-- /sec-consultas -->
+
+            <!-- Modal: Nueva Consulta Inicial -->
+            <div id="modal-nueva-consulta" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(6,22,15,0.75);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;">
+                <div style="width:100%;max-width:440px;background:linear-gradient(165deg,#0d1f14,#0a1a10);border:1px solid rgba(114,189,153,0.22);border-radius:22px;padding:28px 24px 24px;max-height:90vh;overflow-y:auto;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                        <h3 style="margin:0;font-family:'Playfair Display',serif;font-size:1.15em;color:rgba(165,205,188,0.95);">Nueva Consulta Inicial</h3>
+                        <button onclick="cerrarNuevaConsulta()" style="background:none;border:none;color:rgba(165,205,188,0.50);cursor:pointer;font-size:20px;line-height:1;">✕</button>
+                    </div>
+                    <div style="background:rgba(200,140,220,0.08);border:1px solid rgba(200,140,220,0.22);border-radius:10px;padding:8px 12px;margin-bottom:18px;font-size:12px;color:rgba(210,170,230,0.85);font-weight:700;">⬜ Box 1 · General — siempre</div>
+                    <div style="display:flex;flex-direction:column;gap:13px;">
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:rgba(165,205,188,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Nombre completo *</label>
+                            <input id="nc-nombre" type="text" placeholder="Nombre y apellido" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(220,242,232,0.92);font-size:14px;outline:none;">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:rgba(165,205,188,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Fecha *</label>
+                                <input id="nc-fecha" type="date" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(220,242,232,0.92);font-size:13px;outline:none;">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:rgba(165,205,188,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Hora *</label>
+                                <select id="nc-hora" style="width:100%;box-sizing:border-box;background:rgba(18,35,22,0.95);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(220,242,232,0.92);font-size:13px;outline:none;">
+                                    <option>08:00</option><option>08:30</option><option>09:00</option><option>09:30</option>
+                                    <option>10:00</option><option>10:30</option><option>11:00</option><option>11:30</option>
+                                    <option>16:00</option><option>16:30</option><option>17:00</option><option>17:30</option>
+                                    <option>18:00</option><option>18:30</option><option>19:00</option><option>19:30</option><option>20:00</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:rgba(165,205,188,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Teléfono</label>
+                            <input id="nc-telefono" type="tel" placeholder="3757..." style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(220,242,232,0.92);font-size:14px;outline:none;">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:rgba(165,205,188,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Edad</label>
+                                <input id="nc-edad" type="number" min="1" max="110" placeholder="35" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(220,242,232,0.92);font-size:14px;outline:none;">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:rgba(165,205,188,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">DNI</label>
+                                <input id="nc-dni" type="text" placeholder="12345678" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(220,242,232,0.92);font-size:14px;outline:none;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:rgba(165,205,188,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Barrio / Domicilio</label>
+                            <input id="nc-domicilio" type="text" placeholder="Barrio o localidad" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(220,242,232,0.92);font-size:14px;outline:none;">
+                        </div>
+                        <div style="display:flex;gap:8px;margin-top:4px;">
+                            <button onclick="cerrarNuevaConsulta()" style="flex:1;padding:11px;border-radius:12px;border:1px solid rgba(114,189,153,0.20);background:rgba(255,255,255,0.04);color:rgba(165,205,188,0.70);font-weight:700;cursor:pointer;font-size:13px;">Cancelar</button>
+                            <button onclick="guardarNuevaConsulta()" style="flex:2;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,rgba(74,222,128,0.85),rgba(34,197,94,0.85));color:#0a1a0f;font-weight:800;cursor:pointer;font-size:13px;">Guardar consulta</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
     </div>
@@ -2546,7 +2601,7 @@
                     <button class="btn-save" onclick="guardarNotaConsulta('${c.id}')">Guardar nota</button>`;
                 const _html = `
                 <div class="detalle-dia-card" style="border-left:3px solid rgba(251,191,36,0.50);">
-                    <span style="display:inline-block;background:rgba(251,191,36,0.14);color:${_cEstColor};border:1px solid rgba(251,191,36,0.30);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;letter-spacing:.06em;">Consulta Inicial · ${_cEstLabel}</span>${_boxBadgesHtml([1,2,3,4])}<br>
+                    <span style="display:inline-block;background:rgba(251,191,36,0.14);color:${_cEstColor};border:1px solid rgba(251,191,36,0.30);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;letter-spacing:.06em;">Consulta Inicial · ${_cEstLabel}</span><span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:rgba(200,140,220,0.12);border:1px solid rgba(200,140,220,0.28);margin-left:5px;vertical-align:middle;color:rgba(210,240,225,0.90);">⬜ Box 1 · General</span><br>
                     <b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(c.nombre||'Sin nombre')}</b> - ${escapeHtml(c.hora||'--:--')} hs<br>
                     <small>Tel: ${escapeHtml(c.telefono||c.phone||'-')} · Edad: ${c.edad||'-'} · ${escapeHtml(c.domicilio||'-')}</small>
                     ${_notaDisplayC}
@@ -5005,6 +5060,62 @@
             return `${DIAS_ES[f.getDay()]} ${String(d).padStart(2,'0')} de ${MESES_ES[m-1]} ${y}`;
         };
 
+        window.abrirNuevaConsulta = () => {
+            document.getElementById('nc-nombre').value = '';
+            document.getElementById('nc-telefono').value = '';
+            document.getElementById('nc-edad').value = '';
+            document.getElementById('nc-dni').value = '';
+            document.getElementById('nc-domicilio').value = '';
+            document.getElementById('nc-fecha').value = fechaHoyISO();
+            document.getElementById('nc-hora').value = '09:00';
+            const m = document.getElementById('modal-nueva-consulta');
+            m.style.display = 'flex';
+        };
+
+        window.cerrarNuevaConsulta = () => {
+            document.getElementById('modal-nueva-consulta').style.display = 'none';
+        };
+
+        window.guardarNuevaConsulta = async () => {
+            const nombre = document.getElementById('nc-nombre').value.trim();
+            const fecha  = document.getElementById('nc-fecha').value;
+            const hora   = document.getElementById('nc-hora').value;
+            if (!nombre) { mostrarAviso('El nombre es obligatorio'); return; }
+            if (!fecha)  { mostrarAviso('La fecha es obligatoria');  return; }
+            const datos = {
+                nombre, fecha, hora,
+                telefono:  document.getElementById('nc-telefono').value.trim(),
+                edad:      document.getElementById('nc-edad').value.trim(),
+                dni:       document.getElementById('nc-dni').value.trim(),
+                domicilio: document.getElementById('nc-domicilio').value.trim(),
+                estado: 'pendiente',
+                box: 'b1',
+                origen: 'admin',
+                creadoPor: 'admin_manual',
+                timestamp: serverTimestamp()
+            };
+            try {
+                mostrarLoader(true);
+                cerrarNuevaConsulta();
+                const ref = await addDoc(collection(db, 'consultas'), datos);
+                const nueva = { id: ref.id, ...datos };
+                todasLasConsultas.push(nueva);
+                _consultasCache.unshift(nueva);
+                // Badge de pendientes
+                const pendientes = _consultasCache.filter(c => (c.estado||'pendiente') === 'pendiente').length;
+                const badge = document.getElementById('consultas-badge');
+                if (badge) { badge.textContent = pendientes || ''; badge.style.display = pendientes ? 'inline-block' : 'none'; }
+                window.renderConsultas();
+                if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+                mostrarAviso('Consulta registrada ✓');
+            } catch(e) {
+                console.error(e);
+                mostrarAviso('No se pudo registrar la consulta');
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
         window.cargarConsultas = async function() {
             const cont = document.getElementById('consultas-lista');
             if (!cont) return;
@@ -5082,6 +5193,7 @@
                 <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(60,179,113,0.14);border-radius:18px;padding:18px 20px;position:relative;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
                         <span style="background:rgba(${estado==='confirmada'?'74,222,128':estado==='cancelada'?'255,100,100':'251,191,36'},0.15);border:1px solid rgba(${estado==='confirmada'?'74,222,128':estado==='cancelada'?'255,100,100':'251,191,36'},0.35);color:${estadoColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.06em;">${estadoLabel}</span>
+                        <span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:rgba(200,140,220,0.12);border:1px solid rgba(200,140,220,0.28);color:rgba(210,240,225,0.90);">⬜ Box 1</span>
                         <strong style="font-size:15px;color:rgba(220,242,232,0.92);flex:1;">${escapeHtml(c.nombre||'Sin nombre')}</strong>
                         <span style="font-size:12px;color:rgba(165,205,188,0.50);">DNI: ${c.dni||'-'}</span>
                     </div>
