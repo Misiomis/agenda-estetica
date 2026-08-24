@@ -3677,6 +3677,15 @@
             _mreg_hora = horaNormalizada;
             _mreg_clienteSeleccionado = null;
             _mreg_extraMinutos = 0;
+            if (!_mreg_boxPresel) {
+                // Generar chips de box (sin preselección)
+                const chipsC = document.getElementById('mreg-box-chips');
+                if (chipsC) chipsC.innerHTML = GRILLA_BOXES.map(b =>
+                    `<button type="button" id="mreg-box-chip-${b.id}" onclick="seleccionarBoxMreg('${b.id}')"
+                        style="padding:7px 12px;border-radius:10px;border:1.5px solid ${b.border};background:transparent;color:rgba(200,240,220,0.65);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;"
+                    >${b.icon} ${b.title}</button>`
+                ).join('');
+            }
 
             // Mostrar boxes ocupados en el subtítulo del modal
             const _boxesLabel = _mreg_boxesOcupados.size > 0
@@ -3698,13 +3707,32 @@
             _cargarChipsServicios('mreg-chips-grid', 'mreg-servicio-hidden');
         };
 
+        window.seleccionarBoxMreg = (boxId) => {
+            _mreg_boxPresel = GRILLA_BOXES.find(b => b.id === boxId) || null;
+            GRILLA_BOXES.forEach(b => {
+                const chip = document.getElementById(`mreg-box-chip-${b.id}`);
+                if (!chip) return;
+                if (b.id === boxId) {
+                    chip.style.background = b.bg;
+                    chip.style.color = 'rgba(220,242,232,0.95)';
+                    chip.style.boxShadow = `0 0 0 2px ${b.border}`;
+                    chip.style.fontWeight = '800';
+                } else {
+                    chip.style.background = 'transparent';
+                    chip.style.color = 'rgba(200,240,220,0.50)';
+                    chip.style.boxShadow = 'none';
+                    chip.style.fontWeight = '700';
+                }
+            });
+        };
+
         window.cerrarModalRegistrar = () => {
             document.getElementById('modal-registrar-overlay').classList.remove('open');
             _mreg_clienteSeleccionado = null;
             _mreg_extraMinutos = 0;
             _mreg_boxPresel = null;
-            const row = document.getElementById('mreg-box-row');
-            if (row) row.style.display = 'none';
+            const chipsC = document.getElementById('mreg-box-chips');
+            if (chipsC) chipsC.innerHTML = '';
         };
 
         window.setExtraMinutos = (minutos) => {
@@ -3770,6 +3798,7 @@
             if (!_mreg_clienteSeleccionado) { mostrarAviso("Seleccioná un paciente"); return; }
             const servicioIngresado = document.getElementById('mreg-servicio-hidden').value.trim();
             if (!servicioIngresado) { mostrarAviso("Seleccioná un servicio"); return; }
+            if (!_mreg_boxPresel) { mostrarAviso("Seleccioná el box"); return; }
 
             const fechaSnap = _mreg_fecha, horaSnap = _mreg_hora;
 
@@ -6736,14 +6765,16 @@
         window.grillaAbrirRegistro = (hora, boxId) => {
             const box = GRILLA_BOXES.find(b => b.id === boxId);
             _mreg_boxPresel = box || null;
-            // Reutiliza el modal existente
             registrarReservaManual(_grilla_fecha, hora);
-            // Muestra info del box en el modal
-            const row = document.getElementById('mreg-box-row');
-            const lbl = document.getElementById('mreg-box-label');
-            if (row && lbl && box) {
-                lbl.textContent = `${box.icon} ${box.label}`;
-                row.style.display = 'block';
+            // Generar chips y auto-seleccionar el box de la grilla
+            const chipsC = document.getElementById('mreg-box-chips');
+            if (chipsC) {
+                chipsC.innerHTML = GRILLA_BOXES.map(b =>
+                    `<button type="button" id="mreg-box-chip-${b.id}" onclick="seleccionarBoxMreg('${b.id}')"
+                        style="padding:7px 12px;border-radius:10px;border:1.5px solid ${b.border};background:transparent;color:rgba(200,240,220,0.65);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;"
+                    >${b.icon} ${b.title}</button>`
+                ).join('');
+                if (box) seleccionarBoxMreg(box.id);
             }
         };
 
@@ -6843,9 +6874,9 @@
             <label class="mreg-field-label" for="mreg-nombre-input">Buscar paciente por nombre</label>
             <input type="text" class="mreg-input" id="mreg-nombre-input" placeholder="Empezá a escribir el nombre…" autocomplete="off">
             <div class="mreg-resultados" id="mreg-resultados"></div>
-            <div id="mreg-box-row" style="display:none;margin:4px 0 10px;">
-                <label class="mreg-field-label" style="margin-bottom:6px;">Box asignado</label>
-                <div id="mreg-box-label" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;background:rgba(114,189,153,0.12);border:1px solid rgba(114,189,153,0.30);font-size:13px;font-weight:700;color:rgba(200,240,220,0.90);"></div>
+            <div id="mreg-box-row" style="margin:4px 0 12px;">
+                <label class="mreg-field-label" style="margin-bottom:7px;">Box asignado *</label>
+                <div id="mreg-box-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
             </div>
             <label class="mreg-field-label">Servicio</label>
             <div class="mreg-chips-grid" id="mreg-chips-grid"></div>
