@@ -636,6 +636,89 @@
             .quick-actions { grid-template-columns: 1fr; }
             .quick-actions .btn-mini:last-child { grid-column: auto; }
         }
+
+        /* ══════════════════════════════════════════
+           GRILLA DE BOXES
+        ══════════════════════════════════════════ */
+        .grilla-nav {
+            display: flex; align-items: center; gap: 8px;
+            padding: 14px 16px 8px; flex-wrap: wrap;
+        }
+        .grilla-fecha-titulo {
+            flex: 1; text-align: center;
+            font-family: 'Playfair Display', serif; font-size: 1.05em;
+            color: var(--accento-oscuro); font-weight: 600; min-width: 0;
+        }
+        .grilla-tools {
+            display: flex; gap: 8px; padding: 0 16px 10px; flex-wrap: wrap;
+            align-items: center;
+        }
+        .grilla-scroll-wrap {
+            overflow-x: auto; -webkit-overflow-scrolling: touch;
+            padding: 0 4px 20px;
+        }
+        .grilla-table {
+            width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px;
+        }
+        .grilla-table th, .grilla-table td {
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .grilla-th-hora {
+            width: 50px; min-width: 50px; text-align: center; font-size: 10px;
+            color: rgba(165,205,188,0.45); font-weight: 700; letter-spacing: .04em;
+            padding: 10px 4px; background: rgba(255,255,255,0.03);
+            position: sticky; left: 0; z-index: 3;
+        }
+        .grilla-th-box {
+            text-align: center; font-size: 11.5px; font-weight: 800;
+            letter-spacing: .03em; padding: 10px 6px;
+            color: rgba(210,240,225,0.88); min-width: 120px;
+        }
+        .grilla-box-sub {
+            display: block; font-size: 9px; font-weight: 500;
+            letter-spacing: .07em; text-transform: uppercase;
+            color: rgba(180,220,200,0.50); margin-top: 2px;
+        }
+        .grilla-td-hora {
+            text-align: center; font-size: 11px; font-weight: 700;
+            color: rgba(165,205,188,0.55); padding: 0 2px;
+            background: rgba(255,255,255,0.03);
+            position: sticky; left: 0; z-index: 1; white-space: nowrap;
+        }
+        .grilla-td-box { padding: 3px 4px; height: 38px; vertical-align: middle; }
+        .grilla-row-15 .grilla-td-hora { color: rgba(165,205,188,0.25); font-size: 9.5px; }
+        .grilla-row-15 .grilla-td-box  { height: 30px; }
+        .grilla-celda-libre {
+            display: flex; align-items: center; justify-content: center;
+            height: 100%; cursor: pointer; border-radius: 7px;
+            color: rgba(165,205,188,0.22); font-size: 20px; font-weight: 300;
+            transition: background .15s, color .15s;
+        }
+        .grilla-celda-libre:hover { background: rgba(114,189,153,0.14); color: rgba(165,205,188,0.80); }
+        .grilla-celda-ocupada {
+            display: flex; flex-direction: column; align-items: flex-start;
+            justify-content: center; padding: 3px 7px; height: 100%;
+            border-radius: 7px; background: rgba(114,189,153,0.14);
+            border: 1px solid rgba(114,189,153,0.28); cursor: pointer; overflow: hidden;
+        }
+        .grilla-celda-ocupada:hover { background: rgba(114,189,153,0.22); }
+        .grilla-paciente-nombre {
+            font-size: 11px; font-weight: 700; color: rgba(200,240,220,0.92);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+        }
+        .grilla-paciente-servicio {
+            font-size: 9px; color: rgba(165,205,188,0.55);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+        }
+        .grilla-celda-15bloq {
+            display: flex; align-items: center; justify-content: center;
+            height: 100%; color: rgba(165,205,188,0.15); font-size: 11px;
+            cursor: pointer; border-radius: 5px; transition: background .15s, color .15s;
+        }
+        .grilla-celda-15bloq:hover { background: rgba(251,191,36,0.08); color: rgba(251,191,36,0.50); }
+        @media (max-width: 560px) {
+            .grilla-th-box { min-width: 100px; font-size: 10.5px; }
+        }
     </style>
 </head>
 <body>
@@ -720,7 +803,8 @@
                 </div>
             </div>
             <div class="menu-nav" id="menuNav">
-                <button class="btn-nav active" id="btn-agenda" onclick="navegar('agenda')">📅 Agenda</button>
+                <button class="btn-nav active" id="btn-grilla" onclick="navegar('grilla')">📊 Grilla Boxes</button>
+                <button class="btn-nav" id="btn-agenda" onclick="navegar('agenda')">📅 Agenda</button>
                 <button class="btn-nav" id="btn-buscar" onclick="navegar('buscar')">🔍 Buscar</button>
                 <button class="btn-nav" id="btn-historias" onclick="navegar('historias')">📋 Historias</button>
                 <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">👤 Pacientes</button>
@@ -752,6 +836,37 @@
             </div>
         </div>
         <div class="container">
+
+            <!-- ════════════ GRILLA DE BOXES ════════════ -->
+            <div id="sec-grilla" class="section active">
+                <div class="grilla-nav">
+                    <button class="btn-mini" onclick="grillaNavFecha(-1)">← Ant.</button>
+                    <span class="grilla-fecha-titulo" id="grilla-fecha-titulo">—</span>
+                    <button class="btn-mini" onclick="grillaNavFecha(1)">Sig. →</button>
+                    <button class="btn-mini" onclick="grillaIrHoy()">Hoy</button>
+                </div>
+                <div class="grilla-tools">
+                    <button class="btn-mini" id="btn-toggle-15min" onclick="grillaToggle15()">⏱ Ver slots 15 min</button>
+                    <button class="btn-mini" onclick="navegar('agenda')" style="border-color:rgba(100,180,140,0.22);color:rgba(140,205,175,0.55);">📅 Vista clásica</button>
+                </div>
+                <div class="grilla-scroll-wrap">
+                    <table class="grilla-table" id="grilla-table">
+                        <thead>
+                            <tr>
+                                <th class="grilla-th-hora">Hora</th>
+                                <th class="grilla-th-box" style="background:rgba(167,139,250,0.14)">✨ Box 3<span class="grilla-box-sub">Facial</span></th>
+                                <th class="grilla-th-box" style="background:rgba(59,130,246,0.14)">💎 Box 2<span class="grilla-box-sub">Corporal</span></th>
+                                <th class="grilla-th-box" style="background:rgba(52,211,153,0.12)">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></th>
+                                <th class="grilla-th-box" style="background:rgba(251,191,36,0.10)">⚡ Plat. Vibr.<span class="grilla-box-sub">Plataforma</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="grilla-tbody">
+                            <tr><td colspan="5" style="text-align:center;padding:40px;color:rgba(140,200,170,0.35);font-size:13px;">Iniciando…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div><!-- /sec-grilla -->
+
             <div id="sec-buscador-sesiones" class="section">
                 <div class="detalle-dia-card buscador-sesiones-card" style="margin-bottom:18px; box-shadow:0 6px 24px rgba(63,143,111,0.13); border-radius:22px; border-top:6px solid var(--accento);">
                     <h3 style="margin-top:0; color:var(--accento-oscuro); font-family:'Playfair Display',serif; font-size:1.35em; letter-spacing:0.01em;">Buscador de sesiones</h3>
@@ -760,7 +875,7 @@
                     <div class="cliente-help" style="margin-top:14px; font-size:13px; background:rgba(53,122,92,0.10); border-radius:10px; padding:8px 12px;">Busca todas las sesiones con nota asociada para un paciente. Escribí al menos 2 letras del nombre.</div>
                 </div>
             </div>
-            <div id="sec-agenda" class="section active">
+            <div id="sec-agenda" class="section">
                 <div class="mode-toggle-wrap">
                     <button id="btnCompactMode" class="mode-toggle" onclick="toggleCompactMode()">Modo compacto: OFF</button>
                 </div>
@@ -2140,6 +2255,7 @@
                 poblarServiciosFiltro();
                 filtrarListadoClientes();
                 cargarDiasJornada();
+                window.renderGrilla();
             } catch (error) {
                 console.error(error);
                 mostrarAviso("Error al cargar datos");
@@ -3450,6 +3566,9 @@
             document.getElementById('modal-registrar-overlay').classList.remove('open');
             _mreg_clienteSeleccionado = null;
             _mreg_extraMinutos = 0;
+            _mreg_boxPresel = null;
+            const row = document.getElementById('mreg-box-row');
+            if (row) row.style.display = 'none';
         };
 
         window.setExtraMinutos = (minutos) => {
@@ -3525,6 +3644,14 @@
                 const _bInfo = _BOX_INFO[_conflictoBox]?.label || `Box ${_conflictoBox}`;
                 mostrarAviso(`Conflicto: el Box ${_conflictoBox} (${_bInfo}) ya está ocupado en este horario`);
                 return;
+            }
+            // Si viene de la grilla: verificar que el box específico no esté tomado
+            if (_mreg_boxPresel) {
+                const _boxTomado = _reservasVivasAhora.some(r => _grilla_boxDeReserva(r) === _mreg_boxPresel.id);
+                if (_boxTomado) {
+                    mostrarAviso(`${_mreg_boxPresel.icon} ${_mreg_boxPresel.label} ya tiene un turno a las ${horaSnap} hs`);
+                    return;
+                }
             }
             // Re-check contra Firestore para prevenir race condition entre sesiones
             try {
@@ -3616,7 +3743,9 @@
                     duracionMinutos: durMin,
                     timestamp: serverTimestamp(),
                     creadoPor: "admin_manual",
-                    boxes: _inferirBoxes(servicioIngresado, '')
+                    boxes: _inferirBoxes(servicioIngresado, ''),
+                    box: _mreg_boxPresel?.id || null,
+                    boxLabel: _mreg_boxPresel?.label || null
                 };
                 const ref = await addDoc(collection(db, "reservas"), reservaNueva);
                 // Bloquear slot base en calendarExceptions (visible al público inmediatamente)
@@ -3640,6 +3769,7 @@
                 actualizarKPIs();
                 poblarServiciosFiltro();
                 verTurnos(fechaSnap, document.querySelector('.day.selected'));
+                window.renderGrilla();
                 mostrarAviso(slotsExtension.length > 0 ? `Reserva creada · ${slotsExtension.length} slot${slotsExtension.length>1?'s':''} de extension bloqueados` : "Reserva creada");
             } catch(error) {
                 console.error(error);
@@ -4944,6 +5074,7 @@
             const btn = document.getElementById('btnHamburger');
             if (nav) nav.classList.remove('open');
             if (btn) btn.classList.remove('open');
+            if (s === 'grilla') window.renderGrilla();
             if (s === 'pedidos-kit') window.cargarPedidosKit();
             if (s === 'control') window.cargarSeccionControl();
             if (s === 'clientes') filtrarListadoClientes();
@@ -6211,6 +6342,125 @@
         };
         // ══ FIN CALCULADORA ══
 
+        // ════════════════════════════════════════════════════════════════════
+        // GRILLA DE BOXES — vista principal de agenda
+        // ════════════════════════════════════════════════════════════════════
+        const GRILLA_BOXES = [
+            { id:'b3', num:3, label:'Facial',           icon:'✨', bg:'rgba(167,139,250,0.16)', border:'rgba(167,139,250,0.32)' },
+            { id:'b2', num:2, label:'Corporal',          icon:'💎', bg:'rgba(59,130,246,0.14)',  border:'rgba(59,130,246,0.28)' },
+            { id:'b4', num:4, label:'Relax / Drenaje',  icon:'🌿', bg:'rgba(52,211,153,0.13)',  border:'rgba(52,211,153,0.26)' },
+            { id:'bv', num:0, label:'Plataforma Vibr.',  icon:'⚡', bg:'rgba(251,191,36,0.10)',  border:'rgba(251,191,36,0.24)' },
+        ];
+
+        let _grilla_fecha = fechaHoyISO();
+        let _grilla_show15 = false;
+        let _grilla_slots15On = new Set(); // horas 15-min desbloqueadas manualmente
+        let _mreg_boxPresel = null; // box preseleccionado desde la grilla
+
+        const _grilla_slots = (() => {
+            const s = [];
+            for (let h = 7; h <= 21; h++) {
+                for (let m = 0; m < 60; m += 15) {
+                    if (h === 21 && m > 30) continue;
+                    const hora = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                    s.push({ hora, es30: m === 0 || m === 30 });
+                }
+            }
+            return s;
+        })();
+
+        const _grilla_boxDeReserva = (r) => {
+            if (r.box) return r.box;
+            const bs = _inferirBoxes(r.servicio || '', r.tipo || '');
+            if (bs.includes(3)) return 'b3';
+            if (bs.includes(2)) return 'b2';
+            if (bs.includes(4)) return 'b4';
+            return null;
+        };
+
+        window.grillaNavFecha = (d) => {
+            const [y,m,dd] = _grilla_fecha.split('-').map(Number);
+            const dt = new Date(y, m-1, dd+d);
+            _grilla_fecha = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+            window.renderGrilla();
+        };
+        window.grillaIrHoy = () => { _grilla_fecha = fechaHoyISO(); window.renderGrilla(); };
+        window.grillaToggle15 = () => {
+            _grilla_show15 = !_grilla_show15;
+            const b = document.getElementById('btn-toggle-15min');
+            if (b) b.textContent = _grilla_show15 ? '⏱ Ocultar slots 15 min' : '⏱ Ver slots 15 min';
+            window.renderGrilla();
+        };
+        window.grillaDesbloquear15 = (hora) => {
+            _grilla_slots15On.has(hora) ? _grilla_slots15On.delete(hora) : _grilla_slots15On.add(hora);
+            window.renderGrilla();
+        };
+
+        window.grillaAbrirRegistro = (hora, boxId) => {
+            const box = GRILLA_BOXES.find(b => b.id === boxId);
+            _mreg_boxPresel = box || null;
+            // Reutiliza el modal existente
+            registrarReservaManual(_grilla_fecha, hora);
+            // Muestra info del box en el modal
+            const row = document.getElementById('mreg-box-row');
+            const lbl = document.getElementById('mreg-box-label');
+            if (row && lbl && box) {
+                lbl.textContent = `${box.icon} ${box.label}`;
+                row.style.display = 'block';
+            }
+        };
+
+        window.grillaCeldaOcupada = (reservaId) => {
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            verTurnos(r.fecha, null);
+            navegar('agenda');
+        };
+
+        window.renderGrilla = () => {
+            const tbody = document.getElementById('grilla-tbody');
+            if (!tbody) return;
+
+            // Título fecha
+            const [yy,mm,dd] = _grilla_fecha.split('-').map(Number);
+            const lbl = new Date(yy,mm-1,dd).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+            const titulo = document.getElementById('grilla-fecha-titulo');
+            if (titulo) titulo.textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
+
+            // Reservas del día
+            const del_dia = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === _grilla_fecha);
+
+            const rows = [];
+            for (const { hora, es30 } of _grilla_slots) {
+                if (!es30 && !_grilla_show15) continue;
+                const habilitado = es30 || _grilla_slots15On.has(hora);
+                const rowCls = es30 ? 'grilla-row-30' : 'grilla-row-15';
+                const horaLabel = es30 ? `<strong>${hora}</strong>` : hora;
+
+                const celdas = GRILLA_BOXES.map(box => {
+                    const res = del_dia.find(r => normalizarHora(r.hora) === hora && _grilla_boxDeReserva(r) === box.id);
+                    let inner = '';
+                    if (res) {
+                        const nom = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
+                        const srv = escapeHtml((res.servicio || '').slice(0,22));
+                        inner = `<div class="grilla-celda-ocupada" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv}">
+                            <span class="grilla-paciente-nombre">${nom}</span>
+                            <span class="grilla-paciente-servicio">${srv}</span>
+                        </div>`;
+                    } else if (!habilitado) {
+                        inner = `<div class="grilla-celda-15bloq" onclick="grillaDesbloquear15('${hora}')" title="Slot 15 min · click para habilitar">🔒</div>`;
+                    } else {
+                        inner = `<div class="grilla-celda-libre" onclick="grillaAbrirRegistro('${hora}','${box.id}')" title="Agregar en ${box.label} · ${hora}">+</div>`;
+                    }
+                    return `<td class="grilla-td-box" style="background:${box.bg};border-color:${box.border}">${inner}</td>`;
+                }).join('');
+
+                rows.push(`<tr class="${rowCls}"><td class="grilla-td-hora">${horaLabel}</td>${celdas}</tr>`);
+            }
+            tbody.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="5" style="text-align:center;padding:40px;color:rgba(140,200,170,0.35);font-size:13px;">Sin turnos · hacé click en + para agregar</td></tr>`;
+        };
+        // ══ FIN GRILLA ══
+
     </script>
     <!-- Modal: Registrar turno manualmente -->
     <div id="modal-registrar-overlay" role="dialog" aria-modal="true" aria-labelledby="mreg-title">
@@ -6223,6 +6473,10 @@
             <label class="mreg-field-label" for="mreg-nombre-input">Buscar paciente por nombre</label>
             <input type="text" class="mreg-input" id="mreg-nombre-input" placeholder="Empezá a escribir el nombre…" autocomplete="off">
             <div class="mreg-resultados" id="mreg-resultados"></div>
+            <div id="mreg-box-row" style="display:none;margin:4px 0 10px;">
+                <label class="mreg-field-label" style="margin-bottom:6px;">Box asignado</label>
+                <div id="mreg-box-label" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;background:rgba(114,189,153,0.12);border:1px solid rgba(114,189,153,0.30);font-size:13px;font-weight:700;color:rgba(200,240,220,0.90);"></div>
+            </div>
             <label class="mreg-field-label">Servicio</label>
             <div class="mreg-chips-grid" id="mreg-chips-grid"></div>
             <input type="hidden" id="mreg-servicio-hidden" value="">
