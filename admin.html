@@ -761,7 +761,6 @@
         @media (max-width: 560px) {
             .grilla-table { min-width: 340px; font-size: 12px; }
             .grilla-th-box { min-width: 66px; font-size: 11px; font-weight: 800; padding: 9px 3px; }
-            .grilla-box-sub { display: none; }
             .gth-short { display: none; }
             .grilla-th-hora { width: 38px; min-width: 38px; font-size: 9px; padding: 8px 2px; }
             .grilla-td-hora { font-size: 10px; padding: 0 1px; width: 38px; }
@@ -6461,11 +6460,11 @@
         // GRILLA DE BOXES — vista principal de agenda
         // ════════════════════════════════════════════════════════════════════
         const GRILLA_BOXES = [
-            { id:'b1', num:1, label:'Box 1',            icon:'⬜', bg:'rgba(200,140,220,0.12)', border:'rgba(200,140,220,0.28)' },
-            { id:'b2', num:2, label:'Corporal',          icon:'💎', bg:'rgba(59,130,246,0.14)',  border:'rgba(59,130,246,0.28)' },
-            { id:'b3', num:3, label:'Facial',           icon:'✨', bg:'rgba(167,139,250,0.16)', border:'rgba(167,139,250,0.32)' },
-            { id:'b4', num:4, label:'Relax / Drenaje',  icon:'🌿', bg:'rgba(52,211,153,0.13)',  border:'rgba(52,211,153,0.26)' },
-            { id:'bv', num:0, label:'Plataforma Vibr.',  icon:'⚡', bg:'rgba(251,191,36,0.10)',  border:'rgba(251,191,36,0.24)' },
+            { id:'b1', num:1, label:'Box 1',           title:'Box 1',       sub:'General',        icon:'⬜', bg:'rgba(200,140,220,0.12)', border:'rgba(200,140,220,0.28)' },
+            { id:'b2', num:2, label:'Corporal',         title:'Box 2',       sub:'Corporal',        icon:'💎', bg:'rgba(59,130,246,0.14)',  border:'rgba(59,130,246,0.28)' },
+            { id:'b3', num:3, label:'Facial',           title:'Box 3',       sub:'Facial',          icon:'✨', bg:'rgba(167,139,250,0.16)', border:'rgba(167,139,250,0.32)' },
+            { id:'b4', num:4, label:'Relax / Drenaje',  title:'Box 4',       sub:'Relax · Drenaje', icon:'🌿', bg:'rgba(52,211,153,0.13)',  border:'rgba(52,211,153,0.26)' },
+            { id:'bv', num:0, label:'Plataforma Vibr.', title:'Plat. Vibr.', sub:'Plataforma',      icon:'⚡', bg:'rgba(251,191,36,0.10)',  border:'rgba(251,191,36,0.24)' },
         ];
 
         // 0=Dom 1=Lun 2=Mar 3=Mié 4=Jue 5=Vie 6=Sáb
@@ -6635,7 +6634,7 @@
                     rows.push(`<tr class="grilla-sep-row"><td colspan="${COLS}" class="grilla-sep-cell">· · ·</td></tr>`);
                     const miniCols = GRILLA_BOXES.map(b =>
                         `<td style="background:${b.bg};border-color:${b.border}">
-                            <div class="grilla-mini-th">${b.icon} ${b.label}</div>
+                            <div class="grilla-mini-th">${b.icon} ${b.title}<span class="grilla-box-sub">${b.sub}</span></div>
                         </td>`
                     ).join('');
                     rows.push(`<tr class="grilla-mini-header"><td class="grilla-td-hora" style="font-size:9px;color:rgba(165,205,188,0.25)">———</td>${miniCols}</tr>`);
