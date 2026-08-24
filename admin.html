@@ -3889,6 +3889,7 @@
             }
 
             try {
+                const _boxGuardar = _mreg_boxPresel ? { id: _mreg_boxPresel.id, label: _mreg_boxPresel.label } : null;
                 mostrarLoader(true);
                 cerrarModalRegistrar();
                 const reservaNueva = {
@@ -3911,8 +3912,8 @@
                     timestamp: serverTimestamp(),
                     creadoPor: "admin_manual",
                     boxes: _inferirBoxes(servicioIngresado, ''),
-                    box: _mreg_boxPresel?.id || null,
-                    boxLabel: _mreg_boxPresel?.label || null
+                    box: _boxGuardar?.id || null,
+                    boxLabel: _boxGuardar?.label || null
                 };
                 const ref = await addDoc(collection(db, "reservas"), reservaNueva);
                 // Bloquear slot base en calendarExceptions (visible al público inmediatamente)
