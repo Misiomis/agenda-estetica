@@ -689,12 +689,20 @@
         .grilla-row-15 .grilla-td-hora { color: rgba(165,205,188,0.25); font-size: 9.5px; }
         .grilla-row-15 .grilla-td-box  { height: 30px; }
         .grilla-celda-libre {
-            display: flex; align-items: center; justify-content: center;
-            height: 100%; cursor: pointer; border-radius: 7px;
-            color: rgba(165,205,188,0.22); font-size: 20px; font-weight: 300;
-            transition: background .15s, color .15s;
+            display: flex; align-items: center; height: 100%; border-radius: 7px; overflow: hidden;
         }
-        .grilla-celda-libre:hover { background: rgba(114,189,153,0.14); color: rgba(165,205,188,0.80); }
+        .gcl-reg {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            height: 100%; cursor: pointer; font-size: 20px; font-weight: 300;
+            color: rgba(165,205,188,0.22); transition: background .15s, color .15s;
+        }
+        .gcl-reg:hover { background: rgba(114,189,153,0.14); color: rgba(165,205,188,0.82); }
+        .gcl-blk {
+            display: flex; align-items: center; justify-content: center;
+            width: 20px; height: 100%; cursor: pointer; font-size: 10px;
+            color: rgba(165,205,188,0.07); transition: background .15s, color .15s;
+        }
+        .gcl-blk:hover { background: rgba(251,191,36,0.10); color: rgba(251,191,36,0.58); }
         .grilla-celda-ocupada {
             display: flex; flex-direction: column; align-items: flex-start;
             justify-content: center; padding: 3px 7px; height: 100%;
@@ -710,12 +718,15 @@
             font-size: 9px; color: rgba(165,205,188,0.55);
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
         }
-        .grilla-celda-15bloq {
-            display: flex; align-items: center; justify-content: center;
-            height: 100%; color: rgba(165,205,188,0.15); font-size: 11px;
-            cursor: pointer; border-radius: 5px; transition: background .15s, color .15s;
+        .grilla-celda-bloq {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; cursor: pointer; border-radius: 7px; gap: 1px;
+            background: rgba(251,191,36,0.05); border: 1px dashed rgba(251,191,36,0.20);
+            transition: background .15s;
         }
-        .grilla-celda-15bloq:hover { background: rgba(251,191,36,0.08); color: rgba(251,191,36,0.50); }
+        .grilla-celda-bloq:hover { background: rgba(251,191,36,0.14); }
+        .gcb-ico { font-size: 10px; line-height: 1; }
+        .gcb-txt { font-size: 7.5px; color: rgba(251,191,36,0.45); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
         @media (max-width: 560px) {
             .grilla-th-box { min-width: 100px; font-size: 10.5px; }
         }
@@ -846,7 +857,6 @@
                     <button class="btn-mini" onclick="grillaIrHoy()">Hoy</button>
                 </div>
                 <div class="grilla-tools">
-                    <button class="btn-mini" id="btn-toggle-15min" onclick="grillaToggle15()">⏱ Ver slots 15 min</button>
                     <button class="btn-mini" onclick="navegar('agenda')" style="border-color:rgba(100,180,140,0.22);color:rgba(140,205,175,0.55);">📅 Vista clásica</button>
                 </div>
                 <div class="grilla-scroll-wrap">
@@ -2255,7 +2265,7 @@
                 poblarServiciosFiltro();
                 filtrarListadoClientes();
                 cargarDiasJornada();
-                window.renderGrilla();
+                cargarAdminBlocks(_grilla_fecha);
             } catch (error) {
                 console.error(error);
                 mostrarAviso("Error al cargar datos");
@@ -6353,8 +6363,7 @@
         ];
 
         let _grilla_fecha = fechaHoyISO();
-        let _grilla_show15 = false;
-        let _grilla_slots15On = new Set(); // horas 15-min desbloqueadas manualmente
+        let _grilla_adminBlocks = new Map(); // key `${hora}_${boxId}` → docId en calendarExceptions
         let _mreg_boxPresel = null; // box preseleccionado desde la grilla
 
         const _grilla_slots = (() => {
@@ -6378,22 +6387,45 @@
             return null;
         };
 
+        const cargarAdminBlocks = async (fecha) => {
+            try {
+                const snap = await getDocs(query(collection(db,'calendarExceptions'), where('fecha','==',fecha), where('source','==','admin')));
+                _grilla_adminBlocks.clear();
+                snap.forEach(d => {
+                    const { hora, boxId } = d.data();
+                    if (hora && boxId) _grilla_adminBlocks.set(`${hora}_${boxId}`, d.id);
+                });
+            } catch(_e) {}
+            window.renderGrilla();
+        };
+
         window.grillaNavFecha = (d) => {
             const [y,m,dd] = _grilla_fecha.split('-').map(Number);
             const dt = new Date(y, m-1, dd+d);
             _grilla_fecha = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
-            window.renderGrilla();
+            cargarAdminBlocks(_grilla_fecha);
         };
-        window.grillaIrHoy = () => { _grilla_fecha = fechaHoyISO(); window.renderGrilla(); };
-        window.grillaToggle15 = () => {
-            _grilla_show15 = !_grilla_show15;
-            const b = document.getElementById('btn-toggle-15min');
-            if (b) b.textContent = _grilla_show15 ? '⏱ Ocultar slots 15 min' : '⏱ Ver slots 15 min';
-            window.renderGrilla();
+        window.grillaIrHoy = () => { _grilla_fecha = fechaHoyISO(); cargarAdminBlocks(_grilla_fecha); };
+
+        window.grillaBloquearSlot = async (hora, boxId) => {
+            const key = `${hora}_${boxId}`;
+            const docId = `adm_${_grilla_fecha}_${hora.replace(':','-')}_${boxId}`;
+            try {
+                await setDoc(doc(db,'calendarExceptions',docId), {
+                    fecha: _grilla_fecha, hora, boxId, adminBlocked: true, source: 'admin', updatedAt: serverTimestamp()
+                });
+                _grilla_adminBlocks.set(key, docId);
+                window.renderGrilla();
+            } catch(e) { console.error('grillaBloquearSlot', e); }
         };
-        window.grillaDesbloquear15 = (hora) => {
-            _grilla_slots15On.has(hora) ? _grilla_slots15On.delete(hora) : _grilla_slots15On.add(hora);
-            window.renderGrilla();
+        window.grillaDesbloquearSlot = async (hora, boxId) => {
+            const key = `${hora}_${boxId}`;
+            const docId = _grilla_adminBlocks.get(key) || `adm_${_grilla_fecha}_${hora.replace(':','-')}_${boxId}`;
+            try {
+                await deleteDoc(doc(db,'calendarExceptions',docId));
+                _grilla_adminBlocks.delete(key);
+                window.renderGrilla();
+            } catch(e) { console.error('grillaDesbloquearSlot', e); }
         };
 
         window.grillaAbrirRegistro = (hora, boxId) => {
@@ -6432,13 +6464,12 @@
 
             const rows = [];
             for (const { hora, es30 } of _grilla_slots) {
-                if (!es30 && !_grilla_show15) continue;
-                const habilitado = es30 || _grilla_slots15On.has(hora);
                 const rowCls = es30 ? 'grilla-row-30' : 'grilla-row-15';
                 const horaLabel = es30 ? `<strong>${hora}</strong>` : hora;
 
                 const celdas = GRILLA_BOXES.map(box => {
                     const res = del_dia.find(r => normalizarHora(r.hora) === hora && _grilla_boxDeReserva(r) === box.id);
+                    const adminBloq = _grilla_adminBlocks.has(`${hora}_${box.id}`);
                     let inner = '';
                     if (res) {
                         const nom = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
@@ -6447,10 +6478,15 @@
                             <span class="grilla-paciente-nombre">${nom}</span>
                             <span class="grilla-paciente-servicio">${srv}</span>
                         </div>`;
-                    } else if (!habilitado) {
-                        inner = `<div class="grilla-celda-15bloq" onclick="grillaDesbloquear15('${hora}')" title="Slot 15 min · click para habilitar">🔒</div>`;
+                    } else if (adminBloq) {
+                        inner = `<div class="grilla-celda-bloq" onclick="grillaDesbloquearSlot('${hora}','${box.id}')" title="Bloqueado · click para desbloquear">
+                            <span class="gcb-ico">🔒</span><span class="gcb-txt">Bloqueado</span>
+                        </div>`;
                     } else {
-                        inner = `<div class="grilla-celda-libre" onclick="grillaAbrirRegistro('${hora}','${box.id}')" title="Agregar en ${box.label} · ${hora}">+</div>`;
+                        inner = `<div class="grilla-celda-libre">
+                            <div class="gcl-reg" onclick="grillaAbrirRegistro('${hora}','${box.id}')" title="Registrar paciente en ${box.label}">+</div>
+                            <div class="gcl-blk" onclick="grillaBloquearSlot('${hora}','${box.id}')" title="Bloquear slot">🔒</div>
+                        </div>`;
                     }
                     return `<td class="grilla-td-box" style="background:${box.bg};border-color:${box.border}">${inner}</td>`;
                 }).join('');
