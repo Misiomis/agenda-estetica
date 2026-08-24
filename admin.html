@@ -727,6 +727,16 @@
         .grilla-celda-bloq:hover { background: rgba(251,191,36,0.14); }
         .gcb-ico { font-size: 10px; line-height: 1; }
         .gcb-txt { font-size: 7.5px; color: rgba(251,191,36,0.45); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+        .grilla-celda-default-bloq {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; cursor: pointer; border-radius: 7px; gap: 1px;
+            background: rgba(120,120,130,0.08); border: 1px dashed rgba(150,155,165,0.18);
+            transition: background .15s;
+        }
+        .grilla-celda-default-bloq:hover { background: rgba(150,155,165,0.16); }
+        .grilla-celda-default-bloq .gcb-txt { color: rgba(155,160,170,0.40); }
+        .grilla-sep-row td { padding: 3px 0 !important; height: auto !important; border: none !important; }
+        .grilla-sep-cell { text-align: center; color: rgba(140,180,165,0.18); font-size: 11px; letter-spacing: .2em; }
         @media (max-width: 560px) {
             .grilla-th-box { min-width: 100px; font-size: 10.5px; }
         }
@@ -857,6 +867,7 @@
                     <button class="btn-mini" onclick="grillaIrHoy()">Hoy</button>
                 </div>
                 <div class="grilla-tools">
+                    <button class="btn-mini" id="btn-grilla-extra" onclick="grillaToggleExtra()">+ Horarios extra</button>
                     <button class="btn-mini" onclick="navegar('agenda')" style="border-color:rgba(100,180,140,0.22);color:rgba(140,205,175,0.55);">📅 Vista clásica</button>
                 </div>
                 <div class="grilla-scroll-wrap">
@@ -864,14 +875,15 @@
                         <thead>
                             <tr>
                                 <th class="grilla-th-hora">Hora</th>
-                                <th class="grilla-th-box" style="background:rgba(167,139,250,0.14)">✨ Box 3<span class="grilla-box-sub">Facial</span></th>
+                                <th class="grilla-th-box" style="background:rgba(200,140,220,0.12)">⬜ Box 1<span class="grilla-box-sub">General</span></th>
                                 <th class="grilla-th-box" style="background:rgba(59,130,246,0.14)">💎 Box 2<span class="grilla-box-sub">Corporal</span></th>
+                                <th class="grilla-th-box" style="background:rgba(167,139,250,0.14)">✨ Box 3<span class="grilla-box-sub">Facial</span></th>
                                 <th class="grilla-th-box" style="background:rgba(52,211,153,0.12)">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></th>
                                 <th class="grilla-th-box" style="background:rgba(251,191,36,0.10)">⚡ Plat. Vibr.<span class="grilla-box-sub">Plataforma</span></th>
                             </tr>
                         </thead>
                         <tbody id="grilla-tbody">
-                            <tr><td colspan="5" style="text-align:center;padding:40px;color:rgba(140,200,170,0.35);font-size:13px;">Iniciando…</td></tr>
+                            <tr><td colspan="6" style="text-align:center;padding:40px;color:rgba(140,200,170,0.35);font-size:13px;">Iniciando…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -6356,15 +6368,36 @@
         // GRILLA DE BOXES — vista principal de agenda
         // ════════════════════════════════════════════════════════════════════
         const GRILLA_BOXES = [
-            { id:'b3', num:3, label:'Facial',           icon:'✨', bg:'rgba(167,139,250,0.16)', border:'rgba(167,139,250,0.32)' },
+            { id:'b1', num:1, label:'Box 1',            icon:'⬜', bg:'rgba(200,140,220,0.12)', border:'rgba(200,140,220,0.28)' },
             { id:'b2', num:2, label:'Corporal',          icon:'💎', bg:'rgba(59,130,246,0.14)',  border:'rgba(59,130,246,0.28)' },
+            { id:'b3', num:3, label:'Facial',           icon:'✨', bg:'rgba(167,139,250,0.16)', border:'rgba(167,139,250,0.32)' },
             { id:'b4', num:4, label:'Relax / Drenaje',  icon:'🌿', bg:'rgba(52,211,153,0.13)',  border:'rgba(52,211,153,0.26)' },
             { id:'bv', num:0, label:'Plataforma Vibr.',  icon:'⚡', bg:'rgba(251,191,36,0.10)',  border:'rgba(251,191,36,0.24)' },
         ];
 
-        let _grilla_fecha = fechaHoyISO();
-        let _grilla_adminBlocks = new Map(); // key `${hora}_${boxId}` → docId en calendarExceptions
-        let _mreg_boxPresel = null; // box preseleccionado desde la grilla
+        // 0=Dom 1=Lun 2=Mar 3=Mié 4=Jue 5=Vie 6=Sáb
+        // 'ALL' = día completo bloqueado; array de [desde,hasta] = rangos bloqueados
+        const DEFAULT_WEEKLY_BLOCKS = {
+            0: 'ALL',                          // Domingo
+            1: [['08:00','11:30']],            // Lunes: mañana bloqueada
+            3: [['08:00','11:30']],            // Miércoles: mañana bloqueada
+            6: [['16:00','17:30']],            // Sábado: inicio de tarde bloqueado
+        };
+        const _esHoraComercial = (hora) =>
+            (hora >= '08:00' && hora <= '11:30') || (hora >= '16:00' && hora <= '20:00');
+        const _esDefaultBloqueado = (hora, dayOfWeek) => {
+            if (!_esHoraComercial(hora)) return true;
+            const rules = DEFAULT_WEEKLY_BLOCKS[dayOfWeek];
+            if (!rules) return false;
+            if (rules === 'ALL') return true;
+            return rules.some(([desde, hasta]) => hora >= desde && hora <= hasta);
+        };
+
+        let _grilla_fecha         = fechaHoyISO();
+        let _grilla_adminBlocks   = new Map(); // `${hora}_${boxId}` → docId
+        let _grilla_adminUnblocks = new Map(); // `${hora}_${boxId}` → docId (override de default)
+        let _grilla_extraSlots    = false;     // mostrar slots fuera de horario comercial
+        let _mreg_boxPresel       = null;
 
         const _grilla_slots = (() => {
             const s = [];
@@ -6381,6 +6414,7 @@
         const _grilla_boxDeReserva = (r) => {
             if (r.box) return r.box;
             const bs = _inferirBoxes(r.servicio || '', r.tipo || '');
+            if (bs.includes(1)) return 'b1';
             if (bs.includes(3)) return 'b3';
             if (bs.includes(2)) return 'b2';
             if (bs.includes(4)) return 'b4';
@@ -6389,11 +6423,15 @@
 
         const cargarAdminBlocks = async (fecha) => {
             try {
-                const snap = await getDocs(query(collection(db,'calendarExceptions'), where('fecha','==',fecha), where('source','==','admin')));
+                const snap = await getDocs(query(collection(db,'calendarExceptions'), where('fecha','==',fecha)));
                 _grilla_adminBlocks.clear();
+                _grilla_adminUnblocks.clear();
                 snap.forEach(d => {
-                    const { hora, boxId } = d.data();
-                    if (hora && boxId) _grilla_adminBlocks.set(`${hora}_${boxId}`, d.id);
+                    const data = d.data();
+                    if (!data.hora || !data.boxId) return;
+                    const key = `${data.hora}_${data.boxId}`;
+                    if (data.source === 'admin')          _grilla_adminBlocks.set(key, d.id);
+                    else if (data.source === 'admin_unblock') _grilla_adminUnblocks.set(key, d.id);
                 });
             } catch(_e) {}
             window.renderGrilla();
@@ -6407,8 +6445,24 @@
         };
         window.grillaIrHoy = () => { _grilla_fecha = fechaHoyISO(); cargarAdminBlocks(_grilla_fecha); };
 
+        window.grillaToggleExtra = () => {
+            _grilla_extraSlots = !_grilla_extraSlots;
+            const btn = document.getElementById('btn-grilla-extra');
+            if (btn) btn.textContent = _grilla_extraSlots ? '— Ocultar extra' : '+ Horarios extra';
+            window.renderGrilla();
+        };
+
         window.grillaBloquearSlot = async (hora, boxId) => {
             const key = `${hora}_${boxId}`;
+            // Si había un admin_unblock, quitarlo (vuelve al estado default)
+            if (_grilla_adminUnblocks.has(key)) {
+                try {
+                    await deleteDoc(doc(db,'calendarExceptions',_grilla_adminUnblocks.get(key)));
+                    _grilla_adminUnblocks.delete(key);
+                    window.renderGrilla();
+                } catch(e) { console.error(e); }
+                return;
+            }
             const docId = `adm_${_grilla_fecha}_${hora.replace(':','-')}_${boxId}`;
             try {
                 await setDoc(doc(db,'calendarExceptions',docId), {
@@ -6426,6 +6480,17 @@
                 _grilla_adminBlocks.delete(key);
                 window.renderGrilla();
             } catch(e) { console.error('grillaDesbloquearSlot', e); }
+        };
+        window.grillaDesbloquearDefault = async (hora, boxId) => {
+            const key = `${hora}_${boxId}`;
+            const docId = `adm_unblk_${_grilla_fecha}_${hora.replace(':','-')}_${boxId}`;
+            try {
+                await setDoc(doc(db,'calendarExceptions',docId), {
+                    fecha: _grilla_fecha, hora, boxId, source: 'admin_unblock', updatedAt: serverTimestamp()
+                });
+                _grilla_adminUnblocks.set(key, docId);
+                window.renderGrilla();
+            } catch(e) { console.error('grillaDesbloquearDefault', e); }
         };
 
         window.grillaAbrirRegistro = (hora, boxId) => {
@@ -6455,21 +6520,38 @@
 
             // Título fecha
             const [yy,mm,dd] = _grilla_fecha.split('-').map(Number);
-            const lbl = new Date(yy,mm-1,dd).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+            const fechaDt = new Date(yy,mm-1,dd);
+            const dayOfWeek = fechaDt.getDay(); // 0=Dom
+            const lbl = fechaDt.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
             const titulo = document.getElementById('grilla-fecha-titulo');
             if (titulo) titulo.textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
 
             // Reservas del día
             const del_dia = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === _grilla_fecha);
 
+            const COLS = GRILLA_BOXES.length + 1;
             const rows = [];
+            let lastHora = null;
+
             for (const { hora, es30 } of _grilla_slots) {
+                const isComercial = _esHoraComercial(hora);
+                if (!isComercial && !_grilla_extraSlots) continue;
+
+                // Separador visual entre mañana y tarde
+                if (!_grilla_extraSlots && lastHora && lastHora <= '11:30' && hora >= '16:00') {
+                    rows.push(`<tr class="grilla-sep-row"><td colspan="${COLS}" class="grilla-sep-cell">· · ·</td></tr>`);
+                }
+                lastHora = hora;
+
                 const rowCls = es30 ? 'grilla-row-30' : 'grilla-row-15';
                 const horaLabel = es30 ? `<strong>${hora}</strong>` : hora;
 
                 const celdas = GRILLA_BOXES.map(box => {
                     const res = del_dia.find(r => normalizarHora(r.hora) === hora && _grilla_boxDeReserva(r) === box.id);
-                    const adminBloq = _grilla_adminBlocks.has(`${hora}_${box.id}`);
+                    const key          = `${hora}_${box.id}`;
+                    const adminBloq    = _grilla_adminBlocks.has(key);
+                    const adminUnbloq  = _grilla_adminUnblocks.has(key);
+                    const defBloq      = _esDefaultBloqueado(hora, dayOfWeek);
                     let inner = '';
                     if (res) {
                         const nom = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
@@ -6482,10 +6564,14 @@
                         inner = `<div class="grilla-celda-bloq" onclick="grillaDesbloquearSlot('${hora}','${box.id}')" title="Bloqueado · click para desbloquear">
                             <span class="gcb-ico">🔒</span><span class="gcb-txt">Bloqueado</span>
                         </div>`;
+                    } else if (defBloq && !adminUnbloq) {
+                        inner = `<div class="grilla-celda-default-bloq" onclick="grillaDesbloquearDefault('${hora}','${box.id}')" title="No disponible · click para habilitar">
+                            <span class="gcb-ico">🚫</span><span class="gcb-txt">No disp.</span>
+                        </div>`;
                     } else {
                         inner = `<div class="grilla-celda-libre">
                             <div class="gcl-reg" onclick="grillaAbrirRegistro('${hora}','${box.id}')" title="Registrar paciente en ${box.label}">+</div>
-                            <div class="gcl-blk" onclick="grillaBloquearSlot('${hora}','${box.id}')" title="Bloquear slot">🔒</div>
+                            <div class="gcl-blk" onclick="grillaBloquearSlot('${hora}','${box.id}')" title="${adminUnbloq ? 'Restablecer bloqueo' : 'Bloquear slot'}">🔒</div>
                         </div>`;
                     }
                     return `<td class="grilla-td-box" style="background:${box.bg};border-color:${box.border}">${inner}</td>`;
@@ -6493,7 +6579,9 @@
 
                 rows.push(`<tr class="${rowCls}"><td class="grilla-td-hora">${horaLabel}</td>${celdas}</tr>`);
             }
-            tbody.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="5" style="text-align:center;padding:40px;color:rgba(140,200,170,0.35);font-size:13px;">Sin turnos · hacé click en + para agregar</td></tr>`;
+            tbody.innerHTML = rows.length
+                ? rows.join('')
+                : `<tr><td colspan="${COLS}" style="text-align:center;padding:40px;color:rgba(140,200,170,0.35);font-size:13px;">Sin turnos · hacé click en + para agregar</td></tr>`;
         };
         // ══ FIN GRILLA ══
 
