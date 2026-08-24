@@ -2536,7 +2536,8 @@
                     );
                     return _m?.edad || null;
                 })();
-                const _boxAsig = r.box ? GRILLA_BOXES.find(b => b.id === r.box) : null;
+                const _boxAsigId = r.box || _grilla_boxDeReserva(r);
+                const _boxAsig = _boxAsigId ? GRILLA_BOXES.find(b => b.id === _boxAsigId) : null;
                 const _boxBadge = _boxAsig
                     ? `<span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:${_boxAsig.bg};border:1px solid ${_boxAsig.border};margin-left:5px;vertical-align:middle;color:rgba(210,240,225,0.90);">${_boxAsig.icon} ${_boxAsig.label}</span>`
                     : _boxBadgesHtml(_cardBoxes);
@@ -3934,6 +3935,7 @@
                 todasLasReservas.push({ id: ref.id, ...reservaNueva, nombreLimpio: clienteSnap.nombre });
                 actualizarKPIs();
                 poblarServiciosFiltro();
+                _grilla_fecha = fechaSnap;
                 verTurnos(fechaSnap, document.querySelector('.day.selected'));
                 window.renderGrilla();
                 mostrarAviso(slotsExtension.length > 0 ? `Reserva creada · ${slotsExtension.length} slot${slotsExtension.length>1?'s':''} de extension bloqueados` : "Reserva creada");
