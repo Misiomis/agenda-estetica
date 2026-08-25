@@ -374,8 +374,7 @@
         }
         .mreg-btn-confirm:hover { filter: brightness(1.06); box-shadow: 0 10px 24px rgba(78,163,127,0.38); }
         .mreg-btn-confirm:disabled { background: rgba(255,255,255,0.10); box-shadow: none; cursor: not-allowed; filter: none; color: rgba(165,205,188,0.40); }
-        #mreg-btn-extra30.activo { background: rgba(90,139,171,0.15) !important; border-color: #5a8fab; color: #5a8fab; font-weight: 600; }
-        #mreg-btn-extra60.activo { background: rgba(122,90,171,0.15) !important; border-color: #7a5aab; color: #7a5aab; font-weight: 600; }
+
 
         /* ── Modal cambio de servicio ── */
         #modal-cambio-servicio-overlay {
@@ -2508,12 +2507,12 @@
                     ? `<span style="display:inline-block;background:rgba(60,100,200,0.14);color:rgba(130,170,240,0.95);border:1px solid rgba(70,120,210,0.28);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">Duo</span>`
                     : '';
 
-                // Badge extension de tiempo
-                const extBadge = r.duracionMinutos >= 90
-                    ? `<span style="display:inline-block;background:rgba(122,90,171,0.15);color:rgba(150,110,210,0.95);border:1px solid rgba(150,110,210,0.35);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">⏱ 1h 30min (+60 min extra)</span>`
-                    : r.duracionMinutos >= 60
-                        ? `<span style="display:inline-block;background:rgba(90,139,171,0.15);color:rgba(90,139,171,0.95);border:1px solid rgba(90,139,171,0.35);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">⏱ 1h (+30 min extra)</span>`
-                        : '';
+                // Badge de hora de salida
+                const _toMinBadge = h => { const [hh,mm]=(h||'00:00').split(':').map(Number); return hh*60+mm; };
+                const _durBadge = r.duracionMinutos || 60;
+                const _endMinBadge = _toMinBadge(normalizarHora(r.hora)) + _durBadge;
+                const _endHBadge = `${String(Math.floor(_endMinBadge/60)).padStart(2,'0')}:${String(_endMinBadge%60).padStart(2,'0')}`;
+                const extBadge = `<span style="display:inline-block;background:rgba(53,122,92,0.14);color:rgba(120,210,170,0.95);border:1px solid rgba(53,122,92,0.32);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">⏱ hasta las ${_endHBadge} hs</span>`;
 
                 // Nota para paciente 1 (o unico)
                 const notaDisplay1 = tieneNota ? `
@@ -3685,7 +3684,7 @@
         };
         
         /* ── Estado del modal de registro ── */
-        let _mreg_fecha = null, _mreg_hora = null, _mreg_clienteSeleccionado = null, _mreg_debounce = null, _mreg_extraMinutos = 0, _mreg_boxesOcupados = new Set();
+        let _mreg_fecha = null, _mreg_hora = null, _mreg_clienteSeleccionado = null, _mreg_debounce = null, _mreg_boxesOcupados = new Set();
 
         /* ── Helper compartido: seleccionar chip ── */
         window.seleccionarChipServicio = (el, hiddenId) => {
@@ -3751,7 +3750,6 @@
             _mreg_fecha = fecha;
             _mreg_hora = horaNormalizada;
             _mreg_clienteSeleccionado = null;
-            _mreg_extraMinutos = 0;
             if (!_mreg_boxPresel) {
                 // Generar chips de box (sin preselección)
                 const chipsC = document.getElementById('mreg-box-chips');
@@ -3771,11 +3769,6 @@
             document.getElementById('mreg-resultados').innerHTML = '';
             document.getElementById('mreg-btn-confirmar').disabled = true;
             document.getElementById('mreg-servicio-hidden').value = '';
-            const btn30 = document.getElementById('mreg-btn-extra30');
-            const btn60 = document.getElementById('mreg-btn-extra60');
-            if (btn30) { btn30.classList.remove('activo'); btn30.textContent = '+ 30 min extra'; }
-            if (btn60) { btn60.classList.remove('activo'); btn60.textContent = '+ 60 min extra'; }
-
             document.getElementById('modal-registrar-overlay').classList.add('open');
             setTimeout(() => document.getElementById('mreg-nombre-input').focus(), 80);
 
@@ -3804,19 +3797,11 @@
         window.cerrarModalRegistrar = () => {
             document.getElementById('modal-registrar-overlay').classList.remove('open');
             _mreg_clienteSeleccionado = null;
-            _mreg_extraMinutos = 0;
             _mreg_boxPresel = null;
             const chipsC = document.getElementById('mreg-box-chips');
             if (chipsC) chipsC.innerHTML = '';
         };
 
-        window.setExtraMinutos = (minutos) => {
-            _mreg_extraMinutos = (_mreg_extraMinutos === minutos) ? 0 : minutos;
-            const btn30 = document.getElementById('mreg-btn-extra30');
-            const btn60 = document.getElementById('mreg-btn-extra60');
-            if (btn30) { btn30.classList.toggle('activo', _mreg_extraMinutos === 30); btn30.textContent = _mreg_extraMinutos === 30 ? '✓ +30 min activados' : '+ 30 min extra'; }
-            if (btn60) { btn60.classList.toggle('activo', _mreg_extraMinutos === 60); btn60.textContent = _mreg_extraMinutos === 60 ? '✓ +60 min activados' : '+ 60 min extra'; }
-        };
 
         document.getElementById('mreg-nombre-input').addEventListener('input', (e) => {
             clearTimeout(_mreg_debounce);
@@ -3908,9 +3893,19 @@
                 );
                 if (_cubiertoPor) {
                     const _nom = _cubiertoPor.nombreLimpio || 'otro paciente';
-                    const _endMin2 = _toMinC(normalizarHora(_cubiertoPor.hora)) + (_cubiertoPor.duracionMinutos || 30);
+                    const _endMin2 = _toMinC(normalizarHora(_cubiertoPor.hora)) + (_cubiertoPor.duracionMinutos || 60);
                     const _endH = `${String(Math.floor(_endMin2/60)).padStart(2,'0')}:${String(_endMin2%60).padStart(2,'0')}`;
-                    mostrarAviso(`${_mreg_boxPresel.icon} ${_mreg_boxPresel.label} está ocupado hasta las ${_endH} hs (turno de ${_nom})`);
+                    const _ovC = document.createElement('div');
+                    _ovC.id = '_mreg_cub_overlay';
+                    _ovC.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.62);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px';
+                    _ovC.innerHTML = `
+                        <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:28px 24px 22px">
+                            <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 8px">${_mreg_boxPresel.icon} Box ocupado</p>
+                            <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 6px"><b>${_mreg_boxPresel.label}</b> tiene un turno en curso.</p>
+                            <p style="font-size:13px;color:#5a7a6e;text-align:center;margin:0 0 16px">El tratamiento de <b>${escapeHtml(_nom)}</b> ocupa el box hasta las <b>${_endH} hs</b>.<br><span style="font-size:12px;color:#8aaa9a">Los tratamientos duran 1 hora — no se puede agendar dentro de ese rango.</span></p>
+                            <button onclick="document.getElementById('_mreg_cub_overlay').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.28)">Entendido</button>
+                        </div>`;
+                    document.body.appendChild(_ovC);
                     return;
                 }
             }
@@ -3928,58 +3923,49 @@
 
             const clienteSnap = { ..._mreg_clienteSeleccionado };
 
-            // Calcular slots de extension necesarios
-            const slotsExtra = _mreg_extraMinutos === 60 ? 2 : _mreg_extraMinutos === 30 ? 1 : 0;
-            const durMin = slotsExtra === 2 ? 90 : slotsExtra === 1 ? 60 : 30;
-            let slotsExtension = [];
-            if (slotsExtra > 0) {
+            // Todos los servicios duran 60 minutos (1 slot de extensión)
+            const durMin = 60;
+            const slotsExtension = (() => {
                 const idxBase = SLOTS_30_COMPLETOS.indexOf(normalizarHora(horaSnap));
-                for (let i = 1; i <= slotsExtra; i++) {
-                    if (idxBase + i < SLOTS_30_COMPLETOS.length) slotsExtension.push(SLOTS_30_COMPLETOS[idxBase + i]);
-                }
-                if (slotsExtension.length < slotsExtra) {
-                    mostrarAviso(`El horario ${horaSnap} no tiene suficientes slots después para extender ${_mreg_extraMinutos} min`);
-                    return;
-                }
-                // Verificar que los slots de extension estén libres
+                if (idxBase >= 0 && idxBase + 1 < SLOTS_30_COMPLETOS.length) return [SLOTS_30_COMPLETOS[idxBase + 1]];
+                return [];
+            })();
+            // Verificar que el slot de extensión esté libre
+            if (slotsExtension.length > 0) {
                 const _blkActivo = (fecha, hora) => {
                     const blk = bloqueosHorarios.get(keyBloqueo(fecha, hora));
                     if (!blk) return false;
                     if (blk.reservaId) return todasLasReservas.some(r => r.id === blk.reservaId && esReservaActiva(r));
                     return true;
                 };
-                const conflictos = slotsExtension.filter(extHora => {
-                    const reservado = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === normalizarHora(extHora));
-                    return reservado || _blkActivo(fechaSnap, extHora);
-                });
-                if (conflictos.length > 0) {
-                    // Buscar alternativas disponibles en ese dia
+                const extHora = slotsExtension[0];
+                const extOcupado = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === normalizarHora(extHora))
+                    || _blkActivo(fechaSnap, extHora);
+                if (extOcupado) {
+                    // Buscar horarios alternativos donde ambos slots (inicio + extensión) estén libres
                     const alternativas = [];
-                    for (let i = 0; i <= SLOTS_30_COMPLETOS.length - 1 - slotsExtra; i++) {
-                        const cand = SLOTS_30_COMPLETOS[i];
+                    for (let i = 0; i <= SLOTS_30_COMPLETOS.length - 2; i++) {
                         let libre = true;
-                        for (let j = 0; j <= slotsExtra; j++) {
+                        for (let j = 0; j <= 1; j++) {
                             const testHora = SLOTS_30_COMPLETOS[i + j];
                             if (todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === normalizarHora(testHora))
-                                || _blkActivo(fechaSnap, testHora)) {
-                                libre = false; break;
-                            }
+                                || _blkActivo(fechaSnap, testHora)) { libre = false; break; }
                         }
-                        if (libre) alternativas.push(cand);
+                        if (libre) alternativas.push(SLOTS_30_COMPLETOS[i]);
                         if (alternativas.length >= 3) break;
                     }
-                    // Mostrar overlay de conflicto amigable
                     const altTexto = alternativas.length > 0
-                        ? `Horarios disponibles con esa duración:\n${alternativas.map(h => '• ' + h + ' hs').join('\n')}`
-                        : 'No hay horarios disponibles ese día para esa duración.';
+                        ? alternativas.map(h => `• ${h} hs`).join('\n')
+                        : 'No hay horarios disponibles ese día.';
                     const ov = document.createElement('div');
                     ov.id = '_mreg_ext_overlay';
-                    ov.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px';
+                    ov.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.62);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px';
                     ov.innerHTML = `
                         <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:28px 24px 22px">
-                            <p style="font-family:'Playfair Display',serif;font-size:17px;color:#2f5a47;text-align:center;margin:0 0 10px">Horario no disponible</p>
-                            <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 8px">El turno de <b>${horaSnap} hs</b> con <b>+${_mreg_extraMinutos} min extra</b> necesita que ${conflictos.map(h=>h+' hs').join(' y ')} también esté${conflictos.length>1?'n':''} libre${conflictos.length>1?'s':''}.</p>
-                            <p style="font-size:13px;color:#6a8e7f;text-align:center;white-space:pre-line;margin:0 0 20px">${altTexto}</p>
+                            <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 8px">⏱ Horario insuficiente</p>
+                            <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 6px">El turno de las <b>${horaSnap} hs</b> no tiene espacio libre a las <b>${extHora} hs</b>.</p>
+                            <p style="font-size:13px;color:#5a7a6e;text-align:center;margin:0 0 14px">Los tratamientos duran <b>1 hora</b> — se necesitan dos slots consecutivos libres.</p>
+                            ${alternativas.length > 0 ? `<p style="font-size:12px;color:#4a7060;text-align:center;margin:0 0 16px;white-space:pre-line;background:rgba(53,122,92,0.08);border-radius:10px;padding:10px 14px"><b>Horarios disponibles ese día:</b>\n${altTexto}</p>` : `<p style="font-size:12px;color:#8a7060;text-align:center;margin:0 0 16px">No hay horarios disponibles ese día para 1 hora.</p>`}
                             <button onclick="document.getElementById('_mreg_ext_overlay').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.28)">Entendido</button>
                         </div>`;
                     document.body.appendChild(ov);
@@ -7303,19 +7289,6 @@
             <label class="mreg-field-label">Servicio</label>
             <div class="mreg-chips-grid" id="mreg-chips-grid"></div>
             <input type="hidden" id="mreg-servicio-hidden" value="">
-            <div style="margin:10px 0 4px;display:flex;gap:8px">
-                <button type="button" id="mreg-btn-extra30"
-                    onclick="setExtraMinutos(30)"
-                    style="flex:1;padding:9px 0;border-radius:10px;border:1.5px dashed #b5cce8;background:transparent;color:#5a8fab;font-size:13px;cursor:pointer;transition:all .2s;">
-                    + 30 min extra
-                </button>
-                <button type="button" id="mreg-btn-extra60"
-                    onclick="setExtraMinutos(60)"
-                    style="flex:1;padding:9px 0;border-radius:10px;border:1.5px dashed #c8b5e8;background:transparent;color:#7a5aab;font-size:13px;cursor:pointer;transition:all .2s;">
-                    + 60 min extra
-                </button>
-            </div>
-            <p style="font-size:11px;color:#8aabb8;margin:2px 0 10px;text-align:center">Solo para casos excepcionales · bloquea el/los siguiente(s) horario(s)</p>
             <div class="mreg-actions">
                 <button class="mreg-btn-cancel" onclick="cerrarModalRegistrar()">Cancelar</button>
                 <button class="mreg-btn-confirm" id="mreg-btn-confirmar" disabled onclick="confirmarRegistroManual()">Registrar turno</button>
