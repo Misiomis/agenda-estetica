@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificado · Curso de Automaquillaje · Espacio Mimar T</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; }
+    body {
+        font-family: 'Jost', sans-serif;
+        background: #f5f0eb;
+        color: #2a1f18;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+        padding: 24px 16px 40px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* ── BOTÓN IMPRIMIR (no se imprime) ── */
+    .print-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        width: 100%;
+        max-width: 760px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+    @media print { .print-bar { display: none !important; } }
+
+    .btn-print {
+        padding: 10px 22px;
+        border: none; border-radius: 10px;
+        background: linear-gradient(135deg, #ec4899, #be185d);
+        color: #fff; font-family: 'Jost', sans-serif;
+        font-size: 13px; font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(236,72,153,0.30);
+        transition: box-shadow .2s;
+    }
+    .btn-print:hover { box-shadow: 0 8px 24px rgba(236,72,153,0.50); }
+    .btn-close {
+        padding: 10px 22px;
+        border: 1px solid rgba(42,31,24,0.25); border-radius: 10px;
+        background: transparent;
+        color: rgba(42,31,24,0.55);
+        font-family: 'Jost', sans-serif;
+        font-size: 13px; font-weight: 500;
+        cursor: pointer;
+    }
+
+    /* ── CERTIFICADO ── */
+    .cert {
+        width: 100%;
+        max-width: 760px;
+        background: #fff;
+        border-radius: 4px;
+        box-shadow: 0 12px 48px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+        position: relative;
+        overflow: hidden;
+        padding: 0;
+    }
+
+    /* Borde decorativo superior */
+    .cert-top-bar {
+        height: 10px;
+        background: linear-gradient(90deg, #ec4899, #f9a8d4, #4ade80, #f9a8d4, #ec4899);
+    }
+
+    /* Contenido */
+    .cert-body {
+        padding: clamp(40px, 7vw, 72px) clamp(32px, 7vw, 72px);
+        position: relative;
+        text-align: center;
+    }
+
+    /* Ornamento de fondo */
+    .cert-body::before {
+        content: '✦';
+        position: absolute;
+        font-size: 320px;
+        color: rgba(236,72,153,0.03);
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        font-family: serif;
+        line-height: 1;
+    }
+
+    .cert-logo {
+        width: 68px; height: 68px; border-radius: 50%;
+        border: 2px solid rgba(236,72,153,0.30);
+        object-fit: cover;
+        margin: 0 auto 20px;
+        display: block;
+    }
+    .cert-emisor {
+        font-size: 11px; font-weight: 700; letter-spacing: .24em;
+        text-transform: uppercase; color: rgba(236,72,153,0.65);
+        margin-bottom: 6px;
+    }
+    .cert-espacio {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: clamp(22px, 4vw, 30px);
+        font-weight: 300; letter-spacing: .04em;
+        color: #1a120c;
+        margin-bottom: 32px;
+    }
+
+    .cert-line { height: 1px; background: linear-gradient(90deg, transparent, rgba(236,72,153,0.25), transparent); margin: 0 0 32px; }
+
+    .cert-certifica {
+        font-size: 12px; font-weight: 600; letter-spacing: .20em;
+        text-transform: uppercase; color: rgba(42,31,24,0.45);
+        margin-bottom: 10px;
+    }
+    .cert-nombre {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: clamp(32px, 7vw, 52px);
+        font-weight: 400;
+        font-style: italic;
+        color: #1a120c;
+        margin-bottom: 10px;
+        line-height: 1.1;
+    }
+    .cert-por {
+        font-size: 13px; color: rgba(42,31,24,0.50);
+        margin-bottom: 28px;
+    }
+    .cert-descripcion {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: clamp(15px, 2.5vw, 19px);
+        color: #2a1f18;
+        line-height: 1.55;
+        max-width: 520px;
+        margin: 0 auto 32px;
+    }
+    .cert-descripcion em { color: rgba(236,72,153,0.80); }
+
+    .cert-line2 { height: 1px; background: linear-gradient(90deg, transparent, rgba(42,31,24,0.12), transparent); margin: 0 0 32px; }
+
+    .cert-firma-area {
+        display: flex;
+        justify-content: center;
+        gap: clamp(40px, 8vw, 100px);
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+    .cert-firma {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+    .cert-firma-linea {
+        width: 140px; height: 1.5px;
+        background: rgba(42,31,24,0.20);
+    }
+    .cert-firma-nombre {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 15px; font-style: italic;
+        color: rgba(42,31,24,0.70);
+    }
+    .cert-firma-rol {
+        font-size: 10px; letter-spacing: .12em;
+        text-transform: uppercase; color: rgba(42,31,24,0.40);
+    }
+
+    .cert-fecha {
+        font-size: 11.5px; color: rgba(42,31,24,0.38);
+        letter-spacing: .08em;
+        margin-bottom: 8px;
+    }
+    .cert-sello {
+        display: inline-block;
+        padding: 5px 16px;
+        border: 1.5px solid rgba(236,72,153,0.30);
+        border-radius: 999px;
+        font-size: 10px; letter-spacing: .14em;
+        text-transform: uppercase; color: rgba(236,72,153,0.55);
+        font-weight: 600;
+    }
+
+    /* Borde decorativo inferior */
+    .cert-bottom-bar {
+        height: 8px;
+        background: linear-gradient(90deg, #4ade80, #f9a8d4, #ec4899, #f9a8d4, #4ade80);
+    }
+
+    /* ── PRINT ── */
+    @media print {
+        body { background: #fff; padding: 0; }
+        .cert {
+            box-shadow: none;
+            max-width: 100%;
+            border-radius: 0;
+        }
+        @page { size: A4 landscape; margin: 10mm; }
+    }
+    </style>
+</head>
+<body>
+
+<div class="print-bar">
+    <button class="btn-close" onclick="window.close()">✕ Cerrar</button>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+</div>
+
+<div class="cert" id="cert">
+    <div class="cert-top-bar"></div>
+
+    <div class="cert-body">
+        <img src="img/logo.png" alt="Espacio Mimar T" class="cert-logo" onerror="this.style.display='none'">
+        <p class="cert-emisor">Espacio Mimar T · Comandante Andresito, Misiones</p>
+        <p class="cert-espacio">Certifica con orgullo</p>
+
+        <div class="cert-line"></div>
+
+        <p class="cert-certifica">Que</p>
+        <p class="cert-nombre" id="cert-nombre">—</p>
+        <p class="cert-por">completó satisfactoriamente el</p>
+        <p class="cert-descripcion">
+            <strong>Curso de Automaquillaje</strong><br>
+            <em>"Aprendé a maquillarte a tu manera"</em><br>
+            dictado por <strong>Gimena Knack</strong>
+        </p>
+
+        <div class="cert-line2"></div>
+
+        <div class="cert-firma-area">
+            <div class="cert-firma">
+                <div class="cert-firma-linea"></div>
+                <span class="cert-firma-nombre">Gimena Knack</span>
+                <span class="cert-firma-rol">Instructora · Espacio Mimar T</span>
+            </div>
+        </div>
+
+        <p class="cert-fecha" id="cert-fecha">—</p>
+        <span class="cert-sello">Curso de Automaquillaje</span>
+    </div>
+
+    <div class="cert-bottom-bar"></div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const nombre = decodeURIComponent(params.get('nombre') || 'Alumna');
+const fecha  = decodeURIComponent(params.get('fecha')  || new Date().toLocaleDateString('es-AR', { day:'numeric', month:'long', year:'numeric' }));
+document.getElementById('cert-nombre').textContent = nombre;
+document.getElementById('cert-fecha').textContent  = fecha;
+document.title = `Certificado · ${nombre} · Espacio Mimar T`;
+</script>
+</body>
+</html>

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espacio Mimar T | Curso de Automaquillaje</title>
+    <link rel="icon" href="img/logo.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+    :root {
+        --bg: #060e0b;
+        --verde: #4ade80;
+        --verde-mid: #3cb371;
+        --rosa: #f9a8d4;
+        --rosa-dark: #ec4899;
+        --rosa-bg: rgba(249,168,212,0.10);
+        --rosa-border: rgba(249,168,212,0.25);
+        --ink: rgba(220,242,232,0.95);
+        --muted: rgba(165,205,188,0.60);
+        --card-bg: rgba(255,255,255,0.035);
+        --card-border: rgba(255,255,255,0.08);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+        font-family: 'Jost', sans-serif;
+        font-weight: 300;
+        background: radial-gradient(circle at 10% 20%, rgba(236,72,153,0.10), transparent 40%),
+                    radial-gradient(circle at 85% 5%, rgba(74,222,128,0.07), transparent 35%),
+                    linear-gradient(160deg, #060e0b 0%, #0c1a14 60%, #080d10 100%);
+        color: var(--ink);
+        min-height: 100dvh;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HERO ── */
+    .hero {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        min-height: clamp(200px, 32vh, 280px);
+        padding: 0 20px 32px;
+        overflow: hidden;
+        text-align: center;
+    }
+    .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at 50% 0%, rgba(236,72,153,0.18) 0%, transparent 65%);
+        pointer-events: none;
+    }
+    .logo-wrap {
+        width: 72px; height: 72px; border-radius: 50%;
+        background: rgba(255,255,255,0.10);
+        border: 1.5px solid rgba(255,255,255,0.30);
+        box-shadow: 0 8px 28px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.25);
+        backdrop-filter: blur(8px);
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 16px;
+    }
+    .logo-wrap img { width: 72%; height: 72%; object-fit: cover; border-radius: 50%; }
+    .hero-eyebrow {
+        font-size: 10px; font-weight: 700; letter-spacing: .20em;
+        text-transform: uppercase; color: rgba(249,168,212,0.55);
+        margin: 0 0 10px;
+    }
+    .hero-title {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: clamp(26px, 6vw, 42px);
+        font-weight: 300; line-height: 1.15; color: #fff;
+        text-shadow: 0 4px 20px rgba(0,0,0,0.30);
+        margin: 0 0 6px;
+    }
+    .hero-title em { font-style: italic; color: var(--rosa); }
+    .hero-sub {
+        font-size: 13px; color: rgba(255,255,255,0.52);
+        font-weight: 400; letter-spacing: .04em;
+        margin: 0 0 4px;
+    }
+    .hero-by {
+        font-size: 11px; font-weight: 600; letter-spacing: .12em;
+        color: rgba(249,168,212,0.55); text-transform: uppercase;
+    }
+
+    /* ── CONTAINER ── */
+    .container { max-width: 560px; margin: 0 auto; padding: 0 18px 60px; }
+
+    /* ── INTRO CARD ── */
+    .intro-card {
+        background: var(--rosa-bg);
+        border: 1px solid var(--rosa-border);
+        border-radius: 20px;
+        padding: 22px 20px;
+        margin-bottom: 24px;
+        text-align: center;
+    }
+    .intro-icon { font-size: 28px; margin-bottom: 10px; display: block; }
+    .intro-text {
+        font-size: 14.5px;
+        color: rgba(220,210,230,0.88);
+        line-height: 1.72;
+        font-weight: 300;
+    }
+    .intro-text strong { color: var(--rosa); font-weight: 600; }
+
+    /* ── FORM CARD ── */
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        padding: 26px 22px;
+    }
+    .form-section-title {
+        font-size: 10px; font-weight: 700; letter-spacing: .18em;
+        text-transform: uppercase; color: var(--muted);
+        margin: 0 0 16px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .form-row { margin-bottom: 16px; }
+    .form-row label {
+        display: block; font-size: 12px; font-weight: 600;
+        letter-spacing: .06em; color: var(--muted);
+        text-transform: uppercase; margin-bottom: 7px;
+    }
+    .form-row input,
+    .form-row textarea,
+    .form-row select {
+        width: 100%;
+        background: rgba(255,255,255,0.045);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 12px;
+        padding: 13px 15px;
+        font-family: 'Jost', sans-serif;
+        font-size: 14px; font-weight: 400;
+        color: var(--ink);
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
+        -webkit-appearance: none;
+    }
+    .form-row input::placeholder,
+    .form-row textarea::placeholder { color: rgba(165,205,188,0.28); }
+    .form-row input:focus,
+    .form-row textarea:focus {
+        border-color: rgba(249,168,212,0.40);
+        box-shadow: 0 0 0 3px rgba(249,168,212,0.08);
+    }
+    .form-row textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 420px) { .form-row-2 { grid-template-columns: 1fr; } }
+
+    /* ── SLIDER DE NIVEL ── */
+    .nivel-label {
+        font-size: 12px; font-weight: 600; letter-spacing: .06em;
+        color: var(--muted); text-transform: uppercase; margin-bottom: 10px; display: block;
+    }
+    .nivel-track-wrap {
+        position: relative;
+        padding: 8px 0 28px;
+    }
+    .nivel-slider {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 6px;
+        border-radius: 99px;
+        background: linear-gradient(to right, rgba(249,168,212,0.15), rgba(249,168,212,0.15));
+        outline: none;
+        position: relative;
+        z-index: 2;
+    }
+    .nivel-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #f9a8d4, #ec4899);
+        border: 2.5px solid rgba(255,255,255,0.60);
+        box-shadow: 0 4px 16px rgba(236,72,153,0.40);
+        cursor: pointer;
+        transition: box-shadow .2s;
+    }
+    .nivel-slider::-webkit-slider-thumb:active {
+        box-shadow: 0 4px 24px rgba(236,72,153,0.65);
+    }
+    .nivel-slider::-moz-range-thumb {
+        width: 26px; height: 26px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #f9a8d4, #ec4899);
+        border: 2px solid rgba(255,255,255,0.60);
+        box-shadow: 0 4px 16px rgba(236,72,153,0.40);
+        cursor: pointer;
+    }
+    .nivel-ticks {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+    }
+    .nivel-ticks span {
+        font-size: 10.5px; font-weight: 600; color: rgba(165,205,188,0.35);
+        min-width: 18px; text-align: center;
+        transition: color .2s, transform .2s;
+    }
+    .nivel-ticks span.activo { color: var(--rosa); transform: scale(1.2); }
+    .nivel-display {
+        text-align: center;
+        margin-top: 14px;
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 28px; font-weight: 300; color: var(--rosa);
+    }
+    .nivel-desc {
+        text-align: center;
+        font-size: 12px; color: rgba(249,168,212,0.55);
+        margin-top: 4px; font-style: italic;
+    }
+
+    /* ── SUBMIT ── */
+    .btn-submit {
+        width: 100%;
+        padding: 16px;
+        border: none; border-radius: 14px;
+        background: linear-gradient(135deg, #ec4899, #be185d);
+        color: #fff; font-family: 'Jost', sans-serif;
+        font-size: 15px; font-weight: 600;
+        letter-spacing: .04em; cursor: pointer;
+        box-shadow: 0 8px 24px rgba(236,72,153,0.35);
+        transition: box-shadow .2s, transform .15s;
+        margin-top: 8px;
+    }
+    .btn-submit:hover { box-shadow: 0 10px 30px rgba(236,72,153,0.50); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ── SEPARADOR ── */
+    .sep { height: 1px; background: rgba(255,255,255,0.06); margin: 24px 0; }
+
+    /* ── ESTADO ── */
+    .estado-msg {
+        display: none;
+        text-align: center;
+        padding: 20px;
+        border-radius: 16px;
+        font-size: 14px;
+        line-height: 1.6;
+        margin-top: 16px;
+    }
+    .estado-msg.ok {
+        display: block;
+        background: rgba(74,222,128,0.08);
+        border: 1px solid rgba(74,222,128,0.22);
+        color: rgba(140,220,180,0.92);
+    }
+    .estado-msg.err {
+        display: block;
+        background: rgba(248,113,113,0.08);
+        border: 1px solid rgba(248,113,113,0.22);
+        color: rgba(248,150,150,0.92);
+    }
+    .estado-msg .estado-ico { font-size: 32px; display: block; margin-bottom: 10px; }
+
+    /* ── VOLVER ── */
+    .back-link {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 12.5px; font-weight: 500;
+        color: rgba(165,205,188,0.50);
+        text-decoration: none;
+        margin-bottom: 20px;
+        transition: color .18s;
+    }
+    .back-link:hover { color: rgba(165,205,188,0.85); }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+    .container > * { animation: fadeUp .4s ease both; }
+    .container > *:nth-child(2) { animation-delay: .06s; }
+    .container > *:nth-child(3) { animation-delay: .12s; }
+    </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+    <div class="logo-wrap"><img src="img/logo.png" alt="Espacio Mimar T"></div>
+    <p class="hero-eyebrow">Espacio Mimar T · Curso</p>
+    <h1 class="hero-title">Automaquillaje<br><em>con Gimena</em></h1>
+    <p class="hero-sub">Aprendé a maquillarte con técnicas que podés usar todos los días</p>
+    <p class="hero-by">Dictado por Gimena Knack</p>
+</div>
+
+<div class="container">
+
+    <a href="/" class="back-link">← Inicio</a>
+
+    <!-- INTRO -->
+    <div class="intro-card">
+        <span class="intro-icon">💄</span>
+        <p class="intro-text">
+            En este curso vas a aprender a maquillarte de forma simple,
+            con <strong>técnicas que podés usar todos los días</strong>
+            y adaptar completamente a vos.<br><br>
+            Antes de arrancar, completá tus datos para que Gimena pueda
+            preparar la clase según tu nivel y tus expectativas.
+        </p>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="form-card" id="form-card">
+        <p class="form-section-title">Tus datos</p>
+
+        <div class="form-row-2">
+            <div class="form-row">
+                <label for="f-nombre">Nombre</label>
+                <input type="text" id="f-nombre" placeholder="Tu nombre" autocomplete="given-name">
+            </div>
+            <div class="form-row">
+                <label for="f-apellido">Apellido</label>
+                <input type="text" id="f-apellido" placeholder="Tu apellido" autocomplete="family-name">
+            </div>
+        </div>
+
+        <div class="form-row-2">
+            <div class="form-row">
+                <label for="f-dni">DNI</label>
+                <input type="text" id="f-dni" placeholder="Sin puntos" inputmode="numeric" maxlength="10">
+            </div>
+            <div class="form-row">
+                <label for="f-tel">Teléfono</label>
+                <input type="tel" id="f-tel" placeholder="Ej: 3764 123456" inputmode="tel" autocomplete="tel">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label for="f-email">Email</label>
+            <input type="email" id="f-email" placeholder="tu@email.com" autocomplete="email" inputmode="email">
+        </div>
+
+        <div class="form-row-2">
+            <div class="form-row">
+                <label for="f-nacim">Fecha de nacimiento</label>
+                <input type="date" id="f-nacim" max="">
+            </div>
+            <div class="form-row">
+                <label for="f-edad">Edad</label>
+                <input type="number" id="f-edad" placeholder="Años" min="10" max="99" inputmode="numeric">
+            </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <p class="form-section-title">Tu relación con el maquillaje</p>
+
+        <label class="nivel-label">Del 1 al 10, ¿cuánto sabés de maquillaje?</label>
+        <div class="nivel-track-wrap">
+            <input type="range" class="nivel-slider" id="f-nivel" min="1" max="10" value="5">
+            <div class="nivel-ticks" id="nivel-ticks">
+                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+            </div>
+        </div>
+        <div class="nivel-display" id="nivel-display">5</div>
+        <div class="nivel-desc" id="nivel-desc">Algo sé, pero quiero aprender más</div>
+
+        <div class="sep"></div>
+
+        <div class="form-row">
+            <label for="f-expectativas">¿Qué esperás de la clase?</label>
+            <textarea id="f-expectativas" placeholder="Contanos qué te gustaría aprender, si tenés alguna duda puntual, si hay algo que nunca lograste hacer sola..."></textarea>
+        </div>
+
+        <button class="btn-submit" id="btn-enviar" onclick="enviarFormulario()">Inscribirme al curso 💄</button>
+        <div class="estado-msg" id="estado-msg"></div>
+    </div>
+
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDQo5GFmXJniHxHnIRqHkifX5-S9RWwniM",
+    authDomain: "estetica-8d067.firebaseapp.com",
+    projectId: "estetica-8d067",
+    storageBucket: "estetica-8d067.appspot.com",
+    messagingSenderId: "843876697660",
+    appId: "1:843876697660:web:3b7bddac8a7c88f5dde5bf"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── Slider de nivel ──
+const nivelDescripciones = {
+    1:  'Nunca me maquillé sola',
+    2:  'Solo rubor o brillo',
+    3:  'Uso lo básico del día a día',
+    4:  'Algo de base y máscara',
+    5:  'Algo sé, pero quiero aprender más',
+    6:  'Me maquillo sola bastante bien',
+    7:  'Manejo técnicas de contouring',
+    8:  'Me la banco muy bien',
+    9:  'Domino la mayoría de técnicas',
+    10: 'Maquilladora profesional'
+};
+
+const slider = document.getElementById('f-nivel');
+const display = document.getElementById('nivel-display');
+const desc = document.getElementById('nivel-desc');
+const ticks = document.querySelectorAll('#nivel-ticks span');
+
+function actualizarSlider() {
+    const v = parseInt(slider.value);
+    const pct = ((v - 1) / 9) * 100;
+    slider.style.background = `linear-gradient(to right, rgba(236,72,153,0.70) ${pct}%, rgba(255,255,255,0.08) ${pct}%)`;
+    display.textContent = v;
+    desc.textContent = nivelDescripciones[v] || '';
+    ticks.forEach((t, i) => t.classList.toggle('activo', i + 1 === v));
+}
+slider.addEventListener('input', actualizarSlider);
+actualizarSlider();
+
+// ── Auto-calcular edad desde fecha ──
+document.getElementById('f-nacim').addEventListener('change', function() {
+    const val = this.value;
+    if (!val) return;
+    const hoy = new Date();
+    const nac = new Date(val);
+    let edad = hoy.getFullYear() - nac.getFullYear();
+    const m = hoy.getMonth() - nac.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+    if (edad >= 0 && edad <= 120) document.getElementById('f-edad').value = edad;
+});
+
+// ── Límite máximo de fecha ──
+const hoy = new Date();
+const pad = n => String(n).padStart(2, '0');
+document.getElementById('f-nacim').max = `${hoy.getFullYear()}-${pad(hoy.getMonth()+1)}-${pad(hoy.getDate())}`;
+
+// ── Enviar formulario ──
+window.enviarFormulario = async function() {
+    const nombre    = document.getElementById('f-nombre').value.trim();
+    const apellido  = document.getElementById('f-apellido').value.trim();
+    const dni       = document.getElementById('f-dni').value.trim();
+    const telefono  = document.getElementById('f-tel').value.trim();
+    const email     = document.getElementById('f-email').value.trim();
+    const nacim     = document.getElementById('f-nacim').value;
+    const edad      = document.getElementById('f-edad').value;
+    const nivel     = parseInt(document.getElementById('f-nivel').value);
+    const expectativas = document.getElementById('f-expectativas').value.trim();
+
+    if (!nombre || !apellido || !dni || !telefono) {
+        mostrarEstado('err', '⚠️', 'Por favor completá nombre, apellido, DNI y teléfono.');
+        return;
+    }
+
+    const btn = document.getElementById('btn-enviar');
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    try {
+        await addDoc(collection(db, 'cursoMaquillaje'), {
+            nombre: `${nombre} ${apellido}`.trim(),
+            apellido,
+            nombreSolo: nombre,
+            dni,
+            telefono,
+            email,
+            fechaNacimiento: nacim,
+            edad: edad ? parseInt(edad) : null,
+            nivelMaquillaje: nivel,
+            nivelDesc: nivelDescripciones[nivel] || '',
+            expectativas,
+            estado: 'inscripta',
+            fechaRegistro: new Date().toISOString().slice(0, 10),
+            timestamp: serverTimestamp()
+        });
+
+        document.getElementById('form-card').style.display = 'none';
+        mostrarEstado('ok', '🎉',
+            `¡Listo, ${nombre}! Tu inscripción al curso de automaquillaje quedó registrada.\n\nGimena va a ponerse en contacto con vos pronto para coordinar los detalles.`
+        );
+    } catch(e) {
+        console.error(e);
+        btn.disabled = false;
+        btn.textContent = 'Inscribirme al curso 💄';
+        mostrarEstado('err', '❌', 'Ocurrió un error al enviar. Intentá de nuevo o escribinos por WhatsApp.');
+    }
+};
+
+function mostrarEstado(tipo, ico, txt) {
+    const el = document.getElementById('estado-msg');
+    el.className = `estado-msg ${tipo}`;
+    el.innerHTML = `<span class="estado-ico">${ico}</span>${txt.replace(/\n/g,'<br>')}`;
+}
+</script>
+</body>
+</html>

@@ -866,6 +866,10 @@
                     ✨ Consultas Iniciales
                     <span id="consultas-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:#e53935;color:#fff;font-size:10px;font-weight:800;border-radius:999px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px;"></span>
                 </button>
+                <button class="btn-nav btn-nav-full" id="btn-cursos" onclick="navegar('cursos')" style="position:relative;background:rgba(249,168,212,0.10);border-color:rgba(249,168,212,0.28);color:rgba(249,168,212,0.90);font-weight:700;">
+                    💄 Mis Cursos
+                    <span id="cursos-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:#e53935;color:#fff;font-size:10px;font-weight:800;border-radius:999px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px;"></span>
+                </button>
                 <button class="btn-nav" id="btn-buscador-sesiones" onclick="navegar('buscador-sesiones')">🔎 Sesiones</button>
                 <button class="btn-nav" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">📦 Kit</button>
                 <button class="btn-nav" id="btn-calculadora" onclick="navegar('calculadora')" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.28);color:rgba(200,186,255,0.88);">🧮 Calculadora</button>
@@ -1299,6 +1303,28 @@
                 </div>
 
             </div><!-- /sec-control -->
+
+            <!-- ══ MIS CURSOS ══ -->
+            <div id="sec-cursos" class="section">
+                <div class="detalle-dia-card" style="margin-bottom:18px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:0;">
+                            <h3 style="margin:0 0 3px;font-family:'Playfair Display',serif;font-size:1.15em;color:rgba(249,168,212,0.95);">💄 Curso de Automaquillaje</h3>
+                            <p style="margin:0;font-size:12.5px;color:rgba(165,205,188,0.52);">Inscriptas desde la web — Dictado por Gimena</p>
+                        </div>
+                        <button class="btn-mini" onclick="cargarCursos()" style="padding:9px 16px;background:rgba(249,168,212,0.12);border-color:rgba(249,168,212,0.35);color:rgba(249,168,212,0.90);">↻ Actualizar</button>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+                        <button class="btn-mini" id="filtro-cursos-todos" onclick="filtrarCursos('todos')" style="background:rgba(249,168,212,0.15);border-color:rgba(249,168,212,0.40);color:rgba(249,168,212,0.90);">Todas</button>
+                        <button class="btn-mini" id="filtro-cursos-inscripta" onclick="filtrarCursos('inscripta')">Inscriptas</button>
+                        <button class="btn-mini" id="filtro-cursos-presente" onclick="filtrarCursos('presente')">Presentes</button>
+                        <button class="btn-mini" id="filtro-cursos-cancelada" onclick="filtrarCursos('cancelada')">Canceladas</button>
+                    </div>
+                    <div id="cursos-lista" style="display:flex;flex-direction:column;gap:12px;">
+                        <div style="text-align:center;padding:24px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando inscriptas...</div>
+                    </div>
+                </div>
+            </div><!-- /sec-cursos -->
 
             <!-- ══ CALCULADORA DE SERVICIOS ══ -->
             <div id="sec-calculadora" class="section">
@@ -5495,8 +5521,116 @@
             if (s === 'clientes') filtrarListadoClientes();
             if (s === 'calculadora') window.cargarCalculadora();
             if (s === 'consultas') window.cargarConsultas();
+            if (s === 'cursos') window.cargarCursos();
         };
         
+        // === CURSOS DE MAQUILLAJE ===
+        let _cursosCache = [];
+        let _filtroCursos = 'todos';
+
+        window.cargarCursos = async function() {
+            const cont = document.getElementById('cursos-lista');
+            if (!cont) return;
+            cont.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando...</div>';
+            try {
+                const snap = await getDocs(collection(db, 'cursoMaquillaje'));
+                _cursosCache = [];
+                snap.forEach(d => _cursosCache.push({ id: d.id, ...d.data() }));
+                _cursosCache.sort((a, b) => (b.fechaRegistro||'').localeCompare(a.fechaRegistro||''));
+
+                const pendientes = _cursosCache.filter(c => (c.estado||'inscripta') === 'inscripta').length;
+                const badge = document.getElementById('cursos-badge');
+                if (badge) { badge.textContent = pendientes || ''; badge.style.display = pendientes ? 'inline-block' : 'none'; }
+
+                window.renderCursos();
+            } catch(e) {
+                console.error('Error cargando cursos:', e);
+                cont.innerHTML = '<div style="color:rgba(255,100,100,0.70);padding:16px;font-size:13px;">Error al cargar. Verificá los permisos de Firestore.</div>';
+            }
+        };
+
+        window.filtrarCursos = function(filtro) {
+            _filtroCursos = filtro;
+            ['todos','inscripta','presente','cancelada'].forEach(f => {
+                const btn = document.getElementById(`filtro-cursos-${f}`);
+                if (!btn) return;
+                btn.style.background = f === filtro ? 'rgba(249,168,212,0.18)' : '';
+                btn.style.borderColor = f === filtro ? 'rgba(249,168,212,0.45)' : '';
+                btn.style.color = f === filtro ? 'rgba(249,168,212,0.95)' : '';
+            });
+            window.renderCursos();
+        };
+
+        window.renderCursos = function() {
+            const cont = document.getElementById('cursos-lista');
+            if (!cont) return;
+            const lista = _filtroCursos === 'todos'
+                ? _cursosCache
+                : _cursosCache.filter(c => (c.estado||'inscripta') === _filtroCursos);
+
+            if (!lista.length) {
+                cont.innerHTML = `<div style="text-align:center;padding:28px;color:rgba(165,205,188,0.35);font-size:13px;">
+                    ${_filtroCursos === 'todos' ? 'No hay inscriptas todavía.' : `No hay inscriptas con estado "${_filtroCursos}".`}
+                </div>`;
+                return;
+            }
+
+            const nivelColores = { 1:'#f87171', 2:'#fb923c', 3:'#fbbf24', 4:'#a3e635', 5:'#4ade80', 6:'#34d399', 7:'#22d3ee', 8:'#60a5fa', 9:'#a78bfa', 10:'#f472b6' };
+
+            cont.innerHTML = lista.map(c => {
+                const estado = c.estado || 'inscripta';
+                const estadoColor = estado === 'presente' ? '#4ade80' : estado === 'cancelada' ? 'rgba(255,100,100,0.75)' : 'rgba(249,168,212,0.85)';
+                const estadoLabel = estado === 'presente' ? 'Presente ✓' : estado === 'cancelada' ? 'Cancelada' : 'Inscripta';
+                const nivel = c.nivelMaquillaje || 5;
+                const nivelColor = nivelColores[nivel] || '#f472b6';
+                const waPhone = normalizarWA(c.telefono||'');
+                const primerNombre = (c.nombre||'').split(' ')[0] || '';
+                return `
+                <div style="background:rgba(249,168,212,0.04);border:1px solid rgba(249,168,212,0.12);border-radius:18px;padding:18px 20px;position:relative;">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+                        <span style="background:rgba(${estado==='presente'?'74,222,128':estado==='cancelada'?'255,100,100':'249,168,212'},0.12);border:1px solid rgba(${estado==='presente'?'74,222,128':estado==='cancelada'?'255,100,100':'249,168,212'},0.32);color:${estadoColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;">${estadoLabel}</span>
+                        <span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;color:${nivelColor};">Nivel ${nivel}/10</span>
+                        <strong style="font-size:15px;color:rgba(220,242,232,0.92);flex:1;">${escapeHtml(c.nombre||'Sin nombre')}</strong>
+                        ${c.edad ? `<span style="font-size:12px;color:rgba(165,205,188,0.50);">${c.edad} años</span>` : ''}
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;font-size:12.5px;color:rgba(165,205,188,0.60);margin-bottom:12px;">
+                        ${c.dni ? `<span>DNI: <b style="color:rgba(220,242,232,0.75)">${escapeHtml(c.dni)}</b></span>` : ''}
+                        ${c.telefono ? `<span>Tel: <b style="color:rgba(220,242,232,0.75)">${escapeHtml(c.telefono)}</b></span>` : ''}
+                        ${c.email ? `<span>Email: <b style="color:rgba(220,242,232,0.75)">${escapeHtml(c.email)}</b></span>` : ''}
+                        ${c.fechaNacimiento ? `<span>Nac.: <b style="color:rgba(220,242,232,0.75)">${c.fechaNacimiento}</b></span>` : ''}
+                        <span>Inscripta: <b style="color:rgba(220,242,232,0.75)">${c.fechaRegistro||'—'}</b></span>
+                    </div>
+                    ${c.nivelDesc ? `<div style="font-size:12px;color:rgba(249,168,212,0.60);margin-bottom:8px;font-style:italic;">Nivel: "${escapeHtml(c.nivelDesc)}"</div>` : ''}
+                    ${c.expectativas ? `<div style="background:rgba(249,168,212,0.06);border:1px solid rgba(249,168,212,0.14);border-radius:10px;padding:10px 14px;font-size:12.5px;color:rgba(220,242,232,0.70);line-height:1.6;margin-bottom:12px;"><b style="color:rgba(249,168,212,0.70);">Expectativas:</b> ${escapeHtml(c.expectativas)}</div>` : ''}
+                    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;">
+                        ${estado !== 'presente' ? `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','presente')" style="background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;font-size:12px;">✓ Marcar presente</button>` : ''}
+                        ${estado !== 'cancelada' ? `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','cancelada')" style="background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);font-size:12px;">✕ Cancelar</button>` : ''}
+                        <button class="btn-mini" onclick="abrirCertificado('${c.id}')" style="background:rgba(249,168,212,0.10);border-color:rgba(249,168,212,0.30);color:rgba(249,168,212,0.90);font-size:12px;">🎓 Certificado</button>
+                        ${waPhone ? `<a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}, te confirmamos tu inscripción al Curso de Automaquillaje en Espacio Mimar T. Pronto te avisamos los detalles. ¡Te esperamos!`)}" target="_blank" rel="noopener" class="btn-mini" style="text-decoration:none;background:rgba(37,211,102,0.08);border-color:rgba(37,211,102,0.28);color:rgba(100,220,140,0.85);font-size:12px;">📲 WhatsApp</a>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        };
+
+        window.cambiarEstadoCurso = async function(id, nuevoEstado) {
+            try {
+                await updateDoc(doc(db, 'cursoMaquillaje', id), { estado: nuevoEstado });
+                const idx = _cursosCache.findIndex(c => c.id === id);
+                if (idx >= 0) _cursosCache[idx].estado = nuevoEstado;
+                window.renderCursos();
+            } catch(e) {
+                mostrarAviso('Error al actualizar el estado');
+            }
+        };
+
+        window.abrirCertificado = function(id) {
+            const c = _cursosCache.find(x => x.id === id);
+            if (!c) return;
+            const nombre = encodeURIComponent(c.nombre || 'Alumna');
+            const fecha  = encodeURIComponent(new Date().toLocaleDateString('es-AR', { day:'numeric', month:'long', year:'numeric' }));
+            window.open(`/certificado-maquillaje.html?nombre=${nombre}&fecha=${fecha}`, '_blank');
+        };
+
         // === SÁBADOS HORARIOS :30 ===
         window.cargarSabado30Status = async () => {
             try {
