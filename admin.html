@@ -3834,6 +3834,22 @@
                     mostrarAviso(`${_mreg_boxPresel.icon} ${_mreg_boxPresel.label} ya tiene un turno a las ${horaSnap} hs`);
                     return;
                 }
+                // Verificar que el slot no caiga dentro de la duración de otra reserva del mismo box
+                const _toMinC = h => { const [hh,mm]=(h||'00:00').split(':').map(Number); return hh*60+mm; };
+                const _nuevoMin = _toMinC(normalizarHora(horaSnap));
+                const _cubiertoPor = todasLasReservas.find(r =>
+                    esReservaActiva(r) && r.fecha === fechaSnap &&
+                    _grilla_boxDeReserva(r) === _mreg_boxPresel.id &&
+                    r.duracionMinutos > 15 &&
+                    (() => { const sm = _toMinC(normalizarHora(r.hora)); return _nuevoMin > sm && _nuevoMin < sm + r.duracionMinutos; })()
+                );
+                if (_cubiertoPor) {
+                    const _nom = _cubiertoPor.nombreLimpio || 'otro paciente';
+                    const _endMin2 = _toMinC(normalizarHora(_cubiertoPor.hora)) + (_cubiertoPor.duracionMinutos || 30);
+                    const _endH = `${String(Math.floor(_endMin2/60)).padStart(2,'0')}:${String(_endMin2%60).padStart(2,'0')}`;
+                    mostrarAviso(`${_mreg_boxPresel.icon} ${_mreg_boxPresel.label} está ocupado hasta las ${_endH} hs (turno de ${_nom})`);
+                    return;
+                }
             }
             // Re-check contra Firestore para prevenir race condition entre sesiones
             try {
@@ -6884,6 +6900,9 @@
             // Reservas del día
             const del_dia = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === _grilla_fecha);
 
+            // Helper: minutos desde medianoche
+            const _toMin = h => { const [hh,mm]=(h||'00:00').split(':').map(Number); return hh*60+mm; };
+
             const COLS = GRILLA_BOXES.length + 1;
             const rows = [];
             let lastHora = null;
@@ -6907,8 +6926,15 @@
                 const rowCls = es30 ? 'grilla-row-30' : 'grilla-row-15';
                 const horaLabel = es30 ? `<strong>${hora}</strong>` : hora;
 
+                const _slotMin = _toMin(hora);
                 const celdas = GRILLA_BOXES.map(box => {
                     const res = del_dia.find(r => normalizarHora(r.hora) === hora && _grilla_boxDeReserva(r) === box.id);
+                    // Reserva que CUBRE este slot por duración (ej: turno de 90 min que arrancó antes)
+                    const resCubre = !res ? del_dia.find(r => {
+                        if (_grilla_boxDeReserva(r) !== box.id || !(r.duracionMinutos > 15)) return false;
+                        const startMin = _toMin(normalizarHora(r.hora));
+                        return _slotMin > startMin && _slotMin < startMin + r.duracionMinutos;
+                    }) : null;
                     const key          = `${hora}_${box.id}`;
                     const adminBloq    = _grilla_adminBlocks.has(key);
                     const adminUnbloq  = _grilla_adminUnblocks.has(key);
@@ -6920,6 +6946,11 @@
                         inner = `<div class="grilla-celda-ocupada" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv}">
                             <span class="grilla-paciente-nombre">${nom}</span>
                             <span class="grilla-paciente-servicio">${srv}</span>
+                        </div>`;
+                    } else if (resCubre) {
+                        const nom = escapeHtml((resCubre.nombreLimpio || resCubre.nombre || '—').split(' ').slice(0,2).join(' '));
+                        inner = `<div class="grilla-celda-ocupada" onclick="grillaCeldaOcupada('${resCubre.id}')" title="${nom} — en curso" style="opacity:0.45;cursor:pointer;">
+                            <span class="grilla-paciente-nombre" style="font-size:9px;">↕ ${nom}</span>
                         </div>`;
                     } else if (adminBloq) {
                         inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
