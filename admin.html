@@ -782,6 +782,31 @@
         <div class="orb orb-3"></div>
     </div>
 
+    <!-- ── MODAL DE NOVEDADES ── -->
+    <div id="novedades-overlay" style="display:none;position:fixed;inset:0;z-index:300000;background:rgba(6,14,11,0.72);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px;">
+        <div style="width:100%;max-width:420px;background:linear-gradient(165deg,#0e1f18 0%,#1a0d12 100%);border-radius:24px;border:1px solid rgba(249,168,212,0.28);box-shadow:0 32px 72px rgba(0,0,0,0.55),0 0 0 1px rgba(249,168,212,0.08);padding:0;overflow:hidden;">
+            <div style="height:5px;background:linear-gradient(90deg,#ec4899,#f9a8d4,#4ade80,#f9a8d4,#ec4899);"></div>
+            <div style="padding:26px 24px 22px;">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;">
+                    <div>
+                        <p style="font-size:10px;font-weight:700;letter-spacing:.20em;text-transform:uppercase;color:rgba(249,168,212,0.55);margin:0 0 6px;">✦ Novedades del panel</p>
+                        <h3 style="font-family:'Playfair Display',serif;font-size:1.25em;color:rgba(249,168,212,0.95);margin:0;font-weight:700;">💄 Curso de Automaquillaje</h3>
+                    </div>
+                    <button onclick="cerrarNovedades()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:rgba(165,205,188,0.55);font-size:14px;padding:6px 10px;cursor:pointer;flex-shrink:0;margin-left:12px;">✕</button>
+                </div>
+                <p style="font-size:13.5px;color:rgba(220,232,225,0.75);line-height:1.70;margin:0 0 16px;">Espacio Mimar T incorporó el <b style="color:rgba(249,168,212,0.90);">primer curso presencial</b>. Las personas pueden inscribirse desde la web, y vos podés gestionar sesiones, inscriptas y emitir certificados desde <b style="color:rgba(249,168,212,0.90);">Mis Cursos</b>.</p>
+                <ul style="font-size:12.5px;color:rgba(165,205,188,0.65);line-height:1.8;margin:0 0 20px;padding-left:18px;">
+                    <li>Creá sesiones con fecha, horario y capacidad</li>
+                    <li>Mirá quién se inscribió y sus expectativas</li>
+                    <li>Marcá asistencia, enviá recordatorios por WhatsApp</li>
+                    <li>Generá certificados en un clic 🎓</li>
+                </ul>
+                <button onclick="cerrarNovedades();navegar('cursos')" style="width:100%;padding:13px;background:linear-gradient(135deg,#ec4899,#be185d);border:none;border-radius:13px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 20px rgba(236,72,153,0.32);margin-bottom:8px;">Ver Mis Cursos →</button>
+                <button onclick="cerrarNovedades()" style="width:100%;padding:10px;background:transparent;border:1px solid rgba(255,255,255,0.10);border-radius:12px;color:rgba(165,205,188,0.50);font-size:13px;cursor:pointer;">Ahora no</button>
+            </div>
+        </div>
+    </div>
+
     <div id="login-overlay">
         <div class="login-box">
             <h2>Espacio Mimar T</h2>
@@ -1306,14 +1331,58 @@
 
             <!-- ══ MIS CURSOS ══ -->
             <div id="sec-cursos" class="section">
-                <div class="detalle-dia-card" style="margin-bottom:18px;">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+
+                <!-- Header + tabs -->
+                <div class="detalle-dia-card" style="margin-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none;padding-bottom:0;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
                         <div style="flex:1;min-width:0;">
                             <h3 style="margin:0 0 3px;font-family:'Playfair Display',serif;font-size:1.15em;color:rgba(249,168,212,0.95);">💄 Curso de Automaquillaje</h3>
                             <p style="margin:0;font-size:12.5px;color:rgba(165,205,188,0.52);">Inscriptas desde la web — Dictado por Gimena</p>
                         </div>
                         <button class="btn-mini" onclick="cargarCursos()" style="padding:9px 16px;background:rgba(249,168,212,0.12);border-color:rgba(249,168,212,0.35);color:rgba(249,168,212,0.90);">↻ Actualizar</button>
                     </div>
+                    <div style="display:flex;gap:6px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px;">
+                        <button id="tab-sesiones-btn" onclick="mostrarTabCurso('sesiones')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(249,168,212,0.40);background:rgba(249,168,212,0.12);color:rgba(249,168,212,0.95);font-size:13px;font-weight:700;cursor:pointer;">📅 Sesiones</button>
+                        <button id="tab-inscriptas-btn" onclick="mostrarTabCurso('inscriptas')" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.10);background:transparent;color:rgba(165,205,188,0.55);font-size:13px;font-weight:600;cursor:pointer;">👥 Inscriptas</button>
+                    </div>
+                </div>
+
+                <!-- Panel: Sesiones -->
+                <div id="panel-sesiones-curso" class="detalle-dia-card" style="border-top-left-radius:0;border-top-right-radius:0;border-top:none;margin-bottom:12px;">
+                    <p style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(249,168,212,0.45);margin:0 0 14px;">Agenda de sesiones</p>
+                    <!-- Form nueva sesión -->
+                    <div style="background:rgba(249,168,212,0.05);border:1px solid rgba(249,168,212,0.16);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+                        <p style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(249,168,212,0.50);margin:0 0 12px;">+ Nueva sesión</p>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                            <div>
+                                <label style="display:block;font-size:11px;color:rgba(165,205,188,0.55);margin-bottom:4px;">Fecha</label>
+                                <input type="date" id="ns-fecha" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:9px 12px;color:rgba(220,242,232,0.90);font-size:13px;outline:none;">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;color:rgba(165,205,188,0.55);margin-bottom:4px;">Capacidad (lugares)</label>
+                                <input type="number" id="ns-cap" value="10" min="1" max="100" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:9px 12px;color:rgba(220,242,232,0.90);font-size:13px;outline:none;">
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                            <div>
+                                <label style="display:block;font-size:11px;color:rgba(165,205,188,0.55);margin-bottom:4px;">Hora inicio</label>
+                                <input type="time" id="ns-inicio" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:9px 12px;color:rgba(220,242,232,0.90);font-size:13px;outline:none;">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;color:rgba(165,205,188,0.55);margin-bottom:4px;">Hora fin</label>
+                                <input type="time" id="ns-fin" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:9px 12px;color:rgba(220,242,232,0.90);font-size:13px;outline:none;">
+                            </div>
+                        </div>
+                        <button onclick="agregarSesionCurso()" style="width:100%;padding:11px;background:linear-gradient(135deg,rgba(236,72,153,0.80),rgba(190,24,93,0.90));border:none;border-radius:10px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">Crear sesión</button>
+                    </div>
+                    <!-- Lista de sesiones -->
+                    <div id="sesiones-lista" style="display:flex;flex-direction:column;gap:10px;">
+                        <div style="text-align:center;padding:20px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando sesiones...</div>
+                    </div>
+                </div>
+
+                <!-- Panel: Inscriptas -->
+                <div id="panel-inscriptas-curso" class="detalle-dia-card" style="display:none;border-top-left-radius:0;border-top-right-radius:0;border-top:none;margin-bottom:12px;">
                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
                         <button class="btn-mini" id="filtro-cursos-todos" onclick="filtrarCursos('todos')" style="background:rgba(249,168,212,0.15);border-color:rgba(249,168,212,0.40);color:rgba(249,168,212,0.90);">Todas</button>
                         <button class="btn-mini" id="filtro-cursos-inscripta" onclick="filtrarCursos('inscripta')">Inscriptas</button>
@@ -1324,6 +1393,7 @@
                         <div style="text-align:center;padding:24px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando inscriptas...</div>
                     </div>
                 </div>
+
             </div><!-- /sec-cursos -->
 
             <!-- ══ CALCULADORA DE SERVICIOS ══ -->
@@ -1750,6 +1820,12 @@
                     }
                     ocultarLoginError();
                     mostrarPanelAdmin();
+                    if (!sessionStorage.getItem('novedades_seen')) {
+                        setTimeout(() => {
+                            const ov = document.getElementById('novedades-overlay');
+                            if (ov) { ov.style.display = 'flex'; }
+                        }, 900);
+                    }
                     await cargarTodo();
                     cargarTemaAdmin();
                 } catch (error) {
@@ -5524,29 +5600,172 @@
             if (s === 'cursos') window.cargarCursos();
         };
         
+        // === NOVEDADES ===
+        window.cerrarNovedades = () => {
+            sessionStorage.setItem('novedades_seen', '1');
+            const ov = document.getElementById('novedades-overlay');
+            if (ov) ov.style.display = 'none';
+        };
+
         // === CURSOS DE MAQUILLAJE ===
         let _cursosCache = [];
+        let _cursoSesiones = [];
         let _filtroCursos = 'todos';
+        let _tabCursoActual = 'sesiones';
+
+        const _diasES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+        const _mesesES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        const _fechaLindaCurso = (iso) => {
+            if (!iso) return '—';
+            const [y,m,d] = iso.split('-').map(Number);
+            const dt = new Date(y, m-1, d);
+            return `${_diasES[dt.getDay()]} ${d} de ${_mesesES[m-1]} de ${y}`;
+        };
+
+        window.mostrarTabCurso = function(tab) {
+            _tabCursoActual = tab;
+            const btns = { sesiones: document.getElementById('tab-sesiones-btn'), inscriptas: document.getElementById('tab-inscriptas-btn') };
+            const panels = { sesiones: document.getElementById('panel-sesiones-curso'), inscriptas: document.getElementById('panel-inscriptas-curso') };
+            Object.entries(btns).forEach(([k, btn]) => {
+                if (!btn) return;
+                const activo = k === tab;
+                btn.style.background = activo ? 'rgba(249,168,212,0.12)' : 'transparent';
+                btn.style.borderColor = activo ? 'rgba(249,168,212,0.40)' : 'rgba(255,255,255,0.10)';
+                btn.style.color = activo ? 'rgba(249,168,212,0.95)' : 'rgba(165,205,188,0.55)';
+                btn.style.fontWeight = activo ? '700' : '600';
+            });
+            Object.entries(panels).forEach(([k, p]) => { if (p) p.style.display = k === tab ? 'block' : 'none'; });
+        };
 
         window.cargarCursos = async function() {
-            const cont = document.getElementById('cursos-lista');
-            if (!cont) return;
-            cont.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando...</div>';
+            const contS = document.getElementById('sesiones-lista');
+            const contI = document.getElementById('cursos-lista');
+            if (contS) contS.innerHTML = '<div style="text-align:center;padding:16px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando...</div>';
+            if (contI) contI.innerHTML = '<div style="text-align:center;padding:16px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando...</div>';
             try {
-                const snap = await getDocs(collection(db, 'cursoMaquillaje'));
+                const [sesSnap, insSnap] = await Promise.all([
+                    getDocs(collection(db, 'cursoSesiones')),
+                    getDocs(collection(db, 'cursoMaquillaje'))
+                ]);
+                _cursoSesiones = [];
+                sesSnap.forEach(d => _cursoSesiones.push({ id: d.id, ...d.data() }));
+                _cursoSesiones.sort((a, b) => {
+                    const ka = `${a.fecha}${a.horaInicio}`, kb = `${b.fecha}${b.horaInicio}`;
+                    return ka.localeCompare(kb);
+                });
+
+                // Seed sesiones iniciales si no hay ninguna
+                if (_cursoSesiones.length === 0) {
+                    const seed = [
+                        { fecha:'2026-08-28', horaInicio:'14:30', horaFin:'16:00', capacidad:10, activa:true },
+                        { fecha:'2026-08-28', horaInicio:'20:00', horaFin:'21:30', capacidad:10, activa:true }
+                    ];
+                    for (const s of seed) {
+                        const ref = await addDoc(collection(db, 'cursoSesiones'), { ...s, creadoEn: serverTimestamp() });
+                        _cursoSesiones.push({ id: ref.id, ...s });
+                    }
+                }
+
                 _cursosCache = [];
-                snap.forEach(d => _cursosCache.push({ id: d.id, ...d.data() }));
+                insSnap.forEach(d => _cursosCache.push({ id: d.id, ...d.data() }));
                 _cursosCache.sort((a, b) => (b.fechaRegistro||'').localeCompare(a.fechaRegistro||''));
 
                 const pendientes = _cursosCache.filter(c => (c.estado||'inscripta') === 'inscripta').length;
                 const badge = document.getElementById('cursos-badge');
                 if (badge) { badge.textContent = pendientes || ''; badge.style.display = pendientes ? 'inline-block' : 'none'; }
 
+                window.renderSesionesCurso();
                 window.renderCursos();
+                window.mostrarTabCurso(_tabCursoActual);
             } catch(e) {
                 console.error('Error cargando cursos:', e);
-                cont.innerHTML = '<div style="color:rgba(255,100,100,0.70);padding:16px;font-size:13px;">Error al cargar. Verificá los permisos de Firestore.</div>';
+                const msg = '<div style="color:rgba(255,100,100,0.70);padding:16px;font-size:13px;">Error al cargar. Verificá los permisos de Firestore.</div>';
+                if (contS) contS.innerHTML = msg;
+                if (contI) contI.innerHTML = msg;
             }
+        };
+
+        window.renderSesionesCurso = function() {
+            const cont = document.getElementById('sesiones-lista');
+            if (!cont) return;
+            if (!_cursoSesiones.length) {
+                cont.innerHTML = '<div style="text-align:center;padding:24px;color:rgba(165,205,188,0.35);font-size:13px;">No hay sesiones todavía. Creá la primera arriba.</div>';
+                return;
+            }
+            cont.innerHTML = _cursoSesiones.map(s => {
+                const inscCount = _cursosCache.filter(c => c.sesionId === s.id && (c.estado||'inscripta') !== 'cancelada').length;
+                const cap = s.capacidad || 10;
+                const pct = Math.min(100, Math.round((inscCount / cap) * 100));
+                const casi = pct >= 80;
+                const lleno = inscCount >= cap;
+                const colorBar = lleno ? '#f87171' : casi ? '#fbbf24' : '#4ade80';
+                return `
+                <div style="background:rgba(249,168,212,0.04);border:1px solid rgba(249,168,212,${s.activa?'0.18':'0.07'});border-radius:14px;padding:14px 16px;opacity:${s.activa?'1':'0.55'};">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+                        <span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(${s.activa?'249,168,212':'165,205,188'},0.12);border:1px solid rgba(${s.activa?'249,168,212':'165,205,188'},0.25);color:rgba(${s.activa?'249,168,212':'165,205,188'},0.85);">${s.activa?'Activa':'Inactiva'}</span>
+                        <strong style="flex:1;font-size:14px;color:rgba(220,242,232,0.92);">${_fechaLindaCurso(s.fecha)}</strong>
+                        <span style="font-size:13px;font-weight:700;color:rgba(249,168,212,0.80);">${s.horaInicio} – ${s.horaFin} hs</span>
+                    </div>
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:rgba(165,205,188,0.55);margin-bottom:5px;">
+                            <span>Inscriptas: <b style="color:rgba(220,242,232,0.80)">${inscCount}</b> / ${cap}</span>
+                            <span style="color:${colorBar};font-weight:700;">${lleno?'¡Completo!':casi?'Casi lleno':pct+'% ocupado'}</span>
+                        </div>
+                        <div style="height:5px;border-radius:99px;background:rgba(255,255,255,0.07);">
+                            <div style="height:5px;border-radius:99px;background:${colorBar};width:${pct}%;transition:width .4s;"></div>
+                        </div>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <button class="btn-mini" onclick="toggleSesionCurso('${s.id}')" style="font-size:12px;${s.activa?'background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.80)':'background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.25);color:#4ade80'}">${s.activa?'🔒 Bloquear':'🔓 Activar'}</button>
+                        <button class="btn-mini" onclick="eliminarSesionCurso('${s.id}')" style="font-size:12px;background:rgba(255,100,100,0.04);border-color:rgba(255,100,100,0.16);color:rgba(255,130,130,0.60);">🗑 Eliminar</button>
+                        <button class="btn-mini" onclick="mostrarTabCurso('inscriptas')" style="font-size:12px;background:rgba(249,168,212,0.08);border-color:rgba(249,168,212,0.22);color:rgba(249,168,212,0.80);">👥 Ver inscriptas</button>
+                    </div>
+                </div>`;
+            }).join('');
+        };
+
+        window.agregarSesionCurso = async function() {
+            const fecha = document.getElementById('ns-fecha').value;
+            const inicio = document.getElementById('ns-inicio').value;
+            const fin = document.getElementById('ns-fin').value;
+            const cap = parseInt(document.getElementById('ns-cap').value) || 10;
+            if (!fecha || !inicio || !fin) { mostrarAviso('Completá fecha, hora inicio y hora fin'); return; }
+            try {
+                const data = { fecha, horaInicio: inicio, horaFin: fin, capacidad: cap, activa: true, creadoEn: serverTimestamp() };
+                const ref = await addDoc(collection(db, 'cursoSesiones'), data);
+                _cursoSesiones.push({ id: ref.id, ...data });
+                _cursoSesiones.sort((a, b) => `${a.fecha}${a.horaInicio}`.localeCompare(`${b.fecha}${b.horaInicio}`));
+                document.getElementById('ns-fecha').value = '';
+                document.getElementById('ns-inicio').value = '';
+                document.getElementById('ns-fin').value = '';
+                window.renderSesionesCurso();
+            } catch(e) { mostrarAviso('Error al crear sesión'); }
+        };
+
+        window.toggleSesionCurso = async function(id) {
+            const idx = _cursoSesiones.findIndex(s => s.id === id);
+            if (idx < 0) return;
+            const nueva = !_cursoSesiones[idx].activa;
+            try {
+                await updateDoc(doc(db, 'cursoSesiones', id), { activa: nueva });
+                _cursoSesiones[idx].activa = nueva;
+                window.renderSesionesCurso();
+            } catch(e) { mostrarAviso('Error al actualizar sesión'); }
+        };
+
+        window.eliminarSesionCurso = async function(id) {
+            const s = _cursoSesiones.find(x => x.id === id);
+            if (!s) return;
+            const inscCount = _cursosCache.filter(c => c.sesionId === id).length;
+            const msg = inscCount > 0
+                ? `Esta sesión tiene ${inscCount} inscripta(s). ¿Eliminarla igual?`
+                : `¿Eliminar la sesión del ${_fechaLindaCurso(s.fecha)} ${s.horaInicio} hs?`;
+            if (!confirm(msg)) return;
+            try {
+                await deleteDoc(doc(db, 'cursoSesiones', id));
+                _cursoSesiones = _cursoSesiones.filter(x => x.id !== id);
+                window.renderSesionesCurso();
+            } catch(e) { mostrarAviso('Error al eliminar sesión'); }
         };
 
         window.filtrarCursos = function(filtro) {
@@ -5569,13 +5788,11 @@
                 : _cursosCache.filter(c => (c.estado||'inscripta') === _filtroCursos);
 
             if (!lista.length) {
-                cont.innerHTML = `<div style="text-align:center;padding:28px;color:rgba(165,205,188,0.35);font-size:13px;">
-                    ${_filtroCursos === 'todos' ? 'No hay inscriptas todavía.' : `No hay inscriptas con estado "${_filtroCursos}".`}
-                </div>`;
+                cont.innerHTML = `<div style="text-align:center;padding:28px;color:rgba(165,205,188,0.35);font-size:13px;">${_filtroCursos === 'todos' ? 'No hay inscriptas todavía.' : `No hay inscriptas con estado "${_filtroCursos}".`}</div>`;
                 return;
             }
 
-            const nivelColores = { 1:'#f87171', 2:'#fb923c', 3:'#fbbf24', 4:'#a3e635', 5:'#4ade80', 6:'#34d399', 7:'#22d3ee', 8:'#60a5fa', 9:'#a78bfa', 10:'#f472b6' };
+            const nivelColores = { 1:'#f87171',2:'#fb923c',3:'#fbbf24',4:'#a3e635',5:'#4ade80',6:'#34d399',7:'#22d3ee',8:'#60a5fa',9:'#a78bfa',10:'#f472b6' };
 
             cont.innerHTML = lista.map(c => {
                 const estado = c.estado || 'inscripta';
@@ -5585,29 +5802,56 @@
                 const nivelColor = nivelColores[nivel] || '#f472b6';
                 const waPhone = normalizarWA(c.telefono||'');
                 const primerNombre = (c.nombre||'').split(' ')[0] || '';
+                const sesion = _cursoSesiones.find(s => s.id === c.sesionId);
+                const sesionLabel = sesion ? `${_fechaLindaCurso(sesion.fecha)} · ${sesion.horaInicio}–${sesion.horaFin} hs` : (c.fecha ? `${_fechaLindaCurso(c.fecha)} · ${c.horaInicio||''} hs` : '');
+                const recMenuId = `rec-curso-${c.id}`;
+                const notaId = `nota-curso-${c.id}`;
+                const notaEditId = `nota-edit-${c.id}`;
+                const waConfirm = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}, te confirmamos tu inscripción al Curso de Automaquillaje en Espacio Mimar T${sesion?` para el ${_fechaLindaCurso(sesion.fecha)} a las ${sesion.horaInicio} hs`:''}. ¡Te esperamos!`)}` : '';
+                const waRecordatorio = waPhone && sesion ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}! Te recordamos que el Curso de Automaquillaje es el ${_fechaLindaCurso(sesion.fecha)} a las ${sesion.horaInicio} hs en Espacio Mimar T. ¡Muchas ganas de verte!💄`)}` : '';
                 return `
                 <div style="background:rgba(249,168,212,0.04);border:1px solid rgba(249,168,212,0.12);border-radius:18px;padding:18px 20px;position:relative;">
-                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
                         <span style="background:rgba(${estado==='presente'?'74,222,128':estado==='cancelada'?'255,100,100':'249,168,212'},0.12);border:1px solid rgba(${estado==='presente'?'74,222,128':estado==='cancelada'?'255,100,100':'249,168,212'},0.32);color:${estadoColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;">${estadoLabel}</span>
                         <span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;color:${nivelColor};">Nivel ${nivel}/10</span>
                         <strong style="font-size:15px;color:rgba(220,242,232,0.92);flex:1;">${escapeHtml(c.nombre||'Sin nombre')}</strong>
                         ${c.edad ? `<span style="font-size:12px;color:rgba(165,205,188,0.50);">${c.edad} años</span>` : ''}
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;font-size:12.5px;color:rgba(165,205,188,0.60);margin-bottom:12px;">
+                    ${sesionLabel ? `<div style="font-size:12px;color:rgba(249,168,212,0.65);margin-bottom:10px;display:flex;align-items:center;gap:6px;">📅 ${sesionLabel}</div>` : ''}
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;font-size:12.5px;color:rgba(165,205,188,0.60);margin-bottom:10px;">
                         ${c.dni ? `<span>DNI: <b style="color:rgba(220,242,232,0.75)">${escapeHtml(c.dni)}</b></span>` : ''}
                         ${c.telefono ? `<span>Tel: <b style="color:rgba(220,242,232,0.75)">${escapeHtml(c.telefono)}</b></span>` : ''}
                         ${c.email ? `<span>Email: <b style="color:rgba(220,242,232,0.75)">${escapeHtml(c.email)}</b></span>` : ''}
                         ${c.fechaNacimiento ? `<span>Nac.: <b style="color:rgba(220,242,232,0.75)">${c.fechaNacimiento}</b></span>` : ''}
                         <span>Inscripta: <b style="color:rgba(220,242,232,0.75)">${c.fechaRegistro||'—'}</b></span>
                     </div>
-                    ${c.nivelDesc ? `<div style="font-size:12px;color:rgba(249,168,212,0.60);margin-bottom:8px;font-style:italic;">Nivel: "${escapeHtml(c.nivelDesc)}"</div>` : ''}
-                    ${c.expectativas ? `<div style="background:rgba(249,168,212,0.06);border:1px solid rgba(249,168,212,0.14);border-radius:10px;padding:10px 14px;font-size:12.5px;color:rgba(220,242,232,0.70);line-height:1.6;margin-bottom:12px;"><b style="color:rgba(249,168,212,0.70);">Expectativas:</b> ${escapeHtml(c.expectativas)}</div>` : ''}
-                    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;">
-                        ${estado !== 'presente' ? `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','presente')" style="background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;font-size:12px;">✓ Marcar presente</button>` : ''}
-                        ${estado !== 'cancelada' ? `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','cancelada')" style="background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);font-size:12px;">✕ Cancelar</button>` : ''}
-                        <button class="btn-mini" onclick="abrirCertificado('${c.id}')" style="background:rgba(249,168,212,0.10);border-color:rgba(249,168,212,0.30);color:rgba(249,168,212,0.90);font-size:12px;">🎓 Certificado</button>
-                        ${waPhone ? `<a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}, te confirmamos tu inscripción al Curso de Automaquillaje en Espacio Mimar T. Pronto te avisamos los detalles. ¡Te esperamos!`)}" target="_blank" rel="noopener" class="btn-mini" style="text-decoration:none;background:rgba(37,211,102,0.08);border-color:rgba(37,211,102,0.28);color:rgba(100,220,140,0.85);font-size:12px;">📲 WhatsApp</a>` : ''}
+                    ${c.nivelDesc ? `<div style="font-size:12px;color:rgba(249,168,212,0.55);margin-bottom:8px;font-style:italic;">"${escapeHtml(c.nivelDesc)}"</div>` : ''}
+                    ${c.expectativas ? `<div style="background:rgba(249,168,212,0.06);border:1px solid rgba(249,168,212,0.14);border-radius:10px;padding:10px 14px;font-size:12.5px;color:rgba(220,242,232,0.70);line-height:1.6;margin-bottom:10px;"><b style="color:rgba(249,168,212,0.65);">Expectativas:</b> ${escapeHtml(c.expectativas)}</div>` : ''}
+                    <!-- Nota -->
+                    <div id="${notaId}" style="margin-bottom:10px;${c.nota?'':'display:none'}">
+                        <div style="background:rgba(53,122,92,0.10);border:1px solid rgba(114,189,153,0.18);border-radius:10px;padding:10px 14px;font-size:13px;color:rgba(180,230,210,0.90);">${escapeHtml(c.nota||'')}</div>
                     </div>
+                    <div id="${notaEditId}" style="margin-bottom:10px;display:none;">
+                        <textarea id="nota-ta-${c.id}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px;color:rgba(220,242,232,0.90);font-size:13px;resize:vertical;min-height:70px;font-family:inherit;" placeholder="Escribí una nota sobre esta alumna...">${escapeHtml(c.nota||'')}</textarea>
+                        <div style="display:flex;gap:6px;margin-top:6px;">
+                            <button class="btn-mini" onclick="guardarNotaCurso('${c.id}')" style="background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.28);color:#4ade80;">Guardar</button>
+                            <button class="btn-mini" onclick="document.getElementById('${notaEditId}').style.display='none'">Cancelar</button>
+                        </div>
+                    </div>
+                    <!-- Botones de acción -->
+                    <div style="display:flex;flex-wrap:wrap;gap:7px;">
+                        ${estado !== 'presente' ? `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','presente')" style="background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;font-size:12px;">✓ Presente</button>` : `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','inscripta')" style="font-size:12px;">↩ Revertir</button>`}
+                        ${estado !== 'cancelada' ? `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','cancelada')" style="background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);font-size:12px;">✕ Cancelar</button>` : ''}
+                        <button class="btn-mini" onclick="(function(){var ne=document.getElementById('${notaEditId}');ne.style.display=ne.style.display==='none'?'block':'none'})()" style="font-size:12px;">📝 Nota</button>
+                        <button class="btn-mini" onclick="abrirCertificado('${c.id}')" style="background:rgba(249,168,212,0.10);border-color:rgba(249,168,212,0.30);color:rgba(249,168,212,0.90);font-size:12px;">🎓 Certificado</button>
+                        ${waPhone ? `<button class="btn-mini" onclick="(function(){var m=document.getElementById('${recMenuId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="font-size:12px;background:rgba(37,211,102,0.06);border-color:rgba(37,211,102,0.22);color:rgba(100,220,140,0.85);">📲 Enviar por WA</button>` : ''}
+                    </div>
+                    ${waPhone ? `
+                    <div id="${recMenuId}" style="display:none;flex-direction:column;gap:6px;margin-top:10px;background:rgba(37,211,102,0.05);border:1px solid rgba(37,211,102,0.15);border-radius:12px;padding:12px;">
+                        ${waConfirm ? `<a href="${waConfirm}" target="_blank" rel="noopener" style="display:block;padding:9px 12px;border-radius:8px;background:#25d366;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;">✅ Confirmar inscripción</a>` : ''}
+                        ${waRecordatorio ? `<a href="${waRecordatorio}" target="_blank" rel="noopener" style="display:block;padding:9px 12px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;">🔔 Recordatorio del curso</a>` : ''}
+                        <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}! En el Curso de Automaquillaje que te esperamos, te recomendamos venir sin maquillaje o con el mínimo posible. Traé toda tu energía y ganas de aprender 💄✨ — Espacio Mimar T`)}" target="_blank" rel="noopener" style="display:block;padding:9px 12px;border-radius:8px;background:linear-gradient(135deg,#ec4899,#be185d);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;">💄 Recomendaciones pre-clase</a>
+                    </div>` : ''}
                 </div>`;
             }).join('');
         };
@@ -5618,16 +5862,33 @@
                 const idx = _cursosCache.findIndex(c => c.id === id);
                 if (idx >= 0) _cursosCache[idx].estado = nuevoEstado;
                 window.renderCursos();
-            } catch(e) {
-                mostrarAviso('Error al actualizar el estado');
-            }
+                window.renderSesionesCurso();
+            } catch(e) { mostrarAviso('Error al actualizar el estado'); }
+        };
+
+        window.guardarNotaCurso = async function(id) {
+            const ta = document.getElementById(`nota-ta-${id}`);
+            if (!ta) return;
+            const nota = ta.value.trim();
+            try {
+                await updateDoc(doc(db, 'cursoMaquillaje', id), { nota });
+                const idx = _cursosCache.findIndex(c => c.id === id);
+                if (idx >= 0) _cursosCache[idx].nota = nota;
+                const notaDiv = document.getElementById(`nota-curso-${id}`);
+                const editDiv = document.getElementById(`nota-edit-${id}`);
+                if (notaDiv) { notaDiv.style.display = nota ? 'block' : 'none'; notaDiv.querySelector('div').textContent = nota; }
+                if (editDiv) editDiv.style.display = 'none';
+            } catch(e) { mostrarAviso('Error al guardar nota'); }
         };
 
         window.abrirCertificado = function(id) {
             const c = _cursosCache.find(x => x.id === id);
             if (!c) return;
             const nombre = encodeURIComponent(c.nombre || 'Alumna');
-            const fecha  = encodeURIComponent(new Date().toLocaleDateString('es-AR', { day:'numeric', month:'long', year:'numeric' }));
+            const sesion = _cursoSesiones.find(s => s.id === c.sesionId);
+            const fecha = encodeURIComponent(sesion
+                ? _fechaLindaCurso(sesion.fecha)
+                : new Date().toLocaleDateString('es-AR', { day:'numeric', month:'long', year:'numeric' }));
             window.open(`/certificado-maquillaje.html?nombre=${nombre}&fecha=${fecha}`, '_blank');
         };
 

@@ -271,10 +271,33 @@
     }
     .back-link:hover { color: rgba(165,205,188,0.85); }
 
+    /* ── SELECTOR DE SESIÓN ── */
+    .sesion-card {
+        display: flex; align-items: center; gap: 14px;
+        background: var(--card-bg);
+        border: 2px solid rgba(249,168,212,0.15);
+        border-radius: 16px;
+        padding: 16px 18px;
+        cursor: pointer;
+        transition: border-color .2s, background .2s, transform .15s;
+        margin-bottom: 10px;
+    }
+    .sesion-card:hover { background: rgba(249,168,212,0.07); border-color: rgba(249,168,212,0.35); transform: translateY(-1px); }
+    .sesion-card.seleccionada { background: rgba(249,168,212,0.10); border-color: rgba(249,168,212,0.60); box-shadow: 0 0 0 3px rgba(249,168,212,0.12); }
+    .sesion-radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(249,168,212,0.40); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: border-color .2s; }
+    .sesion-card.seleccionada .sesion-radio { border-color: rgba(249,168,212,0.90); background: rgba(249,168,212,0.15); }
+    .sesion-radio-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rosa-dark); display: none; }
+    .sesion-card.seleccionada .sesion-radio-dot { display: block; }
+    .sesion-info { flex: 1; }
+    .sesion-fecha { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .sesion-hora { font-size: 13px; color: rgba(249,168,212,0.75); font-weight: 500; margin-top: 2px; }
+    .sesion-cap { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+
     @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
     .container > * { animation: fadeUp .4s ease both; }
     .container > *:nth-child(2) { animation-delay: .06s; }
     .container > *:nth-child(3) { animation-delay: .12s; }
+    .container > *:nth-child(4) { animation-delay: .18s; }
     </style>
 </head>
 <body>
@@ -304,8 +327,19 @@
         </p>
     </div>
 
+    <!-- SELECTOR DE SESIÓN -->
+    <div class="form-card" id="sesion-card" style="margin-bottom:16px;">
+        <p class="form-section-title">Elegí tu sesión</p>
+        <div id="sesiones-picker">
+            <div style="text-align:center;padding:20px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando fechas disponibles...</div>
+        </div>
+        <div id="sesion-error" style="display:none;text-align:center;padding:16px;font-size:13px;color:rgba(249,168,212,0.65);">
+            Por el momento no hay fechas disponibles. ¡Seguinos para enterarte cuando abramos nuevas sesiones! 💄
+        </div>
+    </div>
+
     <!-- FORMULARIO -->
-    <div class="form-card" id="form-card">
+    <div class="form-card" id="form-card" style="display:none;">
         <p class="form-section-title">Tus datos</p>
 
         <div class="form-row-2">
@@ -377,7 +411,7 @@
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, getDocs, addDoc, query, where, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyDQo5GFmXJniHxHnIRqHkifX5-S9RWwniM",
@@ -389,6 +423,81 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// ── Estado de sesión seleccionada ──
+let _sesionSeleccionada = null;
+let _sesionesDisponibles = [];
+
+// ── Descripción de días en español ──
+const _diasES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const _mesesES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const _fechaLinda = (iso) => {
+    if (!iso) return '—';
+    const [y,m,d] = iso.split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    return `${_diasES[dt.getDay()].charAt(0).toUpperCase()}${_diasES[dt.getDay()].slice(1)} ${d} de ${_mesesES[m-1]}`;
+};
+
+// ── Cargar sesiones disponibles ──
+async function cargarSesiones() {
+    try {
+        const snap = await getDocs(collection(db, 'cursoSesiones'));
+        _sesionesDisponibles = [];
+        const hoy = new Date().toISOString().slice(0, 10);
+        snap.forEach(d => {
+            const s = { id: d.id, ...d.data() };
+            if (s.activa && s.fecha >= hoy) _sesionesDisponibles.push(s);
+        });
+        _sesionesDisponibles.sort((a, b) => `${a.fecha}${a.horaInicio}`.localeCompare(`${b.fecha}${b.horaInicio}`));
+        renderSesionesPicker();
+    } catch(e) {
+        console.error(e);
+        document.getElementById('sesiones-picker').innerHTML = '<div style="color:rgba(248,113,113,0.70);font-size:13px;text-align:center;padding:16px;">Error al cargar fechas disponibles.</div>';
+    }
+}
+
+function renderSesionesPicker() {
+    const cont = document.getElementById('sesiones-picker');
+    const errDiv = document.getElementById('sesion-error');
+    if (!_sesionesDisponibles.length) {
+        cont.innerHTML = '';
+        if (errDiv) errDiv.style.display = 'block';
+        return;
+    }
+    if (errDiv) errDiv.style.display = 'none';
+    cont.innerHTML = _sesionesDisponibles.map(s => `
+        <div class="sesion-card" id="sc-${s.id}" onclick="seleccionarSesion('${s.id}')">
+            <div class="sesion-radio"><div class="sesion-radio-dot"></div></div>
+            <div class="sesion-info">
+                <div class="sesion-fecha">${_fechaLinda(s.fecha)}</div>
+                <div class="sesion-hora">🕐 ${s.horaInicio} – ${s.horaFin} hs</div>
+                <div class="sesion-cap">${s.capacidad || 10} lugares disponibles</div>
+            </div>
+        </div>
+    `).join('');
+
+    const continuar = `<button onclick="continuarConSesion()" style="width:100%;margin-top:6px;padding:13px;background:linear-gradient(135deg,rgba(236,72,153,0.80),rgba(190,24,93,0.90));border:none;border-radius:13px;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;opacity:0.4;transition:opacity .2s;" id="btn-continuar-sesion" disabled>Continuar →</button>`;
+    cont.insertAdjacentHTML('beforeend', continuar);
+}
+
+window.seleccionarSesion = function(id) {
+    _sesionSeleccionada = _sesionesDisponibles.find(s => s.id === id) || null;
+    document.querySelectorAll('.sesion-card').forEach(c => c.classList.remove('seleccionada'));
+    const card = document.getElementById(`sc-${id}`);
+    if (card) card.classList.add('seleccionada');
+    const btn = document.getElementById('btn-continuar-sesion');
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+};
+
+window.continuarConSesion = function() {
+    if (!_sesionSeleccionada) return;
+    document.getElementById('sesion-card').style.display = 'none';
+    const formCard = document.getElementById('form-card');
+    formCard.style.display = 'block';
+    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Init slider once form is visible
+    actualizarSlider();
+};
 
 // ── Slider de nivel ──
 const nivelDescripciones = {
@@ -418,7 +527,6 @@ function actualizarSlider() {
     ticks.forEach((t, i) => t.classList.toggle('activo', i + 1 === v));
 }
 slider.addEventListener('input', actualizarSlider);
-actualizarSlider();
 
 // ── Auto-calcular edad desde fecha ──
 document.getElementById('f-nacim').addEventListener('change', function() {
@@ -459,6 +567,13 @@ window.enviarFormulario = async function() {
     btn.textContent = 'Enviando...';
 
     try {
+        const sesData = _sesionSeleccionada ? {
+            sesionId: _sesionSeleccionada.id,
+            fecha: _sesionSeleccionada.fecha,
+            horaInicio: _sesionSeleccionada.horaInicio,
+            horaFin: _sesionSeleccionada.horaFin
+        } : {};
+
         await addDoc(collection(db, 'cursoMaquillaje'), {
             nombre: `${nombre} ${apellido}`.trim(),
             apellido,
@@ -473,12 +588,16 @@ window.enviarFormulario = async function() {
             expectativas,
             estado: 'inscripta',
             fechaRegistro: new Date().toISOString().slice(0, 10),
-            timestamp: serverTimestamp()
+            timestamp: serverTimestamp(),
+            ...sesData
         });
 
         document.getElementById('form-card').style.display = 'none';
+        const sesionInfo = _sesionSeleccionada
+            ? `\n\n📅 ${_fechaLinda(_sesionSeleccionada.fecha)} · ${_sesionSeleccionada.horaInicio} hs`
+            : '';
         mostrarEstado('ok', '🎉',
-            `¡Listo, ${nombre}! Tu inscripción al curso de automaquillaje quedó registrada.\n\nGimena va a ponerse en contacto con vos pronto para coordinar los detalles.`
+            `¡Listo, ${nombre}! Tu inscripción quedó registrada.${sesionInfo}\n\nGimena te va a confirmar pronto por WhatsApp. ¡Te esperamos!`
         );
     } catch(e) {
         console.error(e);
@@ -493,6 +612,9 @@ function mostrarEstado(tipo, ico, txt) {
     el.className = `estado-msg ${tipo}`;
     el.innerHTML = `<span class="estado-ico">${ico}</span>${txt.replace(/\n/g,'<br>')}`;
 }
+
+// ── Iniciar: cargar sesiones ──
+cargarSesiones();
 </script>
 </body>
 </html>
