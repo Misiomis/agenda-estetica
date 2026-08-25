@@ -4050,6 +4050,36 @@
             }
         };
         
+        window.limpiarExcepcionesHuerfanas = async () => {
+            try {
+                mostrarLoader(true);
+                const snap = await getDocs(collection(db, 'calendarExceptions'));
+                const reservaIds = new Set(todasLasReservas.filter(r => esReservaActiva(r)).map(r => r.id));
+                const borrar = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    if (data.reservaId && !reservaIds.has(data.reservaId)) {
+                        borrar.push({ id: d.id, reservaId: data.reservaId, fecha: data.fecha });
+                    }
+                });
+                if (borrar.length === 0) {
+                    mostrarAviso('No hay excepciones huerfanas para limpiar');
+                    return;
+                }
+                for (const item of borrar) {
+                    await deleteDoc(doc(db, 'calendarExceptions', item.id));
+                    bloqueosHorarios.delete(keyBloqueo(item.fecha, item.id.split('_').slice(-1)[0]?.replace('h',':')));
+                    console.log('Borrado:', item.id, '(reservaId:', item.reservaId, ')');
+                }
+                mostrarAviso(`Limpieza completa: ${borrar.length} bloqueo${borrar.length > 1 ? 's' : ''} huerfano${borrar.length > 1 ? 's' : ''} eliminado${borrar.length > 1 ? 's' : ''}`);
+            } catch (e) {
+                console.error(e);
+                mostrarAviso('Error al limpiar: ' + e.message);
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
         window.guardarN = async (id) => {
             const el = document.getElementById(`n-${id}`);
             if (!el) return;
