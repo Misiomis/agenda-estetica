@@ -5853,13 +5853,14 @@
             if (!sv) return;
             const ok = await new Promise(res => {
                 const ov = document.createElement('div');
+                ov.id = '_gs_borrar_ov';
                 ov.style.cssText = 'position:fixed;inset:0;z-index:300000;background:rgba(6,22,15,0.7);display:flex;align-items:center;justify-content:center;padding:16px';
                 ov.innerHTML = `<div style="background:linear-gradient(165deg,#0e2318,#0a1c13);border-radius:18px;border:1px solid rgba(100,200,140,0.15);padding:24px;max-width:340px;text-align:center;">
                     <p style="color:rgba(220,245,232,0.9);font-size:15px;margin:0 0 6px">¿Borrar "${escapeHtml(sv.nombre)}"?</p>
                     <p style="color:rgba(160,210,185,0.55);font-size:13px;margin:0 0 20px">Esta acción no se puede deshacer.</p>
                     <div style="display:flex;gap:10px;justify-content:center;">
-                        <button onclick="this.closest('div[style]').parentNode.remove();window._gsOk(false)" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(100,180,140,0.2);background:transparent;color:rgba(180,230,205,0.7);cursor:pointer;font-size:13px;">Cancelar</button>
-                        <button onclick="this.closest('div[style]').parentNode.remove();window._gsOk(true)" style="flex:1;padding:10px;border-radius:10px;border:none;background:rgba(200,60,60,0.25);color:rgba(255,160,160,0.9);cursor:pointer;font-size:13px;font-weight:700;">Borrar</button>
+                        <button onclick="document.getElementById('_gs_borrar_ov').remove();window._gsOk(false)" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(100,180,140,0.2);background:transparent;color:rgba(180,230,205,0.7);cursor:pointer;font-size:13px;">Cancelar</button>
+                        <button onclick="document.getElementById('_gs_borrar_ov').remove();window._gsOk(true)" style="flex:1;padding:10px;border-radius:10px;border:none;background:rgba(200,60,60,0.25);color:rgba(255,160,160,0.9);cursor:pointer;font-size:13px;font-weight:700;">Borrar</button>
                     </div>
                 </div>`;
                 window._gsOk = res;
