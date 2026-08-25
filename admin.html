@@ -3789,9 +3789,12 @@
 
         window.seleccionarPacienteRegistro = (el) => {
             _mreg_clienteSeleccionado = { dni: el.dataset.dni, nombre: el.dataset.nombre, phone: el.dataset.phone };
-            document.querySelectorAll('.mreg-paciente-item').forEach(i => i.classList.remove('seleccionado'));
-            el.classList.add('seleccionado');
             document.getElementById('mreg-nombre-input').value = el.dataset.nombre;
+            document.getElementById('mreg-resultados').innerHTML =
+                `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(74,222,128,0.10);border:1px solid rgba(74,222,128,0.28);font-size:13px;color:rgba(165,205,188,0.92);font-weight:600;">
+                    <span style="font-size:16px;">✓</span> ${escapeHtml(el.dataset.nombre)}
+                    <span style="font-size:11px;opacity:.6;margin-left:4px;">${escapeHtml(el.dataset.phone||'')}</span>
+                </div>`;
             document.getElementById('mreg-btn-confirmar').disabled = false;
         };
 
@@ -3849,10 +3852,15 @@
                     return;
                 }
                 // Verificar que los slots de extension estén libres
+                const _blkActivo = (fecha, hora) => {
+                    const blk = bloqueosHorarios.get(keyBloqueo(fecha, hora));
+                    if (!blk) return false;
+                    if (blk.reservaId) return todasLasReservas.some(r => r.id === blk.reservaId && esReservaActiva(r));
+                    return true;
+                };
                 const conflictos = slotsExtension.filter(extHora => {
                     const reservado = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === normalizarHora(extHora));
-                    const bloqueado = bloqueosHorarios.has(keyBloqueo(fechaSnap, extHora));
-                    return reservado || bloqueado;
+                    return reservado || _blkActivo(fechaSnap, extHora);
                 });
                 if (conflictos.length > 0) {
                     // Buscar alternativas disponibles en ese dia
@@ -3863,7 +3871,7 @@
                         for (let j = 0; j <= slotsExtra; j++) {
                             const testHora = SLOTS_30_COMPLETOS[i + j];
                             if (todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === normalizarHora(testHora))
-                                || bloqueosHorarios.has(keyBloqueo(fechaSnap, testHora))) {
+                                || _blkActivo(fechaSnap, testHora)) {
                                 libre = false; break;
                             }
                         }
@@ -3875,13 +3883,14 @@
                         ? `Horarios disponibles con esa duración:\n${alternativas.map(h => '• ' + h + ' hs').join('\n')}`
                         : 'No hay horarios disponibles ese día para esa duración.';
                     const ov = document.createElement('div');
+                    ov.id = '_mreg_ext_overlay';
                     ov.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px';
                     ov.innerHTML = `
                         <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:28px 24px 22px">
                             <p style="font-family:'Playfair Display',serif;font-size:17px;color:#2f5a47;text-align:center;margin:0 0 10px">Horario no disponible</p>
                             <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 8px">El turno de <b>${horaSnap} hs</b> con <b>+${_mreg_extraMinutos} min extra</b> necesita que ${conflictos.map(h=>h+' hs').join(' y ')} también esté${conflictos.length>1?'n':''} libre${conflictos.length>1?'s':''}.</p>
                             <p style="font-size:13px;color:#6a8e7f;text-align:center;white-space:pre-line;margin:0 0 20px">${altTexto}</p>
-                            <button onclick="this.closest('div[style]').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.28)">Entendido</button>
+                            <button onclick="document.getElementById('_mreg_ext_overlay').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.28)">Entendido</button>
                         </div>`;
                     document.body.appendChild(ov);
                     return;
@@ -4007,6 +4016,10 @@
                     [reserva.servicio, reserva.dni ? `DNI ${reserva.dni}` : ""].filter(Boolean).join(" · "),
                     reserva.nombreLimpio || reserva.cliente || "Paciente"
                 );
+                // Eliminar el slot base en calendarExceptions
+                const _baseId = `reserva_admin_${reserva.fecha}_${(reserva.hora||'').replace(':','-')}`;
+                try { await deleteDoc(doc(db, "calendarExceptions", _baseId)); } catch(_) {}
+                bloqueosHorarios.delete(keyBloqueo(reserva.fecha, reserva.hora));
                 // Eliminar slots de extension en calendarExceptions
                 if (reserva.duracionMinutos > 30) {
                     const slotsExtra = reserva.duracionMinutos >= 90 ? 2 : 1;
