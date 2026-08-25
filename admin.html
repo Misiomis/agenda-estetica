@@ -870,6 +870,7 @@
                 <button class="btn-nav" id="btn-buscador-sesiones" onclick="navegar('buscador-sesiones')">🔎 Sesiones</button>
                 <button class="btn-nav" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">📦 Kit</button>
                 <button class="btn-nav" id="btn-calculadora" onclick="navegar('calculadora')" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.28);color:rgba(200,186,255,0.88);">🧮 Calculadora</button>
+                <button class="btn-nav" id="btn-servicios" onclick="navegar('servicios')" style="background:rgba(52,211,153,0.10);border-color:rgba(52,211,153,0.26);color:rgba(160,240,210,0.88);font-weight:700;">📋 Servicios</button>
                 <button class="btn-nav" id="btn-export" onclick="navegar('export')">📤 Exportar</button>
                 <button class="btn-nav" id="btn-ultimos-movimientos" onclick="mostrarUltimosMovimientos()">🕐 Movimientos</button>
                 <a class="btn-nav" href="/fechagimena.html" target="_blank" style="text-decoration:none;background:rgba(180,238,210,0.12);border-color:rgba(160,218,190,0.28);color:rgba(200,240,220,0.92);font-weight:700">👁 Vista Gimena</a>
@@ -1099,6 +1100,33 @@
                     </details>
                     <p style="font-size:11px; opacity:0.55; margin:0;">Para editar la configuración completa (fechas, servicios, zonas), accedé a Firestore > configuracion > jornadaEspecial</p>
                 </div>
+                <!-- EXPORTAR ADMIN DEPILACIÓN -->
+                <div class="detalle-dia-card">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;">💜 Exportar Reservas — Admin Depilación</h3>
+                    <p style="font-size:13px;color:rgba(165,205,188,0.70);margin:0 0 16px;">Exportá reservas de depilación ordenadas por fecha y hora. Solo se incluyen los días que tienen reservas.</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:5px;letter-spacing:.06em;">DESDE</label>
+                            <input type="date" id="expDepiDesde" style="width:100%;padding:9px 10px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:5px;letter-spacing:.06em;">HASTA</label>
+                            <input type="date" id="expDepiHasta" style="width:100%;padding:9px 10px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:11px;font-weight:700;color:rgba(114,189,153,0.88);margin-bottom:8px;letter-spacing:.06em;">FILTRAR POR SERVICIO</label>
+                        <div id="expDepiServicios" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                        <button onclick="expDepiSeleccionarTodos(true)" style="margin-top:8px;margin-right:6px;background:transparent;border:1px solid rgba(140,210,180,0.25);border-radius:8px;padding:3px 10px;color:rgba(160,210,185,0.65);font-size:11px;cursor:pointer;">Seleccionar todos</button>
+                        <button onclick="expDepiSeleccionarTodos(false)" style="background:transparent;border:1px solid rgba(140,210,180,0.18);border-radius:8px;padding:3px 10px;color:rgba(160,210,185,0.45);font-size:11px;cursor:pointer;">Deseleccionar</button>
+                    </div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+                        <button class="btn-mini" onclick="expDepiVista()" style="flex:1;padding:11px;font-size:13px;">👁 Vista previa</button>
+                        <button class="btn-mini" onclick="expDepiCSV()" style="flex:1;padding:11px;font-size:13px;background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.35);color:rgba(196,198,255,0.95);">⬇ Descargar CSV</button>
+                    </div>
+                    <div id="expDepiPreview" style="margin-top:14px;overflow-x:auto;"></div>
+                </div>
+
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0">Reportes de Reservas</h3>
                     <p style="font-size:14px; margin-bottom:14px;">Descarga reservas por rango de meses, con los días separados visualmente y las fechas completas.</p>
@@ -1124,6 +1152,18 @@
             <!-- ============================================================ -->
             <!--  SECCIÓN: CONTROL TOTAL                                       -->
             <!-- ============================================================ -->
+            <!-- ════════════════════════════════ -->
+            <!--  SECCIÓN: GRILLA DE SERVICIOS   -->
+            <!-- ════════════════════════════════ -->
+            <div id="sec-servicios" class="section">
+                <div class="detalle-dia-card" style="max-width:700px;margin:0 auto;">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">📋 Grilla de Servicios</h3>
+                    <p style="font-size:13px;color:rgba(165,205,188,0.70);margin:0 0 20px;">Asigná cada servicio al box donde se realiza. Al seleccionar un servicio en el registro de un turno, el box se elegirá automáticamente — sin margen de error.</p>
+                    <div id="gs-lista" style="margin-bottom:16px;overflow-x:auto;"></div>
+                    <button class="btn-mini" onclick="gsAgregarNuevo()" style="padding:10px 20px;font-size:13px;border-radius:12px;">+ Nuevo servicio</button>
+                </div>
+            </div>
+
             <div id="sec-control" class="section">
 
                 <!-- HORARIOS SÁBADOS -->
@@ -1257,14 +1297,6 @@
                     <div id="tratamientosAdmin" style="display:flex;flex-direction:column;gap:12px;margin-bottom:14px;"></div>
                     <button class="btn-mini" onclick="agregarFilaTratamiento()" style="padding:9px 16px;">+ Nuevo tratamiento</button>
                     <div id="tratamientosFeedback" style="display:none;margin-top:10px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;"></div>
-                </div>
-
-                <!-- GRILLA DE SERVICIOS -->
-                <div class="detalle-dia-card">
-                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">📋 Grilla de Servicios</h3>
-                    <p style="font-size:13px;color:rgba(165,205,188,0.70);margin:0 0 16px;">Asigná cada servicio al box donde se realiza. Al seleccionar un servicio en el registro de un turno, el box se elegirá automáticamente.</p>
-                    <div id="gs-lista" style="margin-bottom:14px;overflow-x:auto;"></div>
-                    <button class="btn-mini" onclick="gsAgregarNuevo()" style="padding:9px 16px;">+ Nuevo servicio</button>
                 </div>
 
             </div><!-- /sec-control -->
@@ -2566,7 +2598,7 @@
                 <div class="detalle-dia-card">
                     ${renderTagOrigen(r)}${duoBadge}${extBadge}<br>
                     ${pac1label}<b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(r.nombreLimpio || 'Sin nombre')}</b> - ${escapeHtml(r.hora || '--:--')} hs<br>
-                    <small>${escapeHtml(r.servicio || 'Servicio')}${_edadR ? ` · Edad: ${_edadR}` : ''}</small>${_boxBadge}
+                    <small>${_boxBadge}${_boxAsig ? '&nbsp;' : ''}${escapeHtml(r.servicio || 'Servicio')}${_edadR ? ` · Edad: ${_edadR}` : ''}</small>
                     ${notaDisplay1}
                     ${notaDisplay2}
                     <div class="grid-acciones">
@@ -5463,6 +5495,8 @@
             if (s === 'grilla') window.renderGrilla();
             if (s === 'pedidos-kit') window.cargarPedidosKit();
             if (s === 'control') window.cargarSeccionControl();
+            if (s === 'servicios') gsCargar();
+            if (s === 'export') { window.cargarJornadaStatus?.(); expDepiInit(); }
             if (s === 'clientes') filtrarListadoClientes();
             if (s === 'calculadora') window.cargarCalculadora();
             if (s === 'consultas') window.cargarConsultas();
@@ -5842,7 +5876,6 @@
         };
 
         window.cargarSeccionControl = async () => {
-            gsCargar(); // carga Grilla de Servicios
             try {
                 const snap = await getDoc(doc(db, "configuracion", "apariencia"));
                 _temaActual = snap.exists() ? (snap.data().tema || "") : "";
@@ -7103,6 +7136,112 @@
                 : `<tr><td colspan="${COLS}" style="text-align:center;padding:40px;color:rgba(140,200,170,0.35);font-size:13px;">Sin turnos · hacé click en + para agregar</td></tr>`;
         };
         // ══ FIN GRILLA ══
+
+        /* ══ EXPORTAR ADMIN DEPILACIÓN ══ */
+        const _DIAS_ES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+        const _MESES_LARG = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+        const expDepiInit = () => {
+            // Poblar chips de servicio con todos los servicios únicos en reservas
+            const svChips = document.getElementById('expDepiServicios');
+            if (!svChips || svChips.dataset.init) return;
+            svChips.dataset.init = '1';
+            const svs = [...new Set(todasLasReservas.map(r => (r.servicio||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+            svChips.innerHTML = svs.map(s =>
+                `<label style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer;color:rgba(200,240,220,0.80);">
+                    <input type="checkbox" value="${escapeHtml(s)}" checked style="accent-color:#4ade80;"> ${escapeHtml(s)}
+                </label>`
+            ).join('');
+            // Fechas por defecto: mes actual
+            const hoy = new Date();
+            const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0,10);
+            const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0).toISOString().slice(0,10);
+            document.getElementById('expDepiDesde').value = primerDia;
+            document.getElementById('expDepiHasta').value = ultimoDia;
+        };
+
+        const expDepiFiltrar = () => {
+            const desde = document.getElementById('expDepiDesde').value;
+            const hasta = document.getElementById('expDepiHasta').value;
+            const checks = [...document.querySelectorAll('#expDepiServicios input[type=checkbox]:checked')].map(c => c.value);
+            const filtradas = todasLasReservas.filter(r =>
+                esReservaActiva(r) &&
+                (!desde || r.fecha >= desde) &&
+                (!hasta || r.fecha <= hasta) &&
+                checks.includes((r.servicio||'').trim())
+            );
+            // Agrupar por fecha
+            const porFecha = new Map();
+            filtradas.forEach(r => {
+                if (!porFecha.has(r.fecha)) porFecha.set(r.fecha, []);
+                porFecha.get(r.fecha).push(r);
+            });
+            // Ordenar fechas y reservas dentro de cada fecha
+            const fechasOrdenadas = [...porFecha.keys()].sort();
+            fechasOrdenadas.forEach(f => porFecha.get(f).sort((a,b) => (a.hora||'').localeCompare(b.hora||'')));
+            return { porFecha, fechasOrdenadas };
+        };
+
+        window.expDepiSeleccionarTodos = (v) => {
+            document.querySelectorAll('#expDepiServicios input[type=checkbox]').forEach(c => c.checked = v);
+        };
+
+        window.expDepiVista = () => {
+            expDepiInit();
+            const { porFecha, fechasOrdenadas } = expDepiFiltrar();
+            const prev = document.getElementById('expDepiPreview');
+            if (!fechasOrdenadas.length) { prev.innerHTML = '<p style="font-size:13px;color:rgba(200,200,200,0.4);padding:12px 0;">Sin reservas en ese rango / servicios seleccionados.</p>'; return; }
+            let html = '<div style="font-size:12px;">';
+            fechasOrdenadas.forEach(f => {
+                const [yy,mm,dd] = f.split('-').map(Number);
+                const dt = new Date(yy,mm-1,dd);
+                const tit = `${_DIAS_ES[dt.getDay()]} ${dd} de ${_MESES_LARG[mm-1]} de ${yy}`;
+                html += `<div style="margin-bottom:12px;">
+                    <div style="font-weight:700;font-size:12px;letter-spacing:.05em;color:rgba(196,198,255,0.90);text-transform:uppercase;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:6px;">${tit}</div>
+                    <table style="width:100%;border-collapse:collapse;">
+                        <thead><tr style="font-size:10px;color:rgba(140,210,180,0.5);text-align:left;">
+                            <th style="padding:3px 6px;">Hora</th><th style="padding:3px 6px;">Paciente</th>
+                            <th style="padding:3px 6px;">Servicio</th><th style="padding:3px 6px;">Teléfono</th><th style="padding:3px 6px;">Estado</th>
+                        </tr></thead>
+                        <tbody>${porFecha.get(f).map(r => `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                            <td style="padding:4px 6px;font-weight:700;">${r.hora||'—'}</td>
+                            <td style="padding:4px 6px;">${escapeHtml(r.nombreLimpio||r.nombre||'—')}</td>
+                            <td style="padding:4px 6px;">${escapeHtml(r.servicio||'—')}</td>
+                            <td style="padding:4px 6px;">${escapeHtml(r.phone||'—')}</td>
+                            <td style="padding:4px 6px;text-transform:capitalize;">${escapeHtml(r.estado||'pendiente')}</td>
+                        </tr>`).join('')}</tbody>
+                    </table></div>`;
+            });
+            html += '</div>';
+            prev.innerHTML = html;
+        };
+
+        window.expDepiCSV = () => {
+            expDepiInit();
+            const { porFecha, fechasOrdenadas } = expDepiFiltrar();
+            if (!fechasOrdenadas.length) { mostrarAviso('Sin reservas para exportar'); return; }
+            const esc = v => `"${String(v||'').replace(/"/g,'""')}"`;
+            const rows = ['Fecha,Día,Hora,Paciente,Servicio,Teléfono,Estado,Box'];
+            fechasOrdenadas.forEach(f => {
+                const [yy,mm,dd] = f.split('-').map(Number);
+                const dia = _DIAS_ES[new Date(yy,mm-1,dd).getDay()];
+                porFecha.get(f).forEach(r => {
+                    const boxId = r.box || _grilla_boxDeReserva(r);
+                    const boxNom = boxId ? (GRILLA_BOXES.find(b=>b.id===boxId)?.label||boxId) : '';
+                    rows.push([esc(f), esc(dia), esc(r.hora||''), esc(r.nombreLimpio||r.nombre||''), esc(r.servicio||''), esc(r.phone||''), esc(r.estado||'pendiente'), esc(boxNom)].join(','));
+                });
+            });
+            const bom = '﻿'; // BOM para Excel
+            const blob = new Blob([bom + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const desde = document.getElementById('expDepiDesde').value.replace(/-/g,'') || 'inicio';
+            const hasta = document.getElementById('expDepiHasta').value.replace(/-/g,'') || 'fin';
+            a.download = `reservas-depi_${desde}-${hasta}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
 
     </script>
     <!-- Modal: Registrar turno manualmente -->
