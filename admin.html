@@ -2341,7 +2341,18 @@
                 });
                 
                 todasLasReservas = await limpiarReservasDuplicadas(todasLasReservas);
-                
+
+                // Purgar bloqueos huérfanos del mapa (y de Firestore en background)
+                {
+                    const _reservaIds = new Set(todasLasReservas.filter(r => esReservaActiva(r)).map(r => r.id));
+                    bloqueosHorarios.forEach((blk, key) => {
+                        if (blk.reservaId && !_reservaIds.has(blk.reservaId)) {
+                            bloqueosHorarios.delete(key);
+                            deleteDoc(doc(db, 'calendarExceptions', blk.id)).catch(() => {});
+                        }
+                    });
+                }
+
                 todasLasHistorias = snapH.docs.map(d => {
                     const data = d.data();
                     const historiaLimpia = { ...data };
