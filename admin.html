@@ -1259,6 +1259,14 @@
                     <div id="tratamientosFeedback" style="display:none;margin-top:10px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;"></div>
                 </div>
 
+                <!-- GRILLA DE SERVICIOS -->
+                <div class="detalle-dia-card">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">📋 Grilla de Servicios</h3>
+                    <p style="font-size:13px;color:rgba(165,205,188,0.70);margin:0 0 16px;">Asigná cada servicio al box donde se realiza. Al seleccionar un servicio en el registro de un turno, el box se elegirá automáticamente.</p>
+                    <div id="gs-lista" style="margin-bottom:14px;overflow-x:auto;"></div>
+                    <button class="btn-mini" onclick="gsAgregarNuevo()" style="padding:9px 16px;">+ Nuevo servicio</button>
+                </div>
+
             </div><!-- /sec-control -->
 
             <!-- ══ CALCULADORA DE SERVICIOS ══ -->
@@ -1844,7 +1852,9 @@
         let dniClienteCargado = "";
         let horariosDisponibles = [];
         let bloqueosHorarios = new Map();
-        let duoHorarios      = new Map(); // key: fecha|hora -> docId en calendarExceptions
+        let duoHorarios      = new Map();
+        let _svBoxMap        = new Map(); // nombre servicio → boxId
+        let _gsServicios     = [];        // cache local de docs 'services' // key: fecha|hora -> docId en calendarExceptions
         let cierresPorFecha  = new Map();
         let bloqueoPendienteConReserva = null;
         let resolverModalBorrado = null;
@@ -2654,14 +2664,20 @@
                 if (t < 0) return null;
                 return `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
             };
+            const _toMinAg = h => { const [hh,mm]=(h||'00:00').split(':').map(Number); return hh*60+mm; };
             const horariosHTML = horarios.map((hora) => {
                 const reserva     = reservasPorHora.get(hora);
                 const consulta    = !reserva ? consultasPorHora.get(hora) : null;
                 const bloqueoData = bloqueosHorarios.get(keyBloqueo(f, hora));
                 const bloqueo     = !!bloqueoData;
                 const esExtension = bloqueoData?.tipo === 'extension';
+                // Slot cubierto por la duración de una reserva anterior (ej: turno de 90 min)
+                const _slotMin = _toMinAg(hora);
+                const cubiertoPor = (!reserva && !consulta && !esExtension)
+                    ? filtrados.find(r => r.duracionMinutos > 15 && (() => { const sm = _toMinAg(normalizarHora(r.hora)); return _slotMin > sm && _slotMin < sm + r.duracionMinutos; })())
+                    : null;
                 // Los slots con turno ya se muestran como cards arriba; acá solo van los libres/bloqueados
-                if (reserva || consulta || esExtension) return '';
+                if (reserva || consulta || esExtension || cubiertoPor) return '';
 
                 // Para slots de extension: encontrar la reserva base por reservaId
                 const reservaBaseExt = esExtension && bloqueoData.reservaId
@@ -3635,6 +3651,9 @@
             el.closest('.mreg-chips-grid').querySelectorAll('.mreg-chip').forEach(c => c.classList.remove('activo'));
             el.classList.add('activo');
             document.getElementById(hiddenId).value = el.dataset.servicio;
+            // Auto-asignar box si el servicio tiene uno definido en la Grilla de Servicios
+            const boxId = el.dataset.boxid || _svBoxMap.get(el.dataset.servicio) || '';
+            if (boxId) seleccionarBoxMreg(boxId);
         };
 
         const _cargarChipsServicios = async (gridId, hiddenId, preseleccion = '') => {
@@ -3647,7 +3666,10 @@
                     const data = d.data();
                     if (data.activo !== false) {
                         const n = (data.nombre || '').toString().trim();
-                        if (n) lista.push(n);
+                        if (n) {
+                            lista.push(n);
+                            if (data.boxId) _svBoxMap.set(n, data.boxId);
+                        }
                     }
                 });
                 lista.sort((a, b) => a.localeCompare(b, 'es'));
@@ -3668,7 +3690,7 @@
                 return;
             }
             grid.innerHTML = lista.map(s =>
-                `<button type="button" class="mreg-chip${s === preseleccion ? ' activo' : ''}" data-servicio="${escapeHtml(s)}" onclick="seleccionarChipServicio(this,'${hiddenId}')">${escapeHtml(s)}</button>`
+                `<button type="button" class="mreg-chip${s === preseleccion ? ' activo' : ''}" data-servicio="${escapeHtml(s)}" data-boxid="${escapeHtml(_svBoxMap.get(s)||'')}" onclick="seleccionarChipServicio(this,'${hiddenId}')">${escapeHtml(s)}</button>`
             ).join('');
             if (preseleccion) document.getElementById(hiddenId).value = preseleccion;
         };
@@ -5715,7 +5737,112 @@
             } catch(e) {}
         }
 
+        /* ══ GRILLA DE SERVICIOS ══ */
+        const gsRender = () => {
+            const lista = document.getElementById('gs-lista');
+            if (!lista) return;
+            const activos = _gsServicios.filter(s => s.activo !== false).sort((a,b) => (a.nombre||'').localeCompare(b.nombre||'','es'));
+            if (!activos.length) {
+                lista.innerHTML = '<div style="font-size:13px;color:rgba(140,210,180,0.4);padding:12px 0;">Sin servicios. Usá "+ Nuevo servicio" para agregar ↓</div>';
+                return;
+            }
+            const boxOpts = GRILLA_BOXES.map(b => `<option value="${b.id}">${b.icon} ${b.title} · ${b.sub}</option>`).join('');
+            lista.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead><tr style="color:rgba(160,210,185,0.5);font-size:11px;letter-spacing:.06em;text-align:left;">
+                    <th style="padding:6px 8px;font-weight:600;">SERVICIO</th>
+                    <th style="padding:6px 8px;font-weight:600;">BOX ASIGNADO</th>
+                    <th style="padding:6px 8px;"></th>
+                </tr></thead>
+                <tbody>${activos.map(s => `
+                    <tr id="gs-row-${s.id}" style="border-top:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:7px 8px;">
+                            <input id="gs-nom-${s.id}" value="${escapeHtml(s.nombre||'')}"
+                                style="background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.10);border-radius:8px;padding:6px 10px;color:rgba(220,242,232,0.92);font-size:13px;font-family:inherit;width:100%;box-sizing:border-box;outline:none;">
+                        </td>
+                        <td style="padding:7px 8px;min-width:160px;">
+                            <select id="gs-box-${s.id}"
+                                style="background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 10px;color:rgba(220,242,232,0.88);font-size:12px;font-family:inherit;cursor:pointer;width:100%;outline:none;">
+                                <option value="">— Sin asignar —</option>${boxOpts}
+                            </select>
+                        </td>
+                        <td style="padding:7px 8px;white-space:nowrap;">
+                            <button class="btn-mini" onclick="gsGuardar('${s.id}')" style="margin-right:4px;">💾 Guardar</button>
+                            <button class="btn-mini alerta" onclick="gsBorrar('${s.id}')">🗑</button>
+                        </td>
+                    </tr>`).join('')}
+                </tbody></table>`;
+            activos.forEach(s => {
+                const sel = document.getElementById(`gs-box-${s.id}`);
+                if (sel && s.boxId) sel.value = s.boxId;
+            });
+        };
+
+        const gsCargar = async () => {
+            const lista = document.getElementById('gs-lista');
+            if (!lista) return;
+            lista.innerHTML = '<div style="font-size:13px;color:rgba(140,210,180,0.4);padding:8px 0;">Cargando servicios…</div>';
+            try {
+                const snap = await getDocs(collection(db, 'services'));
+                _gsServicios = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                // Actualizar svBoxMap
+                _gsServicios.forEach(s => { if (s.nombre && s.boxId) _svBoxMap.set(s.nombre, s.boxId); });
+                gsRender();
+            } catch(e) {
+                lista.innerHTML = '<div style="font-size:13px;color:rgba(255,100,100,0.7);">Error al cargar servicios</div>';
+            }
+        };
+
+        window.gsAgregarNuevo = async () => {
+            try {
+                const ref = await addDoc(collection(db, 'services'), { nombre: 'Nuevo servicio', boxId: '', activo: true });
+                _gsServicios.push({ id: ref.id, nombre: 'Nuevo servicio', boxId: '', activo: true });
+                gsRender();
+                setTimeout(() => { const inp = document.getElementById(`gs-nom-${ref.id}`); if(inp){inp.focus();inp.select();} }, 60);
+            } catch(e) { mostrarAviso('No se pudo agregar el servicio'); }
+        };
+
+        window.gsGuardar = async (id) => {
+            const nombre = (document.getElementById(`gs-nom-${id}`)?.value || '').trim();
+            const boxId  = document.getElementById(`gs-box-${id}`)?.value || '';
+            if (!nombre) { mostrarAviso('El nombre no puede estar vacío'); return; }
+            try {
+                await setDoc(doc(db, 'services', id), { nombre, boxId, activo: true }, { merge: true });
+                const idx = _gsServicios.findIndex(s => s.id === id);
+                if (idx >= 0) { _gsServicios[idx].nombre = nombre; _gsServicios[idx].boxId = boxId; }
+                if (boxId) _svBoxMap.set(nombre, boxId); else _svBoxMap.delete(nombre);
+                mostrarAviso('✓ Servicio guardado');
+            } catch(e) { mostrarAviso('No se pudo guardar'); }
+        };
+
+        window.gsBorrar = async (id) => {
+            const sv = _gsServicios.find(s => s.id === id);
+            if (!sv) return;
+            const ok = await new Promise(res => {
+                const ov = document.createElement('div');
+                ov.style.cssText = 'position:fixed;inset:0;z-index:300000;background:rgba(6,22,15,0.7);display:flex;align-items:center;justify-content:center;padding:16px';
+                ov.innerHTML = `<div style="background:linear-gradient(165deg,#0e2318,#0a1c13);border-radius:18px;border:1px solid rgba(100,200,140,0.15);padding:24px;max-width:340px;text-align:center;">
+                    <p style="color:rgba(220,245,232,0.9);font-size:15px;margin:0 0 6px">¿Borrar "${escapeHtml(sv.nombre)}"?</p>
+                    <p style="color:rgba(160,210,185,0.55);font-size:13px;margin:0 0 20px">Esta acción no se puede deshacer.</p>
+                    <div style="display:flex;gap:10px;justify-content:center;">
+                        <button onclick="this.closest('div[style]').parentNode.remove();window._gsOk(false)" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(100,180,140,0.2);background:transparent;color:rgba(180,230,205,0.7);cursor:pointer;font-size:13px;">Cancelar</button>
+                        <button onclick="this.closest('div[style]').parentNode.remove();window._gsOk(true)" style="flex:1;padding:10px;border-radius:10px;border:none;background:rgba(200,60,60,0.25);color:rgba(255,160,160,0.9);cursor:pointer;font-size:13px;font-weight:700;">Borrar</button>
+                    </div>
+                </div>`;
+                window._gsOk = res;
+                document.body.appendChild(ov);
+            });
+            if (!ok) return;
+            try {
+                await deleteDoc(doc(db, 'services', id));
+                _gsServicios = _gsServicios.filter(s => s.id !== id);
+                if (sv.nombre) _svBoxMap.delete(sv.nombre);
+                gsRender();
+                mostrarAviso('Servicio eliminado');
+            } catch(e) { mostrarAviso('No se pudo borrar'); }
+        };
+
         window.cargarSeccionControl = async () => {
+            gsCargar(); // carga Grilla de Servicios
             try {
                 const snap = await getDoc(doc(db, "configuracion", "apariencia"));
                 _temaActual = snap.exists() ? (snap.data().tema || "") : "";
