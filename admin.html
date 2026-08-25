@@ -2307,6 +2307,15 @@
                 horariosDisponibles = extraerHorariosDesdeFirebase(snapHorarios);
                 bloqueosHorarios = extraerBloqueosDesdeFirebase(snapBloqueos);
                 cierresPorFecha = extraerCierresDiaDesdeFirebase(snapBloqueos);
+
+                // Cargar asignaciones de box de servicios (para auto-assign en modal)
+                try {
+                    const _svBoxSnap = await getDoc(doc(db, 'configuracion', 'serviciosBox'));
+                    if (_svBoxSnap.exists()) {
+                        const _asgn = _svBoxSnap.data().assignments || {};
+                        Object.entries(_asgn).forEach(([k, v]) => { if (k && v) _svBoxMap.set(k, v); });
+                    }
+                } catch(_) {}
                 
                 const phonePorDNI = new Map();
                 const phonePorNombre = new Map();
@@ -5807,8 +5816,15 @@
                 </tbody></table>`;
             activos.forEach(s => {
                 const sel = document.getElementById(`gs-box-${s.id}`);
-                if (sel && s.boxId) sel.value = s.boxId;
+                if (sel) sel.value = _svBoxMap.get(s.nombre) || '';
             });
+        };
+
+        // Guarda el mapa entero en configuracion/serviciosBox
+        const _gsPersistir = async () => {
+            const assignments = {};
+            _svBoxMap.forEach((v, k) => { if (v) assignments[k] = v; });
+            await setDoc(doc(db, 'configuracion', 'serviciosBox'), { assignments });
         };
 
         const gsCargar = async () => {
@@ -5816,36 +5832,59 @@
             if (!lista) return;
             lista.innerHTML = '<div style="font-size:13px;color:rgba(140,210,180,0.4);padding:8px 0;">Cargando servicios…</div>';
             try {
-                const snap = await getDocs(collection(db, 'services'));
-                _gsServicios = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                // Actualizar svBoxMap
-                _gsServicios.forEach(s => { if (s.nombre && s.boxId) _svBoxMap.set(s.nombre, s.boxId); });
+                const [svSnap, boxSnap] = await Promise.all([
+                    getDocs(collection(db, 'services')),
+                    getDoc(doc(db, 'configuracion', 'serviciosBox'))
+                ]);
+                _gsServicios = svSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                // Cargar asignaciones de box desde configuracion (fuente de verdad)
+                _svBoxMap.clear();
+                if (boxSnap.exists()) {
+                    const asgn = boxSnap.data().assignments || {};
+                    Object.entries(asgn).forEach(([k, v]) => { if (k && v) _svBoxMap.set(k, v); });
+                }
                 gsRender();
             } catch(e) {
-                lista.innerHTML = '<div style="font-size:13px;color:rgba(255,100,100,0.7);">Error al cargar servicios</div>';
+                console.error('gsCargar:', e);
+                lista.innerHTML = '<div style="font-size:13px;color:rgba(255,100,100,0.7);">Error al cargar: ' + (e.code||e.message) + '</div>';
             }
         };
 
         window.gsAgregarNuevo = async () => {
             try {
-                const ref = await addDoc(collection(db, 'services'), { nombre: 'Nuevo servicio', boxId: '', activo: true });
-                _gsServicios.push({ id: ref.id, nombre: 'Nuevo servicio', boxId: '', activo: true });
+                const ref = await addDoc(collection(db, 'services'), { nombre: 'Nuevo servicio', activo: true });
+                _gsServicios.push({ id: ref.id, nombre: 'Nuevo servicio', activo: true });
                 gsRender();
                 setTimeout(() => { const inp = document.getElementById(`gs-nom-${ref.id}`); if(inp){inp.focus();inp.select();} }, 60);
-            } catch(e) { mostrarAviso('No se pudo agregar el servicio'); }
+            } catch(e) { mostrarAviso('No se pudo agregar: ' + (e.code||e.message)); }
         };
 
         window.gsGuardar = async (id) => {
+            const sv = _gsServicios.find(s => s.id === id);
+            const nombreAnterior = sv?.nombre || '';
             const nombre = (document.getElementById(`gs-nom-${id}`)?.value || '').trim();
             const boxId  = document.getElementById(`gs-box-${id}`)?.value || '';
             if (!nombre) { mostrarAviso('El nombre no puede estar vacío'); return; }
             try {
-                await setDoc(doc(db, 'services', id), { nombre, boxId, activo: true }, { merge: true });
-                const idx = _gsServicios.findIndex(s => s.id === id);
-                if (idx >= 0) { _gsServicios[idx].nombre = nombre; _gsServicios[idx].boxId = boxId; }
+                // 1. Actualizar nombre en services si cambió
+                if (nombre !== nombreAnterior) {
+                    await setDoc(doc(db, 'services', id), { nombre, activo: true }, { merge: true });
+                    // Migrar clave en _svBoxMap si el nombre cambió
+                    if (nombreAnterior && _svBoxMap.has(nombreAnterior)) {
+                        _svBoxMap.set(nombre, _svBoxMap.get(nombreAnterior));
+                        _svBoxMap.delete(nombreAnterior);
+                    }
+                    const idx = _gsServicios.findIndex(s => s.id === id);
+                    if (idx >= 0) _gsServicios[idx].nombre = nombre;
+                }
+                // 2. Guardar box en configuracion/serviciosBox
                 if (boxId) _svBoxMap.set(nombre, boxId); else _svBoxMap.delete(nombre);
-                mostrarAviso('✓ Servicio guardado');
-            } catch(e) { mostrarAviso('No se pudo guardar'); }
+                await _gsPersistir();
+                mostrarAviso('✓ Guardado');
+            } catch(e) {
+                console.error('gsGuardar:', e);
+                mostrarAviso('Error al guardar: ' + (e.code || e.message));
+            }
         };
 
         window.gsBorrar = async (id) => {
@@ -5871,9 +5910,10 @@
                 await deleteDoc(doc(db, 'services', id));
                 _gsServicios = _gsServicios.filter(s => s.id !== id);
                 if (sv.nombre) _svBoxMap.delete(sv.nombre);
+                await _gsPersistir();
                 gsRender();
                 mostrarAviso('Servicio eliminado');
-            } catch(e) { mostrarAviso('No se pudo borrar'); }
+            } catch(e) { mostrarAviso('No se pudo borrar: ' + (e.code||e.message)); }
         };
 
         window.cargarSeccionControl = async () => {
