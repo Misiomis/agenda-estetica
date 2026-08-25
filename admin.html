@@ -6807,6 +6807,33 @@
                 window.renderGrilla();
             } catch(e) { console.error('grillaDesbloquearSlot', e); }
         };
+
+        window.grillaSlotBloqueadoClick = (hora, boxId) => {
+            const box = GRILLA_BOXES.find(b => b.id === boxId);
+            const boxNombre = box ? `${box.icon} ${box.title} · ${box.sub}` : boxId;
+            const ov = document.createElement('div');
+            ov.id = '_grilla_bloq_ov';
+            ov.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.60);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px';
+            ov.innerHTML = `
+                <div style="width:100%;max-width:380px;background:linear-gradient(165deg,#0e2318 0%,#0a1c13 100%);border-radius:22px;border:1px solid rgba(100,200,140,0.18);box-shadow:0 24px 52px rgba(0,0,0,0.45);padding:28px 24px 22px;text-align:center">
+                    <div style="font-size:32px;margin-bottom:12px">🔒</div>
+                    <p style="font-family:'Playfair Display',serif;font-size:17px;color:rgba(220,245,232,0.92);margin:0 0 6px">Horario bloqueado</p>
+                    <p style="font-size:13px;color:rgba(160,210,185,0.65);margin:0 0 4px">${hora} hs &nbsp;·&nbsp; ${boxNombre}</p>
+                    <p style="font-size:13px;color:rgba(160,210,185,0.50);margin:0 0 22px">¿Querés desbloquearlo para agendar un turno?</p>
+                    <div style="display:flex;flex-direction:column;gap:10px">
+                        <button onclick="(async()=>{document.getElementById('_grilla_bloq_ov').remove();await grillaDesbloquearSlot('${hora}','${boxId}');grillaAbrirRegistro('${hora}','${boxId}');})()" style="width:100%;padding:13px;background:linear-gradient(135deg,#3a7a55,#2a5c3f);border:none;border-radius:13px;color:#d4f0e2;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.35)">
+                            ✅ Desbloquear y agendar
+                        </button>
+                        <button onclick="(async()=>{document.getElementById('_grilla_bloq_ov').remove();await grillaDesbloquearSlot('${hora}','${boxId}');})()" style="width:100%;padding:11px;background:rgba(100,180,140,0.08);border:1.5px solid rgba(100,180,140,0.20);border-radius:13px;color:rgba(180,230,205,0.70);font-weight:600;font-size:13px;cursor:pointer">
+                            🔓 Solo desbloquear
+                        </button>
+                        <button onclick="document.getElementById('_grilla_bloq_ov').remove()" style="width:100%;padding:11px;background:transparent;border:none;border-radius:13px;color:rgba(160,200,180,0.40);font-weight:500;font-size:13px;cursor:pointer">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>`;
+            document.body.appendChild(ov);
+        };
         window.grillaDesbloquearDefault = async (hora, boxId) => {
             const key = `${hora}_${boxId}`;
             const docId = `adm_unblk_${_grilla_fecha}_${hora.replace(':','-')}_${boxId}`;
@@ -6895,7 +6922,7 @@
                             <span class="grilla-paciente-servicio">${srv}</span>
                         </div>`;
                     } else if (adminBloq) {
-                        inner = `<div class="grilla-celda-bloq" onclick="grillaDesbloquearSlot('${hora}','${box.id}')" title="Bloqueado · click para desbloquear">
+                        inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
                             <span class="gcb-ico">🔒</span><span class="gcb-txt">Bloqueado</span>
                         </div>`;
                     } else if (defBloq && !adminUnbloq) {
