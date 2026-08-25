@@ -1823,11 +1823,14 @@
                     }
                     ocultarLoginError();
                     mostrarPanelAdmin();
-                    if (!sessionStorage.getItem('novedades_seen')) {
-                        setTimeout(() => {
-                            const ov = document.getElementById('novedades-overlay');
-                            if (ov) { ov.style.display = 'flex'; }
-                        }, 900);
+                    {
+                        const _hoy = new Date().toISOString().slice(0,10);
+                        if (localStorage.getItem('novedades_seen_date') !== _hoy) {
+                            setTimeout(() => {
+                                const ov = document.getElementById('novedades-overlay');
+                                if (ov) { ov.style.display = 'flex'; }
+                            }, 900);
+                        }
                     }
                     await cargarTodo();
                     cargarTemaAdmin();
@@ -5605,7 +5608,7 @@
         
         // === NOVEDADES ===
         window.cerrarNovedades = () => {
-            sessionStorage.setItem('novedades_seen', '1');
+            localStorage.setItem('novedades_seen_date', new Date().toISOString().slice(0,10));
             const ov = document.getElementById('novedades-overlay');
             if (ov) ov.style.display = 'none';
         };

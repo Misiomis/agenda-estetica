@@ -403,8 +403,16 @@
         </div>
 
         <button class="btn-submit" id="btn-enviar" onclick="enviarFormulario()">Inscribirme al curso 💄</button>
-        <div class="estado-msg" id="estado-msg"></div>
     </div>
+
+    <!-- ÉXITO / ERROR (fuera del form-card) -->
+    <div id="success-card" style="display:none;background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.22);border-radius:24px;padding:36px 24px;text-align:center;margin-top:0;">
+        <span id="success-ico" style="font-size:48px;display:block;margin-bottom:16px;"></span>
+        <p id="success-titulo" style="font-size:17px;font-weight:600;color:rgba(74,222,128,0.90);margin-bottom:10px;"></p>
+        <p id="success-body" style="font-size:14px;color:rgba(165,205,188,0.70);line-height:1.75;"></p>
+    </div>
+
+    <div id="error-inline" style="display:none;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.22);border-radius:16px;padding:18px 20px;text-align:center;margin-top:12px;font-size:14px;color:rgba(248,150,150,0.90);"></div>
 
 </div>
 
@@ -593,25 +601,28 @@ window.enviarFormulario = async function() {
         });
 
         document.getElementById('form-card').style.display = 'none';
+        document.getElementById('sesion-card').style.display = 'none';
+
         const sesionInfo = _sesionSeleccionada
-            ? `\n\n📅 ${_fechaLinda(_sesionSeleccionada.fecha)} · ${_sesionSeleccionada.horaInicio} hs`
+            ? `<br><br>📅 <strong style="color:rgba(220,242,232,0.90);">${_fechaLinda(_sesionSeleccionada.fecha)} · ${_sesionSeleccionada.horaInicio} hs</strong>`
             : '';
-        mostrarEstado('ok', '🎉',
-            `¡Listo, ${nombre}! Tu inscripción quedó registrada.${sesionInfo}\n\nGimena te va a confirmar pronto por WhatsApp. ¡Te esperamos!`
-        );
+        const sc = document.getElementById('success-card');
+        document.getElementById('success-ico').textContent = '🎉';
+        document.getElementById('success-titulo').textContent = '¡Inscripción confirmada!';
+        document.getElementById('success-body').innerHTML =
+            `¡Listo, <strong style="color:rgba(220,242,232,0.95);">${nombre}</strong>! Tu inscripción quedó registrada.${sesionInfo}<br><br>Gimena te va a confirmar pronto por WhatsApp. ¡Te esperamos! 💄`;
+        sc.style.display = 'block';
+        sc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
     } catch(e) {
         console.error(e);
         btn.disabled = false;
         btn.textContent = 'Inscribirme al curso 💄';
-        mostrarEstado('err', '❌', 'Ocurrió un error al enviar. Intentá de nuevo o escribinos por WhatsApp.');
+        const errDiv = document.getElementById('error-inline');
+        errDiv.innerHTML = '❌ Ocurrió un error al enviar. Intentá de nuevo o escribinos por WhatsApp.';
+        errDiv.style.display = 'block';
     }
 };
-
-function mostrarEstado(tipo, ico, txt) {
-    const el = document.getElementById('estado-msg');
-    el.className = `estado-msg ${tipo}`;
-    el.innerHTML = `<span class="estado-ico">${ico}</span>${txt.replace(/\n/g,'<br>')}`;
-}
 
 // ── Iniciar: cargar sesiones ──
 cargarSesiones();
