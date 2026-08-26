@@ -5850,6 +5850,7 @@
                         <button class="btn-mini" onclick="(function(){var ne=document.getElementById('${notaEditId}');ne.style.display=ne.style.display==='none'?'block':'none'})()" style="font-size:12px;">📝 Nota</button>
                         <button class="btn-mini" onclick="abrirCertificado('${c.id}')" style="background:rgba(249,168,212,0.10);border-color:rgba(249,168,212,0.30);color:rgba(249,168,212,0.90);font-size:12px;">🎓 Certificado</button>
                         ${waPhone ? `<button class="btn-mini" onclick="(function(){var m=document.getElementById('${recMenuId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="font-size:12px;background:rgba(37,211,102,0.06);border-color:rgba(37,211,102,0.22);color:rgba(100,220,140,0.85);">📲 Enviar por WA</button>` : ''}
+                        <button class="btn-mini" onclick="eliminarInscripta('${c.id}','${escapeHtml(c.nombre||'esta alumna')}')" style="font-size:12px;background:rgba(220,50,50,0.07);border-color:rgba(220,50,50,0.25);color:rgba(240,120,120,0.90);">🗑 Eliminar</button>
                     </div>
                     ${waPhone ? `
                     <div id="${recMenuId}" style="display:none;flex-direction:column;gap:6px;margin-top:10px;background:rgba(37,211,102,0.05);border:1px solid rgba(37,211,102,0.15);border-radius:12px;padding:12px;">
@@ -5895,6 +5896,16 @@
                 ? _fechaLindaCurso(sesion.fecha)
                 : new Date().toLocaleDateString('es-AR', { day:'numeric', month:'long', year:'numeric' }));
             window.open(`/certificado-maquillaje.html?nombre=${nombre}&fecha=${fecha}`, '_blank');
+        };
+
+        window.eliminarInscripta = async function(id, nombreMostrar) {
+            if (!confirm(`¿Eliminar la inscripción de ${nombreMostrar}?\nEsta acción no se puede deshacer.`)) return;
+            try {
+                await deleteDoc(doc(db, 'cursoMaquillaje', id));
+                _cursosCache = _cursosCache.filter(c => c.id !== id);
+                window.renderCursos();
+                window.renderSesionesCurso();
+            } catch(e) { mostrarAviso('Error al eliminar la inscripción'); }
         };
 
         // === SÁBADOS HORARIOS :30 ===
