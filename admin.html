@@ -5799,7 +5799,24 @@
 
             const nivelColores = { 1:'#f87171',2:'#fb923c',3:'#fbbf24',4:'#a3e635',5:'#4ade80',6:'#34d399',7:'#22d3ee',8:'#60a5fa',9:'#a78bfa',10:'#f472b6' };
 
-            cont.innerHTML = lista.map(c => {
+            // Agrupar por sesión
+            const grupos = {};
+            lista.forEach(c => {
+                const key = c.sesionId || '__sin_sesion__';
+                if (!grupos[key]) grupos[key] = [];
+                grupos[key].push(c);
+            });
+
+            // Ordenar grupos por horaInicio de la sesión
+            const sesionesOrdenadas = Object.keys(grupos).sort((a, b) => {
+                const sa = _cursoSesiones.find(s => s.id === a);
+                const sb = _cursoSesiones.find(s => s.id === b);
+                const ka = sa ? `${sa.fecha}${sa.horaInicio}` : 'z';
+                const kb = sb ? `${sb.fecha}${sb.horaInicio}` : 'z';
+                return ka.localeCompare(kb);
+            });
+
+            const renderCardCurso = (c) => {
                 const estado = c.estado || 'inscripta';
                 const estadoColor = estado === 'presente' ? '#4ade80' : estado === 'cancelada' ? 'rgba(255,100,100,0.75)' : 'rgba(249,168,212,0.85)';
                 const estadoLabel = estado === 'presente' ? 'Presente ✓' : estado === 'cancelada' ? 'Cancelada' : 'Inscripta';
@@ -5859,7 +5876,32 @@
                         <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}! En el Curso de Automaquillaje que te esperamos, te recomendamos venir sin maquillaje o con el mínimo posible. Traé toda tu energía y ganas de aprender 💄✨ — Espacio Mimar T`)}" target="_blank" rel="noopener" style="display:block;padding:9px 12px;border-radius:8px;background:linear-gradient(135deg,#ec4899,#be185d);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;">💄 Recomendaciones pre-clase</a>
                     </div>` : ''}
                 </div>`;
-            }).join('');
+            };
+
+            // Renderizar grupos con encabezado de sesión
+            let html = '';
+            sesionesOrdenadas.forEach(key => {
+                const inscriptas = grupos[key];
+                const sesion = _cursoSesiones.find(s => s.id === key);
+                const totalGrupo = inscriptas.length;
+                const presentesGrupo = inscriptas.filter(c => c.estado === 'presente').length;
+
+                if (sesion) {
+                    html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 4px 8px;">
+                        <span style="font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(249,168,212,0.70);">${_fechaLindaCurso(sesion.fecha)}</span>
+                        <span style="font-size:14px;font-weight:700;color:rgba(249,168,212,0.95);">${sesion.horaInicio} – ${sesion.horaFin} hs</span>
+                        <span style="font-size:11px;color:rgba(165,205,188,0.45);margin-left:auto;">${presentesGrupo}/${totalGrupo} presentes</span>
+                    </div>`;
+                } else {
+                    html += `<div style="padding:8px 4px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(165,205,188,0.40);">Sin sesión asignada</div>`;
+                }
+
+                html += `<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">`;
+                inscriptas.forEach(c => { html += renderCardCurso(c); });
+                html += `</div>`;
+            });
+
+            cont.innerHTML = html;
         };
 
         window.cambiarEstadoCurso = async function(id, nuevoEstado) {
