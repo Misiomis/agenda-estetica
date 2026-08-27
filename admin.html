@@ -1993,6 +1993,7 @@
         let bloqueosHorarios = new Map();
         let duoHorarios      = new Map();
         let _svBoxMap        = new Map(); // nombre servicio → boxId
+        let _svDurMap        = new Map(); // nombre servicio → duracionMinutos
         let _gsServicios     = [];        // cache local de docs 'services' // key: fecha|hora -> docId en calendarExceptions
         let cierresPorFecha  = new Map();
         let bloqueoPendienteConReserva = null;
@@ -3798,9 +3799,22 @@
         window.seleccionarChipServicio = (el, hiddenId) => {
             el.closest('.mreg-chips-grid').querySelectorAll('.mreg-chip').forEach(c => c.classList.remove('activo'));
             el.classList.add('activo');
-            document.getElementById(hiddenId).value = el.dataset.servicio;
+            const nombreSvc = el.dataset.servicio;
+            document.getElementById(hiddenId).value = nombreSvc;
+            // Badge de duración (solo modal principal)
+            if (hiddenId === 'mreg-servicio-hidden') {
+                const badge = document.getElementById('mreg-duracion-badge');
+                if (badge && _mreg_hora) {
+                    const dur = _svDurMap.get(nombreSvc) || 30;
+                    const [hh, mm] = normalizarHora(_mreg_hora).split(':').map(Number);
+                    const endMin = hh * 60 + mm + dur;
+                    const endStr = `${String(Math.floor(endMin/60)).padStart(2,'0')}:${String(endMin%60).padStart(2,'0')}`;
+                    badge.innerHTML = `⏱ ${_mreg_hora} → ${endStr} hs &nbsp;·&nbsp; <b>${dur} min</b>`;
+                    badge.style.display = 'block';
+                }
+            }
             // Auto-asignar box si el servicio tiene uno definido en la Grilla de Servicios
-            const boxId = el.dataset.boxid || _svBoxMap.get(el.dataset.servicio) || '';
+            const boxId = el.dataset.boxid || _svBoxMap.get(nombreSvc) || '';
             if (boxId) seleccionarBoxMreg(boxId);
         };
 
@@ -3817,6 +3831,7 @@
                         if (n) {
                             lista.push(n);
                             if (data.boxId) _svBoxMap.set(n, data.boxId);
+                            if (data.duracion) _svDurMap.set(n, Number(data.duracion));
                         }
                     }
                 });
@@ -4031,25 +4046,19 @@
 
             const clienteSnap = { ..._mreg_clienteSeleccionado };
 
-            // Todos los servicios duran 60 minutos (1 slot de extensión)
-            const durMin = 60;
+            // Duración según el servicio (definida en Servicios > Catálogo), por defecto 30 min
+            const durMin = _svDurMap.get(servicioIngresado) || 30;
             const slotsExtension = (() => {
                 const idxBase = SLOTS_30_COMPLETOS.indexOf(normalizarHora(horaSnap));
-                if (idxBase >= 0 && idxBase + 1 < SLOTS_30_COMPLETOS.length) return [SLOTS_30_COMPLETOS[idxBase + 1]];
-                return [];
+                const extra = Math.max(0, Math.ceil(durMin / 30) - 1);
+                const slots = [];
+                for (let i = 1; i <= extra && idxBase + i < SLOTS_30_COMPLETOS.length; i++) {
+                    slots.push(SLOTS_30_COMPLETOS[idxBase + i]);
+                }
+                return slots;
             })();
-            // Verificar que el slot de extensión esté libre
-            if (slotsExtension.length > 0) {
-                const _blkActivo = (fecha, hora) => {
-                    const blk = bloqueosHorarios.get(keyBloqueo(fecha, hora));
-                    if (!blk) return false;
-                    if (blk.reservaId) return todasLasReservas.some(r => r.id === blk.reservaId && esReservaActiva(r));
-                    return true;
-                };
-                const extHora = slotsExtension[0];
-                const extOcupado = todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === normalizarHora(extHora))
-                    || _blkActivo(fechaSnap, extHora);
-                if (extOcupado) {
+            // (sin bloqueo: se permite agendar aunque el slot siguiente esté tomado)
+            if (false) {
                     // Buscar horarios alternativos donde ambos slots (inicio + extensión) estén libres
                     const alternativas = [];
                     for (let i = 0; i <= SLOTS_30_COMPLETOS.length - 2; i++) {
@@ -4078,8 +4087,8 @@
                         </div>`;
                     document.body.appendChild(ov);
                     return;
-                }
             }
+            // ↑ bloque desactivado — no bloquea el turno
 
             try {
                 const _boxGuardar = _mreg_boxPresel ? { id: _mreg_boxPresel.id, label: _mreg_boxPresel.label } : null;
@@ -7741,6 +7750,7 @@
             </div>
             <label class="mreg-field-label">Servicio</label>
             <div class="mreg-chips-grid" id="mreg-chips-grid"></div>
+            <div id="mreg-duracion-badge" style="display:none;margin:-4px 0 14px;padding:8px 14px;background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.20);border-radius:10px;font-size:12.5px;color:rgba(140,210,180,0.90);text-align:center;"></div>
             <input type="hidden" id="mreg-servicio-hidden" value="">
             <div class="mreg-actions">
                 <button class="mreg-btn-cancel" onclick="cerrarModalRegistrar()">Cancelar</button>
