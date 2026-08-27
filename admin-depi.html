@@ -873,7 +873,7 @@
     window.bloquearSlotDepi = async (hora, fecha) => {
         try {
             const docId = `depi_${fecha}_${hora.replace(':','')}`;
-            await setDoc(doc(db, COLECCION_EX, docId), { fecha, hora, tipo: 'slot', bloqueado: true, updatedAt: serverTimestamp() });
+            await setDoc(doc(db, COLECCION_EX, docId), { fecha, hora, tipo: 'slot', blocked: true, bloqueado: true, updatedAt: serverTimestamp() });
             mostrarAvisoDepi(`${hora} bloqueado`);
             await verDia(fecha);
         } catch(e) { console.error(e); mostrarAvisoDepi('Error al bloquear slot'); }

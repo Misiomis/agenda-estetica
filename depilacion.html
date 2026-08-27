@@ -1013,7 +1013,7 @@ function procesarExcepciones(snapshot){
         const fechaEx=((data.fecha||"")||(idEsFecha?docSnap.id:"")).toString();
         const horaEx=normalizarHora(data.hora||data.hour||"");
         const activo=data.active!==false;
-        const esBloqueo=data.type==="blocked"||data.blocked===true;
+        const esBloqueo=data.type==="blocked"||data.blocked===true||data.bloqueado===true||data.tipo==='slot';
         if(!activo||!esBloqueo)return;
         if(fechaEx&&horaEx){bloqueosHorarios.set(keyBloqueo(fechaEx,horaEx),{id:docSnap.id,...data,fecha:fechaEx,hora:horaEx});return;}
         if(fechaEx)excepciones[fechaEx]=data.reason||"Cerrado";
@@ -1216,6 +1216,23 @@ window.irPaso2=function(){
     if(!domicilio){alertCampo("mcDomicilio","Ingresá tu barrio o localidad");return;}
     if(!telefono){alertCampo("mcTelefono","Ingresá tu número de WhatsApp");return;}
     if(!comboSeleccionado){alertCampo("comboSelectGrid","Elegí un combo");return;}
+
+    // Verificar que el horario tiene espacio para el combo elegido
+    const _durMinCombo=(_comboDuracConfig[comboSeleccionado.id]!=null)?_comboDuracConfig[comboSeleccionado.id]:(comboSeleccionado.durMin||60);
+    const _slotsNecCombo=Math.max(1,Math.ceil(_durMinCombo/30));
+    if(_slotsNecCombo>1&&fechaSeleccionada&&horaSeleccionada){
+        const _fStr2=fechaAString(fechaSeleccionada);
+        const _slotsHoy2=_slotsParaDia(_fStr2);
+        const _idxCombo=_slotsHoy2.indexOf(normalizarHora(horaSeleccionada));
+        const _reservasHoy2=reservasPorFecha.get(_fStr2)||new Set();
+        for(let _i=1;_i<_slotsNecCombo;_i++){
+            const _horaExt2=_slotsHoy2[_idxCombo+_i];
+            if(!_horaExt2||_reservasHoy2.has(_horaExt2)||bloqueosHorarios.has(keyBloqueo(_fStr2,_horaExt2))){
+                alertCampo("comboSelectGrid",`El combo ${comboSeleccionado.nombre} necesita ${_durMinCombo} min. Las ${_horaExt2||'siguientes'} hs ya están tomadas — elegí un horario más temprano.`);
+                return;
+            }
+        }
+    }
 
     const avanzar=()=>{
         document.getElementById("mcStep1").classList.remove("active");
