@@ -392,13 +392,16 @@
             <h2 class="sec-title">Nuevo Turno</h2>
             <div class="card">
                 <div class="form-grid">
+                    <div class="form-field full">
+                        <label class="form-label">DNI <span id="rDniStatus" style="font-size:11px;font-weight:600;margin-left:8px;transition:color .2s;"></span></label>
+                        <input class="form-input" type="text" id="rDni" placeholder="Sin puntos" inputmode="numeric" oninput="dniAutocomplete(this.value)" autocomplete="off">
+                    </div>
+                    <div id="rClienteWrap" class="form-field full" style="display:none;padding:0;">
+                        <div id="rClienteCard" style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.28);border-radius:10px;padding:11px 15px;font-size:12.5px;line-height:1.9;color:var(--texto);"></div>
+                    </div>
                     <div class="form-field">
                         <label class="form-label">Nombre completo *</label>
                         <input class="form-input" type="text" id="rNombre" placeholder="Nombre de la paciente">
-                    </div>
-                    <div class="form-field">
-                        <label class="form-label">DNI</label>
-                        <input class="form-input" type="text" id="rDni" placeholder="Sin puntos" inputmode="numeric">
                     </div>
                     <div class="form-field">
                         <label class="form-label">Teléfono / WhatsApp</label>
@@ -565,6 +568,8 @@
     let _reservasDia = {};
     let _excepcionesDia = {};
     let _diaRegistroPrefill = null;
+    let _clienteCargado = null;
+    let _dniTimer = null;
 
     // ════════════════════════════════
     // LOGIN
@@ -954,9 +959,16 @@
         fb.textContent = '';
 
         try {
+            const extraCliente = _clienteCargado ? {
+                ...((_clienteCargado.fechaNacimiento) && { fechaNacimiento: _clienteCargado.fechaNacimiento }),
+                ...((_clienteCargado.edad)            && { edad: _clienteCargado.edad }),
+                ...(((_clienteCargado.barrio||_clienteCargado.domicilio)) && { barrio: _clienteCargado.barrio||_clienteCargado.domicilio }),
+                ...((_clienteCargado.email)           && { email: _clienteCargado.email }),
+            } : {};
             const reservaRef = await addDoc(collection(db, COLECCION), {
                 nombre, dni, telefono: tel, fecha, hora,
                 servicio, estado, notas,
+                ...extraCliente,
                 origen: 'admin',
                 createdAt: serverTimestamp()
             });
@@ -995,8 +1007,14 @@
     };
 
     window.limpiarFormRegistro = () => {
-        document.getElementById('rNombre').value = '';
+        _clienteCargado = null;
+        clearTimeout(_dniTimer);
         document.getElementById('rDni').value = '';
+        document.getElementById('rDniStatus').textContent = '';
+        document.getElementById('rDniStatus').style.color = '';
+        document.getElementById('rClienteWrap').style.display = 'none';
+        document.getElementById('rClienteCard').innerHTML = '';
+        document.getElementById('rNombre').value = '';
         document.getElementById('rTelefono').value = '';
         document.getElementById('rFecha').value = _diaRegistroPrefill || hoyStr();
         document.getElementById('rHora').value = '';
@@ -1006,6 +1024,52 @@
         const fb = document.getElementById('rFeedback');
         fb.className = 'feedback';
         fb.textContent = '';
+    };
+
+    window.dniAutocomplete = (val) => {
+        const raw = val.replace(/[\.\s\-]/g, '');
+        const statusEl = document.getElementById('rDniStatus');
+        const wrapEl   = document.getElementById('rClienteWrap');
+        const cardEl   = document.getElementById('rClienteCard');
+        clearTimeout(_dniTimer);
+        if (raw.length < 6) {
+            statusEl.textContent = '';
+            statusEl.style.color = '';
+            wrapEl.style.display = 'none';
+            _clienteCargado = null;
+            return;
+        }
+        statusEl.textContent = 'buscando…';
+        statusEl.style.color = 'var(--texto-suave)';
+        _dniTimer = setTimeout(async () => {
+            try {
+                const snap = await getDoc(doc(db, 'clients', raw));
+                if (snap.exists()) {
+                    const d = snap.data();
+                    _clienteCargado = d;
+                    document.getElementById('rNombre').value   = d.nombre    || '';
+                    document.getElementById('rTelefono').value = d.telefono  || '';
+                    let partes = [];
+                    if (d.fechaNacimiento) partes.push(`<b>Nac.:</b> ${escHtml(d.fechaNacimiento)}`);
+                    if (d.edad)           partes.push(`<b>Edad:</b> ${escHtml(String(d.edad))} años`);
+                    if (d.barrio || d.domicilio) partes.push(`<b>Barrio:</b> ${escHtml(d.barrio||d.domicilio||'')}`);
+                    if (d.email)          partes.push(`<b>Email:</b> ${escHtml(d.email)}`);
+                    cardEl.innerHTML = `<span style="color:rgba(74,222,128,0.9);font-weight:700;">✓ Paciente encontrada</span>&ensp;${escHtml(d.nombre||'')}${partes.length ? '&ensp;—&ensp;' + partes.join('&ensp;·&ensp;') : ''}`;
+                    wrapEl.style.display = '';
+                    statusEl.textContent = '✓ encontrada';
+                    statusEl.style.color = 'rgba(74,222,128,0.9)';
+                } else {
+                    _clienteCargado = null;
+                    wrapEl.style.display = 'none';
+                    statusEl.textContent = 'paciente nuevo';
+                    statusEl.style.color = 'var(--texto-suave)';
+                }
+            } catch(e) {
+                console.warn('DNI lookup error:', e);
+                statusEl.textContent = '';
+                statusEl.style.color = '';
+            }
+        }, 420);
     };
 
     // Inicializar fecha del form
