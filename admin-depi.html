@@ -628,6 +628,15 @@
         irA('registrar');
     };
 
+    window.agendarSlot = (hora, fecha) => {
+        limpiarFormRegistro();
+        document.getElementById('rFecha').value = fecha;
+        document.getElementById('rHora').value = hora;
+        _diaRegistroPrefill = fecha;
+        irA('registrar');
+        setTimeout(() => document.getElementById('rDni').focus(), 120);
+    };
+
     // ════════════════════════════════
     // CALENDARIO
     // ════════════════════════════════
@@ -840,7 +849,10 @@
                 return `<div class="slot-row">
                     <div class="slot-hora">${hora}</div>
                     <div class="slot-libre">Libre</div>
-                    <button class="btn-icono" style="font-size:11px;color:rgba(248,113,113,0.65);border-color:rgba(248,113,113,0.20);" onclick="bloquearSlotDepi('${hora}','${fecha}')">🔒 Bloquear</button>
+                    <div style="display:flex;gap:6px;flex-shrink:0;">
+                        <button class="btn-icono" style="font-size:11px;color:rgba(167,139,250,0.85);border-color:rgba(167,139,250,0.30);background:rgba(167,139,250,0.07);" onclick="agendarSlot('${hora}','${fecha}')">➕ Agendar</button>
+                        <button class="btn-icono" style="font-size:11px;color:rgba(248,113,113,0.65);border-color:rgba(248,113,113,0.20);" onclick="bloquearSlotDepi('${hora}','${fecha}')">🔒 Bloquear</button>
+                    </div>
                 </div>`;
             }
         });
