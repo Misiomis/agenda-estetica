@@ -1498,7 +1498,15 @@
                 where('fecha','<=', hasta)
             ));
             const reservas = [];
-            snap.forEach(d => { if (!d.data().eliminado) reservas.push({ _id: d.id, ...d.data() }); });
+            const sinHora = [];
+            snap.forEach(d => {
+                const dat = d.data();
+                if (dat.eliminado) return;
+                if (!dat.hora) { sinHora.push(d.id); return; } // duplicados sin hora → omitir
+                reservas.push({ _id: d.id, ...dat });
+            });
+            // Limpiar automáticamente duplicados sin hora
+            sinHora.forEach(id => updateDoc(doc(db, COLECCION, id), { eliminado: true, updatedAt: serverTimestamp() }).catch(() => {}));
             reservas.sort((a,b) => (a.fecha+a.hora) < (b.fecha+b.hora) ? -1 : 1);
 
             // Agrupar por día
