@@ -351,6 +351,7 @@
         <button class="nav-btn" id="navBuscar" onclick="irA('buscar')">🔍 Buscar</button>
         <button class="nav-btn" id="navCombos" onclick="irA('combos')">⏱ Duración</button>
         <button class="nav-btn" id="navPrecios" onclick="irA('precios')">💲 Precios</button>
+        <button class="nav-btn" id="navExportar" onclick="irA('exportar')">🖨 Exportar</button>
         <div class="nav-divider"></div>
         <a class="nav-btn" href="/admin.html" style="text-decoration:none;color:var(--texto-suave);font-size:12px;">← Volver a Admin</a>
         <button class="nav-exit" onclick="cerrarSesionDepi()">Cerrar sesión</button>
@@ -522,6 +523,31 @@
             </div>
         </div>
 
+        <!-- ══ EXPORTAR ══ -->
+        <div id="secExportar" class="section">
+            <h2 class="sec-title">Exportar agenda</h2>
+            <div class="card">
+                <p style="font-size:13px;color:var(--texto-suave);margin-bottom:20px;line-height:1.6;">Seleccioná el rango de fechas. Se genera una hoja A4 lista para imprimir con todos los turnos ordenados por día y horario.</p>
+                <div class="form-grid" style="gap:14px;">
+                    <div class="form-field">
+                        <label class="form-label">Desde</label>
+                        <input class="form-input" type="date" id="expDesde">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Hasta</label>
+                        <input class="form-input" type="date" id="expHasta">
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;">
+                    <button class="btn-primary" onclick="exportarAgendaDepi()">🖨 Generar e imprimir</button>
+                    <button class="btn-outline" onclick="setExpHoy()">Hoy</button>
+                    <button class="btn-outline" onclick="setExpSemana()">Esta semana</button>
+                    <button class="btn-outline" onclick="setExpMes()">Este mes</button>
+                </div>
+                <div id="expFeedback" style="margin-top:14px;font-size:13px;color:var(--texto-suave);"></div>
+            </div>
+        </div>
+
     </main>
 </div>
 
@@ -617,8 +643,8 @@
     // ════════════════════════════════
     // NAVEGACIÓN
     // ════════════════════════════════
-    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', buscar: 'secBuscar', combos: 'secCombos', precios: 'secPrecios' };
-    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', buscar: 'navBuscar', combos: 'navCombos', precios: 'navPrecios' };
+    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', buscar: 'secBuscar', combos: 'secCombos', precios: 'secPrecios', exportar: 'secExportar' };
+    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', buscar: 'navBuscar', combos: 'navCombos', precios: 'navPrecios', exportar: 'navExportar' };
 
     window.irA = (sec) => {
         Object.values(SECCIONES).forEach(id => document.getElementById(id).classList.remove('active'));
@@ -1417,6 +1443,133 @@
         _irAOrig(sec);
         if (sec === 'combos') cargarDuraciones();
         if (sec === 'precios') cargarPrecios();
+        if (sec === 'exportar') _initExp();
+    };
+
+    // ════════════════════════════════
+    // EXPORTAR AGENDA
+    // ════════════════════════════════
+    const _initExp = () => {
+        const hoy = hoyStr();
+        if (!document.getElementById('expDesde').value) document.getElementById('expDesde').value = hoy;
+        if (!document.getElementById('expHasta').value) document.getElementById('expHasta').value = hoy;
+    };
+    window.setExpHoy   = () => { const h = hoyStr(); document.getElementById('expDesde').value = h; document.getElementById('expHasta').value = h; };
+    window.setExpSemana = () => {
+        const hoy = new Date(); hoy.setHours(0,0,0,0);
+        const lun = new Date(hoy); lun.setDate(hoy.getDate() - hoy.getDay() + 1);
+        const dom = new Date(lun); dom.setDate(lun.getDate() + 6);
+        const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        document.getElementById('expDesde').value = fmt(lun);
+        document.getElementById('expHasta').value = fmt(dom);
+    };
+    window.setExpMes = () => {
+        const hoy = new Date();
+        const ini = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-01`;
+        const fin = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0);
+        const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        document.getElementById('expDesde').value = ini;
+        document.getElementById('expHasta').value = fmt(fin);
+    };
+
+    window.exportarAgendaDepi = async () => {
+        const desde = document.getElementById('expDesde').value;
+        const hasta = document.getElementById('expHasta').value;
+        const fb    = document.getElementById('expFeedback');
+        if (!desde || !hasta) { fb.textContent = 'Seleccioná fecha de inicio y fin.'; return; }
+        if (desde > hasta)    { fb.textContent = 'La fecha de inicio no puede ser mayor al fin.'; return; }
+        fb.textContent = 'Cargando turnos…';
+        try {
+            const snap = await getDocs(query(
+                collection(db, COLECCION),
+                where('fecha','>=', desde),
+                where('fecha','<=', hasta)
+            ));
+            const reservas = [];
+            snap.forEach(d => { if (!d.data().eliminado) reservas.push({ _id: d.id, ...d.data() }); });
+            reservas.sort((a,b) => (a.fecha+a.hora) < (b.fecha+b.hora) ? -1 : 1);
+
+            // Agrupar por día
+            const porDia = {};
+            reservas.forEach(r => { (porDia[r.fecha] = porDia[r.fecha]||[]).push(r); });
+            const dias = Object.keys(porDia).sort();
+
+            const _nomDia  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+            const _nomMes  = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+            const _fmtDia  = f => { const [y,m,d] = f.split('-').map(Number); const dt = new Date(y,m-1,d); return `${_nomDia[dt.getDay()]} ${d} de ${_nomMes[m-1]} de ${y}`; };
+            const _estadoLabel = { pendiente:'Pendiente', confirmada:'Confirmada', cancelada:'Cancelada', realizada:'Realizada' };
+
+            let bloques = '';
+            dias.forEach((fecha,idx) => {
+                const turnos = porDia[fecha];
+                const filas  = turnos.map(r => {
+                    const est  = _estadoLabel[r.estado||'pendiente']||r.estado||'—';
+                    const estColor = r.estado==='confirmada'?'#16a34a': r.estado==='cancelada'?'#dc2626': r.estado==='realizada'?'#7c3aed':'#b45309';
+                    return `<tr>
+                        <td style="width:52px;font-weight:800;font-size:15px;color:#4c1d95;vertical-align:top;padding:10px 8px 10px 0;">${r.hora||'—'}</td>
+                        <td style="vertical-align:top;padding:10px 0;">
+                            <div style="font-weight:700;font-size:14px;color:#1e1b4b;">${escHtml(r.nombre||'Sin nombre')}</div>
+                            <div style="font-size:12px;color:#555;margin-top:2px;">${escHtml(r.servicio||r.combo||'—')}${r.edad ? ` &nbsp;·&nbsp; ${r.edad} años` : ''}${r.dni ? ` &nbsp;·&nbsp; DNI: ${escHtml(r.dni)}` : ''}</div>
+                            ${r.telefono ? `<div style="font-size:12px;color:#555;">Tel: ${escHtml(r.telefono)}</div>` : ''}
+                            ${r.notas ? `<div style="font-size:11.5px;color:#777;font-style:italic;margin-top:2px;">Notas: ${escHtml(r.notas)}</div>` : ''}
+                        </td>
+                        <td style="width:90px;text-align:right;vertical-align:top;padding:10px 0;">
+                            <span style="font-size:11px;font-weight:700;color:${estColor};background:${estColor}18;padding:2px 8px;border-radius:20px;border:1px solid ${estColor}44;">${est}</span>
+                        </td>
+                    </tr>
+                    <tr><td colspan="3" style="padding:0;"><div style="height:1px;background:#e9d5ff;margin:0 0 2px;"></div></td></tr>`;
+                }).join('');
+                bloques += `
+                    ${idx > 0 ? '<div style="page-break-inside:avoid;"></div>' : ''}
+                    <div style="page-break-inside:avoid;margin-bottom:28px;">
+                        <div style="background:linear-gradient(90deg,#7c3aed,#a855f7);color:#fff;padding:8px 16px;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+                            <span style="font-weight:800;font-size:14px;text-transform:uppercase;letter-spacing:.06em;">${_fmtDia(fecha)}</span>
+                            <span style="font-size:12px;opacity:.85;">${turnos.length} turno${turnos.length!==1?'s':''}</span>
+                        </div>
+                        <table style="width:100%;border-collapse:collapse;">${filas}</table>
+                    </div>`;
+            });
+
+            if (!dias.length) { fb.textContent = 'No hay turnos en ese rango de fechas.'; return; }
+
+            const total = reservas.length;
+            const ahora = new Date();
+            const fmtAhora = `${ahora.getDate()}/${ahora.getMonth()+1}/${ahora.getFullYear()} ${ahora.getHours()}:${String(ahora.getMinutes()).padStart(2,'0')}`;
+            const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Agenda Depilación — Espacio Mimar T</title>
+            <style>
+                @page { size: A4 portrait; margin: 1.8cm 2cm 2cm; }
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e1b4b; background: #fff; font-size: 13px; }
+                .encabezado { display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 3px solid #7c3aed; padding-bottom: 10px; margin-bottom: 24px; }
+                .titulo-doc { font-size: 22px; font-weight: 900; color: #4c1d95; letter-spacing: .03em; }
+                .subtitulo-doc { font-size: 12px; color: #7c3aed; margin-top: 3px; }
+                .meta { text-align: right; font-size: 11px; color: #888; line-height: 1.7; }
+                @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+            </style></head><body>
+            <div class="encabezado">
+                <div>
+                    <div class="titulo-doc">Espacio Mimar T</div>
+                    <div class="subtitulo-doc">Agenda de Depilación Definitiva · ${_fmtDia(desde)}${desde!==hasta?' al '+_fmtDia(hasta):''}</div>
+                </div>
+                <div class="meta">
+                    Generado: ${fmtAhora}<br>
+                    Total de turnos: <b>${total}</b><br>
+                    Días: <b>${dias.length}</b>
+                </div>
+            </div>
+            ${bloques}
+            </body></html>`;
+
+            const win = window.open('', '_blank');
+            win.document.write(html);
+            win.document.close();
+            win.focus();
+            setTimeout(() => win.print(), 600);
+            fb.textContent = `✓ ${total} turno${total!==1?'s':''} exportado${total!==1?'s':''}.`;
+        } catch(e) {
+            console.error(e);
+            fb.textContent = 'Error al cargar los turnos. Revisá la conexión.';
+        }
     };
 </script>
 </body>
