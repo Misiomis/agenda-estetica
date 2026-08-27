@@ -408,6 +408,10 @@
                         <input class="form-input" type="tel" id="rTelefono" placeholder="3764..." inputmode="tel">
                     </div>
                     <div class="form-field">
+                        <label class="form-label">Edad</label>
+                        <input class="form-input" type="number" id="rEdad" placeholder="años" min="1" max="120" inputmode="numeric" style="max-width:120px;">
+                    </div>
+                    <div class="form-field">
                         <label class="form-label">Fecha *</label>
                         <input class="form-input" type="date" id="rFecha">
                     </div>
@@ -953,8 +957,10 @@
         const fb = document.getElementById('rFeedback');
         fb.className = 'feedback';
         const nombre   = document.getElementById('rNombre').value.trim();
-        const dni      = document.getElementById('rDni').value.trim();
+        const dni      = document.getElementById('rDni').value.replace(/[\.\s\-]/g,'');
         const tel      = document.getElementById('rTelefono').value.trim();
+        const edadVal  = document.getElementById('rEdad').value.trim();
+        const edad     = edadVal ? parseInt(edadVal, 10) : null;
         const fecha    = document.getElementById('rFecha').value;
         const hora     = document.getElementById('rHora').value;
         const servicio = document.getElementById('rServicio').value;
@@ -975,11 +981,17 @@
 
         try {
             const extraCliente = _clienteCargado ? {
-                ...((_clienteCargado.fechaNacimiento) && { fechaNacimiento: _clienteCargado.fechaNacimiento }),
-                ...((_clienteCargado.edad)            && { edad: _clienteCargado.edad }),
+                ...((_clienteCargado.fechaNacimiento)                     && { fechaNacimiento: _clienteCargado.fechaNacimiento }),
+                ...((edad != null)                                        && { edad }),
                 ...(((_clienteCargado.barrio||_clienteCargado.domicilio)) && { barrio: _clienteCargado.barrio||_clienteCargado.domicilio }),
-                ...((_clienteCargado.email)           && { email: _clienteCargado.email }),
-            } : {};
+                ...((_clienteCargado.email)                               && { email: _clienteCargado.email }),
+            } : (edad != null ? { edad } : {});
+
+            // Si el cliente existe pero le faltaba la edad, actualizarla en clients
+            if (dni && edad != null && _clienteCargado && _clienteCargado.edad == null) {
+                setDoc(doc(db, 'clients', dni), { edad }, { merge: true }).catch(() => {});
+            }
+
             const reservaRef = await addDoc(collection(db, COLECCION), {
                 nombre, dni, telefono: tel, fecha, hora,
                 servicio, estado, notas,
@@ -1031,6 +1043,7 @@
         document.getElementById('rClienteCard').innerHTML = '';
         document.getElementById('rNombre').value = '';
         document.getElementById('rTelefono').value = '';
+        document.getElementById('rEdad').value = '';
         document.getElementById('rFecha').value = _diaRegistroPrefill || hoyStr();
         document.getElementById('rHora').value = '';
         document.getElementById('rServicio').value = '';
@@ -1064,6 +1077,7 @@
                     _clienteCargado = d;
                     document.getElementById('rNombre').value   = d.nombre    || '';
                     document.getElementById('rTelefono').value = d.telefono  || '';
+                    document.getElementById('rEdad').value     = d.edad != null ? d.edad : '';
                     let partes = [];
                     if (d.fechaNacimiento) partes.push(`<b>Nac.:</b> ${escHtml(d.fechaNacimiento)}`);
                     if (d.edad)           partes.push(`<b>Edad:</b> ${escHtml(String(d.edad))} años`);
