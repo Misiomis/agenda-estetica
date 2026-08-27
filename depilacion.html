@@ -137,8 +137,9 @@
         .mc-field{width:100%;padding:12px 14px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(60,179,113,0.18);border-radius:12px;color:var(--ink);font-family:'Montserrat',sans-serif;font-size:13px;margin-bottom:10px;outline:none;transition:border-color .2s;}
         .mc-field:focus{border-color:rgba(168,85,247,0.50);}
         .mc-label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(165,205,188,0.38);margin-bottom:6px;}
-        .mc-btn{width:100%;padding:14px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;border-radius:14px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:.02em;box-shadow:0 6px 20px rgba(124,58,237,0.35);margin-top:6px;}
-        .mc-btn:hover{filter:brightness(1.06);}
+        .mc-btn{width:100%;padding:14px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;border-radius:14px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:.02em;box-shadow:0 6px 20px rgba(124,58,237,0.35);margin-top:6px;transition:opacity .2s,filter .2s;}
+        .mc-btn:hover:not(:disabled){filter:brightness(1.06);}
+        .mc-btn:disabled{opacity:0.42;cursor:not-allowed;box-shadow:none;filter:none;}
         .mc-btn-back{background:none;border:none;color:rgba(165,205,188,0.45);font-size:12px;cursor:pointer;padding:0;margin-bottom:12px;}
         .mc-btn-back:hover{color:rgba(165,205,188,0.75);}
 
@@ -1222,7 +1223,11 @@ window.irPaso2=function(){
         document.getElementById("dot2").classList.add("active");
         const sub=document.getElementById("mcSubPago");
         if(sub)sub.textContent=`${comboSeleccionado.nombre} · ${comboSeleccionado.precio} · Pago en el momento de la sesión.`;
-        _metodoPago=null;document.getElementById("mcBtnConfirmar").disabled=true;
+        _metodoPago=null;
+        document.getElementById("pagoEfectivo").classList.remove("selected");
+        document.getElementById("pagoTransferencia").classList.remove("selected");
+        document.getElementById("infoTransferencia").style.display="none";
+        document.getElementById("mcBtnConfirmar").disabled=true;
     };
     if(parseInt(edad)<18){
         const ov=document.getElementById("modalMenorDepi");ov.style.display="flex";
