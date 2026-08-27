@@ -635,6 +635,16 @@
         irA('registrar');
     };
 
+    window.toggleRec = (id) => {
+        const d = document.getElementById('rec-' + id);
+        const arrow = document.getElementById('recArrow-' + id);
+        if (!d) return;
+        const open = d.style.display === 'flex';
+        d.style.display = open ? 'none' : 'flex';
+        d.style.flexDirection = 'column';
+        if (arrow) arrow.textContent = open ? '▼' : '▲';
+    };
+
     window.agendarSlot = (hora, fecha) => {
         limpiarFormRegistro();
         document.getElementById('rFecha').value = fecha;
@@ -778,6 +788,10 @@
         return `✨ Cuidados después de tu sesión de depilación láser\n\nHola ${(r.nombre||'').split(' ')[0]} 💜 ¡Muchas gracias por tu visita a Espacio Mimar T! Aquí te dejamos algunos cuidados importantes para las próximas horas:\n\n• Evitá exponerte al sol o calor intenso (sauna, jacuzzi) las primeras 48 hs\n• No rasurar la zona por al menos 5 días\n• Aplicá crema hidratante o gel de aloe vera para calmar la piel\n• Evitá ropa ajustada sobre la zona tratada\n• Si sentís mucho enrojecimiento, podés aplicar frío (no hielo directo)\n\n¿Tenés alguna consulta? Escribinos cuando quieras 🤍\nEspacio Mimar T`;
     };
 
+    const _msgPreDepi = (r) => {
+        return `Hola ${(r.nombre||'').split(' ')[0]} 💚 Recomendaciones antes de tu sesión de depilación definitiva en Espacio Mimar T:\n\nPara que tu sesión sea segura y efectiva, recordá:\n\n✂️ Rasurá la zona 24 hs antes, únicamente con máquina. Evitá cera y pinzas.\n☀️ No tomes sol ni te broncees durante las 72 hs previas a la sesión.\n🧴 Vení con la piel limpia y sin productos: no coloques cremas, aceites ni desodorante en la zona a tratar.\n👕 Usá ropa cómoda y holgada. Si vas a depilar una zona íntima, te recomendamos ropa interior blanca.\n\n✨ Seguir estas indicaciones nos ayuda a cuidar tu piel y lograr mejores resultados.\n¡Te esperamos! 💕\nEspacio Mimar T`;
+    };
+
     const _slotsAdminDia = () => {
         const s = [];
         for (let h = 7; h < 20; h++) {
@@ -843,8 +857,17 @@
                         style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(248,113,113,0.25);background:rgba(248,113,113,0.06);color:rgba(248,113,113,0.75);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;">✕ Cancelar turno</button>
                     <button onclick="eliminarTurno('${r._id}','${fecha}')"
                         style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(120,100,60,0.25);background:rgba(120,100,40,0.08);color:rgba(202,180,100,0.70);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;">🗑 Borrar turno</button>
-                    ${telWA ? `<a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgPostDepi(r))}" target="_blank"
-                        style="width:100%;padding:10px;border-radius:10px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);color:rgba(167,139,250,0.85);font-weight:700;font-size:13px;text-align:center;text-decoration:none;display:block;">💜 Enviar cuidados post-sesión</a>` : ''}
+                    ${telWA ? `<div>
+                        <button onclick="toggleRec('${r._id}')" style="width:100%;padding:10px;border-radius:10px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);color:rgba(167,139,250,0.85);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">
+                            💬 Enviar recomendaciones <span id="recArrow-${r._id}" style="font-size:10px;margin-left:4px;">▼</span>
+                        </button>
+                        <div id="rec-${r._id}" style="display:none;flex-direction:column;gap:6px;margin-top:6px;">
+                            <a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgPreDepi(r))}" target="_blank"
+                                style="padding:10px;border-radius:10px;background:rgba(34,197,94,0.10);border:1px solid rgba(34,197,94,0.25);color:rgba(74,222,128,0.88);font-weight:700;font-size:13px;text-align:center;text-decoration:none;display:block;">💚 Antes de la sesión — recomendaciones previas</a>
+                            <a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgPostDepi(r))}" target="_blank"
+                                style="padding:10px;border-radius:10px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);color:rgba(167,139,250,0.85);font-weight:700;font-size:13px;text-align:center;text-decoration:none;display:block;">💜 Después de la sesión — cuidados post</a>
+                        </div>
+                    </div>` : ''}
                 </div>`;
             } else if (isBloqSlot) {
                 return `<div class="slot-row" style="border-color:rgba(248,113,113,0.20);background:rgba(248,113,113,0.04);">
