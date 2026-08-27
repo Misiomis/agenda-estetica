@@ -61,8 +61,29 @@ service cloud.firestore {
       allow write:  if esAdmin();
     }
 
+    // Alias viejo — solo admin (no lo usa el código actual)
     match /reservas_depi/{reservaId} {
       allow read, create, update, delete: if esAdminDepi();
+    }
+
+    // Colección real del sistema de depilación (camelCase)
+    match /reservasDepi/{reservaId} {
+      allow read:   if true;
+      allow create: if true;
+      allow update, delete: if esAdminDepi();
+    }
+
+    // Bloqueos automáticos del sistema de depilación
+    match /calendarExceptionsDepi/{excId} {
+      allow read:   if true;
+      allow create: if true;
+      allow update, delete: if esAdminDepi();
+    }
+
+    // Configuración de combos (duraciones, precios)
+    match /config/{docId} {
+      allow read:   if true;
+      allow write:  if esAdmin();
     }
 
     match /consultas/{consultaId} {

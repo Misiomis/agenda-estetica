@@ -1367,7 +1367,8 @@ window.confirmarDepi=async function(){
     }catch(e){
         console.error("Error guardando reserva de depilación:",e);
         btn.disabled=false;btn.textContent="Confirmar turno";
-        alertCampo("mcBtnConfirmar","Error al guardar. Intentá de nuevo.");
+        const _eMsg=e?.code==='permission-denied'?"No se pudo guardar tu turno (error de permisos). Por favor escribinos por WhatsApp para que te agendemos manualmente.":"No se pudo confirmar tu turno. Por favor intentá de nuevo o escribinos por WhatsApp.";
+        mostrarAviso("Error al confirmar",_eMsg);
     }
 };
 
