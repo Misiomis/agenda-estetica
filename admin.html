@@ -4057,38 +4057,29 @@
                 }
                 return slots;
             })();
-            // (sin bloqueo: se permite agendar aunque el slot siguiente esté tomado)
-            if (false) {
-                    // Buscar horarios alternativos donde ambos slots (inicio + extensión) estén libres
-                    const alternativas = [];
-                    for (let i = 0; i <= SLOTS_30_COMPLETOS.length - 2; i++) {
-                        let libre = true;
-                        for (let j = 0; j <= 1; j++) {
-                            const testHora = SLOTS_30_COMPLETOS[i + j];
-                            if (todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === normalizarHora(testHora))
-                                || _blkActivo(fechaSnap, testHora)) { libre = false; break; }
-                        }
-                        if (libre) alternativas.push(SLOTS_30_COMPLETOS[i]);
-                        if (alternativas.length >= 3) break;
+            // Bloquear solo si hay una PERSONA REAL en los slots de extensión
+            if (slotsExtension.length > 0) {
+                const _personaEnSlot = (fecha, hora) => {
+                    if (todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fecha && normalizarHora(r.hora) === normalizarHora(hora))) return true;
+                    const blk = bloqueosHorarios.get(keyBloqueo(fecha, hora));
+                    return !!(blk && blk.reservaId && todasLasReservas.some(r => r.id === blk.reservaId && esReservaActiva(r)));
+                };
+                for (const extHora of slotsExtension) {
+                    if (_personaEnSlot(fechaSnap, extHora)) {
+                        const ov = document.createElement('div');
+                        ov.id = '_mreg_ext_overlay';
+                        ov.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.62);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px';
+                        ov.innerHTML = `
+                            <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:28px 24px 22px">
+                                <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 8px">⚠️ Horario ocupado</p>
+                                <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 14px">Hay otra paciente agendada a las <b>${extHora} hs</b>.<br>El turno de <b>${durMin} min</b> desde las <b>${horaSnap} hs</b> no entra.</p>
+                                <button onclick="document.getElementById('_mreg_ext_overlay').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">Entendido</button>
+                            </div>`;
+                        document.body.appendChild(ov);
+                        return;
                     }
-                    const altTexto = alternativas.length > 0
-                        ? alternativas.map(h => `• ${h} hs`).join('\n')
-                        : 'No hay horarios disponibles ese día.';
-                    const ov = document.createElement('div');
-                    ov.id = '_mreg_ext_overlay';
-                    ov.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.62);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px';
-                    ov.innerHTML = `
-                        <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:28px 24px 22px">
-                            <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 8px">⏱ Horario insuficiente</p>
-                            <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 6px">El turno de las <b>${horaSnap} hs</b> no tiene espacio libre a las <b>${extHora} hs</b>.</p>
-                            <p style="font-size:13px;color:#5a7a6e;text-align:center;margin:0 0 14px">Los tratamientos duran <b>1 hora</b> — se necesitan dos slots consecutivos libres.</p>
-                            ${alternativas.length > 0 ? `<p style="font-size:12px;color:#4a7060;text-align:center;margin:0 0 16px;white-space:pre-line;background:rgba(53,122,92,0.08);border-radius:10px;padding:10px 14px"><b>Horarios disponibles ese día:</b>\n${altTexto}</p>` : `<p style="font-size:12px;color:#8a7060;text-align:center;margin:0 0 16px">No hay horarios disponibles ese día para 1 hora.</p>`}
-                            <button onclick="document.getElementById('_mreg_ext_overlay').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.28)">Entendido</button>
-                        </div>`;
-                    document.body.appendChild(ov);
-                    return;
+                }
             }
-            // ↑ bloque desactivado — no bloquea el turno
 
             try {
                 const _boxGuardar = _mreg_boxPresel ? { id: _mreg_boxPresel.id, label: _mreg_boxPresel.label } : null;
