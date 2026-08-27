@@ -964,6 +964,11 @@
         if (!nuevoEstado) return;
         try {
             await updateDoc(doc(db, COLECCION, id), { estado: nuevoEstado, updatedAt: serverTimestamp() });
+            // Al cancelar, liberar el bloqueo asociado en calendarExceptionsDepi
+            if (nuevoEstado === 'cancelada') {
+                const snapBlq = await getDocs(query(collection(db, COLECCION_EX), where('reservaId', '==', id)));
+                snapBlq.forEach(d => deleteDoc(d.ref).catch(() => {}));
+            }
             mostrarAvisoDepi(`Estado → ${nuevoEstado}`);
             await verDia(fecha);
         } catch(e) {
@@ -982,6 +987,9 @@
                 try {
                     const ref = doc(db, COLECCION, id);
                     await updateDoc(ref, { estado: 'cancelada', eliminado: true, updatedAt: serverTimestamp() });
+                    // Liberar bloqueos asociados
+                    const snapBlq = await getDocs(query(collection(db, COLECCION_EX), where('reservaId', '==', id)));
+                    snapBlq.forEach(d => deleteDoc(d.ref).catch(() => {}));
                     mostrarAvisoDepi('Turno eliminado');
                     await verDia(fecha);
                     await cargarCalendario();
@@ -1070,12 +1078,16 @@
             }).catch(()=>{});
             fb.className = 'feedback ok';
             fb.textContent = '✓ Turno registrado';
-            limpiarFormRegistro();
             await cargarCalendario();
+            // Volver a agenda y refrescar el día para que el turno aparezca de inmediato
+            const diaGuardado = fecha;
+            limpiarFormRegistro();
+            irA('agenda');
+            if (diaGuardado) verDia(diaGuardado);
         } catch(e) {
-            console.error(e);
+            console.error('guardarTurnoDepi error:', e);
             fb.className = 'feedback err';
-            fb.textContent = 'Error al guardar. Revisá la conexión.';
+            fb.textContent = `Error al guardar: ${e?.code || e?.message || 'revisá la conexión'}. Si persiste, recargá la página.`;
         } finally {
             btn.disabled = false;
             btn.textContent = 'Guardar turno';
