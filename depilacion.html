@@ -1161,7 +1161,7 @@ document.getElementById('btnAbrVolver2').onclick=_abrPaso1;
 document.getElementById('btnAbrEntendido').onclick=()=>{ _abrCerrar(); _abrirModalDepi(); };
 
 document.getElementById("mcDni").addEventListener("blur",async()=>{
-    const dniRaw=document.getElementById("mcDni").value.trim().replace(/\./g,"");
+    const dniRaw=document.getElementById("mcDni").value.trim().replace(/[\.\s\-]/g,"");
     if(!/^\d{7,9}$/.test(dniRaw))return;
     try{
         const snap=await getDoc(doc(db,"clients",dniRaw));if(!snap.exists())return;
@@ -1207,7 +1207,7 @@ window.irPaso2=function(){
     const telefono=document.getElementById("mcTelefono").value.trim();
 
     if(!nombre){alertCampo("mcNombre","Ingresá tu nombre completo");return;}
-    if(!dni||!/^\d{7,9}$/.test(dni.replace(/\./g,""))){alertCampo("mcDni","DNI inválido");return;}
+    if(!dni||!/^\d{7,9}$/.test(dni.replace(/[\.\s\-]/g,""))){alertCampo("mcDni","DNI inválido");return;}
     const[fnY,fnM,fnD]=fechaNac.split('-').map(Number);
     if(new Date(fnY,fnM-1,fnD)>=new Date()){alertCampo("drumPicker","La fecha de nacimiento no puede ser futura");return;}
     if(!edad||isNaN(parseInt(edad))||parseInt(edad)<1||parseInt(edad)>120){alertCampo("mcEdad","Ingresá tu edad");return;}
@@ -1251,7 +1251,7 @@ window.confirmarDepi=async function(){
     const btn=document.getElementById("mcBtnConfirmar");
     btn.disabled=true;btn.textContent="Guardando...";
     const nombre=document.getElementById("mcNombre").value.trim();
-    const dniRaw=document.getElementById("mcDni").value.trim().replace(/\./g,"");
+    const dniRaw=document.getElementById("mcDni").value.trim().replace(/[\.\s\-]/g,"");
     const fechaNac=getFechaNacDrum();
     const edad=parseInt(document.getElementById("mcEdad").value.trim())||0;
     const domicilio=document.getElementById("mcDomicilio").value.trim();

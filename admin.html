@@ -4049,11 +4049,14 @@
             // Duración según el servicio (definida en Servicios > Catálogo), por defecto 30 min
             const durMin = _svDurMap.get(servicioIngresado) || 30;
             const slotsExtension = (() => {
-                const idxBase = SLOTS_30_COMPLETOS.indexOf(normalizarHora(horaSnap));
+                if (durMin <= 30) return [];
                 const extra = Math.max(0, Math.ceil(durMin / 30) - 1);
+                const [hh, mm] = normalizarHora(horaSnap).split(':').map(Number);
                 const slots = [];
-                for (let i = 1; i <= extra && idxBase + i < SLOTS_30_COMPLETOS.length; i++) {
-                    slots.push(SLOTS_30_COMPLETOS[idxBase + i]);
+                for (let i = 1; i <= extra; i++) {
+                    const extMin = hh * 60 + mm + i * 30;
+                    if (extMin >= 24 * 60) break;
+                    slots.push(`${String(Math.floor(extMin/60)).padStart(2,'0')}:${String(extMin%60).padStart(2,'0')}`);
                 }
                 return slots;
             })();
