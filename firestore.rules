@@ -97,5 +97,18 @@ service cloud.firestore {
       allow write:  if esAdmin();
     }
 
+    // Curso de Automaquillaje — inscripciones públicas, gestión solo admin
+    match /cursoMaquillaje/{docId} {
+      allow read:   if true;
+      allow create: if true;
+      allow update, delete: if esAdmin();
+    }
+
+    // Sesiones del curso — admin las crea/edita, todos pueden leer
+    match /cursoSesiones/{docId} {
+      allow read:   if true;
+      allow write:  if esAdmin();
+    }
+
   }
 }
