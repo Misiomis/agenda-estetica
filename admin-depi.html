@@ -789,7 +789,7 @@
                 const dat = d.data();
                 if (dat.tipo === 'dia') exInfo.diaBloqueado = true;
                 if ((dat.tipo === 'slot' || dat.tipo === 'reserva' || dat.tipo === 'extension') && dat.hora)
-                    exInfo.slots[dat.hora] = d.id;
+                    exInfo.slots[dat.hora] = { id: d.id, tipo: dat.tipo, reservaId: dat.reservaId || null };
             });
             _excepcionesDia[fecha] = exInfo;
 
@@ -812,7 +812,10 @@
         const man = new Date(hoy); man.setDate(hoy.getDate()+1);
         const manISO = `${man.getFullYear()}-${pad(man.getMonth()+1)}-${pad(man.getDate())}`;
         const cuando = fStr === manISO ? `mañana, ${_fmtFechaLarga(fStr)},` : fStr === hoyISO ? `hoy (${_fmtFechaLarga(fStr)})` : `el ${_fmtFechaLarga(fStr)}`;
-        return `Hola ${(r.nombre||'').split(' ')[0]} 💜 Te recordamos tu sesión de depilación láser en Espacio Mimar T ${cuando} a las ${r.hora} hs.\n\nTe pedimos que llegues puntual y con la zona bien rasurada (no depilada con cera ni pinzas).\n\n¡Nos vemos pronto! 🌿\nEspacio Mimar T`;
+        const _nombre = (r.nombre||'').split(' ')[0];
+        const _servicio = (r.servicio || (r.combo||'').split(' — ')[0] || '').trim();
+        const _precio = (r.comboPrecio || '').trim();
+        return `Hola ${_nombre} 💚 Te recordamos tu sesión de depilación láser en Espacio Mimar T ${cuando} a las ${r.hora} hs.${_servicio?`\n\n✨ Combo: ${_servicio}`:''}${_precio?`\n💲 Precio: ${_precio}`:''}\n\nTe pedimos que llegues puntual y con la zona bien rasurada (afeitada, no con cera ni pinzas).\n\n¡Te esperamos! 🌿\nEspacio Mimar T`;
     };
 
     const _msgPostDepi = (r) => {
@@ -911,10 +914,24 @@
                     </div>` : ''}
                 </div>`;
             } else if (isBloqSlot) {
+                const slotInfo = exInfo.slots[hora];
+                const esExtension = slotInfo?.tipo === 'extension';
+                if (esExtension) {
+                    const resOrig = reservas.find(r => r._id === slotInfo?.reservaId);
+                    const nombreExt = resOrig ? escHtml(resOrig.nombre || 'Sin nombre') : '';
+                    const servicioExt = resOrig ? escHtml((resOrig.servicio || '').split(' — ')[0]) : '';
+                    return `<div class="slot-row" style="border-color:rgba(30,122,78,0.18);background:rgba(30,122,78,0.04);">
+                        <div class="slot-hora" style="opacity:0.55;">${hora}</div>
+                        <div style="flex:1;font-size:12px;color:rgba(100,200,150,0.50);font-style:italic;">
+                            ↳ ${nombreExt}${servicioExt ? ` · ${servicioExt}` : ''} <span style="font-size:10px;opacity:.7;">(continúa)</span>
+                        </div>
+                        <button class="btn-icono" style="font-size:11px;opacity:0.5;" onclick="desbloquearSlotDepi('${slotInfo.id}','${fecha}')">Desbloquear</button>
+                    </div>`;
+                }
                 return `<div class="slot-row" style="border-color:rgba(248,113,113,0.20);background:rgba(248,113,113,0.04);">
                     <div class="slot-hora">${hora}</div>
                     <div class="slot-bloqueado-label">🔒 Bloqueado</div>
-                    <button class="btn-icono" style="font-size:11px;" onclick="desbloquearSlotDepi('${exInfo.slots[hora]}','${fecha}')">Desbloquear</button>
+                    <button class="btn-icono" style="font-size:11px;" onclick="desbloquearSlotDepi('${slotInfo.id}','${fecha}')">Desbloquear</button>
                 </div>`;
             } else {
                 // No mostrar "Agendar" en fechas inválidas (evita guardar turnos en fechas de cumpleaños)
@@ -1080,12 +1097,28 @@
                 origen: 'admin',
                 createdAt: serverTimestamp()
             });
-            // Bloquear slot en calendarExceptionsDepi para que no se sobreescriba
+            // Bloquear slot base
             const blockId = `depi_admin_${fecha}_${hora.replace(':','-')}`;
             setDoc(doc(db, COLECCION_EX, blockId), {
-                fecha, hora, blocked: true, tipo: 'slot',
+                fecha, hora, blocked: true, tipo: 'reserva',
                 reservaId: reservaRef.id, updatedAt: serverTimestamp()
             }).catch(() => {});
+            // Bloquear slots de extensión según duración del combo
+            const _nombreBase = servicio.replace(/\s*\(ell[ao]s?\)\s*$/,'').trim();
+            let _comboId = null;
+            for (const g of TODOS_COMBOS) { for (const c of g.combos) { if (c.nombre === _nombreBase) { _comboId = c.id; break; } } if (_comboId) break; }
+            const _durMin = (_duracionesActuales[_comboId] ?? 60);
+            const _slotsNec = Math.max(1, Math.ceil(_durMin / 30));
+            for (let _i = 1; _i < _slotsNec; _i++) {
+                const [_hh, _mm] = hora.split(':').map(Number);
+                const _totalMin = _hh * 60 + _mm + _i * 30;
+                const _horaExt = `${String(Math.floor(_totalMin/60)).padStart(2,'0')}:${String(_totalMin%60).padStart(2,'0')}`;
+                const _extId = `depi_admin_ext_${fecha}_${_horaExt.replace(':','-')}_${_i}`;
+                setDoc(doc(db, COLECCION_EX, _extId), {
+                    fecha, hora: _horaExt, blocked: true, tipo: 'extension',
+                    reservaId: reservaRef.id, updatedAt: serverTimestamp()
+                }).catch(() => {});
+            }
             // Notificar a Gimena en segundo plano
             fetch('https://us-central1-estetica-8d067.cloudfunctions.net/notificarNuevaReservaDepi',{
                 method:'POST',
