@@ -1079,11 +1079,20 @@
             fb.className = 'feedback ok';
             fb.textContent = '✓ Turno registrado';
             await cargarCalendario();
-            // Volver a agenda y refrescar el día para que el turno aparezca de inmediato
+            // Volver a agenda, refrescar el día y hacer scroll visible al turno guardado
             const diaGuardado = fecha;
-            limpiarFormRegistro();
+            const [dd, mm, aa] = diaGuardado.split('-').reverse(); // DD/MM/AAAA para toast
             irA('agenda');
-            if (diaGuardado) verDia(diaGuardado);
+            limpiarFormRegistro();
+            if (diaGuardado) {
+                await verDia(diaGuardado);
+                // Scroll al panel del día para que el turno recién guardado sea visible
+                requestAnimationFrame(() => {
+                    const det = document.getElementById('diaDetalle');
+                    if (det) det.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+                mostrarAvisoDepi(`✓ Turno guardado — ${dd}/${mm}/${aa}`);
+            }
         } catch(e) {
             console.error('guardarTurnoDepi error:', e);
             fb.className = 'feedback err';
