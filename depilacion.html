@@ -831,8 +831,9 @@ const normalizarHora = (hora) => {
 };
 const keyBloqueo = (fecha,hora) => `${fecha}|${hora}`;
 const esReservaActiva = (r) => {
+    if(r?.eliminado) return false;
     const estados=[r?.estado,r?.status].map(v=>(v||"").toLowerCase()).filter(Boolean);
-    return !estados.includes("cancelado");
+    return !estados.some(e => e.startsWith("cancelad"));
 };
 const formatearFechaLinda = (fecha) => {
     if(!fecha) return "";
@@ -991,7 +992,7 @@ async function cargarReservasMes(){
         reservasPorFecha=new Map();
         snap.forEach(d=>{
             const dat=d.data();if(!dat.fecha||!dat.hora)return;
-            if(["cancelado"].includes((dat.status||"").toLowerCase())||["cancelado"].includes((dat.estado||"").toLowerCase()))return;
+            if(!esReservaActiva(dat))return;
             const h=normalizarHora(dat.hora);if(!h)return;
             if(!reservasPorFecha.has(dat.fecha))reservasPorFecha.set(dat.fecha,new Set());
             reservasPorFecha.get(dat.fecha).add(h);
