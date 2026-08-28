@@ -546,6 +546,11 @@
                 </div>
                 <div id="expFeedback" style="margin-top:14px;font-size:13px;color:var(--texto-suave);"></div>
             </div>
+            <div class="card" style="margin-top:16px;border-color:rgba(248,113,113,0.25);background:rgba(248,113,113,0.04);">
+                <h4 style="margin-bottom:8px;font-size:14px;color:rgba(248,113,113,0.80);">🗑 Datos inválidos</h4>
+                <p style="font-size:12.5px;color:var(--texto-suave);margin-bottom:14px;line-height:1.6;">Elimina reservas guardadas con fechas claramente incorrectas (antes de 2024), generalmente causadas por usar la fecha de nacimiento como fecha del turno.</p>
+                <button class="btn-outline" style="border-color:rgba(248,113,113,0.35);color:rgba(248,113,113,0.75);" onclick="limpiarFechasInvalidas()">🗑 Limpiar registros inválidos</button>
+            </div>
         </div>
 
     </main>
@@ -831,6 +836,16 @@
         const cont = document.getElementById('diaDetalleContenido');
         const slots = _slotsAdminDia(); // admin ve el día completo 07:00-19:30
 
+        // Detectar fecha inválida (antes de 2024) — protege contra agendar en fechas de cumpleaños
+        const esFechaInvalida = fecha < '2024-01-01';
+        if (esFechaInvalida) {
+            cont.innerHTML = `<div style="background:rgba(248,113,113,0.10);border:1px solid rgba(248,113,113,0.40);border-radius:10px;padding:14px 16px;color:rgba(248,113,113,0.90);font-size:13px;font-weight:600;margin-bottom:12px;">
+                ⚠️ Fecha inválida: <span style="font-family:monospace;">${fecha}</span> — probablemente es una fecha de nacimiento guardada como fecha de turno. <strong>No agendes desde acá.</strong> Usá el botón de abajo para limpiar estos registros.
+                <div style="margin-top:10px;"><button class="btn-icono" style="font-size:12px;color:rgba(248,113,113,0.85);border-color:rgba(248,113,113,0.30);" onclick="limpiarFechasInvalidas()">🗑 Limpiar registros inválidos de esta fecha</button></div>
+            </div>`;
+            // Mostrar igual los turnos para permitir borrarlos, pero sin botón Agendar
+        }
+
         if (exInfo.diaBloqueado) {
             cont.innerHTML = `<div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);border-radius:10px;padding:13px 16px;color:rgba(248,113,113,0.80);font-size:13px;font-weight:600;margin-bottom:12px;">
                 🔒 Día bloqueado
@@ -902,6 +917,8 @@
                     <button class="btn-icono" style="font-size:11px;" onclick="desbloquearSlotDepi('${exInfo.slots[hora]}','${fecha}')">Desbloquear</button>
                 </div>`;
             } else {
+                // No mostrar "Agendar" en fechas inválidas (evita guardar turnos en fechas de cumpleaños)
+                if (esFechaInvalida) return '';
                 return `<div class="slot-row">
                     <div class="slot-hora">${hora}</div>
                     <div class="slot-libre">Libre</div>
@@ -1027,6 +1044,13 @@
         if (!nombre || !fecha || !hora || !servicio) {
             fb.className = 'feedback err';
             fb.textContent = 'Completá al menos: nombre, fecha, hora y servicio.';
+            return;
+        }
+        // Fecha mínima razonable — evita guardar turnos en fechas de cumpleaños o pasado lejano
+        if (fecha < '2024-01-01') {
+            fb.className = 'feedback err';
+            fb.textContent = `⚠️ Fecha inválida: ${fecha}. Verificá que estés agendando para la fecha correcta.`;
+            document.getElementById('rFecha').focus();
             return;
         }
 
@@ -1295,6 +1319,34 @@
         } catch(e) {
             alert('Error al limpiar: ' + e.message);
         }
+    };
+
+    // Elimina todas las reservas con fecha anterior a 2024 (datos corruptos con fecha de nacimiento)
+    window.limpiarFechasInvalidas = async () => {
+        mostrarConfirmDepi({
+            icono: '🗑',
+            titulo: 'Limpiar registros inválidos',
+            texto: 'Esto va a borrar permanentemente todas las reservas con fecha anterior a 2024 (fechas de cumpleaños cargadas por error). ¿Continuar?',
+            labelSi: 'Sí, borrar inválidos',
+            onSi: async () => {
+                try {
+                    const snap = await getDocs(collection(db, COLECCION));
+                    const borrados = [];
+                    snap.forEach(d => {
+                        const f = d.data().fecha || '';
+                        if (f < '2024-01-01' && f.length === 10) {
+                            borrados.push(deleteDoc(doc(db, COLECCION, d.id)));
+                        }
+                    });
+                    await Promise.all(borrados);
+                    mostrarAvisoDepi(`✓ ${borrados.length} registros inválidos eliminados`);
+                    await cargarCalendario();
+                    if (_diaSeleccionado) await verDia(_diaSeleccionado);
+                } catch(e) {
+                    mostrarAvisoDepi('Error al limpiar: ' + (e.code || e.message));
+                }
+            }
+        });
     };
 
     // ════════════════════════════════
