@@ -631,8 +631,8 @@
         document.getElementById('loginPassword').value = '';
     };
 
-    // Auto-login si ya ingresó antes
-    if (localStorage.getItem(_STORAGE_KEY) === '1') _mostrarApp();
+    // Auto-login si ya ingresó antes (diferido para que todos los const estén inicializados)
+    if (localStorage.getItem(_STORAGE_KEY) === '1') setTimeout(_mostrarApp, 0);
 
     // ════════════════════════════════
     // NAVEGACIÓN
