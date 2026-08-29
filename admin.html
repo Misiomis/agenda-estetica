@@ -484,51 +484,169 @@
         .loader-box { background: rgba(8,22,16,0.96); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 14px 18px; box-shadow: 0 10px 24px rgba(0,0,0,0.35); display: flex; align-items: center; gap: 10px; color: var(--verde-oscuro); font-weight: 700; }
         .loader-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--verde-oscuro); animation: pulseDot 0.9s infinite ease-in-out; }
         @keyframes pulseDot { 0% { transform: scale(0.75); opacity: 0.5; } 50% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.75); opacity: 0.5; } }
-        /* MENÚ MOBILE */
+        /* ═══ NAVEGACIÓN HEADER: nueva estructura 3 zonas ═══ */
+        .header-desk-row {
+            display: flex; align-items: center; gap: 10px; min-height: 52px;
+        }
+        .hdr-identity { flex-shrink: 0; }
+        .hdr-brand {
+            font-family: 'Playfair Display', serif; color: #a8dfc0; margin: 0;
+            font-size: clamp(0.75rem, 1.1vw, 1.00rem); font-weight: 600;
+            letter-spacing: 0.01em; text-shadow: 0 2px 12px rgba(0,0,0,0.30); white-space: nowrap;
+        }
+        .hdr-primary-nav {
+            flex: 1; display: flex; align-items: center;
+            justify-content: center; gap: 4px; flex-wrap: nowrap; min-width: 0;
+        }
+        .hdr-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        /* Jornada como indicador de estado compacto */
+        .hdr-jornada-btn {
+            min-width: auto !important; width: auto !important;
+            padding: 7px 12px !important; border-radius: 999px !important;
+            font-size: 11px !important; letter-spacing: 0.02em !important;
+        }
+        .hdr-jornada-btn::before {
+            content: "●"; color: rgba(165,205,188,0.22);
+            margin-right: 5px; font-size: 8px; vertical-align: 1px;
+        }
+        .hdr-jornada-btn.is-jornada::before { color: #4ade80; }
+        /* Dropdowns de header */
+        .hdr-drop-wrap { position: relative; }
+        .hdr-drop-menu {
+            position: absolute; top: calc(100% + 9px); left: 0; min-width: 188px;
+            background: rgba(5,13,9,0.98); border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 16px; padding: 6px; display: none;
+            box-shadow: 0 20px 48px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.05);
+            z-index: 200; backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+        }
+        .hdr-drop-menu[hidden] { display: none !important; }
+        .hdr-drop-menu.hdr-drop-open { display: block; animation: popInSoft 0.14s ease-out; }
+        .hdr-drop-right { left: auto; right: 0; }
+        .hdr-drop-item {
+            display: flex; align-items: center; gap: 8px;
+            width: 100%; text-align: left; padding: 9px 12px; border-radius: 10px;
+            border: none; background: transparent; color: rgba(165,205,188,0.82);
+            font-size: 12.5px; font-weight: 600; cursor: pointer; text-decoration: none;
+            font-family: inherit; letter-spacing: 0.01em; white-space: nowrap;
+            transition: background 0.13s, color 0.13s;
+        }
+        .hdr-drop-item:hover { background: rgba(255,255,255,0.09); color: rgba(220,242,232,0.96); }
+        .hdr-drop-item.btn-nav.active {
+            background: rgba(255,255,255,0.12) !important; color: rgba(235,252,244,0.98) !important;
+        }
+        .hdr-drop-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 2px; }
+        .hdr-drop-danger { color: rgba(248,113,113,0.72); }
+        .hdr-drop-danger:hover { background: rgba(248,113,113,0.09) !important; color: rgba(248,113,113,0.95) !important; }
+        /* Header compacto móvil */
+        .header-mob-row { display: none; align-items: center; gap: 10px; min-height: 50px; }
+        .hdr-brand-mob {
+            flex: 1; text-align: center;
+            font-size: clamp(0.90rem, 3.8vw, 1.08rem) !important; white-space: nowrap;
+        }
         .hamburger-btn {
-            display: none;
-            height: 36px; padding: 0 14px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.16);
+            display: flex; align-items: center; justify-content: center;
+            width: 38px; height: 38px; min-height: 38px !important; padding: 0; flex-shrink: 0;
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
             backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-            border-radius: 999px;
-            cursor: pointer;
-            color: rgba(205,232,218,0.90);
-            font-size: 13px; font-weight: 700; letter-spacing: .04em;
-            align-items: center; justify-content: center; gap: 6px;
-            flex-shrink: 0;
-            transition: background 0.18s, border-color 0.18s;
+            border-radius: 11px; cursor: pointer; color: rgba(205,232,218,0.90);
+            font-size: 18px; line-height: 1; transition: background 0.18s, border-color 0.18s;
             font-family: inherit;
         }
         .hamburger-btn:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.28); }
-        .hamburger-btn .hb-arrow { display:inline-block; transition: transform 0.28s; font-size:10px; }
-        .hamburger-btn.open .hb-arrow { transform: rotate(180deg); }
-        @media (max-width: 760px) {
-            .hamburger-btn { display: flex; }
-            .menu-nav {
-                max-height: 0; overflow: hidden;
-                transition: max-height 0.38s cubic-bezier(.22,.82,.35,1);
-                display: grid !important; grid-template-columns: 1fr 1fr;
-                gap: 7px; margin-top: 0; padding: 0;
-            }
-            .menu-nav.open {
-                max-height: 720px; overflow-y: auto; -webkit-overflow-scrolling: touch;
-                margin-top: 10px; padding-bottom: 18px;
-            }
-            .menu-nav .btn-nav {
-                text-align: center; border-radius: 13px;
-                padding: 13px 8px; font-size: 12.5px; min-height: 46px;
-                border: 1px solid rgba(255,255,255,0.10);
-                background: rgba(255,255,255,0.06);
-                color: rgba(210,236,222,0.82);
-                margin-bottom: 0; line-height: 1.3;
-            }
-            .menu-nav .btn-nav:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.20); color: rgba(232,250,241,0.98); }
-            .menu-nav .btn-nav.active { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.24); color: rgba(235,252,244,0.98); }
-            .menu-nav .btn-nav-full { grid-column: 1 / -1; }
+        .hdr-user-icon-btn {
+            display: flex; align-items: center; justify-content: center;
+            width: 38px; height: 38px; min-height: 38px !important; flex-shrink: 0; border-radius: 50%;
+            border: 1.5px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            color: rgba(205,232,218,0.90); cursor: pointer; font-size: 16px;
+            transition: background 0.18s, border-color 0.18s;
         }
-        @media (min-width: 761px) {
-            .header-spacer { display: none; }
+        .hdr-user-icon-btn:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.28); }
+        /* Barra jornada móvil */
+        .header-mob-jornada {
+            display: none; align-items: center; gap: 6px;
+            padding: 4px 0 0; font-size: 10.5px; font-weight: 700;
+            color: rgba(165,205,188,0.45); letter-spacing: 0.04em;
+            border-top: 1px solid rgba(255,255,255,0.05); margin-top: 5px;
+        }
+        .mob-jornada-dot { font-size: 8px; color: rgba(165,205,188,0.25); }
+        .header-mob-jornada.jornada-activa { color: rgba(74,222,128,0.72); }
+        .header-mob-jornada.jornada-activa .mob-jornada-dot { color: #4ade80; }
+        /* ─── Bottom nav (móvil) ─── */
+        .bottom-nav {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0;
+            height: 60px; z-index: 150;
+            background: rgba(5,12,9,0.97); border-top: 1px solid rgba(255,255,255,0.09);
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            box-shadow: 0 -6px 24px rgba(0,0,0,0.40);
+            grid-template-columns: repeat(5, 1fr); padding: 0;
+        }
+        .bni {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 2px; padding: 6px 2px 8px; border: none; background: transparent;
+            color: rgba(165,205,188,0.35); cursor: pointer; font-family: inherit;
+            transition: color 0.18s, background 0.18s; position: relative;
+        }
+        .bni.active { color: rgba(114,189,153,0.96); background: rgba(114,189,153,0.07); }
+        .bni::after {
+            content: ''; position: absolute; top: 0; left: 15%; right: 15%;
+            height: 2px; border-radius: 0 0 2px 2px; background: transparent; transition: background 0.18s;
+        }
+        .bni.active::after { background: rgba(114,189,153,0.65); }
+        .bni-ico { font-size: 17px; line-height: 1; }
+        .bni-lbl { font-size: 8.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+        /* ─── Bottom sheet (móvil) ─── */
+        .bottom-sheet-overlay {
+            display: none; position: fixed; inset: 0; z-index: 400;
+            background: rgba(0,0,0,0.56); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+        }
+        .bottom-sheet-overlay.bsh-open { display: block; }
+        .bottom-sheet {
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 401;
+            background: rgba(5,13,9,0.99); border-top: 1px solid rgba(255,255,255,0.11);
+            border-radius: 22px 22px 0 0; transform: translateY(110%);
+            transition: transform 0.30s cubic-bezier(.22,.82,.35,1);
+            max-height: 82vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            box-shadow: 0 -14px 52px rgba(0,0,0,0.55); padding-bottom: 68px;
+        }
+        .bottom-sheet.bsh-open { transform: translateY(0); }
+        .bsh-handle {
+            width: 36px; height: 4px; border-radius: 2px;
+            background: rgba(255,255,255,0.16); margin: 12px auto 16px;
+        }
+        .bsh-section { padding: 0 12px 10px; }
+        .bsh-label {
+            font-size: 9px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;
+            color: rgba(140,200,170,0.36); padding: 4px 6px 10px; display: block;
+        }
+        .bsh-item {
+            display: flex; align-items: center; gap: 10px; padding: 12px 12px;
+            border-radius: 12px; border: none; background: transparent;
+            color: rgba(165,205,188,0.82); font-size: 14px; font-weight: 600;
+            cursor: pointer; width: 100%; text-align: left; text-decoration: none;
+            font-family: inherit; transition: background 0.13s, color 0.13s; margin-bottom: 1px;
+        }
+        .bsh-item:hover, .bsh-item:active { background: rgba(255,255,255,0.07); color: rgba(220,242,232,0.96); }
+        .bsh-item-danger { color: rgba(248,113,113,0.72); }
+        .bsh-item-danger:hover, .bsh-item-danger:active { background: rgba(248,113,113,0.09) !important; color: rgba(248,113,113,0.95) !important; }
+        .bsh-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 6px 12px; }
+        /* Breakpoints de navegación */
+        @media (max-width: 768px) {
+            .header { padding: 10px 12px 8px; }
+            .header-desk-row { display: none; }
+            .header-mob-row { display: flex; }
+            .header-mob-jornada { display: flex; }
+            .bottom-nav { display: grid; }
+            body { padding-bottom: 64px; }
+            #toast-container { bottom: 70px; }
+        }
+        @media (min-width: 769px) {
+            .header { padding: 10px 18px; }
+            .header-desk-row { display: flex; }
+            .header-mob-row { display: none !important; }
+            .header-mob-jornada { display: none !important; }
+            .bottom-nav, .bottom-sheet, .bottom-sheet-overlay { display: none !important; }
+            .flow-switch-shortcut { display: none; }
         }
         /* CALENDARIO */
         .calendar-container {
@@ -607,9 +725,8 @@
             .container { max-width: 860px; }
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
         }
-        @media (max-width: 760px) {
+        @media (max-width: 768px) {
             body { font-size: 14px; }
-            .header { padding: 12px 10px; }
             .install-widget-admin { width: 100%; margin: 8px auto 4px; }
             .install-widget-admin .install-actions { flex-direction: column; }
             .install-widget-admin .btn-install,
@@ -865,10 +982,71 @@
             </div>
         </div>
         <div class="header">
-            <div class="header-toprow">
-                <button class="hamburger-btn" id="btnHamburger" onclick="toggleMenuNav()" aria-label="Menú">Menú <span class="hb-arrow">▾</span></button>
-                <h2>✦ &nbsp;Gimena Knack &nbsp;·&nbsp; Panel Admin&nbsp; ✦</h2>
-                <div class="header-spacer"></div>
+            <!-- DESKTOP: 3 zonas — identity | nav primaria + Más | jornada + usuario -->
+            <div class="header-desk-row">
+                <div class="hdr-identity">
+                    <h2 class="hdr-brand">✦&nbsp;Gimena Knack&nbsp;·&nbsp;Panel Admin&nbsp;✦</h2>
+                </div>
+                <nav class="hdr-primary-nav" aria-label="Secciones">
+                    <button class="btn-nav active" id="btn-grilla" onclick="navegar('grilla')">📊 Grilla</button>
+                    <button class="btn-nav" id="btn-agenda" onclick="navegar('agenda')">📅 Agenda</button>
+                    <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">👤 Pacientes</button>
+                    <button class="btn-nav" id="btn-consultas" onclick="navegar('consultas')" style="position:relative;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.28);color:rgba(140,225,185,0.90);">
+                        ✨ Consultas
+                        <span id="consultas-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:#e53935;color:#fff;font-size:10px;font-weight:800;border-radius:999px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px;"></span>
+                    </button>
+                    <button class="btn-nav" id="btn-buscador-sesiones" onclick="navegar('buscador-sesiones')">🔎 Sesiones</button>
+                    <div class="hdr-drop-wrap" id="mas-wrap">
+                        <button class="btn-nav hdr-mas-btn" id="btnMas" onclick="toggleHdrDropdown('mas')" aria-haspopup="true" aria-controls="mas-drop">Más ▾</button>
+                        <div class="hdr-drop-menu" id="mas-drop" role="menu" hidden>
+                            <button class="hdr-drop-item btn-nav" id="btn-buscar" onclick="navegar('buscar')" role="menuitem">🔍 Buscar</button>
+                            <button class="hdr-drop-item btn-nav" id="btn-historias" onclick="navegar('historias')" role="menuitem">📋 Historias</button>
+                            <button class="hdr-drop-item btn-nav" id="btn-cursos" onclick="navegar('cursos')" role="menuitem" style="position:relative;background:rgba(249,168,212,0.10);border-color:rgba(249,168,212,0.28);color:rgba(249,168,212,0.90);font-weight:700;">
+                                💄 Mis Cursos
+                                <span id="cursos-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:#e53935;color:#fff;font-size:10px;font-weight:800;border-radius:999px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px;"></span>
+                            </button>
+                            <button class="hdr-drop-item btn-nav" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')" role="menuitem">📦 Kit</button>
+                            <button class="hdr-drop-item btn-nav" id="btn-calculadora" onclick="navegar('calculadora')" role="menuitem" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.28);color:rgba(200,186,255,0.88);">🧮 Calculadora</button>
+                            <button class="hdr-drop-item btn-nav" id="btn-servicios" onclick="navegar('servicios')" role="menuitem" style="background:rgba(52,211,153,0.10);border-color:rgba(52,211,153,0.26);color:rgba(160,240,210,0.88);">📋 Servicios</button>
+                            <button class="hdr-drop-item btn-nav" id="btn-export" onclick="navegar('export')" role="menuitem">📤 Exportar</button>
+                            <button class="hdr-drop-item btn-nav" id="btn-ultimos-movimientos" onclick="mostrarUltimosMovimientos()" role="menuitem">🕐 Movimientos</button>
+                        </div>
+                    </div>
+                </nav>
+                <div class="hdr-right">
+                    <button id="btnFlowModeHeader" class="flow-switch-button hdr-jornada-btn" onclick="toggleFlowMode()">Cargando...</button>
+                    <div class="hdr-drop-wrap" id="user-wrap">
+                        <button class="btn-nav hdr-user-btn" id="btnUserMenu" onclick="toggleHdrDropdown('user')" aria-haspopup="true" aria-controls="user-drop">Gimena ▾</button>
+                        <div class="hdr-drop-menu hdr-drop-right" id="user-drop" role="menu" hidden>
+                            <a class="hdr-drop-item" href="/fechagimena.html" target="_blank" rel="noopener" role="menuitem">👁 Vista Gimena</a>
+                            <a class="hdr-drop-item" href="/admin-depi.html" target="_blank" rel="noopener" role="menuitem">💜 Admin Depilación</a>
+                            <a class="hdr-drop-item" href="/admin-depi-gime.html" target="_blank" rel="noopener" role="menuitem">💚 Panel Gimena</a>
+                            <button class="hdr-drop-item btn-nav" id="btn-control" onclick="navegar('control')" role="menuitem" style="background:rgba(210,168,178,0.10);border-color:rgba(195,150,163,0.28);color:rgba(228,195,208,0.85);">⚙ Configuración</button>
+                            <div class="hdr-drop-divider"></div>
+                            <button class="hdr-drop-item hdr-drop-danger" onclick="cerrarSesion()" role="menuitem">🚪 Salir</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- MÓVIL: header compacto (☰ | título | 👤) -->
+            <div class="header-mob-row">
+                <button class="hamburger-btn" id="btnHamburger" onclick="toggleMenuNav()" aria-label="Más opciones" aria-expanded="false" aria-controls="bottom-sheet">☰</button>
+                <h2 class="hdr-brand hdr-brand-mob">✦ Mimar T · Admin ✦</h2>
+                <div class="hdr-drop-wrap" style="position:relative;">
+                    <button class="hdr-user-icon-btn" onclick="toggleHdrDropdown('user-mob')" aria-label="Menú de usuario" aria-haspopup="true" aria-controls="user-mob-drop">👤</button>
+                    <div class="hdr-drop-menu hdr-drop-right" id="user-mob-drop" role="menu" hidden>
+                        <a class="hdr-drop-item" href="/fechagimena.html" target="_blank" rel="noopener" role="menuitem">👁 Vista Gimena</a>
+                        <a class="hdr-drop-item" href="/admin-depi.html" target="_blank" rel="noopener" role="menuitem">💜 Admin Depilación</a>
+                        <a class="hdr-drop-item" href="/admin-depi-gime.html" target="_blank" rel="noopener" role="menuitem">💚 Panel Gimena</a>
+                        <div class="hdr-drop-divider"></div>
+                        <button class="hdr-drop-item hdr-drop-danger" onclick="cerrarSesion()" role="menuitem">🚪 Salir</button>
+                    </div>
+                </div>
+            </div>
+            <!-- MÓVIL: indicador de jornada compacto -->
+            <div class="header-mob-jornada" id="header-mob-jornada">
+                <span class="mob-jornada-dot" id="mob-jornada-dot">●</span>
+                <span id="mob-jornada-text">Modo normal</span>
             </div>
             <div id="installWidgetAdmin" class="install-widget-admin" aria-live="polite">
                 <div class="install-inner">
@@ -885,35 +1063,6 @@
                     </div>
                 </div>
             </div>
-            <div class="menu-nav" id="menuNav">
-                <button class="btn-nav active" id="btn-grilla" onclick="navegar('grilla')">📊 Grilla Boxes</button>
-                <button class="btn-nav" id="btn-agenda" onclick="navegar('agenda')">📅 Agenda</button>
-                <button class="btn-nav" id="btn-buscar" onclick="navegar('buscar')">🔍 Buscar</button>
-                <button class="btn-nav" id="btn-historias" onclick="navegar('historias')">📋 Historias</button>
-                <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">👤 Pacientes</button>
-                <button class="btn-nav btn-nav-full" id="btn-consultas" onclick="navegar('consultas')" style="position:relative;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.28);color:rgba(140,225,185,0.90);">
-                    ✨ Consultas Iniciales
-                    <span id="consultas-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:#e53935;color:#fff;font-size:10px;font-weight:800;border-radius:999px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px;"></span>
-                </button>
-                <button class="btn-nav btn-nav-full" id="btn-cursos" onclick="navegar('cursos')" style="position:relative;background:rgba(249,168,212,0.10);border-color:rgba(249,168,212,0.28);color:rgba(249,168,212,0.90);font-weight:700;">
-                    💄 Mis Cursos
-                    <span id="cursos-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:#e53935;color:#fff;font-size:10px;font-weight:800;border-radius:999px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px;"></span>
-                </button>
-                <button class="btn-nav" id="btn-buscador-sesiones" onclick="navegar('buscador-sesiones')">🔎 Sesiones</button>
-                <button class="btn-nav" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">📦 Kit</button>
-                <button class="btn-nav" id="btn-calculadora" onclick="navegar('calculadora')" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.28);color:rgba(200,186,255,0.88);">🧮 Calculadora</button>
-                <button class="btn-nav" id="btn-servicios" onclick="navegar('servicios')" style="background:rgba(52,211,153,0.10);border-color:rgba(52,211,153,0.26);color:rgba(160,240,210,0.88);font-weight:700;">📋 Servicios</button>
-                <button class="btn-nav" id="btn-export" onclick="navegar('export')">📤 Exportar</button>
-                <button class="btn-nav" id="btn-ultimos-movimientos" onclick="mostrarUltimosMovimientos()">🕐 Movimientos</button>
-                <a class="btn-nav" href="/fechagimena.html" target="_blank" style="text-decoration:none;background:rgba(180,238,210,0.12);border-color:rgba(160,218,190,0.28);color:rgba(200,240,220,0.92);font-weight:700">👁 Vista Gimena</a>
-                <a class="btn-nav" href="/admin-depi.html" target="_blank" style="text-decoration:none;background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.28);color:rgba(196,198,255,0.88);font-weight:700;">💜 Admin Depilación</a>
-                <a class="btn-nav" href="/admin-depi-gime.html" target="_blank" style="text-decoration:none;background:rgba(30,122,78,0.12);border-color:rgba(30,122,78,0.28);color:rgba(100,200,150,0.90);font-weight:700;">💚 Panel Gimena</a>
-                <button class="btn-nav" onclick="cerrarSesion()" style="color:rgba(248,113,113,0.75);border-color:rgba(248,113,113,0.18);background:rgba(248,113,113,0.06);">🚪 Salir</button>
-                <button class="btn-nav" id="btn-control" onclick="navegar('control')" style="background:rgba(210,168,178,0.10);border-color:rgba(195,150,163,0.28);color:rgba(228,195,208,0.85);font-size:12px;font-weight:700;letter-spacing:.04em;">⚙ Config</button>
-            </div>
-            <div class="flow-switch-shortcut">
-                <button id="btnFlowModeHeader" class="flow-switch-button" onclick="toggleFlowMode()">Cargando modo de flujo...</button>
-            </div>
             <div id="jornadaTypeSelectorHeader" style="display:none; padding:10px 16px 14px; background:rgba(20,184,166,0.10); border:1px solid rgba(20,184,166,0.30); border-radius:14px; margin:8px 16px 0;">
                 <p style="font-size:11px; font-weight:700; color:#5eead4; text-transform:uppercase; letter-spacing:0.1em; margin:0 0 8px; text-align:center;">Elegí tipo de jornada</p>
                 <div style="display:flex; gap:8px;">
@@ -924,18 +1073,66 @@
                 <button id="btnVolverNormalHeader" onclick="activarModoNormal()" style="display:none; width:100%; margin-top:8px; padding:10px; border-radius:10px; border:1px solid rgba(165,130,50,0.35); background:rgba(165,130,50,0.10); color:rgba(220,185,120,0.90); font-size:12px; font-weight:700; cursor:pointer;">Cambiar a modo normal</button>
             </div>
         </div>
+
+        <!-- ═══ BOTTOM NAV (móvil solamente) ═══ -->
+        <nav class="bottom-nav" id="bottom-nav" aria-label="Navegación principal">
+            <button class="bni active" data-section="grilla" onclick="navegar('grilla')">
+                <span class="bni-ico">📊</span><span class="bni-lbl">Grilla</span>
+            </button>
+            <button class="bni" data-section="agenda" onclick="navegar('agenda')">
+                <span class="bni-ico">📅</span><span class="bni-lbl">Agenda</span>
+            </button>
+            <button class="bni" data-section="clientes" onclick="navegar('clientes')">
+                <span class="bni-ico">👤</span><span class="bni-lbl">Pacientes</span>
+            </button>
+            <button class="bni" data-section="consultas" onclick="navegar('consultas')">
+                <span class="bni-ico">✨</span><span class="bni-lbl">Consultas</span>
+            </button>
+            <button class="bni" id="bni-mas" onclick="toggleBottomSheet()">
+                <span class="bni-ico">≡</span><span class="bni-lbl">Más</span>
+            </button>
+        </nav>
+
+        <!-- Bottom sheet overlay -->
+        <div id="bsh-overlay" class="bottom-sheet-overlay" onclick="cerrarBottomSheet()"></div>
+        <!-- Bottom sheet panel -->
+        <div id="bottom-sheet" class="bottom-sheet" role="dialog" aria-modal="true" aria-label="Más opciones">
+            <div class="bsh-handle"></div>
+            <div class="bsh-section">
+                <span class="bsh-label">Herramientas</span>
+                <button class="bsh-item" onclick="navegar('buscar');cerrarBottomSheet()">🔍 Buscar</button>
+                <button class="bsh-item" onclick="navegar('historias');cerrarBottomSheet()">📋 Historias</button>
+                <button class="bsh-item" onclick="navegar('buscador-sesiones');cerrarBottomSheet()">🔎 Sesiones</button>
+                <button class="bsh-item" onclick="navegar('cursos');cerrarBottomSheet()">💄 Mis Cursos</button>
+                <button class="bsh-item" onclick="navegar('pedidos-kit');cerrarBottomSheet()">📦 Kit</button>
+                <button class="bsh-item" onclick="navegar('calculadora');cerrarBottomSheet()">🧮 Calculadora</button>
+                <button class="bsh-item" onclick="navegar('servicios');cerrarBottomSheet()">📋 Servicios</button>
+                <button class="bsh-item" onclick="navegar('export');cerrarBottomSheet()">📤 Exportar</button>
+                <button class="bsh-item" onclick="mostrarUltimosMovimientos();cerrarBottomSheet()">🕐 Movimientos</button>
+            </div>
+            <div class="bsh-divider"></div>
+            <div class="bsh-section">
+                <span class="bsh-label">Panel</span>
+                <button class="bsh-item" onclick="navegar('control');cerrarBottomSheet()">⚙ Configuración</button>
+            </div>
+            <div class="bsh-divider"></div>
+            <div class="bsh-section">
+                <button class="bsh-item bsh-item-danger" onclick="cerrarSesion()">🚪 Cerrar sesión</button>
+            </div>
+        </div>
+
         <div class="container">
 
             <!-- ════════════ GRILLA DE BOXES ════════════ -->
             <div id="sec-grilla" class="section active">
                 <div class="grilla-nav">
-                    <button class="btn-mini" onclick="grillaNavFecha(-1)">← Ant.</button>
+                    <button class="btn-mini" onclick="grillaNavFecha(-1)" aria-label="Día anterior" style="padding:9px 14px;">←</button>
                     <span class="grilla-fecha-titulo" id="grilla-fecha-titulo">—</span>
-                    <button class="btn-mini" onclick="grillaNavFecha(1)">Sig. →</button>
-                    <button class="btn-mini" onclick="grillaIrHoy()">Hoy</button>
+                    <button class="btn-mini" onclick="grillaNavFecha(1)" aria-label="Día siguiente" style="padding:9px 14px;">→</button>
+                    <button class="btn-mini" onclick="grillaIrHoy()" style="font-size:11px;opacity:0.75;">Hoy</button>
                 </div>
                 <div class="grilla-tools">
-                    <button class="btn-mini" id="btn-grilla-extra" onclick="grillaToggleExtra()">+ Horarios extra</button>
+                    <button class="btn-mini" id="btn-grilla-extra" onclick="grillaToggleExtra()">+ Horario extra</button>
                     <button class="btn-mini" onclick="grillaVistaClasica()" style="border-color:rgba(100,180,140,0.22);color:rgba(140,205,175,0.55);">📅 Vista clásica</button>
                 </div>
                 <div class="grilla-scroll-wrap">
@@ -5588,21 +5785,21 @@
             } catch(e) { /* silencioso — permisos se verifican al abrir la sección */ }
         })();
 
-        window.toggleMenuNav = () => {
-            const nav = document.getElementById('menuNav');
-            const btn = document.getElementById('btnHamburger');
-            if (nav) nav.classList.toggle('open');
-            if (btn) btn.classList.toggle('open');
-        };
+        window.toggleMenuNav = () => { toggleBottomSheet(); };
 
         window.navegar = (s) => {
             document.querySelectorAll('.section, .btn-nav').forEach(x => x.classList.remove('active'));
-            document.getElementById(`sec-${s}`).classList.add('active');
-            document.getElementById(`btn-${s}`).classList.add('active');
-            const nav = document.getElementById('menuNav');
-            const btn = document.getElementById('btnHamburger');
-            if (nav) nav.classList.remove('open');
-            if (btn) btn.classList.remove('open');
+            document.getElementById(`sec-${s}`)?.classList.add('active');
+            document.getElementById(`btn-${s}`)?.classList.add('active');
+            // "Más" se resalta si la sección está dentro de ese dropdown
+            const _masItems = ['buscar','historias','cursos','pedidos-kit','calculadora','servicios','export','ultimos-movimientos','control'];
+            if (_masItems.includes(s)) document.getElementById('btnMas')?.classList.add('active');
+            // Bottom nav: marcar item activo por data-section
+            document.querySelectorAll('.bni').forEach(x => x.classList.remove('active'));
+            document.querySelector(`.bni[data-section="${s}"]`)?.classList.add('active');
+            // Cerrar menús
+            cerrarTodosDropdowns();
+            cerrarBottomSheet();
             if (s === 'grilla') window.renderGrilla();
             if (s === 'pedidos-kit') window.cargarPedidosKit();
             if (s === 'control') window.cargarSeccionControl();
@@ -5612,6 +5809,60 @@
             if (s === 'calculadora') window.cargarCalculadora();
             if (s === 'consultas') window.cargarConsultas();
             if (s === 'cursos') window.cargarCursos();
+        };
+
+        // ═══ DROPDOWNS DE HEADER ═══
+        const _hdrDropIds = { 'mas': 'mas-drop', 'user': 'user-drop', 'user-mob': 'user-mob-drop' };
+        window.toggleHdrDropdown = (id) => {
+            const menuId = _hdrDropIds[id];
+            if (!menuId) return;
+            const menu = document.getElementById(menuId);
+            if (!menu) return;
+            const isOpen = menu.classList.contains('hdr-drop-open');
+            cerrarTodosDropdowns();
+            if (!isOpen) {
+                menu.removeAttribute('hidden');
+                menu.classList.add('hdr-drop-open');
+            }
+        };
+        window.cerrarHdrDropdown = (id) => {
+            const menuId = _hdrDropIds[id];
+            if (!menuId) return;
+            const menu = document.getElementById(menuId);
+            if (!menu) return;
+            menu.setAttribute('hidden', '');
+            menu.classList.remove('hdr-drop-open');
+        };
+        window.cerrarTodosDropdowns = () => {
+            Object.keys(_hdrDropIds).forEach(id => cerrarHdrDropdown(id));
+        };
+        // Cerrar dropdowns al clicar fuera
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.hdr-drop-wrap') && !e.target.closest('.hdr-user-icon-btn')) {
+                cerrarTodosDropdowns();
+            }
+        }, true);
+
+        // ═══ BOTTOM SHEET ═══
+        window.toggleBottomSheet = () => {
+            const sheet = document.getElementById('bottom-sheet');
+            const overlay = document.getElementById('bsh-overlay');
+            const hamBtn = document.getElementById('btnHamburger');
+            const isOpen = sheet?.classList.contains('bsh-open');
+            if (isOpen) {
+                sheet.classList.remove('bsh-open');
+                overlay?.classList.remove('bsh-open');
+                if (hamBtn) hamBtn.setAttribute('aria-expanded', 'false');
+            } else {
+                sheet?.classList.add('bsh-open');
+                overlay?.classList.add('bsh-open');
+                if (hamBtn) hamBtn.setAttribute('aria-expanded', 'true');
+            }
+        };
+        window.cerrarBottomSheet = () => {
+            document.getElementById('bottom-sheet')?.classList.remove('bsh-open');
+            document.getElementById('bsh-overlay')?.classList.remove('bsh-open');
+            document.getElementById('btnHamburger')?.setAttribute('aria-expanded', 'false');
         };
         
         // === NOVEDADES ===
@@ -6016,6 +6267,11 @@
                 btn.style.borderColor = active ? "#14b8a6" : "rgba(20,184,166,0.4)";
                 btn.style.boxShadow = active ? "0 0 0 2px rgba(20,184,166,0.4)" : "none";
             });
+            // Actualizar barra de jornada móvil
+            const mobBar = document.getElementById('header-mob-jornada');
+            const mobTxt = document.getElementById('mob-jornada-text');
+            if (mobBar) mobBar.classList.toggle('jornada-activa', isJornada);
+            if (mobTxt) mobTxt.textContent = isJornada ? `Jornada ${typeLabel || ''} activa` : 'Modo normal';
         };
         
         window.recargarJornadaStatus = async () => {
