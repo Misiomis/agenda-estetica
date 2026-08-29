@@ -710,7 +710,7 @@
             snapR.forEach(d => {
                 const dat = d.data();
                 if (!dat.fecha) return;
-                if (dat.operador && dat.operador !== OPERADOR_ACTUAL) return;
+                if (dat.operador !== OPERADOR_ACTUAL) return;
                 diasConReservas.add(dat.fecha);
             });
             snapEx.forEach(d => { const dat = d.data(); if (dat.fecha && dat.tipo === 'dia') diasBloqueados.add(dat.fecha); });
@@ -775,8 +775,7 @@
             snapR.forEach(d => {
                 const dat = d.data();
                 if (dat.eliminado) return;
-                // Incluye docs sin operador (historial previo) como propios de este panel
-                if (dat.operador && dat.operador !== OPERADOR_ACTUAL) return;
+                if (dat.operador !== OPERADOR_ACTUAL) return;
                 reservas.push({ _id: d.id, ...dat });
             });
             reservas.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
@@ -1093,7 +1092,7 @@
             snap.forEach(d => {
                 const dat = d.data();
                 if (dat.eliminado) return;
-                if (dat.operador && dat.operador !== OPERADOR_ACTUAL) return;
+                if (dat.operador !== OPERADOR_ACTUAL) return;
                 const key = dat.dni || dat.telefono || dat.nombre || d.id;
                 if (!mapa.has(key)) mapa.set(key, { nombre: dat.nombre || '—', dni: dat.dni || '', telefono: dat.telefono || '', sesiones: [] });
                 mapa.get(key).sesiones.push({ _id: d.id, ...dat });
