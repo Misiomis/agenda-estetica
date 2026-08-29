@@ -815,6 +815,12 @@ const DEPI_HORARIOS = {
 };
 const DEPI_DIAS = new Set([3, 5, 6]);
 const FECHA_INICIO_DEPI = '2026-08-26'; // primera semana disponible
+// Slots tardíos por día (NO en la grilla normal) — solo aparecen si admin los habilita
+const TODOS_SLOTS_TARDIOS_DOW = {
+    3: ['12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'],
+    5: ['20:00','20:30','21:00','21:30','22:00'],
+    6: ['12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'],
+};
 const _slotsParaDia = (fStr) => {
     const d = new Date(fStr + 'T12:00:00');
     return DEPI_HORARIOS[d.getDay()] || [];
@@ -845,7 +851,7 @@ const fechaAString = (f) => `${f.getFullYear()}-${String(f.getMonth()+1).padStar
 
 let fechaActual=new Date(), fechaSeleccionada=null, horaSeleccionada=null;
 const hoy=new Date(); hoy.setHours(0,0,0,0);
-let excepciones={}, bloqueosHorarios=new Map();
+let excepciones={}, bloqueosHorarios=new Map(), desbloqueosTardios=new Set();
 let rangosDiasBloqueados=[], mesesBloqueados=new Set();
 let reservasPorFecha=new Map();
 
@@ -1007,12 +1013,13 @@ const obtenerHorasOcupadas=async(fStr)=>{
     return [...horas].sort((a,b)=>a.localeCompare(b));
 };
 function procesarExcepciones(snapshot){
-    excepciones={};bloqueosHorarios=new Map();
+    excepciones={};bloqueosHorarios=new Map();desbloqueosTardios=new Set();
     snapshot.forEach(docSnap=>{
         const data=docSnap.data()||{};
         const idEsFecha=/^\d{4}-\d{2}-\d{2}$/.test(docSnap.id);
         const fechaEx=((data.fecha||"")||(idEsFecha?docSnap.id:"")).toString();
         const horaEx=normalizarHora(data.hora||data.hour||"");
+        if(data.tipo==='desbloq_tardio'&&fechaEx&&horaEx){desbloqueosTardios.add(keyBloqueo(fechaEx,horaEx));return;}
         const activo=data.active!==false;
         const esBloqueo=data.type==="blocked"||data.blocked===true||data.bloqueado===true||data.tipo==='slot';
         if(!activo||!esBloqueo)return;
@@ -1034,7 +1041,14 @@ async function cargarDatos(){
 }
 const esDiaBloqueadoPorAdmin=(fStr)=>rangosDiasBloqueados.some(r=>fStr>=r.desde&&fStr<=r.hasta);
 const slotsTomadosDia=(fStr)=>{const res=reservasPorFecha.get(fStr)||new Set();let blocks=0;bloqueosHorarios.forEach((_,k)=>{if(k.startsWith(fStr+"|"))blocks++;});return res.size+blocks;};
-const esDiaLleno=(fStr)=>{const slots=_slotsParaDia(fStr);if(!slots.length)return true;const res=reservasPorFecha.get(fStr)||new Set();return slots.every(hora=>res.has(hora)||bloqueosHorarios.has(keyBloqueo(fStr,hora)));};
+const esDiaLleno=(fStr)=>{
+    const _dow2=new Date(fStr+'T12:00:00').getDay();
+    const _tardExt=(TODOS_SLOTS_TARDIOS_DOW[_dow2]||[]).filter(h=>desbloqueosTardios.has(keyBloqueo(fStr,h)));
+    const slots=[..._slotsParaDia(fStr),..._tardExt];
+    if(!slots.length)return true;
+    const res=reservasPorFecha.get(fStr)||new Set();
+    return slots.every(hora=>res.has(hora)||bloqueosHorarios.has(keyBloqueo(fStr,hora)));
+};
 
 function renderCalendario(){
     const y=fechaActual.getFullYear(),m=fechaActual.getMonth();
@@ -1075,7 +1089,10 @@ async function cargarHorarios(fStr){
     cont.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(165,205,188,0.45);font-size:13px;">Buscando turnos...</div>`;
     if(excepciones[fStr]){cont.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(255,120,120,0.70);font-size:13px;">Día cerrado: ${excepciones[fStr]}</div>`;return;}
     const ocupados=await obtenerHorasOcupadas(fStr);cont.innerHTML="";
-    const _slots=_slotsParaDia(fStr);
+    const _slotsBase=_slotsParaDia(fStr);
+    const _dow3=new Date(fStr+'T12:00:00').getDay();
+    const _tardHab=(TODOS_SLOTS_TARDIOS_DOW[_dow3]||[]).filter(h=>desbloqueosTardios.has(keyBloqueo(fStr,h)));
+    const _slots=[..._slotsBase,..._tardHab.filter(h=>!_slotsBase.includes(h))].sort();
     if(!_slots.length){cont.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(255,120,120,0.70);font-size:13px;">No hay turnos disponibles para este día.</div>';return;}
     _slots.forEach((hora,idx)=>{
         const div=document.createElement("div");div.className="hora";div.innerText=hora;div.style.animationDelay=`${Math.min(idx*40,400)}ms`;

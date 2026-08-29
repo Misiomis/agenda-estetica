@@ -784,12 +784,14 @@
 
             // Build exceptions map for this day
             // tipo:'slot' = admin manual block; tipo:'reserva'/'extension' = auto-blocked by patient booking
-            const exInfo = { diaBloqueado: false, slots: {} };
+            const exInfo = { diaBloqueado: false, slots: {}, tardiosHabilitados: {} };
             snapEx.forEach(d => {
                 const dat = d.data();
                 if (dat.tipo === 'dia') exInfo.diaBloqueado = true;
                 if ((dat.tipo === 'slot' || dat.tipo === 'reserva' || dat.tipo === 'extension') && dat.hora)
                     exInfo.slots[dat.hora] = { id: d.id, tipo: dat.tipo, reservaId: dat.reservaId || null };
+                if (dat.tipo === 'desbloq_tardio' && dat.hora)
+                    exInfo.tardiosHabilitados[dat.hora] = d.id;
             });
             _excepcionesDia[fecha] = exInfo;
 
@@ -828,11 +830,17 @@
 
     const _slotsAdminDia = () => {
         const s = [];
-        for (let h = 7; h < 20; h++) {
+        for (let h = 7; h <= 22; h++) {
             s.push(`${String(h).padStart(2,'0')}:00`);
-            s.push(`${String(h).padStart(2,'0')}:30`);
+            if (h < 22) s.push(`${String(h).padStart(2,'0')}:30`);
         }
         return s;
+    };
+    const DEPI_DIAS_ADM = new Set([3, 5, 6]);
+    const HORARIOS_NORMALES_DOW = {
+        3: new Set(['07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30']),
+        5: new Set(['15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30']),
+        6: new Set(['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30']),
     };
 
     const renderDiaDetalle = (fecha, reservas, exInfo) => {
@@ -864,9 +872,13 @@
         const reservasPorHora = {};
         reservas.forEach(r => { reservasPorHora[r.hora] = r; });
 
+        const _dow = new Date(fecha + 'T12:00:00').getDay();
+        const _esDepiDay = DEPI_DIAS_ADM.has(_dow);
+
         const rows = slots.map(hora => {
             const r = reservasPorHora[hora];
             const isBloqSlot = !!exInfo.slots[hora];
+            const esSlotTardio = _esDepiDay && HORARIOS_NORMALES_DOW[_dow] && !HORARIOS_NORMALES_DOW[_dow].has(hora);
 
             if (r) {
                 const estadoCls = `estado-${r.estado || 'pendiente'}`;
@@ -933,6 +945,25 @@
                     <div class="slot-bloqueado-label">🔒 Bloqueado</div>
                     <button class="btn-icono" style="font-size:11px;" onclick="desbloquearSlotDepi('${slotInfo.id}','${fecha}')">Desbloquear</button>
                 </div>`;
+            } else if (esSlotTardio) {
+                const esHabilitadoTardio = !!exInfo.tardiosHabilitados?.[hora];
+                if (esHabilitadoTardio) {
+                    if (esFechaInvalida) return '';
+                    return `<div class="slot-row" style="border-color:rgba(30,122,78,0.15);background:rgba(30,122,78,0.03);">
+                        <div class="slot-hora">${hora}</div>
+                        <div class="slot-libre" style="font-size:11px;">Libre <span style="opacity:.50;">· tarde</span></div>
+                        <div style="display:flex;gap:6px;flex-shrink:0;">
+                            <button class="btn-icono" style="font-size:11px;color:rgba(100,200,150,0.85);border-color:rgba(30,122,78,0.30);background:rgba(30,122,78,0.07);" onclick="agendarSlot('${hora}','${fecha}')">➕ Agendar</button>
+                            <button class="btn-icono" style="font-size:11px;color:rgba(248,113,113,0.65);border-color:rgba(248,113,113,0.20);" onclick="anularHabilitacionTardia('${exInfo.tardiosHabilitados[hora]}','${fecha}')">🔒 Bloquear</button>
+                        </div>
+                    </div>`;
+                } else {
+                    return `<div class="slot-row" style="border-color:rgba(255,255,255,0.04);background:transparent;opacity:0.42;">
+                        <div class="slot-hora" style="opacity:0.50;">${hora}</div>
+                        <div style="flex:1;font-size:12px;color:var(--texto-suave);font-style:italic;">🌙 Tardío</div>
+                        <button class="btn-icono" style="font-size:11px;color:rgba(100,200,150,0.60);border-color:rgba(30,122,78,0.20);" onclick="habilitarSlotTardio('${hora}','${fecha}')">Habilitar hoy</button>
+                    </div>`;
+                }
             } else {
                 // No mostrar "Agendar" en fechas inválidas (evita guardar turnos en fechas de cumpleaños)
                 if (esFechaInvalida) return '';
@@ -992,6 +1023,23 @@
             mostrarAvisoDepi('Slot desbloqueado');
             await verDia(fecha);
         } catch(e) { console.error(e); mostrarAvisoDepi('Error al desbloquear slot'); }
+    };
+
+    window.habilitarSlotTardio = async (hora, fecha) => {
+        try {
+            const docId = `depi_tardio_${fecha}_${hora.replace(':','-')}`;
+            await setDoc(doc(db, COLECCION_EX, docId), { fecha, hora, tipo: 'desbloq_tardio', blocked: false, updatedAt: serverTimestamp() });
+            mostrarAvisoDepi(`✓ ${hora} habilitado para hoy`);
+            await verDia(fecha);
+        } catch(e) { console.error(e); mostrarAvisoDepi('Error al habilitar slot'); }
+    };
+
+    window.anularHabilitacionTardia = async (docId, fecha) => {
+        try {
+            await deleteDoc(doc(db, COLECCION_EX, docId));
+            mostrarAvisoDepi('Horario tardío bloqueado nuevamente');
+            await verDia(fecha);
+        } catch(e) { console.error(e); mostrarAvisoDepi('Error al bloquear slot tardío'); }
     };
 
     window.cambiarEstado = async (id, nuevoEstado, fecha) => {
