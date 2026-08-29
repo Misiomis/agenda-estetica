@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -7,185 +7,256 @@
     <title>Kit Facial Domiciliario | Espacio Mimar T</title>
     <meta name="description" content="Solicitá tu kit facial domiciliario personalizado en Espacio Mimar T.">
     <link rel="stylesheet" href="/mobile-fixes.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/pro-theme.css">
 
     <style>
         :root {
-            --bg: #060e0b;
-            --surface: rgba(255, 255, 255, 0.07);
-            --primary: #72bd99;
-            --primary-strong: #4f9777;
-            --ink: rgba(220, 242, 232, 0.95);
-            --muted: rgba(165, 205, 188, 0.68);
-            --border: rgba(255, 255, 255, 0.10);
-            --card-gold: rgba(255, 255, 255, 0.08);
-            --radius-xl: 28px;
-            --radius-lg: 20px;
-            --radius-pill: 999px;
-            --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.32);
-            --shadow-card: 0 18px 36px rgba(0, 0, 0, 0.40);
-            --glow: 0 0 28px rgba(114, 189, 153, 0.22);
-            --trans: .26s ease;
+            --bg:         #060e0b;
+            --primary:    #72bd99;
+            --primary-dk: #4f9777;
+            --ink:        rgba(220, 242, 232, 0.95);
+            --ink-2:      rgba(200, 232, 215, 0.80);
+            --muted:      rgba(165, 205, 188, 0.58);
+            --border:     rgba(255, 255, 255, 0.09);
+            --border-g:   rgba(114, 189, 153, 0.22);
+            --r-xl:       24px;
+            --r-lg:       18px;
+            --r-md:       14px;
+            --r-pill:     999px;
+            --shadow:     0 12px 36px rgba(0, 0, 0, 0.42);
+            --trans:      .24s ease;
         }
 
-        * { box-sizing: border-box; }
+        *, *::before, *::after { box-sizing: border-box; }
 
         body {
             margin: 0;
             font-family: 'Montserrat', sans-serif;
             background:
-                radial-gradient(circle at 80% 10%, rgba(30, 90, 60, 0.22), rgba(30, 90, 60, 0) 45%),
-                radial-gradient(circle at 10% 90%, rgba(10, 50, 30, 0.18), rgba(10, 50, 30, 0) 42%),
+                radial-gradient(circle at 78% 12%, rgba(28, 88, 58, 0.20), transparent 44%),
+                radial-gradient(circle at 12% 88%, rgba(8, 48, 28, 0.16), transparent 42%),
                 linear-gradient(160deg, #060e0b 0%, #0c2218 55%, #071a12 100%);
             color: var(--ink);
             overflow-x: hidden;
             min-height: 100vh;
         }
 
+        /* ── HERO ── */
         .hero {
-            min-height: 28vh;
-            display: grid;
-            place-items: center;
-            padding: 72px 18px 32px;
-            position: relative;
-            isolation: isolate;
-        }
-
-        .hero::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(145deg, #060e0b 0%, #0c2218 42%, #071a12 100%);
-            z-index: -2;
-        }
-
-        .hero::after {
-            content: "";
-            position: absolute;
-            width: min(560px, 90vw);
-            height: min(560px, 90vw);
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(114, 189, 153, 0.28) 0%, rgba(114, 189, 153, 0) 68%);
-            filter: blur(8px);
-            z-index: -1;
-            animation: floatAura 7s ease-in-out infinite;
+            padding: 52px 18px 0;
+            display: flex;
+            justify-content: center;
         }
 
         .hero-card {
-            width: min(980px, 94vw);
-            background: linear-gradient(145deg, rgba(8, 22, 16, 0.82) 0%, rgba(14, 36, 26, 0.78) 100%);
-            border: 1px solid rgba(60, 179, 113, 0.14);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+            width: min(740px, 96vw);
+            background: linear-gradient(148deg, rgba(10, 26, 18, 0.92) 0%, rgba(16, 42, 30, 0.86) 100%);
+            border: 1px solid rgba(114, 189, 153, 0.16);
+            border-radius: var(--r-xl);
+            padding: 32px 24px 26px;
+            text-align: center;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.44);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border-radius: var(--radius-xl);
-            padding: 26px 20px;
-            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-card::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 80%;
+            background: radial-gradient(ellipse, rgba(114, 189, 153, 0.09) 0%, transparent 70%);
+            pointer-events: none;
         }
 
         .logo {
-            width: clamp(160px, 28vw, 260px);
+            width: clamp(140px, 26vw, 220px);
             display: block;
-            margin: 0 auto 14px;
-            filter: drop-shadow(0 10px 22px rgba(66, 98, 83, 0.16));
+            margin: 0 auto 16px;
+            filter: drop-shadow(0 6px 16px rgba(40, 70, 55, 0.18));
+            position: relative;
+        }
+
+        .hero-eyebrow {
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin: 0 0 7px;
+            opacity: 0.85;
         }
 
         .hero-title {
             font-family: 'Cormorant Garamond', serif;
-            font-size: clamp(32px, 7vw, 54px);
-            line-height: 1;
+            font-size: clamp(28px, 6vw, 48px);
+            line-height: 1.0;
             font-style: italic;
-            margin: 0;
+            font-weight: 600;
+            margin: 0 0 10px;
             color: var(--ink);
         }
 
         .hero-sub {
-            margin: 10px auto 0;
-            max-width: 600px;
-            font-size: clamp(13px, 2.5vw, 15px);
+            margin: 0 auto;
+            max-width: 480px;
+            font-size: clamp(12.5px, 2.2vw, 14px);
             color: var(--muted);
+            line-height: 1.65;
         }
 
         @keyframes floatAura {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-8px); }
         }
 
+        /* ── MAIN SECTION ── */
         .section {
             width: min(700px, 95vw);
-            margin: 0 auto 60px;
-            padding: 0 16px;
+            margin: 28px auto 72px;
+            padding: 0 14px;
         }
 
+        /* ── KIT CARD ── */
         .kit-card {
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            border-radius: var(--radius-lg);
-            padding: 28px 22px;
-            box-shadow: var(--shadow-soft);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            border-radius: var(--r-xl);
+            padding: 28px 24px;
+            box-shadow: var(--shadow);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
         }
 
         .kit-card h2 {
-            margin: 0 0 20px;
+            margin: 0 0 22px;
             font-family: 'Cormorant Garamond', serif;
-            font-size: 28px;
+            font-size: clamp(22px, 4.5vw, 28px);
             font-style: italic;
             color: var(--ink);
             text-align: center;
         }
 
+        /* ── DNI SCREEN ── */
+        .verif-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .verif-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(18px, 3.8vw, 22px);
+            font-style: italic;
+            font-weight: 600;
+            color: var(--ink);
+            margin: 0 0 7px;
+        }
+
+        .verif-sub {
+            font-size: 13.5px;
+            color: var(--muted);
+            margin: 0 0 20px;
+            line-height: 1.65;
+        }
+
+        /* ── DNI INPUT ── */
+        #kitDniInput {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: var(--r-md);
+            border: 1.5px solid rgba(165, 205, 188, 0.22);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--ink);
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+            margin-bottom: 12px;
+            text-align: center;
+            letter-spacing: 0.04em;
+            transition: border-color 0.22s, background 0.22s, box-shadow 0.22s;
+            -moz-appearance: textfield;
+        }
+        #kitDniInput::-webkit-outer-spin-button,
+        #kitDniInput::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        #kitDniInput::placeholder { color: var(--muted); letter-spacing: 0; }
+        #kitDniInput:focus {
+            border-color: rgba(114, 189, 153, 0.50);
+            background: rgba(255, 255, 255, 0.065);
+            box-shadow: 0 0 0 3px rgba(114, 189, 153, 0.10);
+        }
+
+        /* ── PRODUCTS LIST ── */
         .productos-list {
             display: flex;
             flex-direction: column;
-            gap: 14px;
-            margin-bottom: 24px;
+            gap: 10px;
+            margin-bottom: 22px;
         }
 
         .producto-item {
             display: flex;
             align-items: center;
-            gap: 14px;
-            padding: 14px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            border-radius: 14px;
+            gap: 13px;
+            padding: 14px 15px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1.5px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--r-md);
             cursor: pointer;
-            transition: all var(--trans);
+            transition: background var(--trans), border-color var(--trans), box-shadow var(--trans);
+            user-select: none;
+            min-height: 56px;
         }
 
         .producto-item:hover {
-            background: rgba(255, 255, 255, 0.09);
-            border-color: rgba(114, 189, 153, 0.35);
-            box-shadow: 0 4px 14px rgba(114, 189, 153, 0.10);
+            background: rgba(255, 255, 255, 0.075);
+            border-color: rgba(114, 189, 153, 0.32);
         }
 
+        .producto-item.selected {
+            background: rgba(50, 120, 88, 0.16);
+            border-color: rgba(114, 189, 153, 0.52);
+            box-shadow: 0 2px 12px rgba(114, 189, 153, 0.10);
+        }
+
+        .producto-item.selected .producto-precio {
+            background: rgba(114, 189, 153, 0.20);
+            color: rgba(138, 220, 180, 0.95);
+        }
+
+        /* Custom checkbox */
         .producto-item input[type="checkbox"] {
             width: 22px;
             height: 22px;
+            min-width: 22px;
+            min-height: 22px !important;
             cursor: pointer;
             flex-shrink: 0;
             appearance: none;
             -webkit-appearance: none;
             border: 1.5px solid rgba(114, 189, 153, 0.30);
             border-radius: 6px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.04);
             position: relative;
             transition: background 0.18s, border-color 0.18s;
         }
         .producto-item input[type="checkbox"]:checked {
-            background: var(--primary-strong);
-            border-color: var(--primary-strong);
+            background: var(--primary-dk);
+            border-color: var(--primary-dk);
         }
         .producto-item input[type="checkbox"]:checked::after {
             content: '';
             position: absolute;
             left: 5px;
             top: 2px;
-            width: 9px;
-            height: 13px;
+            width: 8px;
+            height: 12px;
             border: 2px solid #fff;
             border-top: none;
             border-left: none;
@@ -193,171 +264,187 @@
         }
 
         .producto-item label {
-            font-size: 15px;
+            font-size: clamp(14px, 2.8vw, 15px);
             font-weight: 500;
             color: var(--ink);
             cursor: pointer;
             flex: 1;
+            line-height: 1.3;
         }
 
         .producto-precio {
-            font-size: 13px;
+            font-size: 12.5px;
             font-weight: 700;
-            color: var(--primary-strong);
-            background: rgba(114, 189, 153, 0.14);
-            padding: 3px 10px;
-            border-radius: 20px;
+            color: var(--primary-dk);
+            background: rgba(114, 189, 153, 0.12);
+            padding: 4px 11px;
+            border-radius: var(--r-pill);
             flex-shrink: 0;
             white-space: nowrap;
+            transition: background var(--trans), color var(--trans);
         }
 
-        .producto-item.selected {
-            background: rgba(53, 122, 92, 0.18);
-            border-color: rgba(114, 189, 153, 0.50);
-            box-shadow: 0 4px 16px rgba(60, 179, 113, 0.12);
-        }
-        .producto-item.selected .producto-precio {
-            background: rgba(114, 189, 153, 0.22);
-            color: rgba(140, 220, 185, 0.95);
+        .productos-loading {
+            text-align: center;
+            padding: 22px;
+            color: var(--muted);
+            font-size: 13.5px;
         }
 
+        /* ── TOTAL ── */
         .total-kit {
             display: none;
             align-items: center;
             justify-content: space-between;
-            background: linear-gradient(135deg, rgba(114, 189, 153, 0.12), rgba(79, 151, 119, 0.06));
-            border: 1.5px solid rgba(114, 189, 153, 0.35);
-            border-radius: 14px;
-            padding: 14px 18px;
+            background: linear-gradient(135deg, rgba(114, 189, 153, 0.11), rgba(79, 151, 119, 0.06));
+            border: 1.5px solid rgba(114, 189, 153, 0.32);
+            border-radius: var(--r-md);
+            padding: 13px 16px;
             margin-bottom: 20px;
-            font-size: 14px;
+            font-size: 13.5px;
             font-weight: 600;
-            color: var(--ink);
+            color: var(--ink-2);
         }
 
         .total-kit .total-monto {
             font-size: 20px;
             font-weight: 800;
-            color: var(--primary-strong);
+            color: var(--primary-dk);
         }
 
-        .productos-loading {
-            text-align: center;
-            padding: 24px;
-            color: var(--muted);
-            font-size: 14px;
-        }
-
+        /* ── TEXTAREA ── */
         .descripcion-box {
-            margin-bottom: 24px;
+            margin-bottom: 22px;
         }
 
         .descripcion-box label {
             display: block;
-            font-size: 14px;
+            font-size: 13.5px;
             font-weight: 600;
-            color: var(--ink);
+            color: var(--ink-2);
             margin-bottom: 10px;
         }
 
         .descripcion-box textarea {
             width: 100%;
             min-height: 100px;
-            padding: 14px;
-            border: 1.5px solid var(--border);
-            border-radius: 14px;
+            padding: 13px 15px;
+            border: 1.5px solid rgba(165, 205, 188, 0.18);
+            border-radius: var(--r-md);
             font-family: inherit;
-            font-size: 14px;
+            font-size: 15px;
             color: var(--ink);
-            background: #fff;
+            background: rgba(255, 255, 255, 0.04);
             resize: vertical;
             outline: none;
-            transition: border-color var(--trans), background var(--trans);
+            line-height: 1.6;
+            transition: border-color var(--trans), background var(--trans), box-shadow var(--trans);
         }
+
+        .descripcion-box textarea::placeholder { color: var(--muted); }
 
         .descripcion-box textarea:focus {
-            border-color: var(--primary);
-            background: #f8fdfa;
+            border-color: rgba(114, 189, 153, 0.48);
+            background: rgba(255, 255, 255, 0.065);
+            box-shadow: 0 0 0 3px rgba(114, 189, 153, 0.09);
         }
 
+        /* ── SUBMIT BUTTON ── */
         .btn-submit {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+            padding: 15px;
+            background: linear-gradient(135deg, #5eab88 0%, #3d8a68 100%);
             color: white;
             border: none;
-            border-radius: 14px;
-            font-size: 15px;
+            border-radius: var(--r-md);
+            font-size: 13.5px;
             font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
             cursor: pointer;
-            transition: transform var(--trans), box-shadow var(--trans);
+            font-family: inherit;
+            transition: transform var(--trans), box-shadow var(--trans), filter var(--trans);
+            min-height: 50px;
         }
 
         .btn-submit:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 10px 24px rgba(114, 189, 153, 0.34);
+            box-shadow: 0 10px 26px rgba(58, 138, 102, 0.34);
+            filter: brightness(1.06);
+        }
+
+        .btn-submit:active:not(:disabled) {
+            transform: translateY(0);
+            filter: brightness(0.97);
         }
 
         .btn-submit:disabled {
-            opacity: 0.6;
+            opacity: 0.55;
             cursor: not-allowed;
+            transform: none;
         }
 
+        /* ── FEEDBACK MESSAGES ── */
         .feedback-message {
-            padding: 14px 16px;
-            border-radius: 14px;
-            font-size: 14px;
+            padding: 13px 16px;
+            border-radius: var(--r-md);
+            font-size: 13.5px;
             font-weight: 600;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
+            line-height: 1.5;
         }
 
         .feedback-message.success {
-            background: linear-gradient(135deg, #e4f7ed 0%, #d8f2e5 100%);
-            color: var(--primary-strong);
-            border: 1.5px solid #a8dfc0;
+            background: rgba(114, 189, 153, 0.12);
+            color: rgba(138, 220, 180, 0.95);
+            border: 1px solid rgba(114, 189, 153, 0.30);
         }
 
         .feedback-message.error {
-            background: #fff1f3;
-            color: #a64b58;
-            border: 1px solid #f2d3d8;
+            background: rgba(220, 80, 80, 0.10);
+            color: rgba(248, 155, 155, 0.92);
+            border: 1px solid rgba(220, 80, 80, 0.24);
         }
 
         .feedback-message.info {
-            background: #eef7f2;
-            color: #3d6252;
-            border: 1px solid #d5e9de;
+            background: rgba(114, 189, 153, 0.07);
+            color: var(--ink-2);
+            border: 1px solid var(--border-g);
         }
 
-        /* ── Success screen ── */
+        /* ── SUCCESS SCREEN ── */
         #successScreen {
             display: none;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            padding: 32px 16px 24px;
+            padding: 28px 16px 20px;
             gap: 14px;
-            animation: fadeInUp .45s ease both;
+            animation: fadeInUp .42s ease both;
         }
+
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(18px); }
+            from { opacity: 0; transform: translateY(16px); }
             to   { opacity: 1; transform: translateY(0); }
         }
+
         .success-icon {
-            width: 74px; height: 74px; border-radius: 50%;
+            width: 72px; height: 72px; border-radius: 50%;
             background: linear-gradient(135deg, #72bd99, #4f9777);
             display: flex; align-items: center; justify-content: center;
-            font-size: 34px;
-            box-shadow: 0 10px 28px rgba(79,151,119,0.30);
+            font-size: 32px;
+            box-shadow: 0 10px 28px rgba(79, 151, 119, 0.28);
         }
+
         .success-title {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 26px;
+            font-size: clamp(22px, 4vw, 26px);
             font-style: italic;
             color: var(--ink);
             margin: 0;
         }
+
         .success-body {
             font-size: 14px;
             line-height: 1.7;
@@ -365,30 +452,37 @@
             max-width: 380px;
             margin: 0;
         }
+
         .btn-otro {
-            margin-top: 8px;
+            margin-top: 6px;
             padding: 12px 28px;
             background: transparent;
-            border: 1.5px solid var(--primary);
-            color: var(--primary-strong);
-            border-radius: 12px;
+            border: 1.5px solid rgba(114, 189, 153, 0.38);
+            color: var(--primary);
+            border-radius: var(--r-md);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             font-family: inherit;
-            transition: background .22s, color .22s;
+            transition: background var(--trans), color var(--trans), border-color var(--trans);
         }
-        .btn-otro:hover { background: var(--primary); color: #fff; }
 
+        .btn-otro:hover {
+            background: var(--primary-dk);
+            color: #fff;
+            border-color: var(--primary-dk);
+        }
+
+        /* ── NOT LOGGED IN ── */
         .not-logged-in {
-            background: #f8fbf9;
-            border: 1px solid #d5e9de;
-            padding: 26px 20px;
-            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-g);
+            padding: 26px 18px;
+            border-radius: var(--r-lg);
             text-align: center;
         }
 
-        .not-logged-in .nl-icon { font-size: 36px; margin-bottom: 12px; }
+        .not-logged-in .nl-icon { font-size: 34px; margin-bottom: 12px; display: block; }
 
         .not-logged-in h3 {
             margin: 0 0 8px;
@@ -399,28 +493,31 @@
         }
 
         .not-logged-in p {
-            margin: 0 0 16px;
+            margin: 0 0 18px;
             color: var(--muted);
-            font-size: 14px;
-            line-height: 1.6;
+            font-size: 13.5px;
+            line-height: 1.65;
         }
 
         .not-logged-in .btn-login {
             display: block;
             width: 100%;
             padding: 13px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+            background: linear-gradient(135deg, var(--primary), var(--primary-dk));
             color: white;
             text-decoration: none;
-            border-radius: 13px;
+            border-radius: var(--r-md);
             font-weight: 700;
             font-size: 14px;
             margin-bottom: 10px;
-            transition: transform .22s ease, box-shadow .22s ease;
-            box-shadow: 0 8px 18px rgba(79, 151, 119, 0.28);
+            transition: transform var(--trans), box-shadow var(--trans);
+            box-shadow: 0 8px 20px rgba(79, 151, 119, 0.26);
         }
 
-        .not-logged-in .btn-login:hover { transform: translateY(-1px); }
+        .not-logged-in .btn-login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px rgba(79, 151, 119, 0.34);
+        }
 
         .not-logged-in .btn-wa {
             display: flex;
@@ -432,7 +529,7 @@
             background: #25D366;
             color: white;
             text-decoration: none;
-            border-radius: 13px;
+            border-radius: var(--r-md);
             font-weight: 700;
             font-size: 14px;
             transition: opacity .2s;
@@ -440,23 +537,28 @@
 
         .not-logged-in .btn-wa:hover { opacity: 0.92; }
 
-        @media (min-width: 1024px) {
-            .hero-card {
-                background: rgba(255, 255, 255, 0.76);
-                backdrop-filter: blur(16px);
-            }
+        /* ── RESPONSIVE ── */
+        @media (max-width: 480px) {
+            .hero { padding: 28px 12px 0; }
+            .hero-card { padding: 22px 16px 18px; border-radius: var(--r-lg); }
+            .logo { width: clamp(130px, 40vw, 170px); margin-bottom: 12px; }
+            .section { margin-top: 20px; padding: 0 10px; }
+            .kit-card { padding: 20px 16px; border-radius: var(--r-lg); }
+            .kit-card h2 { font-size: 22px; }
+            .producto-item { padding: 13px; gap: 11px; }
+            .descripcion-box textarea { font-size: 16px; }
         }
 
-        @media (max-width: 768px) {
-            .hero { min-height: 24vh; padding-top: 50px; }
-            .hero-card {
-                padding: 18px 14px;
-                background: rgba(255, 255, 255, 0.94);
-                backdrop-filter: blur(6px);
-            }
-            .logo { width: clamp(140px, 42vw, 180px); }
-            .kit-card { padding: 20px 16px; }
-            .kit-card h2 { font-size: 24px; }
+        @media (min-width: 481px) and (max-width: 768px) {
+            .hero { padding: 38px 14px 0; }
+            .hero-card { padding: 26px 20px 22px; }
+        }
+
+        @media (min-width: 769px) {
+            .hero { padding: 56px 20px 0; }
+            .hero-card { padding: 36px 32px 28px; }
+            .kit-card { padding: 30px 28px; }
+            .section { margin-top: 30px; }
         }
     </style>
 </head>
@@ -464,6 +566,7 @@
     <section class="hero">
         <div class="hero-card">
             <img src="/img/logo.png" alt="Espacio Mimar T" class="logo">
+            <p class="hero-eyebrow">Espacio Mimar T</p>
             <h1 class="hero-title">Kit Facial Domiciliario</h1>
             <p class="hero-sub">Cuidado de tu piel en casa, con productos recomendados por Gimena Knack.</p>
         </div>
@@ -487,10 +590,12 @@
 
             <!-- Pantalla de verificación de DNI -->
             <div id="verificDNIScreen" style="display:block;text-align:center;padding:8px 0 16px;">
-                <div style="font-size:36px;margin-bottom:14px;">🌿</div>
-                <p style="font-family:'Cormorant Garamond',serif;font-size:22px;font-style:italic;color:rgba(220,242,232,0.92);margin:0 0 8px;">Espacio exclusivo para pacientes</p>
-                <p style="font-size:13.5px;color:rgba(165,205,188,0.60);margin:0 0 22px;line-height:1.65;">Ingresá tu DNI para verificar tu acceso.</p>
-                <input id="kitDniInput" type="number" placeholder="Tu DNI sin puntos" style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid rgba(165,205,188,0.25);background:rgba(255,255,255,0.05);color:rgba(220,242,232,0.90);font-size:16px;font-family:inherit;outline:none;margin-bottom:12px;text-align:center;" oninput="this.style.borderColor=''" onkeydown="if(event.key==='Enter')window._verificarDNIKit()">
+                <span class="verif-icon">🌿</span>
+                <p class="verif-title">Espacio exclusivo para pacientes</p>
+                <p class="verif-sub">Ingresá tu DNI para verificar tu acceso.</p>
+                <input id="kitDniInput" type="number" inputmode="numeric" placeholder="Tu DNI sin puntos"
+                       oninput="this.style.borderColor=''"
+                       onkeydown="if(event.key==='Enter')window._verificarDNIKit()">
                 <button id="kitDniBtn" onclick="window._verificarDNIKit()" class="btn-submit">Continuar</button>
             </div>
 
@@ -525,7 +630,7 @@
             </div>
 
             <div id="noLoggedIn" class="not-logged-in" style="display: none;">
-                <div class="nl-icon">🌿</div>
+                <span class="nl-icon">🌿</span>
                 <h3>Espacio exclusivo</h3>
                 <p id="nlMsg">Para solicitar el kit debés iniciar sesión con tu cuenta de paciente.</p>
                 <a href="https://wa.me/5493764291807?text=Hola%20Gime%2C%20quisiera%20ser%20paciente%20de%20Espacio%20Mimar%20T%20para%20acceder%20al%20kit%20facial%20%F0%9F%8C%BF" class="btn-wa" target="_blank" rel="noopener noreferrer">
@@ -592,7 +697,7 @@
             const lista = document.getElementById('productosList');
             lista.innerHTML = productosKit.map((p, i) => `
                 <div class="producto-item" onclick="document.getElementById('prod-${i}').click()">
-                    <input type="checkbox" id="prod-${i}" value="${escapeHtml(p.nombre)}" onchange="actualizarTotal()">
+                    <input type="checkbox" id="prod-${i}" value="${escapeHtml(p.nombre)}" onclick="event.stopPropagation()" onchange="actualizarTotal()">
                     <label for="prod-${i}" onclick="event.preventDefault()">${escapeHtml(p.nombre)}</label>
                     <span class="producto-precio">${formatPrecio(p.precio)}</span>
                 </div>
