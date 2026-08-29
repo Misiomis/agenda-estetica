@@ -349,6 +349,7 @@
         <button class="nav-btn" id="navRegistrar" onclick="irA('registrar')">➕ Nuevo turno</button>
         <button class="nav-btn" id="navBuscar" onclick="irA('buscar')">🔍 Buscar</button>
         <button class="nav-btn" id="navPacientes" onclick="irA('pacientes')">👥 Pacientes</button>
+        <button class="nav-btn" id="navServicios" onclick="irA('servicios')">✦ Servicios</button>
         <button class="nav-btn" id="navCombos" onclick="irA('combos')">⏱ Duración</button>
         <button class="nav-btn" id="navPrecios" onclick="irA('precios')">💲 Precios</button>
         <button class="nav-btn" id="navExportar" onclick="irA('exportar')">🖨 Exportar</button>
@@ -423,41 +424,7 @@
                     <div class="form-field">
                         <label class="form-label">Combo / Servicio *</label>
                         <select class="form-select" id="rServicio">
-                            <option value="">Elegí un combo</option>
-                            <optgroup label="Para ellas">
-                                <option value="Mini">Mini — Rostro + Axilas</option>
-                                <option value="Esencial">Esencial — Cavado completo + Axilas</option>
-                                <option value="Brazos">Brazos — Brazos completos</option>
-                                <option value="Media Pierna">Media Pierna — ½ Pierna</option>
-                                <option value="Pierna Completa">Pierna Completa — Pierna entera</option>
-                                <option value="Glúteos">Glúteos — Glúteos completos</option>
-                                <option value="Favorito">Favorito — ½ Pierna + Cavado + Axilas</option>
-                                <option value="Plus">Plus — ½ Pierna + Cavado + Tira de cola + Axilas</option>
-                                <option value="Full Media Pierna">Full Media Pierna — ½ Pierna + Cavado + Tira + Axilas + Rostro</option>
-                                <option value="Full">Full — Pierna entera + Cavado + Tira + Axilas + Rostro</option>
-                                <option value="Full Body">Full Body — Rostro + Axilas + Brazos + Piernas + Cavado + Tira</option>
-                                <option value="Íntimo Anterior">Íntimo Anterior — Zona íntima anterior</option>
-                                <option value="Íntimo Posterior">Íntimo Posterior — Zona interglútea / perianal</option>
-                                <option value="Íntimo Completo">Íntimo Completo — Íntimo anterior + posterior</option>
-                            </optgroup>
-                            <optgroup label="Para ellos">
-                                <option value="Mini (ellos)">Mini — Barba + Cuello</option>
-                                <option value="Rostro">Rostro — Rostro completo</option>
-                                <option value="Torso">Torso — Pecho + Abdomen</option>
-                                <option value="Torso Plus">Torso Plus — Pecho + Abdomen + Axilas</option>
-                                <option value="Espalda">Espalda — Espalda + Hombros + Nuca</option>
-                                <option value="Media Pierna (ellos)">Media Pierna — ½ Pierna</option>
-                                <option value="Pierna Completa (ellos)">Pierna Completa — Pierna entera</option>
-                                <option value="Piernas Plus">Piernas Plus — Pierna entera + Axilas</option>
-                                <option value="Glúteos (ellos)">Glúteos — Glúteos completos</option>
-                                <option value="Full Superior">Full Superior — Rostro + Pecho + Abdomen + Axilas</option>
-                                <option value="Full Torso">Full Torso — Pecho + Abdomen + Espalda + Hombros</option>
-                                <option value="Full Body (ellos)">Full Body — Rostro + Torso + Espalda + Axilas + Brazos + Piernas</option>
-                                <option value="Íntimo Anterior (ellos)">Íntimo Anterior — Zona íntima anterior</option>
-                                <option value="Íntimo Posterior (ellos)">Íntimo Posterior — Zona interglútea / perianal</option>
-                                <option value="Íntimo Completo (ellos)">Íntimo Completo — Íntimo anterior + posterior</option>
-                            </optgroup>
-                            <option value="Consulta">Consulta</option>
+                            <option value="">Cargando combos...</option>
                         </select>
                     </div>
                     <div class="form-field">
@@ -477,6 +444,22 @@
                     <button class="btn-outline" onclick="limpiarFormRegistro()">Limpiar</button>
                 </div>
                 <div class="feedback" id="rFeedback"></div>
+            </div>
+        </div>
+
+        <!-- ══ SERVICIOS ══ -->
+        <div id="secServicios" class="section" style="display:none;">
+            <h2 class="sec-title">Servicios de Depilación</h2>
+            <div class="card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+                    <p style="font-size:13px;color:var(--texto-suave);margin:0;line-height:1.6;">Editá nombres, descripciones, duración y precio de cada combo. Los cambios se reflejan en el formulario de turnos.</p>
+                    <button class="btn-primary" style="font-size:12px;flex-shrink:0;" onclick="agregarComboDepi()">➕ Nuevo combo</button>
+                </div>
+                <div id="serviciosAdminGrid" style="display:flex;flex-direction:column;gap:12px;"></div>
+                <div style="margin-top:18px;display:flex;justify-content:flex-end;">
+                    <button class="btn-primary" onclick="guardarTodosServicios()">Guardar todo</button>
+                </div>
+                <div id="serviciosGuardadoMsg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;color:rgba(74,222,128,0.85);text-align:right;">✓ Guardado</div>
             </div>
         </div>
 
@@ -625,6 +608,7 @@
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appWrapper').classList.add('visible');
         await cargarCalendario();
+        cargarCombosDepi();
     };
 
     window.iniciarSesion = () => {
@@ -653,8 +637,8 @@
     // ════════════════════════════════
     // NAVEGACIÓN
     // ════════════════════════════════
-    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', pacientes: 'secPacientes', buscar: 'secBuscar', combos: 'secCombos', precios: 'secPrecios', exportar: 'secExportar' };
-    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', pacientes: 'navPacientes', buscar: 'navBuscar', combos: 'navCombos', precios: 'navPrecios', exportar: 'navExportar' };
+    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', pacientes: 'secPacientes', servicios: 'secServicios', buscar: 'secBuscar', combos: 'secCombos', precios: 'secPrecios', exportar: 'secExportar' };
+    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', pacientes: 'navPacientes', servicios: 'navServicios', buscar: 'navBuscar', combos: 'navCombos', precios: 'navPrecios', exportar: 'navExportar' };
 
     window.irA = (sec) => {
         Object.values(SECCIONES).forEach(id => document.getElementById(id).classList.remove('active'));
@@ -941,6 +925,20 @@
                         </div>
                     </div>` : ''}
                     <div style="margin-top:6px;">
+                        <label style="font-size:11px;color:var(--texto-suave);font-weight:600;display:block;margin-bottom:5px;">✦ Servicio</label>
+                        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                            <select id="svcSel-${r._id}" style="flex:1;min-width:130px;padding:7px 10px;border-radius:8px;border:1px solid var(--borde);background:rgba(255,255,255,0.04);color:var(--texto);font-size:12px;font-family:inherit;">
+                                ${_combosActivos().map(g =>
+                                    `<optgroup label="${escHtml(g.grupo)}">${g.combos.map(c =>
+                                        `<option value="${escHtml(c.nombre)}" ${r.servicio===c.nombre?'selected':''}>${escHtml(c.nombre)}</option>`
+                                    ).join('')}</optgroup>`
+                                ).join('')}
+                                <option value="Consulta" ${r.servicio==='Consulta'?'selected':''}>Consulta</option>
+                            </select>
+                            <button onclick="guardarServicioPaciente('${r._id}')" style="padding:7px 12px;border-radius:8px;border:1px solid rgba(30,122,78,0.30);background:rgba(30,122,78,0.08);color:rgba(100,200,150,0.85);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0;">💾 Actualizar</button>
+                        </div>
+                    </div>
+                    <div style="margin-top:6px;">
                         <label style="font-size:11px;color:var(--texto-suave);font-weight:600;display:block;margin-bottom:5px;">📋 Nota de sesión</label>
                         <textarea id="nota-${r._id}" rows="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--borde);background:rgba(255,255,255,0.03);color:var(--texto);font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box;" placeholder="Zona tratada, respuesta de la piel, próxima sesión sugerida...">${escHtml(r.notasSesion || '')}</textarea>
                         <button onclick="guardarNotaSesion('${r._id}')" style="margin-top:5px;padding:7px 14px;border-radius:8px;border:1px solid rgba(30,122,78,0.30);background:rgba(30,122,78,0.08);color:rgba(100,200,150,0.85);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">💾 Guardar nota</button>
@@ -1070,6 +1068,15 @@
             await updateDoc(doc(db, COLECCION, id), { notasSesion: ta.value.trim(), notaUpdatedAt: serverTimestamp() });
             mostrarAvisoDepi('✓ Nota guardada');
         } catch(e) { console.error(e); mostrarAvisoDepi('Error al guardar nota'); }
+    };
+
+    window.guardarServicioPaciente = async (id) => {
+        const sel = document.getElementById('svcSel-' + id);
+        if (!sel || !sel.value) return;
+        try {
+            await updateDoc(doc(db, COLECCION, id), { servicio: sel.value });
+            mostrarAvisoDepi('✓ Servicio actualizado');
+        } catch(e) { console.error(e); mostrarAvisoDepi('Error al actualizar servicio'); }
     };
 
     // ════════════════════════════════
@@ -1565,6 +1572,130 @@
     ];
     const DURACIONES_PRESET = [30, 60, 90, 120];
     let _duracionesActuales = {};
+    let _combosDepi = []; // loaded from Firestore, falls back to TODOS_COMBOS
+
+    const _combosActivos = () => _combosDepi.length ? _combosDepi : TODOS_COMBOS;
+
+    // Populate the booking form select from the active combo list
+    const _populateServicioSelect = () => {
+        const sel = document.getElementById('rServicio');
+        if (!sel) return;
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">Elegí un combo</option>' +
+            _combosActivos().map(g =>
+                `<optgroup label="${escHtml(g.grupo)}">${g.combos.map(c =>
+                    `<option value="${escHtml(c.nombre)}">${escHtml(c.nombre)} — ${escHtml(c.detalle)}</option>`
+                ).join('')}</optgroup>`
+            ).join('') + '<option value="Consulta">Consulta</option>';
+        if (prev) sel.value = prev;
+    };
+
+    const cargarCombosDepi = async () => {
+        try {
+            const [snapC, snapD, snapP] = await Promise.all([
+                getDoc(doc(db, 'config', 'combosDepi')),
+                getDoc(doc(db, 'config', 'comboDuraciones')),
+                getDoc(doc(db, 'config', 'comboPrecios')),
+            ]);
+            _combosDepi = (snapC.exists() && snapC.data().grupos) ? snapC.data().grupos : JSON.parse(JSON.stringify(TODOS_COMBOS));
+            if (!snapC.exists()) setDoc(doc(db, 'config', 'combosDepi'), { grupos: _combosDepi }).catch(() => {});
+            if (snapD.exists()) _duracionesActuales = snapD.data();
+            if (snapP.exists()) _preciosActuales = snapP.data();
+        } catch(e) {
+            _combosDepi = JSON.parse(JSON.stringify(TODOS_COMBOS));
+        }
+        _populateServicioSelect();
+        renderServiciosAdmin();
+        renderCombosAdmin();
+        renderPreciosAdmin();
+    };
+
+    const renderServiciosAdmin = () => {
+        const grid = document.getElementById('serviciosAdminGrid');
+        if (!grid) return;
+        grid.innerHTML = _combosActivos().map((grupo, gi) => `
+            <div style="margin-bottom:4px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--borde);">
+                    <p style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--texto-suave);margin:0;flex:1;">${escHtml(grupo.grupo)}</p>
+                    <button onclick="agregarComboGrupo(${gi})" style="font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);cursor:pointer;">+ Agregar</button>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    ${grupo.combos.map((c, ci) => {
+                        const durCur = _duracionesActuales[c.id] ?? 60;
+                        const preCur = _preciosActuales[c.id] || '';
+                        return `<div style="background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;padding:14px;">
+                            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+                                <input id="svcNombre_${c.id}" value="${escHtml(c.nombre)}" style="flex:1;min-width:130px;padding:7px 10px;border-radius:7px;border:1px solid var(--borde);background:rgba(255,255,255,0.04);color:var(--texto);font-size:13px;font-weight:600;font-family:inherit;" placeholder="Nombre">
+                                <input id="svcDetalle_${c.id}" value="${escHtml(c.detalle)}" style="flex:2;min-width:180px;padding:7px 10px;border-radius:7px;border:1px solid var(--borde);background:rgba(255,255,255,0.04);color:var(--texto);font-size:12px;font-family:inherit;" placeholder="Descripción (ej: Rostro + Axilas)">
+                                <button onclick="eliminarComboDepi(${gi},${ci})" style="padding:7px 10px;border-radius:7px;border:1px solid rgba(248,113,113,0.25);background:rgba(248,113,113,0.06);color:rgba(248,113,113,0.70);font-size:11px;cursor:pointer;flex-shrink:0;">🗑</button>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                                <span style="font-size:11px;color:var(--texto-suave);">Duración:</span>
+                                ${DURACIONES_PRESET.map(d=>`<button onclick="setDur('${c.id}',${d})" id="durBtn_${c.id}_${d}" style="padding:4px 9px;border-radius:6px;border:1.5px solid ${durCur===d?'var(--acento)':'var(--borde)'};background:${durCur===d?'var(--acento-suave)':'transparent'};color:${durCur===d?'var(--texto)':'var(--texto-suave)'};font-size:11px;font-weight:700;cursor:pointer;">${d}m</button>`).join('')}
+                                <input type="number" id="durCustom_${c.id}" min="5" max="240" step="5" placeholder="min" value="${DURACIONES_PRESET.includes(durCur)?'':durCur}" style="width:52px;padding:4px 7px;border-radius:6px;border:1.5px solid var(--borde);background:transparent;color:var(--texto);font-size:11px;font-family:inherit;text-align:center;" oninput="setDurCustom('${c.id}',this.value)">
+                                <span style="font-size:11px;color:var(--texto-suave);margin-left:6px;">Precio $:</span>
+                                <input id="svcPrecio_${c.id}" type="text" value="${escHtml(preCur)}" placeholder="ej: 8500" style="width:90px;padding:4px 8px;border-radius:6px;border:1.5px solid var(--borde);background:transparent;color:var(--texto);font-size:12px;font-family:inherit;" oninput="_preciosActuales['${c.id}']=this.value">
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+        `).join('');
+    };
+
+    window.agregarComboDepi = () => {
+        const nombre = window.prompt('Nombre del combo:');
+        if (!nombre) return;
+        const detalle = window.prompt('Descripción (ej: Pierna entera + Axilas):') || '';
+        const opcGrupos = _combosActivos().map(g => g.grupo);
+        const grupoStr = window.prompt(`Grupo (${opcGrupos.join(' / ')}):`) || opcGrupos[0];
+        const id = 'custom_' + Date.now();
+        let g = _combosDepi.find(g => g.grupo === grupoStr);
+        if (!g) { g = { grupo: grupoStr, combos: [] }; _combosDepi.push(g); }
+        g.combos.push({ id, nombre: nombre.trim(), detalle: detalle.trim() });
+        _populateServicioSelect();
+        renderServiciosAdmin();
+    };
+
+    window.agregarComboGrupo = (gi) => {
+        const nombre = window.prompt('Nombre del nuevo combo:');
+        if (!nombre) return;
+        const detalle = window.prompt('Descripción:') || '';
+        const id = 'custom_' + Date.now();
+        if (_combosDepi[gi]) _combosDepi[gi].combos.push({ id, nombre: nombre.trim(), detalle: detalle.trim() });
+        _populateServicioSelect();
+        renderServiciosAdmin();
+    };
+
+    window.eliminarComboDepi = (gi, ci) => {
+        if (!confirm('¿Eliminar este combo?')) return;
+        if (_combosDepi[gi]) _combosDepi[gi].combos.splice(ci, 1);
+        _populateServicioSelect();
+        renderServiciosAdmin();
+    };
+
+    window.guardarTodosServicios = async () => {
+        // Leer inputs de nombres y detalles
+        _combosDepi.forEach(g => g.combos.forEach(c => {
+            const nomEl = document.getElementById(`svcNombre_${c.id}`);
+            const detEl = document.getElementById(`svcDetalle_${c.id}`);
+            const preEl = document.getElementById(`svcPrecio_${c.id}`);
+            if (nomEl) c.nombre = nomEl.value.trim();
+            if (detEl) c.detalle = detEl.value.trim();
+            if (preEl) _preciosActuales[c.id] = preEl.value.trim();
+        }));
+        try {
+            await Promise.all([
+                setDoc(doc(db, 'config', 'combosDepi'), { grupos: _combosDepi }),
+                setDoc(doc(db, 'config', 'comboDuraciones'), _duracionesActuales),
+                setDoc(doc(db, 'config', 'comboPrecios'), _preciosActuales),
+            ]);
+            const msg = document.getElementById('serviciosGuardadoMsg');
+            msg.style.display = 'block';
+            setTimeout(() => { msg.style.display = 'none'; }, 3000);
+            _populateServicioSelect();
+        } catch(e) { alert('Error al guardar: ' + e.message); }
+    };
 
     const cargarDuraciones = async () => {
         try {
@@ -1577,7 +1708,7 @@
     const renderCombosAdmin = () => {
         const grid = document.getElementById('combosAdminGrid');
         if (!grid) return;
-        grid.innerHTML = TODOS_COMBOS.map(grupo => `
+        grid.innerHTML = _combosActivos().map(grupo => `
             <div style="margin-bottom:4px;">
                 <p style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--texto-suave);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--borde);">${grupo.grupo}</p>
                 <div style="display:flex;flex-direction:column;gap:7px;">
@@ -1651,7 +1782,7 @@
     const renderPreciosAdmin = () => {
         const grid = document.getElementById('preciosAdminGrid');
         if (!grid) return;
-        grid.innerHTML = TODOS_COMBOS.map(grupo => `
+        grid.innerHTML = _combosActivos().map(grupo => `
             <div style="margin-bottom:4px;">
                 <p style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--texto-suave);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--borde);">${grupo.grupo}</p>
                 <div style="display:flex;flex-direction:column;gap:7px;">
@@ -1674,7 +1805,7 @@
 
     window.guardarPrecios = async () => {
         // Sync all input values before saving
-        TODOS_COMBOS.forEach(g => g.combos.forEach(c => {
+        _combosActivos().forEach(g => g.combos.forEach(c => {
             const el = document.getElementById(`precioInput_${c.id}`);
             if (el) _preciosActuales[c.id] = el.value;
         }));
@@ -1694,6 +1825,7 @@
         if (sec === 'precios') cargarPrecios();
         if (sec === 'exportar') _initExp();
         if (sec === 'pacientes') cargarPacientes();
+        if (sec === 'servicios') cargarCombosDepi();
     };
 
     // ════════════════════════════════

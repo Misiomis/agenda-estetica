@@ -1,4 +1,4 @@
-const SW_VERSION = "mimar-sw-v35";
+const SW_VERSION = "mimar-sw-v36";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
