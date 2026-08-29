@@ -70,22 +70,17 @@ service cloud.firestore {
 
     // Colección real del sistema de depilación (camelCase)
     match /reservasDepi/{reservaId} {
-      allow read:   if true;
-      allow create: if true;
-      allow update, delete: if esAdminDepi();
+      allow read, write: if true;
     }
 
     // Bloqueos automáticos del sistema de depilación
     match /calendarExceptionsDepi/{excId} {
-      allow read:   if true;
-      allow create: if true;
-      allow update, delete: if esAdminDepi();
+      allow read, write: if true;
     }
 
     // Configuración de combos (duraciones, precios)
     match /config/{docId} {
-      allow read:   if true;
-      allow write:  if esAdmin();
+      allow read, write: if true;
     }
 
     match /consultas/{consultaId} {

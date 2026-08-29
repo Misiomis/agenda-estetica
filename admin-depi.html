@@ -332,9 +332,8 @@
     <div class="login-card">
         <div class="login-title">Espacio Mimar T</div>
         <div class="login-sub">Panel · Depilación &amp; HIFU</div>
-        <input class="login-input" type="email" id="loginEmail" placeholder="Tu email" autocomplete="email">
         <input class="login-input" type="password" id="loginPassword" placeholder="Contraseña"
-            onkeydown="if(event.key==='Enter')iniciarSesion()">
+            onkeydown="if(event.key==='Enter')iniciarSesion()" autocomplete="current-password">
         <button class="login-btn" onclick="iniciarSesion()">Ingresar</button>
         <div id="loginError"></div>
     </div>
@@ -586,17 +585,12 @@
 <script type="module">
     import {
         auth, db,
-        signInWithEmailAndPassword, onAuthStateChanged, signOut,
+        onAuthStateChanged, signOut,
         collection, getDocs, doc, setDoc, addDoc, updateDoc, deleteDoc, getDoc,
         serverTimestamp, query, where
     } from "/js/firebase-web.js";
 
-    // ── Emails autorizados para este panel
-    const ADMIN_EMAILS_DEPI = [
-        "espaciomimart36@gmail.com",
-        "farmaciacentral36@gmail.com",
-        "depi.mimart@gmail.com"
-    ];
+    const PASS_PANEL = 'Sesiones2026'; // contraseña de acceso a este panel
     const OPERADOR_ACTUAL = 'becker'; // identifica las reservas de este panel
 
     const COLECCION    = "reservasDepi";
@@ -624,46 +618,43 @@
     let _dniTimer = null;
 
     // ════════════════════════════════
-    // LOGIN
+    // LOGIN — contraseña simple
     // ════════════════════════════════
-    window.iniciarSesion = async () => {
-        const email = document.getElementById('loginEmail').value.trim();
+    const _STORAGE_KEY = 'depiPanelAuth_becker';
+    const _mostrarApp = async () => {
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('appWrapper').classList.add('visible');
+        await cargarCalendario();
+    };
+
+    window.iniciarSesion = () => {
         const pass  = document.getElementById('loginPassword').value;
         const errEl = document.getElementById('loginError');
         errEl.textContent = '';
-        try {
-            await signInWithEmailAndPassword(auth, email, pass);
-        } catch(e) {
-            errEl.textContent = 'Email o contraseña incorrectos.';
+        if (pass === PASS_PANEL) {
+            localStorage.setItem(_STORAGE_KEY, '1');
+            _mostrarApp();
+        } else {
+            errEl.textContent = 'Contraseña incorrecta.';
         }
     };
 
-    window.cerrarSesionDepi = async () => {
-        await signOut(auth);
+    window.cerrarSesionDepi = () => {
+        localStorage.removeItem(_STORAGE_KEY);
         document.getElementById('appWrapper').classList.remove('visible');
         document.getElementById('loginOverlay').style.display = 'flex';
         document.getElementById('loginError').textContent = '';
-        document.getElementById('loginEmail').value = '';
         document.getElementById('loginPassword').value = '';
     };
 
-    onAuthStateChanged(auth, async (user) => {
-        if (user && ADMIN_EMAILS_DEPI.includes(user.email)) {
-            document.getElementById('loginOverlay').style.display = 'none';
-            document.getElementById('appWrapper').classList.add('visible');
-            await cargarCalendario();
-        } else if (user) {
-            // Usuario autenticado pero no autorizado para este panel
-            document.getElementById('loginError').textContent = 'Tu cuenta no tiene acceso a este panel.';
-            await signOut(auth);
-        }
-    });
+    // Auto-login si ya ingresó antes
+    if (localStorage.getItem(_STORAGE_KEY) === '1') _mostrarApp();
 
     // ════════════════════════════════
     // NAVEGACIÓN
     // ════════════════════════════════
-    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', buscar: 'secBuscar', combos: 'secCombos', precios: 'secPrecios', exportar: 'secExportar' };
-    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', buscar: 'navBuscar', combos: 'navCombos', precios: 'navPrecios', exportar: 'navExportar' };
+    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', pacientes: 'secPacientes', buscar: 'secBuscar', combos: 'secCombos', precios: 'secPrecios', exportar: 'secExportar' };
+    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', pacientes: 'navPacientes', buscar: 'navBuscar', combos: 'navCombos', precios: 'navPrecios', exportar: 'navExportar' };
 
     window.irA = (sec) => {
         Object.values(SECCIONES).forEach(id => document.getElementById(id).classList.remove('active'));
