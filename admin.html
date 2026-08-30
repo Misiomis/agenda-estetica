@@ -2140,9 +2140,10 @@
             const s = ((servicio || '') + ' ' + (tipo || '')).toLowerCase();
             // Doctora y Depi: sin bloqueo
             if (s.includes('doctor') || s.includes('dra.') || /\bdra\b/.test(s) || s.includes('dr.') || s.includes('medic') || s.includes('médic')) return [];
-            // Consulta inicial y Facial: bloquean todo
-            if (s.includes('consulta') || s.includes('diagnostico') || s.includes('diagnóstico')) return [1,2,3,4];
-            if (s.includes('facial') || s.includes('fraxis') || s.includes('dermapen') || s.includes('peeling')) return [1,2,3,4];
+            // Consulta: Box 1 (Consultorio)
+            if (s.includes('consulta') || s.includes('diagnostico') || s.includes('diagnóstico')) return [1];
+            // Facial: Box 3
+            if (s.includes('facial') || s.includes('fraxis') || s.includes('dermapen') || s.includes('peeling')) return [3];
             // Corporal: boxes 2 y 4 (el 4 va incluido en el turno)
             if (s.includes('corporal') || s.includes('criolipolisis') || s.includes('crioli') || s.includes('cavitac') || s.includes('presot') || s.includes('mio up') || s.includes('remodel') || s.includes('ultrason') || s.includes('bio')) return [2,4];
             // Relax solo: solo box 4, no bloquea otros
