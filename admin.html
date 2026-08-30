@@ -903,31 +903,6 @@
         <div class="orb orb-3"></div>
     </div>
 
-    <!-- ── MODAL DE NOVEDADES ── -->
-    <div id="novedades-overlay" style="display:none;position:fixed;inset:0;z-index:300000;background:rgba(6,14,11,0.72);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px;">
-        <div style="width:100%;max-width:420px;background:linear-gradient(165deg,#0e1f18 0%,#1a0d12 100%);border-radius:24px;border:1px solid rgba(249,168,212,0.28);box-shadow:0 32px 72px rgba(0,0,0,0.55),0 0 0 1px rgba(249,168,212,0.08);padding:0;overflow:hidden;">
-            <div style="height:5px;background:linear-gradient(90deg,#ec4899,#f9a8d4,#4ade80,#f9a8d4,#ec4899);"></div>
-            <div style="padding:26px 24px 22px;">
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;">
-                    <div>
-                        <p style="font-size:10px;font-weight:700;letter-spacing:.20em;text-transform:uppercase;color:rgba(249,168,212,0.55);margin:0 0 6px;">✦ Novedades del panel</p>
-                        <h3 style="font-family:'Playfair Display',serif;font-size:1.25em;color:rgba(249,168,212,0.95);margin:0;font-weight:700;">💄 Curso de Automaquillaje</h3>
-                    </div>
-                    <button onclick="cerrarNovedades()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:rgba(165,205,188,0.55);font-size:14px;padding:6px 10px;cursor:pointer;flex-shrink:0;margin-left:12px;">✕</button>
-                </div>
-                <p style="font-size:13.5px;color:rgba(220,232,225,0.75);line-height:1.70;margin:0 0 16px;">Espacio Mimar T incorporó el <b style="color:rgba(249,168,212,0.90);">primer curso presencial</b>. Las personas pueden inscribirse desde la web, y vos podés gestionar sesiones, inscriptas y emitir certificados desde <b style="color:rgba(249,168,212,0.90);">Mis Cursos</b>.</p>
-                <ul style="font-size:12.5px;color:rgba(165,205,188,0.65);line-height:1.8;margin:0 0 20px;padding-left:18px;">
-                    <li>Creá sesiones con fecha, horario y capacidad</li>
-                    <li>Mirá quién se inscribió y sus expectativas</li>
-                    <li>Marcá asistencia, enviá recordatorios por WhatsApp</li>
-                    <li>Generá certificados en un clic 🎓</li>
-                </ul>
-                <button onclick="cerrarNovedades();navegar('cursos')" style="width:100%;padding:13px;background:linear-gradient(135deg,#ec4899,#be185d);border:none;border-radius:13px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 20px rgba(236,72,153,0.32);margin-bottom:8px;">Ver Mis Cursos →</button>
-                <button onclick="cerrarNovedades()" style="width:100%;padding:10px;background:transparent;border:1px solid rgba(255,255,255,0.10);border-radius:12px;color:rgba(165,205,188,0.50);font-size:13px;cursor:pointer;">Ahora no</button>
-            </div>
-        </div>
-    </div>
-
     <div id="login-overlay">
         <div class="login-box">
             <h2>Espacio Mimar T</h2>
@@ -2025,15 +2000,6 @@
                     }
                     ocultarLoginError();
                     mostrarPanelAdmin();
-                    {
-                        const _hoy = new Date().toISOString().slice(0,10);
-                        if (localStorage.getItem('novedades_seen_date') !== _hoy) {
-                            setTimeout(() => {
-                                const ov = document.getElementById('novedades-overlay');
-                                if (ov) { ov.style.display = 'flex'; }
-                            }, 900);
-                        }
-                    }
                     await cargarTodo();
                     cargarTemaAdmin();
                 } catch (error) {
@@ -5865,13 +5831,6 @@
             document.getElementById('btnHamburger')?.setAttribute('aria-expanded', 'false');
         };
         
-        // === NOVEDADES ===
-        window.cerrarNovedades = () => {
-            localStorage.setItem('novedades_seen_date', new Date().toISOString().slice(0,10));
-            const ov = document.getElementById('novedades-overlay');
-            if (ov) ov.style.display = 'none';
-        };
-
         // === CURSOS DE MAQUILLAJE ===
         let _cursosCache = [];
         let _cursoSesiones = [];
@@ -5964,9 +5923,12 @@
                 const lleno = inscCount >= cap;
                 const colorBar = lleno ? '#f87171' : casi ? '#fbbf24' : '#4ade80';
                 return `
-                <div style="background:rgba(249,168,212,0.04);border:1px solid rgba(249,168,212,${s.activa?'0.18':'0.07'});border-radius:14px;padding:14px 16px;opacity:${s.activa?'1':'0.55'};">
+                <div style="background:rgba(249,168,212,0.04);border:1px solid rgba(249,168,212,${s.concluida?'0.12':s.activa?'0.18':'0.07'});border-radius:14px;padding:14px 16px;opacity:${s.concluida?'0.80':s.activa?'1':'0.55'};">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-                        <span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(${s.activa?'249,168,212':'165,205,188'},0.12);border:1px solid rgba(${s.activa?'249,168,212':'165,205,188'},0.25);color:rgba(${s.activa?'249,168,212':'165,205,188'},0.85);">${s.activa?'Activa':'Inactiva'}</span>
+                        ${s.concluida
+                            ? `<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.28);color:#4ade80;">✓ Concluída</span>`
+                            : `<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(${s.activa?'249,168,212':'165,205,188'},0.12);border:1px solid rgba(${s.activa?'249,168,212':'165,205,188'},0.25);color:rgba(${s.activa?'249,168,212':'165,205,188'},0.85);">${s.activa?'Activa':'Inactiva'}</span>`
+                        }
                         <strong style="flex:1;font-size:14px;color:rgba(220,242,232,0.92);">${_fechaLindaCurso(s.fecha)}</strong>
                         <span style="font-size:13px;font-weight:700;color:rgba(249,168,212,0.80);">${s.horaInicio} – ${s.horaFin} hs</span>
                     </div>
@@ -5979,7 +5941,16 @@
                             <div style="height:5px;border-radius:99px;background:${colorBar};width:${pct}%;transition:width .4s;"></div>
                         </div>
                     </div>
+                    <div style="margin-bottom:10px;">
+                        <label style="display:block;font-size:10.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(165,205,188,0.40);margin-bottom:5px;">Nota interna de la sesión</label>
+                        <textarea id="nota-sesion-${s.id}" placeholder="Ej: el grupo de 14 a 16 fue más participativo, la sesión de la noche necesitó más tiempo..." style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid rgba(165,205,188,0.16);background:rgba(255,255,255,0.04);color:rgba(220,242,232,0.85);font-size:12.5px;font-family:inherit;resize:vertical;min-height:58px;outline:none;box-sizing:border-box;">${(s.nota||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+                    </div>
                     <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <button class="btn-mini" onclick="guardarNotaSesion('${s.id}')" style="font-size:12px;background:rgba(114,189,153,0.10);border-color:rgba(114,189,153,0.28);color:rgba(165,205,188,0.85);">💾 Guardar nota</button>
+                        ${s.concluida
+                            ? `<button class="btn-mini" onclick="marcarSesionConcluida('${s.id}',false)" style="font-size:12px;background:rgba(250,200,80,0.06);border-color:rgba(250,200,80,0.20);color:rgba(250,200,80,0.70);">↩ Reabrir</button>`
+                            : `<button class="btn-mini" onclick="marcarSesionConcluida('${s.id}',true)" style="font-size:12px;background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.25);color:#4ade80;">✓ Marcar Concluída</button>`
+                        }
                         <button class="btn-mini" onclick="toggleSesionCurso('${s.id}')" style="font-size:12px;${s.activa?'background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.80)':'background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.25);color:#4ade80'}">${s.activa?'🔒 Bloquear':'🔓 Activar'}</button>
                         <button class="btn-mini" onclick="eliminarSesionCurso('${s.id}')" style="font-size:12px;background:rgba(255,100,100,0.04);border-color:rgba(255,100,100,0.16);color:rgba(255,130,130,0.60);">🗑 Eliminar</button>
                         <button class="btn-mini" onclick="mostrarTabCurso('inscriptas')" style="font-size:12px;background:rgba(249,168,212,0.08);border-color:rgba(249,168,212,0.22);color:rgba(249,168,212,0.80);">👥 Ver inscriptas</button>
@@ -6013,6 +5984,27 @@
             try {
                 await updateDoc(doc(db, 'cursoSesiones', id), { activa: nueva });
                 _cursoSesiones[idx].activa = nueva;
+                window.renderSesionesCurso();
+            } catch(e) { mostrarAviso('Error al actualizar sesión'); }
+        };
+
+        window.guardarNotaSesion = async function(id) {
+            const ta = document.getElementById(`nota-sesion-${id}`);
+            if (!ta) return;
+            const nota = ta.value.trim();
+            const idx = _cursoSesiones.findIndex(s => s.id === id);
+            try {
+                await updateDoc(doc(db, 'cursoSesiones', id), { nota });
+                if (idx >= 0) _cursoSesiones[idx].nota = nota;
+                mostrarAviso('Nota guardada ✓');
+            } catch(e) { mostrarAviso('Error al guardar nota'); }
+        };
+
+        window.marcarSesionConcluida = async function(id, val) {
+            const idx = _cursoSesiones.findIndex(s => s.id === id);
+            try {
+                await updateDoc(doc(db, 'cursoSesiones', id), { concluida: val });
+                if (idx >= 0) _cursoSesiones[idx].concluida = val;
                 window.renderSesionesCurso();
             } catch(e) { mostrarAviso('Error al actualizar sesión'); }
         };
