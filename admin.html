@@ -775,7 +775,7 @@
         }
         .grilla-scroll-wrap {
             overflow-x: auto; -webkit-overflow-scrolling: touch;
-            padding: 0 4px 20px;
+            padding: 0 4px 20px; position: relative;
         }
         .grilla-table {
             width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px;
@@ -7884,6 +7884,114 @@
             tbody.innerHTML = rows.length
                 ? rows.join('')
                 : `<tr><td colspan="${COLS}" style="text-align:center;padding:40px;color:rgba(140,200,170,0.35);font-size:13px;">Sin turnos · hacé click en + para agregar</td></tr>`;
+
+            _grilla_flechasCambioBox(del_dia);
+        };
+        /* ── Flechas de cambio de box ── */
+        const _grilla_flechasCambioBox = (del_dia) => {
+            document.getElementById('_gfx_flechas')?.remove();
+            if (!del_dia?.length) return;
+
+            // Agrupar por nombre normalizado (primeras 2 palabras, minúsculas)
+            const grupos = new Map();
+            del_dia.forEach(r => {
+                const box = _grilla_boxDeReserva(r);
+                if (!box) return;
+                const nom = ((r.nombreLimpio || r.nombre || '').trim())
+                    .split(/\s+/).slice(0,2).join(' ').toLowerCase();
+                if (nom.length < 3) return;
+                if (!grupos.has(nom)) grupos.set(nom, []);
+                grupos.get(nom).push({ r, box });
+            });
+
+            // Detectar transiciones de box
+            const transiciones = [];
+            grupos.forEach(entries => {
+                if (new Set(entries.map(e => e.box)).size < 2) return;
+                entries.sort((a, b) =>
+                    normalizarHora(a.r.hora) < normalizarHora(b.r.hora) ? -1 : 1);
+                for (let i = 0; i < entries.length - 1; i++) {
+                    if (entries[i].box !== entries[i+1].box) {
+                        transiciones.push({ from: entries[i].r, to: entries[i+1].r });
+                    }
+                }
+            });
+            if (!transiciones.length) return;
+
+            requestAnimationFrame(() => {
+                document.getElementById('_gfx_flechas')?.remove();
+                const wrap = document.querySelector('.grilla-scroll-wrap');
+                if (!wrap) return;
+                const wRect = wrap.getBoundingClientRect();
+                const tbl = document.getElementById('grilla-table');
+                const sw = tbl ? tbl.offsetWidth  : wrap.scrollWidth;
+                const sh = tbl ? tbl.offsetHeight : wrap.clientHeight + 200;
+
+                const NS = 'http://www.w3.org/2000/svg';
+                const svg = document.createElementNS(NS, 'svg');
+                svg.id = '_gfx_flechas';
+                svg.style.cssText = `position:absolute;top:0;left:0;width:${sw}px;height:${sh}px;pointer-events:none;z-index:100;overflow:visible;`;
+                svg.innerHTML = `<defs>
+                    <linearGradient id="_gfxGH" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%"   stop-color="#fffacd" stop-opacity="0.9"/>
+                        <stop offset="20%"  stop-color="#ffd700"/>
+                        <stop offset="60%"  stop-color="#c8960a"/>
+                        <stop offset="100%" stop-color="#8a5000" stop-opacity="0.9"/>
+                    </linearGradient>
+                    <linearGradient id="_gfxGV" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%"   stop-color="#fffde0"/>
+                        <stop offset="50%"  stop-color="#ffd700"/>
+                        <stop offset="100%" stop-color="#8a4e00"/>
+                    </linearGradient>
+                    <filter id="_gfxF" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="4.5" result="b"/>
+                        <feColorMatrix in="b" type="matrix"
+                            values="1.3 0.6 0 0 0.15  0.7 0.25 0 0 0  0 0 0 0 0  0 0 0 0.55 0" result="g"/>
+                        <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                    <marker id="_gfxA" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+                        <polygon points="0 0,11 4,0 8" fill="url(#_gfxGV)" filter="url(#_gfxF)"/>
+                    </marker>
+                </defs>`;
+
+                transiciones.forEach(({ from, to }) => {
+                    const fromEls = document.querySelectorAll(`[onclick="grillaCeldaOcupada('${from.id}')"]`);
+                    const toEls   = document.querySelectorAll(`[onclick="grillaCeldaOcupada('${to.id}')"]`);
+                    if (!fromEls.length || !toEls.length) return;
+                    const fromTd = fromEls[fromEls.length - 1].closest('td');
+                    const toTd   = toEls[0].closest('td');
+                    if (!fromTd || !toTd) return;
+
+                    const fR = fromTd.getBoundingClientRect();
+                    const tR = toTd.getBoundingClientRect();
+                    const sx = fR.right  - wRect.left + wrap.scrollLeft;
+                    const sy = (fR.top + fR.bottom) / 2 - wRect.top;
+                    const ex = tR.left   - wRect.left + wrap.scrollLeft;
+                    const ey = (tR.top + tR.bottom) / 2 - wRect.top;
+
+                    const dx = Math.abs(ex - sx);
+                    const p = `M${sx.toFixed(1)},${sy.toFixed(1)} C${(sx+dx*.45).toFixed(1)},${sy.toFixed(1)} ${(ex-dx*.45).toFixed(1)},${ey.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}`;
+
+                    const toBoxInfo = GRILLA_BOXES.find(b => b.id === _grilla_boxDeReserva(to));
+                    const lbl = toBoxInfo ? `→ ${toBoxInfo.title}` : '→ Box';
+                    const lx = ((sx + ex) / 2).toFixed(1);
+                    const ly = ((sy + ey) / 2 - 11).toFixed(1);
+
+                    const g = document.createElementNS(NS, 'g');
+                    g.innerHTML = `
+                        <path d="${p}" stroke="#b87000" stroke-width="10" fill="none" stroke-opacity="0.18" stroke-linecap="round" filter="url(#_gfxF)"/>
+                        <path d="${p}" stroke="#3e1a00" stroke-width="4.5" fill="none" stroke-opacity="0.5" stroke-linecap="round" transform="translate(0.5,2)"/>
+                        <path d="${p}" stroke="url(#_gfxGH)" stroke-width="3.2" fill="none" stroke-linecap="round" filter="url(#_gfxF)" marker-end="url(#_gfxA)"/>
+                        <path d="${p}" stroke="#ffff90" stroke-width="1" fill="none" stroke-opacity="0.45" stroke-linecap="round" stroke-dasharray="3,9">
+                            <animate attributeName="stroke-dashoffset" from="12" to="0" dur="1.5s" repeatCount="indefinite"/>
+                        </path>
+                        <text x="${lx}" y="${ly}" text-anchor="middle" font-size="9.5" font-weight="800" letter-spacing=".06em" fill="#3a1800" font-family="system-ui,sans-serif" opacity="0.5" transform="translate(0.3,1.2)">${lbl}</text>
+                        <text x="${lx}" y="${ly}" text-anchor="middle" font-size="9.5" font-weight="800" letter-spacing=".06em" fill="#ffd700" font-family="system-ui,sans-serif" filter="url(#_gfxF)">${lbl}</text>`;
+                    svg.appendChild(g);
+                });
+
+                wrap.appendChild(svg);
+            });
         };
         // ══ FIN GRILLA ══
 
