@@ -4228,12 +4228,25 @@
                 }
                 return slots;
             })();
-            // Bloquear solo si hay una PERSONA REAL en los slots de extensión
+            // Bloquear solo si hay una PERSONA REAL en los slots de extensión Y en el MISMO BOX
             if (slotsExtension.length > 0) {
                 const _personaEnSlot = (fecha, hora) => {
-                    if (todasLasReservas.some(r => esReservaActiva(r) && r.fecha === fecha && normalizarHora(r.hora) === normalizarHora(hora))) return true;
+                    // Chequeo por hora exacta: solo importa si hay reserva en el mismo box
+                    const enHoraExacta = todasLasReservas.some(r => {
+                        if (!esReservaActiva(r) || r.fecha !== fecha || normalizarHora(r.hora) !== normalizarHora(hora)) return false;
+                        const rBoxes = _inferirBoxes(r.servicio, r.tipo);
+                        const rBox = _grilla_boxDeReserva(r);
+                        return (_mreg_boxPresel && rBox === _mreg_boxPresel.id) || _boxesNuevos.some(b => rBoxes.includes(b));
+                    });
+                    if (enHoraExacta) return true;
+                    // Chequeo por bloqueo (extensión de otra reserva): verificar que sea el mismo box
                     const blk = bloqueosHorarios.get(keyBloqueo(fecha, hora));
-                    return !!(blk && blk.reservaId && todasLasReservas.some(r => r.id === blk.reservaId && esReservaActiva(r)));
+                    if (!blk || !blk.reservaId) return false;
+                    const blkReserva = todasLasReservas.find(r => r.id === blk.reservaId && esReservaActiva(r));
+                    if (!blkReserva) return false;
+                    const blkBoxes = _inferirBoxes(blkReserva.servicio, blkReserva.tipo);
+                    const blkBox = _grilla_boxDeReserva(blkReserva);
+                    return (_mreg_boxPresel && blkBox === _mreg_boxPresel.id) || _boxesNuevos.some(b => blkBoxes.includes(b));
                 };
                 for (const extHora of slotsExtension) {
                     if (_personaEnSlot(fechaSnap, extHora)) {
