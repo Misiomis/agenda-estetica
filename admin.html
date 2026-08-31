@@ -2166,16 +2166,11 @@
             // Configuración manual de Grilla de Servicios (fuente de verdad)
             const _svKey = (servicio || '').toString().trim();
             if (_svKey && _svBoxMap.has(_svKey)) {
-                const boxId = _svBoxMap.get(_svKey);
-                // GRILLA_BOXES se define más adelante en el script pero se llama solo post-carga
-                if (typeof GRILLA_BOXES !== 'undefined') {
-                    const boxObj = GRILLA_BOXES.find(b => b.id === boxId);
-                    if (boxObj) return boxObj.num > 0 ? [boxObj.num] : [];
-                }
-                // Fallback rápido si GRILLA_BOXES no disponible aún
-                const numMap = { b1:1, b2:2, b3:3, b4:4, bv:0 };
-                const n = numMap[boxId];
-                if (n != null) return n > 0 ? [n] : [];
+                const _rawIds = _svBoxMap.get(_svKey);
+                const _ids = Array.isArray(_rawIds) ? _rawIds : [_rawIds];
+                const _numMap = { b1:1, b2:2, b3:3, b4:4, bv:0 };
+                const _nums = _ids.map(id => _numMap[id]).filter(n => n != null && n > 0);
+                if (_nums.length > 0) return _nums;
             }
             // Fallback: inferencia por palabras clave
             const s = ((_svKey) + ' ' + (tipo || '')).toLowerCase();
@@ -2626,7 +2621,7 @@
                     const _svBoxSnap = await getDoc(doc(db, 'configuracion', 'serviciosBox'));
                     if (_svBoxSnap.exists()) {
                         const _asgn = _svBoxSnap.data().assignments || {};
-                        Object.entries(_asgn).forEach(([k, v]) => { if (k && v) _svBoxMap.set(k, v); });
+                        Object.entries(_asgn).forEach(([k, v]) => { if (k && v) _svBoxMap.set(k, Array.isArray(v) ? v : [v]); });
                     }
                 } catch(_) {}
                 // Cargar nombres personalizados de boxes
@@ -4023,9 +4018,10 @@
                     badge.style.display = 'block';
                 }
             }
-            // Auto-asignar box si el servicio tiene uno definido en la Grilla de Servicios
-            const boxId = el.dataset.boxid || _svBoxMap.get(nombreSvc) || '';
-            if (boxId) seleccionarBoxMreg(boxId);
+            // Auto-asignar box solo si el servicio tiene exactamente 1 box configurado
+            const _bxRaw = _svBoxMap.get(nombreSvc) || el.dataset.boxid || '';
+            const _bxArr = Array.isArray(_bxRaw) ? _bxRaw : (_bxRaw ? [_bxRaw] : []);
+            if (_bxArr.length === 1) seleccionarBoxMreg(_bxArr[0]);
         };
 
         const _cargarChipsServicios = async (gridId, hiddenId, preseleccion = '') => {
@@ -4062,9 +4058,12 @@
                 if (preseleccion) document.getElementById(hiddenId).value = preseleccion;
                 return;
             }
-            grid.innerHTML = lista.map(s =>
-                `<button type="button" class="mreg-chip${s === preseleccion ? ' activo' : ''}" data-servicio="${escapeHtml(s)}" data-boxid="${escapeHtml(_svBoxMap.get(s)||'')}" onclick="seleccionarChipServicio(this,'${hiddenId}')">${escapeHtml(s)}</button>`
-            ).join('');
+            grid.innerHTML = lista.map(s => {
+                const _bx = _svBoxMap.get(s) || [];
+                const _bxA = Array.isArray(_bx) ? _bx : (_bx ? [_bx] : []);
+                const _autoBox = _bxA.length === 1 ? _bxA[0] : '';
+                return `<button type="button" class="mreg-chip${s === preseleccion ? ' activo' : ''}" data-servicio="${escapeHtml(s)}" data-boxid="${escapeHtml(_autoBox)}" onclick="seleccionarChipServicio(this,'${hiddenId}')">${escapeHtml(s)}</button>`;
+            }).join('');
             if (preseleccion) document.getElementById(hiddenId).value = preseleccion;
         };
 
@@ -4198,16 +4197,11 @@
 
             const fechaSnap = _mreg_fecha, horaSnap = _mreg_hora;
 
-            // Verificar conflicto de boxes — re-check en vivo contra todasLasReservas actual
-            const _boxesNuevos = _inferirBoxes(servicioIngresado, '');
+            // Conflicto de boxes: siempre hay _mreg_boxPresel (verificado arriba).
+            // Usamos el box seleccionado explícitamente — NO la inferencia por servicio —
+            // para permitir que el mismo tipo de servicio corra en distintos boxes al mismo tiempo.
             const _reservasVivasAhora = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === horaSnap);
-            const _boxesOcupadosAhora = new Set(_reservasVivasAhora.flatMap(r => _inferirBoxes(r.servicio, r.tipo)));
-            const _conflictoBox = _boxesNuevos.find(b => _boxesOcupadosAhora.has(b));
-            if (_conflictoBox !== undefined) {
-                const _bInfo = _BOX_INFO[_conflictoBox]?.label || `Box ${_conflictoBox}`;
-                mostrarAviso(`Conflicto: el Box ${_conflictoBox} (${_bInfo}) ya está ocupado en este horario`);
-                return;
-            }
+            const _boxesNuevos = _mreg_boxPresel.num > 0 ? [_mreg_boxPresel.num] : _inferirBoxes(servicioIngresado, '');
             // Si viene de la grilla: verificar que el box específico no esté tomado
             if (_mreg_boxPresel) {
                 const _boxTomado = _reservasVivasAhora.some(r => _grilla_boxDeReserva(r) === _mreg_boxPresel.id);
@@ -4245,11 +4239,9 @@
             // Re-check contra Firestore para prevenir race condition entre sesiones
             try {
                 const _snapLive = await getDocs(query(collection(db,'reservas'), where('fecha','==',fechaSnap), where('hora','==',horaSnap)));
-                const _boxesLive = new Set();
-                _snapLive.forEach(d => { const r = d.data(); if(esReservaActiva(r)) _inferirBoxes(r.servicio,r.tipo).forEach(b=>_boxesLive.add(b)); });
-                const _cfLive = _boxesNuevos.find(b => _boxesLive.has(b));
-                if (_cfLive !== undefined) {
-                    mostrarAviso(`Horario ocupado (confirmado en servidor). Actualizá la agenda.`);
+                const _cfLive = _snapLive.docs.some(d => { const r = d.data(); return esReservaActiva(r) && _grilla_boxDeReserva(r) === _mreg_boxPresel.id; });
+                if (_cfLive) {
+                    mostrarAviso(`Horario ocupado en ${_mreg_boxPresel.title} (confirmado). Actualizá la agenda.`);
                     return;
                 }
             } catch(_e) { /* si falla el check extra, dejamos continuar — la UI local ya revisó */ }
@@ -6562,24 +6554,22 @@
                 lista.innerHTML = '<div style="font-size:13px;color:rgba(140,210,180,0.4);padding:12px 0;">Sin servicios. Usá "+ Nuevo servicio" para agregar ↓</div>';
                 return;
             }
-            const boxOpts = GRILLA_BOXES.map(b => `<option value="${b.id}">${b.icon} ${b.title} · ${b.sub}</option>`).join('');
             lista.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
-                <thead><tr style="color:rgba(160,210,185,0.5);font-size:11px;letter-spacing:.06em;text-align:left;">
+                <thead><tr style="color:rgba(160,210,185,0.5);font-size:10px;letter-spacing:.06em;text-align:left;">
                     <th style="padding:6px 8px;font-weight:600;">SERVICIO</th>
-                    <th style="padding:6px 8px;font-weight:600;">BOX ASIGNADO</th>
+                    <th style="padding:6px 8px;font-weight:600;">BOXES (uno o más)</th>
                     <th style="padding:6px 8px;"></th>
                 </tr></thead>
                 <tbody>${activos.map(s => `
                     <tr id="gs-row-${s.id}" style="border-top:1px solid rgba(255,255,255,0.05);">
-                        <td style="padding:7px 8px;">
+                        <td style="padding:7px 8px;min-width:130px;">
                             <input id="gs-nom-${s.id}" value="${escapeHtml(s.nombre||'')}"
                                 style="background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.10);border-radius:8px;padding:6px 10px;color:rgba(220,242,232,0.92);font-size:13px;font-family:inherit;width:100%;box-sizing:border-box;outline:none;">
                         </td>
-                        <td style="padding:7px 8px;min-width:160px;">
-                            <select id="gs-box-${s.id}"
-                                style="background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 10px;color:rgba(220,242,232,0.88);font-size:12px;font-family:inherit;cursor:pointer;width:100%;outline:none;">
-                                <option value="">— Sin asignar —</option>${boxOpts}
-                            </select>
+                        <td style="padding:7px 8px;">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                                ${GRILLA_BOXES.map(b => `<label style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.05);cursor:pointer;font-size:11px;font-weight:600;color:rgba(200,240,220,0.85);white-space:nowrap;user-select:none;"><input type="checkbox" id="gs-chk-${s.id}-${b.id}" value="${b.id}" style="accent-color:#4ade80;width:14px;height:14px;cursor:pointer;"> ${b.icon} ${b.sub}</label>`).join('')}
+                            </div>
                         </td>
                         <td style="padding:7px 8px;white-space:nowrap;">
                             <button class="btn-mini" onclick="gsGuardar('${s.id}')" style="margin-right:4px;">💾 Guardar</button>
@@ -6588,8 +6578,12 @@
                     </tr>`).join('')}
                 </tbody></table>`;
             activos.forEach(s => {
-                const sel = document.getElementById(`gs-box-${s.id}`);
-                if (sel) sel.value = _svBoxMap.get(s.nombre) || '';
+                const assigned = _svBoxMap.get(s.nombre) || [];
+                const arr = Array.isArray(assigned) ? assigned : (assigned ? [assigned] : []);
+                GRILLA_BOXES.forEach(b => {
+                    const chk = document.getElementById(`gs-chk-${s.id}-${b.id}`);
+                    if (chk) chk.checked = arr.includes(b.id);
+                });
             });
         };
 
@@ -6614,7 +6608,7 @@
                 _svBoxMap.clear();
                 if (boxSnap.exists()) {
                     const asgn = boxSnap.data().assignments || {};
-                    Object.entries(asgn).forEach(([k, v]) => { if (k && v) _svBoxMap.set(k, v); });
+                    Object.entries(asgn).forEach(([k, v]) => { if (k && v) _svBoxMap.set(k, Array.isArray(v) ? v : [v]); });
                 }
                 gsRender();
             } catch(e) {
@@ -6636,7 +6630,7 @@
             const sv = _gsServicios.find(s => s.id === id);
             const nombreAnterior = sv?.nombre || '';
             const nombre = (document.getElementById(`gs-nom-${id}`)?.value || '').trim();
-            const boxId  = document.getElementById(`gs-box-${id}`)?.value || '';
+            const boxIds = GRILLA_BOXES.filter(b => document.getElementById(`gs-chk-${id}-${b.id}`)?.checked).map(b => b.id);
             if (!nombre) { mostrarAviso('El nombre no puede estar vacío'); return; }
             try {
                 // 1. Actualizar nombre en services si cambió
@@ -6650,8 +6644,8 @@
                     const idx = _gsServicios.findIndex(s => s.id === id);
                     if (idx >= 0) _gsServicios[idx].nombre = nombre;
                 }
-                // 2. Guardar box en configuracion/serviciosBox
-                if (boxId) _svBoxMap.set(nombre, boxId); else _svBoxMap.delete(nombre);
+                // 2. Guardar boxes en configuracion/serviciosBox
+                if (boxIds.length) _svBoxMap.set(nombre, boxIds); else _svBoxMap.delete(nombre);
                 await _gsPersistir();
                 mostrarAviso('✓ Guardado');
             } catch(e) {
