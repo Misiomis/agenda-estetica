@@ -5017,10 +5017,12 @@
             var _matchPaciente = function(r) {
                 var nom = _norm(r.nombreLimpio || r.nombre || '');
                 if (!nom) return false;
-                var nomW = nom.split(/\s+/).filter(function(w){ return w.length >= 2; });
-                // Cada palabra del query debe encontrar una palabra del nombre que la contenga como prefijo (o viceversa)
+                // >= 1 para incluir iniciales como "K" en "Claudia K"
+                var nomW = nom.split(/\s+/).filter(function(w){ return w.length >= 1; });
+                // qw.startsWith(nw) solo si nw >= 2 chars → evita que "V" en "Alejandra V"
+                // matchee query "victoria" (el falso positivo anterior)
                 return qWords.every(function(qw) {
-                    return nomW.some(function(nw) { return nw.startsWith(qw) || qw.startsWith(nw); });
+                    return nomW.some(function(nw) { return nw.startsWith(qw) || (nw.length >= 2 && qw.startsWith(nw)); });
                 });
             };
 
