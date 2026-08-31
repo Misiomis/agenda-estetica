@@ -5073,21 +5073,6 @@
                     if (!isCan && Date.now() < finMs) pendientes.push(r);
                     else if (!isCan) completadas.push(r);
                 });
-                var _mkMsgWA = function(lista, tipo) {
-                    var hdr = tipo === 'pend'
-                        ? 'Hola *' + grupo.nombre + '*\n\nTe recuerdo tus proximas sesiones en _Espacio Mimar T_:\n\n'
-                        : 'Hola *' + grupo.nombre + '*\n\nEstas son tus sesiones ya realizadas en _Espacio Mimar T_:\n\n';
-                    var lineas = lista.map(function(r){
-                        var boxId = _grilla_boxDeReserva(r);
-                        var boxObj = (typeof GRILLA_BOXES !== 'undefined') ? GRILLA_BOXES.find(function(b){ return b.id===boxId; }) : null;
-                        var boxTxt = boxObj ? boxObj.title : '';
-                        return '- *' + (formatFechaLargaExport(r.fecha)||r.fecha||'') + '* a las ' + (r.hora||'—') + ' hs\n  _' + (r.servicio||'Sesión') + '_' + (boxTxt ? ' · ' + boxTxt : '');
-                    }).join('\n\n');
-                    return hdr + lineas + '\n\n_Espacio Mimar T_';
-                };
-                var urlPend = phoneWA && pendientes.length ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWA(pendientes,'pend')) : '';
-                var urlReal = phoneWA && completadas.length ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWA(completadas,'real')) : '';
-
                 // ── Helpers compartidos de mensajes ──
                 var _mesFull = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
                 var _diasFull = ['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
@@ -5103,47 +5088,37 @@
                 var _msgAvisoIdx = window._sesMsgDB.length;
                 window._sesMsgDB.push({ texto: _mkMsgAviso(), phone: phoneWA, titulo: 'Aviso previo de horarios' });
 
-                // ── Mensaje detallado completo ──
-                var _mkMsgCompleto = function() {
-                    var _bxF = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
-                    var hdr;
-                    if (_byMonthArr.length === 1) {
-                        var p0 = _byMonthArr[0].ym.split('-');
-                        hdr = 'Hola ' + grupo.nombre + '\n\nTe compartimos tus sesiones de ' + (_mesFull[+p0[1]-1]||'') + ' ' + p0[0] + ' en Espacio Mimar T:\n';
-                    } else {
-                        hdr = 'Hola ' + grupo.nombre + '\n\nTe compartimos tus sesiones en Espacio Mimar T:\n';
-                    }
-                    var n = 1, cuerpo = '', totalSes = 0;
-                    _byMonthArr.forEach(function(entry) {
-                        var pts = entry.ym.split('-');
-                        var mo = +pts[1]-1, yr = pts[0];
-                        if (_byMonthArr.length > 1) cuerpo += '\n' + (_mesFull[mo]||'').toUpperCase() + ' ' + yr + ':\n';
-                        var ord = entry.mes.slice().sort(function(a,b){return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1;});
-                        ord.forEach(function(r) {
-                            if ((r.estado||r.status||'').toLowerCase()==='cancelado') return;
-                            totalSes++;
-                            var fp = (r.fecha||'').split('-');
-                            var dt = fp[0]&&fp[1]&&fp[2] ? new Date(+fp[0],+fp[1]-1,+fp[2]) : null;
-                            var diaFull = dt ? _diasFull[dt.getDay()] : '';
-                            var dN = fp[2] ? parseInt(fp[2]) : '';
-                            var mesNom = fp[1] ? (_mesFull[+fp[1]-1]||'') : '';
-                            var boxId = _grilla_boxDeReserva(r);
-                            var boxObj = (typeof GRILLA_BOXES!=='undefined') ? GRILLA_BOXES.find(function(b){return b.id===boxId;}) : null;
-                            var boxTxt = boxObj ? boxObj.title : (boxId ? (_bxF[boxId]||'') : '');
-                            // *fecha* = negrita en WhatsApp
-                            cuerpo += '\n*' + n++ + '. ' + diaFull + ' ' + dN + ' de ' + mesNom + '*\n' + (r.hora||'--') + ' hs\n' + (r.servicio||'Sesion') + (boxTxt ? '\n' + boxTxt : '') + '\n';
-                        });
+                // ── Formateador de lista de sesiones (pendientes o realizadas) ──
+                var _bxF = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
+                var _mkMsgLista = function(lista, hdrTxt) {
+                    var sorted = lista.slice().sort(function(a,b){return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1;});
+                    var n = 1, cuerpo = '', total = 0;
+                    sorted.forEach(function(r) {
+                        if ((r.estado||r.status||'').toLowerCase()==='cancelado') return;
+                        total++;
+                        var fp = (r.fecha||'').split('-');
+                        var dt = fp[0]&&fp[1]&&fp[2] ? new Date(+fp[0],+fp[1]-1,+fp[2]) : null;
+                        var diaFull = dt ? _diasFull[dt.getDay()] : '';
+                        var dN = fp[2] ? parseInt(fp[2]) : '';
+                        var mesNom = fp[1] ? (_mesFull[+fp[1]-1]||'') : '';
+                        var boxId = _grilla_boxDeReserva(r);
+                        var boxObj = (typeof GRILLA_BOXES!=='undefined') ? GRILLA_BOXES.find(function(b){return b.id===boxId;}) : null;
+                        var boxTxt = boxObj ? boxObj.title : (boxId ? (_bxF[boxId]||'') : '');
+                        cuerpo += '\n*' + n++ + '. ' + diaFull + ' ' + dN + ' de ' + mesNom + '*\n' + (r.hora||'--') + ' hs\n' + (r.servicio||'Sesion') + (boxTxt ? '\n' + boxTxt : '') + '\n';
                     });
-                    return hdr + cuerpo + '\nTotal: ' + totalSes + ' sesion' + (totalSes!==1?'es':'') + '\nEspacio Mimar T';
+                    return hdrTxt + cuerpo + '\nTotal: ' + total + ' sesion' + (total!==1?'es':'') + '\nEspacio Mimar T';
                 };
-                var _msgCompletoIdx = window._sesMsgDB.length;
-                window._sesMsgDB.push({ texto: _mkMsgCompleto(), phone: phoneWA, titulo: 'Resumen completo de sesiones' });
 
-                var _btnWA = function(href,lbl,border,color,bg){
-                    return href
-                        ? "<a href='"+href+"' target='_blank' rel='noopener' style='flex:1;min-width:120px;text-align:center;padding:9px 12px;background:"+bg+";border:1.5px solid "+border+";border-radius:9px;color:"+color+";font-weight:700;font-size:12px;text-decoration:none;display:flex;align-items:center;justify-content:center;'>"+lbl+"</a>"
-                        : "<div style='flex:1;min-width:120px;padding:9px 12px;background:rgba(255,255,255,0.02);border:1.5px solid rgba(255,255,255,0.06);border-radius:9px;color:rgba(140,180,160,0.30);font-size:12px;text-align:center;'>"+lbl+"</div>";
-                };
+                var _msgPendIdx = window._sesMsgDB.length;
+                window._sesMsgDB.push({
+                    texto: pendientes.length ? _mkMsgLista(pendientes, 'Hola ' + grupo.nombre + '\n\nTe recuerdo tus pr\u00f3ximas sesiones en Espacio Mimar T:\n') : '(Sin sesiones pendientes)',
+                    phone: phoneWA, titulo: 'Sesiones pendientes'
+                });
+                var _msgRealIdx = window._sesMsgDB.length;
+                window._sesMsgDB.push({
+                    texto: completadas.length ? _mkMsgLista(completadas, 'Hola ' + grupo.nombre + '\n\nEstas son las sesiones ya realizadas en Espacio Mimar T:\n') : '(Sin sesiones realizadas)',
+                    phone: phoneWA, titulo: 'Sesiones realizadas'
+                });
 
                 // ── Header paciente ──
                 var pacHeader = "<div style='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;'>" +
@@ -5153,12 +5128,12 @@
                     "<span style='font-size:12px;color:rgba(140,210,180,0.45);'>" + sesiones.length + " turno" + (sesiones.length!==1?'s':'') + " total</span>" +
                     "</div>";
 
-                var botonesWA = "<div style='display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;'>" +
-                    _btnWA(urlPend, "Enviar pendientes ("+pendientes.length+")", "rgba(245,158,11,0.45)", "rgba(252,211,77,0.95)", "rgba(245,158,11,0.10)") +
-                    _btnWA(urlReal, "Enviar realizadas ("+completadas.length+")", "rgba(114,189,153,0.40)", "rgba(140,220,185,0.95)", "rgba(53,122,92,0.10)") +
-                    "</div>" +
+                var botonesWA =
                     "<div style='margin-bottom:6px;'><button onclick='window._sesMsgShow("+_msgAvisoIdx+")' style='width:100%;padding:10px 16px;background:rgba(59,130,180,0.07);border:1px solid rgba(100,160,210,0.22);border-radius:10px;color:rgba(170,210,240,0.85);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.03em;font-family:inherit;'>Avisar antes de enviar horarios</button></div>" +
-                    "<div style='margin-bottom:14px;'><button onclick='window._sesMsgShow("+_msgCompletoIdx+")' style='width:100%;padding:10px 16px;background:rgba(160,110,200,0.07);border:1px solid rgba(180,140,210,0.22);border-radius:10px;color:rgba(210,180,230,0.85);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.03em;font-family:inherit;'>Ver y enviar resumen completo de sesiones</button></div>";
+                    "<div style='display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;'>" +
+                    (pendientes.length ? "<button onclick='window._sesMsgShow("+_msgPendIdx+")' style='flex:1;min-width:140px;padding:10px 14px;background:rgba(200,160,30,0.07);border:1px solid rgba(245,200,50,0.22);border-radius:10px;color:rgba(252,211,77,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>Enviar sesiones pendientes ("+pendientes.length+")</button>" : "<div style='flex:1;min-width:140px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;color:rgba(140,180,160,0.28);font-size:12px;text-align:center;'>Sin pendientes</div>") +
+                    (completadas.length ? "<button onclick='window._sesMsgShow("+_msgRealIdx+")' style='flex:1;min-width:140px;padding:10px 14px;background:rgba(53,122,92,0.07);border:1px solid rgba(114,189,153,0.22);border-radius:10px;color:rgba(140,220,185,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>Enviar sesiones realizadas ("+completadas.length+")</button>" : "<div style='flex:1;min-width:140px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;color:rgba(140,180,160,0.28);font-size:12px;text-align:center;'>Sin realizadas</div>") +
+                    "</div>";
 
                 // ── Helper de card de sesión ──
                 var _bxNumsT = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
