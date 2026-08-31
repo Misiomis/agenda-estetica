@@ -7643,7 +7643,7 @@
 
         const DEFAULT_WEEKLY_BLOCKS = {};  // sin bloqueos automáticos — el admin decide todo
         const _esHoraComercial = (hora) =>
-            (hora >= '08:00' && hora <= '23:45') || hora === '00:00';
+            (hora >= '08:00' && hora <= '13:00') || (hora >= '16:00' && hora <= '23:45') || hora === '00:00';
         const _esDefaultBloqueado = (hora, dayOfWeek) => {
             if (!_esHoraComercial(hora)) return true;
             const rules = DEFAULT_WEEKLY_BLOCKS[dayOfWeek];
@@ -7859,7 +7859,7 @@
                 if (!isComercial && !_grilla_extraSlots) continue;
 
                 // Separador visual + mini-header entre mañana y tarde
-                if (lastHora && lastHora <= '11:30' && hora >= '16:00') {
+                if (lastHora && lastHora <= '13:00' && hora >= '16:00') {
                     rows.push(`<tr class="grilla-sep-row"><td colspan="${COLS}" class="grilla-sep-cell">· · ·</td></tr>`);
                     const miniCols = GRILLA_BOXES.map(b =>
                         `<td style="background:${b.bg};border-color:${b.border}">
