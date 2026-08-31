@@ -1137,11 +1137,10 @@
                                 <th class="grilla-th-box" style="background:rgba(59,130,246,0.14)"><span class="gth-full">💎 Box 2<span class="grilla-box-sub">Corporal</span></span><span class="gth-short">💎 B2</span></th>
                                 <th class="grilla-th-box" style="background:rgba(167,139,250,0.14)"><span class="gth-full">✨ Box 3<span class="grilla-box-sub">Facial</span></span><span class="gth-short">✨ B3</span></th>
                                 <th class="grilla-th-box" style="background:rgba(52,211,153,0.12)"><span class="gth-full">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></span><span class="gth-short">🌿 B4</span></th>
-                                <th class="grilla-th-box" style="background:rgba(251,191,36,0.10)"><span class="gth-full">⚡ Plat. Vibr.<span class="grilla-box-sub">Plataforma</span></span><span class="gth-short">⚡ PV</span></th>
                             </tr>
                         </thead>
                         <tbody id="grilla-tbody">
-                            <tr><td colspan="6" style="text-align:center;padding:40px;color:rgba(140,200,170,0.35);font-size:13px;">Iniciando…</td></tr>
+                            <tr><td colspan="5" style="text-align:center;padding:40px;color:rgba(140,200,170,0.35);font-size:13px;">Iniciando…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -2205,13 +2204,6 @@
                 .map((valor) => (valor || '').toString().trim().toLowerCase())
                 .filter(Boolean);
             return !estados.includes('cancelado');
-        };
-        
-        // ── Datos en vivo para Mimi Admin ──
-        window.MIMI_ADMIN_DATA = {
-            getReservas: () => todasLasReservas,
-            fechaHoy:    () => fechaHoyISO(),
-            esActiva:    (r) => esReservaActiva(r)
         };
         
         const resolverMembresiaActiva = (c = {}) => c.membershipActive === true || c.membresia === true;
@@ -6547,14 +6539,6 @@
         document.getElementById("userAdmin").value = ADMIN_EMAILS[0];
         iniciarGuardiaAuth();
         
-        function descargarWidget() {
-            const a = document.createElement('a');
-            a.href = '/js/mimi-bot.js';
-            a.download = 'mimi-bot.js';
-            a.click();
-        }
-        window.descargarWidget = descargarWidget;
-
         // ============================================================
         // CONTROL TOTAL — Apariencia, Anuncio, Bloqueos, Configuración
         // ============================================================
@@ -8296,6 +8280,5 @@
     </div>
 
     <script src="/js/shared-footer.js"></script>
-    <script src="/js/mimi-bot.js?v=20260405-4"></script>
 </body>
 </html>
