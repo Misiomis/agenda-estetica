@@ -852,6 +852,10 @@
         .grilla-celda-ocupada.gc-continua {
             border-left: 2.5px solid rgba(200,150,8,0.75) !important;
         }
+        /* Drag-and-drop de box */
+        .grilla-celda-ocupada[draggable="true"] { cursor: grab; }
+        .grilla-celda-ocupada[draggable="true"]:active { cursor: grabbing; }
+        .gdrag-over { outline: 2px dashed rgba(200,150,8,0.55) !important; background: rgba(200,150,8,0.06) !important; }
         .grilla-celda-bloq {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             height: 100%; cursor: pointer; border-radius: 7px; gap: 1px;
@@ -2151,18 +2155,28 @@
         };
         // Devuelve qué boxes ocupa/bloquea cada servicio
         const _inferirBoxes = (servicio, tipo) => {
-            const s = ((servicio || '') + ' ' + (tipo || '')).toLowerCase();
-            // Doctora y Depi: sin bloqueo
+            // Configuración manual de Grilla de Servicios (fuente de verdad)
+            const _svKey = (servicio || '').toString().trim();
+            if (_svKey && _svBoxMap.has(_svKey)) {
+                const boxId = _svBoxMap.get(_svKey);
+                // GRILLA_BOXES se define más adelante en el script pero se llama solo post-carga
+                if (typeof GRILLA_BOXES !== 'undefined') {
+                    const boxObj = GRILLA_BOXES.find(b => b.id === boxId);
+                    if (boxObj) return boxObj.num > 0 ? [boxObj.num] : [];
+                }
+                // Fallback rápido si GRILLA_BOXES no disponible aún
+                const numMap = { b1:1, b2:2, b3:3, b4:4, bv:0 };
+                const n = numMap[boxId];
+                if (n != null) return n > 0 ? [n] : [];
+            }
+            // Fallback: inferencia por palabras clave
+            const s = ((_svKey) + ' ' + (tipo || '')).toLowerCase();
             if (s.includes('doctor') || s.includes('dra.') || /\bdra\b/.test(s) || s.includes('dr.') || s.includes('medic') || s.includes('médic')) return [];
-            // Consulta: Box 1 (Consultorio)
             if (s.includes('consulta') || s.includes('diagnostico') || s.includes('diagnóstico')) return [1];
-            // Facial: Box 3
             if (s.includes('facial') || s.includes('fraxis') || s.includes('dermapen') || s.includes('peeling')) return [3];
-            // Corporal: boxes 2 y 4 (el 4 va incluido en el turno)
             if (s.includes('corporal') || s.includes('criolipolisis') || s.includes('crioli') || s.includes('cavitac') || s.includes('presot') || s.includes('mio up') || s.includes('remodel') || s.includes('ultrason') || s.includes('bio')) return [2,4];
-            // Relax solo: solo box 4, no bloquea otros
             if (s.includes('relax') || s.includes('masaj') || s.includes('relajante')) return [4];
-            return []; // desconocido: sin bloqueo por defecto
+            return [];
         };
         const _boxBadgesHtml = (boxes) => {
             if (!boxes || boxes.length === 0) return '';
@@ -7804,6 +7818,80 @@
             navegar('agenda');
         };
 
+        /* ── Drag-and-drop para cambiar de box en la grilla ── */
+        let _gDrag = null; // reservaId en arrastre
+
+        window.grillaDragStart = (ev, reservaId) => {
+            _gDrag = reservaId;
+            window._gDrag = reservaId;
+            ev.dataTransfer.effectAllowed = 'move';
+            ev.dataTransfer.setData('text/plain', reservaId);
+        };
+
+        window.grillaDragEnd = () => {
+            _gDrag = null;
+            window._gDrag = null;
+            document.querySelectorAll('.gdrag-over').forEach(el => { el._gddc = 0; el.classList.remove('gdrag-over'); });
+        };
+
+        window.grillaDragOver = (ev) => {
+            if (!_gDrag) return;
+            ev.preventDefault();
+            ev.dataTransfer.dropEffect = 'move';
+        };
+
+        window.grillaDragEnter = (td) => {
+            if (!window._gDrag) return;
+            td._gddc = (td._gddc || 0) + 1;
+            td.classList.add('gdrag-over');
+        };
+
+        window.grillaDragLeave = (td) => {
+            if (!window._gDrag) return;
+            td._gddc = (td._gddc || 0) - 1;
+            if (td._gddc <= 0) { td._gddc = 0; td.classList.remove('gdrag-over'); }
+        };
+
+        window.grillaDrop = async (ev, nuevoBoxId, hora, td) => {
+            ev.preventDefault();
+            if (td) { td._gddc = 0; td.classList.remove('gdrag-over'); }
+            const reservaId = _gDrag;
+            _gDrag = null;
+            window._gDrag = null;
+            if (!reservaId) return;
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            const boxActual = _grilla_boxDeReserva(r);
+            if (boxActual === nuevoBoxId) return;
+            // Verificar conflicto en el destino
+            const conflicto = todasLasReservas.find(x =>
+                esReservaActiva(x) &&
+                x.fecha === r.fecha &&
+                normalizarHora(x.hora) === hora &&
+                _grilla_boxDeReserva(x) === nuevoBoxId &&
+                x.id !== reservaId
+            );
+            if (conflicto) {
+                const nom = (conflicto.nombreLimpio || conflicto.nombre || 'Paciente').split(' ')[0];
+                mostrarAviso(`Box ocupado · ${nom} está en ese slot`);
+                return;
+            }
+            try {
+                mostrarLoader(true);
+                await updateDoc(doc(db, "reservas", reservaId), { box: nuevoBoxId });
+                const idx = todasLasReservas.findIndex(x => x.id === reservaId);
+                if (idx !== -1) todasLasReservas[idx].box = nuevoBoxId;
+                renderGrilla();
+                const bx = GRILLA_BOXES.find(b => b.id === nuevoBoxId);
+                mostrarAviso(`Movido a ${bx ? bx.title : nuevoBoxId}`);
+            } catch(e) {
+                console.error(e);
+                mostrarAviso("No se pudo mover la reserva");
+            } finally {
+                mostrarLoader(false);
+            }
+        };
+
         window.renderGrilla = () => {
             const tbody = document.getElementById('grilla-tbody');
             if (!tbody) return;
@@ -7906,7 +7994,7 @@
                             const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
                             circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                         }
-                        inner = `<div class="grilla-celda-ocupada${circCls}" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv}">
+                        inner = `<div class="grilla-celda-ocupada${circCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv} (arrastrá para cambiar de box)">
                             <span class="grilla-paciente-nombre">${nom}</span>
                             <span class="grilla-paciente-servicio">${srv}</span>
                             ${circHtml}
@@ -7930,7 +8018,7 @@
                             <div class="gcl-blk" onclick="grillaBloquearSlot('${hora}','${box.id}')" title="${adminUnbloq ? 'Restablecer bloqueo' : 'Bloquear slot'}">🔒</div>
                         </div>`;
                     }
-                    return `<td class="grilla-td-box" style="background:${box.bg};border-color:${box.border}">${inner}</td>`;
+                    return `<td class="grilla-td-box" style="background:${box.bg};border-color:${box.border}" ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
                 }).join('');
 
                 rows.push(`<tr class="${rowCls}"><td class="grilla-td-hora">${horaLabel}</td>${celdas}</tr>`);
