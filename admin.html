@@ -4260,9 +4260,10 @@
                     // Chequeo por hora exacta: solo importa si hay reserva en el mismo box
                     const enHoraExacta = todasLasReservas.some(r => {
                         if (!esReservaActiva(r) || r.fecha !== fecha || normalizarHora(r.hora) !== normalizarHora(hora)) return false;
-                        const rBoxes = _inferirBoxes(r.servicio, r.tipo);
                         const rBox = _grilla_boxDeReserva(r);
-                        return (_mreg_boxPresel && rBox === _mreg_boxPresel.id) || _boxesNuevos.some(b => rBoxes.includes(b));
+                        // Si hay box preseleccionado, solo verificar ese box exacto
+                        if (_mreg_boxPresel) return rBox === _mreg_boxPresel.id;
+                        return _boxesNuevos.some(b => _inferirBoxes(r.servicio, r.tipo).includes(b));
                     });
                     if (enHoraExacta) return true;
                     // Chequeo por bloqueo (extensión de otra reserva): verificar que sea el mismo box
@@ -4270,9 +4271,10 @@
                     if (!blk || !blk.reservaId) return false;
                     const blkReserva = todasLasReservas.find(r => r.id === blk.reservaId && esReservaActiva(r));
                     if (!blkReserva) return false;
-                    const blkBoxes = _inferirBoxes(blkReserva.servicio, blkReserva.tipo);
                     const blkBox = _grilla_boxDeReserva(blkReserva);
-                    return (_mreg_boxPresel && blkBox === _mreg_boxPresel.id) || _boxesNuevos.some(b => blkBoxes.includes(b));
+                    // Si hay box preseleccionado, solo verificar ese box exacto
+                    if (_mreg_boxPresel) return blkBox === _mreg_boxPresel.id;
+                    return _boxesNuevos.some(b => _inferirBoxes(blkReserva.servicio, blkReserva.tipo).includes(b));
                 };
                 for (const extHora of slotsExtension) {
                     if (_personaEnSlot(fechaSnap, extHora)) {
