@@ -7942,28 +7942,44 @@
             const r = todasLasReservas.find(x => x.id === reservaId);
             if (!r) return;
             const boxActual = _grilla_boxDeReserva(r);
-            if (boxActual === nuevoBoxId) return;
-            // Verificar conflicto en el destino
+            const horaActual = normalizarHora(r.hora);
+            const horaNueva = normalizarHora(hora);
+            // Nada cambió
+            if (boxActual === nuevoBoxId && horaActual === horaNueva) return;
+            // Verificar conflicto en el destino (box + hora destino)
             const conflicto = todasLasReservas.find(x =>
                 esReservaActiva(x) &&
                 x.fecha === r.fecha &&
-                normalizarHora(x.hora) === hora &&
+                normalizarHora(x.hora) === horaNueva &&
                 _grilla_boxDeReserva(x) === nuevoBoxId &&
                 x.id !== reservaId
             );
             if (conflicto) {
                 const nom = (conflicto.nombreLimpio || conflicto.nombre || 'Paciente').split(' ')[0];
-                mostrarAviso(`Box ocupado · ${nom} está en ese slot`);
+                mostrarAviso(`Slot ocupado · ${nom} ya está en ese horario`);
                 return;
             }
             try {
                 mostrarLoader(true);
-                await updateDoc(doc(db, "reservas", reservaId), { box: nuevoBoxId });
+                const updates = {};
+                if (boxActual !== nuevoBoxId) updates.box = nuevoBoxId;
+                if (horaActual !== horaNueva) updates.hora = horaNueva;
+                await updateDoc(doc(db, "reservas", reservaId), updates);
                 const idx = todasLasReservas.findIndex(x => x.id === reservaId);
-                if (idx !== -1) todasLasReservas[idx].box = nuevoBoxId;
+                if (idx !== -1) {
+                    if (updates.box) todasLasReservas[idx].box = nuevoBoxId;
+                    if (updates.hora) todasLasReservas[idx].hora = horaNueva;
+                }
                 renderGrilla();
                 const bx = GRILLA_BOXES.find(b => b.id === nuevoBoxId);
-                mostrarAviso(`Movido a ${bx ? bx.title : nuevoBoxId}`);
+                const boxLabel = bx ? bx.title : nuevoBoxId;
+                if (boxActual !== nuevoBoxId && horaActual !== horaNueva) {
+                    mostrarAviso(`Movido a ${boxLabel} · ${horaNueva} hs`);
+                } else if (boxActual !== nuevoBoxId) {
+                    mostrarAviso(`Movido a ${boxLabel}`);
+                } else {
+                    mostrarAviso(`Horario cambiado a ${horaNueva} hs`);
+                }
             } catch(e) {
                 console.error(e);
                 mostrarAviso("No se pudo mover la reserva");
