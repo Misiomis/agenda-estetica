@@ -4982,6 +4982,29 @@
             }
         };
         
+        // ── Modal de resumen de sesiones para copiar/enviar ──
+        window._sesMsgDB = [];
+        window._sesMsgShow = function(idx) {
+            var d = window._sesMsgDB[idx];
+            if (!d) return;
+            var txt = d.texto, phone = d.phone;
+            var ov = document.createElement('div');
+            ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.68);display:flex;align-items:center;justify-content:center;padding:16px;';
+            ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+            var waHref = phone ? 'https://wa.me/549'+phone+'?text='+encodeURIComponent(txt) : '';
+            var escaped = txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            ov.innerHTML = "<div style='background:#172c22;border:1px solid rgba(114,189,153,0.18);border-radius:16px;padding:20px;max-width:540px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:11px;'>" +
+                "<div style='display:flex;justify-content:space-between;align-items:center;'><span style='font-size:13px;font-weight:800;color:rgba(200,240,225,0.92);letter-spacing:.04em;'>Resumen de sesiones</span><button onclick='this.closest(\"div[style*=fixed]\").remove()' style='background:none;border:none;color:rgba(160,200,180,0.50);font-size:18px;cursor:pointer;padding:0 4px;'>×</button></div>" +
+                "<textarea id='_ses_ta_"+idx+"' readonly style='background:rgba(0,0,0,0.28);border:1px solid rgba(114,189,153,0.14);border-radius:10px;padding:12px 14px;color:rgba(205,238,222,0.88);font-size:12px;font-family:monospace;line-height:1.65;resize:none;height:320px;outline:none;white-space:pre;'>"+escaped+"</textarea>" +
+                "<div style='display:flex;gap:8px;flex-wrap:wrap;'>" +
+                "<button onclick='var ta=document.getElementById(\"_ses_ta_"+idx+"\");ta.select();try{navigator.clipboard.writeText(ta.value).then(function(){mostrarAviso(\"Copiado al portapapeles\");}).catch(function(){document.execCommand(\"copy\");mostrarAviso(\"Copiado\");});}catch(e){document.execCommand(\"copy\");mostrarAviso(\"Copiado\");}' style='flex:1;padding:10px;background:rgba(53,122,92,0.18);border:1.5px solid rgba(114,189,153,0.32);border-radius:9px;color:rgba(140,220,185,0.95);font-weight:700;font-size:12px;cursor:pointer;'>Copiar texto</button>" +
+                (waHref ? "<a href='"+waHref+"' target='_blank' rel='noopener' style='flex:1;padding:10px;background:rgba(37,211,102,0.10);border:1.5px solid rgba(37,211,102,0.28);border-radius:9px;color:rgba(100,220,130,0.92);font-weight:700;font-size:12px;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;'>Abrir en WhatsApp</a>" : '') +
+                "</div>" +
+                "<p style='font-size:11px;color:rgba(140,180,160,0.45);margin:0;text-align:center;'>Copia el texto y pegalo directamente en WhatsApp para mantener el formato.</p>" +
+                "</div>";
+            document.body.appendChild(ov);
+        };
+
         window.buscarSesionesPorNombreInput = debounce(function() {
             var raw = ((document.getElementById("inpBuscadorSesiones") || {}).value || "").trim();
             var contenedor = document.getElementById("contenedorSesionesBuscadas");
@@ -5083,15 +5106,15 @@
                 var urlPend = phoneWA && pendientes.length ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWA(pendientes,'pend')) : '';
                 var urlReal = phoneWA && completadas.length ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWA(completadas,'real')) : '';
 
-                // ── Mensaje detallado completo por mes ──
-                var _mkMsgWACompleto = function() {
+                // ── Mensaje detallado completo (lista numerada, sin emojis) ──
+                var _mkMsgCompleto = function() {
                     var _bxF = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
-                    var msg = 'Hola *' + grupo.nombre + '* 🌿\n\nTe compartimos el detalle de tus sesiones en *Espacio Mimar T*:';
+                    var msg = 'Hola ' + grupo.nombre + '!\n\nSesiones en Espacio Mimar T:\n';
+                    var n = 1;
                     byMonth.forEach(function(mes, ym) {
                         var pts = ym.split('-');
                         var yr = parseInt(pts[0]||0), mo = parseInt(pts[1]||1)-1;
-                        var mesNom = (MESES_ES[mo]||ym).toUpperCase() + ' ' + yr;
-                        msg += '\n\n📅 *' + mesNom + '* — ' + mes.length + ' sesión' + (mes.length!==1?'es':'');
+                        msg += '\n' + (MESES_ES[mo]||ym).toUpperCase() + ' ' + yr + ' (' + mes.length + ' sesion' + (mes.length!==1?'es':'') + ')\n';
                         var ord = mes.slice().sort(function(a,b){return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1;});
                         ord.forEach(function(r) {
                             var fp = (r.fecha||'').split('-');
@@ -5103,13 +5126,14 @@
                             var boxId = _grilla_boxDeReserva(r);
                             var boxObj = (typeof GRILLA_BOXES!=='undefined') ? GRILLA_BOXES.find(function(b){return b.id===boxId;}) : null;
                             var boxTxt = boxObj ? boxObj.title : (boxId ? (_bxF[boxId]||'') : '');
-                            msg += '\n\n• *'+fechaStr+'* · '+(r.hora||'—')+' hs\n  _'+(r.servicio||'Sesión')+'_'+(boxTxt?' · '+boxTxt:'');
+                            msg += n++ + '.  ' + fechaStr + '  |  ' + (r.hora||'--') + ' hs  |  ' + (r.servicio||'Sesion') + (boxTxt ? '  |  ' + boxTxt : '') + '\n';
                         });
                     });
-                    msg += '\n\n_Espacio Mimar T_ ✨';
+                    msg += '\nEspacio Mimar T';
                     return msg;
                 };
-                var urlCompleto = phoneWA ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWACompleto()) : '';
+                var _msgCompletoIdx = window._sesMsgDB.length;
+                window._sesMsgDB.push({ texto: _mkMsgCompleto(), phone: phoneWA });
 
                 var _btnWA = function(href,lbl,border,color,bg){
                     return href
@@ -5126,13 +5150,10 @@
                     "</div>";
 
                 var botonesWA = "<div style='display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;'>" +
-                    _btnWA(urlPend, "⏳ Enviar pendientes ("+pendientes.length+")", "rgba(245,158,11,0.45)", "rgba(252,211,77,0.95)", "rgba(245,158,11,0.10)") +
-                    _btnWA(urlReal, "✅ Enviar realizadas ("+completadas.length+")", "rgba(114,189,153,0.40)", "rgba(140,220,185,0.95)", "rgba(53,122,92,0.10)") +
+                    _btnWA(urlPend, "Enviar pendientes ("+pendientes.length+")", "rgba(245,158,11,0.45)", "rgba(252,211,77,0.95)", "rgba(245,158,11,0.10)") +
+                    _btnWA(urlReal, "Enviar realizadas ("+completadas.length+")", "rgba(114,189,153,0.40)", "rgba(140,220,185,0.95)", "rgba(53,122,92,0.10)") +
                     "</div>" +
-                    (urlCompleto
-                        ? "<div style='margin-bottom:14px;'><a href='"+urlCompleto+"' target='_blank' rel='noopener' style='width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;background:rgba(160,110,200,0.07);border:1px solid rgba(180,140,210,0.22);border-radius:10px;color:rgba(210,180,230,0.85);font-size:12px;font-weight:700;text-decoration:none;letter-spacing:.04em;box-sizing:border-box;'>🌸 Enviar resumen completo de todas las sesiones</a></div>"
-                        : "<div style='margin-bottom:14px;padding:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;color:rgba(140,140,140,0.35);font-size:12px;text-align:center;'>🌸 Enviar resumen completo — sin teléfono registrado</div>"
-                    );
+                    "<div style='margin-bottom:14px;'><button onclick='window._sesMsgShow("+_msgCompletoIdx+")' style='width:100%;padding:10px 16px;background:rgba(160,110,200,0.07);border:1px solid rgba(180,140,210,0.22);border-radius:10px;color:rgba(210,180,230,0.85);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.04em;font-family:inherit;'>Ver y enviar resumen completo de sesiones</button></div>";
 
                 // ── Resumen mensual section ──
                 var secResumen = "<details open style='margin-bottom:14px;'>" +
