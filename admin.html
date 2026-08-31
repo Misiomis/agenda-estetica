@@ -7646,6 +7646,8 @@
             (hora >= '08:00' && hora <= '13:00') || (hora >= '14:00' && hora <= '23:45') || hora === '00:00';
         const _esDefaultBloqueado = (hora, dayOfWeek) => {
             if (!_esHoraComercial(hora)) return true;
+            // Noche: 21:00 en adelante bloqueado por defecto en todos los días
+            if (hora >= '21:00' || hora === '00:00') return true;
             const rules = DEFAULT_WEEKLY_BLOCKS[dayOfWeek];
             if (!rules) return false;
             if (rules === 'ALL') return true;
