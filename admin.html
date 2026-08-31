@@ -1150,9 +1150,9 @@
             <div id="sec-buscador-sesiones" class="section">
                 <div class="detalle-dia-card buscador-sesiones-card" style="margin-bottom:18px; box-shadow:0 6px 24px rgba(63,143,111,0.13); border-radius:22px; border-top:6px solid var(--accento);">
                     <h3 style="margin-top:0; color:var(--accento-oscuro); font-family:'Playfair Display',serif; font-size:1.35em; letter-spacing:0.01em;">Buscador de sesiones</h3>
-                    <input type="text" class="busc-input buscador-sesiones-input" id="inpBuscadorSesiones" placeholder="Nombre completo exacto (ej: Adriana Cerri)" oninput="buscarSesionesPorNombreInput()" style="font-size:1.1em; border:2px solid #b2ddc8; margin-bottom:14px; border-radius:14px;">
+                    <input type="text" class="busc-input buscador-sesiones-input" id="inpBuscadorSesiones" placeholder="Escribí nombre o apellido (ej: Miriam, Sedof, Adriana Cerri...)" oninput="buscarSesionesPorNombreInput()" style="font-size:1.1em; border:2px solid #b2ddc8; margin-bottom:14px; border-radius:14px;">
                     <div id="contenedorSesionesBuscadas" style="margin-top:10px;"></div>
-                    <div class="cliente-help" style="margin-top:14px; font-size:13px; background:rgba(53,122,92,0.10); border-radius:10px; padding:8px 12px;">Busca todas las sesiones con nota asociada para un paciente. Escribí al menos 2 letras del nombre.</div>
+                    <div class="cliente-help" style="margin-top:14px; font-size:13px; background:rgba(53,122,92,0.10); border-radius:10px; padding:8px 12px;">Buscá por cualquier parte del nombre: "miriam", "sedof", "adriana c". Muestra todos sus turnos con box, servicio y resumen mensual.</div>
                 </div>
             </div>
             <div id="sec-agenda" class="section">
@@ -1379,6 +1379,14 @@
             <!--  SECCIÓN: GRILLA DE SERVICIOS   -->
             <!-- ════════════════════════════════ -->
             <div id="sec-servicios" class="section">
+                <!-- Renombrar Boxes -->
+                <div class="detalle-dia-card" style="max-width:700px;margin:0 auto 20px;">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">🗂 Nombres de Boxes</h3>
+                    <p style="font-size:13px;color:rgba(165,205,188,0.70);margin:0 0 16px;">Cambiá el nombre descriptivo de cada box. Los cambios se guardan en la nube y se aplican en toda la agenda.</p>
+                    <div id="blabels-lista"></div>
+                    <button class="btn-mini" onclick="blGuardar()" style="margin-top:14px;padding:10px 20px;font-size:13px;border-radius:12px;">💾 Guardar nombres</button>
+                </div>
+                <!-- Grilla de servicios -->
                 <div class="detalle-dia-card" style="max-width:700px;margin:0 auto;">
                     <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">📋 Grilla de Servicios</h3>
                     <p style="font-size:13px;color:rgba(165,205,188,0.70);margin:0 0 20px;">Asigná cada servicio al box donde se realiza. Al seleccionar un servicio en el registro de un turno, el box se elegirá automáticamente — sin margen de error.</p>
@@ -2620,6 +2628,11 @@
                         const _asgn = _svBoxSnap.data().assignments || {};
                         Object.entries(_asgn).forEach(([k, v]) => { if (k && v) _svBoxMap.set(k, v); });
                     }
+                } catch(_) {}
+                // Cargar nombres personalizados de boxes
+                try {
+                    const _blSnap = await getDoc(doc(db, 'configuracion', 'boxesLabels'));
+                    if (_blSnap.exists()) _aplicarBoxLabels(_blSnap.data().boxes || {});
                 } catch(_) {}
                 
                 const phonePorDNI = new Map();
@@ -4978,171 +4991,169 @@
         };
         
         window.buscarSesionesPorNombreInput = debounce(function() {
-            var txt = ((document.getElementById("inpBuscadorSesiones") || {}).value || "").trim().toLowerCase();
+            var raw = ((document.getElementById("inpBuscadorSesiones") || {}).value || "").trim();
             var contenedor = document.getElementById("contenedorSesionesBuscadas");
             if (!contenedor) return;
-            if (txt.length < 3) { contenedor.innerHTML = ""; return; }
+            if (raw.length < 2) { contenedor.innerHTML = ""; return; }
 
-            // Helper: fin del turno = inicio + 60 min (zona AR -03:00)
-            function calcFinTurnoAdmin(r) {
-                var h = (r.hora || "00:00").replace(/[^0-9:]/g, "");
-                var iso = (r.fecha || "1970-01-01") + "T" + (h || "00:00") + ":00-03:00";
-                var dt = new Date(iso);
-                if (isNaN(dt.getTime())) return null;
-                return new Date(dt.getTime() + 60 * 60 * 1000);
-            }
+            // ── Normalización y matching fuzzy por palabras ──
+            var _norm = function(s) { return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); };
+            var qWords = _norm(raw).split(/\s+/).filter(function(w){ return w.length >= 2; });
+            var _matchPaciente = function(r) {
+                var nom = _norm(r.nombreLimpio || r.nombre || '');
+                if (!nom) return false;
+                var nomW = nom.split(/\s+/).filter(function(w){ return w.length >= 1; });
+                // Cada palabra del query debe encontrar una palabra del nombre que la contenga como prefijo (o viceversa)
+                return qWords.every(function(qw) {
+                    return nomW.some(function(nw) { return nw.startsWith(qw) || qw.startsWith(nw); });
+                });
+            };
 
             var ahora = new Date();
+            var todasMatch = todasLasReservas.filter(function(r){ return esReservaActiva(r) && _matchPaciente(r); });
 
-            // Match exacto por nombre completo para evitar mezclar pacientes con nombre similar
-            var todasSesiones = todasLasReservas.filter(function(r) {
-                return (r.nombreLimpio || "").toLowerCase() === txt && esReservaActiva(r);
-            });
-
-            if (!todasSesiones.length) {
-                contenedor.innerHTML = "<p style='color:#888;padding:12px;'>No se encontraron sesiones. Escribí el nombre completo exactamente como figura en el sistema (ej: <em>Adriana Cerri</em>).</p>";
+            if (!todasMatch.length) {
+                contenedor.innerHTML = "<p style='color:rgba(180,130,130,0.80);padding:14px;font-size:13px;'>No se encontraron turnos para <strong>" + escapeHtml(raw) + "</strong>. Probá con parte del nombre o apellido.</p>";
                 return;
             }
 
-            // Separar: pendientes (inicio+60min > ahora) vs realizadas
-            var pendientes = [], realizadas = [];
-            todasSesiones.forEach(function(r) {
-                var isCancelado = (r.estado || r.status || "").toLowerCase() === "cancelado";
-                var finTurno = calcFinTurnoAdmin(r);
-                var finalizado = finTurno ? ahora >= finTurno : true;
-                if (!isCancelado && !finalizado) pendientes.push(r);
-                else realizadas.push(r);
+            // ── Agrupar por paciente (DNI prioritario, si no nombre normalizado) ──
+            var gruposMap = new Map();
+            todasMatch.forEach(function(r) {
+                var dni = (r.dni || r.clienteDni || r.documento || '').toString().trim();
+                var gKey = dni || _norm(r.nombreLimpio || r.nombre || 'desconocido');
+                if (!gruposMap.has(gKey)) gruposMap.set(gKey, { nombre: r.nombreLimpio || r.nombre || '—', phone: '', sesiones: [] });
+                var g = gruposMap.get(gKey);
+                if (!g.phone) g.phone = (r.phone || r.telefono || '').toString().replace(/\D/g,'');
+                g.sesiones.push(r);
             });
 
-            // Pendientes: el más próximo primero (ascendente)
-            pendientes.sort(function(a, b) {
-                if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
-                return (a.hora || "") < (b.hora || "") ? -1 : 1;
-            });
-            // Realizadas/canceladas: el más reciente primero (descendente)
-            realizadas.sort(function(a, b) {
-                if (a.fecha !== b.fecha) return a.fecha > b.fecha ? -1 : 1;
-                return (a.hora || "") > (b.hora || "") ? -1 : 1;
-            });
+            var MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            var DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
-            // Realizadas sin cancelados (para el mensaje WA)
-            var completadas = realizadas.filter(function(r) {
-                return (r.estado || r.status || "").toLowerCase() !== "cancelado";
-            });
-            completadas.sort(function(a, b) {
-                if (a.fecha !== b.fecha) return a.fecha > b.fecha ? -1 : 1;
-                return (a.hora || "") > (b.hora || "") ? -1 : 1;
-            });
+            var htmlTotal = '';
 
-            var sesiones = pendientes.concat(realizadas);
+            gruposMap.forEach(function(grupo) {
+                var sesiones = grupo.sesiones.sort(function(a,b){ return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : (a.hora||'') < (b.hora||'') ? -1 : 1; });
+                var phoneWA = grupo.phone;
+                var nombreDisplay = escapeHtml(grupo.nombre);
 
-            // Teléfono: primer registro que lo tenga
-            var phoneWA = "";
-            for (var _pi = 0; _pi < sesiones.length; _pi++) {
-                var _ph = ((sesiones[_pi].phone || sesiones[_pi].telefono || "")).toString().replace(/\D/g, "");
-                if (_ph) { phoneWA = _ph; break; }
-            }
+                // ── Resumen mensual ──
+                var byMonth = new Map();
+                sesiones.forEach(function(r) {
+                    var ym = (r.fecha||'').slice(0,7);
+                    if (!byMonth.has(ym)) byMonth.set(ym, []);
+                    byMonth.get(ym).push(r);
+                });
 
-            function _emojiServicio(srv) {
-                var s = (srv || "").toLowerCase();
-                if (s.includes("facial")) return "💆";
-                if (s.includes("crio")) return "❄️";
-                if (s.includes("mio")) return "💪";
-                if (s.includes("radio")) return "✨";
-                if (s.includes("corporal")) return "🌿";
-                if (s.includes("detox") || s.includes("drenaje") || s.includes("presoterapia")) return "🍃";
-                if (s.includes("jornada")) return "⭐";
-                return "🌸";
-            }
+                var resumenHTML = '';
+                byMonth.forEach(function(mes, ym) {
+                    var parts = ym.split('-');
+                    var yr = parseInt(parts[0]||0), mo = parseInt(parts[1]||1)-1;
+                    var mesLabel = (MESES_ES[mo] || ym) + ' ' + yr;
+                    var contSrv = new Map();
+                    mes.forEach(function(r) {
+                        var boxId = _grilla_boxDeReserva(r);
+                        var boxObj = (typeof GRILLA_BOXES !== 'undefined') ? GRILLA_BOXES.find(function(b){ return b.id === boxId; }) : null;
+                        var boxLabel = boxObj ? boxObj.title + ' · ' + boxObj.sub : (boxId ? boxId : 'Sin box');
+                        var key = escapeHtml(r.servicio || '—') + '||' + escapeHtml(boxLabel);
+                        if (!contSrv.has(key)) contSrv.set(key, { srv: escapeHtml(r.servicio||'—'), box: escapeHtml(boxLabel), n: 0 });
+                        contSrv.get(key).n++;
+                    });
+                    var filas = '';
+                    contSrv.forEach(function(v){ filas += "<div style='font-size:12px;color:rgba(180,230,210,0.75);margin-top:3px;'>· " + v.srv + " <strong>×" + v.n + "</strong> <span style='color:rgba(160,200,180,0.50);'>— " + v.box + "</span></div>"; });
+                    resumenHTML += "<div style='margin-bottom:8px;'>" +
+                        "<div style='font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:rgba(140,210,180,0.55);margin-bottom:3px;'>" + mesLabel + " — " + mes.length + " turno" + (mes.length!==1?'s':'') + "</div>" +
+                        filas + "</div>";
+                });
 
-            function _construirMsgWA(nombre, lista, tipo) {
-                var enc = tipo === "pendientes"
-                    ? "Hola *" + nombre + "*\n\nTe recuerdo tus proximas sesiones en _Espacio Mimar T_:\n\n"
-                    : "Hola *" + nombre + "*\n\nEstas son tus sesiones ya realizadas en _Espacio Mimar T_:\n\n";
-                var lineas = lista.map(function(r) {
-                    var fechaFmt = formatFechaLargaExport(r.fecha) || r.fecha || "Sin fecha";
-                    var hora = r.hora ? " a las " + r.hora + " hs" : "";
-                    return "- *" + fechaFmt + "*" + hora + "\n  _" + (r.servicio || "Sesion") + "_";
-                }).join("\n\n");
-                var pie = "\n\nY recordá que para cualquier duda, consulta o cambio de turno, podes escribirnos directamente a este mismo numero. Siempre estamos por aca con gusto.\n\nTambien podes gestionar tus turnos de forma autonoma, cuando quieras y desde cualquier dispositivo, a traves de nuestra plataforma web:\n*www.espaciomimart.com*\nAhi podes reservar, ver tus proximas sesiones y consultar tu historial, las 24 hs del dia.\n\n_Con mucho cariño, Espacio Mimar T_";
-                var cierre = tipo === "pendientes"
-                    ? "\n\n¡Te esperamos con muchas ganas y con todo el cariño de siempre!" + pie
-                    : "\n\n¡Gracias por elegirnos y por confiar en nosotras! Es un honor acompañarte en este camino. Te alentamos a seguir con constancia, porque los resultados se construyen sesion a sesion." + pie;
-                return enc + lineas + cierre;
-            }
+                // ── Construcción WA ──
+                var pendientes = [], completadas = [];
+                sesiones.forEach(function(r) {
+                    var isCan = (r.estado||r.status||'').toLowerCase() === 'cancelado';
+                    var finMs = new Date((r.fecha||'1970-01-01') + 'T' + (normalizarHora(r.hora)||'00:00') + ':00-03:00').getTime() + (r.duracionMinutos||60)*60000;
+                    if (!isCan && Date.now() < finMs) pendientes.push(r);
+                    else if (!isCan) completadas.push(r);
+                });
+                var _mkMsgWA = function(lista, tipo) {
+                    var hdr = tipo === 'pend'
+                        ? 'Hola *' + grupo.nombre + '*\n\nTe recuerdo tus proximas sesiones en _Espacio Mimar T_:\n\n'
+                        : 'Hola *' + grupo.nombre + '*\n\nEstas son tus sesiones ya realizadas en _Espacio Mimar T_:\n\n';
+                    var lineas = lista.map(function(r){
+                        var boxId = _grilla_boxDeReserva(r);
+                        var boxObj = (typeof GRILLA_BOXES !== 'undefined') ? GRILLA_BOXES.find(function(b){ return b.id===boxId; }) : null;
+                        var boxTxt = boxObj ? boxObj.title : '';
+                        return '- *' + (formatFechaLargaExport(r.fecha)||r.fecha||'') + '* a las ' + (r.hora||'—') + ' hs\n  _' + (r.servicio||'Sesión') + '_' + (boxTxt ? ' · ' + boxTxt : '');
+                    }).join('\n\n');
+                    return hdr + lineas + '\n\n_Espacio Mimar T_';
+                };
+                var urlPend = phoneWA && pendientes.length ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWA(pendientes,'pend')) : '';
+                var urlReal = phoneWA && completadas.length ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWA(completadas,'real')) : '';
+                var _btnWA = function(href,lbl,border,color,bg){
+                    return href
+                        ? "<a href='"+href+"' target='_blank' rel='noopener' style='flex:1;min-width:120px;text-align:center;padding:9px 12px;background:"+bg+";border:1.5px solid "+border+";border-radius:9px;color:"+color+";font-weight:700;font-size:12px;text-decoration:none;display:flex;align-items:center;justify-content:center;'>"+lbl+"</a>"
+                        : "<div style='flex:1;min-width:120px;padding:9px 12px;background:rgba(255,255,255,0.02);border:1.5px solid rgba(255,255,255,0.06);border-radius:9px;color:rgba(140,180,160,0.30);font-size:12px;text-align:center;'>"+lbl+"</div>";
+                };
 
-            var _nombreWA = sesiones[0].nombreLimpio || txt;
-            var urlPend = phoneWA && pendientes.length
-                ? "https://wa.me/549" + phoneWA + "?text=" + encodeURIComponent(_construirMsgWA(_nombreWA, pendientes, "pendientes"))
-                : "";
-            var urlReal = phoneWA && completadas.length
-                ? "https://wa.me/549" + phoneWA + "?text=" + encodeURIComponent(_construirMsgWA(_nombreWA, completadas, "realizadas"))
-                : "";
-
-            function _btnWA(href, label, colorBorder, colorText, colorBg, disabled) {
-                if (disabled) return "<div style='flex:1;min-width:150px;text-align:center;padding:10px 14px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.08);border-radius:10px;color:rgba(140,180,160,0.40);font-size:13px;font-weight:600;'>" + label + "</div>";
-                return "<a href='" + href + "' target='_blank' rel='noopener' style='flex:1;min-width:150px;text-align:center;padding:10px 14px;background:" + colorBg + ";border:1.5px solid " + colorBorder + ";border-radius:10px;color:" + colorText + ";font-weight:700;font-size:13px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;'>" + label + "</a>";
-            }
-
-            var primerNombre = escapeHtml(_nombreWA);
-            var noPhoneTag = phoneWA ? "" : "<span style='font-size:11px;color:rgba(220,120,100,0.80);margin-left:8px;'>⚠ Sin teléfono</span>";
-
-            var barraAcciones = "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;padding:14px;background:rgba(53,122,92,0.08);border-radius:14px;border:1px solid rgba(114,189,153,0.20);'>" +
-                "<div style='width:100%;margin-bottom:8px;display:flex;align-items:center;gap:6px;'>" +
-                "<span style='font-size:14px;font-weight:700;color:rgba(180,230,210,0.95);'>" + primerNombre + "</span>" + noPhoneTag +
-                "</div>" +
-                _btnWA(urlPend,
-                    "⏳ Enviar pendientes (" + pendientes.length + ")",
-                    "rgba(245,158,11,0.45)", "rgba(252,211,77,0.95)", "rgba(245,158,11,0.12)",
-                    !urlPend) +
-                _btnWA(urlReal,
-                    "✅ Enviar realizadas (" + completadas.length + ")",
-                    "rgba(114,189,153,0.45)", "rgba(140,220,185,0.95)", "rgba(53,122,92,0.12)",
-                    !urlReal) +
-                "</div>";
-
-            var html = barraAcciones + "<p style='font-size:13px;color:#4a90e2;font-weight:700;margin-bottom:10px;'>" + sesiones.length + " sesión(es) encontrada(s) &middot; <strong>" + primerNombre + "</strong></p>";
-
-            sesiones.forEach(function(r) {
-                var isCancelado = (r.estado || r.status || "").toLowerCase() === "cancelado";
-                var finTurno = calcFinTurnoAdmin(r);
-                var esPasada = isCancelado ? true : (finTurno ? ahora >= finTurno : true);
-                var estado = isCancelado ? "CANCELADO" : (esPasada ? "Realizada" : "Pendiente");
-                var color = isCancelado ? "rgba(230,80,80,0.90)" : (esPasada ? "rgba(114,189,153,0.90)" : "rgba(220,185,80,0.90)");
-                var bg = isCancelado ? "rgba(165,50,50,0.12)" : (esPasada ? "rgba(53,122,92,0.12)" : "rgba(165,130,30,0.10)");
-                var border = isCancelado ? "rgba(200,80,80,0.25)" : (esPasada ? "rgba(114,189,153,0.25)" : "rgba(200,160,50,0.25)");
-                var detalle = r.detalleSesion || r.notas || r.nota || "";
-                var fechaLarga = escapeHtml(formatFechaLargaExport(r.fecha) || r.fecha || "Sin fecha");
-
-                // Contador regresivo para pendientes
-                var contadorHtml = "";
-                if (!isCancelado && !esPasada && finTurno) {
-                    var inicio = new Date(finTurno.getTime() - 60 * 60 * 1000);
-                    var diffMs = inicio.getTime() - ahora.getTime();
-                    if (diffMs > 0) {
-                        var diffMin = Math.floor(diffMs / 60000);
-                        var txtCnt = diffMin < 60
-                            ? "⚠️ Falta menos de 1 hora"
-                            : ("Faltan " + Math.floor(diffMin / 60) + " hora" + (Math.floor(diffMin / 60) !== 1 ? "s" : ""));
-                        contadorHtml = "<div style='margin-top:6px;font-size:11px;font-weight:700;color:rgba(220,185,80,0.92);'>⏱ " + txtCnt + "</div>";
-                    } else {
-                        contadorHtml = "<div style='margin-top:6px;font-size:11px;font-weight:700;color:rgba(114,189,153,0.92);'>🟢 Turno en curso</div>";
-                    }
-                }
-
-                html += "<div style='background:rgba(255,255,255,0.06);border:1px solid " + border + ";border-left:4px solid " + color + ";border-radius:12px;padding:14px 16px;margin-bottom:10px;'>" +
-                    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;'>" +
-                    "<span style='font-weight:700;font-size:13px;color:rgba(180,230,210,0.92);'>" + fechaLarga + " &mdash; " + escapeHtml(r.hora || "Sin hora") + " hs</span>" +
-                    "<span style='background:" + bg + ";color:" + color + ";border:1px solid " + border + ";border-radius:999px;padding:3px 10px;font-size:11px;font-weight:800;'>" + estado + "</span>" +
+                // ── Header paciente ──
+                var pacHeader = "<div style='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;'>" +
+                    "<div><span style='font-size:15px;font-weight:800;color:rgba(200,240,225,0.96);'>" + nombreDisplay + "</span>" +
+                    (phoneWA ? "<span style='margin-left:8px;font-size:12px;color:rgba(140,210,180,0.60);'>· " + escapeHtml(phoneWA) + "</span>" : " <span style='font-size:11px;color:rgba(220,120,100,0.70);'>⚠ Sin teléfono</span>") +
                     "</div>" +
-                    "<div style='font-size:13px;margin-bottom:4px;'><strong>Servicio:</strong> " + escapeHtml(r.servicio || "—") + "</div>" +
-                    contadorHtml +
-                    (detalle
-                        ? "<div style='font-size:13px;margin-top:6px;background:rgba(53,122,92,0.10);border-radius:8px;padding:8px 10px;color:rgba(165,205,188,0.90);'>" + escapeHtml(detalle) + "</div>"
-                        : "<div style='font-size:12px;opacity:0.45;font-style:italic;margin-top:4px;'>Sin detalle de sesión</div>") +
+                    "<span style='font-size:12px;color:rgba(140,210,180,0.45);'>" + sesiones.length + " turno" + (sesiones.length!==1?'s':'') + " total</span>" +
                     "</div>";
+
+                var botonesWA = "<div style='display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;'>" +
+                    _btnWA(urlPend, "⏳ Enviar pendientes ("+pendientes.length+")", "rgba(245,158,11,0.45)", "rgba(252,211,77,0.95)", "rgba(245,158,11,0.10)") +
+                    _btnWA(urlReal, "✅ Enviar realizadas ("+completadas.length+")", "rgba(114,189,153,0.40)", "rgba(140,220,185,0.95)", "rgba(53,122,92,0.10)") +
+                    "</div>";
+
+                // ── Resumen mensual section ──
+                var secResumen = "<details open style='margin-bottom:14px;'>" +
+                    "<summary style='cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(140,200,175,0.60);margin-bottom:8px;list-style:none;'>▸ Resumen por mes</summary>" +
+                    "<div style='padding:10px 12px;background:rgba(53,122,92,0.06);border:1px solid rgba(114,189,153,0.12);border-radius:10px;'>" + resumenHTML + "</div></details>";
+
+                // ── Listado cronológico ──
+                var listHTML = '';
+                sesiones.forEach(function(r) {
+                    var isCan = (r.estado||r.status||'').toLowerCase() === 'cancelado';
+                    var finMs = new Date((r.fecha||'1970-01-01') + 'T' + (normalizarHora(r.hora)||'00:00') + ':00-03:00').getTime() + (r.duracionMinutos||60)*60000;
+                    var esPend = !isCan && Date.now() < finMs;
+                    var estadoLbl = isCan ? 'Cancelado' : (esPend ? 'Pendiente' : 'Realizado');
+                    var estatColor = isCan ? 'rgba(220,80,80,0.85)' : (esPend ? 'rgba(252,211,77,0.95)' : 'rgba(100,200,160,0.85)');
+                    var estatBg   = isCan ? 'rgba(165,50,50,0.10)' : (esPend ? 'rgba(165,130,30,0.10)' : 'rgba(53,122,92,0.12)');
+                    var leftCol   = isCan ? 'rgba(200,80,80,0.50)'  : (esPend ? 'rgba(240,180,40,0.60)'  : 'rgba(100,190,155,0.40)');
+                    // Fecha
+                    var parts = (r.fecha||'').split('-');
+                    var fechaDt = parts[0] && parts[1] && parts[2] ? new Date(+parts[0], +parts[1]-1, +parts[2]) : null;
+                    var diaEs = fechaDt ? DIAS_ES[fechaDt.getDay()] : '';
+                    var fechaFmt = parts[2] && parts[1] && parts[0] ? (parseInt(parts[2])+' '+(MESES_ES[+parts[1]-1]||'')+' '+parts[0]) : (r.fecha||'—');
+                    // Box
+                    var boxId = _grilla_boxDeReserva(r);
+                    var boxObj = (typeof GRILLA_BOXES !== 'undefined') ? GRILLA_BOXES.find(function(b){ return b.id===boxId; }) : null;
+                    var boxBadge = boxObj
+                        ? "<span style='display:inline-block;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:800;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(200,230,215,0.80);margin-left:6px;'>" + boxObj.icon + ' ' + boxObj.title + "</span>"
+                        : '';
+                    var detalle = r.detalleSesion || '';
+                    listHTML += "<div style='background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-left:3px solid " + leftCol + ";border-radius:10px;padding:11px 13px;margin-bottom:8px;'>" +
+                        "<div style='display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:5px;'>" +
+                        "<span style='font-size:13px;font-weight:700;color:rgba(190,230,215,0.92);'>" + escapeHtml(diaEs ? diaEs+' '+fechaFmt : fechaFmt) + " · " + escapeHtml(r.hora||'—') + " hs</span>" +
+                        "<span style='font-size:11px;font-weight:800;color:" + estatColor + ";background:" + estatBg + ";border-radius:999px;padding:2px 9px;white-space:nowrap;'>" + estadoLbl + "</span>" +
+                        "</div>" +
+                        "<div style='font-size:13px;color:rgba(200,235,220,0.85);'>" + escapeHtml(r.servicio||'—') + boxBadge + "</div>" +
+                        (detalle ? "<div style='font-size:12px;margin-top:6px;color:rgba(165,205,188,0.70);background:rgba(53,122,92,0.08);border-radius:7px;padding:6px 8px;'>" + escapeHtml(detalle) + "</div>" : "") +
+                        "</div>";
+                });
+
+                var secLista = "<details open style='margin-bottom:4px;'>" +
+                    "<summary style='cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(140,200,175,0.60);margin-bottom:8px;list-style:none;'>▸ Todos los turnos</summary>" +
+                    listHTML + "</details>";
+
+                htmlTotal += "<div style='background:rgba(255,255,255,0.04);border:1px solid rgba(114,189,153,0.15);border-radius:16px;padding:18px 16px;margin-bottom:18px;'>" +
+                    pacHeader + botonesWA + secResumen + secLista + "</div>";
             });
-            contenedor.innerHTML = html;
+
+            contenedor.innerHTML = htmlTotal;
         }, 300);
         
         window.buscarServiciosRealizadosInput = debounce(function() {
@@ -5811,7 +5822,7 @@
             if (s === 'grilla') window.renderGrilla();
             if (s === 'pedidos-kit') window.cargarPedidosKit();
             if (s === 'control') window.cargarSeccionControl();
-            if (s === 'servicios') gsCargar();
+            if (s === 'servicios') { gsCargar(); blRender(); }
             if (s === 'export') { window.cargarJornadaStatus?.(); expDepiInit(); }
             if (s === 'clientes') filtrarListadoClientes();
             if (s === 'calculadora') window.cargarCalculadora();
@@ -6516,6 +6527,31 @@
                 else document.body.removeAttribute("data-tema");
             } catch(e) {}
         }
+
+        /* ══ NOMBRES DE BOXES ══ */
+        const blRender = () => {
+            const el = document.getElementById('blabels-lista');
+            if (!el) return;
+            el.innerHTML = GRILLA_BOXES.map(b => `
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                    <span style="width:60px;font-size:12px;font-weight:700;color:rgba(200,240,220,0.70);">${b.title}</span>
+                    <input id="bl-sub-${b.id}" value="${escapeHtml(b.sub)}"
+                        style="flex:1;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.10);border-radius:8px;padding:7px 10px;color:rgba(220,242,232,0.92);font-size:13px;font-family:inherit;outline:none;">
+                </div>`).join('');
+        };
+        window.blGuardar = async () => {
+            const overrides = {};
+            GRILLA_BOXES.forEach(b => {
+                const val = (document.getElementById(`bl-sub-${b.id}`)?.value || '').trim();
+                if (val) { b.sub = val; overrides[b.id] = { sub: val }; }
+            });
+            try {
+                await setDoc(doc(db, 'configuracion', 'boxesLabels'), { boxes: overrides });
+                blRender();
+                renderGrilla?.();
+                mostrarAviso('✓ Nombres de boxes guardados');
+            } catch(e) { mostrarAviso('Error: ' + (e.code || e.message)); }
+        };
 
         /* ══ GRILLA DE SERVICIOS ══ */
         const gsRender = () => {
@@ -7648,12 +7684,21 @@
         // GRILLA DE BOXES — vista principal de agenda
         // ════════════════════════════════════════════════════════════════════
         const GRILLA_BOXES = [
-            { id:'b1', num:1, label:'Box 1',           title:'Box 1',       sub:'General',        icon:'⬜', bg:'rgba(200,140,220,0.12)', border:'rgba(200,140,220,0.28)' },
-            { id:'b2', num:2, label:'Corporal',         title:'Box 2',       sub:'Corporal',        icon:'💎', bg:'rgba(59,130,246,0.14)',  border:'rgba(59,130,246,0.28)' },
-            { id:'b3', num:3, label:'Facial',           title:'Box 3',       sub:'Facial',          icon:'✨', bg:'rgba(167,139,250,0.16)', border:'rgba(167,139,250,0.32)' },
-            { id:'b4', num:4, label:'Relax / Drenaje',  title:'Box 4',       sub:'Relax · Drenaje', icon:'🌿', bg:'rgba(52,211,153,0.13)',  border:'rgba(52,211,153,0.26)' },
-            { id:'bv', num:0, label:'Plataforma Vibr.', title:'Plat. Vibr.', sub:'Plataforma',      icon:'⚡', bg:'rgba(251,191,36,0.10)',  border:'rgba(251,191,36,0.24)' },
+            { id:'b1', num:1, label:'Box 1', title:'Box 1', sub:'General Corporal', icon:'⬜', bg:'rgba(200,140,220,0.12)', border:'rgba(200,140,220,0.28)' },
+            { id:'b2', num:2, label:'Box 2', title:'Box 2', sub:'Corporal',          icon:'💎', bg:'rgba(59,130,246,0.14)',  border:'rgba(59,130,246,0.28)' },
+            { id:'b3', num:3, label:'Box 3', title:'Box 3', sub:'Facial',            icon:'✨', bg:'rgba(167,139,250,0.16)', border:'rgba(167,139,250,0.32)' },
+            { id:'b4', num:4, label:'Box 4', title:'Box 4', sub:'Relax Corporal',    icon:'🌿', bg:'rgba(52,211,153,0.13)',  border:'rgba(52,211,153,0.26)' },
         ];
+        // Aplica overrides de labels guardados en Firestore (se parchean después de cargar)
+        const _aplicarBoxLabels = (overrides) => {
+            if (!overrides) return;
+            GRILLA_BOXES.forEach(b => {
+                const ov = overrides[b.id];
+                if (!ov) return;
+                if (ov.sub  !== undefined) b.sub  = ov.sub;
+                if (ov.icon !== undefined) b.icon = ov.icon;
+            });
+        };
 
         const DEFAULT_WEEKLY_BLOCKS = {};  // sin bloqueos automáticos — el admin decide todo
         const _esHoraComercial = (hora) =>
