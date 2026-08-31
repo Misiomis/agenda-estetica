@@ -7641,16 +7641,9 @@
             { id:'bv', num:0, label:'Plataforma Vibr.', title:'Plat. Vibr.', sub:'Plataforma',      icon:'⚡', bg:'rgba(251,191,36,0.10)',  border:'rgba(251,191,36,0.24)' },
         ];
 
-        // 0=Dom 1=Lun 2=Mar 3=Mié 4=Jue 5=Vie 6=Sáb
-        // 'ALL' = día completo bloqueado; array de [desde,hasta] = rangos bloqueados
-        const DEFAULT_WEEKLY_BLOCKS = {
-            0: 'ALL',                          // Domingo
-            1: [['08:00','11:30']],            // Lunes: mañana bloqueada
-            3: [['08:00','11:30']],            // Miércoles: mañana bloqueada
-            6: [['16:00','17:30']],            // Sábado: inicio de tarde bloqueado
-        };
+        const DEFAULT_WEEKLY_BLOCKS = {};  // sin bloqueos automáticos — el admin decide todo
         const _esHoraComercial = (hora) =>
-            (hora >= '08:00' && hora <= '11:30') || (hora >= '16:00' && hora <= '20:00');
+            (hora >= '08:00' && hora <= '23:45') || hora === '00:00';
         const _esDefaultBloqueado = (hora, dayOfWeek) => {
             if (!_esHoraComercial(hora)) return true;
             const rules = DEFAULT_WEEKLY_BLOCKS[dayOfWeek];
@@ -7667,13 +7660,13 @@
 
         const _grilla_slots = (() => {
             const s = [];
-            for (let h = 7; h <= 21; h++) {
+            for (let h = 7; h <= 23; h++) {
                 for (let m = 0; m < 60; m += 15) {
-                    if (h === 21 && m > 30) continue;
                     const hora = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
                     s.push({ hora, es30: m === 0 || m === 30 });
                 }
             }
+            s.push({ hora: '00:00', es30: true });
             return s;
         })();
 
@@ -7866,7 +7859,7 @@
                 if (!isComercial && !_grilla_extraSlots) continue;
 
                 // Separador visual + mini-header entre mañana y tarde
-                if (!_grilla_extraSlots && lastHora && lastHora <= '11:30' && hora >= '16:00') {
+                if (lastHora && lastHora <= '11:30' && hora >= '16:00') {
                     rows.push(`<tr class="grilla-sep-row"><td colspan="${COLS}" class="grilla-sep-cell">· · ·</td></tr>`);
                     const miniCols = GRILLA_BOXES.map(b =>
                         `<td style="background:${b.bg};border-color:${b.border}">
@@ -7874,6 +7867,10 @@
                         </td>`
                     ).join('');
                     rows.push(`<tr class="grilla-mini-header"><td class="grilla-td-hora" style="font-size:9px;color:rgba(165,205,188,0.25)">———</td>${miniCols}</tr>`);
+                }
+                // Separador entre tarde y noche
+                if (lastHora && lastHora <= '20:45' && hora >= '21:00') {
+                    rows.push(`<tr class="grilla-sep-row"><td colspan="${COLS}" class="grilla-sep-cell" style="color:rgba(165,205,188,0.20)">· · ·</td></tr>`);
                 }
                 lastHora = hora;
 
