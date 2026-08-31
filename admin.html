@@ -5005,7 +5005,7 @@
 
             // ── Normalización y matching fuzzy por palabras ──
             var _norm = function(s) { return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); };
-            var qWords = _norm(raw).split(/\s+/).filter(function(w){ return w.length >= 2; });
+            var qWords = _norm(raw).split(/\s+/).filter(function(w){ return w.length >= 1; });
             var _matchPaciente = function(r) {
                 var nom = _norm(r.nombreLimpio || r.nombre || '');
                 if (!nom) return false;
