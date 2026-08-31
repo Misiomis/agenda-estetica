@@ -838,6 +838,20 @@
             font-size: 9px; color: rgba(165,205,188,0.55);
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
         }
+        /* Indicadores de circuito multi-box */
+        .gc-sigue {
+            display:block; margin-top:3px;
+            font-size:8px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+            color:rgba(200,150,8,0.80); line-height:1.2;
+        }
+        .gc-ya-sede {
+            display:block; margin-top:3px;
+            font-size:8px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+            color:rgba(200,150,8,0.80); line-height:1.2;
+        }
+        .grilla-celda-ocupada.gc-continua {
+            border-left: 2.5px solid rgba(200,150,8,0.75) !important;
+        }
         .grilla-celda-bloq {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             height: 100%; cursor: pointer; border-radius: 7px; gap: 1px;
@@ -7813,6 +7827,36 @@
             // Helper: minutos desde medianoche
             const _toMin = h => { const [hh,mm]=(h||'00:00').split(':').map(Number); return hh*60+mm; };
 
+            // ── Circuito multi-box: detectar pacientes que cambian de box el mismo día ──
+            // Clave de identidad: DNI prioritario (0 margen de error), luego nombre completo exacto
+            const _ck = r => (r.dni || r.clienteDni || r.documento || '').toString().trim() ||
+                             ((r.nombreLimpio || r.nombre || '').trim().toLowerCase());
+            const _cgr = new Map();
+            del_dia.forEach(r => {
+                const box = _grilla_boxDeReserva(r); if (!box) return;
+                const k = _ck(r); if (!k || k.length < 2) return;
+                if (!_cgr.has(k)) _cgr.set(k, []);
+                _cgr.get(k).push({ r, box });
+            });
+            // circuitMap: reservaId → { isTarget, nextBox, nextHora }
+            const _cm = new Map();
+            _cgr.forEach(entries => {
+                if (new Set(entries.map(e => e.box)).size < 2) return;
+                entries.sort((a, b) => normalizarHora(a.r.hora) < normalizarHora(b.r.hora) ? -1 : 1);
+                entries.forEach((e, i) => {
+                    const isTarget = i > 0 && entries[i-1].box !== e.box;
+                    const next     = i < entries.length - 1 && entries[i].box !== entries[i+1].box ? entries[i+1] : null;
+                    if (isTarget || next) {
+                        _cm.set(e.r.id, {
+                            isTarget,
+                            nextBox:  next?.box  ?? null,
+                            nextHora: next ? normalizarHora(next.r.hora) : null,
+                        });
+                    }
+                });
+            });
+            // ────────────────────────────────────────────────────────────────────
+
             const COLS = GRILLA_BOXES.length + 1;
             const rows = [];
             let lastHora = null;
@@ -7853,9 +7897,20 @@
                     if (res) {
                         const nom = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
                         const srv = escapeHtml((res.servicio || '').slice(0,22));
-                        inner = `<div class="grilla-celda-ocupada" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv}">
+                        const circ = _cm.get(res.id);
+                        const circCls = circ?.isTarget ? ' gc-continua' : '';
+                        let circHtml = '';
+                        if (circ?.isTarget) {
+                            circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
+                        }
+                        if (circ?.nextBox) {
+                            const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
+                            circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
+                        }
+                        inner = `<div class="grilla-celda-ocupada${circCls}" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv}">
                             <span class="grilla-paciente-nombre">${nom}</span>
                             <span class="grilla-paciente-servicio">${srv}</span>
+                            ${circHtml}
                         </div>`;
                     } else if (resCubre) {
                         const nom = escapeHtml((resCubre.nombreLimpio || resCubre.nombre || '—').split(' ').slice(0,2).join(' '));
@@ -7885,109 +7940,9 @@
                 ? rows.join('')
                 : `<tr><td colspan="${COLS}" style="text-align:center;padding:40px;color:rgba(140,200,170,0.35);font-size:13px;">Sin turnos · hacé click en + para agregar</td></tr>`;
 
-            _grilla_flechasCambioBox(del_dia);
         };
-        /* ── Flechas de cambio de box ── */
-        const _grilla_flechasCambioBox = (del_dia) => {
-            document.getElementById('_gfx_flechas')?.remove();
-            if (!del_dia?.length) return;
-
-            const grupos = new Map();
-            del_dia.forEach(r => {
-                const box = _grilla_boxDeReserva(r);
-                if (!box) return;
-                const nom = ((r.nombreLimpio || r.nombre || '').trim())
-                    .split(/\s+/).slice(0,2).join(' ').toLowerCase();
-                if (nom.length < 3) return;
-                if (!grupos.has(nom)) grupos.set(nom, []);
-                grupos.get(nom).push({ r, box });
-            });
-
-            const transiciones = [];
-            grupos.forEach(entries => {
-                if (new Set(entries.map(e => e.box)).size < 2) return;
-                entries.sort((a, b) => normalizarHora(a.r.hora) < normalizarHora(b.r.hora) ? -1 : 1);
-                for (let i = 0; i < entries.length - 1; i++) {
-                    if (entries[i].box !== entries[i+1].box)
-                        transiciones.push({ from: entries[i].r, to: entries[i+1].r });
-                }
-            });
-            if (!transiciones.length) return;
-
-            requestAnimationFrame(() => {
-                document.getElementById('_gfx_flechas')?.remove();
-                const wrap = document.querySelector('.grilla-scroll-wrap');
-                if (!wrap) return;
-                const wRect = wrap.getBoundingClientRect();
-                const tbl = document.getElementById('grilla-table');
-                const sw  = tbl ? tbl.offsetWidth  : wrap.scrollWidth;
-                const sh  = tbl ? tbl.offsetHeight : wrap.clientHeight + 200;
-
-                const NS  = 'http://www.w3.org/2000/svg';
-                const svg = document.createElementNS(NS, 'svg');
-                svg.id = '_gfx_flechas';
-                svg.style.cssText = `position:absolute;top:0;left:0;width:${sw}px;height:${sh}px;pointer-events:none;z-index:100;overflow:visible;`;
-
-                // Arrowhead apuntando hacia abajo (dirección final del path ortogonal)
-                svg.innerHTML = `<defs>
-                    <marker id="_gfxA" markerWidth="5" markerHeight="5" refX="2.5" refY="4.5" orient="auto">
-                        <polygon points="0 0,5 0,2.5 5" fill="#c8960a" fill-opacity="0.82"/>
-                    </marker>
-                    <marker id="_gfxAL" markerWidth="5" markerHeight="5" refX="0.5" refY="2.5" orient="auto">
-                        <polygon points="5 0,5 5,0 2.5" fill="#c8960a" fill-opacity="0.82"/>
-                    </marker>
-                    <marker id="_gfxAR" markerWidth="5" markerHeight="5" refX="4.5" refY="2.5" orient="auto">
-                        <polygon points="0 0,0 5,5 2.5" fill="#c8960a" fill-opacity="0.82"/>
-                    </marker>
-                </defs>`;
-
-                transiciones.forEach(({ from, to }) => {
-                    const fromEls = document.querySelectorAll(`[onclick="grillaCeldaOcupada('${from.id}')"]`);
-                    const toEls   = document.querySelectorAll(`[onclick="grillaCeldaOcupada('${to.id}')"]`);
-                    if (!fromEls.length || !toEls.length) return;
-                    const fromTd = fromEls[fromEls.length - 1].closest('td');
-                    const toTd   = toEls[0].closest('td');
-                    if (!fromTd || !toTd) return;
-
-                    const fR = fromTd.getBoundingClientRect();
-                    const tR = toTd.getBoundingClientRect();
-
-                    // Target está a la derecha o izquierda del source?
-                    const goRight = tR.left > fR.right - 4;
-
-                    // Puntos de salida y entrada EN los bordes de las celdas
-                    const sx = (goRight ? fR.right : fR.left) - wRect.left + wrap.scrollLeft;
-                    const sy = (fR.top + fR.bottom) / 2 - wRect.top;
-                    const ex = (goRight ? tR.left : tR.right) - wRect.left + wrap.scrollLeft;
-                    const ey = (tR.top + tR.bottom) / 2 - wRect.top;
-
-                    // Borde de fila entre el final del source y el inicio del target
-                    const rowBorderY = fR.bottom - wRect.top;
-
-                    // Path ortogonal (L-shape o Z-shape) viajando POR los bordes del grid:
-                    // 1. Bajar por el borde lateral de la celda source hasta el borde de fila
-                    // 2. Ir horizontal por ese borde de fila hasta la columna destino
-                    // 3. Bajar hasta el centro de la celda destino
-                    const pts = [
-                        `${sx.toFixed(1)},${sy.toFixed(1)}`,
-                        `${sx.toFixed(1)},${rowBorderY.toFixed(1)}`,
-                        `${ex.toFixed(1)},${rowBorderY.toFixed(1)}`,
-                        `${ex.toFixed(1)},${ey.toFixed(1)}`,
-                    ];
-                    const d = 'M' + pts.join(' L');
-
-                    const g = document.createElementNS(NS, 'g');
-                    // Glow suave
-                    g.innerHTML = `
-                        <polyline points="${pts.join(' ')}" stroke="#a07000" stroke-width="3" fill="none" stroke-opacity="0.13" stroke-linejoin="miter" stroke-linecap="square"/>
-                        <polyline points="${pts.join(' ')}" stroke="#c8960a" stroke-width="1.3" fill="none" stroke-opacity="0.78" stroke-linejoin="miter" stroke-linecap="square" marker-end="url(#_gfxA)"/>
-                        <circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="2.2" fill="#c8960a" fill-opacity="0.75"/>`;
-                    svg.appendChild(g);
-                });
-
-                wrap.appendChild(svg);
-            });
-        };
+        // Limpiar SVG de flechas si quedó de versión anterior
+        document.getElementById('_gfx_flechas')?.remove();
         // ══ FIN GRILLA ══
 
         /* ══ EXPORTAR ADMIN DEPILACIÓN ══ */
