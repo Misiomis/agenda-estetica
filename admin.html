@@ -5061,27 +5061,7 @@
                     byMonth.get(ym).push(r);
                 });
 
-                var resumenHTML = '';
-                byMonth.forEach(function(mes, ym) {
-                    var parts = ym.split('-');
-                    var yr = parseInt(parts[0]||0), mo = parseInt(parts[1]||1)-1;
-                    var mesLabel = (MESES_ES[mo] || ym) + ' ' + yr;
-                    var contSrv = new Map();
-                    var _bxNums = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
-                    mes.forEach(function(r) {
-                        var boxId = _grilla_boxDeReserva(r);
-                        var boxObj = (typeof GRILLA_BOXES !== 'undefined') ? GRILLA_BOXES.find(function(b){ return b.id === boxId; }) : null;
-                        var boxLabel = boxObj ? boxObj.title : (boxId ? (_bxNums[boxId] || '') : '');
-                        var key = escapeHtml(r.servicio || '—') + '||' + escapeHtml(boxLabel);
-                        if (!contSrv.has(key)) contSrv.set(key, { srv: escapeHtml(r.servicio||'—'), box: escapeHtml(boxLabel), n: 0 });
-                        contSrv.get(key).n++;
-                    });
-                    var filas = '';
-                    contSrv.forEach(function(v){ filas += "<div style='font-size:12px;color:rgba(180,230,210,0.75);margin-top:3px;'>· " + v.srv + " <strong>×" + v.n + "</strong>" + (v.box ? "<span style='color:rgba(160,200,180,0.50);'> — " + v.box + "</span>" : '') + "</div>"; });
-                    resumenHTML += "<div style='margin-bottom:8px;'>" +
-                        "<div style='font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:rgba(140,210,180,0.55);margin-bottom:3px;'>" + mesLabel + " — " + mes.length + " turno" + (mes.length!==1?'s':'') + "</div>" +
-                        filas + "</div>";
-                });
+                // byMonth se usa en los mensajes WA; resumenHTML ya no se muestra en pantalla
 
                 // ── Construcción WA ──
                 var pendientes = [], completadas = [];
@@ -5183,46 +5163,69 @@
                     "<summary style='cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(140,200,175,0.60);margin-bottom:8px;list-style:none;'>▸ Resumen por mes</summary>" +
                     "<div style='padding:10px 12px;background:rgba(53,122,92,0.06);border:1px solid rgba(114,189,153,0.12);border-radius:10px;'>" + resumenHTML + "</div></details>";
 
-                // ── Listado cronológico ──
-                var listHTML = '';
-                sesiones.forEach(function(r) {
-                    var isCan = (r.estado||r.status||'').toLowerCase() === 'cancelado';
-                    var finMs = new Date((r.fecha||'1970-01-01') + 'T' + (normalizarHora(r.hora)||'00:00') + ':00-03:00').getTime() + (r.duracionMinutos||60)*60000;
-                    var esPend = !isCan && Date.now() < finMs;
-                    var estadoLbl = isCan ? 'Cancelado' : (esPend ? 'Pendiente' : 'Realizado');
-                    var estatColor = isCan ? 'rgba(220,80,80,0.85)' : (esPend ? 'rgba(252,211,77,0.95)' : 'rgba(100,200,160,0.85)');
-                    var estatBg   = isCan ? 'rgba(165,50,50,0.10)' : (esPend ? 'rgba(165,130,30,0.10)' : 'rgba(53,122,92,0.12)');
-                    var leftCol   = isCan ? 'rgba(200,80,80,0.50)'  : (esPend ? 'rgba(240,180,40,0.60)'  : 'rgba(100,190,155,0.40)');
-                    // Fecha
-                    var parts = (r.fecha||'').split('-');
-                    var fechaDt = parts[0] && parts[1] && parts[2] ? new Date(+parts[0], +parts[1]-1, +parts[2]) : null;
-                    var diaEs = fechaDt ? DIAS_ES[fechaDt.getDay()] : '';
-                    var fechaFmt = parts[2] && parts[1] && parts[0] ? (parseInt(parts[2])+' '+(MESES_ES[+parts[1]-1]||'')+' '+parts[0]) : (r.fecha||'—');
-                    // Box
-                    var _bxNumsT = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
+                // ── Helper de card de sesión ──
+                var _bxNumsT = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
+                var _boxBadgeHtml = function(r) {
                     var boxId = _grilla_boxDeReserva(r);
                     var boxObj = (typeof GRILLA_BOXES !== 'undefined') ? GRILLA_BOXES.find(function(b){ return b.id===boxId; }) : null;
-                    var _boxTitle = boxObj ? (boxObj.icon + ' ' + boxObj.title) : (boxId ? (_bxNumsT[boxId] || '') : '');
-                    var boxBadge = _boxTitle
-                        ? "<span style='display:inline-block;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:800;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(200,230,215,0.80);margin-left:6px;'>" + _boxTitle + "</span>"
-                        : '';
+                    var t = boxObj ? (boxObj.icon + ' ' + boxObj.title) : (boxId ? (_bxNumsT[boxId]||'') : '');
+                    return t ? "<span style='display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:800;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(200,230,215,0.80);margin-left:6px;vertical-align:middle;'>" + t + "</span>" : '';
+                };
+                var _fechaDisplay = function(r, conAnio) {
+                    var parts = (r.fecha||'').split('-');
+                    var fechaDt = parts[0]&&parts[1]&&parts[2] ? new Date(+parts[0],+parts[1]-1,+parts[2]) : null;
+                    var diaEs = fechaDt ? DIAS_ES[fechaDt.getDay()] : '';
+                    var d = parts[2] ? parseInt(parts[2]) : '';
+                    var m = parts[1] ? (MESES_ES[+parts[1]-1]||'') : '';
+                    return diaEs ? (diaEs + ' ' + d + ' de ' + m + (conAnio?' '+parts[0]:'')) : (d+' de '+m+(conAnio?' '+parts[0]:''));
+                };
+
+                // ── PRÓXIMAS SESIONES ──
+                var pendHTML = '';
+                pendientes.forEach(function(r) {
                     var detalle = r.detalleSesion || '';
-                    listHTML += "<div style='background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-left:3px solid " + leftCol + ";border-radius:10px;padding:11px 13px;margin-bottom:8px;'>" +
-                        "<div style='display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:5px;'>" +
-                        "<span style='font-size:13px;font-weight:700;color:rgba(190,230,215,0.92);'>" + escapeHtml(diaEs ? diaEs+' '+fechaFmt : fechaFmt) + " · " + escapeHtml(r.hora||'—') + " hs</span>" +
-                        "<span style='font-size:11px;font-weight:800;color:" + estatColor + ";background:" + estatBg + ";border-radius:999px;padding:2px 9px;white-space:nowrap;'>" + estadoLbl + "</span>" +
-                        "</div>" +
-                        "<div style='font-size:13px;color:rgba(200,235,220,0.85);'>" + escapeHtml(r.servicio||'—') + boxBadge + "</div>" +
-                        (detalle ? "<div style='font-size:12px;margin-top:6px;color:rgba(165,205,188,0.70);background:rgba(53,122,92,0.08);border-radius:7px;padding:6px 8px;'>" + escapeHtml(detalle) + "</div>" : "") +
+                    pendHTML += "<div style='background:rgba(200,165,30,0.05);border:1px solid rgba(240,180,40,0.14);border-left:3px solid rgba(252,211,77,0.50);border-radius:10px;padding:12px 14px;margin-bottom:8px;'>" +
+                        "<div style='font-size:13px;font-weight:700;color:rgba(200,230,215,0.96);margin-bottom:3px;'>" + escapeHtml(_fechaDisplay(r,false)) + " · " + escapeHtml(r.hora||'—') + " hs</div>" +
+                        "<div style='font-size:13px;color:rgba(190,230,215,0.80);'>" + escapeHtml(r.servicio||'—') + _boxBadgeHtml(r) + "</div>" +
+                        (detalle ? "<div style='font-size:11px;margin-top:6px;color:rgba(160,200,185,0.60);background:rgba(53,122,92,0.07);border-radius:7px;padding:5px 8px;'>" + escapeHtml(detalle) + "</div>" : "") +
                         "</div>";
                 });
+                var secPendientes = pendientes.length
+                    ? "<div style='margin-bottom:16px;'><div style='font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:rgba(252,211,77,0.60);margin-bottom:10px;'>Proximas sesiones (" + pendientes.length + ")</div>" + pendHTML + "</div>"
+                    : '';
 
-                var secLista = "<details open style='margin-bottom:4px;'>" +
-                    "<summary style='cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(140,200,175,0.60);margin-bottom:8px;list-style:none;'>▸ Todos los turnos</summary>" +
-                    listHTML + "</details>";
+                // ── REALIZADAS por mes (colapsable) ──
+                var byMonthComp = new Map();
+                completadas.forEach(function(r) {
+                    var ym = (r.fecha||'').slice(0,7);
+                    if (!byMonthComp.has(ym)) byMonthComp.set(ym, []);
+                    byMonthComp.get(ym).push(r);
+                });
+                var realizadasMesesHTML = '';
+                byMonthComp.forEach(function(mes, ym) {
+                    var pts = ym.split('-');
+                    var yr = parseInt(pts[0]||0), mo = parseInt(pts[1]||1)-1;
+                    var mesLabel = (MESES_ES[mo]||ym).toUpperCase() + ' ' + yr;
+                    var filasMes = '';
+                    mes.sort(function(a,b){return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1;}).forEach(function(r) {
+                        var detalle = r.detalleSesion || '';
+                        filasMes += "<div style='padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);'>" +
+                            "<div style='font-size:12px;font-weight:600;color:rgba(180,220,205,0.85);'>" + escapeHtml(_fechaDisplay(r,false)) + " · " + escapeHtml(r.hora||'—') + " hs</div>" +
+                            "<div style='font-size:12px;color:rgba(160,210,190,0.70);margin-top:2px;'>" + escapeHtml(r.servicio||'—') + _boxBadgeHtml(r) + "</div>" +
+                            (detalle ? "<div style='font-size:11px;margin-top:4px;color:rgba(140,190,170,0.55);'>" + escapeHtml(detalle) + "</div>" : "") +
+                            "</div>";
+                    });
+                    realizadasMesesHTML += "<details style='margin-bottom:6px;'>" +
+                        "<summary style='cursor:pointer;list-style:none;font-size:11px;font-weight:800;letter-spacing:.07em;color:rgba(140,200,175,0.65);padding:8px 10px;background:rgba(53,122,92,0.06);border:1px solid rgba(114,189,153,0.10);border-radius:8px;user-select:none;'>" +
+                        "▸ " + mesLabel + " &mdash; " + mes.length + " sesion" + (mes.length!==1?'es':'') +
+                        "</summary><div style='padding:0 10px;'>" + filasMes + "</div></details>";
+                });
+                var secRealizadas = completadas.length
+                    ? "<details style='margin-bottom:4px;'><summary style='cursor:pointer;list-style:none;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:rgba(100,190,155,0.60);margin-bottom:8px;padding:4px 0;user-select:none;'>▸ Realizadas (" + completadas.length + ")</summary><div style='margin-top:10px;'>" + realizadasMesesHTML + "</div></details>"
+                    : '';
 
                 htmlTotal += "<div style='background:rgba(255,255,255,0.04);border:1px solid rgba(114,189,153,0.15);border-radius:16px;padding:18px 16px;margin-bottom:18px;'>" +
-                    pacHeader + botonesWA + secResumen + secLista + "</div>";
+                    pacHeader + botonesWA + secPendientes + secRealizadas + "</div>";
             });
 
             contenedor.innerHTML = htmlTotal;
