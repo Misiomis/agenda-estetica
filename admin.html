@@ -2451,8 +2451,8 @@
             });
             if (!horas.size) {
                 // Sistema de turnos de 30 minutos
-                ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30',
-                 '15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00'].forEach(h => horas.add(h));
+                ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00',
+                 '14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00','22:30','23:00','23:30'].forEach(h => horas.add(h));
             }
             return [...horas].sort((a, b) => a.localeCompare(b));
         };
@@ -7643,7 +7643,7 @@
 
         const DEFAULT_WEEKLY_BLOCKS = {};  // sin bloqueos automáticos — el admin decide todo
         const _esHoraComercial = (hora) =>
-            (hora >= '08:00' && hora <= '13:00') || (hora >= '16:00' && hora <= '23:45') || hora === '00:00';
+            (hora >= '08:00' && hora <= '13:00') || (hora >= '14:00' && hora <= '23:45') || hora === '00:00';
         const _esDefaultBloqueado = (hora, dayOfWeek) => {
             if (!_esHoraComercial(hora)) return true;
             const rules = DEFAULT_WEEKLY_BLOCKS[dayOfWeek];
@@ -7859,7 +7859,7 @@
                 if (!isComercial && !_grilla_extraSlots) continue;
 
                 // Separador visual + mini-header entre mañana y tarde
-                if (lastHora && lastHora <= '13:00' && hora >= '16:00') {
+                if (lastHora && lastHora <= '13:00' && hora >= '14:00') {
                     rows.push(`<tr class="grilla-sep-row"><td colspan="${COLS}" class="grilla-sep-cell">· · ·</td></tr>`);
                     const miniCols = GRILLA_BOXES.map(b =>
                         `<td style="background:${b.bg};border-color:${b.border}">
