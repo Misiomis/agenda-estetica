@@ -5044,16 +5044,17 @@
                     var yr = parseInt(parts[0]||0), mo = parseInt(parts[1]||1)-1;
                     var mesLabel = (MESES_ES[mo] || ym) + ' ' + yr;
                     var contSrv = new Map();
+                    var _bxNums = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
                     mes.forEach(function(r) {
                         var boxId = _grilla_boxDeReserva(r);
                         var boxObj = (typeof GRILLA_BOXES !== 'undefined') ? GRILLA_BOXES.find(function(b){ return b.id === boxId; }) : null;
-                        var boxLabel = boxObj ? boxObj.title + ' · ' + boxObj.sub : (boxId ? boxId : 'Sin box');
+                        var boxLabel = boxObj ? boxObj.title : (boxId ? (_bxNums[boxId] || '') : '');
                         var key = escapeHtml(r.servicio || '—') + '||' + escapeHtml(boxLabel);
                         if (!contSrv.has(key)) contSrv.set(key, { srv: escapeHtml(r.servicio||'—'), box: escapeHtml(boxLabel), n: 0 });
                         contSrv.get(key).n++;
                     });
                     var filas = '';
-                    contSrv.forEach(function(v){ filas += "<div style='font-size:12px;color:rgba(180,230,210,0.75);margin-top:3px;'>· " + v.srv + " <strong>×" + v.n + "</strong> <span style='color:rgba(160,200,180,0.50);'>— " + v.box + "</span></div>"; });
+                    contSrv.forEach(function(v){ filas += "<div style='font-size:12px;color:rgba(180,230,210,0.75);margin-top:3px;'>· " + v.srv + " <strong>×" + v.n + "</strong>" + (v.box ? "<span style='color:rgba(160,200,180,0.50);'> — " + v.box + "</span>" : '') + "</div>"; });
                     resumenHTML += "<div style='margin-bottom:8px;'>" +
                         "<div style='font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:rgba(140,210,180,0.55);margin-bottom:3px;'>" + mesLabel + " — " + mes.length + " turno" + (mes.length!==1?'s':'') + "</div>" +
                         filas + "</div>";
@@ -5121,10 +5122,12 @@
                     var diaEs = fechaDt ? DIAS_ES[fechaDt.getDay()] : '';
                     var fechaFmt = parts[2] && parts[1] && parts[0] ? (parseInt(parts[2])+' '+(MESES_ES[+parts[1]-1]||'')+' '+parts[0]) : (r.fecha||'—');
                     // Box
+                    var _bxNumsT = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
                     var boxId = _grilla_boxDeReserva(r);
                     var boxObj = (typeof GRILLA_BOXES !== 'undefined') ? GRILLA_BOXES.find(function(b){ return b.id===boxId; }) : null;
-                    var boxBadge = boxObj
-                        ? "<span style='display:inline-block;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:800;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(200,230,215,0.80);margin-left:6px;'>" + boxObj.icon + ' ' + boxObj.title + "</span>"
+                    var _boxTitle = boxObj ? (boxObj.icon + ' ' + boxObj.title) : (boxId ? (_bxNumsT[boxId] || '') : '');
+                    var boxBadge = _boxTitle
+                        ? "<span style='display:inline-block;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:800;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(200,230,215,0.80);margin-left:6px;'>" + _boxTitle + "</span>"
                         : '';
                     var detalle = r.detalleSesion || '';
                     listHTML += "<div style='background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-left:3px solid " + leftCol + ";border-radius:10px;padding:11px 13px;margin-bottom:8px;'>" +
