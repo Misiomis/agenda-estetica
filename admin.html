@@ -5106,31 +5106,42 @@
                 var urlPend = phoneWA && pendientes.length ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWA(pendientes,'pend')) : '';
                 var urlReal = phoneWA && completadas.length ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWA(completadas,'real')) : '';
 
-                // ── Mensaje detallado completo (lista numerada, sin emojis) ──
+                // ── Mensaje detallado completo ──
                 var _mkMsgCompleto = function() {
                     var _bxF = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
-                    var msg = 'Hola ' + grupo.nombre + '!\n\nSesiones en Espacio Mimar T:\n';
-                    var n = 1;
-                    byMonth.forEach(function(mes, ym) {
-                        var pts = ym.split('-');
-                        var yr = parseInt(pts[0]||0), mo = parseInt(pts[1]||1)-1;
-                        msg += '\n' + (MESES_ES[mo]||ym).toUpperCase() + ' ' + yr + ' (' + mes.length + ' sesion' + (mes.length!==1?'es':'') + ')\n';
-                        var ord = mes.slice().sort(function(a,b){return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1;});
+                    var _diasFull = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+                    var _mesFull = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+                    var byMonthArr = [];
+                    byMonth.forEach(function(mes, ym) { byMonthArr.push({ym:ym, mes:mes}); });
+                    // Header: menciona el mes si es uno solo
+                    var hdr;
+                    if (byMonthArr.length === 1) {
+                        var p0 = byMonthArr[0].ym.split('-');
+                        hdr = 'Hola ' + grupo.nombre + ' \uD83D\uDE0A\n\nTe compartimos tus sesiones de ' + (_mesFull[+p0[1]-1]||'') + ' ' + p0[0] + ' en Espacio Mimar T:\n';
+                    } else {
+                        hdr = 'Hola ' + grupo.nombre + ' \uD83D\uDE0A\n\nTe compartimos tus sesiones en Espacio Mimar T:\n';
+                    }
+                    var n = 1, cuerpo = '', totalSes = 0;
+                    byMonthArr.forEach(function(entry) {
+                        var pts = entry.ym.split('-');
+                        var mo = +pts[1]-1, yr = pts[0];
+                        if (byMonthArr.length > 1) cuerpo += '\n' + (_mesFull[mo]||'').toUpperCase() + ' ' + yr + ':\n';
+                        var ord = entry.mes.slice().sort(function(a,b){return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1;});
                         ord.forEach(function(r) {
+                            if ((r.estado||r.status||'').toLowerCase()==='cancelado') return;
+                            totalSes++;
                             var fp = (r.fecha||'').split('-');
                             var dt = fp[0]&&fp[1]&&fp[2] ? new Date(+fp[0],+fp[1]-1,+fp[2]) : null;
-                            var diaEs = dt ? DIAS_ES[dt.getDay()] : '';
+                            var diaFull = dt ? _diasFull[dt.getDay()] : '';
                             var dN = fp[2] ? parseInt(fp[2]) : '';
-                            var mesAb = fp[1] ? (MESES_ES[+fp[1]-1]||'').slice(0,3) : '';
-                            var fechaStr = diaEs ? diaEs+' '+dN+' '+mesAb : dN+' '+mesAb;
+                            var mesNom = fp[1] ? (_mesFull[+fp[1]-1]||'') : '';
                             var boxId = _grilla_boxDeReserva(r);
                             var boxObj = (typeof GRILLA_BOXES!=='undefined') ? GRILLA_BOXES.find(function(b){return b.id===boxId;}) : null;
                             var boxTxt = boxObj ? boxObj.title : (boxId ? (_bxF[boxId]||'') : '');
-                            msg += n++ + '.  ' + fechaStr + '  |  ' + (r.hora||'--') + ' hs  |  ' + (r.servicio||'Sesion') + (boxTxt ? '  |  ' + boxTxt : '') + '\n';
+                            cuerpo += '\n' + n++ + '. ' + diaFull + ' ' + dN + ' de ' + mesNom + '\n' + (r.hora||'--') + ' hs\n' + (r.servicio||'Sesion') + (boxTxt ? '\n' + boxTxt : '') + '\n';
                         });
                     });
-                    msg += '\nEspacio Mimar T';
-                    return msg;
+                    return hdr + cuerpo + '\nTotal: ' + totalSes + ' sesion' + (totalSes!==1?'es':'') + '\nEspacio Mimar T';
                 };
                 var _msgCompletoIdx = window._sesMsgDB.length;
                 window._sesMsgDB.push({ texto: _mkMsgCompleto(), phone: phoneWA });
