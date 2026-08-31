@@ -4994,7 +4994,7 @@
             var _matchPaciente = function(r) {
                 var nom = _norm(r.nombreLimpio || r.nombre || '');
                 if (!nom) return false;
-                var nomW = nom.split(/\s+/).filter(function(w){ return w.length >= 1; });
+                var nomW = nom.split(/\s+/).filter(function(w){ return w.length >= 2; });
                 // Cada palabra del query debe encontrar una palabra del nombre que la contenga como prefijo (o viceversa)
                 return qWords.every(function(qw) {
                     return nomW.some(function(nw) { return nw.startsWith(qw) || qw.startsWith(nw); });
@@ -5082,6 +5082,35 @@
                 };
                 var urlPend = phoneWA && pendientes.length ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWA(pendientes,'pend')) : '';
                 var urlReal = phoneWA && completadas.length ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWA(completadas,'real')) : '';
+
+                // ── Mensaje detallado completo por mes ──
+                var _mkMsgWACompleto = function() {
+                    var _bxF = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
+                    var msg = 'Hola *' + grupo.nombre + '* 🌿\n\nTe compartimos el detalle de tus sesiones en *Espacio Mimar T*:';
+                    byMonth.forEach(function(mes, ym) {
+                        var pts = ym.split('-');
+                        var yr = parseInt(pts[0]||0), mo = parseInt(pts[1]||1)-1;
+                        var mesNom = (MESES_ES[mo]||ym).toUpperCase() + ' ' + yr;
+                        msg += '\n\n📅 *' + mesNom + '* — ' + mes.length + ' sesión' + (mes.length!==1?'es':'');
+                        var ord = mes.slice().sort(function(a,b){return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1;});
+                        ord.forEach(function(r) {
+                            var fp = (r.fecha||'').split('-');
+                            var dt = fp[0]&&fp[1]&&fp[2] ? new Date(+fp[0],+fp[1]-1,+fp[2]) : null;
+                            var diaEs = dt ? DIAS_ES[dt.getDay()] : '';
+                            var dN = fp[2] ? parseInt(fp[2]) : '';
+                            var mesAb = fp[1] ? (MESES_ES[+fp[1]-1]||'').slice(0,3) : '';
+                            var fechaStr = diaEs ? diaEs+' '+dN+' '+mesAb : dN+' '+mesAb;
+                            var boxId = _grilla_boxDeReserva(r);
+                            var boxObj = (typeof GRILLA_BOXES!=='undefined') ? GRILLA_BOXES.find(function(b){return b.id===boxId;}) : null;
+                            var boxTxt = boxObj ? boxObj.title : (boxId ? (_bxF[boxId]||'') : '');
+                            msg += '\n\n• *'+fechaStr+'* · '+(r.hora||'—')+' hs\n  _'+(r.servicio||'Sesión')+'_'+(boxTxt?' · '+boxTxt:'');
+                        });
+                    });
+                    msg += '\n\n_Espacio Mimar T_ ✨';
+                    return msg;
+                };
+                var urlCompleto = phoneWA ? 'https://wa.me/549'+phoneWA+'?text='+encodeURIComponent(_mkMsgWACompleto()) : '';
+
                 var _btnWA = function(href,lbl,border,color,bg){
                     return href
                         ? "<a href='"+href+"' target='_blank' rel='noopener' style='flex:1;min-width:120px;text-align:center;padding:9px 12px;background:"+bg+";border:1.5px solid "+border+";border-radius:9px;color:"+color+";font-weight:700;font-size:12px;text-decoration:none;display:flex;align-items:center;justify-content:center;'>"+lbl+"</a>"
@@ -5096,10 +5125,14 @@
                     "<span style='font-size:12px;color:rgba(140,210,180,0.45);'>" + sesiones.length + " turno" + (sesiones.length!==1?'s':'') + " total</span>" +
                     "</div>";
 
-                var botonesWA = "<div style='display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;'>" +
+                var botonesWA = "<div style='display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;'>" +
                     _btnWA(urlPend, "⏳ Enviar pendientes ("+pendientes.length+")", "rgba(245,158,11,0.45)", "rgba(252,211,77,0.95)", "rgba(245,158,11,0.10)") +
                     _btnWA(urlReal, "✅ Enviar realizadas ("+completadas.length+")", "rgba(114,189,153,0.40)", "rgba(140,220,185,0.95)", "rgba(53,122,92,0.10)") +
-                    "</div>";
+                    "</div>" +
+                    (urlCompleto
+                        ? "<div style='margin-bottom:14px;'><a href='"+urlCompleto+"' target='_blank' rel='noopener' style='width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;background:rgba(160,110,200,0.07);border:1px solid rgba(180,140,210,0.22);border-radius:10px;color:rgba(210,180,230,0.85);font-size:12px;font-weight:700;text-decoration:none;letter-spacing:.04em;box-sizing:border-box;'>🌸 Enviar resumen completo de todas las sesiones</a></div>"
+                        : "<div style='margin-bottom:14px;padding:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;color:rgba(140,140,140,0.35);font-size:12px;text-align:center;'>🌸 Enviar resumen completo — sin teléfono registrado</div>"
+                    );
 
                 // ── Resumen mensual section ──
                 var secResumen = "<details open style='margin-bottom:14px;'>" +
