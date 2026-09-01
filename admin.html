@@ -4379,14 +4379,17 @@
         window.confirmarCambioServicio = async () => {
             const nuevoServicio = document.getElementById('mcs-servicio-hidden').value.trim();
             if (!nuevoServicio) { mostrarAviso("Seleccioná un servicio"); return; }
+            const reservaId = _mcs_reservaId; // capturar ANTES de cerrar (cerrar nullea _mcs_reservaId)
+            if (!reservaId) { mostrarAviso("Error: no hay reserva seleccionada"); return; }
             try {
                 mostrarLoader(true);
                 cerrarModalCambioServicio();
-                await updateDoc(doc(db, "reservas", _mcs_reservaId), { servicio: nuevoServicio });
-                const idx = todasLasReservas.findIndex(r => r.id === _mcs_reservaId);
+                await updateDoc(doc(db, "reservas", reservaId), { servicio: nuevoServicio });
+                const idx = todasLasReservas.findIndex(r => r.id === reservaId);
                 if (idx !== -1) todasLasReservas[idx].servicio = nuevoServicio;
                 actualizarKPIs();
                 poblarServiciosFiltro();
+                renderGrilla();
                 if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
                 mostrarAviso("Servicio actualizado");
             } catch(error) {
@@ -7964,22 +7967,50 @@
                 const updates = {};
                 if (boxActual !== nuevoBoxId) updates.box = nuevoBoxId;
                 if (horaActual !== horaNueva) updates.hora = horaNueva;
+
+                // Auto-cambiar servicio cuando cambia de box
+                if (boxActual !== nuevoBoxId) {
+                    // Buscar servicio del box destino: priorizar el que es exclusivo de ese box
+                    let svcExclusivo = null, svcCompartido = null;
+                    for (const [svcNom, boxIds] of _svBoxMap.entries()) {
+                        const bxArr = Array.isArray(boxIds) ? boxIds : [boxIds];
+                        if (bxArr.includes(nuevoBoxId)) {
+                            if (!svcCompartido) svcCompartido = svcNom;
+                            if (bxArr.length === 1 && !svcExclusivo) svcExclusivo = svcNom;
+                        }
+                    }
+                    const svcParaBox = svcExclusivo || svcCompartido;
+                    if (svcParaBox && svcParaBox !== r.servicio) {
+                        // Solo cambiar si el servicio actual no pertenece al box destino
+                        const curBoxes = _svBoxMap.get(r.servicio) || [];
+                        const curArr = Array.isArray(curBoxes) ? curBoxes : [curBoxes];
+                        if (!curArr.includes(nuevoBoxId)) {
+                            updates.servicio = svcParaBox;
+                        }
+                    }
+                }
+
                 await updateDoc(doc(db, "reservas", reservaId), updates);
                 const idx = todasLasReservas.findIndex(x => x.id === reservaId);
                 if (idx !== -1) {
-                    if (updates.box) todasLasReservas[idx].box = nuevoBoxId;
-                    if (updates.hora) todasLasReservas[idx].hora = horaNueva;
+                    if (updates.box)      todasLasReservas[idx].box = nuevoBoxId;
+                    if (updates.hora)     todasLasReservas[idx].hora = horaNueva;
+                    if (updates.servicio) todasLasReservas[idx].servicio = updates.servicio;
                 }
+                actualizarKPIs();
+                poblarServiciosFiltro();
                 renderGrilla();
+                if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+
                 const bx = GRILLA_BOXES.find(b => b.id === nuevoBoxId);
                 const boxLabel = bx ? bx.title : nuevoBoxId;
-                if (boxActual !== nuevoBoxId && horaActual !== horaNueva) {
-                    mostrarAviso(`Movido a ${boxLabel} · ${horaNueva} hs`);
-                } else if (boxActual !== nuevoBoxId) {
-                    mostrarAviso(`Movido a ${boxLabel}`);
-                } else {
-                    mostrarAviso(`Horario cambiado a ${horaNueva} hs`);
-                }
+                let toastMsg = boxActual !== nuevoBoxId && horaActual !== horaNueva
+                    ? `Movido a ${boxLabel} · ${horaNueva} hs`
+                    : boxActual !== nuevoBoxId
+                        ? `Movido a ${boxLabel}`
+                        : `Horario cambiado a ${horaNueva} hs`;
+                if (updates.servicio) toastMsg += ` · ${updates.servicio}`;
+                mostrarAviso(toastMsg);
             } catch(e) {
                 console.error(e);
                 mostrarAviso("No se pudo mover la reserva");
