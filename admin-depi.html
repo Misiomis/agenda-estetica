@@ -371,7 +371,8 @@
                     <button id="calNext" onclick="cambiarMes(1)">›</button>
                 </div>
                 <div class="cal-grid" id="calGrid"></div>
-                <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                    <button class="btn-outline" style="font-size:11px;padding:5px 12px;border-color:rgba(100,160,220,0.30);color:rgba(120,180,240,0.75);background:rgba(100,160,220,0.05);" onclick="bloquearTodosLosSlotsDepi()">⚙️ Setup: bloquear todos los horarios</button>
                     <button class="btn-outline" style="font-size:11px;padding:5px 12px;border-color:rgba(248,113,113,0.30);color:rgba(248,113,113,0.70);background:rgba(248,113,113,0.05);" onclick="bloquearMesDepi()">🔒 Bloquear mes</button>
                 </div>
             </div>
@@ -1134,6 +1135,54 @@
                     mostrarAvisoDepi(`${MESES[_calMes]} bloqueado (${dias.length} días)`);
                     await cargarCalendario();
                 } catch(e) { console.error(e); mostrarAvisoDepi('Error al bloquear mes'); }
+            }
+        });
+    };
+
+    // Operación masiva: desbloquea días, bloquea todos los slots hasta dic 2026
+    window.bloquearTodosLosSlotsDepi = () => {
+        mostrarConfirmDepi({
+            icono: '⚙️',
+            titulo: 'Setup inicial de horarios',
+            texto: 'Esto va a:\n1. Eliminar todos los bloqueos de DÍA (para que puedas entrar)\n2. Bloquear todos los HORARIOS individuales hasta Diciembre 2026\n\nPodés desbloquear horarios cuando quieras. ¿Continuar?',
+            labelSi: 'Sí, configurar',
+            onSi: async () => {
+                try {
+                    mostrarAvisoDepi('Procesando… puede tomar unos segundos');
+
+                    // 1. Eliminar todos los bloqueos de día existentes
+                    const snapEx = await getDocs(query(collection(db, COLECCION_EX), where('tipo', '==', 'dia')));
+                    const borrar = [];
+                    snapEx.forEach(d => borrar.push(deleteDoc(doc(db, COLECCION_EX, d.id))));
+                    await Promise.all(borrar);
+
+                    // 2. Crear bloqueos de slot para todos los días desde hoy hasta 31/12/2026
+                    const hoy = new Date(); hoy.setHours(12, 0, 0, 0);
+                    const fin = new Date('2026-12-31T12:00:00');
+                    const creates = [];
+                    for (let ms = hoy.getTime(); ms <= fin.getTime(); ms += 86400000) {
+                        const d = new Date(ms);
+                        const dow = d.getDay();
+                        if (!DEPI_DIAS.has(dow)) continue;
+                        const slots = DEPI_HORARIOS[dow] || [];
+                        const fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                        for (const hora of slots) {
+                            const docId = `depi_${fecha}_${hora.replace(':','')}`;
+                            creates.push({ docId, fecha, hora });
+                        }
+                    }
+                    // Ejecutar en bloques de 50 para no saturar Firestore
+                    for (let i = 0; i < creates.length; i += 50) {
+                        await Promise.all(creates.slice(i, i + 50).map(({ docId, fecha, hora }) =>
+                            setDoc(doc(db, COLECCION_EX, docId), {
+                                fecha, hora, tipo: 'slot', blocked: true, bloqueado: true, updatedAt: serverTimestamp()
+                            })
+                        ));
+                    }
+
+                    mostrarAvisoDepi(`✓ ${borrar.length} días desbloqueados · ${creates.length} horarios bloqueados`);
+                    await cargarCalendario();
+                } catch(e) { console.error(e); mostrarAvisoDepi('Error al procesar setup'); }
             }
         });
     };
