@@ -1093,15 +1093,14 @@
         const dias = [];
         for (let i = -dow; i <= 6 - dow; i++) {
             const nd = new Date(ref.getTime() + i * 86400000);
-            if (!DEPI_DIAS.has(nd.getDay())) continue;
             const f = `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}-${String(nd.getDate()).padStart(2,'0')}`;
             if (f <= `${MAX_ANIO_DEPI}-12-31`) dias.push(f);
         }
-        if (dias.length === 0) { mostrarAvisoDepi('No hay días de depilación en esa semana'); return; }
+        if (dias.length === 0) { mostrarAvisoDepi('No hay días en esa semana'); return; }
         mostrarConfirmDepi({
             icono: '🗓',
             titulo: 'Bloquear semana',
-            texto: `¿Bloquear los ${dias.length} días de depilación de esta semana?\n${dias.join(', ')}`,
+            texto: `¿Bloquear los ${dias.length} días de esta semana?`,
             labelSi: 'Sí, bloquear',
             onSi: async () => {
                 try {
@@ -1119,15 +1118,14 @@
         const ultimoDia = new Date(_calAnio, _calMes + 1, 0);
         const dias = [];
         for (let d = new Date(primerDia); d <= ultimoDia; d.setDate(d.getDate() + 1)) {
-            if (!DEPI_DIAS.has(d.getDay())) continue;
             const f = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
             if (f <= `${MAX_ANIO_DEPI}-12-31`) dias.push(f);
         }
-        if (dias.length === 0) { mostrarAvisoDepi('No hay días de depilación en este mes'); return; }
+        if (dias.length === 0) { mostrarAvisoDepi('No hay días en este mes'); return; }
         mostrarConfirmDepi({
             icono: '🔒',
             titulo: `Bloquear ${MESES[_calMes]} ${_calAnio}`,
-            texto: `¿Bloquear los ${dias.length} días de depilación de ${MESES[_calMes]} ${_calAnio}?`,
+            texto: `¿Bloquear los ${dias.length} días de ${MESES[_calMes]} ${_calAnio}?`,
             labelSi: 'Sí, bloquear todo',
             onSi: async () => {
                 try {
