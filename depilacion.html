@@ -1038,12 +1038,19 @@ function renderCalendario(){
     const y=fechaActual.getFullYear(),m=fechaActual.getMonth();
     const mesNombres=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
     document.getElementById("mes").innerText=`${mesNombres[m]} ${y}`;
+    // Mes máximo habilitado para reservas públicas (ajustar cuando se habilite el siguiente mes)
+    const MAX_MES_ACTIVO_ANIO = 2026;
+    const MAX_MES_ACTIVO_MES  = 8; // 0=ene … 8=sep
     const mesKey=`${y}-${String(m+1).padStart(2,"0")}`;
-    const bloqueado=mesesBloqueados.has(mesKey)||y>2026||(y===2026&&m>11);
+    const bloqueado=mesesBloqueados.has(mesKey)||y>MAX_MES_ACTIVO_ANIO||(y===MAX_MES_ACTIVO_ANIO&&m>MAX_MES_ACTIVO_MES);
     const btnSig=document.getElementById("btnMesSiguiente");
-    btnSig.disabled=bloqueado||(y===2026&&m===11);
+    btnSig.disabled=bloqueado||(y===MAX_MES_ACTIVO_ANIO&&m>=MAX_MES_ACTIVO_MES);
     const cont=document.getElementById("dias");cont.innerHTML="";
-    if(bloqueado){cont.innerHTML=`<div style="grid-column:1/-1;padding:28px 16px;text-align:center;color:rgba(165,205,188,0.45);font-size:13px;font-weight:600;border-radius:14px;border:1px dashed rgba(60,179,113,0.16);background:rgba(8,22,16,0.40);">Los turnos para este período se habilitarán pronto.</div>`;document.getElementById("horarios").innerHTML="";document.getElementById("reservarBtn").disabled=true;return;}
+    if(bloqueado){cont.innerHTML=`<div style="grid-column:1/-1;padding:28px 20px;text-align:center;border-radius:14px;border:1px dashed rgba(60,179,113,0.16);background:rgba(8,22,16,0.40);">
+        <div style="font-size:22px;margin-bottom:10px;">🌿</div>
+        <div style="color:rgba(165,205,188,0.80);font-size:14px;font-weight:600;margin-bottom:6px;">Turnos próximamente disponibles</div>
+        <div style="color:rgba(165,205,188,0.45);font-size:12px;line-height:1.6;">Estamos preparando los horarios para este período.<br>Si tenés urgencia, escribinos por WhatsApp y te ayudamos 💜</div>
+    </div>`;document.getElementById("horarios").innerHTML="";document.getElementById("reservarBtn").disabled=true;return;}
     const diasMes=new Date(y,m+1,0).getDate();
     let offset=new Date(y,m,1).getDay();offset=offset===0?6:offset-1;
     for(let i=0;i<offset;i++)cont.appendChild(document.createElement("div"));
