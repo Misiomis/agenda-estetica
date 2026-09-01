@@ -879,14 +879,8 @@
         return `Hola ${(r.nombre||'').split(' ')[0]} 💚 Recomendaciones antes de tu sesión de depilación definitiva en Espacio Mimar T:\n\nPara que tu sesión sea segura y efectiva, recordá:\n\n✅ Rasurá la zona 24 hs antes, únicamente con máquina. Evitá cera y pinzas.\n✅ No tomes sol ni te broncees durante las 72 hs previas a la sesión.\n✅ Vení con la piel limpia y sin productos: no coloques cremas, aceites ni desodorante en la zona a tratar.\n✅ Usá ropa cómoda y holgada. Si vas a depilar una zona íntima, te recomendamos ropa interior blanca.\n\n💫 Seguir estas indicaciones nos ayuda a cuidar tu piel y lograr mejores resultados.\n¡Te esperamos! 💚\nEspacio Mimar T`;
     };
 
-    const _slotsAdminDia = () => {
-        const s = [];
-        for (let h = 7; h <= 22; h++) {
-            s.push(`${String(h).padStart(2,'0')}:00`);
-            if (h < 22) s.push(`${String(h).padStart(2,'0')}:30`);
-        }
-        return s;
-    };
+    // Admin muestra exactamente los mismos slots que el público ve
+    const _slotsAdminDia = () => TODOS_HORARIOS;
     const DEPI_DIAS_ADM = new Set([0,1,2,3,4,5,6]);
     const HORARIOS_NORMALES_DOW = {}; // todos los horarios son normales, sin distinción tardío/normal
 
