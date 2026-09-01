@@ -586,16 +586,12 @@
     const COLECCION    = "reservasDepi";
     const COLECCION_EX = "calendarExceptionsDepi";
 
-    const DEPI_HORARIOS = {
-        3: ['07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30'],
-        5: ['15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30'],
-        6: ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30']
-    };
-    const DEPI_DIAS = new Set([3, 5, 6]);
-    const _slotsParaDia = (fStr) => {
-        const d = new Date(fStr + 'T12:00:00');
-        return DEPI_HORARIOS[d.getDay()] || [];
-    };
+    // Horario universal — todos los días tienen los mismos slots disponibles
+    const TODOS_HORARIOS = ['07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00',
+                            '11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00',
+                            '15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30'];
+    const DEPI_DIAS = new Set([0,1,2,3,4,5,6]);
+    const _slotsParaDia = () => TODOS_HORARIOS;
 
     // ── Límites de navegación del calendario
     const MAX_ANIO_DEPI = 2026;
@@ -786,15 +782,12 @@
         const totalDias = ultimoDia.getDate();
         for (let d = 1; d <= totalDias; d++) {
             const fecha = `${_calAnio}-${String(_calMes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const dow = new Date(fecha + 'T12:00:00').getDay();
-            const esDepiDia = DEPI_DIAS.has(dow);
             const esHoy = fecha === hoy;
             const tieneTurnos = diasConReservas.has(fecha);
             const esBloq = diasBloqueados.has(fecha);
             const esSel = fecha === _diaSeleccionado;
             const esPasado = fecha < hoy;
             let cls = 'cal-day';
-            if (!esDepiDia) cls += ' sin-horarios'; // clickeable pero sin slots predefinidos
             if (esHoy) cls += ' hoy';
             if (tieneTurnos) cls += ' tiene-reservas';
             if (esBloq) cls += ' bloqueado-depi';
@@ -894,12 +887,8 @@
         }
         return s;
     };
-    const DEPI_DIAS_ADM = new Set([3, 5, 6]);
-    const HORARIOS_NORMALES_DOW = {
-        3: new Set(['07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30']),
-        5: new Set(['15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30']),
-        6: new Set(['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30']),
-    };
+    const DEPI_DIAS_ADM = new Set([0,1,2,3,4,5,6]);
+    const HORARIOS_NORMALES_DOW = {}; // todos los horarios son normales, sin distinción tardío/normal
 
     const renderDiaDetalle = (fecha, reservas, exInfo) => {
         const cont = document.getElementById('diaDetalleContenido');
@@ -930,13 +919,10 @@
         const reservasPorHora = {};
         reservas.forEach(r => { reservasPorHora[r.hora] = r; });
 
-        const _dow = new Date(fecha + 'T12:00:00').getDay();
-        const _esDepiDay = DEPI_DIAS_ADM.has(_dow);
-
         const rows = slots.map(hora => {
             const r = reservasPorHora[hora];
             const isBloqSlot = !!exInfo.slots[hora];
-            const esSlotTardio = _esDepiDay && HORARIOS_NORMALES_DOW[_dow] && !HORARIOS_NORMALES_DOW[_dow].has(hora);
+            const esSlotTardio = false; // todos los horarios son iguales
 
             if (r) {
                 const estadoCls = `estado-${r.estado || 'pendiente'}`;
@@ -1104,7 +1090,15 @@
             labelSi: 'Sí, bloquear',
             onSi: async () => {
                 try {
-                    await Promise.all(dias.map(f => setDoc(doc(db, COLECCION_EX, `depi_${f}_dia`), { fecha: f, tipo: 'dia', bloqueado: true, updatedAt: serverTimestamp() })));
+                    const diaOps = dias.map(f => setDoc(doc(db, COLECCION_EX, `depi_${f}_dia`), { fecha: f, tipo: 'dia', bloqueado: true, updatedAt: serverTimestamp() }));
+                    const slotOps = [];
+                    for (const f of dias) {
+                        for (const hora of TODOS_HORARIOS) {
+                            slotOps.push(setDoc(doc(db, COLECCION_EX, `depi_${f}_${hora.replace(':','')}`), { fecha: f, hora, tipo: 'slot', blocked: true, bloqueado: true, updatedAt: serverTimestamp() }));
+                        }
+                    }
+                    const allOps = [...diaOps, ...slotOps];
+                    for (let i = 0; i < allOps.length; i += 50) await Promise.all(allOps.slice(i, i + 50));
                     mostrarAvisoDepi(`${dias.length} día${dias.length > 1 ? 's' : ''} bloqueado${dias.length > 1 ? 's' : ''}`);
                     await cargarCalendario();
                     if (_diaSeleccionado) await verDia(_diaSeleccionado);
@@ -1122,15 +1116,24 @@
             if (f <= `${MAX_ANIO_DEPI}-12-31`) dias.push(f);
         }
         if (dias.length === 0) { mostrarAvisoDepi('No hay días en este mes'); return; }
+        const totalSlots = dias.length * TODOS_HORARIOS.length;
         mostrarConfirmDepi({
             icono: '🔒',
             titulo: `Bloquear ${MESES[_calMes]} ${_calAnio}`,
-            texto: `¿Bloquear los ${dias.length} días de ${MESES[_calMes]} ${_calAnio}?`,
+            texto: `¿Bloquear los ${dias.length} días y todos los horarios de ${MESES[_calMes]} ${_calAnio}? (${totalSlots} slots)`,
             labelSi: 'Sí, bloquear todo',
             onSi: async () => {
                 try {
-                    await Promise.all(dias.map(f => setDoc(doc(db, COLECCION_EX, `depi_${f}_dia`), { fecha: f, tipo: 'dia', bloqueado: true, updatedAt: serverTimestamp() })));
-                    mostrarAvisoDepi(`${MESES[_calMes]} bloqueado (${dias.length} días)`);
+                    const diaOps = dias.map(f => setDoc(doc(db, COLECCION_EX, `depi_${f}_dia`), { fecha: f, tipo: 'dia', bloqueado: true, updatedAt: serverTimestamp() }));
+                    const slotOps = [];
+                    for (const f of dias) {
+                        for (const hora of TODOS_HORARIOS) {
+                            slotOps.push(setDoc(doc(db, COLECCION_EX, `depi_${f}_${hora.replace(':','')}`), { fecha: f, hora, tipo: 'slot', blocked: true, bloqueado: true, updatedAt: serverTimestamp() }));
+                        }
+                    }
+                    const allOps = [...diaOps, ...slotOps];
+                    for (let i = 0; i < allOps.length; i += 50) await Promise.all(allOps.slice(i, i + 50));
+                    mostrarAvisoDepi(`${MESES[_calMes]} bloqueado (${dias.length} días · ${totalSlots} horarios)`);
                     await cargarCalendario();
                 } catch(e) { console.error(e); mostrarAvisoDepi('Error al bloquear mes'); }
             }
@@ -1185,11 +1188,8 @@
                     const creates = [];
                     for (let ms = hoy.getTime(); ms <= fin.getTime(); ms += 86400000) {
                         const d = new Date(ms);
-                        const dow = d.getDay();
-                        if (!DEPI_DIAS.has(dow)) continue;
-                        const slots = DEPI_HORARIOS[dow] || [];
                         const fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                        for (const hora of slots) {
+                        for (const hora of TODOS_HORARIOS) {
                             const docId = `depi_${fecha}_${hora.replace(':','')}`;
                             creates.push({ docId, fecha, hora });
                         }

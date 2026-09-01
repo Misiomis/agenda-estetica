@@ -807,26 +807,13 @@ window.toggleAbrDetalles = function() {
 <script type="module">
 import { auth, db, onAuthStateChanged, collection, getDocs, doc, addDoc, setDoc, getDoc, query, where, serverTimestamp, onSnapshot } from "/js/firebase-web.js";
 
-// Horarios específicos para depilación láser por día de la semana
-const DEPI_HORARIOS = {
-    3: ['07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30'], // miércoles
-    5: ['15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30'], // viernes
-    6: ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30']          // sábado
-};
-const DEPI_DIAS = new Set([3, 5, 6]);
-const FECHA_INICIO_DEPI = '2026-08-26'; // primera semana disponible
-// Slots tardíos por día (NO en la grilla normal) — solo aparecen si admin los habilita
-const TODOS_SLOTS_TARDIOS_DOW = {
-    3: ['12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'],
-    5: ['20:00','20:30','21:00','21:30','22:00'],
-    6: ['12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'],
-};
-const _slotsParaDia = (fStr) => {
-    const d = new Date(fStr + 'T12:00:00');
-    return DEPI_HORARIOS[d.getDay()] || [];
-};
-// Fallback para código legacy que usa SLOTS_DIA
-const SLOTS_DIA = Object.values(DEPI_HORARIOS).flat().filter((v,i,a)=>a.indexOf(v)===i).sort();
+// Horario universal — todos los días tienen los mismos slots disponibles
+const TODOS_HORARIOS = ['07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00',
+                        '11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00',
+                        '15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30'];
+const DEPI_DIAS = new Set([0,1,2,3,4,5,6]);
+const _slotsParaDia = () => TODOS_HORARIOS;
+const SLOTS_DIA = TODOS_HORARIOS;
 const normalizarHora = (hora) => {
     const txt = (hora||"").toString().replace(/\s*hs$/i,"").trim();
     const m = txt.match(/^(\d{1,2})[:.](\d{2})$/);
@@ -1042,12 +1029,8 @@ async function cargarDatos(){
 const esDiaBloqueadoPorAdmin=(fStr)=>rangosDiasBloqueados.some(r=>fStr>=r.desde&&fStr<=r.hasta);
 const slotsTomadosDia=(fStr)=>{const res=reservasPorFecha.get(fStr)||new Set();let blocks=0;bloqueosHorarios.forEach((_,k)=>{if(k.startsWith(fStr+"|"))blocks++;});return res.size+blocks;};
 const esDiaLleno=(fStr)=>{
-    const _dow2=new Date(fStr+'T12:00:00').getDay();
-    const _tardExt=(TODOS_SLOTS_TARDIOS_DOW[_dow2]||[]).filter(h=>desbloqueosTardios.has(keyBloqueo(fStr,h)));
-    const slots=[..._slotsParaDia(fStr),..._tardExt];
-    if(!slots.length)return true;
     const res=reservasPorFecha.get(fStr)||new Set();
-    return slots.every(hora=>res.has(hora)||bloqueosHorarios.has(keyBloqueo(fStr,hora)));
+    return TODOS_HORARIOS.every(hora=>res.has(hora)||bloqueosHorarios.has(keyBloqueo(fStr,hora)));
 };
 
 function renderCalendario(){
@@ -1067,13 +1050,9 @@ function renderCalendario(){
         const fStr=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
         const f=new Date(y,m,d);f.setHours(0,0,0,0);
         const div=document.createElement("div");div.className="dia";div.innerText=d;
-        if(f.getDay()===0)div.classList.add("domingo");
-        else if(f<hoy)div.classList.add("pasado");
-        else if(!DEPI_DIAS.has(f.getDay())){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("Sin turnos","Los turnos de depilación láser están disponibles los miércoles, viernes y sábados.");}
-        else if(fStr < FECHA_INICIO_DEPI){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("Próximamente","Los turnos de depilación comienzan la semana del 26 de agosto. ¡Pronto vas a poder reservar tu turno! 💜");}
-        else if(esDiaBloqueadoPorAdmin(fStr)){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("No disponible","Este día no tiene turnos disponibles.");}
+        if(f<hoy)div.classList.add("pasado");
         else if(excepciones[fStr]){div.classList.add("bloqueado");div.onclick=()=>mostrarAviso("Cerrado",excepciones[fStr]);}
-        else if(esDiaLleno(fStr)){div.classList.add("lleno");div.onclick=()=>mostrarAviso("Sin cupos","Los turnos de este día están completos. Elegí otro día.");}
+        else if(esDiaLleno(fStr)){div.classList.add("lleno");div.onclick=()=>mostrarAviso("Sin cupos","No hay turnos disponibles para este día. Probá con otro día 🌿");}
         else{const tomados=slotsTomadosDia(fStr);div.classList.add(tomados>0?"dia-parcial":"dia-libre");div.onclick=()=>seleccionarDia(f,fStr,div);}
         cont.appendChild(div);
     }
@@ -1089,18 +1068,16 @@ async function cargarHorarios(fStr){
     cont.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(165,205,188,0.45);font-size:13px;">Buscando turnos...</div>`;
     if(excepciones[fStr]){cont.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(255,120,120,0.70);font-size:13px;">Día cerrado: ${excepciones[fStr]}</div>`;return;}
     const ocupados=await obtenerHorasOcupadas(fStr);cont.innerHTML="";
-    const _slotsBase=_slotsParaDia(fStr);
-    const _dow3=new Date(fStr+'T12:00:00').getDay();
-    const _tardHab=(TODOS_SLOTS_TARDIOS_DOW[_dow3]||[]).filter(h=>desbloqueosTardios.has(keyBloqueo(fStr,h)));
-    const _slots=[..._slotsBase,..._tardHab.filter(h=>!_slotsBase.includes(h))].sort();
-    if(!_slots.length){cont.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(255,120,120,0.70);font-size:13px;">No hay turnos disponibles para este día.</div>';return;}
-    _slots.forEach((hora,idx)=>{
-        const div=document.createElement("div");div.className="hora";div.innerText=hora;div.style.animationDelay=`${Math.min(idx*40,400)}ms`;
+    let addedCount=0;
+    TODOS_HORARIOS.forEach((hora)=>{
         const bloqueado=bloqueosHorarios.has(keyBloqueo(fStr,hora));const ocupado=ocupados.includes(hora);
-        if(bloqueado||ocupado){div.classList.add("ocupado");}
-        else{div.onclick=()=>{horaSeleccionada=hora;document.querySelectorAll(".hora").forEach(e=>e.classList.remove("selected"));div.classList.add("selected");actualizarResumen();document.getElementById("reservarBtn").disabled=false;};}
+        if(bloqueado||ocupado) return; // solo mostrar slots libres
+        const div=document.createElement("div");div.className="hora";div.innerText=hora;div.style.animationDelay=`${Math.min(addedCount*40,400)}ms`;
+        div.onclick=()=>{horaSeleccionada=hora;document.querySelectorAll(".hora").forEach(e=>e.classList.remove("selected"));div.classList.add("selected");actualizarResumen();document.getElementById("reservarBtn").disabled=false;};
         cont.appendChild(div);
+        addedCount++;
     });
+    if(!addedCount){cont.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:24px 16px;color:rgba(165,205,188,0.45);font-size:13px;line-height:1.6;">No hay turnos disponibles para este día.<br><span style="font-size:12px;">Probá eligiendo otro día o escribinos por WhatsApp 💜</span></div>';return;}
 }
 function actualizarResumen(){
     const sv=document.getElementById("summaryDateValue"),st=document.getElementById("summaryTimeValue");
@@ -1246,7 +1223,7 @@ window.irPaso2=function(){
         for(let _i=1;_i<_slotsNecCombo;_i++){
             const _horaExt2=_slotsHoy2[_idxCombo+_i];
             if(!_horaExt2||_reservasHoy2.has(_horaExt2)||bloqueosHorarios.has(keyBloqueo(_fStr2,_horaExt2))){
-                alertCampo("comboSelectGrid",`El combo ${comboSeleccionado.nombre} necesita ${_durMinCombo} min. Las ${_horaExt2||'siguientes'} hs ya están tomadas — elegí un horario más temprano.`);
+                alertCampo("comboSelectGrid",`Este horario no tiene espacio para el tratamiento elegido (${_durMinCombo} min). Por favor elegí un horario más temprano para que entre la sesión completa 💜`);
                 return;
             }
         }
@@ -1314,7 +1291,7 @@ window.confirmarDepi=async function(){
         for(let i=1;i<slotsNecesarios;i++){
             const horaExt=slotsHoy[idxBase+i];
             if(!horaExt||ocupadosAhora.includes(horaExt)||bloqueosHorarios.has(keyBloqueo(fStr,horaExt))){
-                mostrarAviso("Sin espacio disponible",`El combo elegido requiere ${durMin} min. Los siguientes turnos no están disponibles. Elegí otro horario.`);
+                mostrarAviso("Sin espacio disponible",`El tratamiento "${comboSeleccionado.nombre}" dura ${durMin} minutos y necesita que el horario siguiente también esté libre.\n\nTe sugerimos elegir un horario más temprano, o escribinos por WhatsApp y buscamos juntas el momento ideal para tu sesión 💜`);
                 btn.disabled=false;btn.textContent="Confirmar turno";return;
             }
         }
