@@ -166,6 +166,7 @@
         .cal-day.vacio { cursor: default; pointer-events: none; }
         .cal-day.pasado { opacity: 0.4; }
         .cal-day.no-depi { opacity: 0.22; cursor: default; pointer-events: none; }
+        .cal-day.sin-horarios { opacity: 0.55; }
         .cal-day.bloqueado-depi { border-color: rgba(248,113,113,0.30); color: rgba(248,113,113,0.60); background: rgba(248,113,113,0.06); }
         .slot-row { display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;margin-bottom:5px;border:1px solid var(--borde);background:rgba(255,255,255,0.025); }
         .slot-hora { font-size:14px;font-weight:800;color:rgba(100,200,150,0.90);min-width:46px; }
@@ -372,6 +373,7 @@
                 </div>
                 <div class="cal-grid" id="calGrid"></div>
                 <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                    <button class="btn-outline" style="font-size:11px;padding:5px 12px;border-color:rgba(74,222,128,0.28);color:rgba(100,200,150,0.80);background:rgba(74,222,128,0.05);" onclick="desbloquearMesDias()">🔓 Desbloquear días del mes</button>
                     <button class="btn-outline" style="font-size:11px;padding:5px 12px;border-color:rgba(100,160,220,0.30);color:rgba(120,180,240,0.75);background:rgba(100,160,220,0.05);" onclick="bloquearTodosLosSlotsDepi()">⚙️ Setup: bloquear todos los horarios</button>
                     <button class="btn-outline" style="font-size:11px;padding:5px 12px;border-color:rgba(248,113,113,0.30);color:rgba(248,113,113,0.70);background:rgba(248,113,113,0.05);" onclick="bloquearMesDepi()">🔒 Bloquear mes</button>
                 </div>
@@ -785,16 +787,14 @@
         for (let d = 1; d <= totalDias; d++) {
             const fecha = `${_calAnio}-${String(_calMes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const dow = new Date(fecha + 'T12:00:00').getDay();
-            if (!DEPI_DIAS.has(dow)) {
-                celdas += `<div class="cal-day no-depi">${d}</div>`;
-                continue;
-            }
+            const esDepiDia = DEPI_DIAS.has(dow);
             const esHoy = fecha === hoy;
             const tieneTurnos = diasConReservas.has(fecha);
             const esBloq = diasBloqueados.has(fecha);
             const esSel = fecha === _diaSeleccionado;
             const esPasado = fecha < hoy;
             let cls = 'cal-day';
+            if (!esDepiDia) cls += ' sin-horarios'; // clickeable pero sin slots predefinidos
             if (esHoy) cls += ' hoy';
             if (tieneTurnos) cls += ' tiene-reservas';
             if (esBloq) cls += ' bloqueado-depi';
@@ -1135,6 +1135,31 @@
                     mostrarAvisoDepi(`${MESES[_calMes]} bloqueado (${dias.length} días)`);
                     await cargarCalendario();
                 } catch(e) { console.error(e); mostrarAvisoDepi('Error al bloquear mes'); }
+            }
+        });
+    };
+
+    // Desbloquea todos los bloqueos de DÍA del mes actual
+    window.desbloquearMesDias = () => {
+        mostrarConfirmDepi({
+            icono: '🔓',
+            titulo: `Desbloquear días de ${MESES[_calMes]} ${_calAnio}`,
+            texto: `¿Eliminar los bloqueos de día de ${MESES[_calMes]}? Los días quedarán visibles. Los horarios individuales no se tocan.`,
+            labelSi: 'Sí, desbloquear',
+            onSi: async () => {
+                try {
+                    const primerDia = new Date(_calAnio, _calMes, 1);
+                    const ultimoDia = new Date(_calAnio, _calMes + 1, 0);
+                    const snap = await getDocs(query(collection(db, COLECCION_EX),
+                        where('tipo', '==', 'dia'),
+                        where('fecha', '>=', fmtFecha(primerDia)),
+                        where('fecha', '<=', fmtFecha(ultimoDia))
+                    ));
+                    if (snap.empty) { mostrarAvisoDepi('No había días bloqueados'); await cargarCalendario(); return; }
+                    await Promise.all(snap.docs.map(d => deleteDoc(doc(db, COLECCION_EX, d.id))));
+                    mostrarAvisoDepi(`${snap.size} día${snap.size > 1 ? 's' : ''} desbloqueado${snap.size > 1 ? 's' : ''}`);
+                    await cargarCalendario();
+                } catch(e) { console.error(e); mostrarAvisoDepi('Error al desbloquear días'); }
             }
         });
     };
