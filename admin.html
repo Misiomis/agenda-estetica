@@ -4273,9 +4273,10 @@
                     if (!blkReserva) return false;
                     // Verificar que blkReserva TODAVÍA cubra esta hora
                     // (bloqueosHorarios no se actualiza tras drag-drop, puede quedar stale)
-                    const _blkStart = _toMinC(normalizarHora(blkReserva.hora));
+                    const _toM = h => { const [hh,mm]=(h||'00:00').split(':').map(Number); return hh*60+mm; };
+                    const _blkStart = _toM(normalizarHora(blkReserva.hora));
                     const _blkEnd = _blkStart + (blkReserva.duracionMinutos || 30);
-                    const _thisMin = _toMinC(normalizarHora(hora));
+                    const _thisMin = _toM(normalizarHora(hora));
                     if (_thisMin <= _blkStart || _thisMin >= _blkEnd) return false;
                     const blkBox = _grilla_boxDeReserva(blkReserva);
                     // Si hay box preseleccionado, solo verificar ese box exacto
