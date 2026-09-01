@@ -366,11 +366,14 @@
             <h2 class="sec-title">Agenda</h2>
             <div class="card">
                 <div class="cal-nav">
-                    <button onclick="cambiarMes(-1)">‹</button>
+                    <button id="calPrev" onclick="cambiarMes(-1)">‹</button>
                     <span id="calTitulo">—</span>
-                    <button onclick="cambiarMes(1)">›</button>
+                    <button id="calNext" onclick="cambiarMes(1)">›</button>
                 </div>
                 <div class="cal-grid" id="calGrid"></div>
+                <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+                    <button class="btn-outline" style="font-size:11px;padding:5px 12px;border-color:rgba(248,113,113,0.30);color:rgba(248,113,113,0.70);background:rgba(248,113,113,0.05);" onclick="bloquearMesDepi()">🔒 Bloquear mes</button>
+                </div>
             </div>
             <div id="diaDetalle" style="display:none;">
                 <div class="card">
@@ -379,6 +382,7 @@
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn-outline" onclick="irARegistrarDia()">+ Agregar turno</button>
                             <button class="btn-outline" style="border-color:rgba(248,113,113,0.35);color:rgba(248,113,113,0.75);background:rgba(248,113,113,0.06);" onclick="bloquearDiaDepi()">🔒 Bloquear día</button>
+                            <button class="btn-outline" style="border-color:rgba(248,113,113,0.25);color:rgba(248,113,113,0.60);background:rgba(248,113,113,0.04);font-size:11px;" onclick="bloquearSemanaDepi()">🗓 Bloquear semana</button>
                             <button class="btn-outline" style="border-color:rgba(234,179,8,0.35);color:rgba(234,179,8,0.75);background:rgba(234,179,8,0.05);font-size:11px;" onclick="limpiarReservasDia()">🗑 Limpiar reservas</button>
                         </div>
                     </div>
@@ -590,9 +594,15 @@
         return DEPI_HORARIOS[d.getDay()] || [];
     };
 
+    // ── Límites de navegación del calendario
+    const MAX_ANIO_DEPI = 2026;
+    const MAX_MES_DEPI  = 11; // Diciembre (0-indexed)
+
     // ── Estado
     let _calMes = new Date().getMonth();
     let _calAnio = new Date().getFullYear();
+    let _primerSesionAnio = null;
+    let _primerSesionMes  = null;
     let _diaSeleccionado = null;
     let _reservasDia = {};
     let _excepcionesDia = {};
@@ -607,6 +617,7 @@
     const _mostrarApp = async () => {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appWrapper').classList.add('visible');
+        await cargarPrimeraSesion(); // ajusta _primerSesion* y puede mover _calMes/_calAnio
         await cargarCalendario();
         cargarCombosDepi();
     };
@@ -680,11 +691,57 @@
     const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const DIAS_DOW = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
+    const _actualizarNavBtns = () => {
+        const prev = document.getElementById('calPrev');
+        const next = document.getElementById('calNext');
+        if (prev) {
+            const atMin = _primerSesionAnio !== null &&
+                (_calAnio < _primerSesionAnio || (_calAnio === _primerSesionAnio && _calMes <= _primerSesionMes));
+            prev.disabled = atMin;
+            prev.style.opacity = atMin ? '0.3' : '';
+        }
+        if (next) {
+            const atMax = _calAnio > MAX_ANIO_DEPI || (_calAnio === MAX_ANIO_DEPI && _calMes >= MAX_MES_DEPI);
+            next.disabled = atMax;
+            next.style.opacity = atMax ? '0.3' : '';
+        }
+    };
+
+    const cargarPrimeraSesion = async () => {
+        try {
+            const snap = await getDocs(collection(db, COLECCION));
+            let minFecha = null;
+            snap.forEach(d => {
+                const f = d.data().fecha;
+                if (f && (!minFecha || f < minFecha)) minFecha = f;
+            });
+            if (minFecha) {
+                const [anio, mes] = minFecha.split('-').map(Number);
+                _primerSesionAnio = anio;
+                _primerSesionMes  = mes - 1;
+                // Si el mes actual ya está antes de la primera sesión, navegar al mes correcto
+                if (_calAnio < _primerSesionAnio || (_calAnio === _primerSesionAnio && _calMes < _primerSesionMes)) {
+                    _calAnio = _primerSesionAnio;
+                    _calMes  = _primerSesionMes;
+                }
+            }
+        } catch(e) { console.error('cargarPrimeraSesion:', e); }
+        _actualizarNavBtns();
+    };
+
     window.cambiarMes = async (delta) => {
-        _calMes += delta;
-        if (_calMes > 11) { _calMes = 0; _calAnio++; }
-        if (_calMes < 0)  { _calMes = 11; _calAnio--; }
+        let newMes  = _calMes + delta;
+        let newAnio = _calAnio;
+        if (newMes > 11) { newMes = 0;  newAnio++; }
+        if (newMes < 0)  { newMes = 11; newAnio--; }
+        // Límite máximo: diciembre 2026
+        if (newAnio > MAX_ANIO_DEPI || (newAnio === MAX_ANIO_DEPI && newMes > MAX_MES_DEPI)) return;
+        // Límite mínimo: mes de la primera sesión
+        if (_primerSesionAnio !== null && (newAnio < _primerSesionAnio || (newAnio === _primerSesionAnio && newMes < _primerSesionMes))) return;
+        _calMes  = newMes;
+        _calAnio = newAnio;
         await cargarCalendario();
+        _actualizarNavBtns();
     };
 
     const cargarCalendario = async () => {
@@ -1025,6 +1082,60 @@
             mostrarAvisoDepi('Día desbloqueado');
             await Promise.all([verDia(fecha), cargarCalendario()]);
         } catch(e) { console.error(e); mostrarAvisoDepi('Error al desbloquear'); }
+    };
+
+    window.bloquearSemanaDepi = () => {
+        const fecha = _diaSeleccionado;
+        if (!fecha) { mostrarAvisoDepi('Seleccioná un día primero'); return; }
+        const ref = new Date(fecha + 'T12:00:00');
+        const dow = ref.getDay();
+        const dias = [];
+        for (let i = -dow; i <= 6 - dow; i++) {
+            const nd = new Date(ref.getTime() + i * 86400000);
+            if (!DEPI_DIAS.has(nd.getDay())) continue;
+            const f = `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}-${String(nd.getDate()).padStart(2,'0')}`;
+            if (f <= `${MAX_ANIO_DEPI}-12-31`) dias.push(f);
+        }
+        if (dias.length === 0) { mostrarAvisoDepi('No hay días de depilación en esa semana'); return; }
+        mostrarConfirmDepi({
+            icono: '🗓',
+            titulo: 'Bloquear semana',
+            texto: `¿Bloquear los ${dias.length} días de depilación de esta semana?\n${dias.join(', ')}`,
+            labelSi: 'Sí, bloquear',
+            onSi: async () => {
+                try {
+                    await Promise.all(dias.map(f => setDoc(doc(db, COLECCION_EX, `depi_${f}_dia`), { fecha: f, tipo: 'dia', bloqueado: true, updatedAt: serverTimestamp() })));
+                    mostrarAvisoDepi(`${dias.length} día${dias.length > 1 ? 's' : ''} bloqueado${dias.length > 1 ? 's' : ''}`);
+                    await cargarCalendario();
+                    if (_diaSeleccionado) await verDia(_diaSeleccionado);
+                } catch(e) { console.error(e); mostrarAvisoDepi('Error al bloquear semana'); }
+            }
+        });
+    };
+
+    window.bloquearMesDepi = () => {
+        const primerDia = new Date(_calAnio, _calMes, 1);
+        const ultimoDia = new Date(_calAnio, _calMes + 1, 0);
+        const dias = [];
+        for (let d = new Date(primerDia); d <= ultimoDia; d.setDate(d.getDate() + 1)) {
+            if (!DEPI_DIAS.has(d.getDay())) continue;
+            const f = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            if (f <= `${MAX_ANIO_DEPI}-12-31`) dias.push(f);
+        }
+        if (dias.length === 0) { mostrarAvisoDepi('No hay días de depilación en este mes'); return; }
+        mostrarConfirmDepi({
+            icono: '🔒',
+            titulo: `Bloquear ${MESES[_calMes]} ${_calAnio}`,
+            texto: `¿Bloquear los ${dias.length} días de depilación de ${MESES[_calMes]} ${_calAnio}?`,
+            labelSi: 'Sí, bloquear todo',
+            onSi: async () => {
+                try {
+                    await Promise.all(dias.map(f => setDoc(doc(db, COLECCION_EX, `depi_${f}_dia`), { fecha: f, tipo: 'dia', bloqueado: true, updatedAt: serverTimestamp() })));
+                    mostrarAvisoDepi(`${MESES[_calMes]} bloqueado (${dias.length} días)`);
+                    await cargarCalendario();
+                } catch(e) { console.error(e); mostrarAvisoDepi('Error al bloquear mes'); }
+            }
+        });
     };
 
     window.bloquearSlotDepi = async (hora, fecha) => {

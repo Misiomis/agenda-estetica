@@ -4271,6 +4271,12 @@
                     if (!blk || !blk.reservaId) return false;
                     const blkReserva = todasLasReservas.find(r => r.id === blk.reservaId && esReservaActiva(r));
                     if (!blkReserva) return false;
+                    // Verificar que blkReserva TODAVÍA cubra esta hora
+                    // (bloqueosHorarios no se actualiza tras drag-drop, puede quedar stale)
+                    const _blkStart = _toMinC(normalizarHora(blkReserva.hora));
+                    const _blkEnd = _blkStart + (blkReserva.duracionMinutos || 30);
+                    const _thisMin = _toMinC(normalizarHora(hora));
+                    if (_thisMin <= _blkStart || _thisMin >= _blkEnd) return false;
                     const blkBox = _grilla_boxDeReserva(blkReserva);
                     // Si hay box preseleccionado, solo verificar ese box exacto
                     if (_mreg_boxPresel) return blkBox === _mreg_boxPresel.id;
