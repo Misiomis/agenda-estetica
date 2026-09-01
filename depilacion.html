@@ -1011,6 +1011,7 @@ function procesarExcepciones(snapshot){
         const esBloqueo=data.type==="blocked"||data.blocked===true||data.bloqueado===true||data.tipo==='slot';
         if(!activo||!esBloqueo)return;
         if(fechaEx&&horaEx){bloqueosHorarios.set(keyBloqueo(fechaEx,horaEx),{id:docSnap.id,...data,fecha:fechaEx,hora:horaEx});return;}
+        if(data.tipo==='dia') return; // marcador visual del admin — no bloquea el día en la web pública
         if(fechaEx)excepciones[fechaEx]=data.reason||"Cerrado";
     });
 }
