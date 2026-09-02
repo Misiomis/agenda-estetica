@@ -324,6 +324,90 @@
             opacity: 0; pointer-events: none; white-space: nowrap;
         }
         #avisoDepi.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* ══════════════════════════════════════════════════════
+           RESPONSIVE MOBILE / TABLET — AUDITORÍA COMPLETA
+           ══════════════════════════════════════════════════════ */
+
+        /* ── AVISO FLOTANTE: evitar overflow en mobile ── */
+        @media (max-width: 767px) {
+            #avisoDepi { white-space: normal; text-align: center; max-width: calc(100vw - 32px); font-size: 13px; }
+        }
+
+        /* ── SLOT ROW: wrap botones en mobile ── */
+        @media (max-width: 767px) {
+            .slot-row { flex-wrap: wrap; }
+            .slot-hora { flex-shrink: 0; }
+        }
+
+        /* ── RESERVA ITEM: wrap en mobile ── */
+        @media (max-width: 480px) {
+            .reserva-item { flex-wrap: wrap; align-items: flex-start; }
+            .reserva-estado { align-self: flex-start; }
+        }
+
+        /* ── ACCIONES DEL TURNO (3-col grid → 2 col en mobile) ── */
+        .acciones-turno-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+        @media (max-width: 480px) {
+            .acciones-turno-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* ── PARAMS PANEL: grid de parámetros → 1 columna en mobile ── */
+        .params-grid-main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 480px) {
+            .params-grid-main { grid-template-columns: 1fr; }
+        }
+
+        /* ── PARAMS PANEL: chips de fototipo — wrap en 2 filas de 3 ── */
+        .params-chips-row {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 480px) {
+            .params-chips-row > button { flex: 1 1 calc(33.333% - 6px); min-width: 0; }
+        }
+
+        /* ── PARAMS PANEL: título no se corta ── */
+        [id^="paramsPanel-"] > div:first-child {
+            word-break: break-word;
+            white-space: normal;
+        }
+
+        /* ── CALENDARIO: celdas responsivas en mobile ── */
+        @media (max-width: 480px) {
+            .cal-grid { gap: 2px; }
+            .cal-day { font-size: 11px; border-radius: 5px; }
+            .cal-dow { font-size: 9px; letter-spacing: 0; }
+            .cal-nav button { padding: 7px 10px; font-size: 13px; }
+            .cal-nav span { font-size: 13px; }
+        }
+
+        /* ── MAIN CONTENT Y CARD: padding reducido en mobile ── */
+        @media (max-width: 480px) {
+            .main-content { padding: 12px 10px; }
+            .card { padding: 14px 12px; }
+        }
+
+        /* ── SEARCH: wrap en mobile ── */
+        @media (max-width: 480px) {
+            .search-input-wrap { flex-wrap: wrap; }
+        }
+
+        /* ── TABLET: ajustes intermedios ── */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .sidebar { width: 180px; }
+            .main-content { padding: 20px 18px; }
+        }
     </style>
 </head>
 <body>
@@ -937,7 +1021,7 @@
                         </div>
                         <span class="reserva-estado ${estadoCls}">${estadoLabel}</span>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                    <div class="acciones-turno-grid">
                         <button onclick="cambiarEstado('${r._id}','confirmada','${fecha}')"
                             style="padding:10px 0;border-radius:10px;border:none;background:${yaConfirmada?'rgba(74,222,128,0.12)':'linear-gradient(135deg,#22c55e,#16a34a)'};color:${yaConfirmada?'rgba(74,222,128,0.92)':'#fff'};font-weight:700;font-size:13px;cursor:${yaConfirmada?'default':'pointer'};font-family:inherit;"
                             ${yaConfirmada?'disabled':''}>Confirmar</button>
@@ -986,11 +1070,11 @@
                         </div>
                         <div id="paramsPanel-${r._id}" style="display:none;margin-top:8px;background:rgba(80,120,220,0.05);border:1px solid rgba(80,120,220,0.18);border-radius:10px;padding:12px;">
                             <div style="font-size:10px;font-weight:700;color:rgba(140,170,255,0.70);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Parámetros técnicos del tratamiento</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+                            <div class="params-grid-main">
                                 <!-- Fototipo: chips de color I-VI -->
                                 <div style="grid-column:1/-1;background:rgba(255,255,255,0.03);border:1px solid rgba(80,120,220,0.14);border-radius:8px;padding:10px 12px;">
                                     <div style="font-size:10px;color:rgba(140,170,255,0.85);font-weight:600;margin-bottom:9px;letter-spacing:.04em;">Fototipo</div>
-                                    <div style="display:flex;gap:7px;">
+                                    <div class="params-chips-row">
                                         ${[['I','#FBE8D3','#1C0C04'],['II','#F3D2B3','#1C0C04'],['III','#DDAF84','#1C0C04'],
                                            ['IV','#B97850','#1C0C04'],['V','#855035','#F5DFC8'],['VI','#4A2C23','#F5DFC8']
                                           ].map(([f,bg,fg])=>
