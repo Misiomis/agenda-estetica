@@ -980,7 +980,10 @@
                     <div style="margin-top:6px;">
                         <label style="font-size:11px;color:var(--texto-suave);font-weight:600;display:block;margin-bottom:5px;">📋 Nota de sesión</label>
                         <textarea id="nota-${r._id}" rows="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--borde);background:rgba(255,255,255,0.03);color:var(--texto);font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box;" placeholder="Zona tratada, respuesta de la piel, próxima sesión sugerida...">${escHtml(r.notasSesion || '')}</textarea>
-                        <button onclick="guardarNotaSesion('${r._id}')" style="margin-top:5px;padding:7px 14px;border-radius:8px;border:1px solid rgba(30,122,78,0.30);background:rgba(30,122,78,0.08);color:rgba(100,200,150,0.85);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">💾 Guardar nota</button>
+                        <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
+                            <button onclick="guardarNotaSesion('${r._id}')" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(30,122,78,0.30);background:rgba(30,122,78,0.08);color:rgba(100,200,150,0.85);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">💾 Guardar nota</button>
+                            <button onclick="_agregarParamsLaser('${r._id}')" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(80,120,220,0.30);background:rgba(80,120,220,0.08);color:rgba(140,170,255,0.85);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" title="Agrega los parámetros técnicos del láser al detalle, sin borrar lo existente">🔧 Parámetros técnicos</button>
+                        </div>
                     </div>
                 </div>`;
             } else if (isBloqSlot) {
@@ -1246,6 +1249,32 @@
             await updateDoc(doc(db, COLECCION, id), { notasSesion: ta.value.trim(), notaUpdatedAt: serverTimestamp() });
             mostrarAvisoDepi('✓ Nota guardada');
         } catch(e) { console.error(e); mostrarAvisoDepi('Error al guardar nota'); }
+    };
+
+    // Agrega los parámetros técnicos del láser al textarea de nota, sin borrar contenido existente.
+    // Si un parámetro ya existe, actualiza solo su valor; si no, lo añade al final.
+    window._agregarParamsLaser = (id) => {
+        const ta = document.getElementById('nota-' + id);
+        if (!ta) return;
+        const PARAMS = [
+            ['Fototipo', 'II'],
+            ['Energía aplicada', '6 J/cm²'],
+            ['Ancho de pulso', '13 ms'],
+            ['Frecuencia de disparo', '3 Hz'],
+            ['Nivel de cooling/enfriamiento', '5/5'],
+            ['Temperatura del cabezal', '5 °C'],
+        ];
+        const lineas = ta.value ? ta.value.split('\n') : [];
+        for (const [clave, valor] of PARAMS) {
+            const idx = lineas.findIndex(l => l.toLowerCase().startsWith(clave.toLowerCase() + ':'));
+            if (idx !== -1) {
+                lineas[idx] = `${clave}: ${valor}`; // actualiza valor existente
+            } else {
+                lineas.push(`${clave}: ${valor}`);  // agrega al final
+            }
+        }
+        ta.value = lineas.join('\n');
+        mostrarAvisoDepi('Parámetros incorporados — guardá la nota para persistir');
     };
 
     window.guardarServicioPaciente = async (id) => {
