@@ -1000,6 +1000,7 @@
                                     ['Ancho de pulso','p-pulso','13','ms','1'],
                                     ['Frecuencia de disparo','p-freq','3','Hz','0.5'],
                                     ['Temp. del cabezal','p-temp','5','°C','1'],
+                                    ['Disparos por zona','p-disparos','','disparos','1'],
                                 ].map(([lbl,k,def,unit,step]) =>
                                     `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(80,120,220,0.14);border-radius:8px;padding:8px 10px;">
                                         <div style="font-size:10px;color:rgba(140,170,255,0.55);font-weight:600;margin-bottom:5px;">${lbl}</div>
@@ -1298,20 +1299,22 @@
         const ta = document.getElementById('nota-' + id);
         if (!ta) return;
         // Pares [etiqueta, valor calculado]
-        const foto  = document.getElementById('p-foto-' + id)?.value  || '';
-        const ener  = document.getElementById('p-ener-' + id)?.value  || '';
-        const pulso = document.getElementById('p-pulso-' + id)?.value || '';
-        const freq  = document.getElementById('p-freq-' + id)?.value  || '';
-        const temp  = document.getElementById('p-temp-' + id)?.value  || '';
-        const cool1 = document.getElementById('p-cool1-' + id)?.value || '';
-        const cool2 = document.getElementById('p-cool2-' + id)?.value || '';
+        const foto     = document.getElementById('p-foto-' + id)?.value     || '';
+        const ener     = document.getElementById('p-ener-' + id)?.value     || '';
+        const pulso    = document.getElementById('p-pulso-' + id)?.value    || '';
+        const freq     = document.getElementById('p-freq-' + id)?.value     || '';
+        const temp     = document.getElementById('p-temp-' + id)?.value     || '';
+        const disparos = document.getElementById('p-disparos-' + id)?.value || '';
+        const cool1    = document.getElementById('p-cool1-' + id)?.value    || '';
+        const cool2    = document.getElementById('p-cool2-' + id)?.value    || '';
         const CAMPOS = [
             ['Fototipo',                      foto],
-            ['Energía aplicada',              ener  ? `${ener} J/cm²`  : ''],
-            ['Ancho de pulso',                pulso ? `${pulso} ms`    : ''],
-            ['Frecuencia de disparo',         freq  ? `${freq} Hz`     : ''],
+            ['Energía aplicada',              ener     ? `${ener} J/cm²`          : ''],
+            ['Ancho de pulso',                pulso    ? `${pulso} ms`             : ''],
+            ['Frecuencia de disparo',         freq     ? `${freq} Hz`              : ''],
             ['Nivel de cooling/enfriamiento', (cool1||cool2) ? `${cool1}/${cool2}` : ''],
-            ['Temperatura del cabezal',       temp  ? `${temp} °C`     : ''],
+            ['Temperatura del cabezal',       temp     ? `${temp} °C`             : ''],
+            ['Cantidad de disparos por zona', disparos ? `${disparos} disparos`    : ''],
         ];
         const lineas = ta.value ? ta.value.split('\n') : [];
         for (const [etiqueta, val] of CAMPOS) {
