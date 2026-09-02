@@ -987,12 +987,26 @@
                         <div id="paramsPanel-${r._id}" style="display:none;margin-top:8px;background:rgba(80,120,220,0.05);border:1px solid rgba(80,120,220,0.18);border-radius:10px;padding:12px;">
                             <div style="font-size:10px;font-weight:700;color:rgba(140,170,255,0.70);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Parámetros técnicos del tratamiento</div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
-                                <!-- Fototipo: selector I-VI -->
-                                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(80,120,220,0.14);border-radius:8px;padding:8px 10px;">
-                                    <div style="font-size:10px;color:rgba(140,170,255,0.55);font-weight:600;margin-bottom:5px;">Fototipo</div>
-                                    <select id="p-foto-${r._id}" style="width:100%;background:rgba(30,40,80,0.60);border:none;border-bottom:1px solid rgba(80,120,220,0.30);color:var(--texto);font-size:14px;font-weight:700;padding:3px 2px;outline:none;font-family:inherit;cursor:pointer;border-radius:4px;">
-                                        ${['I','II','III','IV','V','VI'].map(f=>`<option value="${f}"${f==='II'?' selected':''}>${f}</option>`).join('')}
-                                    </select>
+                                <!-- Fototipo: chips de color I-VI -->
+                                <div style="grid-column:1/-1;background:rgba(255,255,255,0.03);border:1px solid rgba(80,120,220,0.14);border-radius:8px;padding:10px 12px;">
+                                    <div style="font-size:10px;color:rgba(140,170,255,0.55);font-weight:600;margin-bottom:9px;letter-spacing:.04em;">Fototipo</div>
+                                    <div style="display:flex;gap:7px;">
+                                        ${[['I','#FBE8D3','#1C0C04'],['II','#F3D2B3','#1C0C04'],['III','#DDAF84','#1C0C04'],
+                                           ['IV','#B97850','#1C0C04'],['V','#855035','#F5DFC8'],['VI','#4A2C23','#F5DFC8']
+                                          ].map(([f,bg,fg])=>
+                                            `<button id="p-foto-btn-${f}-${r._id}"
+                                                onclick="_selFototipo('${r._id}','${f}')"
+                                                style="flex:1;height:46px;border-radius:10px;background:${bg};
+                                                       border:2px solid ${f==='II'?'rgba(160,185,255,0.90)':'rgba(0,0,0,0.10)'};
+                                                       box-shadow:${f==='II'?'0 0 0 2px rgba(80,120,220,0.50)':'none'};
+                                                       cursor:pointer;font-weight:800;font-size:13px;color:${fg};
+                                                       font-family:inherit;line-height:1;display:flex;flex-direction:column;
+                                                       align-items:center;justify-content:center;gap:2px;padding:0 2px;">
+                                                <span style="font-size:13px;font-weight:800;">${f}</span>
+                                            </button>`
+                                          ).join('')}
+                                    </div>
+                                    <input type="hidden" id="p-foto-${r._id}" value="II">
                                 </div>
                                 <!-- Campos numéricos con unidad fija -->
                                 ${[
@@ -1292,6 +1306,20 @@
     window._toggleParamsPanel = (id) => {
         const panel = document.getElementById('paramsPanel-' + id);
         if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    };
+
+    window._selFototipo = (id, val) => {
+        const hidden = document.getElementById('p-foto-' + id);
+        if (hidden) hidden.value = val;
+        [['I','#FBE8D3','#1C0C04'],['II','#F3D2B3','#1C0C04'],['III','#DDAF84','#1C0C04'],
+         ['IV','#B97850','#1C0C04'],['V','#855035','#F5DFC8'],['VI','#4A2C23','#F5DFC8']
+        ].forEach(([f]) => {
+            const btn = document.getElementById(`p-foto-btn-${f}-${id}`);
+            if (!btn) return;
+            const sel = f === val;
+            btn.style.border = sel ? '2px solid rgba(160,185,255,0.90)' : '2px solid rgba(0,0,0,0.10)';
+            btn.style.boxShadow = sel ? '0 0 0 2px rgba(80,120,220,0.50)' : 'none';
+        });
     };
 
     // Lee el panel de parámetros y fusiona en el textarea. Merge inteligente: actualiza si ya existe, agrega si no.
