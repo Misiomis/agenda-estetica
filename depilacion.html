@@ -1289,14 +1289,17 @@ window.confirmarDepi=async function(){
         // Duración: lee override del admin en Firestore, sino usa el durMin del combo (default 60 min)
         const durMin=(_comboDuracConfig[comboSeleccionado.id]!=null)?_comboDuracConfig[comboSeleccionado.id]:(comboSeleccionado.durMin||60);
         const slotsHoy=_slotsParaDia(fStr);
-        const idxBase=slotsHoy.indexOf(normalizarHora(horaSeleccionada));
+        const horaNorm=normalizarHora(horaSeleccionada);
+        const idxBase=slotsHoy.indexOf(horaNorm);
         const slotsNecesarios=Math.max(1,Math.ceil(durMin/30));
-        // Anti double-booking
+        if(idxBase===-1){mostrarAviso("Error","Horario inválido. Por favor elegí otro turno.");btn.disabled=false;btn.textContent="Confirmar turno";return;}
+        // Anti double-booking: lee Firestore fresco
         const ocupadosAhora=await obtenerHorasOcupadas(fStr);
-        if(ocupadosAhora.includes(horaSeleccionada)||bloqueosHorarios.has(keyBloqueo(fStr,horaSeleccionada))){
+        if(ocupadosAhora.includes(horaNorm)||bloqueosHorarios.has(keyBloqueo(fStr,horaNorm))){
             mostrarAviso("Horario no disponible","Este turno acaba de ser tomado. Por favor elegí otro horario.");
             btn.disabled=false;btn.textContent="Confirmar turno";return;
         }
+        // Verificar que todos los slots consecutivos necesarios estén libres
         for(let i=1;i<slotsNecesarios;i++){
             const horaExt=slotsHoy[idxBase+i];
             if(!horaExt||ocupadosAhora.includes(horaExt)||bloqueosHorarios.has(keyBloqueo(fStr,horaExt))){
@@ -1311,7 +1314,7 @@ window.confirmarDepi=async function(){
             combo:`${comboSeleccionado.nombre} — ${comboSeleccionado.detalle}`,
             comboPrecio:comboSeleccionado.precio,
             comboGrupo:comboSeleccionado.grupo,
-            fecha:fStr,hora:horaSeleccionada,
+            fecha:fStr,hora:horaNorm,
             tipo:"depilacion",
             metodoPago:_metodoPago,
             status:"confirmado",estado:"confirmado",
@@ -1320,16 +1323,13 @@ window.confirmarDepi=async function(){
             creadoPor:"paciente_web",
             timestamp:serverTimestamp(),createdAt:serverTimestamp()
         });
-        // Bloquear slot base
-        const blockId=`depi_${fStr}_${horaSeleccionada.replace(':','-')}`;
-        setDoc(doc(db,"calendarExceptionsDepi",blockId),{fecha:fStr,hora:horaSeleccionada,blocked:true,tipo:"reserva",reservaId:reservaRef.id,updatedAt:serverTimestamp()}).catch(()=>{});
-        // Bloquear slots extras según duración
-        const _idxBase=slotsHoy.indexOf(normalizarHora(horaSeleccionada));
-        for(let i=1;i<slotsNecesarios;i++){
-            const horaExt=slotsHoy[_idxBase+i];
-            if(!horaExt) break;
-            const extId=`depi_ext_${fStr}_${horaExt.replace(':','h')}_${i}`;
-            setDoc(doc(db,"calendarExceptionsDepi",extId),{fecha:fStr,hora:horaExt,blocked:true,tipo:'extension',reservaId:reservaRef.id,updatedAt:serverTimestamp()}).catch(()=>{});
+        // Bloquear TODOS los slots que ocupa el turno (mismo ID que usa el admin para coherencia)
+        for(let i=0;i<slotsNecesarios;i++){
+            const horaSlot=slotsHoy[idxBase+i];
+            if(!horaSlot) break;
+            const docId=`depi_${fStr}_${horaSlot.replace(':','')}`;
+            const tipoBlq=i===0?'reserva':'extension';
+            setDoc(doc(db,"calendarExceptionsDepi",docId),{fecha:fStr,hora:horaSlot,blocked:true,tipo:tipoBlq,reservaId:reservaRef.id,updatedAt:serverTimestamp()}).catch(()=>{});
         }
         // Actualizar perfil cliente
         setDoc(doc(db,"clients",dniRaw),{dni:dniRaw,nombre,fullName:nombre,domicilio,telefono,email:email||null,fechaNacimiento:fechaNac,edad,updatedAt:serverTimestamp()},{merge:true}).catch(()=>{});
