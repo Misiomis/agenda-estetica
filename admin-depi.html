@@ -171,7 +171,7 @@
         .slot-row { display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;margin-bottom:5px;border:1px solid var(--borde);background:rgba(255,255,255,0.025); }
         .slot-hora { font-size:14px;font-weight:800;color:rgba(100,200,150,0.90);min-width:46px; }
         .slot-libre { color:var(--texto-suave);font-size:12px;flex:1; }
-        .slot-bloqueado-label { color:rgba(248,113,113,0.70);font-size:12px;flex:1; }
+        .slot-bloqueado-label { color:rgba(248,113,113,0.92);font-size:12px;flex:1; }
 
         /* ── DÍA DETALLE ── */
         .reserva-item {
@@ -194,7 +194,7 @@
         }
         .estado-pendiente { background: rgba(251,191,36,0.14); color: #fbbf24; }
         .estado-confirmada { background: rgba(74,222,128,0.12); color: #4ade80; }
-        .estado-cancelada { background: rgba(248,113,113,0.12); color: #f87171; text-decoration: line-through; opacity: 0.65; }
+        .estado-cancelada { background: rgba(248,113,113,0.12); color: rgba(248,113,113,0.80); text-decoration: line-through; }
         .estado-realizada { background: rgba(5,150,105,0.15); color: #34d399; }
 
         .btn-icono {
@@ -939,7 +939,7 @@
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                         <button onclick="cambiarEstado('${r._id}','confirmada','${fecha}')"
-                            style="padding:10px 0;border-radius:10px;border:none;background:${yaConfirmada?'rgba(74,222,128,0.12)':'linear-gradient(135deg,#22c55e,#16a34a)'};color:${yaConfirmada?'rgba(74,222,128,0.50)':'#fff'};font-weight:700;font-size:13px;cursor:${yaConfirmada?'default':'pointer'};font-family:inherit;"
+                            style="padding:10px 0;border-radius:10px;border:none;background:${yaConfirmada?'rgba(74,222,128,0.12)':'linear-gradient(135deg,#22c55e,#16a34a)'};color:${yaConfirmada?'rgba(74,222,128,0.92)':'#fff'};font-weight:700;font-size:13px;cursor:${yaConfirmada?'default':'pointer'};font-family:inherit;"
                             ${yaConfirmada?'disabled':''}>Confirmar</button>
                         ${telWA ? `<a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgRecordatorio(r, fecha))}" target="_blank"
                             style="padding:10px 0;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-weight:700;font-size:13px;text-align:center;text-decoration:none;display:block;">Recordar</a>` :
@@ -989,7 +989,7 @@
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
                                 <!-- Fototipo: chips de color I-VI -->
                                 <div style="grid-column:1/-1;background:rgba(255,255,255,0.03);border:1px solid rgba(80,120,220,0.14);border-radius:8px;padding:10px 12px;">
-                                    <div style="font-size:10px;color:rgba(140,170,255,0.55);font-weight:600;margin-bottom:9px;letter-spacing:.04em;">Fototipo</div>
+                                    <div style="font-size:10px;color:rgba(140,170,255,0.85);font-weight:600;margin-bottom:9px;letter-spacing:.04em;">Fototipo</div>
                                     <div style="display:flex;gap:7px;">
                                         ${[['I','#FBE8D3','#1C0C04'],['II','#F3D2B3','#1C0C04'],['III','#DDAF84','#1C0C04'],
                                            ['IV','#B97850','#1C0C04'],['V','#855035','#F5DFC8'],['VI','#4A2C23','#F5DFC8']
@@ -1017,16 +1017,16 @@
                                     ['Disparos por zona','p-disparos','','disparos','1'],
                                 ].map(([lbl,k,def,unit,step]) =>
                                     `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(80,120,220,0.14);border-radius:8px;padding:8px 10px;">
-                                        <div style="font-size:10px;color:rgba(140,170,255,0.55);font-weight:600;margin-bottom:5px;">${lbl}</div>
+                                        <div style="font-size:10px;color:rgba(140,170,255,0.85);font-weight:600;margin-bottom:5px;">${lbl}</div>
                                         <div style="display:flex;align-items:baseline;gap:5px;">
                                             <input type="number" id="${k}-${r._id}" value="${def}" step="${step}" min="0" style="flex:1;min-width:0;background:transparent;border:none;border-bottom:1px solid rgba(80,120,220,0.25);color:var(--texto);font-size:15px;font-weight:700;padding:2px 0;outline:none;font-family:inherit;">
-                                            <span style="font-size:11px;color:rgba(140,170,255,0.55);flex-shrink:0;">${unit}</span>
+                                            <span style="font-size:11px;color:rgba(140,170,255,0.85);flex-shrink:0;">${unit}</span>
                                         </div>
                                     </div>`
                                 ).join('')}
                                 <!-- Cooling: dos números separados por "/" -->
                                 <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(80,120,220,0.14);border-radius:8px;padding:8px 10px;">
-                                    <div style="font-size:10px;color:rgba(140,170,255,0.55);font-weight:600;margin-bottom:5px;">Cooling / enfriamiento</div>
+                                    <div style="font-size:10px;color:rgba(140,170,255,0.85);font-weight:600;margin-bottom:5px;">Cooling / enfriamiento</div>
                                     <div style="display:flex;align-items:center;gap:6px;">
                                         <input type="number" id="p-cool1-${r._id}" value="5" min="0" max="9" step="1" style="width:42px;background:transparent;border:none;border-bottom:1px solid rgba(80,120,220,0.25);color:var(--texto);font-size:15px;font-weight:700;padding:2px 0;outline:none;font-family:inherit;text-align:center;">
                                         <span style="color:rgba(140,170,255,0.45);font-size:18px;line-height:1;">/</span>
