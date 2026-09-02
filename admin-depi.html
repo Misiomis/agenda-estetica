@@ -987,19 +987,37 @@
                         <div id="paramsPanel-${r._id}" style="display:none;margin-top:8px;background:rgba(80,120,220,0.05);border:1px solid rgba(80,120,220,0.18);border-radius:10px;padding:12px;">
                             <div style="font-size:10px;font-weight:700;color:rgba(140,170,255,0.70);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Parámetros técnicos del tratamiento</div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+                                <!-- Fototipo: selector I-VI -->
+                                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(80,120,220,0.14);border-radius:8px;padding:8px 10px;">
+                                    <div style="font-size:10px;color:rgba(140,170,255,0.55);font-weight:600;margin-bottom:5px;">Fototipo</div>
+                                    <select id="p-foto-${r._id}" style="width:100%;background:rgba(30,40,80,0.60);border:none;border-bottom:1px solid rgba(80,120,220,0.30);color:var(--texto);font-size:14px;font-weight:700;padding:3px 2px;outline:none;font-family:inherit;cursor:pointer;border-radius:4px;">
+                                        ${['I','II','III','IV','V','VI'].map(f=>`<option value="${f}"${f==='II'?' selected':''}>${f}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <!-- Campos numéricos con unidad fija -->
                                 ${[
-                                    ['Fototipo','p-foto','II'],
-                                    ['Energía aplicada','p-ener','6 J/cm²'],
-                                    ['Ancho de pulso','p-pulso','13 ms'],
-                                    ['Frecuencia de disparo','p-freq','3 Hz'],
-                                    ['Cooling/enfriamiento','p-cool','5/5'],
-                                    ['Temp. del cabezal','p-temp','5 °C'],
-                                ].map(([lbl,k,def]) =>
+                                    ['Energía aplicada','p-ener','6','J/cm²','0.5'],
+                                    ['Ancho de pulso','p-pulso','13','ms','1'],
+                                    ['Frecuencia de disparo','p-freq','3','Hz','0.5'],
+                                    ['Temp. del cabezal','p-temp','5','°C','1'],
+                                ].map(([lbl,k,def,unit,step]) =>
                                     `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(80,120,220,0.14);border-radius:8px;padding:8px 10px;">
                                         <div style="font-size:10px;color:rgba(140,170,255,0.55);font-weight:600;margin-bottom:5px;">${lbl}</div>
-                                        <input id="${k}-${r._id}" value="${def}" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(80,120,220,0.25);color:var(--texto);font-size:13px;font-weight:600;padding:2px 0;outline:none;font-family:inherit;box-sizing:border-box;">
+                                        <div style="display:flex;align-items:baseline;gap:5px;">
+                                            <input type="number" id="${k}-${r._id}" value="${def}" step="${step}" min="0" style="flex:1;min-width:0;background:transparent;border:none;border-bottom:1px solid rgba(80,120,220,0.25);color:var(--texto);font-size:15px;font-weight:700;padding:2px 0;outline:none;font-family:inherit;">
+                                            <span style="font-size:11px;color:rgba(140,170,255,0.55);flex-shrink:0;">${unit}</span>
+                                        </div>
                                     </div>`
                                 ).join('')}
+                                <!-- Cooling: dos números separados por "/" -->
+                                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(80,120,220,0.14);border-radius:8px;padding:8px 10px;">
+                                    <div style="font-size:10px;color:rgba(140,170,255,0.55);font-weight:600;margin-bottom:5px;">Cooling / enfriamiento</div>
+                                    <div style="display:flex;align-items:center;gap:6px;">
+                                        <input type="number" id="p-cool1-${r._id}" value="5" min="0" max="9" step="1" style="width:42px;background:transparent;border:none;border-bottom:1px solid rgba(80,120,220,0.25);color:var(--texto);font-size:15px;font-weight:700;padding:2px 0;outline:none;font-family:inherit;text-align:center;">
+                                        <span style="color:rgba(140,170,255,0.45);font-size:18px;line-height:1;">/</span>
+                                        <input type="number" id="p-cool2-${r._id}" value="5" min="0" max="9" step="1" style="width:42px;background:transparent;border:none;border-bottom:1px solid rgba(80,120,220,0.25);color:var(--texto);font-size:15px;font-weight:700;padding:2px 0;outline:none;font-family:inherit;text-align:center;">
+                                    </div>
+                                </div>
                             </div>
                             <button onclick="_incorporarParamsLaser('${r._id}')" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(80,120,220,0.40);background:rgba(80,120,220,0.14);color:rgba(160,185,255,0.95);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✔ Incorporar al detalle de sesión</button>
                         </div>
@@ -1275,30 +1293,32 @@
         if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     };
 
-    // Lee los inputs del panel y los fusiona en el textarea de nota.
-    // Si una etiqueta ya existe en el texto, actualiza su valor; si no, la agrega al final.
+    // Lee el panel de parámetros y fusiona en el textarea. Merge inteligente: actualiza si ya existe, agrega si no.
     window._incorporarParamsLaser = (id) => {
         const ta = document.getElementById('nota-' + id);
         if (!ta) return;
+        // Pares [etiqueta, valor calculado]
+        const foto  = document.getElementById('p-foto-' + id)?.value  || '';
+        const ener  = document.getElementById('p-ener-' + id)?.value  || '';
+        const pulso = document.getElementById('p-pulso-' + id)?.value || '';
+        const freq  = document.getElementById('p-freq-' + id)?.value  || '';
+        const temp  = document.getElementById('p-temp-' + id)?.value  || '';
+        const cool1 = document.getElementById('p-cool1-' + id)?.value || '';
+        const cool2 = document.getElementById('p-cool2-' + id)?.value || '';
         const CAMPOS = [
-            ['Fototipo',                   'p-foto'],
-            ['Energía aplicada',           'p-ener'],
-            ['Ancho de pulso',             'p-pulso'],
-            ['Frecuencia de disparo',      'p-freq'],
-            ['Nivel de cooling/enfriamiento', 'p-cool'],
-            ['Temperatura del cabezal',    'p-temp'],
+            ['Fototipo',                      foto],
+            ['Energía aplicada',              ener  ? `${ener} J/cm²`  : ''],
+            ['Ancho de pulso',                pulso ? `${pulso} ms`    : ''],
+            ['Frecuencia de disparo',         freq  ? `${freq} Hz`     : ''],
+            ['Nivel de cooling/enfriamiento', (cool1||cool2) ? `${cool1}/${cool2}` : ''],
+            ['Temperatura del cabezal',       temp  ? `${temp} °C`     : ''],
         ];
         const lineas = ta.value ? ta.value.split('\n') : [];
-        for (const [etiqueta, key] of CAMPOS) {
-            const inputEl = document.getElementById(key + '-' + id);
-            const val = (inputEl?.value || '').trim();
+        for (const [etiqueta, val] of CAMPOS) {
             if (!val) continue;
             const idx = lineas.findIndex(l => l.toLowerCase().startsWith(etiqueta.toLowerCase() + ':'));
-            if (idx !== -1) {
-                lineas[idx] = `${etiqueta}: ${val}`;
-            } else {
-                lineas.push(`${etiqueta}: ${val}`);
-            }
+            if (idx !== -1) { lineas[idx] = `${etiqueta}: ${val}`; }
+            else { lineas.push(`${etiqueta}: ${val}`); }
         }
         ta.value = lineas.join('\n');
         mostrarAvisoDepi('Parámetros incorporados — guardá la nota para persistir');
