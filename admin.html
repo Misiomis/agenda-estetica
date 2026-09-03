@@ -689,6 +689,15 @@
         .btn-cancelar { background: linear-gradient(135deg, #D4AF37, #b8940a); color: #2a1f00; }
         .btn-delete-reserva { width: 100%; margin-top: 8px; border: 1px solid rgba(210,168,50,0.35); background: rgba(165,130,50,0.10); color: rgba(220,185,100,0.88); padding: 10px; min-height: 38px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 13px; transition: background 0.18s; }
         .btn-delete-reserva:hover { background: rgba(165,130,50,0.18); border-color: rgba(210,168,50,0.50); }
+        /* ── TARJETA COMPACTA ── */
+        .ac-row-primary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+        .ac-row-secondary { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+        .ac-mas-btn { padding: 9px 14px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05); color: rgba(165,205,188,0.70); font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all 0.15s; }
+        .ac-mas-btn:hover, .ac-mas-btn-open { border-color: rgba(78,163,127,0.40); background: rgba(78,163,127,0.10); color: rgba(140,210,180,0.95); }
+        .ac-mas-btn-full { width: 100%; flex-shrink: 1; }
+        .ac-mas-panel { display: flex; flex-direction: column; gap: 8px; }
+        .ac-avisar-btn { flex: 1; min-width: 0; }
+        .ac-destructive { border-top: 1px solid rgba(255,100,100,0.15); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
         .busc-input { width: 100%; min-height: 42px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.07); color: rgba(220,242,232,0.92); margin-bottom: 10px; box-sizing: border-box; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
         .busc-input:focus { border-color: var(--accento); box-shadow: 0 0 0 3px rgba(78,163,127,0.14); }
         .tag-fecha { display: inline-block; background: rgba(53,122,92,0.15); padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; color: rgba(140,210,180,0.90); line-height: 1.35; white-space: normal; max-width: 100%; margin-bottom: 6px; }
@@ -2925,17 +2934,24 @@
                     <small>${_boxBadge}${_boxAsig ? '&nbsp;' : ''}${escapeHtml(r.servicio || 'Servicio')}${_edadR ? ` · Edad: ${_edadR}` : ''}</small>
                     ${notaDisplay1}
                     ${notaDisplay2}
-                    <div class="grid-acciones">
+                    <div class="ac-row-primary">
                         <button class="btn-ws btn-confirmar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','confirmar')">Confirmar</button>
                         <button class="btn-ws btn-recordar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','recordar')">Recordar</button>
-                        <button class="btn-ws btn-cancelar" title="Solo envía mensaje de aviso" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar')">Avisar Canc.</button>
                     </div>
-                    <button class="btn-mini" style="width:100%;margin-top:8px;border-color:#b5cce8;color:#2e61b1;background:#f3f8ff" onclick="cambiarServicioReserva('${r.id}')">Cambiar servicio</button>
-                    <button class="btn-mini" style="width:100%;margin-top:6px;border-color:#e0b0b0;color:#a02828;background:#fff5f5" onclick="cancelarTurnoYNotificar('${r.id}')">Cancelar turno y notificar</button>
-                    <button class="btn-delete-reserva" onclick="borrarReserva('${r.id}')">Borrar reserva</button>
-                    ${btnEnviar1}${btnEnviar2}
-                    ${btnRec}
-                    ${_btnOtroBox}
+                    <div class="ac-row-secondary">
+                        <button class="btn-ws btn-cancelar ac-avisar-btn" title="Solo envía mensaje de aviso" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar')">Avisar Canc.</button>
+                        <button onclick="window._adminToggleMas('r${r.id}')" class="ac-mas-btn" id="admas-btn-r${r.id}">··· Más</button>
+                    </div>
+                    <div id="admas-r${r.id}" class="ac-mas-panel" style="display:none;margin-top:8px;">
+                        ${btnEnviar1}${btnEnviar2}
+                        ${btnRec}
+                        <button class="btn-mini" style="width:100%;border-color:#b5cce8;color:#2e61b1;background:#f3f8ff" onclick="cambiarServicioReserva('${r.id}')">Cambiar servicio</button>
+                        ${_btnOtroBox}
+                        <div class="ac-destructive">
+                            <button class="btn-mini" style="width:100%;border-color:#e0b0b0;color:#a02828;background:#fff5f5" onclick="cancelarTurnoYNotificar('${r.id}')">Cancelar turno y notificar</button>
+                            <button class="btn-delete-reserva" style="margin-top:0;" onclick="borrarReserva('${r.id}')">Borrar reserva</button>
+                        </div>
+                    </div>
                 </div>`; })(); return {hora: r.hora||'', html: _rHtml}; });
 
             // Cards de consultas → {hora, html}
@@ -2984,16 +3000,18 @@
                     <b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(c.nombre||'Sin nombre')}</b> - ${escapeHtml(c.hora||'--:--')} hs<br>
                     <small>Tel: ${escapeHtml(c.telefono||c.phone||'-')} · Edad: ${c.edad||'-'} · ${escapeHtml(c.domicilio||'-')}</small>
                     ${_notaDisplayC}
-                    <div class="grid-acciones" style="margin-top:8px;">
+                    <div class="ac-row-primary" style="margin-top:8px;">
                         ${_mkWaC(_waConf2,'btn-confirmar','Confirmar')}
                         ${_mkWaC(_waRec2,'btn-recordar','Recordar')}
-                        ${_mkWaC(_waCanc2,'btn-cancelar','Avisar Canc.')}
                     </div>
-                    ${_cWa?`<a href="https://wa.me/${_cWa}?text=${_MSG_PRE_CONSULTA}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;margin-top:8px;padding:10px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(252,211,77,0.92);font-weight:700;font-size:13px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
-                    <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+                    <div class="ac-row-secondary">
+                        ${_mkWaC(_waCanc2,'btn-cancelar ac-avisar-btn','Avisar Canc.')}
+                        <button onclick="window._adminToggleMas('cv${c.id}')" class="ac-mas-btn" id="admas-btn-cv${c.id}">··· Más</button>
+                    </div>
+                    <div id="admas-cv${c.id}" class="ac-mas-panel" style="display:none;margin-top:8px;">
+                        ${_cWa?`<a href="https://wa.me/${_cWa}?text=${_MSG_PRE_CONSULTA}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(252,211,77,0.92);font-weight:700;font-size:13px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
                         ${_cEst!=='confirmada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:9px 12px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;width:100%;">✓ Marcar como confirmada</button>`:''}
                         ${_cEst!=='cancelada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','cancelada')" style="padding:9px 12px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);width:100%;">✕ Cancelar consulta</button>`:''}
-                        <button onclick="borrarConsulta('${c.id}','${escapeHtml(c.nombre||'')}','${c.fecha||f}','${c.hora||''}')" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(255,100,100,0.18);background:rgba(255,100,100,0.05);color:rgba(200,100,100,0.70);font-weight:700;cursor:pointer;font-size:12px;">🗑 Borrar consulta</button>
                         ${_cWa?`
                         <button onclick="(function(){var m=document.getElementById('${_cRecId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(150,185,245,0.90);font-weight:700;cursor:pointer;font-size:12px;">📋 Enviar Recomendaciones post-sesión</button>
                         <div id="${_cRecId}" style="display:none;flex-direction:column;gap:6px;background:rgba(60,100,200,0.06);border:1px solid rgba(60,100,200,0.15);border-radius:10px;padding:10px;">
@@ -3002,6 +3020,9 @@
                             <a href="https://wa.me/${_cWa}?text=${_mMioC}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:linear-gradient(135deg,#6a3fa5,#4a2d82);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💪 MIO UP</a>
                             <a href="https://wa.me/${_cWa}?text=${_mFraxC}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:linear-gradient(135deg,#c0506e,#8c2a46);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">✨ FRAXIS Facial</a>
                         </div>`:''}
+                        <div class="ac-destructive">
+                            <button onclick="borrarConsulta('${c.id}','${escapeHtml(c.nombre||'')}','${c.fecha||f}','${c.hora||''}')" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(255,100,100,0.18);background:rgba(255,100,100,0.05);color:rgba(200,100,100,0.70);font-weight:700;cursor:pointer;font-size:12px;">🗑 Borrar consulta</button>
+                        </div>
                     </div>
                 </div>`;
                 return {hora: c.hora||'', html: _html};
@@ -3112,22 +3133,27 @@
                     const _mFraxis = _cpMsg(`Hola ${_cpN1}, te recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información. Espacio Mimar T.`);
                     consultaPanelHTML = `
                     <div style="margin:-6px 0 10px;padding:12px 14px 10px;background:rgba(60,179,113,0.04);border:1px solid rgba(60,179,113,0.12);border-top:none;border-radius:0 0 14px 14px;">
-                        <div class="grid-acciones" style="margin-bottom:8px;">
+                        <div class="ac-row-primary" style="margin-top:0;">
                             ${_mkWaBtn(_waConf,'btn-confirmar','Confirmar')}
                             ${_mkWaBtn(_waRec,'btn-recordar','Recordar')}
-                            ${_mkWaBtn(_waCanc,'btn-cancelar','Avisar Canc.')}
                         </div>
-                        <div style="display:flex;flex-direction:column;gap:6px;">
+                        <div class="ac-row-secondary">
+                            ${_mkWaBtn(_waCanc,'btn-cancelar ac-avisar-btn','Avisar Canc.')}
+                            <button onclick="window._adminToggleMas('ag${consulta.id}')" class="ac-mas-btn" id="admas-btn-ag${consulta.id}">··· Más</button>
+                        </div>
+                        <div id="admas-ag${consulta.id}" class="ac-mas-panel" style="display:none;margin-top:6px;">
+                            ${_cpWa?`<a href="https://wa.me/${_cpWa}?text=${_cpMsg('Hola 🤍 ¡Es un gusto poder recibirte en nuestro nuevo Espacio MimarT!\n\nNos pone muy felices comenzar esta nueva etapa y poder acompañarte, tanto si ya venís siendo parte de nuestro espacio como si recién te estás sumando.\n\nEsta consulta es un momento pensado para vos: para conocerte mejor, escuchar qué te gustaría mejorar, revisar tus objetivos y comenzar a organizar juntos los tratamientos que mejor se adapten a tus necesidades, tus tiempos y también a tu presupuesto.\n\n✨ Antes de tu consulta, una pequeña aclaración:\nEste mensaje es general para quienes realizan una consulta facial, corporal o ambas, por eso algunas recomendaciones pueden no corresponder específicamente a lo que elegiste evaluar.\n\nSi tu consulta es sólo facial, podés omitir las indicaciones destinadas a la evaluación corporal.\nSi tu consulta es sólo corporal, podés omitir las recomendaciones específicas para la evaluación facial.\nY si elegiste una evaluación facial y corporal, tené en cuenta todas las indicaciones.\n\nAsí cada persona puede prepararse únicamente de acuerdo con el tipo de evaluación que va a realizar, sin preocuparse por aquellas recomendaciones que no correspondan a su turno. 🤍\n\nPara poder realizar una evaluación cómoda y completa, te pedimos que el día de tu consulta:\n\n• Asistas con ropa cómoda, preferentemente deportiva y no ajustada.\n• Si tu evaluación es corporal: en lo posible, utilizá ropa interior sin metales, idealmente de color negro.\n• Si tu evaluación es facial: vení sin maquillaje.\n• Evitá llevar joyas, cadenas, pulseras u otros accesorios metálicos.\n• Sé puntual con el horario pactado, ya que reservamos ese momento especialmente para vos.\n\nDurante la consulta vamos a evaluar los aspectos relacionados con aquello que querés tratar y conversar sobre las alternativas más adecuadas para vos, pudiendo planificar tus próximos tratamientos de una manera personalizada y realista.\n\n🤍 Queremos que esta nueva etapa en Espacio MimarT también sea una nueva forma de acompañarte: más personalizada, más cercana y pensada especialmente para vos.\n\nEspacio MimarT\nUn lugar pensado para vos.')}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:9px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(252,211,77,0.92);font-weight:700;font-size:12px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
                             ${_cpEst!=='confirmada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${consulta.id}','confirmada')" style="padding:8px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;width:100%;">✓ Marcar como confirmada</button>`:''}
                             ${_cpEst!=='cancelada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${consulta.id}','cancelada')" style="padding:8px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);width:100%;">✕ Cancelar consulta</button>`:''}
-                            <button onclick="borrarConsulta('${consulta.id}','${escapeHtml(consulta.nombre||'')}','${consulta.fecha||f}','${_cpHora}')" style="width:100%;padding:8px;border-radius:10px;border:1.5px solid rgba(255,100,100,0.18);background:rgba(255,100,100,0.05);color:rgba(200,100,100,0.70);font-weight:700;cursor:pointer;font-size:12px;">🗑 Borrar consulta</button>
-                            ${_cpWa?`<a href="https://wa.me/${_cpWa}?text=${_cpMsg('Hola 🤍 ¡Es un gusto poder recibirte en nuestro nuevo Espacio MimarT!\n\nNos pone muy felices comenzar esta nueva etapa y poder acompañarte, tanto si ya venís siendo parte de nuestro espacio como si recién te estás sumando.\n\nEsta consulta es un momento pensado para vos: para conocerte mejor, escuchar qué te gustaría mejorar, revisar tus objetivos y comenzar a organizar juntos los tratamientos que mejor se adapten a tus necesidades, tus tiempos y también a tu presupuesto.\n\n✨ Antes de tu consulta, una pequeña aclaración:\nEste mensaje es general para quienes realizan una consulta facial, corporal o ambas, por eso algunas recomendaciones pueden no corresponder específicamente a lo que elegiste evaluar.\n\nSi tu consulta es sólo facial, podés omitir las indicaciones destinadas a la evaluación corporal.\nSi tu consulta es sólo corporal, podés omitir las recomendaciones específicas para la evaluación facial.\nY si elegiste una evaluación facial y corporal, tené en cuenta todas las indicaciones.\n\nAsí cada persona puede prepararse únicamente de acuerdo con el tipo de evaluación que va a realizar, sin preocuparse por aquellas recomendaciones que no correspondan a su turno. 🤍\n\nPara poder realizar una evaluación cómoda y completa, te pedimos que el día de tu consulta:\n\n• Asistas con ropa cómoda, preferentemente deportiva y no ajustada.\n• Si tu evaluación es corporal: en lo posible, utilizá ropa interior sin metales, idealmente de color negro.\n• Si tu evaluación es facial: vení sin maquillaje.\n• Evitá llevar joyas, cadenas, pulseras u otros accesorios metálicos.\n• Sé puntual con el horario pactado, ya que reservamos ese momento especialmente para vos.\n\nDurante la consulta vamos a evaluar los aspectos relacionados con aquello que querés tratar y conversar sobre las alternativas más adecuadas para vos, pudiendo planificar tus próximos tratamientos de una manera personalizada y realista.\n\n🤍 Queremos que esta nueva etapa en Espacio MimarT también sea una nueva forma de acompañarte: más personalizada, más cercana y pensada especialmente para vos.\n\nEspacio MimarT\nUn lugar pensado para vos.')}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:9px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(252,211,77,0.92);font-weight:700;font-size:12px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
                             <button onclick="(function(){var m=document.getElementById('${_cpRecId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:8px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(150,185,245,0.90);font-weight:700;cursor:pointer;font-size:12px;">📋 Enviar Recomendaciones post-sesión</button>
                             <div id="${_cpRecId}" style="display:none;flex-direction:column;gap:6px;background:rgba(60,100,200,0.06);border:1px solid rgba(60,100,200,0.15);border-radius:10px;padding:10px;">
                                 <a href="https://wa.me/${_cpWa}?text=${_m1}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:#25d366;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💧 Tomar agua hoy</a>
                                 <a href="https://wa.me/${_cpWa}?text=${_m2}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">🩺 Uso de faja</a>
                                 <a href="https://wa.me/${_cpWa}?text=${_mMioUp}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:linear-gradient(135deg,#6a3fa5,#4a2d82);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💪 MIO UP</a>
                                 <a href="https://wa.me/${_cpWa}?text=${_mFraxis}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px;border-radius:8px;background:linear-gradient(135deg,#c0506e,#8c2a46);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">✨ FRAXIS Facial</a>
+                            </div>
+                            <div class="ac-destructive">
+                                <button onclick="borrarConsulta('${consulta.id}','${escapeHtml(consulta.nombre||'')}','${consulta.fecha||f}','${_cpHora}')" style="width:100%;padding:8px;border-radius:10px;border:1.5px solid rgba(255,100,100,0.18);background:rgba(255,100,100,0.05);color:rgba(200,100,100,0.70);font-weight:700;cursor:pointer;font-size:12px;">🗑 Borrar consulta</button>
                             </div>
                         </div>
                     </div>`;
@@ -5734,6 +5760,16 @@
             window.renderConsultas();
         };
 
+        window._adminToggleMas = (id) => {
+            const panel = document.getElementById(`admas-${id}`);
+            const btn   = document.getElementById(`admas-btn-${id}`);
+            if (!panel) return;
+            const open = panel.style.display === 'none';
+            panel.style.display = open ? 'flex' : 'none';
+            panel.style.flexDirection = 'column';
+            if (btn) btn.classList.toggle('ac-mas-btn-open', open);
+        };
+
         window.renderConsultas = function() {
             const cont = document.getElementById('consultas-lista');
             if (!cont) return;
@@ -5790,15 +5826,17 @@
                         </div>
                     </div>
                     <p style="margin:0 0 10px;font-size:12px;color:rgba(165,205,188,0.45);">Pago: ${pago} · Email: ${escapeHtml(c.email||'-')}</p>
-                    <div class="grid-acciones" style="margin-bottom:10px;">
+                    <div class="ac-row-primary">
                         ${waConfirm ? `<a href="${waConfirm}" target="_blank" rel="noopener" class="btn-ws btn-confirmar" style="display:flex;align-items:center;justify-content:center;">Confirmar</a>` : `<button class="btn-ws btn-confirmar" disabled style="opacity:.3">Confirmar</button>`}
                         ${waRecordar ? `<a href="${waRecordar}" target="_blank" rel="noopener" class="btn-ws btn-recordar" style="display:flex;align-items:center;justify-content:center;">Recordar</a>` : `<button class="btn-ws btn-recordar" disabled style="opacity:.3">Recordar</button>`}
-                        ${waAvisoCanc ? `<a href="${waAvisoCanc}" target="_blank" rel="noopener" class="btn-ws btn-cancelar" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">Avisar Canc.</a>` : `<button class="btn-ws btn-cancelar" disabled style="opacity:.3">Avisar Canc.</button>`}
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:8px;">
+                    <div class="ac-row-secondary">
+                        ${waAvisoCanc ? `<a href="${waAvisoCanc}" target="_blank" rel="noopener" class="btn-ws btn-cancelar ac-avisar-btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">Avisar Canc.</a>` : ''}
+                        <button onclick="window._adminToggleMas('rc${c.id}')" class="ac-mas-btn${!waAvisoCanc?' ac-mas-btn-full':''}" id="admas-btn-rc${c.id}">··· Más</button>
+                    </div>
+                    <div id="admas-rc${c.id}" class="ac-mas-panel" style="display:none;margin-top:6px;">
                         ${estado !== 'confirmada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:9px 12px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;width:100%;">✓ Marcar como confirmada</button>` : ''}
                         ${estado !== 'cancelada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','cancelada')" style="padding:9px 12px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);width:100%;">✕ Cancelar consulta</button>` : ''}
-                        <button onclick="borrarConsulta('${c.id}','${escapeHtml(c.nombre||'')}','${c.fecha}','${c.hora||''}')" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(255,100,100,0.18);background:rgba(255,100,100,0.05);color:rgba(200,100,100,0.70);font-weight:700;cursor:pointer;font-size:12px;">🗑 Borrar consulta</button>
                         ${waPhone?`<a href="https://wa.me/${waPhone}?text=${encodeURIComponent('Hola 🤍 ¡Es un gusto poder recibirte en nuestro nuevo Espacio MimarT!\n\nNos pone muy felices comenzar esta nueva etapa y poder acompañarte, tanto si ya venís siendo parte de nuestro espacio como si recién te estás sumando.\n\nEsta consulta es un momento pensado para vos: para conocerte mejor, escuchar qué te gustaría mejorar, revisar tus objetivos y comenzar a organizar juntos los tratamientos que mejor se adapten a tus necesidades, tus tiempos y también a tu presupuesto.\n\n✨ Antes de tu consulta, una pequeña aclaración:\nEste mensaje es general para quienes realizan una consulta facial, corporal o ambas, por eso algunas recomendaciones pueden no corresponder específicamente a lo que elegiste evaluar.\n\nSi tu consulta es sólo facial, podés omitir las indicaciones destinadas a la evaluación corporal.\nSi tu consulta es sólo corporal, podés omitir las recomendaciones específicas para la evaluación facial.\nY si elegiste una evaluación facial y corporal, tené en cuenta todas las indicaciones.\n\nAsí cada persona puede prepararse únicamente de acuerdo con el tipo de evaluación que va a realizar, sin preocuparse por aquellas recomendaciones que no correspondan a su turno. 🤍\n\nPara poder realizar una evaluación cómoda y completa, te pedimos que el día de tu consulta:\n\n• Asistas con ropa cómoda, preferentemente deportiva y no ajustada.\n• Si tu evaluación es corporal: en lo posible, utilizá ropa interior sin metales, idealmente de color negro.\n• Si tu evaluación es facial: vení sin maquillaje.\n• Evitá llevar joyas, cadenas, pulseras u otros accesorios metálicos.\n• Sé puntual con el horario pactado, ya que reservamos ese momento especialmente para vos.\n\nDurante la consulta vamos a evaluar los aspectos relacionados con aquello que querés tratar y conversar sobre las alternativas más adecuadas para vos, pudiendo planificar tus próximos tratamientos de una manera personalizada y realista.\n\n🤍 Queremos que esta nueva etapa en Espacio MimarT también sea una nueva forma de acompañarte: más personalizada, más cercana y pensada especialmente para vos.\n\nEspacio MimarT\nUn lugar pensado para vos.')}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(252,211,77,0.92);font-weight:700;font-size:13px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
                         <button onclick="(function(){var m=document.getElementById('${recId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(150,185,245,0.90);font-weight:700;cursor:pointer;font-size:12px">📋 Enviar Recomendaciones post-sesión</button>
                         <div id="${recId}" style="display:none;flex-direction:column;gap:6px;background:rgba(60,100,200,0.06);border:1px solid rgba(60,100,200,0.15);border-radius:10px;padding:10px;">
@@ -5806,6 +5844,9 @@
                             <a href="https://wa.me/${waPhone}?text=${msg2}" target="_blank" rel="noopener noreferrer" style="display:block;padding:10px 12px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">🩺 Uso de faja</a>
                             <a href="https://wa.me/${waPhone}?text=${msgMioUp}" target="_blank" rel="noopener noreferrer" style="display:block;padding:10px 12px;border-radius:8px;background:linear-gradient(135deg,#6a3fa5,#4a2d82);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">💪 MIO UP</a>
                             <a href="https://wa.me/${waPhone}?text=${msgFraxis}" target="_blank" rel="noopener noreferrer" style="display:block;padding:10px 12px;border-radius:8px;background:linear-gradient(135deg,#c0506e,#8c2a46);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center">✨ FRAXIS Facial</a>
+                        </div>
+                        <div class="ac-destructive">
+                            <button onclick="borrarConsulta('${c.id}','${escapeHtml(c.nombre||'')}','${c.fecha}','${c.hora||''}')" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(255,100,100,0.18);background:rgba(255,100,100,0.05);color:rgba(200,100,100,0.70);font-weight:700;cursor:pointer;font-size:12px;">🗑 Borrar consulta</button>
                         </div>
                     </div>
                 </div>`;
