@@ -409,6 +409,29 @@
             .main-content { padding: 20px 18px; }
         }
 
+        /* ── TARJETA COMPACTA ── */
+        .tc-row-primary { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .tc-row-secondary { display: flex; gap: 6px; align-items: center; }
+        .tc-btn-confirm { padding: 11px 0; border-radius: 10px; border: none; background: linear-gradient(135deg,#22c55e,#16a34a); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; text-align: center; }
+        .tc-btn-confirm.tc-btn-confirm--done { background: rgba(74,222,128,0.12); color: rgba(74,222,128,0.50); cursor: default; }
+        .tc-btn-recordar { padding: 11px 0; border-radius: 10px; background: linear-gradient(135deg,#3b82f6,#2563eb); color: #fff; font-weight: 700; font-size: 13px; text-align: center; text-decoration: none; display: block; border: none; font-family: inherit; cursor: pointer; }
+        .tc-btn-disabled { background: transparent; border: 1px solid var(--borde); color: var(--texto-suave); cursor: default; }
+        .tc-btn-avisar { flex: 1; min-width: 0; padding: 9px 0; border-radius: 9px; background: linear-gradient(135deg,#ca8a04,#a16207); color: #fff; font-weight: 700; font-size: 13px; text-align: center; text-decoration: none; display: block; border: none; font-family: inherit; }
+        .tc-mas-btn { padding: 9px 16px; border-radius: 9px; border: 1.5px solid var(--borde); background: transparent; color: var(--texto-suave); font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
+        .tc-mas-btn:hover, .tc-mas-btn-open { border-color: var(--acento-borde); background: var(--acento-suave); color: var(--texto); }
+        .tc-mas-btn-full { width: 100%; }
+        .tc-mas-panel { display: flex; flex-direction: column; }
+        .tc-section { padding: 10px 0; border-top: 1px solid var(--borde); display: flex; flex-direction: column; gap: 6px; }
+        .tc-sec-label { font-size: 10px; color: var(--texto-suave); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+        .tc-rec-link { padding: 9px 12px; border-radius: 9px; background: rgba(30,122,78,0.08); border: 1px solid rgba(30,122,78,0.20); color: rgba(100,200,150,0.85); font-weight: 600; font-size: 13px; text-align: center; text-decoration: none; display: block; }
+        .tc-textarea { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--borde); background: rgba(255,255,255,0.03); color: var(--texto); font-size: 12px; font-family: inherit; resize: vertical; box-sizing: border-box; }
+        .tc-select { flex: 1; min-width: 130px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--borde); background: rgba(255,255,255,0.04); color: var(--texto); font-size: 12px; font-family: inherit; }
+        .tc-save-btn { padding: 7px 14px; border-radius: 8px; border: 1px solid rgba(30,122,78,0.30); background: rgba(30,122,78,0.08); color: rgba(100,200,150,0.85); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .tc-params-btn { border-color: rgba(80,120,220,0.30); background: rgba(80,120,220,0.08); color: rgba(140,170,255,0.85); }
+        .tc-destructive { padding-top: 10px; border-top: 1px solid rgba(248,113,113,0.15); margin-top: 4px; display: flex; flex-direction: column; gap: 6px; }
+        .tc-btn-cancel { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid rgba(248,113,113,0.25); background: rgba(248,113,113,0.06); color: rgba(248,113,113,0.75); font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit; }
+        .tc-btn-delete { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid rgba(120,100,60,0.25); background: rgba(120,100,40,0.08); color: rgba(202,180,100,0.70); font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit; }
+
         /* ── COBRO DE SESIÓN ── */
         .sp-block { margin-top: 10px; border-radius: 10px; border: 1px solid var(--borde); background: rgba(255,255,255,0.025); overflow: hidden; }
         .sp-header { display: flex; align-items: center; gap: 8px; padding: 9px 12px; cursor: pointer; user-select: none; transition: background 0.15s; }
@@ -1130,61 +1153,39 @@
                 const _primerNombre = (r.nombre||'').split(' ')[0];
                 const _msgCanc = encodeURIComponent(`Hola ${_primerNombre} 💜 Te escribimos de Espacio Mimar T para avisarte que tu turno del ${_fmtFechaLarga(fecha)} a las ${hora} hs tuvo que ser cancelado.\n\nLamentamos los inconvenientes. Si querés reprogramarlo, escribinos y buscamos otra fecha para vos. 🌿\nEspacio Mimar T`);
                 const yaConfirmada = (r.estado || '') === 'confirmada';
-                return `<div class="reserva-item" id="ri-${r._id}" style="flex-direction:column;align-items:stretch;gap:10px;padding:16px 18px;">
+                return `<div class="reserva-item" id="ri-${r._id}" style="flex-direction:column;align-items:stretch;gap:8px;padding:14px 16px;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                         <span style="font-size:15px;font-weight:800;color:rgba(100,200,150,0.90);min-width:46px;">${hora}</span>
-                        <div style="flex:1;">
+                        <div style="flex:1;min-width:0;">
                             <div class="reserva-nombre">${escHtml(r.nombre || 'Sin nombre')}</div>
                             <div class="reserva-servicio">${escHtml(r.servicio || '')}${r.edad ? ` · ${escHtml(r.edad)} años` : ''}${r.dni ? ` · DNI: ${escHtml(r.dni)}` : ''}${r.notas ? ` · ${escHtml(r.notas)}` : ''}</div>
                         </div>
                         <span class="reserva-estado ${estadoCls}">${estadoLabel}</span>
                     </div>
-                    <div class="acciones-turno-grid">
+                    <div class="tc-row-primary">
                         <button onclick="cambiarEstado('${r._id}','confirmada','${fecha}')"
-                            style="padding:10px 0;border-radius:10px;border:none;background:${yaConfirmada?'rgba(74,222,128,0.12)':'linear-gradient(135deg,#22c55e,#16a34a)'};color:${yaConfirmada?'rgba(74,222,128,0.92)':'#fff'};font-weight:700;font-size:13px;cursor:${yaConfirmada?'default':'pointer'};font-family:inherit;"
+                            class="tc-btn-confirm${yaConfirmada?' tc-btn-confirm--done':''}"
                             ${yaConfirmada?'disabled':''}>Confirmar</button>
-                        ${telWA ? `<a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgRecordatorio(r, fecha))}" target="_blank"
-                            style="padding:10px 0;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-weight:700;font-size:13px;text-align:center;text-decoration:none;display:block;">Recordar</a>` :
-                            `<button disabled style="padding:10px 0;border-radius:10px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);font-size:13px;font-family:inherit;cursor:default;">Recordar</button>`}
-                        ${telWA ? `<a href="https://wa.me/${telWA}?text=${_msgCanc}" target="_blank"
-                            style="padding:10px 0;border-radius:10px;background:linear-gradient(135deg,#ca8a04,#a16207);color:#fff;font-weight:700;font-size:13px;text-align:center;text-decoration:none;display:block;">Avisar Canc.</a>` :
-                            `<button disabled style="padding:10px 0;border-radius:10px;border:1px solid var(--borde);background:transparent;color:var(--texto-suave);font-size:13px;font-family:inherit;cursor:default;">Avisar Canc.</button>`}
+                        ${telWA ? `<a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgRecordatorio(r, fecha))}" target="_blank" class="tc-btn-recordar">Recordar</a>` :
+                                  `<button disabled class="tc-btn-recordar tc-btn-disabled">Recordar</button>`}
                     </div>
-                    <button onclick="cambiarEstado('${r._id}','cancelada','${fecha}')"
-                        style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(248,113,113,0.25);background:rgba(248,113,113,0.06);color:rgba(248,113,113,0.75);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;">✕ Cancelar turno</button>
-                    <button onclick="eliminarTurno('${r._id}','${fecha}')"
-                        style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(120,100,60,0.25);background:rgba(120,100,40,0.08);color:rgba(202,180,100,0.70);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;">🗑 Borrar turno</button>
-                    ${telWA ? `<div>
-                        <button onclick="toggleRec('${r._id}')" style="width:100%;padding:10px;border-radius:10px;background:rgba(30,122,78,0.12);border:1px solid rgba(30,122,78,0.25);color:rgba(100,200,150,0.85);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">
-                            💬 Enviar recomendaciones <span id="recArrow-${r._id}" style="font-size:10px;margin-left:4px;">▼</span>
-                        </button>
-                        <div id="rec-${r._id}" style="display:none;flex-direction:column;gap:6px;margin-top:6px;">
-                            <a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgPreDepi(r))}" target="_blank"
-                                style="padding:10px;border-radius:10px;background:rgba(34,197,94,0.10);border:1px solid rgba(34,197,94,0.25);color:rgba(74,222,128,0.88);font-weight:700;font-size:13px;text-align:center;text-decoration:none;display:block;">💚 Antes de la sesión — recomendaciones previas</a>
-                            <a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgPostDepi(r))}" target="_blank"
-                                style="padding:10px;border-radius:10px;background:rgba(30,122,78,0.12);border:1px solid rgba(30,122,78,0.25);color:rgba(100,200,150,0.85);font-weight:700;font-size:13px;text-align:center;text-decoration:none;display:block;">🌿 Después de la sesión — cuidados post</a>
-                        </div>
-                    </div>` : ''}
-                    <div style="margin-top:6px;">
-                        <label style="font-size:11px;color:var(--texto-suave);font-weight:600;display:block;margin-bottom:5px;">✦ Servicio</label>
-                        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                            <select id="svcSel-${r._id}" style="flex:1;min-width:130px;padding:7px 10px;border-radius:8px;border:1px solid var(--borde);background:rgba(255,255,255,0.04);color:var(--texto);font-size:12px;font-family:inherit;">
-                                ${_combosActivos().map(g =>
-                                    `<optgroup label="${escHtml(g.grupo)}">${g.combos.map(c =>
-                                        `<option value="${escHtml(c.nombre)}" ${r.servicio===c.nombre?'selected':''}>${escHtml(c.nombre)}</option>`
-                                    ).join('')}</optgroup>`
-                                ).join('')}
-                                <option value="Consulta" ${r.servicio==='Consulta'?'selected':''}>Consulta</option>
-                            </select>
-                            <button onclick="guardarServicioPaciente('${r._id}')" style="padding:7px 12px;border-radius:8px;border:1px solid rgba(30,122,78,0.30);background:rgba(30,122,78,0.08);color:rgba(100,200,150,0.85);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0;">💾 Actualizar</button>
-                        </div>
+                    <div class="tc-row-secondary">
+                        ${telWA ? `<a href="https://wa.me/${telWA}?text=${_msgCanc}" target="_blank" class="tc-btn-avisar">Avisar Canc.</a>` : ''}
+                        <button onclick="window._toggleMas('${r._id}')" class="tc-mas-btn${!telWA?' tc-mas-btn-full':''}" id="mas-btn-${r._id}">··· Más</button>
                     </div>
-                    <div style="margin-top:6px;">
-                        <label style="font-size:11px;color:var(--texto-suave);font-weight:600;display:block;margin-bottom:5px;">📋 Nota de sesión</label>
-                        <textarea id="nota-${r._id}" rows="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--borde);background:rgba(255,255,255,0.03);color:var(--texto);font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box;" placeholder="Zona tratada, respuesta de la piel, próxima sesión sugerida...">${escHtml(r.notasSesion || '')}</textarea>
-                        <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
-                            <button onclick="guardarNotaSesion('${r._id}')" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(30,122,78,0.30);background:rgba(30,122,78,0.08);color:rgba(100,200,150,0.85);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">💾 Guardar nota</button>
-                            <button onclick="_toggleParamsPanel('${r._id}')" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(80,120,220,0.30);background:rgba(80,120,220,0.08);color:rgba(140,170,255,0.85);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">🔧 Parámetros técnicos</button>
+                    <div id="mas-${r._id}" class="tc-mas-panel" style="display:none;">
+                        ${telWA ? `<div class="tc-section">
+                            <div class="tc-sec-label">💬 Recomendaciones</div>
+                            <a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgPreDepi(r))}" target="_blank" class="tc-rec-link">💚 Antes de la sesión</a>
+                            <a href="https://wa.me/${telWA}?text=${encodeURIComponent(_msgPostDepi(r))}" target="_blank" class="tc-rec-link">🌿 Después de la sesión</a>
+                        </div>` : ''}
+                        <div class="tc-section">
+                            <div class="tc-sec-label">📋 Nota de sesión</div>
+                            <textarea id="nota-${r._id}" rows="3" class="tc-textarea" placeholder="Zona tratada, respuesta de la piel, próxima sesión sugerida...">${escHtml(r.notasSesion || '')}</textarea>
+                            <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+                                <button onclick="guardarNotaSesion('${r._id}')" class="tc-save-btn">💾 Guardar nota</button>
+                                <button onclick="_toggleParamsPanel('${r._id}')" class="tc-save-btn tc-params-btn">🔧 Parámetros técnicos</button>
+                            </div>
                         </div>
                         <div id="paramsPanel-${r._id}" style="display:none;margin-top:8px;background:rgba(80,120,220,0.05);border:1px solid rgba(80,120,220,0.18);border-radius:10px;padding:12px;">
                             <div style="font-size:10px;font-weight:700;color:rgba(140,170,255,0.70);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Parámetros técnicos del tratamiento</div>
@@ -1237,6 +1238,24 @@
                                 </div>
                             </div>
                             <button onclick="_incorporarParamsLaser('${r._id}')" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(80,120,220,0.40);background:rgba(80,120,220,0.14);color:rgba(160,185,255,0.95);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✔ Incorporar al detalle de sesión</button>
+                        </div>
+                        <div class="tc-section">
+                            <div class="tc-sec-label">✦ Servicio</div>
+                            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                                <select id="svcSel-${r._id}" class="tc-select">
+                                    ${_combosActivos().map(g =>
+                                        `<optgroup label="${escHtml(g.grupo)}">${g.combos.map(c =>
+                                            `<option value="${escHtml(c.nombre)}" ${r.servicio===c.nombre?'selected':''}>${escHtml(c.nombre)}</option>`
+                                        ).join('')}</optgroup>`
+                                    ).join('')}
+                                    <option value="Consulta" ${r.servicio==='Consulta'?'selected':''}>Consulta</option>
+                                </select>
+                                <button onclick="guardarServicioPaciente('${r._id}')" class="tc-save-btn" style="flex-shrink:0;">💾 Actualizar</button>
+                            </div>
+                        </div>
+                        <div class="tc-destructive">
+                            <button onclick="cambiarEstado('${r._id}','cancelada','${fecha}')" class="tc-btn-cancel">✕ Cancelar turno</button>
+                            <button onclick="eliminarTurno('${r._id}','${fecha}')" class="tc-btn-delete">🗑 Borrar turno</button>
                         </div>
                     </div>
                     ${_htmlCobroBlock(r._id)}
@@ -2815,6 +2834,16 @@ Motivo: ${motivo}`);
     window._cerrarModalEditCobro = () => {
         document.getElementById('modalEditCobro').classList.remove('visible');
         _editCtx = null;
+    };
+
+    window._toggleMas = (id) => {
+        const panel = document.getElementById(`mas-${id}`);
+        const btn   = document.getElementById(`mas-btn-${id}`);
+        if (!panel) return;
+        const open = panel.style.display === 'none';
+        panel.style.display = open ? 'flex' : 'none';
+        panel.style.flexDirection = 'column';
+        if (btn) btn.classList.toggle('tc-mas-btn-open', open);
     };
 
     /* ── CIERRE DE JORNADA ── */
