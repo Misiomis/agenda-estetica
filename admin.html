@@ -1735,7 +1735,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script type="module" src="/js/panel.js"></script>
     <script type="module">
         import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where } from "/js/firebase-web.js";
         
@@ -2743,9 +2742,12 @@
             }
         }
         
+        let _enviarWBusy = false;
         window.enviarW = async (tel, nombre, fecha, hora, servicio, accion) => {
+            if (_enviarWBusy) return;
+            _enviarWBusy = true;
             const num = (tel || "").toString().trim();
-            if (!num) { mostrarAviso("Sin teléfono registrado"); return; }
+            if (!num) { _enviarWBusy = false; mostrarAviso("Sin teléfono registrado"); return; }
             try {
                 const resp = await fetch(CF_CONFIRMACION_URL, {
                     method: "POST",
@@ -2775,6 +2777,8 @@
             } catch (e) {
                 console.error("WA exception:", e);
                 mostrarAviso("Error de conexión al enviar WhatsApp");
+            } finally {
+                _enviarWBusy = false;
             }
         };
         

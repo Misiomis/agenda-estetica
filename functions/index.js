@@ -694,10 +694,22 @@ exports.enviarConfirmacionTurno = onRequest(async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error en la Cloud Function:", error.response ? error.response.data : error.message);
-        return res.status(500).json({ 
-            error: "Error interno en el envío", 
-            detalles: error.response ? error.response.data : error.message,
+        const isMetaError = !!(error.response && error.response.data);
+        if (isMetaError) {
+            const metaData  = error.response.data;
+            const metaCode  = metaData?.error?.code;
+            const metaMsg   = metaData?.error?.message || "Error del servicio WhatsApp";
+            const isAuth    = metaCode === 190 || /token/i.test(metaMsg);
+            const userMsg   = isAuth
+                ? "Token de WhatsApp inválido o expirado. Contactar al administrador."
+                : `Error de WhatsApp (${metaCode || error.response.status}): ${metaMsg}`;
+            console.error("Meta API error:", { code: metaCode, status: error.response.status });
+            return res.status(502).json({ error: userMsg, errorType: "whatsapp_api", metaCode, balanceUpdated, warnings });
+        }
+        console.error("Error en la Cloud Function:", error.message || error);
+        return res.status(500).json({
+            error: "Error interno en el envío",
+            detalles: error.message,
             balanceUpdated,
             warnings
         });
