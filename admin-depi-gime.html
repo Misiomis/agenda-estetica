@@ -2312,16 +2312,24 @@ ${bloques}
 
     const _cargarCierreYCobros = async (fecha, reservas) => {
         _reservasCargadas = reservas || [];
+        // Render forms immediately so the block is interactive before Firestore responds
+        reservas.forEach(r => _renderCobroState(r._id, _cobrosCache[r._id] || null));
         try {
             const cierreSnap = await getDoc(doc(db, COLECCION_CIERRES, `${OPERADOR_ACTUAL}_${fecha}`));
             _jornadaCerrada = cierreSnap.exists();
+        } catch(e) { console.warn('cierre check:', e.message); }
+        try {
+            // Single-field query avoids requiring a composite Firestore index;
+            // operador is filtered in memory.
             const cobrosSnap = await getDocs(query(
                 collection(db, COLECCION_COBROS),
-                where('jornada', '==', fecha),
-                where('operador', '==', OPERADOR_ACTUAL)
+                where('jornada', '==', fecha)
             ));
             _cobrosCache = {};
-            cobrosSnap.forEach(d => { _cobrosCache[d.id] = d.data(); });
+            cobrosSnap.forEach(d => {
+                const data = d.data();
+                if (data.operador === OPERADOR_ACTUAL) _cobrosCache[d.id] = data;
+            });
             reservas.forEach(r => _renderCobroState(r._id, _cobrosCache[r._id] || null));
         } catch(e) { console.error('cobros load error:', e); }
     };
@@ -2507,11 +2515,13 @@ Motivo: ${motivo}`);
             const cerrada   = cierreDoc.exists();
             const cobrosSnap = await getDocs(query(
                 collection(db, COLECCION_COBROS),
-                where('jornada', '==', fecha),
-                where('operador', '==', OPERADOR_ACTUAL)
+                where('jornada', '==', fecha)
             ));
             const cobros = [];
-            cobrosSnap.forEach(d => cobros.push(d.data()));
+            cobrosSnap.forEach(d => {
+                const data = d.data();
+                if (data.operador === OPERADOR_ACTUAL) cobros.push(data);
+            });
             const efectivo      = cobros.filter(c => c.medioPago === 'efectivo').reduce((s, c) => s + (c.importe || 0), 0);
             const transferencia = cobros.filter(c => c.medioPago === 'transferencia').reduce((s, c) => s + (c.importe || 0), 0);
             const total         = efectivo + transferencia;
@@ -2559,11 +2569,13 @@ Motivo: ${motivo}`);
                 try {
                     const cobrosSnap = await getDocs(query(
                         collection(db, COLECCION_COBROS),
-                        where('jornada', '==', fecha),
-                        where('operador', '==', OPERADOR_ACTUAL)
+                        where('jornada', '==', fecha)
                     ));
                     const cobros = [];
-                    cobrosSnap.forEach(d => cobros.push({ id: d.id, ...d.data() }));
+                    cobrosSnap.forEach(d => {
+                        const data = d.data();
+                        if (data.operador === OPERADOR_ACTUAL) cobros.push({ id: d.id, ...data });
+                    });
                     const efectivo      = cobros.filter(c => c.medioPago === 'efectivo').reduce((s, c) => s + (c.importe || 0), 0);
                     const transferencia = cobros.filter(c => c.medioPago === 'transferencia').reduce((s, c) => s + (c.importe || 0), 0);
                     const total         = efectivo + transferencia;
