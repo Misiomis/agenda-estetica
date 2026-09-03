@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin — Depilación & HIFU · Espacio Mimar T</title>
+    <title>Admin — Depilación · Espacio Mimar T</title>
     <link rel="icon" href="/favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -380,6 +380,83 @@
             .sidebar { width: 180px; }
             .main-content { padding: 20px 18px; }
         }
+
+        /* ── COBRO DE SESIÓN ── */
+        .sp-block { margin-top: 10px; border-radius: 10px; border: 1px solid var(--borde); background: rgba(255,255,255,0.025); overflow: hidden; }
+        .sp-header { display: flex; align-items: center; gap: 8px; padding: 9px 12px; cursor: pointer; user-select: none; transition: background 0.15s; }
+        .sp-header:hover { background: rgba(255,255,255,0.03); }
+        .sp-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-suave); flex-shrink: 0; }
+        .sp-summary { flex: 1; min-width: 0; }
+        .sp-paid-badge { font-size: 11px; font-weight: 700; color: rgba(74,222,128,0.90); }
+        .sp-chev { font-size: 10px; color: var(--texto-suave); transition: transform 0.18s; flex-shrink: 0; }
+        .sp-chev.open { transform: rotate(180deg); }
+        .sp-body { padding: 0 12px 12px; }
+        .sp-form { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+        .sp-field { display: flex; flex-direction: column; gap: 5px; }
+        .sp-flabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--texto-suave); }
+        .sp-amount-row { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.04); border: 1.5px solid var(--borde); border-radius: 8px; padding: 8px 10px; transition: border-color 0.18s; }
+        .sp-amount-row:focus-within { border-color: var(--acento); box-shadow: 0 0 0 3px rgba(30,122,78,0.18); }
+        .sp-currency { font-size: 15px; font-weight: 800; color: rgba(100,200,150,0.70); flex-shrink: 0; }
+        .sp-amount-input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--texto); font-size: 18px; font-weight: 800; font-family: inherit; padding: 0; -moz-appearance: textfield; }
+        .sp-amount-input::-webkit-inner-spin-button, .sp-amount-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+        .sp-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .sp-method { padding: 10px 6px; border-radius: 8px; border: 1.5px solid var(--borde); background: rgba(255,255,255,0.03); color: var(--texto-suave); font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.15s; text-align: center; }
+        .sp-method:hover { border-color: var(--acento-borde); background: var(--acento-suave); color: var(--texto); }
+        .sp-method.sp-method-active { border-color: rgba(74,222,128,0.65); background: rgba(74,222,128,0.12); color: rgba(74,222,128,0.95); font-weight: 800; }
+        .sp-status { font-size: 11px; min-height: 16px; }
+        .sp-saving { color: var(--texto-suave); }
+        .sp-saved { color: rgba(74,222,128,0.80); font-weight: 600; }
+        .sp-error { color: rgba(248,113,113,0.80); font-weight: 600; }
+        .sp-paid-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding-top: 2px; }
+        .sp-paid-info { font-size: 13px; font-weight: 700; color: rgba(74,222,128,0.90); }
+        .sp-edit-btn { font-size: 11px; font-weight: 700; background: transparent; border: 1px solid var(--borde); color: var(--texto-suave); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-family: inherit; transition: all 0.14s; flex-shrink: 0; }
+        .sp-edit-btn:hover { border-color: var(--acento-borde); color: var(--texto); background: var(--acento-suave); }
+        .sp-comprobante { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+        .sp-comp-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-suave); }
+        .sp-comp-btn { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(59,130,246,0.30); background: rgba(59,130,246,0.08); color: rgba(96,165,250,0.90); cursor: pointer; font-family: inherit; transition: all 0.14s; }
+        .sp-comp-btn.sp-comp-ok { border-color: rgba(74,222,128,0.40); background: rgba(74,222,128,0.10); color: rgba(74,222,128,0.90); }
+        .sp-hist { margin-top: 8px; }
+        .sp-hist summary { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-suave); cursor: pointer; list-style: none; padding: 2px 0; }
+        .sp-hist summary::before { content: '› '; }
+        .sp-hist-list { margin-top: 6px; display: flex; flex-direction: column; }
+        .sp-hist-entry { font-size: 11px; color: var(--texto-suave); padding: 5px 0; border-top: 1px solid var(--borde); line-height: 1.5; }
+        /* ── MODAL EDITAR COBRO ── */
+        .mec-overlay { position: fixed; inset: 0; z-index: 9999; background: rgba(9,11,24,0.88); backdrop-filter: blur(12px); display: none; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; }
+        .mec-overlay.visible { display: flex; }
+        .mec-box { background: linear-gradient(160deg,#0f1f14 0%,#081510 100%); border: 1px solid rgba(30,122,78,0.35); border-radius: 18px; padding: 26px 24px; width: min(520px, calc(100vw - 32px)); box-shadow: 0 24px 60px rgba(0,0,0,0.70); margin: auto; }
+        .mec-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--texto-suave); margin-bottom: 18px; }
+        .mec-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+        .mec-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--texto-suave); }
+        .mec-current { font-size: 22px; font-weight: 800; color: rgba(74,222,128,0.90); font-variant-numeric: tabular-nums; }
+        .mec-input { width: 100%; padding: 11px 13px; border-radius: 10px; border: 1.5px solid var(--borde); background: rgba(255,255,255,0.06); color: var(--texto); font-size: 16px; font-weight: 700; font-family: inherit; outline: none; box-sizing: border-box; transition: border-color 0.18s; }
+        .mec-input:focus { border-color: var(--acento); box-shadow: 0 0 0 3px rgba(30,122,78,0.18); }
+        .mec-textarea { width: 100%; padding: 11px 13px; border-radius: 10px; border: 1.5px solid var(--borde); background: rgba(255,255,255,0.06); color: var(--texto); font-size: 13px; font-family: inherit; outline: none; resize: vertical; min-height: 80px; box-sizing: border-box; transition: border-color 0.18s; }
+        .mec-textarea:focus { border-color: var(--acento); box-shadow: 0 0 0 3px rgba(30,122,78,0.18); }
+        .mec-note { font-size: 11px; color: var(--texto-suave); font-style: italic; margin-top: 3px; }
+        .mec-wa-btn { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid rgba(37,211,102,0.35); background: rgba(37,211,102,0.10); color: #25d366; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.15s; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .mec-wa-btn:hover:not(:disabled) { background: rgba(37,211,102,0.18); }
+        .mec-wa-btn:disabled { opacity: 0.40; cursor: not-allowed; }
+        .mec-wa-btn.mec-wa-sent { border-color: rgba(37,211,102,0.55); background: rgba(37,211,102,0.15); }
+        .mec-confirm-btn { width: 100%; padding: 13px; border-radius: 11px; border: none; background: var(--acento); color: #fff; font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; transition: all 0.18s; margin-bottom: 8px; }
+        .mec-confirm-btn:hover:not(:disabled) { background: var(--acento-hover); }
+        .mec-confirm-btn:disabled { opacity: 0.40; cursor: not-allowed; }
+        .mec-cancel-btn { width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid var(--borde); background: transparent; color: var(--texto-suave); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.15s; }
+        .mec-cancel-btn:hover { background: rgba(255,255,255,0.05); color: var(--texto); }
+        /* ── CIERRE DE JORNADA ── */
+        .cierre-panel { background: rgba(255,255,255,0.025); border: 1px solid var(--borde); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+        .cierre-panel-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+        .cierre-panel-label { font-size: 13px; color: var(--texto-suave); }
+        .cierre-panel-val { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--texto); }
+        .cierre-divider { height: 1px; background: var(--borde); margin: 10px 0; }
+        .cierre-total-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+        .cierre-total-label { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--texto); }
+        .cierre-total-val { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; color: rgba(74,222,128,0.95); }
+        .cierre-part-row { display: flex; justify-content: space-between; padding: 5px 0; }
+        .cierre-part-label { font-size: 12px; color: var(--texto-suave); }
+        .cierre-part-val { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .cierre-cerrar-btn { width: 100%; padding: 13px; border-radius: 11px; border: none; background: var(--acento); color: #fff; font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; transition: all 0.18s; margin-top: 14px; }
+        .cierre-cerrar-btn:hover { background: var(--acento-hover); }
+        .cierre-cerrado-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.25); border-radius: 20px; padding: 5px 14px; font-size: 11px; font-weight: 700; color: rgba(74,222,128,0.85); margin-bottom: 16px; }
     </style>
 </head>
 <body>
@@ -410,6 +487,7 @@
         <button class="nav-btn" id="navCombos" onclick="irA('combos')">⏱ Duración</button>
         <button class="nav-btn" id="navPrecios" onclick="irA('precios')">💲 Precios</button>
         <button class="nav-btn" id="navExportar" onclick="irA('exportar')">🖨 Exportar</button>
+        <button class="nav-btn" id="navCierre" onclick="irA('cierre');window._renderCierre()">💰 Cierre</button>
         <div class="nav-divider"></div>
         <a class="nav-btn" href="/admin-depi.html" style="text-decoration:none;color:var(--texto-suave);font-size:12px;">← Panel Becker</a>
         <button class="nav-exit" onclick="cerrarSesionDepi()">Cerrar sesión</button>
@@ -605,6 +683,15 @@
             </div>
         </div>
 
+        <!-- ══ CIERRE DE JORNADA ══ -->
+        <div id="secCierre" class="section">
+            <div id="cierreContenido">
+                <div class="card">
+                    <p style="font-size:13px;color:var(--texto-suave);">Seleccioná un día en la agenda y luego volvé aquí para ver el cierre.</p>
+                </div>
+            </div>
+        </div>
+
     </main>
 </div>
 
@@ -622,6 +709,33 @@
     </div>
 </div>
 
+<div id="modalEditCobro" class="mec-overlay">
+    <div class="mec-box">
+        <div class="mec-title">✎ Modificar cobro</div>
+        <div class="mec-row">
+            <span class="mec-label">Importe actual</span>
+            <span class="mec-current" id="mec-imp-actual">$ 0</span>
+        </div>
+        <div class="mec-row">
+            <label class="mec-label" for="mec-imp-nuevo">Nuevo importe</label>
+            <input type="number" id="mec-imp-nuevo" class="mec-input" placeholder="0" min="0" step="100" oninput="window._mecOnInput()">
+        </div>
+        <div class="mec-row">
+            <label class="mec-label" for="mec-motivo">Motivo del cambio *</label>
+            <textarea id="mec-motivo" class="mec-textarea" placeholder="Explicá brevemente el motivo..." oninput="window._mecOnInput()"></textarea>
+            <span class="mec-note">Mínimo 20 caracteres.</span>
+        </div>
+        <button id="mec-wa-btn" class="mec-wa-btn" onclick="window._abrirWACambio()" disabled>
+            💬 Informar cambio a Gimena
+        </button>
+        <div id="mec-wa-estado" style="font-size:11px;color:var(--texto-suave);margin-bottom:10px;min-height:16px;"></div>
+        <button id="mec-confirm-btn" class="mec-confirm-btn" onclick="window._confirmarCambioCobro()" disabled>
+            Confirmar modificación
+        </button>
+        <button class="mec-cancel-btn" onclick="window._cerrarModalEditCobro()">Cancelar</button>
+    </div>
+</div>
+
 <script type="module">
     import {
         auth, db,
@@ -635,6 +749,10 @@
 
     const COLECCION    = "reservasDepi";
     const COLECCION_EX = "calendarExceptionsDepi";
+    const COLECCION_COBROS  = 'cobrosSesionDepi';
+    const COLECCION_CIERRES = 'cierresJornadaDepi';
+    const GIMENA_WA = '5493764291807';
+    let _cobrosCache = {}, _medioSelec = {}, _savingIds = new Set(), _jornadaCerrada = false, _reservasCargadas = [], _editCtx = null;
 
     const DEPI_HORARIOS = {
         3: ['07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30'],
@@ -694,8 +812,8 @@
     // ════════════════════════════════
     // NAVEGACIÓN
     // ════════════════════════════════
-    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', pacientes: 'secPacientes', servicios: 'secServicios', buscar: 'secBuscar', combos: 'secCombos', precios: 'secPrecios', exportar: 'secExportar' };
-    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', pacientes: 'navPacientes', servicios: 'navServicios', buscar: 'navBuscar', combos: 'navCombos', precios: 'navPrecios', exportar: 'navExportar' };
+    const SECCIONES = { agenda: 'secAgenda', registrar: 'secRegistrar', pacientes: 'secPacientes', servicios: 'secServicios', buscar: 'secBuscar', combos: 'secCombos', precios: 'secPrecios', exportar: 'secExportar', cierre: 'secCierre' };
+    const NAV_BTNS  = { agenda: 'navAgenda', registrar: 'navRegistrar', pacientes: 'navPacientes', servicios: 'navServicios', buscar: 'navBuscar', combos: 'navCombos', precios: 'navPrecios', exportar: 'navExportar', cierre: 'navCierre' };
 
     window.irA = (sec) => {
         Object.values(SECCIONES).forEach(id => document.getElementById(id).classList.remove('active'));
@@ -999,6 +1117,7 @@
                         <textarea id="nota-${r._id}" rows="3" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--borde);background:rgba(255,255,255,0.03);color:var(--texto);font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box;" placeholder="Zona tratada, respuesta de la piel, próxima sesión sugerida...">${escHtml(r.notasSesion || '')}</textarea>
                         <button onclick="guardarNotaSesion('${r._id}')" style="margin-top:5px;padding:7px 14px;border-radius:8px;border:1px solid rgba(30,122,78,0.30);background:rgba(30,122,78,0.08);color:rgba(100,200,150,0.85);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">💾 Guardar nota</button>
                     </div>
+                    ${_htmlCobroBlock(r._id)}
                 </div>`;
             } else if (isBloqSlot) {
                 const slotInfo = exInfo.slots[hora];
@@ -1055,6 +1174,7 @@
 
         const existingBloq = exInfo.diaBloqueado ? cont.innerHTML : '';
         cont.innerHTML = existingBloq + (rows.join('') || '<div style="color:var(--texto-suave);font-size:13px;padding:8px 0;">Sin turnos registrados.</div>');
+        if (reservas && reservas.length) { _reservasCargadas = reservas; _cargarCierreYCobros(fecha, reservas); }
     };
 
     window.bloquearDiaDepi = () => {
@@ -2090,6 +2210,380 @@ ${bloques}
             console.error(e);
             fb.textContent = 'Error al cargar los turnos. Revisá la conexión.';
         }
+    };
+
+    /* ════════════════════════════════
+       COBROS DE SESIÓN
+    ════════════════════════════════ */
+
+    const _fmtMonto = (n) => {
+        if (!n && n !== 0) return '';
+        return '$ ' + Math.round(n).toLocaleString('es-AR');
+    };
+
+    const _fmtFechaLeg = (f) => {
+        if (!f) return '';
+        const [y, m, d] = f.split('-');
+        return `${d}/${m}/${y}`;
+    };
+
+    const _htmlCobroBlock = (id) =>
+        `<div class="sp-block" id="sp-${id}">
+            <div class="sp-header" onclick="window._toggleSP('${id}')">
+                <span class="sp-label">💳 Cobro</span>
+                <span class="sp-summary" id="sp-sum-${id}"></span>
+                <span class="sp-chev" id="sp-chev-${id}">▾</span>
+            </div>
+            <div class="sp-body" id="sp-body-${id}" style="display:none;"></div>
+        </div>`;
+
+    window._toggleSP = (id) => {
+        const body = document.getElementById('sp-body-' + id);
+        const chev = document.getElementById('sp-chev-' + id);
+        if (!body) return;
+        const open = body.style.display !== 'none';
+        body.style.display = open ? 'none' : 'block';
+        if (chev) chev.classList.toggle('open', !open);
+    };
+
+    const _renderCobroState = (id, data) => {
+        const sumEl  = document.getElementById('sp-sum-' + id);
+        const bodyEl = document.getElementById('sp-body-' + id);
+        const chevEl = document.getElementById('sp-chev-' + id);
+        if (!bodyEl) return;
+
+        if (data && data.importe > 0 && data.medioPago) {
+            const imp  = _fmtMonto(data.importe);
+            const med  = data.medioPago === 'efectivo' ? 'Efectivo' : 'Transferencia';
+            const lock = _jornadaCerrada || data.jornadaCerrada;
+            if (sumEl) sumEl.innerHTML = `<span class="sp-paid-badge">✓ ${imp} · ${med}</span>`;
+            bodyEl.style.display = 'block';
+            if (chevEl) chevEl.classList.add('open');
+            const compHtml = data.medioPago === 'transferencia' && !lock ? `
+                <div class="sp-comprobante">
+                    <span class="sp-comp-label">📎 Comprobante</span>
+                    <button class="sp-comp-btn${data.comprobante === 'ok' ? ' sp-comp-ok' : ''}" onclick="window._toggleComprobante('${id}')">
+                        ${data.comprobante === 'ok' ? '✓ Recibido' : 'Marcar recibido'}
+                    </button>
+                </div>` : '';
+            const histItems = (data.historial || []).filter(e => e.tipo !== 'registro_inicial');
+            const histHtml = histItems.length ? `
+                <details class="sp-hist">
+                    <summary>Historial (${histItems.length})</summary>
+                    <div class="sp-hist-list">
+                        ${histItems.map(e => `
+                            <div class="sp-hist-entry">
+                                ${e.ts ? new Date(e.ts).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''} —
+                                ${e.tipo === 'registro' ? `Registro: ${_fmtMonto(e.importeNuevo)} · ${e.medioPago === 'efectivo' ? 'Efectivo' : 'Transferencia'}` :
+                                  e.tipo === 'modificacion' ? `Modificación: ${_fmtMonto(e.importeAnterior)} → ${_fmtMonto(e.importeNuevo)}` :
+                                  `Actualizado: ${_fmtMonto(e.importeNuevo)}`}
+                                ${e.motivo ? `<br><span style="opacity:.75;font-style:italic;font-size:10px;">${e.motivo}</span>` : ''}
+                            </div>`).join('')}
+                    </div>
+                </details>` : '';
+            bodyEl.innerHTML = `
+                <div class="sp-paid-row">
+                    <span class="sp-paid-info">✓ ${imp} · ${med}</span>
+                    ${lock ? '<span style="font-size:11px;color:var(--texto-suave);">🔒 Jornada cerrada</span>'
+                           : `<button class="sp-edit-btn" onclick="window._abrirEditarCobro('${id}')">✎ Editar</button>`}
+                </div>${compHtml}${histHtml}`;
+        } else {
+            if (sumEl) sumEl.innerHTML = '';
+            bodyEl.innerHTML = `
+                <div class="sp-form">
+                    <div class="sp-field">
+                        <label class="sp-flabel">Importe cobrado</label>
+                        <div class="sp-amount-row">
+                            <span class="sp-currency">$</span>
+                            <input type="number" class="sp-amount-input" id="sp-imp-${id}" placeholder="0" min="0" step="100" onblur="window._onImpBlur('${id}')">
+                        </div>
+                    </div>
+                    <div class="sp-field">
+                        <label class="sp-flabel">Forma de pago</label>
+                        <div class="sp-methods">
+                            <button class="sp-method${_medioSelec[id]==='efectivo'?' sp-method-active':''}" onclick="window._selMedio('${id}','efectivo')">💵 Efectivo</button>
+                            <button class="sp-method${_medioSelec[id]==='transferencia'?' sp-method-active':''}" onclick="window._selMedio('${id}','transferencia')">🏦 Transferencia</button>
+                        </div>
+                    </div>
+                    <div class="sp-status" id="sp-st-${id}"></div>
+                </div>`;
+        }
+    };
+
+    const _cargarCierreYCobros = async (fecha, reservas) => {
+        _reservasCargadas = reservas || [];
+        try {
+            const cierreSnap = await getDoc(doc(db, COLECCION_CIERRES, `${OPERADOR_ACTUAL}_${fecha}`));
+            _jornadaCerrada = cierreSnap.exists();
+            const cobrosSnap = await getDocs(query(
+                collection(db, COLECCION_COBROS),
+                where('jornada', '==', fecha),
+                where('operador', '==', OPERADOR_ACTUAL)
+            ));
+            _cobrosCache = {};
+            cobrosSnap.forEach(d => { _cobrosCache[d.id] = d.data(); });
+            reservas.forEach(r => _renderCobroState(r._id, _cobrosCache[r._id] || null));
+        } catch(e) { console.error('cobros load error:', e); }
+    };
+
+    window._onImpBlur = (id) => { _autoguardarCobro(id); };
+
+    window._selMedio = (id, medio) => {
+        _medioSelec[id] = medio;
+        const parent = document.getElementById('sp-body-' + id);
+        if (!parent) return;
+        parent.querySelectorAll('.sp-method').forEach(b => b.classList.remove('sp-method-active'));
+        const idx = medio === 'efectivo' ? 0 : 1;
+        const btns = parent.querySelectorAll('.sp-method');
+        if (btns[idx]) btns[idx].classList.add('sp-method-active');
+        const impEl = document.getElementById('sp-imp-' + id);
+        if (impEl && parseFloat(impEl.value) > 0) _autoguardarCobro(id);
+    };
+
+    const _autoguardarCobro = async (id) => {
+        if (_savingIds.has(id)) return;
+        const impEl = document.getElementById('sp-imp-' + id);
+        const stEl  = document.getElementById('sp-st-' + id);
+        if (!impEl) return;
+        const imp   = parseFloat(impEl.value);
+        const medio = _medioSelec[id];
+        if (!(imp > 0) || !medio) return;
+        _savingIds.add(id);
+        if (stEl) stEl.innerHTML = '<span class="sp-saving">Guardando…</span>';
+        try {
+            const existing = _cobrosCache[id];
+            if (existing && existing.importe === imp && existing.medioPago === medio) {
+                if (stEl) stEl.innerHTML = '<span class="sp-saved">✓ Ya guardado</span>';
+                _savingIds.delete(id); return;
+            }
+            const historial = [...(existing?.historial || []), {
+                ts: new Date().toISOString(),
+                tipo: existing ? 'modificacion_auto' : 'registro',
+                importeAnterior: existing?.importe ?? null,
+                importeNuevo: imp, medioPago: medio, motivo: null
+            }];
+            const reserva = _reservasCargadas.find(r => r._id === id) || {};
+            const docData = {
+                reservaId: id,
+                fecha: reserva.fecha || _diaSeleccionado,
+                hora: reserva.hora || '',
+                nombre: reserva.nombre || '',
+                servicio: reserva.servicio || '',
+                operador: OPERADOR_ACTUAL,
+                jornada: _diaSeleccionado,
+                importe: imp, medioPago: medio,
+                comprobante: existing?.comprobante || '',
+                jornadaCerrada: false,
+                historial,
+                updatedAt: serverTimestamp()
+            };
+            if (!existing) docData.createdAt = serverTimestamp();
+            await setDoc(doc(db, COLECCION_COBROS, id), docData);
+            _cobrosCache[id] = { ...docData, historial };
+            _renderCobroState(id, _cobrosCache[id]);
+        } catch(e) {
+            console.error('cobro save error:', e);
+            if (stEl) stEl.innerHTML = '<span class="sp-error">⚠ No se pudo guardar</span>';
+        } finally { _savingIds.delete(id); }
+    };
+
+    window._toggleComprobante = async (id) => {
+        const data = _cobrosCache[id];
+        if (!data) return;
+        const nuevo = data.comprobante === 'ok' ? '' : 'ok';
+        try {
+            await updateDoc(doc(db, COLECCION_COBROS, id), { comprobante: nuevo, updatedAt: serverTimestamp() });
+            _cobrosCache[id] = { ...data, comprobante: nuevo };
+            _renderCobroState(id, _cobrosCache[id]);
+        } catch(e) { console.error(e); mostrarAvisoDepi('Error al actualizar comprobante'); }
+    };
+
+    /* ── EDITAR COBRO ── */
+    window._abrirEditarCobro = (id) => {
+        const data = _cobrosCache[id];
+        if (!data) return;
+        const reserva = _reservasCargadas.find(r => r._id === id) || {};
+        _editCtx = { id, data, reserva, waOpened: false };
+        document.getElementById('mec-imp-actual').textContent = _fmtMonto(data.importe);
+        document.getElementById('mec-imp-nuevo').value = '';
+        document.getElementById('mec-motivo').value = '';
+        document.getElementById('mec-wa-btn').classList.remove('mec-wa-sent');
+        document.getElementById('mec-wa-btn').textContent = '💬 Informar cambio a Gimena';
+        document.getElementById('mec-wa-btn').disabled = true;
+        document.getElementById('mec-confirm-btn').disabled = true;
+        document.getElementById('mec-wa-estado').textContent = '';
+        document.getElementById('modalEditCobro').classList.add('visible');
+    };
+
+    const _validarEditCobro = () => {
+        if (!_editCtx) return;
+        const nuevoVal = parseFloat(document.getElementById('mec-imp-nuevo').value);
+        const motivo   = (document.getElementById('mec-motivo').value || '').trim();
+        const waBtn    = document.getElementById('mec-wa-btn');
+        const confBtn  = document.getElementById('mec-confirm-btn');
+        const montoOk  = nuevoVal > 0 && nuevoVal !== _editCtx.data.importe;
+        const motivoOk = motivo.length >= 20;
+        waBtn.disabled   = !(montoOk && motivoOk);
+        confBtn.disabled = !(_editCtx.waOpened && montoOk && motivoOk);
+    };
+
+    window._mecOnInput = () => { _validarEditCobro(); };
+
+    window._abrirWACambio = () => {
+        if (!_editCtx) return;
+        const { data, reserva } = _editCtx;
+        const nuevoImp = parseFloat(document.getElementById('mec-imp-nuevo').value);
+        const motivo   = (document.getElementById('mec-motivo').value || '').trim();
+        if (!(nuevoImp > 0) || motivo.length < 20) return;
+        const diff    = nuevoImp - data.importe;
+        const diffStr = (diff >= 0 ? '+' : '') + _fmtMonto(Math.abs(diff));
+        const fechaLeg = _fmtFechaLeg(reserva.fecha || _diaSeleccionado);
+        const msg = encodeURIComponent(
+`Hola Gime. Te aviso una modificación de cobro.
+
+Paciente: ${reserva.nombre || '—'}
+Servicio: ${reserva.servicio || '—'}
+Fecha: ${fechaLeg} | Hora: ${reserva.hora || '—'}
+
+Importe anterior: ${_fmtMonto(data.importe)}
+Nuevo importe: ${_fmtMonto(nuevoImp)} (${diffStr})
+
+Motivo: ${motivo}`);
+        window.open(`https://wa.me/${GIMENA_WA}?text=${msg}`, '_blank');
+        _editCtx.waOpened = true;
+        const waBtn = document.getElementById('mec-wa-btn');
+        if (waBtn) { waBtn.classList.add('mec-wa-sent'); waBtn.textContent = '✓ WhatsApp abierto'; }
+        document.getElementById('mec-wa-estado').textContent = 'Ahora presioná "Confirmar modificación" para aplicar el cambio.';
+        _validarEditCobro();
+    };
+
+    window._confirmarCambioCobro = async () => {
+        if (!_editCtx || !_editCtx.waOpened) return;
+        const { id, data } = _editCtx;
+        const nuevoImp = parseFloat(document.getElementById('mec-imp-nuevo').value);
+        const motivo   = (document.getElementById('mec-motivo').value || '').trim();
+        if (!(nuevoImp > 0) || motivo.length < 20) return;
+        const btn = document.getElementById('mec-confirm-btn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+        try {
+            const historial = [...(data.historial || []), {
+                ts: new Date().toISOString(),
+                tipo: 'modificacion',
+                importeAnterior: data.importe,
+                importeNuevo: nuevoImp,
+                medioPago: data.medioPago,
+                motivo
+            }];
+            const docData = { ...data, importe: nuevoImp, historial, updatedAt: serverTimestamp() };
+            await setDoc(doc(db, COLECCION_COBROS, id), docData);
+            _cobrosCache[id] = docData;
+            window._cerrarModalEditCobro();
+            _renderCobroState(id, _cobrosCache[id]);
+            mostrarAvisoDepi('✓ Cobro modificado');
+        } catch(e) {
+            console.error(e);
+            if (btn) { btn.disabled = false; btn.textContent = 'Confirmar modificación'; }
+            mostrarAvisoDepi('Error al guardar la modificación');
+        }
+    };
+
+    window._cerrarModalEditCobro = () => {
+        document.getElementById('modalEditCobro').classList.remove('visible');
+        _editCtx = null;
+    };
+
+    /* ── CIERRE DE JORNADA ── */
+    window._renderCierre = async () => {
+        const fecha = _diaSeleccionado;
+        const cont  = document.getElementById('cierreContenido');
+        if (!cont) return;
+        if (!fecha) {
+            cont.innerHTML = '<div class="card"><p style="font-size:13px;color:var(--texto-suave);">Seleccioná un día en la agenda primero.</p></div>';
+            return;
+        }
+        cont.innerHTML = '<div class="card"><p style="font-size:13px;color:var(--texto-suave);">Cargando…</p></div>';
+        try {
+            const cierreDoc = await getDoc(doc(db, COLECCION_CIERRES, `${OPERADOR_ACTUAL}_${fecha}`));
+            const cerrada   = cierreDoc.exists();
+            const cobrosSnap = await getDocs(query(
+                collection(db, COLECCION_COBROS),
+                where('jornada', '==', fecha),
+                where('operador', '==', OPERADOR_ACTUAL)
+            ));
+            const cobros = [];
+            cobrosSnap.forEach(d => cobros.push(d.data()));
+            const efectivo      = cobros.filter(c => c.medioPago === 'efectivo').reduce((s, c) => s + (c.importe || 0), 0);
+            const transferencia = cobros.filter(c => c.medioPago === 'transferencia').reduce((s, c) => s + (c.importe || 0), 0);
+            const total         = efectivo + transferencia;
+            const part30        = Math.round(total * 0.30);
+            const rest70        = total - part30;
+            const fechaLeg = _fmtFechaLeg(fecha);
+            const cobradosList = cobros.length ? [...cobros].sort((a, b) => (a.hora || '').localeCompare(b.hora || '')).map(c =>
+                `<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;color:var(--texto-suave);border-bottom:1px solid var(--borde);">
+                    <span>${c.hora || ''} — ${escHtml(c.nombre || '—')} <span style="opacity:.65;">(${c.medioPago === 'efectivo' ? '💵' : '🏦'})</span></span>
+                    <span style="font-variant-numeric:tabular-nums;font-weight:700;">${_fmtMonto(c.importe)}</span>
+                </div>`).join('')
+              : '<div style="color:var(--texto-suave);font-size:13px;padding:8px 0;">Sin cobros registrados para este día.</div>';
+            cont.innerHTML = `
+                <h2 class="sec-title">Cierre · ${fechaLeg}</h2>
+                ${cerrada ? '<div class="cierre-cerrado-badge">🔒 Jornada cerrada</div>' : ''}
+                <div class="card">
+                    <h4 style="margin-bottom:10px;font-size:13px;">Cobros del día (${cobros.length})</h4>
+                    ${cobradosList}
+                </div>
+                ${total > 0 ? `<div class="card">
+                    <div class="cierre-panel">
+                        <div class="cierre-panel-row"><span class="cierre-panel-label">💵 Efectivo</span><span class="cierre-panel-val">${_fmtMonto(efectivo)}</span></div>
+                        <div class="cierre-panel-row"><span class="cierre-panel-label">🏦 Transferencias</span><span class="cierre-panel-val">${_fmtMonto(transferencia)}</span></div>
+                        <div class="cierre-divider"></div>
+                        <div class="cierre-total-row"><span class="cierre-total-label">Total jornada</span><span class="cierre-total-val">${_fmtMonto(total)}</span></div>
+                        <div class="cierre-divider"></div>
+                        <div class="cierre-part-row"><span class="cierre-part-label">Participación 30%</span><span class="cierre-part-val">${_fmtMonto(part30)}</span></div>
+                        <div class="cierre-part-row"><span class="cierre-part-label">Restante 70%</span><span class="cierre-part-val">${_fmtMonto(rest70)}</span></div>
+                    </div>
+                    ${!cerrada ? `<button class="cierre-cerrar-btn" onclick="window._ejecutarCierreJornada('${fecha}')">🔒 Cerrar jornada del ${fechaLeg}</button>` : ''}
+                </div>` : ''}`;
+        } catch(e) {
+            console.error(e);
+            cont.innerHTML = '<div class="card"><p style="color:rgba(248,113,113,0.8);font-size:13px;">Error al cargar el cierre.</p></div>';
+        }
+    };
+
+    window._ejecutarCierreJornada = (fecha) => {
+        mostrarConfirmDepi({
+            icono: '🔒',
+            titulo: 'Cerrar jornada',
+            texto: `¿Cerrar la jornada del ${_fmtFechaLeg(fecha)}? Los cobros quedarán bloqueados para edición.`,
+            labelSi: 'Sí, cerrar',
+            onSi: async () => {
+                try {
+                    const cobrosSnap = await getDocs(query(
+                        collection(db, COLECCION_COBROS),
+                        where('jornada', '==', fecha),
+                        where('operador', '==', OPERADOR_ACTUAL)
+                    ));
+                    const cobros = [];
+                    cobrosSnap.forEach(d => cobros.push({ id: d.id, ...d.data() }));
+                    const efectivo      = cobros.filter(c => c.medioPago === 'efectivo').reduce((s, c) => s + (c.importe || 0), 0);
+                    const transferencia = cobros.filter(c => c.medioPago === 'transferencia').reduce((s, c) => s + (c.importe || 0), 0);
+                    const total         = efectivo + transferencia;
+                    await setDoc(doc(db, COLECCION_CIERRES, `${OPERADOR_ACTUAL}_${fecha}`), {
+                        operador: OPERADOR_ACTUAL, fecha, efectivo, transferencia, total,
+                        participacion30: Math.round(total * 0.30),
+                        restante70: total - Math.round(total * 0.30),
+                        cobrosCount: cobros.length,
+                        cerradoAt: serverTimestamp()
+                    });
+                    await Promise.all(cobros.map(c =>
+                        updateDoc(doc(db, COLECCION_COBROS, c.id), { jornadaCerrada: true, updatedAt: serverTimestamp() })
+                    ));
+                    _jornadaCerrada = true;
+                    mostrarAvisoDepi('✓ Jornada cerrada');
+                    window._renderCierre();
+                    if (_diaSeleccionado === fecha) await verDia(fecha);
+                } catch(e) { console.error(e); mostrarAvisoDepi('Error al cerrar jornada'); }
+            }
+        });
     };
 </script>
 </body>
