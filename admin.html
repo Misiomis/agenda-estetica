@@ -1835,8 +1835,8 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
     <script type="module">
         import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where } from "/js/firebase-web.js";
         
@@ -2117,7 +2117,7 @@
                 }
                 try {
                     mostrarLoader(true);
-                    const token = await user.getIdTokenResult(true);
+                    const token = await user.getIdTokenResult(false); // cached — email check no requiere refresh
                     if (!esUsuarioAdmin(token)) {
                         setLoginError("Tu usuario no tiene permisos de admin");
                         await signOut(auth);
@@ -2681,89 +2681,111 @@
             return reservas.filter((reserva) => !idsABorrar.has(reserva.id));
         };
         
+        // ─── FASE 1: datos críticos — render inicial ─────────────────────────────
+        // Carga solo lo necesario para mostrar el calendario y controles.
+        // Deja historias, pacientes y consultas para la fase 2 en background.
         async function cargarTodo() {
             mostrarLoader(true);
             try {
-                // Usamos Promise.allSettled para que si falla una colección (por permisos), el panel no se rompa por completo
+                const _hoy       = new Date();
+                const _mesNum    = String(_hoy.getMonth() + 1).padStart(2, '0');
+                const _anio      = _hoy.getFullYear();
+                const _mesMin    = `${_anio}-${_mesNum}-01`;
+                const _mesMax    = `${_anio}-${_mesNum}-31`;
+
                 const resultados = await Promise.allSettled([
-                    getDocs(collection(db, "reservas")),
-                    getDocs(collection(db, "historias")),
-                    getDocs(collection(db, "clients")),
+                    getDocs(query(collection(db, "reservas"), where('fecha', '>=', _mesMin), where('fecha', '<=', _mesMax))),
                     getDocs(collection(db, "horarios")),
                     getDocs(collection(db, "calendarExceptions")),
+                    getDoc(doc(db, 'configuracion', 'serviciosBox')),
+                    getDoc(doc(db, 'configuracion', 'boxesLabels'))
+                ]);
+
+                const snapR        = resultados[0].status === 'fulfilled' ? resultados[0].value : { docs: [] };
+                const snapHorarios = resultados[1].status === 'fulfilled' ? resultados[1].value : { docs: [] };
+                const snapBloqueos = resultados[2].status === 'fulfilled' ? resultados[2].value : { docs: [] };
+                const _svBoxSnap   = resultados[3].status === 'fulfilled' ? resultados[3].value : null;
+                const _blSnap      = resultados[4].status === 'fulfilled' ? resultados[4].value : null;
+
+                if (resultados[0].status === 'rejected') console.warn("Error reservas F1:", resultados[0].reason);
+
+                horariosDisponibles = extraerHorariosDesdeFirebase(snapHorarios);
+                bloqueosHorarios    = extraerBloqueosDesdeFirebase(snapBloqueos);
+                cierresPorFecha     = extraerCierresDiaDesdeFirebase(snapBloqueos);
+
+                if (_svBoxSnap?.exists?.()) {
+                    const _asgn = _svBoxSnap.data().assignments || {};
+                    Object.entries(_asgn).forEach(([k, v]) => { if (k && v) _svBoxMap.set(k, Array.isArray(v) ? v : [v]); });
+                }
+                if (_blSnap?.exists?.()) _aplicarBoxLabels(_blSnap.data().boxes || {});
+
+                // Reservas del mes: phone solo del campo directo (cross-ref viene en Fase 2)
+                todasLasReservas = snapR.docs.map(d => {
+                    const data = d.data();
+                    const nombreLimpio = toTitleCase(borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || ""));
+                    const phone = normalizarTelefono(data.phone ?? data.telefono ?? "");
+                    return { id: d.id, ...data, phone, nombreLimpio };
+                });
+
+                renderCalendario();
+                actualizarKPIs();
+                poblarServiciosFiltro();
+                cargarDiasJornada();
+                cargarAdminBlocks(_grilla_fecha);
+            } catch (error) {
+                console.error(error);
+                mostrarAviso("Error al cargar datos");
+            } finally {
+                mostrarLoader(false); // UI disponible — Fase 2 arranca en background
+            }
+            _cargarDatosSecundarios(); // sin await — no bloquea la UI
+        }
+
+        // ─── FASE 2: datos secundarios — background ───────────────────────────────
+        // Arranca inmediatamente después de que el loader desaparece.
+        // Actualiza globals y re-renderiza las secciones afectadas.
+        async function _cargarDatosSecundarios() {
+            try {
+                const resultados2 = await Promise.allSettled([
+                    getDocs(collection(db, "reservas")),   // full — phone cross-ref + KPIs históricos
+                    getDocs(collection(db, "historias")),
+                    getDocs(collection(db, "clients")),
                     getDocs(collection(db, "consultas"))
                 ]);
 
-                const snapR = resultados[0].status === 'fulfilled' ? resultados[0].value : { docs: [] };
-                const snapH = resultados[1].status === 'fulfilled' ? resultados[1].value : { docs: [] };
-                const snapC = resultados[2].status === 'fulfilled' ? resultados[2].value : { docs: [] };
-                const snapHorarios = resultados[3].status === 'fulfilled' ? resultados[3].value : { docs: [] };
-                const snapBloqueos = resultados[4].status === 'fulfilled' ? resultados[4].value : { docs: [] };
-                const snapConsultas = resultados[5].status === 'fulfilled' ? resultados[5].value : { docs: [] };
-                todasLasConsultas = (snapConsultas.docs || []).map(d => ({ id: d.id, ...d.data() })).filter(c => !['cancelada','cancelado'].includes((c.estado||'').toLowerCase()));
+                const snapRTodos    = resultados2[0].status === 'fulfilled' ? resultados2[0].value : { docs: [] };
+                const snapH         = resultados2[1].status === 'fulfilled' ? resultados2[1].value : { docs: [] };
+                const snapC         = resultados2[2].status === 'fulfilled' ? resultados2[2].value : { docs: [] };
+                const snapConsultas = resultados2[3].status === 'fulfilled' ? resultados2[3].value : { docs: [] };
 
-                if (resultados[0].status === 'rejected') console.warn("Error permisos Reservas:", resultados[0].reason);
-                if (resultados[1].status === 'rejected') console.warn("Error permisos Historias:", resultados[1].reason);
+                if (resultados2[0].status === 'rejected') console.warn("Error reservas F2:", resultados2[0].reason);
 
-                horariosDisponibles = extraerHorariosDesdeFirebase(snapHorarios);
-                bloqueosHorarios = extraerBloqueosDesdeFirebase(snapBloqueos);
-                cierresPorFecha = extraerCierresDiaDesdeFirebase(snapBloqueos);
+                // ── Consultas ────────────────────────────────────────────────────
+                todasLasConsultas = (snapConsultas.docs || [])
+                    .map(d => ({ id: d.id, ...d.data() }))
+                    .filter(c => !['cancelada','cancelado'].includes((c.estado||'').toLowerCase()));
 
-                // Cargar asignaciones de box de servicios (para auto-assign en modal)
-                try {
-                    const _svBoxSnap = await getDoc(doc(db, 'configuracion', 'serviciosBox'));
-                    if (_svBoxSnap.exists()) {
-                        const _asgn = _svBoxSnap.data().assignments || {};
-                        Object.entries(_asgn).forEach(([k, v]) => { if (k && v) _svBoxMap.set(k, Array.isArray(v) ? v : [v]); });
-                    }
-                } catch(_) {}
-                // Cargar nombres personalizados de boxes
-                try {
-                    const _blSnap = await getDoc(doc(db, 'configuracion', 'boxesLabels'));
-                    if (_blSnap.exists()) _aplicarBoxLabels(_blSnap.data().boxes || {});
-                } catch(_) {}
-                
-                const phonePorDNI = new Map();
+                // ── Pacientes: lookups de teléfono por DNI y nombre ──────────────
+                const phonePorDNI    = new Map();
                 const phonePorNombre = new Map();
-                (snapC.docs || []).forEach((docCli) => {
+                (snapC.docs || []).forEach(docCli => {
                     const cli = docCli.data() || {};
-                    const phoneCli = normalizarTelefono(cli.phone || "");
+                    const phoneCli = normalizarTelefono(cli.phone || cli.telefono || "");
                     if (!phoneCli) return;
-                    const dniCandidatos = [docCli.id, cli.dni, cli.DNI, cli.documento, cli.document];
-                    dniCandidatos
-                        .map(normalizarDNI)
-                        .filter(Boolean)
-                        .forEach((dni) => {
-                            if (!phonePorDNI.has(dni)) phonePorDNI.set(dni, phoneCli);
-                        });
-                    const nombresCandidatos = [cli.fullName, cli.nombre, cli.name, cli.username];
-                    nombresCandidatos
-                        .map(normalizarNombreKey)
-                        .filter(Boolean)
-                        .forEach((nombreKey) => {
-                            if (!phonePorNombre.has(nombreKey)) phonePorNombre.set(nombreKey, phoneCli);
-                        });
+                    [docCli.id, cli.dni, cli.DNI, cli.documento, cli.document]
+                        .map(normalizarDNI).filter(Boolean)
+                        .forEach(dni => { if (!phonePorDNI.has(dni)) phonePorDNI.set(dni, phoneCli); });
+                    [cli.fullName, cli.nombre, cli.name, cli.username]
+                        .map(normalizarNombreKey).filter(Boolean)
+                        .forEach(nk  => { if (!phonePorNombre.has(nk))  phonePorNombre.set(nk, phoneCli); });
                 });
-                
-                if (!membresiaNormalizadaSesion) {
-                    try {
-                        const totalNormalizados = await asegurarCampoMembresiaEnFirestore(snapC.docs || []);
-                        if (totalNormalizados > 0) {
-                            mostrarAviso(`Membresía normalizada automáticamente en ${totalNormalizados} paciente(s)`);
-                        }
-                        membresiaNormalizadaSesion = true;
-                    } catch (errorNormalizacion) {
-                        console.warn("No se pudo normalizar membresía en segundo plano:", errorNormalizacion);
-                        membresiaNormalizadaSesion = true;
-                    }
-                }
-                
+
                 todasLosPacientes = (snapC.docs || []).map(docCli => {
                     const c = docCli.data() || {};
                     return {
                         dni: docCli.id,
                         fullName: toTitleCase(c.fullName || c.fullLname || c.nombre || c.name || ""),
-                        phone: c.phone || "",
+                        phone: c.phone || c.telefono || "",
                         email: c.email || "",
                         username: c.username || "",
                         active: c.active !== false,
@@ -2772,75 +2794,72 @@
                     };
                 }).filter(p => {
                     const d = (p.dni || "").toString();
-                    return d.length >= 3
-                        && d !== "undefined"
-                        && d !== "null"
-                        && !d.includes("__PLACEHOLDER__")
-                        && !d.includes("<__")
-                        && !d.startsWith("549");
+                    return d.length >= 3 && d !== "undefined" && d !== "null"
+                        && !d.includes("__PLACEHOLDER__") && !d.includes("<__") && !d.startsWith("549");
                 }).sort((a, b) => (a.fullName || "").localeCompare((b.fullName || ""), 'es'));
-                
-                todasLasReservas = snapR.docs.map(d => {
+
+                // ── Reservas completas con cross-ref de teléfono ─────────────────
+                const reservasFull = snapRTodos.docs.map(d => {
                     const data = d.data();
-                    const nombreLimpio = toTitleCase(borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || ""));
-                    const phoneDirecto = normalizarTelefono(data.phone ?? data.telefono ?? "");
-                    const dniReserva = normalizarDNI(data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "");
-                    const phoneNormalizado = phoneDirecto
+                    const nombreLimpio  = toTitleCase(borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || ""));
+                    const phoneDirecto  = normalizarTelefono(data.phone ?? data.telefono ?? "");
+                    const dniReserva    = normalizarDNI(data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "");
+                    const phone         = phoneDirecto
                         || phonePorDNI.get(dniReserva)
                         || phonePorNombre.get(normalizarNombreKey(nombreLimpio))
                         || "";
-                    return {
-                        id: d.id,
-                        ...data,
-                        phone: phoneNormalizado,
-                        nombreLimpio
-                    };
+                    return { id: d.id, ...data, phone, nombreLimpio };
                 });
-                
-                todasLasReservas = await limpiarReservasDuplicadas(todasLasReservas);
 
-                // Purgar bloqueos huérfanos del mapa (y de Firestore en background)
-                {
-                    const _reservaIds = new Set(todasLasReservas.filter(r => esReservaActiva(r)).map(r => r.id));
+                // Deduplicar y limpiar — en background, no bloquea nada
+                limpiarReservasDuplicadas(reservasFull).then(limpias => {
+                    todasLasReservas = limpias;
+                    // Purgar bloqueos huérfanos
+                    const _ids = new Set(todasLasReservas.filter(r => esReservaActiva(r)).map(r => r.id));
                     bloqueosHorarios.forEach((blk, key) => {
-                        if (blk.reservaId && !_reservaIds.has(blk.reservaId)) {
+                        if (blk.reservaId && !_ids.has(blk.reservaId)) {
                             bloqueosHorarios.delete(key);
                             deleteDoc(doc(db, 'calendarExceptions', blk.id)).catch(() => {});
                         }
                     });
-                }
+                    renderCalendario();
+                    actualizarKPIs();
+                    poblarServiciosFiltro();
+                }).catch(e => console.warn("limpiarDuplicadas F2:", e));
 
-                todasLasHistorias = snapH.docs.map(d => {
+                // ── Historias ────────────────────────────────────────────────────
+                todasLasHistorias = (snapH.docs || []).map(d => {
                     const data = d.data();
                     const historiaLimpia = { ...data };
-                    Object.keys(historiaLimpia).forEach((k) => {
-                        const normalizada = k.toLowerCase().replace(/[^a-z0-9]/g, "");
-                        if (normalizada.includes("fecharegistro")) delete historiaLimpia[k];
+                    Object.keys(historiaLimpia).forEach(k => {
+                        if (k.toLowerCase().replace(/[^a-z0-9]/g,'').includes("fecharegistro")) delete historiaLimpia[k];
                     });
-                    return {
-                        id: d.id,
-                        ...historiaLimpia,
-                        nombreLimpio: toTitleCase(borrarEtiquetaDNI(historiaLimpia.nombre || ""))
-                    };
+                    return { id: d.id, ...historiaLimpia, nombreLimpio: toTitleCase(borrarEtiquetaDNI(historiaLimpia.nombre || "")) };
                 }).filter(h => {
                     const n = (h.nombreLimpio || '').trim().toLowerCase();
-                    if (!n) return false;
-                    if (/bloquead|no\s+disponible/i.test(n)) return false;
-                    return true;
+                    return n && !/bloquead|no\s+disponible/i.test(n);
                 });
-                
-                renderCalendario();
+
+                // ── Normalización de membresía — fire-and-forget ─────────────────
+                if (!membresiaNormalizadaSesion) {
+                    membresiaNormalizadaSesion = true;
+                    asegurarCampoMembresiaEnFirestore(snapC.docs || [])
+                        .then(n => { if (n > 0) mostrarAviso(`Membresía normalizada en ${n} paciente(s)`); })
+                        .catch(e => console.warn("Normalización membresía:", e));
+                }
+
+                // ── Actualizar secciones que dependen de datos secundarios ────────
                 renderHistorias(todasLasHistorias);
                 actualizarKPIs();
                 poblarServiciosFiltro();
                 filtrarListadoClientes();
-                cargarDiasJornada();
-                cargarAdminBlocks(_grilla_fecha);
-            } catch (error) {
-                console.error(error);
-                mostrarAviso("Error al cargar datos");
-            } finally {
-                mostrarLoader(false);
+                // Si hay un día seleccionado, re-renderizar con consultas ya disponibles
+                if (fechaSeleccionada) {
+                    verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+                }
+
+            } catch (e) {
+                console.warn("Error en datos secundarios (_cargarDatosSecundarios):", e);
             }
         }
         
