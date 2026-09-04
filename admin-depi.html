@@ -2851,13 +2851,9 @@ Motivo: ${motivo}`);
 
     /* ── CIERRE DE JORNADA ── */
     window._renderCierre = async () => {
-        const fecha = _diaSeleccionado;
+        const fecha = _diaSeleccionado || fmtFecha(new Date());
         const cont  = document.getElementById('cierreContenido');
         if (!cont) return;
-        if (!fecha) {
-            cont.innerHTML = '<div class="card"><p style="font-size:13px;color:var(--texto-suave);">Seleccioná un día en la agenda primero.</p></div>';
-            return;
-        }
         cont.innerHTML = '<div class="card"><p style="font-size:13px;color:var(--texto-suave);">Cargando…</p></div>';
         try {
             const cierreDoc = await getDoc(doc(db, COLECCION_CIERRES, `${OPERADOR_ACTUAL}_${fecha}`));
