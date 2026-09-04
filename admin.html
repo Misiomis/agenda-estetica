@@ -2964,7 +2964,10 @@
                     : '';
 
                 // Botón de recomendaciones post-sesión
-                const phone = (r.phone || '').toString().trim();
+                // r.phone puede estar vacío si el cliente fue registrado con campo 'telefono'
+                const _rawPhoneRec = (r.phone || r.telefono || '').toString().trim();
+                const _digRec = _rawPhoneRec.replace(/\D/g,'');
+                const phone = _digRec.length >= 8 ? (_digRec.startsWith('54') ? _digRec : `549${_digRec.replace(/^0+/,'').replace(/^54/,'')}`) : '';
                 const recId = `recMenu-${r.id}`;
                 const msg1 = encodeURIComponent('Recordá que el consumo de agua es el complemento indispensable de tu sesión y un pilar fundamental para tu salud. Para maximizar los resultados y permitir que tu cuerpo procese el tratamiento de forma óptima, mantenete hidratada/o durante todo el día✨💧');
                 const msg2 = encodeURIComponent('Recordá que el uso de tu faja es fundamental para consolidar los resultados. El esquema recomendado es de 3 horas diarias durante 5 días a la semana, o bien 5 horas diarias durante 3 días. ¡Tu constancia hace la diferencia!✨');
@@ -3028,11 +3031,11 @@
                     ${notaDisplay1}
                     ${notaDisplay2}
                     <div class="ac-row-primary">
-                        <button class="btn-ws btn-confirmar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','confirmar')">Confirmar</button>
-                        <button class="btn-ws btn-recordar" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','recordar')">Recordar</button>
+                        <button class="btn-ws btn-confirmar" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','confirmar')">Confirmar</button>
+                        <button class="btn-ws btn-recordar" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','recordar')">Recordar</button>
                     </div>
                     <div class="ac-row-secondary">
-                        <button class="btn-ws btn-cancelar ac-avisar-btn" title="Solo envía mensaje de aviso" onclick="enviarW('${r.phone || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar')">Avisar Canc.</button>
+                        <button class="btn-ws btn-cancelar ac-avisar-btn" title="Solo envía mensaje de aviso" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar')">Avisar Canc.</button>
                         <button onclick="window._adminToggleMas('r${r.id}')" class="ac-mas-btn" id="admas-btn-r${r.id}">··· Más</button>
                     </div>
                     <div id="admas-r${r.id}" class="ac-mas-panel" style="display:none;margin-top:8px;">
@@ -4439,8 +4442,8 @@
                     nombre: clienteSnap.nombre,
                     title: clienteSnap.nombre,
                     displayName: clienteSnap.nombre,
-                    phone: clienteSnap.phone,
-                    telefono: clienteSnap.phone,
+                    phone: clienteSnap.phone || clienteSnap.telefono || null,
+                    telefono: clienteSnap.phone || clienteSnap.telefono || null,
                     dni: clienteSnap.dni,
                     servicio: servicioIngresado,
                     fecha: fechaSnap,
