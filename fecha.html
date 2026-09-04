@@ -842,9 +842,9 @@ function renderCalendario() {
     document.getElementById("mes").innerText = `${mesNombres[m]} ${y}`;
 
     const mesKey = `${y}-${String(m+1).padStart(2,"0")}`;
-    const bloqueado = mesesBloqueados.has(mesKey) || y > 2026 || (y === 2026 && m > 11);
+    const bloqueado = mesesBloqueados.has(mesKey) || y > 2026 || (y === 2026 && m > 10);
     const btnSig = document.getElementById("btnMesSiguiente");
-    btnSig.disabled = bloqueado || (y === 2026 && m === 11);
+    btnSig.disabled = bloqueado || (y === 2026 && m === 10);
 
     const cont = document.getElementById("dias"); cont.innerHTML = "";
 
@@ -959,7 +959,7 @@ document.getElementById("btnFinalizarModal").onclick = () => document.getElement
 
 document.getElementById("btnMesSiguiente").onclick = async () => {
     const y = fechaActual.getFullYear(), m = fechaActual.getMonth();
-    if (y > 2026 || (y === 2026 && m >= 11)) return;
+    if (y > 2026 || (y === 2026 && m >= 10)) return;
     fechaActual.setMonth(m+1);
     await cargarReservasMes();
     renderCalendario();

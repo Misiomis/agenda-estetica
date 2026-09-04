@@ -164,10 +164,12 @@
         }
         .cal-day.seleccionado { background: var(--acento-suave); border-color: var(--acento); color: rgba(180,235,205,0.95); }
         .cal-day.vacio { cursor: default; pointer-events: none; }
-        .cal-day.pasado { opacity: 0.4; }
-        .cal-day.no-depi { opacity: 0.22; cursor: default; pointer-events: none; }
-        .cal-day.sin-horarios { opacity: 0.55; }
-        .cal-day.bloqueado-depi { border-color: rgba(248,113,113,0.30); color: rgba(248,113,113,0.60); background: rgba(248,113,113,0.06); }
+        .cal-day.pasado { opacity: 0.25; filter: grayscale(70%); pointer-events: none; }
+        .cal-day.no-depi { opacity: 0.18; cursor: default; pointer-events: none; }
+        .cal-day.sin-horarios { opacity: 0.40; }
+        .cal-day.bloqueado-depi { border-color: rgba(248,113,113,0.38); color: rgba(248,113,113,0.70); background: rgba(248,113,113,0.08); cursor: default; }
+        .cal-day.libre { border-color: rgba(78,163,127,0.30); background: rgba(78,163,127,0.08); color: rgba(180,235,205,0.85); }
+        .cal-day.libre:hover { border-color: rgba(78,163,127,0.55); background: rgba(78,163,127,0.16); color: rgba(200,245,220,0.95); }
         .slot-row { display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;margin-bottom:5px;border:1px solid var(--borde);background:rgba(255,255,255,0.025); }
         .slot-hora { font-size:14px;font-weight:800;color:rgba(100,200,150,0.90);min-width:46px; }
         .slot-libre { color:var(--texto-suave);font-size:12px;flex:1; }
@@ -1026,6 +1028,7 @@
             if (esBloq) cls += ' bloqueado-depi';
             if (esSel) cls += ' seleccionado';
             if (esPasado && !esHoy) cls += ' pasado';
+            if (!esPasado && !esHoy && !esBloq) cls += ' libre';
             celdas += `<button class="${cls}" onclick="verDia('${fecha}')">${d}</button>`;
         }
         grid.innerHTML = dowHeaders + celdas;

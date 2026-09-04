@@ -107,5 +107,20 @@ service cloud.firestore {
       allow write:  if esAdmin();
     }
 
+    // Cobros de sesión depilación — panel no usa Firebase Auth, acceso libre
+    match /cobrosSesionDepi/{cobroId} {
+      allow read, write: if true;
+    }
+
+    // Cierres de jornada depilación — panel no usa Firebase Auth, acceso libre
+    match /cierresJornadaDepi/{cierreId} {
+      allow read, write: if true;
+    }
+
+    // Control de consultas iniciales — solo admin Gimena
+    match /control_consultas_iniciales/{docId} {
+      allow read, write: if esAdmin();
+    }
+
   }
 }
