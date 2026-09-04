@@ -508,8 +508,12 @@
         .cierre-cerrar-btn { width: 100%; padding: 13px; border-radius: 11px; border: none; background: var(--acento); color: #fff; font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; transition: all 0.18s; margin-top: 14px; }
         .cierre-cerrar-btn:hover { background: var(--acento-hover); }
         .cierre-cerrado-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.25); border-radius: 20px; padding: 5px 14px; font-size: 11px; font-weight: 700; color: rgba(74,222,128,0.85); margin-bottom: 16px; }
-        .cierre-compartir-btn { width: 100%; padding: 13px; border-radius: 11px; border: 1.5px solid rgba(37,211,102,0.45); background: rgba(37,211,102,0.10); color: rgba(37,211,102,0.92); font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; transition: all 0.18s; margin-top: 10px; }
+        .cierre-btns-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .cierre-compartir-btn { padding: 13px; border-radius: 11px; border: 1.5px solid rgba(37,211,102,0.45); background: rgba(37,211,102,0.10); color: rgba(37,211,102,0.92); font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; transition: all 0.18s; }
         .cierre-compartir-btn:hover { background: rgba(37,211,102,0.18); border-color: rgba(37,211,102,0.60); }
+        .cierre-copiar-btn { padding: 13px; border-radius: 11px; border: 1.5px solid rgba(165,205,188,0.22); background: rgba(165,205,188,0.07); color: rgba(165,205,188,0.78); font-weight: 700; font-size: 14px; font-family: inherit; cursor: pointer; transition: all 0.18s; }
+        .cierre-copiar-btn:hover { background: rgba(165,205,188,0.14); border-color: rgba(165,205,188,0.38); }
+        .cierre-copiar-btn.copiado { border-color: rgba(96,165,250,0.50); background: rgba(96,165,250,0.12); color: rgba(140,190,255,0.92); }
     </style>
 </head>
 <body>
@@ -2899,7 +2903,10 @@ Motivo: ${motivo}`);
                         <div class="cierre-part-row"><span class="cierre-part-label">Restante 70%</span><span class="cierre-part-val">${_fmtMonto(rest70)}</span></div>
                     </div>
                     ${!cerrada ? `<button class="cierre-cerrar-btn" onclick="window._ejecutarCierreJornada('${fecha}')">🔒 Cerrar jornada del ${fechaLeg}</button>` : ''}
-                    <button class="cierre-compartir-btn" onclick="window._compartirResumen()">📤 Compartir resumen por WhatsApp</button>
+                    <div class="cierre-btns-row">
+                        <button class="cierre-compartir-btn" onclick="window._compartirResumen()">📤 Compartir por WhatsApp</button>
+                        <button class="cierre-copiar-btn" id="cierre-copiar-btn" onclick="window._copiarResumen()">📋 Copiar texto</button>
+                    </div>
                 </div>` : ''}`;
         } catch(e) {
             console.error(e);
@@ -2973,6 +2980,64 @@ Motivo: ${motivo}`);
             'Registrado desde Admin Depilación — Espacio Mimar T',
         ];
         window.open('https://wa.me/?text=' + encodeURIComponent(lineas.join('\n')), '_blank');
+    };
+
+    window._copiarResumen = async () => {
+        const d = window._lastCierreData;
+        if (!d || !d.total) return;
+        // Reutiliza la misma lógica de generación de texto
+        const _dias  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+        const _meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        const [fy, fm, fd] = d.fecha.split('-').map(Number);
+        const dt = new Date(fy, fm-1, fd);
+        const fechaCompleta = `${_dias[dt.getDay()]} ${fd} de ${_meses[fm-1]} de ${fy}`;
+        const fechaCorta    = `${String(fd).padStart(2,'0')}/${String(fm).padStart(2,'0')}/${fy}`;
+        const fmt = n => Math.round(n).toLocaleString('es-AR');
+        const hora = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+        const L = '━━━━━━━━━━━━━━━━';
+        const cobEfec  = [...d.cobros].filter(c => c.medioPago === 'efectivo').sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
+        const cobTrans = [...d.cobros].filter(c => c.medioPago === 'transferencia').sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
+        const listaEfec  = cobEfec.length  ? cobEfec.map(c  => `• ${c.nombre || '—'} — $${fmt(c.importe)}`).join('\n') : '(sin pagos en efectivo)';
+        const listaTrans = cobTrans.length ? cobTrans.map(c => `• ${c.nombre || '—'} — $${fmt(c.importe)}`).join('\n') : '(sin transferencias)';
+        const texto = [
+            '🔒 CIERRE DE JORNADA — DEPILACIÓN',
+            `📅 ${fechaCompleta}`,
+            `👤 Operadora: ${OPERADOR_NOMBRE_DISPLAY}`,
+            '', L, '📋 RESUMEN DE LA JORNADA', '',
+            `Cobros registrados: ${d.cobros.length}`,
+            d.cerrada ? '✅ Jornada cerrada' : '⏳ Pendiente de cierre oficial',
+            '', L, '💵 PAGOS EN EFECTIVO', '',
+            listaEfec, '',
+            `Subtotal efectivo: $${fmt(d.efectivo)}`,
+            '', L, '🏦 PAGOS POR TRANSFERENCIA', '',
+            listaTrans, '',
+            `Subtotal transferencias: $${fmt(d.transferencia)}`,
+            '', L, '💰 TOTAL DE LA JORNADA', '',
+            `$${fmt(d.total)}`,
+            '', L, '🤝 DISTRIBUCIÓN', '',
+            `${OPERADOR_NOMBRE_DISPLAY} — 30%`, `$${fmt(d.part30)}`, '',
+            'Espacio Mimar T — 70%', `$${fmt(d.rest70)}`,
+            '', L, '✅ CIERRE CONFIRMADO', '',
+            `Fecha: ${fechaCorta}`, `Hora: ${hora}`,
+            'Registrado desde Admin Depilación — Espacio Mimar T',
+        ].join('\n');
+        try {
+            await navigator.clipboard.writeText(texto);
+            const btn = document.getElementById('cierre-copiar-btn');
+            if (btn) {
+                btn.textContent = '✓ ¡Copiado!';
+                btn.classList.add('copiado');
+                setTimeout(() => { btn.textContent = '📋 Copiar texto'; btn.classList.remove('copiado'); }, 2500);
+            }
+        } catch(e) {
+            // Fallback para navegadores que bloquean clipboard
+            const ta = document.createElement('textarea');
+            ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            mostrarAvisoDepi('✓ Texto copiado');
+        }
     };
 
     window._ejecutarCierreJornada = (fecha) => {
