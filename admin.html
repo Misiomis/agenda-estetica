@@ -1073,6 +1073,7 @@
                             <button class="hdr-drop-item btn-nav" id="btn-servicios" onclick="navegar('servicios')" role="menuitem" style="background:rgba(52,211,153,0.10);border-color:rgba(52,211,153,0.26);color:rgba(160,240,210,0.88);">📋 Servicios</button>
                             <button class="hdr-drop-item btn-nav" id="btn-export" onclick="navegar('export')" role="menuitem">📤 Exportar</button>
                             <button class="hdr-drop-item btn-nav" id="btn-control-consultas" onclick="navegar('control-consultas')" role="menuitem">📋 Control de consultas</button>
+                            <button class="hdr-drop-item btn-nav" id="btn-agenda-ci" onclick="navegar('agenda-ci')" role="menuitem" style="background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.22);color:rgba(140,225,185,0.88);">🗓 Agenda CI</button>
                             <button class="hdr-drop-item btn-nav" id="btn-ultimos-movimientos" onclick="mostrarUltimosMovimientos()" role="menuitem">🕐 Movimientos</button>
                         </div>
                     </div>
@@ -1168,6 +1169,7 @@
                 <button class="bsh-item" onclick="navegar('historias');cerrarBottomSheet()">📋 Historias</button>
                 <button class="bsh-item" onclick="navegar('consultas');cerrarBottomSheet()">✨ Consultas</button>
                 <button class="bsh-item" onclick="navegar('control-consultas');cerrarBottomSheet()">📋 Control consultas</button>
+                <button class="bsh-item" onclick="navegar('agenda-ci');cerrarBottomSheet()" style="color:rgba(140,225,185,0.90);">🗓 Agenda CI</button>
                 <button class="bsh-item" onclick="navegar('cursos');cerrarBottomSheet()">💄 Mis Cursos</button>
                 <button class="bsh-item" onclick="navegar('pedidos-kit');cerrarBottomSheet()">📦 Kit</button>
                 <button class="bsh-item" onclick="navegar('calculadora');cerrarBottomSheet()">🧮 Calculadora</button>
@@ -1726,23 +1728,6 @@
 
             <!-- ══ CONSULTAS INICIALES ══ -->
             <div id="sec-consultas" class="section">
-                <!-- Disponibilidad Consulta Inicial -->
-                <div class="detalle-dia-card" style="margin-bottom:18px;">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
-                        <div style="flex:1;">
-                            <h4 style="margin:0 0 3px;font-family:'Playfair Display',serif;font-size:1.1em;color:rgba(165,205,188,0.88);">🗓 Disponibilidad — Consulta Inicial</h4>
-                            <p style="margin:0;font-size:11.5px;color:rgba(165,205,188,0.44);">Todos los días están cerrados por defecto. Habilitá días y horarios específicos.</p>
-                        </div>
-                    </div>
-                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
-                        <button class="btn-mini" onclick="consINavFecha(-1)" style="padding:8px 14px;">←</button>
-                        <span id="consI-fecha-titulo" style="font-size:13px;color:rgba(165,205,188,0.80);font-weight:600;flex:1;text-align:center;">—</span>
-                        <button class="btn-mini" onclick="consINavFecha(1)" style="padding:8px 14px;">→</button>
-                        <button class="btn-mini" onclick="consIIrHoy()" style="font-size:11px;opacity:0.75;">Hoy</button>
-                    </div>
-                    <div id="consI-dia-info" style="text-align:center;padding:12px 0;color:rgba(165,205,188,0.45);font-size:13px;">—</div>
-                    <div id="consI-slots" style="margin-top:10px;"></div>
-                </div>
                 <!-- Lista Consultas Iniciales -->
                 <div class="detalle-dia-card" style="margin-bottom:18px;">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
@@ -1765,6 +1750,27 @@
                     </div>
                 </div>
             </div><!-- /sec-consultas -->
+
+            <!-- ══ AGENDA CONSULTA INICIAL ══ -->
+            <div id="sec-agenda-ci" class="section">
+                <div class="detalle-dia-card" style="margin-bottom:18px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+                        <div style="flex:1;">
+                            <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif;font-size:1.3em;color:rgba(165,205,188,0.95);">Agenda Cons. Inic.</h3>
+                            <p style="margin:0;font-size:12px;color:rgba(165,205,188,0.48);">Todos los días están cerrados por defecto — habilitá días y horarios específicos.</p>
+                        </div>
+                        <button class="btn-mini" onclick="navegar('consultas')" style="padding:8px 14px;font-size:11.5px;opacity:0.70;">Lista de consultas →</button>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+                        <button class="btn-mini" onclick="consINavFecha(-1)" style="padding:8px 14px;">←</button>
+                        <span id="consI-fecha-titulo" style="font-size:13px;color:rgba(165,205,188,0.82);font-weight:600;flex:1;text-align:center;">—</span>
+                        <button class="btn-mini" onclick="consINavFecha(1)" style="padding:8px 14px;">→</button>
+                        <button class="btn-mini" onclick="consIIrHoy()" style="font-size:11px;opacity:0.75;">Hoy</button>
+                    </div>
+                    <div id="consI-dia-info" style="text-align:center;padding:12px 0;color:rgba(165,205,188,0.45);font-size:13px;">—</div>
+                    <div id="consI-slots" style="margin-top:10px;"></div>
+                </div>
+            </div><!-- /sec-agenda-ci -->
 
             <!-- ══ CONTROL DE CONSULTAS ══ -->
             <div id="sec-control-consultas" class="section">
@@ -6231,7 +6237,7 @@
             document.getElementById(`sec-${s}`)?.classList.add('active');
             document.getElementById(`btn-${s}`)?.classList.add('active');
             // "Más" se resalta si la sección está dentro de ese dropdown
-            const _masItems = ['buscar','historias','cursos','pedidos-kit','calculadora','servicios','export','ultimos-movimientos','control','control-consultas'];
+            const _masItems = ['buscar','historias','cursos','pedidos-kit','calculadora','servicios','export','ultimos-movimientos','control','control-consultas','agenda-ci'];
             if (_masItems.includes(s)) document.getElementById('btnMas')?.classList.add('active');
             // Bottom nav: marcar item activo por data-section
             document.querySelectorAll('.bni').forEach(x => x.classList.remove('active'));
@@ -6246,7 +6252,8 @@
             if (s === 'export') { window.cargarJornadaStatus?.(); expDepiInit(); }
             if (s === 'clientes') filtrarListadoClientes();
             if (s === 'calculadora') window.cargarCalculadora();
-            if (s === 'consultas') { window.cargarConsultas(); cargarDisponibilidadConsI(_consI_fecha); }
+            if (s === 'consultas') window.cargarConsultas();
+            if (s === 'agenda-ci') cargarDisponibilidadConsI(_consI_fecha);
             if (s === 'control-consultas') window.cargarControlConsultas();
             if (s === 'cursos') window.cargarCursos();
         };
