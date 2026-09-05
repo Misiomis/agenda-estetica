@@ -514,9 +514,9 @@
                 <span id="mcTurnoPillText">Cargando...</span>
             </div>
 
-            <input class="mc-field" type="text" id="mcNombre" placeholder="Por favor respetá el orden: Nombre Apellido *" autocomplete="name">
+            <input class="mc-field" type="text" id="mcNombre" placeholder="Por favor respetá el orden: Nombre Apellido *" autocomplete="name" required>
             <p style="font-size:11px;color:rgba(165,205,188,0.38);margin:-4px 0 9px 2px;">Ej: <strong style="color:rgba(165,205,188,0.55)">María López</strong> — primero el nombre, luego el apellido</p>
-            <input class="mc-field" type="text" id="mcDni" placeholder="DNI *" inputmode="numeric">
+            <input class="mc-field" type="text" id="mcDni" placeholder="DNI *" inputmode="numeric" required>
             <label class="mc-label" style="margin-top:2px;">Fecha de nacimiento *</label>
             <div class="drum-outer" id="drumPicker">
                 <div class="drum-lbl-row"><div>Día</div><div>Mes</div><div>Año</div></div>
@@ -529,10 +529,10 @@
                 <div class="drum-fade drum-fade-t"></div>
                 <div class="drum-fade drum-fade-b"></div>
             </div>
-            <input class="mc-field" type="number" id="mcEdad" placeholder="Edad *" inputmode="numeric" min="1" max="120">
-            <input class="mc-field" type="text" id="mcDomicilio" placeholder="Barrio / Localidad *" autocomplete="address-level2">
-            <input class="mc-field" type="tel" id="mcTelefono" placeholder="WhatsApp / Teléfono *" autocomplete="tel" inputmode="tel">
-            <input class="mc-field" type="email" id="mcEmail" placeholder="Email *" autocomplete="email" inputmode="email">
+            <input class="mc-field" type="number" id="mcEdad" placeholder="Edad *" inputmode="numeric" min="1" max="120" required>
+            <input class="mc-field" type="text" id="mcDomicilio" placeholder="Barrio / Localidad *" autocomplete="address-level2" required>
+            <input class="mc-field" type="tel" id="mcTelefono" placeholder="WhatsApp / Teléfono *" autocomplete="tel" inputmode="tel" required>
+            <input class="mc-field" type="email" id="mcEmail" placeholder="Email *" autocomplete="email" inputmode="email" required>
 
             <button class="mc-btn" id="mcBtnPaso2" onclick="irPaso2()">Continuar →</button>
         </div>
@@ -792,6 +792,8 @@ function procesarExcepciones(snapshot) {
             if (f && h) bloqueosAdminCI.set(keyBloqueo(f, h), true);
             return;
         }
+        // Lock docs de reserva de consulta — no afectan display; la colección consultas es la fuente de verdad
+        if (data.tipo === 'consulta') return;
         const idEsFecha = /^\d{4}-\d{2}-\d{2}$/.test(docSnap.id);
         const fechaEx = ((data.fecha||"")||(idEsFecha?docSnap.id:"")).toString();
         const horaEx  = normalizarHora(data.hora||data.hour||"");
@@ -834,19 +836,12 @@ async function cargarDatos() {
 
 const esDiaBloqueadoPorAdmin = (fStr) => rangosDiasBloqueados.some(r => fStr >= r.desde && fStr <= r.hasta);
 const slotsTomadosDia = (fStr) => {
-    const res = reservasPorFecha.get(fStr) || new Set();
     let blocks = 0;
-    bloqueosHorarios.forEach((_, k) => { if (k.startsWith(fStr + "|")) blocks++; });
     bloqueosAdminCI.forEach((_, k) => { if (k.startsWith(fStr + "|")) blocks++; });
-    return res.size + blocks;
+    return blocks;
 };
 const esDiaLleno = (fStr) => {
-    const res = reservasPorFecha.get(fStr) || new Set();
-    return SLOTS_DIA.every(hora =>
-        res.has(hora) ||
-        bloqueosHorarios.has(keyBloqueo(fStr, hora)) ||
-        bloqueosAdminCI.has(keyBloqueo(fStr, hora))
-    );
+    return SLOTS_DIA.every(hora => bloqueosAdminCI.has(keyBloqueo(fStr, hora)));
 };
 
 function renderCalendario() {
@@ -1069,14 +1064,15 @@ window.irPaso2 = function() {
     const telefono  = document.getElementById("mcTelefono").value.trim();
     const email     = document.getElementById("mcEmail").value.trim();
 
-    if (!nombre) { alertCampo("mcNombre","Ingresá tu nombre completo"); return; }
-    if (!dni || !/^\d{7,9}$/.test(dni.replace(/\./g,""))) { alertCampo("mcDni","DNI inválido"); return; }
+    if (!nombre || nombre.trim().split(/\s+/).filter(w => w.length > 1).length < 2) { alertCampo("mcNombre","Ingresá tu nombre Y apellido completos"); return; }
+    if (!dni || !/^\d{7,9}$/.test(dni.replace(/\./g,""))) { alertCampo("mcDni","DNI inválido — solo números, sin puntos"); return; }
     const [fnY, fnM, fnD] = fechaNac.split('-').map(Number);
     if (new Date(fnY, fnM-1, fnD) >= new Date()) { alertCampo("drumPicker","La fecha de nacimiento no puede ser futura"); return; }
     if (!edad || isNaN(parseInt(edad)) || parseInt(edad) < 1 || parseInt(edad) > 120) { alertCampo("mcEdad","Ingresá tu edad"); return; }
-    if (!domicilio) { alertCampo("mcDomicilio","Ingresá tu barrio o localidad"); return; }
-    if (!telefono) { alertCampo("mcTelefono","Ingresá tu número de WhatsApp"); return; }
-    if (!email || !email.includes('@')) { alertCampo("mcEmail","Ingresá un email válido"); return; }
+    if (!domicilio || domicilio.length < 3) { alertCampo("mcDomicilio","Ingresá tu barrio o localidad"); return; }
+    const soloDigitosTel = telefono.replace(/[\s\-\+\(\)]/g,"");
+    if (!telefono || !/^\d{8,15}$/.test(soloDigitosTel)) { alertCampo("mcTelefono","Teléfono inválido — mínimo 8 dígitos"); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { alertCampo("mcEmail","Email inválido — revisá que tenga @ y dominio"); return; }
 
     const avanzarPaso2 = () => {
         document.getElementById("mcStep1").classList.remove("active");
@@ -1131,8 +1127,6 @@ window.confirmarConsulta = async function() {
         console.error('[consulta] hora inválida al confirmar:', horaSeleccionada);
         return;
     }
-    const btn = document.getElementById("mcBtnConfirmar");
-    btn.disabled = true; btn.textContent = "Guardando...";
 
     const nombre    = document.getElementById("mcNombre").value.trim();
     const dniRaw    = document.getElementById("mcDni").value.trim().replace(/\./g,"");
@@ -1141,6 +1135,17 @@ window.confirmarConsulta = async function() {
     const domicilio = document.getElementById("mcDomicilio").value.trim();
     const telefono  = document.getElementById("mcTelefono").value.trim();
     const email     = document.getElementById("mcEmail").value.trim();
+
+    // Segunda línea de defensa — datos completos y válidos antes de tocar Firestore
+    const soloDigTel = telefono.replace(/[\s\-\+\(\)]/g,"");
+    if (!nombre || nombre.split(/\s+/).filter(w=>w.length>1).length < 2) { alertCampo("mcNombre","Nombre y apellido requeridos"); return; }
+    if (!/^\d{7,9}$/.test(dniRaw)) { alertCampo("mcDni","DNI inválido"); return; }
+    if (!domicilio || domicilio.length < 3) { alertCampo("mcDomicilio","Barrio o localidad requerida"); return; }
+    if (!/^\d{8,15}$/.test(soloDigTel)) { alertCampo("mcTelefono","Teléfono inválido"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { alertCampo("mcEmail","Email inválido"); return; }
+
+    const btn = document.getElementById("mcBtnConfirmar");
+    btn.disabled = true; btn.textContent = "Guardando...";
     const fStr      = fechaAString(fechaSeleccionada);
 
     try {
