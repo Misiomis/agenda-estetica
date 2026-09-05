@@ -626,7 +626,7 @@ const fechaAString = (f) => `${f.getFullYear()}-${String(f.getMonth()+1).padStar
 let fechaActual = new Date();
 let fechaSeleccionada = null, horaSeleccionada = null;
 const hoy = new Date(); hoy.setHours(0,0,0,0);
-let excepciones = {}, bloqueosHorarios = new Map();
+let excepciones = {}, bloqueosHorarios = new Map(), diasHabilitadosConsulta = new Set();
 let rangosDiasBloqueados = [], mesesBloqueados = new Set();
 let reservasPorFecha = new Map();
 
@@ -781,9 +781,13 @@ const obtenerHorasOcupadas = async (fStr) => {
 };
 
 function procesarExcepciones(snapshot) {
-    excepciones = {}; bloqueosHorarios = new Map();
+    excepciones = {}; bloqueosHorarios = new Map(); diasHabilitadosConsulta = new Set();
     snapshot.forEach(docSnap => {
         const data = docSnap.data() || {};
+        if (data.tipo === 'habilitado_consulta') {
+            if (data.fecha) diasHabilitadosConsulta.add(data.fecha);
+            return;
+        }
         const idEsFecha = /^\d{4}-\d{2}-\d{2}$/.test(docSnap.id);
         const fechaEx = ((data.fecha||"")||(idEsFecha?docSnap.id:"")).toString();
         const horaEx  = normalizarHora(data.hora||data.hour||"");
@@ -874,6 +878,9 @@ function renderCalendario() {
         } else if (excepciones[fStr]) {
             div.classList.add("bloqueado");
             div.onclick = () => mostrarAviso("Cerrado",excepciones[fStr]);
+        } else if (!diasHabilitadosConsulta.has(fStr)) {
+            div.classList.add("bloqueado");
+            div.onclick = () => mostrarAviso("No disponible","Todavía no hay turnos habilitados para este día. Consultá por WhatsApp si necesitás algo urgente.");
         } else if (esDiaLleno(fStr)) {
             div.classList.add("lleno");
             div.onclick = () => mostrarAviso("Sin cupos disponibles","Los turnos de este día ya están completos. 🗓️ Elegí otro día del calendario.");
@@ -904,6 +911,10 @@ async function cargarHorarios(fStr) {
 
     if (excepciones[fStr]) {
         cont.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(255,120,120,0.70);font-size:13px;">Día cerrado: ${excepciones[fStr]}</div>`;
+        return;
+    }
+    if (!diasHabilitadosConsulta.has(fStr)) {
+        cont.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px 16px;color:rgba(165,205,188,0.42);font-size:13px;">Sin turnos disponibles para este día.</div>`;
         return;
     }
 

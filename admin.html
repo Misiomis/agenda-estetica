@@ -960,6 +960,11 @@
         }
         /* ── spans full / short ── */
         .gth-short { display: none; }
+        /* ── Consulta Inicial — disponibilidad ── */
+        .consI-slot-btn { display:inline-flex;align-items:center;padding:6px 11px;border-radius:8px;border:1px solid rgba(165,205,188,0.18);font-size:12px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s;background:transparent;color:rgba(165,205,188,0.50);font-family:inherit; }
+        .consI-slot-btn.habilitado { border-color:rgba(78,200,150,0.50);background:rgba(78,200,150,0.11);color:rgba(130,230,185,0.92); }
+        .consI-slot-btn.ocupado { border-color:rgba(165,205,188,0.10);background:rgba(0,0,0,0.08);color:rgba(165,205,188,0.25);cursor:not-allowed;opacity:0.55; }
+        .consI-slot-btn:not(.habilitado):not(.ocupado):hover { background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.30); }
         /* ── mobile vertical ── */
         @media (max-width: 560px) {
             .grilla-table { min-width: 340px; font-size: 12px; }
@@ -1721,6 +1726,24 @@
 
             <!-- ══ CONSULTAS INICIALES ══ -->
             <div id="sec-consultas" class="section">
+                <!-- Disponibilidad Consulta Inicial -->
+                <div class="detalle-dia-card" style="margin-bottom:18px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+                        <div style="flex:1;">
+                            <h4 style="margin:0 0 3px;font-family:'Playfair Display',serif;font-size:1.1em;color:rgba(165,205,188,0.88);">🗓 Disponibilidad — Consulta Inicial</h4>
+                            <p style="margin:0;font-size:11.5px;color:rgba(165,205,188,0.44);">Todos los días están cerrados por defecto. Habilitá días y horarios específicos.</p>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+                        <button class="btn-mini" onclick="consINavFecha(-1)" style="padding:8px 14px;">←</button>
+                        <span id="consI-fecha-titulo" style="font-size:13px;color:rgba(165,205,188,0.80);font-weight:600;flex:1;text-align:center;">—</span>
+                        <button class="btn-mini" onclick="consINavFecha(1)" style="padding:8px 14px;">→</button>
+                        <button class="btn-mini" onclick="consIIrHoy()" style="font-size:11px;opacity:0.75;">Hoy</button>
+                    </div>
+                    <div id="consI-dia-info" style="text-align:center;padding:12px 0;color:rgba(165,205,188,0.45);font-size:13px;">—</div>
+                    <div id="consI-slots" style="margin-top:10px;"></div>
+                </div>
+                <!-- Lista Consultas Iniciales -->
                 <div class="detalle-dia-card" style="margin-bottom:18px;">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
                         <div style="flex:1;">
@@ -6223,7 +6246,7 @@
             if (s === 'export') { window.cargarJornadaStatus?.(); expDepiInit(); }
             if (s === 'clientes') filtrarListadoClientes();
             if (s === 'calculadora') window.cargarCalculadora();
-            if (s === 'consultas') window.cargarConsultas();
+            if (s === 'consultas') { window.cargarConsultas(); cargarDisponibilidadConsI(_consI_fecha); }
             if (s === 'control-consultas') window.cargarControlConsultas();
             if (s === 'cursos') window.cargarCursos();
         };
@@ -8617,6 +8640,123 @@
             a.download = `reservas-depi_${desde}-${hasta}.csv`;
             a.click();
             URL.revokeObjectURL(url);
+        };
+
+        // ══════════════════════════════════════════════════
+        // DISPONIBILIDAD — CONSULTA INICIAL
+        // Cerrado por defecto; admin habilita días/horarios
+        // ══════════════════════════════════════════════════
+        const CONSULT_SLOTS = Array.from({length: 27}, (_, i) => {
+            const t = 7 * 60 + 30 + i * 30;
+            return `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
+        });
+
+        let _consI_fecha = fechaHoyISO();
+        let _consI_habilitado_docId = null;
+        let _consI_bloqSlots = new Map(); // hora → docId
+
+        const _consI_fmtFecha = (fStr) => {
+            const [y,m,d] = fStr.split('-').map(Number);
+            const dt = new Date(y,m-1,d);
+            const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+            const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+            return `${dias[dt.getDay()]} ${d} de ${meses[m-1]} ${y}`;
+        };
+
+        const cargarDisponibilidadConsI = async (fecha) => {
+            const tituloEl = document.getElementById('consI-fecha-titulo');
+            const infoEl   = document.getElementById('consI-dia-info');
+            const slotsEl  = document.getElementById('consI-slots');
+            if (!tituloEl || !infoEl || !slotsEl) return;
+            tituloEl.textContent = _consI_fmtFecha(fecha);
+            infoEl.textContent = 'Cargando...';
+            slotsEl.innerHTML = '';
+            _consI_habilitado_docId = null;
+            _consI_bloqSlots.clear();
+            try {
+                const snap = await getDocs(query(collection(db,'calendarExceptions'), where('fecha','==',fecha)));
+                snap.forEach(d => {
+                    const data = d.data();
+                    if (data.tipo === 'habilitado_consulta') { _consI_habilitado_docId = d.id; return; }
+                    if (data.tipo === 'bloq_consulta' && data.hora) { _consI_bloqSlots.set(normalizarHora(data.hora), d.id); }
+                });
+            } catch(e) { console.error('consI load', e); }
+            _renderConsI(fecha);
+        };
+
+        function _renderConsI(fecha) {
+            const infoEl  = document.getElementById('consI-dia-info');
+            const slotsEl = document.getElementById('consI-slots');
+            if (!infoEl || !slotsEl) return;
+            const isHabilitado = !!_consI_habilitado_docId;
+            const ocupadas = new Set(todasLasConsultas.filter(c => c.fecha === fecha).map(c => normalizarHora(c.hora)));
+            if (!isHabilitado) {
+                infoEl.innerHTML = `<div style="display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <span style="color:rgba(248,113,113,0.75);font-size:13px;font-weight:600;">Día cerrado</span>
+                    <button class="btn-mini" onclick="habilitarDiaConsI('${fecha}')" style="padding:8px 16px;background:rgba(74,222,128,0.12);border-color:rgba(74,222,128,0.35);color:#4ade80;">✓ Habilitar día</button>
+                </div>`;
+                slotsEl.innerHTML = '';
+                return;
+            }
+            infoEl.innerHTML = `<div style="display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span style="color:rgba(78,200,150,0.85);font-size:13px;font-weight:600;">Día habilitado</span>
+                <button class="btn-mini" onclick="deshabilitarDiaConsI('${fecha}')" style="padding:8px 16px;background:rgba(248,113,113,0.10);border-color:rgba(248,113,113,0.30);color:rgba(248,113,113,0.80);">✗ Deshabilitar día</button>
+            </div>`;
+            const btns = CONSULT_SLOTS.map(hora => {
+                const esBloq = _consI_bloqSlots.has(hora);
+                const esOcup = ocupadas.has(hora);
+                if (esOcup)  return `<button class="consI-slot-btn ocupado" disabled>${hora} · reservado</button>`;
+                if (esBloq)  return `<button class="consI-slot-btn" onclick="toggleSlotConsI('${fecha}','${hora}',true)">${hora} · cerrado</button>`;
+                return `<button class="consI-slot-btn habilitado" onclick="toggleSlotConsI('${fecha}','${hora}',false)">${hora} · abierto</button>`;
+            }).join('');
+            slotsEl.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:7px;">${btns}</div>
+                <p style="margin:10px 0 0;font-size:11px;color:rgba(165,205,188,0.35);">Tocá un horario abierto para cerrarlo, o un horario cerrado para reabrirlo.</p>`;
+        }
+
+        window.consINavFecha = (d) => {
+            const [y,m,dd] = _consI_fecha.split('-').map(Number);
+            const dt = new Date(y,m-1,dd+d);
+            _consI_fecha = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+            cargarDisponibilidadConsI(_consI_fecha);
+        };
+        window.consIIrHoy = () => { _consI_fecha = fechaHoyISO(); cargarDisponibilidadConsI(_consI_fecha); };
+
+        window.habilitarDiaConsI = async (fecha) => {
+            try {
+                const docId = `ci_${fecha}_habilitado`;
+                await setDoc(doc(db,'calendarExceptions',docId), { fecha, tipo: 'habilitado_consulta', updatedAt: serverTimestamp() });
+                _consI_habilitado_docId = docId;
+                _renderConsI(fecha);
+            } catch(e) { console.error('habilitarDiaConsI', e); }
+        };
+
+        window.deshabilitarDiaConsI = async (fecha) => {
+            if (!_consI_habilitado_docId) return;
+            if (!confirm(`¿Deshabilitar el día ${_consI_fmtFecha(fecha)} para Consulta Inicial? Los horarios habilitados se cerrarán.`)) return;
+            try {
+                await deleteDoc(doc(db,'calendarExceptions',_consI_habilitado_docId));
+                const bloqIds = [..._consI_bloqSlots.values()];
+                await Promise.all(bloqIds.map(id => deleteDoc(doc(db,'calendarExceptions',id))));
+                _consI_habilitado_docId = null;
+                _consI_bloqSlots.clear();
+                _renderConsI(fecha);
+            } catch(e) { console.error('deshabilitarDiaConsI', e); }
+        };
+
+        window.toggleSlotConsI = async (fecha, hora, esBloqueado) => {
+            try {
+                if (esBloqueado) {
+                    const docId = _consI_bloqSlots.get(hora);
+                    if (!docId) return;
+                    await deleteDoc(doc(db,'calendarExceptions',docId));
+                    _consI_bloqSlots.delete(hora);
+                } else {
+                    const docId = `ci_${fecha}_${hora.replace(':','')}`;
+                    await setDoc(doc(db,'calendarExceptions',docId), { fecha, hora, tipo: 'bloq_consulta', blocked: true, type: 'blocked', updatedAt: serverTimestamp() });
+                    _consI_bloqSlots.set(hora, docId);
+                }
+                _renderConsI(fecha);
+            } catch(e) { console.error('toggleSlotConsI', e); }
         };
 
     </script>
