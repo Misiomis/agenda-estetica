@@ -774,11 +774,6 @@ const obtenerHorasOcupadas = async (fStr) => {
             if (h) horas.add(h);
         });
     } catch(e) {}
-    bloqueosHorarios.forEach((blq) => {
-        if ((blq?.fecha||"") !== fStr) return;
-        const h = normalizarHora(blq.hora || "");
-        if (h) horas.add(h);
-    });
     return [...horas].sort((a,b) => a.localeCompare(b));
 };
 
