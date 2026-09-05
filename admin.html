@@ -917,6 +917,12 @@
         .grilla-celda-ocupada.gc-continua {
             border-left: 2.5px solid rgba(200,150,8,0.75) !important;
         }
+        .gc-bloque-cont {
+            cursor: pointer;
+            justify-content: flex-end;
+            padding: 0 4px;
+        }
+        .gc-bloque-cont:hover { background: rgba(114,189,153,0.30) !important; }
         /* Drag-and-drop de box */
         .grilla-celda-ocupada[draggable="true"] { cursor: grab; }
         .grilla-celda-ocupada[draggable="true"]:active { cursor: grabbing; }
@@ -8452,6 +8458,33 @@
             });
             // ────────────────────────────────────────────────────────────────────
 
+            // ── Pre-computar cobertura por slot × box (bloques fusionados) ────────
+            // boxSlotInfo: boxId → Map(hora → { type:'solo'|'start'|'mid'|'end', res })
+            const _visHoras = [];
+            for (const { hora: _h } of _grilla_slots) {
+                if (_esHoraComercial(_h) || _grilla_extraSlots) _visHoras.push(_h);
+            }
+            const boxSlotInfo = new Map();
+            GRILLA_BOXES.forEach(box => {
+                const m = new Map();
+                del_dia
+                    .filter(r => _grilla_boxDeReserva(r) === box.id)
+                    .forEach(r => {
+                        const startMin = _toMin(normalizarHora(r.hora));
+                        const durMin   = (r.duracionMinutos > 15) ? r.duracionMinutos : 15;
+                        const covered  = _visHoras.filter(h => { const sm = _toMin(h); return sm >= startMin && sm < startMin + durMin; });
+                        covered.forEach((h, idx) => {
+                            if (m.has(h)) return; // primera reserva gana en solapamiento
+                            const t = covered.length === 1 ? 'solo'
+                                    : idx === 0            ? 'start'
+                                    : idx === covered.length - 1 ? 'end' : 'mid';
+                            m.set(h, { type: t, res: r });
+                        });
+                    });
+                boxSlotInfo.set(box.id, m);
+            });
+            // ─────────────────────────────────────────────────────────────────────
+
             const COLS = GRILLA_BOXES.length + 1;
             const rows = [];
             let lastHora = null;
@@ -8479,43 +8512,48 @@
                 const rowCls = es30 ? 'grilla-row-30' : 'grilla-row-15';
                 const horaLabel = es30 ? `<strong>${hora}</strong>` : hora;
 
-                const _slotMin = _toMin(hora);
                 const celdas = GRILLA_BOXES.map(box => {
-                    const res = del_dia.find(r => normalizarHora(r.hora) === hora && _grilla_boxDeReserva(r) === box.id);
-                    // Reserva que CUBRE este slot por duración (ej: turno de 90 min que arrancó antes)
-                    const resCubre = !res ? del_dia.find(r => {
-                        if (_grilla_boxDeReserva(r) !== box.id || !(r.duracionMinutos > 15)) return false;
-                        const startMin = _toMin(normalizarHora(r.hora));
-                        return _slotMin > startMin && _slotMin < startMin + r.duracionMinutos;
-                    }) : null;
-                    const key          = `${hora}_${box.id}`;
-                    const adminBloq    = _grilla_adminBlocks.has(key);
-                    const adminUnbloq  = _grilla_adminUnblocks.has(key);
-                    const defBloq      = _esDefaultBloqueado(hora, dayOfWeek);
+                    const slotData    = boxSlotInfo.get(box.id)?.get(hora);
+                    const key         = `${hora}_${box.id}`;
+                    const adminBloq   = _grilla_adminBlocks.has(key);
+                    const adminUnbloq = _grilla_adminUnblocks.has(key);
+                    const defBloq     = _esDefaultBloqueado(hora, dayOfWeek);
                     let inner = '';
-                    if (res) {
-                        const nom = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
-                        const srv = escapeHtml((res.servicio || '').slice(0,22));
+                    // Estilos de <td> para bordes fusionados entre slots de un mismo turno
+                    let tdExtra = '';
+                    if (slotData) {
+                        const { type, res } = slotData;
+                        const nom  = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
+                        const srv  = escapeHtml((res.servicio || '').slice(0,22));
                         const circ = _cm.get(res.id);
                         const circCls = circ?.isTarget ? ' gc-continua' : '';
-                        let circHtml = '';
-                        if (circ?.isTarget) {
-                            circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
+                        // Bordess de la celda: eliminar borde entre slots del mismo bloque
+                        if (type === 'start') tdExtra = ';border-bottom-color:transparent;padding-bottom:0';
+                        else if (type === 'mid') tdExtra = ';border-top-color:transparent;border-bottom-color:transparent;padding-top:0;padding-bottom:0';
+                        else if (type === 'end') tdExtra = ';border-top-color:transparent;padding-top:0';
+                        // Border-radius del div: redondeado solo en los extremos del bloque
+                        const divRad = {
+                            solo:  '',
+                            start: 'border-radius:9px 9px 0 0;border-bottom:none;',
+                            mid:   'border-radius:0;border-top:none;border-bottom:none;',
+                            end:   'border-radius:0 0 9px 9px;border-top:none;'
+                        }[type];
+                        if (type === 'start' || type === 'solo') {
+                            let circHtml = '';
+                            if (circ?.isTarget) circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
+                            if (circ?.nextBox) {
+                                const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
+                                circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
+                            }
+                            inner = `<div class="grilla-celda-ocupada${circCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv} (arrastrá para cambiar de box)" style="${divRad}">
+                                <span class="grilla-paciente-nombre">${nom}</span>
+                                <span class="grilla-paciente-servicio">${srv}</span>
+                                ${circHtml}
+                            </div>`;
+                        } else {
+                            // Continuación: bloque sólido sin texto, clicable
+                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — continúa" style="${divRad}"></div>`;
                         }
-                        if (circ?.nextBox) {
-                            const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
-                            circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
-                        }
-                        inner = `<div class="grilla-celda-ocupada${circCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv} (arrastrá para cambiar de box)">
-                            <span class="grilla-paciente-nombre">${nom}</span>
-                            <span class="grilla-paciente-servicio">${srv}</span>
-                            ${circHtml}
-                        </div>`;
-                    } else if (resCubre) {
-                        const nom = escapeHtml((resCubre.nombreLimpio || resCubre.nombre || '—').split(' ').slice(0,2).join(' '));
-                        inner = `<div class="grilla-celda-ocupada" onclick="grillaCeldaOcupada('${resCubre.id}')" title="${nom} — en curso" style="opacity:0.45;cursor:pointer;">
-                            <span class="grilla-paciente-nombre" style="font-size:9px;">↕ ${nom}</span>
-                        </div>`;
                     } else if (adminBloq) {
                         inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
                             <span class="gcb-ico">🔒</span><span class="gcb-txt">Bloqueado</span>
@@ -8530,7 +8568,7 @@
                             <div class="gcl-blk" onclick="grillaBloquearSlot('${hora}','${box.id}')" title="${adminUnbloq ? 'Restablecer bloqueo' : 'Bloquear slot'}">🔒</div>
                         </div>`;
                     }
-                    return `<td class="grilla-td-box" style="background:${box.bg};border-color:${box.border}" ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
+                    return `<td class="grilla-td-box" style="background:${box.bg};border-color:${box.border}${tdExtra}" ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
                 }).join('');
 
                 rows.push(`<tr class="${rowCls}"><td class="grilla-td-hora">${horaLabel}</td>${celdas}</tr>`);
