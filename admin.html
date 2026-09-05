@@ -961,10 +961,11 @@
         /* ── spans full / short ── */
         .gth-short { display: none; }
         /* ── Consulta Inicial — disponibilidad ── */
-        .consI-slot-btn { display:inline-flex;align-items:center;padding:6px 11px;border-radius:8px;border:1px solid rgba(165,205,188,0.18);font-size:12px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s;background:transparent;color:rgba(165,205,188,0.50);font-family:inherit; }
-        .consI-slot-btn.habilitado { border-color:rgba(78,200,150,0.50);background:rgba(78,200,150,0.11);color:rgba(130,230,185,0.92); }
-        .consI-slot-btn.ocupado { border-color:rgba(165,205,188,0.10);background:rgba(0,0,0,0.08);color:rgba(165,205,188,0.25);cursor:not-allowed;opacity:0.55; }
-        .consI-slot-btn:not(.habilitado):not(.ocupado):hover { background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.30); }
+        .consI-slot-btn { padding:9px 4px;border-radius:9px;border:1px solid rgba(248,113,113,0.22);font-size:12.5px;font-weight:700;text-align:center;cursor:pointer;background:rgba(248,113,113,0.07);color:rgba(210,90,90,0.65);font-family:inherit;transition:background .14s,border-color .14s,color .14s; }
+        .consI-slot-btn.habilitado { border-color:rgba(78,200,150,0.48);background:rgba(78,200,150,0.13);color:rgba(115,220,170,0.95); }
+        .consI-slot-btn.habilitado:hover { background:rgba(248,113,113,0.10);border-color:rgba(248,113,113,0.32);color:rgba(210,90,90,0.75); }
+        .consI-slot-btn:not(.habilitado):not(.ocupado):hover { background:rgba(78,200,150,0.10);border-color:rgba(78,200,150,0.32);color:rgba(115,220,170,0.80); }
+        .consI-slot-btn.ocupado { border-color:rgba(165,205,188,0.10);background:transparent;color:rgba(165,205,188,0.22);cursor:not-allowed;text-decoration:line-through; }
         /* ── mobile vertical ── */
         @media (max-width: 560px) {
             .grilla-table { min-width: 340px; font-size: 12px; }
@@ -8712,12 +8713,16 @@
             const btns = CONSULT_SLOTS.map(hora => {
                 const esBloq = _consI_bloqSlots.has(hora);
                 const esOcup = ocupadas.has(hora);
-                if (esOcup)  return `<button class="consI-slot-btn ocupado" disabled>${hora} · reservado</button>`;
-                if (esBloq)  return `<button class="consI-slot-btn" onclick="toggleSlotConsI('${fecha}','${hora}',true)">${hora} · cerrado</button>`;
-                return `<button class="consI-slot-btn habilitado" onclick="toggleSlotConsI('${fecha}','${hora}',false)">${hora} · abierto</button>`;
+                if (esOcup)  return `<button class="consI-slot-btn ocupado" disabled title="Reservado">${hora}</button>`;
+                if (esBloq)  return `<button class="consI-slot-btn" onclick="toggleSlotConsI('${fecha}','${hora}',true)" title="Cerrado — tocá para abrir">${hora}</button>`;
+                return `<button class="consI-slot-btn habilitado" onclick="toggleSlotConsI('${fecha}','${hora}',false)" title="Disponible — tocá para cerrar">${hora}</button>`;
             }).join('');
-            slotsEl.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:7px;">${btns}</div>
-                <p style="margin:10px 0 0;font-size:11px;color:rgba(165,205,188,0.35);">Tocá un horario abierto para cerrarlo, o un horario cerrado para reabrirlo.</p>`;
+            slotsEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:5px;">${btns}</div>
+                <div style="margin-top:11px;display:flex;gap:14px;font-size:11px;color:rgba(165,205,188,0.42);">
+                    <span><span style="color:rgba(115,220,170,0.80);">■</span> disponible</span>
+                    <span><span style="color:rgba(210,90,90,0.60);">■</span> cerrado</span>
+                    <span><span style="color:rgba(165,205,188,0.22);">■</span> reservado</span>
+                </div>`;
         }
 
         window.consINavFecha = (d) => {
@@ -8737,17 +8742,25 @@
             } catch(e) { console.error('habilitarDiaConsI', e); }
         };
 
-        window.deshabilitarDiaConsI = async (fecha) => {
+        const _consIConfirm = (msg, onSi) => {
+            document.getElementById('consI-confirm-msg').textContent = msg;
+            const btn = document.getElementById('consI-confirm-ok');
+            btn.onclick = () => { document.getElementById('consI-confirm-overlay').style.display='none'; onSi(); };
+            document.getElementById('consI-confirm-overlay').style.display = 'flex';
+        };
+
+        window.deshabilitarDiaConsI = (fecha) => {
             if (!_consI_habilitado_docId) return;
-            if (!confirm(`¿Deshabilitar el día ${_consI_fmtFecha(fecha)} para Consulta Inicial? Los horarios habilitados se cerrarán.`)) return;
-            try {
-                await deleteDoc(doc(db,'calendarExceptions',_consI_habilitado_docId));
-                const bloqIds = [..._consI_bloqSlots.values()];
-                await Promise.all(bloqIds.map(id => deleteDoc(doc(db,'calendarExceptions',id))));
-                _consI_habilitado_docId = null;
-                _consI_bloqSlots.clear();
-                _renderConsI(fecha);
-            } catch(e) { console.error('deshabilitarDiaConsI', e); }
+            _consIConfirm(`¿Cerrar ${_consI_fmtFecha(fecha)} para Consulta Inicial? Todos los horarios quedarán bloqueados.`, async () => {
+                try {
+                    await deleteDoc(doc(db,'calendarExceptions',_consI_habilitado_docId));
+                    const bloqIds = [..._consI_bloqSlots.values()];
+                    await Promise.all(bloqIds.map(id => deleteDoc(doc(db,'calendarExceptions',id))));
+                    _consI_habilitado_docId = null;
+                    _consI_bloqSlots.clear();
+                    _renderConsI(fecha);
+                } catch(e) { console.error('deshabilitarDiaConsI', e); }
+            });
         };
 
         window.toggleSlotConsI = async (fecha, hora, esBloqueado) => {
@@ -8768,6 +8781,17 @@
 
     </script>
     <!-- Modal: Registrar turno manualmente -->
+    <!-- Modal confirm Agenda CI -->
+    <div id="consI-confirm-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(4,10,7,0.80);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px;">
+        <div style="background:rgba(10,26,18,0.98);border:1px solid rgba(114,189,153,0.22);border-radius:20px;padding:28px 24px 22px;max-width:320px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.45);">
+            <p id="consI-confirm-msg" style="margin:0 0 22px;font-size:14px;line-height:1.55;color:rgba(200,232,215,0.88);"></p>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button id="consI-confirm-ok" class="btn-mini" style="padding:10px 22px;background:rgba(248,113,113,0.14);border-color:rgba(248,113,113,0.40);color:rgba(248,113,113,0.88);font-weight:700;">Deshabilitar</button>
+                <button onclick="document.getElementById('consI-confirm-overlay').style.display='none'" class="btn-mini" style="padding:10px 22px;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-registrar-overlay" role="dialog" aria-modal="true" aria-labelledby="mreg-title">
         <div id="modal-registrar-card">
             <div class="mreg-logo-wrap">
