@@ -628,7 +628,7 @@ const fechaAString = (f) => `${f.getFullYear()}-${String(f.getMonth()+1).padStar
 let fechaActual = new Date();
 let fechaSeleccionada = null, horaSeleccionada = null;
 const hoy = new Date(); hoy.setHours(0,0,0,0);
-let excepciones = {}, bloqueosHorarios = new Map(), diasHabilitadosConsulta = new Set();
+let excepciones = {}, bloqueosHorarios = new Map(), diasHabilitadosConsulta = new Set(), bloqueosAdminCI = new Map();
 let rangosDiasBloqueados = [], mesesBloqueados = new Set();
 let reservasPorFecha = new Map();
 
@@ -783,11 +783,18 @@ const obtenerHorasOcupadas = async (fStr) => {
 };
 
 function procesarExcepciones(snapshot) {
-    excepciones = {}; bloqueosHorarios = new Map(); diasHabilitadosConsulta = new Set();
+    excepciones = {}; bloqueosHorarios = new Map(); diasHabilitadosConsulta = new Set(); bloqueosAdminCI = new Map();
     snapshot.forEach(docSnap => {
         const data = docSnap.data() || {};
+        // Días habilitados por admin para consulta inicial
         if (data.tipo === 'habilitado_consulta') {
             if (data.fecha) diasHabilitadosConsulta.add(data.fecha);
+            return;
+        }
+        // Slots cerrados por admin en Agenda CI — van a su propio Map, NO a bloqueosHorarios
+        if (data.tipo === 'bloq_consulta') {
+            const f = data.fecha || ''; const h = normalizarHora(data.hora || '');
+            if (f && h) bloqueosAdminCI.set(keyBloqueo(f, h), true);
             return;
         }
         const idEsFecha = /^\d{4}-\d{2}-\d{2}$/.test(docSnap.id);
@@ -835,11 +842,16 @@ const slotsTomadosDia = (fStr) => {
     const res = reservasPorFecha.get(fStr) || new Set();
     let blocks = 0;
     bloqueosHorarios.forEach((_, k) => { if (k.startsWith(fStr + "|")) blocks++; });
+    bloqueosAdminCI.forEach((_, k) => { if (k.startsWith(fStr + "|")) blocks++; });
     return res.size + blocks;
 };
 const esDiaLleno = (fStr) => {
     const res = reservasPorFecha.get(fStr) || new Set();
-    return SLOTS_DIA.every(hora => res.has(hora) || bloqueosHorarios.has(keyBloqueo(fStr, hora)));
+    return SLOTS_DIA.every(hora =>
+        res.has(hora) ||
+        bloqueosHorarios.has(keyBloqueo(fStr, hora)) ||
+        bloqueosAdminCI.has(keyBloqueo(fStr, hora))
+    );
 };
 
 function renderCalendario() {
@@ -925,8 +937,8 @@ async function cargarHorarios(fStr) {
 
     let contadorVisibles = 0;
     SLOTS_DIA.forEach((hora, idx) => {
-        // Horarios cerrados por admin: no se muestran al paciente
-        if (bloqueosHorarios.has(keyBloqueo(fStr, hora))) return;
+        // Horarios cerrados en Agenda CI: no se muestran al paciente
+        if (bloqueosAdminCI.has(keyBloqueo(fStr, hora))) return;
 
         const div = document.createElement("div");
         div.className = "hora";
