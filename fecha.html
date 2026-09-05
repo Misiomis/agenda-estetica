@@ -923,14 +923,18 @@ async function cargarHorarios(fStr) {
     const ocupados = await obtenerHorasOcupadas(fStr);
     cont.innerHTML = "";
 
+    let contadorVisibles = 0;
     SLOTS_DIA.forEach((hora, idx) => {
+        // Horarios cerrados por admin: no se muestran al paciente
+        if (bloqueosHorarios.has(keyBloqueo(fStr, hora))) return;
+
         const div = document.createElement("div");
         div.className = "hora";
         div.innerText = hora;
-        div.style.animationDelay = `${Math.min(idx * 40, 400)}ms`;
-        const bloqueado = bloqueosHorarios.has(keyBloqueo(fStr, hora));
-        const ocupado   = ocupados.includes(hora);
-        if (bloqueado || ocupado) {
+        div.style.animationDelay = `${Math.min(contadorVisibles * 50, 400)}ms`;
+        contadorVisibles++;
+
+        if (ocupados.includes(hora)) {
             div.classList.add("ocupado");
         } else {
             div.onclick = () => {
@@ -943,6 +947,10 @@ async function cargarHorarios(fStr) {
         }
         cont.appendChild(div);
     });
+
+    if (contadorVisibles === 0) {
+        cont.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px 16px;color:rgba(165,205,188,0.42);font-size:13px;">Sin turnos disponibles para este día.</div>`;
+    }
 }
 
 function actualizarResumen() {
