@@ -5206,6 +5206,216 @@
             document.body.appendChild(ov);
         };
 
+        /* ══ EXPORTAR HISTORIAL PDF ══════════════════════════════════════════ */
+        window._sesExportDB = [];
+
+        window.exportarHistorialPDF = function(idx) {
+            var d = window._sesExportDB[idx];
+            if (!d) { mostrarAviso('Datos no disponibles. Buscá el paciente de nuevo.'); return; }
+
+            var MESES_PDF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            var DIAS_PDF  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+            var H = function(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+
+            var fmtF = function(f) {
+                var p = (f||'').split('-');
+                if (!p[0]||!p[1]||!p[2]) return H(f||'—');
+                var dt = new Date(+p[0],+p[1]-1,+p[2]);
+                return H(DIAS_PDF[dt.getDay()] + ' ' + parseInt(p[2]) + ' de ' + (MESES_PDF[+p[1]-1]||p[1]) + ' de ' + p[0]);
+            };
+
+            var fmtBox = function(r) {
+                var bid = typeof _grilla_boxDeReserva === 'function' ? _grilla_boxDeReserva(r) : '';
+                if (!bid) return '';
+                if (typeof GRILLA_BOXES !== 'undefined') {
+                    var bo = GRILLA_BOXES.find(function(b){ return b.id === bid; });
+                    if (bo) return H(bo.icon + ' ' + bo.title + (bo.sub ? ' — ' + bo.sub : ''));
+                }
+                return H({b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[bid]||bid);
+            };
+
+            var fechaExport = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+            var pend = d.pendientes, real = d.completadas, canc = d.canceladas;
+            var totalSes = pend.length + real.length + canc.length;
+
+            var css = [
+                '@page{size:A4 portrait;margin:22mm 20mm 22mm 20mm;',
+                '@bottom-center{content:"Página " counter(page) " de " counter(pages);font-size:8pt;color:#999;font-family:Arial,sans-serif;}',
+                '@bottom-left{content:"Espacio Mimar T · '+H(d.nombre)+'";font-size:7.5pt;color:#bbb;font-family:Arial,sans-serif;}',
+                '}',
+                '*{box-sizing:border-box;margin:0;padding:0;}',
+                'body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;background:#fff;line-height:1.5;}',
+                '.hdr{border-bottom:2.5px solid #111;padding-bottom:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}',
+                '.hdr-left h1{font-size:15pt;font-weight:800;margin-bottom:2px;}',
+                '.hdr-left .pac{font-size:13pt;font-weight:700;margin-top:6px;}',
+                '.hdr-left .tel{font-size:9pt;color:#666;margin-top:2px;}',
+                '.hdr-right{text-align:right;font-size:8.5pt;color:#777;line-height:1.8;min-width:120px;}',
+                '.resumen{background:#f3f3f3;border:1px solid #ddd;border-radius:5px;padding:9px 14px;margin-bottom:18px;font-size:10pt;line-height:1.7;}',
+                '.resumen strong{display:block;font-size:10.5pt;margin-bottom:2px;}',
+                '.sep{height:0;border:none;border-top:1px solid #ddd;margin:16px 0;}',
+                '.sec-tit{font-size:11pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #111;margin-bottom:14px;}',
+                '.sec-tit.pend{border-color:#9a6f00;color:#5a3f00;}',
+                '.sec-tit.real{border-color:#1e5c3f;color:#1e5c3f;}',
+                '.sec-tit.canc{border-color:#999;color:#555;}',
+                '.mes-hdr{font-size:9.5pt;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#1e5c3f;',
+                'background:#eaf4ee;border:1px solid #c0ddd0;border-radius:4px;padding:5px 10px;margin:14px 0 8px;page-break-after:avoid;break-after:avoid;}',
+                '.card{border:1px solid #ccc;border-radius:6px;padding:12px 14px;margin-bottom:10px;page-break-inside:avoid;break-inside:avoid;}',
+                '.card.pend{border-left:4px solid #c8a000;background:#fffdf0;}',
+                '.card.real{border-left:4px solid #1e5c3f;background:#f4faf7;}',
+                '.card.canc{border-left:4px solid #aaa;background:#f8f8f8;opacity:.75;}',
+                '.card-n{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:4px;}',
+                '.card-fecha{font-size:12pt;font-weight:700;margin-bottom:1px;}',
+                '.card-hora{font-size:10pt;color:#555;margin-bottom:3px;}',
+                '.card-srv{font-size:11pt;font-weight:600;margin-bottom:2px;}',
+                '.card-box{font-size:9pt;color:#666;margin-bottom:5px;}',
+                '.card-det-lbl{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#888;margin:8px 0 4px;}',
+                '.card-det{font-size:10pt;background:rgba(0,0,0,.04);border-left:3px solid #bbb;border-radius:3px;padding:7px 10px;white-space:pre-wrap;word-break:break-word;line-height:1.55;}',
+                '.card-det.pend{border-left-color:#c8a000;background:#fff8e1;}',
+                '.card-det.real{border-left-color:#1e5c3f;background:#e8f5ee;}',
+                '.blank-lbl{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#999;margin:10px 0 6px;}',
+                '.blank-ln{border-bottom:1px solid #aaa;height:24px;margin-bottom:9px;}',
+                '.estado-badge{display:inline-block;font-size:8pt;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:6px;vertical-align:middle;}',
+                '.badge-canc{background:#f0e0e0;color:#a00;border:1px solid #d0b0b0;}',
+                '.badge-rep{background:#fff0d0;color:#7a4a00;border:1px solid #ddd0a0;}',
+                '.pb{page-break-before:always;break-before:always;height:0;margin:0;padding:0;}',
+                '.no-print{display:block;}',
+                '.print-toolbar{text-align:center;margin:28px 0 16px;padding:16px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;}',
+                '.btn-print{padding:12px 32px;background:#1e5c3f;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 6px;}',
+                '.btn-close{padding:12px 20px;background:#fff;color:#555;border:1px solid #ccc;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit;margin:0 6px;}',
+                '.preview-note{font-size:10px;color:#aaa;margin-top:8px;}',
+                '@media print{.no-print{display:none!important;}.card{page-break-inside:avoid;break-inside:avoid;}}'
+            ].join('');
+
+            // ── Sesión card helper ──
+            var cardPend = function(r, i) {
+                var det = (r.detalleSesion||'').trim();
+                var det2 = (r.detalleSesion2||'').trim();
+                var box = fmtBox(r);
+                var parts = [
+                    '<div class="card pend">',
+                    '<div class="card-n">Sesión pendiente ' + (i+1) + ' de ' + pend.length + '</div>',
+                    '<div class="card-fecha">' + fmtF(r.fecha) + '</div>',
+                    '<div class="card-hora">' + H(r.hora||'—') + ' hs</div>',
+                    '<div class="card-srv">' + H(r.servicio||'—') + '</div>',
+                    box ? '<div class="card-box">' + box + '</div>' : ''
+                ];
+                if (det)  parts.push('<div class="card-det-lbl">Observaciones previas</div><div class="card-det pend">' + H(det) + '</div>');
+                if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det pend">' + H(det2) + '</div>');
+                parts.push('<div class="blank-lbl">Anotaciones de la sesión</div><div class="blank-ln"></div><div class="blank-ln"></div>');
+                parts.push('</div>');
+                return parts.join('');
+            };
+
+            var cardReal = function(r, n, tot) {
+                var det  = (r.detalleSesion||'').trim();
+                var det2 = (r.detalleSesion2||'').trim();
+                var box  = fmtBox(r);
+                var est  = (r.estado||r.status||'').toLowerCase();
+                var badg = est === 'cancelado' ? '<span class="estado-badge badge-canc">Cancelada</span>'
+                         : est === 'reprogramado' ? '<span class="estado-badge badge-rep">Reprogramada</span>' : '';
+                var parts = [
+                    '<div class="card real">',
+                    '<div class="card-n">Sesión realizada ' + n + ' de ' + tot + '</div>',
+                    '<div class="card-fecha">' + fmtF(r.fecha) + badg + '</div>',
+                    '<div class="card-hora">' + H(r.hora||'—') + ' hs</div>',
+                    '<div class="card-srv">' + H(r.servicio||'—') + '</div>',
+                    box ? '<div class="card-box">' + box + '</div>' : ''
+                ];
+                if (det)  parts.push('<div class="card-det-lbl">Detalle de la sesión</div><div class="card-det real">' + H(det) + '</div>');
+                if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det real">' + H(det2) + '</div>');
+                if (!det && !det2) parts.push('<div style="font-size:9pt;color:#aaa;margin-top:5px;font-style:italic;">Sin detalle registrado</div>');
+                parts.push('</div>');
+                return parts.join('');
+            };
+
+            var cardCanc = function(r, i) {
+                var box = fmtBox(r);
+                return '<div class="card canc">' +
+                    '<div class="card-n">Cancelada ' + (i+1) + '</div>' +
+                    '<div class="card-fecha">' + fmtF(r.fecha) + ' <span class="estado-badge badge-canc">Cancelada</span></div>' +
+                    '<div class="card-hora">' + H(r.hora||'—') + ' hs</div>' +
+                    '<div class="card-srv">' + H(r.servicio||'—') + '</div>' +
+                    (box ? '<div class="card-box">' + box + '</div>' : '') +
+                    '</div>';
+            };
+
+            // ── Secciones ──
+            var pendSec = '';
+            if (pend.length) {
+                pendSec = '<div class="sec-tit pend">Próximas Sesiones (' + pend.length + ')</div>';
+                pend.forEach(function(r, i) { pendSec += cardPend(r, i); });
+            }
+
+            var realSec = '';
+            if (real.length) {
+                var byM = new Map();
+                real.forEach(function(r) {
+                    var ym = (r.fecha||'').slice(0,7);
+                    if (!byM.has(ym)) byM.set(ym, []);
+                    byM.get(ym).push(r);
+                });
+                realSec = '<div class="sec-tit real">Sesiones Realizadas (' + real.length + ')</div>';
+                var nGlobal = 0;
+                byM.forEach(function(mes, ym) {
+                    var pts = ym.split('-');
+                    var ml = (MESES_PDF[+pts[1]-1]||ym).toUpperCase() + ' ' + pts[0];
+                    realSec += '<div class="mes-hdr">' + H(ml) + ' — ' + mes.length + ' sesión' + (mes.length!==1?'es':'') + '</div>';
+                    mes.sort(function(a,b){ return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1; }).forEach(function(r) {
+                        nGlobal++;
+                        realSec += cardReal(r, nGlobal, real.length);
+                    });
+                });
+            }
+
+            var cancSec = '';
+            if (canc.length) {
+                cancSec = '<hr class="sep"><div class="sec-tit canc">Sesiones Canceladas (' + canc.length + ')</div>';
+                canc.sort(function(a,b){ return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0; }).forEach(function(r, i) {
+                    cancSec += cardCanc(r, i);
+                });
+            }
+
+            var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+                '<title>Historial — ' + H(d.nombre) + '</title>' +
+                '<style>' + css + '</style></head><body>' +
+                '<div class="hdr">' +
+                    '<div class="hdr-left">' +
+                        '<h1>Espacio Mimar T</h1>' +
+                        '<div style="font-size:9pt;color:#666;">Historial de paciente</div>' +
+                        '<div class="pac">' + H(d.nombre) + '</div>' +
+                        (d.phone ? '<div class="tel">Tel: ' + H(d.phone) + '</div>' : '') +
+                    '</div>' +
+                    '<div class="hdr-right">' +
+                        '<strong>Exportación</strong>' +
+                        '<div>' + fechaExport + '</div>' +
+                        '<div style="margin-top:4px;font-size:7pt;color:#bbb;">espaciomimart.com</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="resumen">' +
+                    '<strong>Resumen del historial</strong>' +
+                    'Total de sesiones registradas: <strong>' + totalSes + '</strong> &nbsp;·&nbsp; ' +
+                    'Realizadas: <strong>' + real.length + '</strong> &nbsp;·&nbsp; ' +
+                    'Próximas: <strong>' + pend.length + '</strong>' +
+                    (canc.length ? ' &nbsp;·&nbsp; Canceladas: <strong>' + canc.length + '</strong>' : '') +
+                '</div>' +
+                '<div class="no-print print-toolbar">' +
+                    '<button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>' +
+                    '<button class="btn-close" onclick="window.close()">Cerrar</button>' +
+                    '<div class="preview-note">Vista previa · Al imprimir, elegí "Guardar como PDF" y tamaño A4 vertical</div>' +
+                '</div>' +
+                (pendSec ? pendSec : '') +
+                (realSec ? '<div class="pb"></div>' + realSec : '') +
+                cancSec +
+                '</body></html>';
+
+            var w = window.open('', '_blank', 'width=960,height=860');
+            if (!w) { mostrarAviso('Permitir ventanas emergentes para exportar el PDF.'); return; }
+            w.document.write(html);
+            w.document.close();
+            w.focus();
+        };
+        /* ══ FIN EXPORTAR HISTORIAL PDF ══════════════════════════════════════ */
+
         window.buscarSesionesPorNombreInput = debounce(function() {
             var raw = ((document.getElementById("inpBuscadorSesiones") || {}).value || "").trim();
             var contenedor = document.getElementById("contenedorSesionesBuscadas");
@@ -5267,13 +5477,18 @@
                 // byMonth se usa en los mensajes WA; resumenHTML ya no se muestra en pantalla
 
                 // ── Construcción WA ──
-                var pendientes = [], completadas = [];
+                var pendientes = [], completadas = [], canceladas = [];
                 sesiones.forEach(function(r) {
                     var isCan = (r.estado||r.status||'').toLowerCase() === 'cancelado';
                     var finMs = new Date((r.fecha||'1970-01-01') + 'T' + (normalizarHora(r.hora)||'00:00') + ':00-03:00').getTime() + (r.duracionMinutos||60)*60000;
-                    if (!isCan && Date.now() < finMs) pendientes.push(r);
-                    else if (!isCan) completadas.push(r);
+                    if (isCan) canceladas.push(r);
+                    else if (Date.now() < finMs) pendientes.push(r);
+                    else completadas.push(r);
                 });
+                // Guardar datos para exportación PDF
+                if (!window._sesExportDB) window._sesExportDB = [];
+                var _exportIdx = window._sesExportDB.length;
+                window._sesExportDB.push({ nombre: grupo.nombre, phone: phoneWA, sesiones: sesiones, pendientes: pendientes, completadas: completadas, canceladas: canceladas });
                 // ── Helpers compartidos de mensajes ──
                 var _mesFull = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
                 var _diasFull = ['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
@@ -5331,10 +5546,11 @@
 
                 var botonesWA =
                     "<div style='margin-bottom:6px;'><button onclick='window._sesMsgShow("+_msgAvisoIdx+")' style='width:100%;padding:10px 16px;background:rgba(59,130,180,0.07);border:1px solid rgba(100,160,210,0.22);border-radius:10px;color:rgba(170,210,240,0.85);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.03em;font-family:inherit;'>Avisar antes de enviar horarios</button></div>" +
-                    "<div style='display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;'>" +
+                    "<div style='display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;'>" +
                     (pendientes.length ? "<button onclick='window._sesMsgShow("+_msgPendIdx+")' style='flex:1;min-width:140px;padding:10px 14px;background:rgba(200,160,30,0.07);border:1px solid rgba(245,200,50,0.22);border-radius:10px;color:rgba(252,211,77,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>Enviar sesiones pendientes ("+pendientes.length+")</button>" : "<div style='flex:1;min-width:140px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;color:rgba(140,180,160,0.28);font-size:12px;text-align:center;'>Sin pendientes</div>") +
                     (completadas.length ? "<button onclick='window._sesMsgShow("+_msgRealIdx+")' style='flex:1;min-width:140px;padding:10px 14px;background:rgba(53,122,92,0.07);border:1px solid rgba(114,189,153,0.22);border-radius:10px;color:rgba(140,220,185,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>Enviar sesiones realizadas ("+completadas.length+")</button>" : "<div style='flex:1;min-width:140px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;color:rgba(140,180,160,0.28);font-size:12px;text-align:center;'>Sin realizadas</div>") +
-                    "</div>";
+                    "</div>" +
+                    "<div style='margin-bottom:14px;'><button onclick='window.exportarHistorialPDF("+_exportIdx+")' style='width:100%;padding:10px 16px;background:rgba(80,40,130,0.08);border:1px solid rgba(160,110,220,0.28);border-radius:10px;color:rgba(200,160,255,0.90);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.02em;font-family:inherit;'>📄 Exportar historial completo PDF (" + (pendientes.length+completadas.length+canceladas.length) + " sesiones)</button></div>";
 
                 // ── Helper de card de sesión ──
                 var _bxNumsT = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
