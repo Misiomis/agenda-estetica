@@ -5817,15 +5817,38 @@
                         cancSec;
                 });
 
+                var _saveFn = 'function _savePdf(){' +
+                    'var btn=document.getElementById("btn-sp");' +
+                    'if(btn){btn.disabled=true;btn.textContent="Generando…";}' +
+                    'var el=document.getElementById("pdf-main");' +
+                    'function run(){' +
+                        'html2pdf().set({' +
+                            'margin:[18,15,20,15],' +
+                            'filename:"jornada-' + f + '.pdf",' +
+                            'image:{type:"jpeg",quality:0.98},' +
+                            'html2canvas:{scale:2,useCORS:true,logging:false},' +
+                            'jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},' +
+                            'pagebreak:{mode:["avoid-all","css","legacy"]}' +
+                        '}).from(el).save().then(function(){' +
+                            'if(btn){btn.disabled=false;btn.textContent="💾 Guardar como PDF";}' +
+                        '});' +
+                    '}' +
+                    'if(typeof html2pdf!=="undefined"){run();return;}' +
+                    'var s=document.createElement("script");' +
+                    's.src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js";' +
+                    's.onload=run;document.head.appendChild(s);' +
+                '}';
                 var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
                     '<title>Jornada ' + HE(f) + ' · Espacio Mimar T</title>' +
-                    '<style>' + css + '</style></head><body>' +
+                    '<style>' + css + '</style>' +
+                    '<script>' + _saveFn + '<' + '/script>' +
+                    '</head><body>' +
                     '<div class="no-print print-toolbar">' +
-                        '<button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>' +
+                        '<button id="btn-sp" class="btn-print" onclick="_savePdf()">💾 Guardar como PDF</button>' +
+                        '<button class="btn-print" onclick="window.print()" style="background:#444;margin-left:8px;">🖨️ Imprimir</button>' +
                         '<button class="btn-close" onclick="window.close()">Cerrar</button>' +
-                        '<div class="preview-note">Vista previa · Al imprimir, elegí "Guardar como PDF" y tamaño A4 vertical</div>' +
                     '</div>' +
-                    agendaSec + patSecs +
+                    '<div id="pdf-main">' + agendaSec + patSecs + '</div>' +
                     '</body></html>';
 
                 var w = window.open('', '_blank', 'width=1000,height=880');
