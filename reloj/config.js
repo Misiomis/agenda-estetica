@@ -1,7 +1,9 @@
 // Único archivo de configuración del módulo. No contiene contraseñas ni claves.
+// En Capacitor/Android el webDir es reloj/, así que firebase-web.js es local.
+const _isCapacitor = typeof window !== "undefined" && !!window.Capacitor;
 export const CONFIG = Object.freeze({
   nombre: "Mimar T",
-  firebaseModule: "../js/firebase-web.js",
+  firebaseModule: _isCapacitor ? "./firebase-web.js" : "../js/firebase-web.js",
   adminPage: "../admin.html",
   adminEmails: ["espaciomimart36@gmail.com"],
   timeZone: "America/Argentina/Buenos_Aires",

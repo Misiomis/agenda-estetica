@@ -122,5 +122,11 @@ service cloud.firestore {
       allow read, write: if esAdmin();
     }
 
+    // Tokens FCM para app Android — cada documento es un dispositivo del admin
+    // Solo el admin puede leer/escribir sus propios tokens
+    match /deviceTokens/{userId} {
+      allow read, write: if esAdmin();
+    }
+
   }
 }

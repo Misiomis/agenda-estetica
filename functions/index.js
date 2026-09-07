@@ -1246,3 +1246,46 @@ exports.enviarResumenSesion = onRequest({ invoker: "public" }, async (req, res) 
         });
     }
 });
+
+// ── FCM: notificar dispositivos Android al escribir/modificar reservas ────────
+//
+// Envía un data message tipo "sync" a todos los tokens registrados en
+// deviceTokens/{userId} cuando se crea o modifica una reserva o sesión.
+// El FCMService.kt en Android lo recibe y encola SyncWorker.
+//
+// Colecciones escuchadas: reservas, sesiones
+
+async function notifyAndroidDevices(collection, docId) {
+    try {
+        const tokensSnap = await db.collection("deviceTokens").get();
+        if (tokensSnap.empty) return;
+        const tokens = [];
+        tokensSnap.forEach(d => {
+            const t = d.data().token;
+            if (t) tokens.push(t);
+        });
+        if (tokens.length === 0) return;
+        const payload = {
+            data: { type: "sync", collection, docId },
+        };
+        // Enviar en batches de 500 (límite FCM)
+        for (let i = 0; i < tokens.length; i += 500) {
+            const batch = tokens.slice(i, i + 500);
+            await admin.messaging().sendEachForMulticast({ tokens: batch, ...payload });
+        }
+    } catch (err) {
+        logger.warn("notifyAndroidDevices error:", err.message);
+    }
+}
+
+exports.onReservaWritten = functionsV1.firestore
+    .document("reservas/{docId}")
+    .onWrite(async (change, context) => {
+        await notifyAndroidDevices("reservas", context.params.docId);
+    });
+
+exports.onSesionWritten = functionsV1.firestore
+    .document("sesiones/{docId}")
+    .onWrite(async (change, context) => {
+        await notifyAndroidDevices("sesiones", context.params.docId);
+    });
