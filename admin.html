@@ -5630,52 +5630,56 @@
                     }
                     return HE({b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[bid]||bid);
                 };
+                var getBoxId = function(r){ return typeof _grilla_boxDeReserva === 'function' ? (_grilla_boxDeReserva(r)||'') : ''; };
 
-                var css = '@page{size:A4 portrait;margin:20mm 18mm 22mm 18mm;@bottom-center{content:"Pág. " counter(page) " de " counter(pages);font-size:8pt;color:#999;font-family:Arial,sans-serif;}@bottom-left{content:"Espacio Mimar T · Jornada ' + HE(f) + '";font-size:7.5pt;color:#bbb;font-family:Arial,sans-serif;}}' +
+                var css = '@page{size:A4 portrait;margin:18mm 15mm 20mm 15mm;' +
+                    '@bottom-center{content:"Pág. " counter(page) " de " counter(pages);font-size:8pt;color:#999;font-family:Arial,sans-serif;}' +
+                    '@bottom-left{content:"Espacio Mimar T · Jornada ' + HE(f) + '";font-size:7.5pt;color:#bbb;font-family:Arial,sans-serif;}}' +
                     '*{box-sizing:border-box;margin:0;padding:0;}' +
-                    'body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#111;background:#fff;line-height:1.5;}' +
-                    '.hdr{border-bottom:2.5px solid #111;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}' +
-                    '.hdr h1{font-size:14pt;font-weight:800;margin-bottom:2px;}.hdr .sub{font-size:9pt;color:#666;}.hdr .fj{font-size:13pt;font-weight:700;margin-top:5px;}' +
-                    '.hdr-r{text-align:right;font-size:8pt;color:#777;line-height:1.8;min-width:110px;}' +
-                    '.ag-tit{font-size:11pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #111;padding-bottom:5px;margin-bottom:12px;}' +
-                    '.ag-row{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;margin-bottom:6px;border:1px solid #ddd;border-radius:5px;page-break-inside:avoid;break-inside:avoid;}' +
-                    '.ag-hora{font-size:12pt;font-weight:800;color:#1e5c3f;min-width:52px;}.ag-main{flex:1;}.ag-pac{font-size:11.5pt;font-weight:700;}' +
-                    '.ag-srv{font-size:9.5pt;color:#555;margin-top:1px;}.ag-box{font-size:8.5pt;color:#888;margin-top:1px;}' +
-                    '.ag-det{font-size:9pt;color:#333;background:#f6f6f6;border-left:3px solid #b0ccc0;border-radius:3px;padding:5px 8px;margin-top:5px;white-space:pre-wrap;word-break:break-word;}' +
-                    '.pac-hdr{border-bottom:2.5px solid #111;padding-bottom:10px;margin-bottom:12px;}' +
-                    '.pac-name{font-size:13pt;font-weight:800;margin-bottom:2px;}.pac-sub{font-size:9pt;color:#666;}' +
-                    '.resumen{background:#f3f3f3;border:1px solid #ddd;border-radius:5px;padding:8px 12px;margin-bottom:14px;font-size:9.5pt;line-height:1.7;}' +
-                    '.resumen strong{display:block;font-size:10pt;margin-bottom:2px;}' +
-                    '.sec-tit{font-size:10.5pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #111;margin-bottom:12px;}' +
-                    '.sec-tit.pend{border-color:#9a6f00;color:#5a3f00;}.sec-tit.real{border-color:#1e5c3f;color:#1e5c3f;}.sec-tit.canc{border-color:#999;color:#555;}' +
-                    '.mes-hdr{font-size:9pt;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#1e5c3f;background:#eaf4ee;border:1px solid #c0ddd0;border-radius:4px;padding:4px 9px;margin:12px 0 7px;page-break-after:avoid;break-after:avoid;}' +
-                    '.card{border:1px solid #ccc;border-radius:6px;padding:10px 12px;margin-bottom:8px;page-break-inside:avoid;break-inside:avoid;}' +
-                    '.card.pend{border-left:4px solid #c8a000;background:#fffdf0;}.card.real{border-left:4px solid #1e5c3f;background:#f4faf7;}.card.canc{border-left:4px solid #aaa;background:#f8f8f8;opacity:.75;}' +
-                    '.card-n{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:3px;}' +
-                    '.card-fecha{font-size:11pt;font-weight:700;margin-bottom:1px;}.card-hora{font-size:9.5pt;color:#555;margin-bottom:3px;}' +
-                    '.card-srv{font-size:10.5pt;font-weight:600;margin-bottom:2px;}.card-box{font-size:8.5pt;color:#666;margin-bottom:4px;}' +
-                    '.card-det-lbl{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#888;margin:7px 0 3px;}' +
-                    '.card-det{font-size:9.5pt;background:rgba(0,0,0,.04);border-left:3px solid #bbb;border-radius:3px;padding:6px 9px;white-space:pre-wrap;word-break:break-word;line-height:1.55;}' +
-                    '.card-det.pend{border-left-color:#c8a000;background:#fff8e1;}.card-det.real{border-left-color:#1e5c3f;background:#e8f5ee;}' +
-                    '.blank-lbl{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#999;margin:8px 0 5px;}' +
-                    '.blank-ln{border-bottom:1px solid #aaa;height:22px;margin-bottom:8px;}' +
-                    '.estado-badge{display:inline-block;font-size:7.5pt;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:5px;vertical-align:middle;}' +
-                    '.badge-canc{background:#f0e0e0;color:#a00;border:1px solid #d0b0b0;}.badge-rep{background:#fff0d0;color:#7a4a00;border:1px solid #ddd0a0;}' +
+                    'body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#111;background:#fff;line-height:1.45;}' +
+                    '.hdr{border-bottom:2px solid #111;padding-bottom:9px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}' +
+                    '.hdr h1{font-size:13pt;font-weight:800;margin-bottom:1px;}.hdr .sub{font-size:8.5pt;color:#666;}.hdr .fj{font-size:12.5pt;font-weight:700;margin-top:4px;}' +
+                    '.hdr-r{text-align:right;font-size:8pt;color:#777;line-height:1.8;min-width:100px;}' +
+                    '.sec-tit{font-size:10pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #111;margin-bottom:11px;}' +
+                    '.sec-tit.pend{border-color:#555;color:#333;}.sec-tit.real{border-color:#111;color:#111;}.sec-tit.canc{border-color:#aaa;color:#666;}' +
+                    '.mes-hdr{font-size:8.5pt;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#333;border-bottom:1px solid #ccc;padding:3px 0 3px;margin:11px 0 6px;page-break-after:avoid;break-after:avoid;}' +
+                    '.card{border:1px solid #ccc;border-radius:5px;padding:9px 11px;margin-bottom:7px;page-break-inside:avoid;break-inside:avoid;background:#fff;}' +
+                    '.card.pend{border-left:3px solid #888;}.card.real{border-left:3px solid #333;}.card.canc{border-left:3px solid #ccc;opacity:.80;}' +
+                    '.card-n{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:2px;}' +
+                    '.card-fecha{font-size:10.5pt;font-weight:700;margin-bottom:1px;}.card-hora{font-size:9pt;color:#555;margin-bottom:2px;}' +
+                    '.card-srv{font-size:10pt;font-weight:600;margin-bottom:2px;}.card-box{font-size:8pt;color:#666;margin-bottom:3px;}' +
+                    '.card-det-lbl{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#888;margin:6px 0 2px;}' +
+                    '.card-det{font-size:9pt;background:#fff;border-left:2px solid #bbb;border-radius:2px;padding:5px 8px;white-space:pre-wrap;word-break:break-word;line-height:1.5;}' +
+                    '.blank-lbl{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#aaa;margin:7px 0 4px;}' +
+                    '.blank-ln{border-bottom:1px solid #bbb;height:20px;margin-bottom:7px;}' +
+                    '.estado-badge{display:inline-block;font-size:7pt;font-weight:700;padding:2px 6px;border-radius:3px;margin-left:5px;vertical-align:middle;background:#eee;color:#666;border:1px solid #ccc;}' +
+                    '.badge-canc{background:#fff;color:#a00;border-color:#c00;}.badge-rep{background:#fff;color:#7a4a00;border-color:#c8a000;}' +
+                    '.pac-hdr{border-bottom:2px solid #111;padding-bottom:9px;margin-bottom:11px;}' +
+                    '.pac-name{font-size:12.5pt;font-weight:800;margin-bottom:2px;}.pac-sub{font-size:8.5pt;color:#666;}' +
+                    '.resumen{background:#fff;border:1px solid #ccc;border-radius:4px;padding:7px 11px;margin-bottom:12px;font-size:9pt;line-height:1.6;}' +
+                    '.resumen strong{display:block;font-size:9.5pt;margin-bottom:2px;}' +
                     '.pb{page-break-before:always;break-before:always;height:0;margin:0;padding:0;}' +
                     '.no-print{display:block;}' +
-                    '.print-toolbar{text-align:center;margin:24px 0 14px;padding:14px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;}' +
-                    '.btn-print{padding:11px 28px;background:#1e5c3f;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 5px;}' +
-                    '.btn-close{padding:11px 18px;background:#fff;color:#555;border:1px solid #ccc;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit;margin:0 5px;}' +
-                    '.preview-note{font-size:9.5px;color:#aaa;margin-top:7px;}' +
-                    '@media print{.no-print{display:none!important;}.card,.ag-row{page-break-inside:avoid;break-inside:avoid;}}';
+                    '.print-toolbar{text-align:center;margin:20px 0 14px;padding:14px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;}' +
+                    '.btn-print{padding:10px 26px;background:#111;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 5px;}' +
+                    '.btn-close{padding:10px 16px;background:#fff;color:#555;border:1px solid #ccc;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;margin:0 5px;}' +
+                    '.preview-note{font-size:9px;color:#aaa;margin-top:7px;}' +
+                    'table.grilla{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9.5pt;}' +
+                    'table.grilla th{border:1px solid #333;padding:5px 7px;font-size:8.5pt;font-weight:800;text-align:left;background:#fff;text-transform:uppercase;letter-spacing:.04em;}' +
+                    'table.grilla td{border:1px solid #bbb;padding:6px 8px;vertical-align:top;background:#fff;}' +
+                    'table.grilla td.hora-cell{font-size:11pt;font-weight:800;white-space:nowrap;width:52px;text-align:center;}' +
+                    'table.grilla td.pac-cell .pac{font-size:10.5pt;font-weight:700;line-height:1.3;}' +
+                    'table.grilla td.pac-cell .srv{font-size:8pt;color:#555;margin-top:2px;}' +
+                    'table.grilla td.empty-cell{background:#fafafa;}' +
+                    '@media print{.no-print{display:none!important;}.card{page-break-inside:avoid;break-inside:avoid;}}';
 
                 var cardPend = function(r, i, tot){
                     var det=(r.detalleSesion||'').trim(), det2=(r.detalleSesion2||'').trim(), box=fmtBox(r);
-                    var parts = ['<div class="card pend">','<div class="card-n">Sesión pendiente '+(i+1)+' de '+tot+'</div>',
+                    var parts = ['<div class="card pend">','<div class="card-n">Próxima sesión '+(i+1)+' de '+tot+'</div>',
                         '<div class="card-fecha">'+fmtF(r.fecha)+'</div>','<div class="card-hora">'+HE(r.hora||'—')+' hs</div>',
                         '<div class="card-srv">'+HE(r.servicio||'—')+'</div>', box?'<div class="card-box">'+box+'</div>':''];
-                    if (det)  parts.push('<div class="card-det-lbl">Observaciones previas</div><div class="card-det pend">'+HE(det)+'</div>');
-                    if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det pend">'+HE(det2)+'</div>');
+                    if (det)  parts.push('<div class="card-det-lbl">Observaciones previas</div><div class="card-det">'+HE(det)+'</div>');
+                    if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det">'+HE(det2)+'</div>');
                     parts.push('<div class="blank-lbl">Anotaciones de la sesión</div><div class="blank-ln"></div><div class="blank-ln"></div></div>');
                     return parts.join('');
                 };
@@ -5686,8 +5690,8 @@
                     var parts = ['<div class="card real">','<div class="card-n">Sesión realizada '+n+' de '+tot+'</div>',
                         '<div class="card-fecha">'+fmtF(r.fecha)+badg+'</div>','<div class="card-hora">'+HE(r.hora||'—')+' hs</div>',
                         '<div class="card-srv">'+HE(r.servicio||'—')+'</div>', box?'<div class="card-box">'+box+'</div>':''];
-                    if (det)  parts.push('<div class="card-det-lbl">Detalle de la sesión</div><div class="card-det real">'+HE(det)+'</div>');
-                    if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det real">'+HE(det2)+'</div>');
+                    if (det)  parts.push('<div class="card-det-lbl">Detalle de la sesión</div><div class="card-det">'+HE(det)+'</div>');
+                    if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det">'+HE(det2)+'</div>');
                     if (!det && !det2) parts.push('<div style="font-size:9pt;color:#aaa;margin-top:4px;font-style:italic;">Sin detalle registrado</div>');
                     parts.push('</div>');
                     return parts.join('');
@@ -5702,34 +5706,77 @@
                         '</div>';
                 };
 
-                // Agenda del día
-                var agRows = '';
-                reservasDia.filter(function(r){ return selected.has(_pjNombreKey(r)); }).forEach(function(r){
-                    var box = fmtBox(r);
-                    var det = (r.detalleSesion||'').trim();
-                    agRows += '<div class="ag-row">' +
-                        '<div class="ag-hora">'+HE(r.hora||'—')+'</div>' +
-                        '<div class="ag-main">' +
-                            '<div class="ag-pac">'+HE(_pjNombreDisplay(r))+'</div>' +
-                            '<div class="ag-srv">'+HE(r.servicio||'—')+'</div>' +
-                            (box?'<div class="ag-box">'+box+'</div>':'') +
-                            (det?'<div class="ag-det">'+HE(det)+'</div>':'') +
-                        '</div></div>';
+                // ── Agenda: grilla por boxes (entra en 1 cara A4) ──
+                var agResDia = reservasDia.filter(function(r){ return selected.has(_pjNombreKey(r)); });
+                // Columnas: solo boxes que tienen turnos ese día
+                var BOX_DEF = (typeof GRILLA_BOXES !== 'undefined' && GRILLA_BOXES.length)
+                    ? GRILLA_BOXES.map(function(b){ return {id:b.id, label:(b.icon?b.icon+' ':'')+b.title+(b.sub?' · '+b.sub:'')}; })
+                    : [{id:'b1',label:'Box 1 · Consultorio'},{id:'b2',label:'Box 2 · Corporal'},{id:'b3',label:'Box 3 · Facial'},{id:'b4',label:'Box 4 · Relax'}];
+                var usedBoxSet = new Set();
+                agResDia.forEach(function(r){ var bid=getBoxId(r); if(bid) usedBoxSet.add(bid); });
+                var colBoxes = BOX_DEF.filter(function(b){ return usedBoxSet.has(b.id); });
+                var noBoxRes = agResDia.filter(function(r){ return !getBoxId(r); });
+                // Filas: tiempos únicos ordenados
+                var timesSet = new Set();
+                agResDia.forEach(function(r){ if(r.hora) timesSet.add(r.hora); });
+                var sortedTimes = [...timesSet].sort();
+                // Map hora|boxId → reserva
+                var cellMap = new Map();
+                agResDia.forEach(function(r){ var bid=getBoxId(r); if(bid&&r.hora) cellMap.set(r.hora+'|'+bid, r); });
+                // Build table HTML
+                var thStyle = 'border:1px solid #333;padding:5px 7px;font-size:8pt;font-weight:800;text-align:center;background:#fff;text-transform:uppercase;letter-spacing:.04em;';
+                var tdHStyle = 'border:1px solid #bbb;padding:6px 7px;font-size:11pt;font-weight:800;text-align:center;vertical-align:middle;white-space:nowrap;width:50px;';
+                var tdEStyle = 'border:1px solid #ddd;padding:6px 7px;vertical-align:top;background:#fafafa;';
+                var tdPStyle = 'border:1px solid #bbb;padding:6px 8px;vertical-align:top;background:#fff;';
+                var grillaHtml = '<table class="grilla" style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:10px;">';
+                grillaHtml += '<colgroup><col style="width:52px;">'+colBoxes.map(function(){ return '<col>'; }).join('')+'</colgroup>';
+                grillaHtml += '<thead><tr><th style="'+thStyle+'">Hora</th>';
+                colBoxes.forEach(function(b){ grillaHtml += '<th style="'+thStyle+'">'+HE(b.label)+'</th>'; });
+                grillaHtml += '</tr></thead><tbody>';
+                sortedTimes.forEach(function(hora){
+                    grillaHtml += '<tr><td style="'+tdHStyle+'">'+HE(hora)+'</td>';
+                    colBoxes.forEach(function(b){
+                        var r = cellMap.get(hora+'|'+b.id);
+                        if (r) {
+                            grillaHtml += '<td style="'+tdPStyle+'">' +
+                                '<div style="font-size:10.5pt;font-weight:700;line-height:1.3;">'+HE(_pjNombreDisplay(r))+'</div>' +
+                                '<div style="font-size:8pt;color:#555;margin-top:2px;">'+HE(r.servicio||'—')+'</div>' +
+                                '</td>';
+                        } else {
+                            grillaHtml += '<td style="'+tdEStyle+'"></td>';
+                        }
+                    });
+                    grillaHtml += '</tr>';
                 });
+                grillaHtml += '</tbody></table>';
+                // Reservas sin box asignado
+                if (noBoxRes.length) {
+                    grillaHtml += '<div style="font-size:8.5pt;color:#666;border-top:1px solid #ddd;padding-top:6px;margin-top:4px;">';
+                    noBoxRes.forEach(function(r){
+                        grillaHtml += '<div style="margin-bottom:3px;"><strong>'+HE(r.hora||'—')+'</strong> · '+HE(_pjNombreDisplay(r))+' — '+HE(r.servicio||'—')+'</div>';
+                    });
+                    grillaHtml += '</div>';
+                }
 
-                var totalTurnos = reservasDia.filter(function(r){ return selected.has(_pjNombreKey(r)); }).length;
-                var agendaSec = '<div class="hdr">' +
-                    '<div><h1>Espacio Mimar T</h1><div class="sub">Agenda de jornada</div><div class="fj">' + HE(_pjFechaFull(f)) + '</div></div>' +
-                    '<div class="hdr-r"><strong>Generado</strong><div>' + fechaExport + ' ' + horaExport + '</div>' +
-                    '<div style="margin-top:4px;font-size:7pt;color:#bbb;">' + patientData.length + ' paciente' + (patientData.length!==1?'s':'') + ' · espaciomimart.com</div></div>' +
+                var totalTurnos = agResDia.length;
+                var agendaSec =
+                    '<div class="hdr">' +
+                        '<div><h1>Espacio Mimar T</h1><div class="sub">Agenda de jornada</div><div class="fj">'+HE(_pjFechaFull(f))+'</div></div>' +
+                        '<div class="hdr-r"><strong>Generado</strong><div>'+fechaExport+' '+horaExport+'</div>' +
+                        '<div style="margin-top:3px;font-size:7pt;color:#bbb;">'+patientData.length+' paciente'+(patientData.length!==1?'s':'')+' · espaciomimart.com</div></div>' +
                     '</div>' +
-                    '<div class="ag-tit">Agenda del día — ' + totalTurnos + ' turno' + (totalTurnos!==1?'s':'') + '</div>' +
-                    agRows;
+                    '<div class="sec-tit">Grilla del día — '+totalTurnos+' turno'+(totalTurnos!==1?'s':'')+'</div>' +
+                    grillaHtml;
 
-                // Historiales por paciente
+                // ── Historiales por paciente ──
                 var patSecs = '';
                 patientData.forEach(function(pd){
-                    var pend=pd.pendientes, real=pd.completadas, canc=pd.canceladas;
+                    // Pendientes ordenadas por fecha+hora ascendente (más próxima primero)
+                    var pend = pd.pendientes.slice().sort(function(a,b){
+                        var ka=(a.fecha||'')+(a.hora||''), kb=(b.fecha||'')+(b.hora||'');
+                        return ka<kb?-1:ka>kb?1:0;
+                    });
+                    var real=pd.completadas, canc=pd.canceladas;
                     var total = pend.length + real.length + canc.length;
 
                     var pendSec = '';
@@ -5752,18 +5799,18 @@
                     }
                     var cancSec = '';
                     if (canc.length) {
-                        cancSec = '<hr style="margin:14px 0;border:none;border-top:1px solid #ddd;"><div class="sec-tit canc">Sesiones Canceladas ('+canc.length+')</div>';
+                        cancSec = '<hr style="margin:12px 0;border:none;border-top:1px solid #ddd;"><div class="sec-tit canc">Sesiones Canceladas ('+canc.length+')</div>';
                         canc.sort(function(a,b){ return (a.fecha||'')<(b.fecha||'') ? -1 : 1; }).forEach(function(r,i){ cancSec += cardCanc(r,i); });
                     }
 
                     patSecs += '<div class="pb"></div>' +
                         '<div class="pac-hdr">' +
                             '<div class="pac-name">'+HE(pd.nombre)+'</div>' +
-                            '<div class="pac-sub">Historial completo' + (pd.phone ? ' · '+HE(pd.phone) : '') + '</div>' +
+                            '<div class="pac-sub">Historial completo'+(pd.phone?' · '+HE(pd.phone):'')+'</div>' +
                         '</div>' +
                         '<div class="resumen"><strong>Resumen del historial</strong>' +
                             'Total: <strong>'+total+'</strong> &nbsp;·&nbsp; Realizadas: <strong>'+real.length+'</strong> &nbsp;·&nbsp; Próximas: <strong>'+pend.length+'</strong>' +
-                            (canc.length ? ' &nbsp;·&nbsp; Canceladas: <strong>'+canc.length+'</strong>' : '') +
+                            (canc.length?' &nbsp;·&nbsp; Canceladas: <strong>'+canc.length+'</strong>':'') +
                         '</div>' +
                         (pendSec||'') +
                         (realSec ? '<div class="pb"></div>' + realSec : '') +
