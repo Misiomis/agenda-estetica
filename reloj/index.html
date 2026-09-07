@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173e33">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Reloj de recepción de Espacio Mimar T.">
+  <title>Reloj · Mimar T</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./reloj.css">
+  <script type="module" src="./reloj.js"></script>
+</head>
+<body>
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+      <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5m4 3a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+    </defs>
+  </svg>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="../admin.html" id="brand-link" target="_blank" rel="noopener" aria-label="Abrir la agenda de Mimar T en otra pestaña">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span class="brand-copy"><strong>Mimar T</strong><span>ESPACIO DE BIENESTAR</span></span>
+      </a>
+      <span class="product-name">Reloj de recepción</span>
+      <div class="header-actions">
+        <span class="connection" id="connection" role="status"><span class="status-dot"></span><span id="connection-text">Iniciando</span></span>
+        <button class="icon-button" id="fullscreen-button" type="button" aria-label="Activar pantalla completa" title="Pantalla completa"><svg class="icon"><use href="#i-expand"/></svg></button>
+      </div>
+    </header>
+
+    <section id="access-panel" class="access-panel" aria-labelledby="access-title">
+      <div class="access-heading">
+        <span class="eyebrow">RELOJ DE RECEPCIÓN</span>
+        <h1 id="access-title">Cada ingreso,<br><em>a su tiempo.</em></h1>
+        <p id="access-message" role="status">Buscando tu sesión de la agenda…</p>
+      </div>
+      <form id="login-form" class="login-card" hidden>
+        <h2>Ingresá con tu cuenta de la agenda</h2>
+        <label for="login-email">Correo electrónico</label>
+        <input id="login-email" name="email" type="email" autocomplete="username" required>
+        <label for="login-password">Contraseña</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        <button class="button button-primary" type="submit" id="login-submit">Abrir mi reloj <svg class="icon"><use href="#i-arrow"/></svg></button>
+        <p id="login-error" class="error-text" role="alert"></p>
+      </form>
+      <div class="access-links"><a href="../admin.html" id="admin-link" target="_blank" rel="noopener">Abrir la agenda</a><a href="./?demo=1">Ver una demostración</a></div>
+    </section>
+
+    <main id="workspace" hidden>
+      <div class="notice demo-notice" id="demo-notice" hidden>
+        <span>Demostración · pacientes ficticios</span>
+        <div><button id="demo-ingress" type="button" class="text-button">Simular un ingreso en 10 s</button><a href="./">Salir</a></div>
+      </div>
+      <div class="notice warning-notice" id="data-notice" hidden role="status"></div>
+      <div class="workspace-heading">
+        <div><span class="eyebrow">TU JORNADA</span><h1 id="date-heading">Hoy</h1></div>
+        <div class="toolbar">
+          <button class="button button-light" id="settings-button" type="button"><svg class="icon"><use href="#i-settings"/></svg>Ajustes</button>
+          <button class="button button-primary" id="alarm-button" type="button" aria-pressed="false"><svg class="icon"><use href="#i-bell"/></svg><span id="alarm-button-text">Activar alarmas</span></button>
+        </div>
+      </div>
+
+      <section class="focus-grid" aria-label="Hora y próximos ingresos">
+        <div class="clock-panel">
+          <div class="panel-topline"><span class="eyebrow">HORA ACTUAL</span><svg class="icon"><use href="#i-clock"/></svg></div>
+          <div class="live-clock" aria-label="Hora actual en Argentina"><span id="clock-main">--:--</span><span id="clock-seconds">--</span></div>
+          <p class="clock-location">Misiones, Argentina <span>UTC−3</span></p>
+          <div class="clock-rule"></div>
+          <div class="clock-bottom">
+            <div><span class="eyebrow">PRÓXIMO INGRESO EN</span><strong id="countdown">--:--</strong></div>
+            <span class="countdown-caption" id="countdown-caption">Esperando reservas</span>
+          </div>
+        </div>
+        <div class="next-panel" id="next-panel">
+          <div class="panel-topline"><span class="eyebrow" id="next-label">PRÓXIMO INGRESO</span><span class="time-pill" id="next-time">—</span></div>
+          <div id="next-patients" class="next-patients"><p class="empty-copy">Buscando los turnos de hoy…</p></div>
+          <div class="next-foot"><span class="mini-line"></span><span id="next-caption">La agenda se actualiza automáticamente</span></div>
+        </div>
+      </section>
+
+      <section class="schedule-panel" aria-labelledby="schedule-title">
+        <div class="schedule-heading">
+          <div class="schedule-title"><h2 id="schedule-title">Ingresos de hoy</h2><span class="count-pill" id="day-count">0</span></div>
+          <label class="filter-label" for="source-filter">Mostrar
+            <select id="source-filter"><option value="all">Todas las agendas</option></select>
+          </label>
+        </div>
+        <div class="schedule-columns" aria-hidden="true"><span>HORARIO</span><span>PACIENTE / TRATAMIENTO</span><span>ESPACIO</span><span>ESTADO</span></div>
+        <div id="schedule-list" class="schedule-list" aria-label="Reservas del día"></div>
+        <div class="empty-state" id="empty-state" hidden><svg class="icon"><use href="#i-clock"/></svg><h3>Una pausa en la agenda</h3><p id="empty-message">No hay reservas para mostrar.</p></div>
+        <div class="schedule-footer"><span id="schedule-summary">Esperando reservas</span><span>Los estados horarios no confirman asistencia.</span></div>
+      </section>
+
+      <footer class="statusbar">
+        <span class="alarm-state" id="alarm-state"><span class="status-dot"></span>Sonido pendiente de activar</span>
+        <button class="text-button" id="test-button" type="button"><svg class="icon"><use href="#i-sound"/></svg>Probar sonido</button>
+        <span class="runtime-hint" id="runtime-hint">Mantené el reloj abierto y la PC despierta.</span>
+        <button class="text-button" id="install-button" type="button" hidden>Instalar reloj</button>
+      </footer>
+    </main>
+    <footer class="page-footer"><span>Mimar T · Un espacio para vos</span><span id="last-sync">Reloj de recepción</span></footer>
+  </div>
+
+  <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
+    <form id="settings-form">
+      <div class="dialog-heading"><div><span class="eyebrow">A TU RITMO</span><h2 id="settings-title">Ajustes del reloj</h2></div><button class="icon-button" type="button" id="settings-close" aria-label="Cerrar ajustes"><svg class="icon"><use href="#i-close"/></svg></button></div>
+      <div class="settings-fields">
+        <label for="advance-minutes">Avisar antes del ingreso<select id="advance-minutes" name="advanceMinutes"><option value="0">Sin aviso previo</option><option value="1">1 minuto antes</option><option value="3">3 minutos antes</option><option value="5">5 minutos antes</option><option value="10">10 minutos antes</option><option value="15">15 minutos antes</option></select></label>
+        <label class="check-field"><input id="at-start" type="checkbox"><span>Avisar también a la hora del ingreso</span></label>
+        <label for="tone">Sonido<select id="tone"><option value="campana">Campana suave</option><option value="cristal">Cristal</option><option value="doble">Dos notas</option></select></label>
+        <label for="volume">Volumen <output id="volume-output">50 %</output><input id="volume" type="range" min="0" max="100" step="5"></label>
+        <fieldset class="source-settings"><legend>Agendas que activan avisos</legend><div id="source-options"></div></fieldset>
+        <label class="check-field"><input id="wake-lock" type="checkbox"><span>Mantener la pantalla encendida mientras el reloj está visible</span></label>
+        <div class="notification-setting"><div><strong>Avisos de escritorio</strong><p id="notification-state">Opcionales. El navegador te pedirá permiso.</p></div><button id="notification-button" class="button button-light" type="button">Activar</button></div>
+        <p class="settings-note">Estos ajustes se guardan en este navegador. Las alarmas requieren el reloj abierto y el equipo activo.</p>
+        <p id="settings-error" class="error-text" role="alert"></p>
+      </div>
+      <div class="dialog-actions"><button class="button button-light" id="settings-test" type="button">Probar sonido</button><button class="button button-primary" type="submit">Guardar ajustes</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="alarm-dialog" class="alarm-dialog" aria-labelledby="alarm-title">
+    <span class="alarm-emblem"><svg class="icon"><use href="#i-bell"/></svg></span>
+    <span class="eyebrow">RECEPCIÓN · MIMAR T</span>
+    <h2 id="alarm-title">Es momento de recibir</h2>
+    <div id="alarm-items" class="alarm-items"></div>
+    <button class="button button-primary" id="alarm-dismiss" type="button"><svg class="icon"><use href="#i-check"/></svg>Entendido</button>
+    <p>Confirma el aviso en este reloj. La reserva sigue igual.</p>
+  </dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <noscript><p class="notice">Activá JavaScript para utilizar el reloj y sus alarmas.</p></noscript>
+</body>
+</html>
