@@ -5780,64 +5780,79 @@
                     return HE({b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[bid]||bid);
                 };
 
-                var css = '@page{size:A4 portrait;margin:18mm 15mm 22mm 15mm;}' +
+                var css = '@page{size:A4 portrait;margin:16mm 14mm 22mm 14mm;}' +
                     '*{box-sizing:border-box;margin:0;padding:0;}' +
-                    'body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#111;background:#fff;line-height:1.45;}' +
+                    'body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#111;background:#fff;line-height:1.38;}' +
                     '.pat-start{page-break-before:always;break-before:always;}' +
                     '.pat-top{page-break-inside:avoid;break-inside:avoid;}' +
-                    '.pac-hdr{border-bottom:2px solid #dc2626;padding-bottom:9px;margin-bottom:11px;page-break-inside:avoid;break-inside:avoid;page-break-after:avoid;break-after:avoid;}' +
-                    '.pac-name{font-size:14pt;font-weight:800;color:#dc2626;margin-bottom:3px;}' +
-                    '.pac-info{font-size:9pt;color:#555;margin-top:2px;}' +
-                    '.resumen{background:#fff;border:1px solid #ccc;border-radius:4px;padding:7px 11px;margin-bottom:12px;font-size:9pt;line-height:1.6;page-break-inside:avoid;break-inside:avoid;}' +
-                    '.card{border:1px solid #ccc;border-radius:5px;padding:9px 11px;margin-bottom:7px;page-break-inside:avoid;break-inside:avoid;background:#fff;}' +
-                    '.card.pend{border-left:3px solid #c8a000;background:#fffdf0;}' +
-                    '.card.real{border-left:3px solid #1e5c3f;background:#f4faf7;}' +
-                    '.card.canc{border-left:3px solid #ccc;opacity:.78;}' +
-                    '.card-pac{font-size:7.5pt;font-weight:800;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}' +
-                    '.card-n{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#555;margin-bottom:2px;}' +
-                    '.card-fecha{font-size:10.5pt;font-weight:700;margin-bottom:1px;}.card-hora{font-size:9pt;color:#555;margin-bottom:2px;}' +
-                    '.card-srv{font-size:10pt;font-weight:600;margin-bottom:2px;}.card-box{font-size:8pt;color:#666;margin-bottom:3px;}' +
-                    '.card-det-lbl{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#888;margin:6px 0 2px;}' +
-                    '.card-det{font-size:9pt;background:#fff;border-left:2px solid #bbb;border-radius:2px;padding:5px 8px;white-space:pre-wrap;word-break:break-word;line-height:1.5;}' +
-                    '.blank-lbl{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#aaa;margin:7px 0 4px;}' +
-                    '.blank-ln{border-bottom:1px solid #bbb;height:22px;}' +
+                    '.pac-hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #dc2626;padding-bottom:6px;margin-bottom:8px;page-break-inside:avoid;break-inside:avoid;page-break-after:avoid;break-after:avoid;}' +
+                    '.pac-name{font-size:13pt;font-weight:800;color:#dc2626;}' +
+                    '.pac-info{font-size:8pt;color:#555;text-align:right;white-space:nowrap;}' +
+                    '.resumen{background:#f8f8f8;border:1px solid #ddd;border-radius:3px;padding:5px 9px;margin-bottom:8px;font-size:8pt;line-height:1.5;page-break-inside:avoid;break-inside:avoid;}' +
+                    /* ── Tarjeta horizontal 3 columnas ── */
+                    '.card{display:flex;flex-direction:row;border:1px solid #d0d0d0;border-radius:3px;margin-bottom:4px;page-break-inside:avoid;break-inside:avoid;overflow:hidden;}' +
+                    '.card.pend{border-left:3px solid #c8a000;}' +
+                    '.card.real{border-left:3px solid #1e5c3f;}' +
+                    '.card.canc{border-left:3px solid #bbb;opacity:.76;}' +
+                    '.ca{flex:0 0 17%;padding:6px 7px;border-right:1px solid #ebebeb;display:flex;flex-direction:column;gap:3px;background:inherit;}' +
+                    '.cb{flex:0 0 27%;padding:6px 8px;border-right:1px solid #ebebeb;background:inherit;}' +
+                    '.cc{flex:1 1 auto;padding:6px 9px;background:inherit;}' +
+                    '.card.pend{background:#fffef5;}.card.real{background:#f5fbf7;}.card.canc{background:#fafafa;}' +
+                    '.sn{font-size:7pt;font-weight:800;color:#777;letter-spacing:.02em;}' +
+                    '.sbadge{display:inline-block;font-size:6pt;font-weight:800;padding:1px 4px;border-radius:2px;text-transform:uppercase;letter-spacing:.06em;}' +
+                    '.sbadge.real{background:#d4eddf;color:#1a5235;}' +
+                    '.sbadge.pend{background:#ffefc0;color:#7a5800;}' +
+                    '.sbadge.canc{background:#e8e8e8;color:#888;}' +
+                    '.cpac{font-size:6pt;font-weight:800;color:#dc2626;text-transform:uppercase;letter-spacing:.04em;margin-top:auto;padding-top:5px;word-break:break-word;line-height:1.3;}' +
+                    '.cfecha{font-size:9pt;font-weight:700;line-height:1.3;margin-bottom:2px;}' +
+                    '.chora{font-size:7.5pt;color:#555;margin-bottom:2px;}' +
+                    '.cbox{font-size:7pt;color:#666;line-height:1.3;}' +
+                    '.csrv{font-size:9pt;font-weight:700;margin-bottom:3px;}' +
+                    '.cdet-lbl{font-size:6pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#aaa;margin:4px 0 2px;}' +
+                    '.cdet{font-size:8pt;border-left:2px solid #ccc;padding:2px 6px;white-space:pre-wrap;word-break:break-word;line-height:1.4;color:#333;}' +
+                    '.cdet.real{border-left-color:#1e5c3f;background:#eef6f1;}' +
+                    '.cdet.pend{border-left-color:#c8a000;background:#fffaec;}' +
+                    '.blank-ln{border-bottom:1px solid #bbb;height:18px;margin-top:3px;}' +
                     '.no-print{display:block;}' +
-                    '.print-toolbar{text-align:center;margin:20px 0 14px;padding:14px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;}' +
-                    '.btn-print{padding:10px 26px;background:#111;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 5px;}' +
-                    '.btn-close{padding:10px 16px;background:#fff;color:#555;border:1px solid #ccc;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;margin:0 5px;}' +
+                    '.print-toolbar{text-align:center;margin:18px 0 12px;padding:12px;background:#f5f5f5;border-radius:7px;border:1px solid #e0e0e0;}' +
+                    '.btn-print{padding:9px 24px;background:#111;color:#fff;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 5px;}' +
+                    '.btn-close{padding:9px 14px;background:#fff;color:#555;border:1px solid #ccc;border-radius:5px;font-size:11px;cursor:pointer;font-family:inherit;margin:0 5px;}' +
                     '@media print{.no-print{display:none!important;}.card{page-break-inside:avoid;break-inside:avoid;}}';
 
-                // ── Card unificada (pend / real / canc) ──
+                // ── Card horizontal 3 columnas (pend / real / canc) ──
                 var cardSesion = function(ses, n, tot, nombre) {
                     var r = ses.r, status = ses.status;
                     var det  = (r.detalleSesion||'').trim();
                     var det2 = (r.detalleSesion2||'').trim();
                     var box  = fmtBox(r);
                     var est  = (r.estado||r.status||'').toLowerCase();
-                    var statusLabel, dotColor;
-                    if (status==='pend') { statusLabel='PENDIENTE'; dotColor='#dc2626'; }
-                    else if (status==='canc') { statusLabel='CANCELADA'; dotColor='#888'; }
-                    else { statusLabel='REALIZADA'; dotColor='#1e5c3f'; }
+                    var statusLabel;
+                    if (status==='pend') statusLabel='PENDIENTE';
+                    else if (status==='canc') statusLabel='CANCELADA';
+                    else statusLabel='REALIZADA';
                     if (est==='reprogramado') statusLabel='REPROGRAMADA';
                     var fechaHtml = r.fecha ? fmtF(r.fecha) : '<span style="color:#aaa;font-style:italic;">Sin fecha</span>';
-                    var parts = [
-                        '<div class="card '+status+'">',
-                        '<div class="card-pac">'+HE(nombre)+'</div>',
-                        '<div class="card-n">Sesión '+n+' de '+tot+' &nbsp;<span style="color:'+dotColor+';font-weight:800;">'+statusLabel+'</span></div>',
-                        '<div class="card-fecha">'+fechaHtml+'</div>',
-                        r.hora ? '<div class="card-hora">'+HE(r.hora)+' hs</div>' : '',
-                        '<div class="card-srv">'+HE(r.servicio||'—')+'</div>',
-                        box ? '<div class="card-box">'+box+'</div>' : ''
-                    ];
-                    if (det)  parts.push('<div class="card-det-lbl">'+(status==='pend'?'Observaciones previas':'Detalle de la sesión')+'</div><div class="card-det">'+HE(det)+'</div>');
-                    if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det">'+HE(det2)+'</div>');
-                    if (status==='pend') {
-                        parts.push('<div class="blank-lbl">Anotaciones de la sesión</div><div class="blank-ln"></div>');
-                    } else if (status==='real' && !det && !det2) {
-                        parts.push('<div style="font-size:9pt;color:#aaa;margin-top:4px;font-style:italic;">Sin detalle registrado</div>');
-                    }
-                    parts.push('</div>');
-                    return parts.join('');
+                    // Col A: sesión # + badge + nombre
+                    var colA = '<div class="ca">' +
+                        '<div class="sn">S.'+n+'/'+tot+'</div>' +
+                        '<div><span class="sbadge '+status+'">'+statusLabel+'</span></div>' +
+                        '<div class="cpac">'+HE(nombre)+'</div>' +
+                        '</div>';
+                    // Col B: fecha + hora + box
+                    var colB = '<div class="cb">' +
+                        '<div class="cfecha">'+fechaHtml+'</div>' +
+                        (r.hora ? '<div class="chora">'+HE(r.hora)+' hs</div>' : '') +
+                        (box ? '<div class="cbox">'+box+'</div>' : '') +
+                        '</div>';
+                    // Col C: servicio + detalle / anotaciones
+                    var colC = '<div class="cc">' +
+                        '<div class="csrv">'+HE(r.servicio||'—')+'</div>';
+                    if (det)  colC += '<div class="cdet-lbl">'+(status==='pend'?'Obs. previas':'Detalle de la sesión')+'</div><div class="cdet '+status+'">'+HE(det)+'</div>';
+                    if (det2) colC += '<div class="cdet-lbl">Nota adicional</div><div class="cdet '+status+'">'+HE(det2)+'</div>';
+                    if (status==='pend') colC += '<div class="cdet-lbl">Anotaciones de la sesión</div><div class="blank-ln"></div>';
+                    else if (status==='real' && !det && !det2) colC += '<div style="font-size:7.5pt;color:#aaa;margin-top:3px;font-style:italic;">Sin detalle registrado</div>';
+                    colC += '</div>';
+                    return '<div class="card '+status+'">'+colA+colB+colC+'</div>';
                 };
 
                 // ── Historiales por paciente — orden cronológico unificado ──
@@ -5904,7 +5919,7 @@
                     'if(btn){btn.disabled=true;btn.textContent="Generando…";}' +
                     'var el=document.getElementById("pdf-main");' +
                     // Measure patient section positions before rendering
-                    'var A4H=971;' + // content height px: (297-18-22)*96/25.4
+                    'var A4H=979;' + // content height px: (297-16-22)*96/25.4
                     'var patMap=[];' +
                     'el.querySelectorAll(".pat-start[data-pat-idx]").forEach(function(m){' +
                         'var top=0,node=m;' +
@@ -5913,7 +5928,7 @@
                     '});' +
                     'function run(){' +
                         'html2pdf().set({' +
-                            'margin:[18,15,22,15],' +
+                            'margin:[16,14,22,14],' +
                             'filename:"jornada-' + f + '.pdf",' +
                             'image:{type:"jpeg",quality:0.98},' +
                             'html2canvas:{scale:2,useCORS:true,logging:false},' +
