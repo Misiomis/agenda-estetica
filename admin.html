@@ -5242,7 +5242,7 @@
             // Edad: tomar del primer registro que la tenga
             var edadVal = null;
             (d.sesiones||[]).forEach(function(r){ if (!edadVal && r.edad) edadVal = r.edad; });
-            var edadStr = edadVal ? (edadVal + ' años') : 'No registrado';
+            var edadStr = edadVal ? (edadVal + ' años') : '';
 
             var fechaExport = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
 
@@ -5357,7 +5357,7 @@
                         '<h1>Espacio Mimar T</h1>' +
                         '<div style="font-size:9pt;color:#666;">Historial de paciente</div>' +
                         '<div class="pac">' + H(d.nombre) + '</div>' +
-                        '<div class="pac-info">' + H(edadStr) + (d.phone ? ' &nbsp;·&nbsp; Tel: ' + H(d.phone) : '') + '</div>' +
+                        (edadStr || d.phone ? '<div class="pac-info">' + (edadStr ? H(edadStr) : '') + (edadStr && d.phone ? ' &nbsp;·&nbsp; ' : '') + (d.phone ? 'Tel: ' + H(d.phone) : '') + '</div>' : '') +
                     '</div>' +
                     '<div class="hdr-right">' +
                         '<strong>Exportación</strong>' +
@@ -5816,7 +5816,7 @@
                     // Edad: tomar del primer registro que la tenga
                     var edadVal = null;
                     allR.forEach(function(r){ if (!edadVal && r.edad) edadVal = r.edad; });
-                    var edadStr = edadVal ? (edadVal + ' años') : 'No registrado';
+                    var edadStr = edadVal ? (edadVal + ' años') : '';
 
                     // Secuencia cronológica unificada
                     var allSes = [];
@@ -5856,7 +5856,7 @@
                         '<div class="pat-start" data-pat-idx="'+pdIdx+'" data-pat-name="'+HE(pd.nombre)+'">' +
                         '<div class="pac-hdr">' +
                             '<div class="pac-name">'+HE(pd.nombre)+'</div>' +
-                            '<div class="pac-info">'+HE(edadStr)+(pd.phone?' &nbsp;·&nbsp; '+HE(pd.phone):'')+'</div>' +
+                            ((edadStr||pd.phone) ? '<div class="pac-info">'+(edadStr?HE(edadStr):'')+(edadStr&&pd.phone?' &nbsp;·&nbsp; ':'')+HE(pd.phone||'')+'</div>' : '') +
                         '</div>' +
                         '<div class="resumen">' +
                             'Total de sesiones: <strong>'+total+'</strong> &nbsp;·&nbsp; ' +
