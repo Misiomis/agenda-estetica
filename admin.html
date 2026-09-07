@@ -5550,6 +5550,7 @@
                 var fechaExport = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
                 var horaExport  = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
                 var getBoxId = function(r){ return typeof _grilla_boxDeReserva === 'function' ? (_grilla_boxDeReserva(r)||'') : ''; };
+                var _nd = function(r){ return (r.nombre||r.paciente||'—').trim(); };
 
                 var reservasDia = todasLasReservas
                     .filter(function(r){ return r.fecha === f && esReservaActiva(r); })
@@ -5557,79 +5558,132 @@
 
                 if (!reservasDia.length) { mostrarAviso('Sin reservas activas para esta fecha.'); return; }
 
-                var BOX_DEF = (typeof GRILLA_BOXES !== 'undefined' && GRILLA_BOXES.length)
+                // Todos los boxes (incluyendo vacíos — para escribir a mano)
+                var colBoxes = (typeof GRILLA_BOXES !== 'undefined' && GRILLA_BOXES.length)
                     ? GRILLA_BOXES.map(function(b){ return {id:b.id, label:(b.icon?b.icon+' ':'')+b.title+(b.sub?' · '+b.sub:'')}; })
                     : [{id:'b1',label:'Box 1'},{id:'b2',label:'Box 2'},{id:'b3',label:'Box 3'},{id:'b4',label:'Box 4'}];
-                var usedBoxSet = new Set();
-                reservasDia.forEach(function(r){ var bid=getBoxId(r); if(bid) usedBoxSet.add(bid); });
-                var colBoxes = BOX_DEF.filter(function(b){ return usedBoxSet.has(b.id); });
-                var noBoxRes = reservasDia.filter(function(r){ return !getBoxId(r); });
+
                 var timesSet = new Set();
                 reservasDia.forEach(function(r){ if(r.hora) timesSet.add(r.hora); });
                 var sortedTimes = [...timesSet].sort();
+
                 var cellMap = new Map();
                 reservasDia.forEach(function(r){ var bid=getBoxId(r); if(bid&&r.hora) cellMap.set(r.hora+'|'+bid, r); });
-                var _pjND = function(r){ return (r.nombre||r.paciente||'—').trim(); };
 
-                var thS = 'border:1px solid #333;padding:5px 7px;font-size:8.5pt;font-weight:800;text-align:center;background:#fff;text-transform:uppercase;letter-spacing:.04em;';
-                var tdHS = 'border:1px solid #bbb;padding:6px 7px;font-size:11pt;font-weight:800;text-align:center;vertical-align:middle;white-space:nowrap;width:50px;';
-                var tdES = 'border:1px solid #ddd;padding:6px 7px;vertical-align:top;background:#fafafa;';
-                var tdPS = 'border:1px solid #bbb;padding:6px 8px;vertical-align:top;background:#fff;';
-                var gHtml = '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">';
-                gHtml += '<colgroup><col style="width:52px;">'+colBoxes.map(function(){ return '<col>'; }).join('')+'</colgroup>';
-                gHtml += '<thead><tr><th style="'+thS+'">Hora</th>';
-                colBoxes.forEach(function(b){ gHtml += '<th style="'+thS+'">'+HE(b.label)+'</th>'; });
-                gHtml += '</tr></thead><tbody>';
-                sortedTimes.forEach(function(hora){
-                    gHtml += '<tr><td style="'+tdHS+'">'+HE(hora)+'</td>';
-                    colBoxes.forEach(function(b){
-                        var r = cellMap.get(hora+'|'+b.id);
-                        gHtml += r
-                            ? '<td style="'+tdPS+'"><div style="font-size:10.5pt;font-weight:700;line-height:1.3;">'+HE(_pjND(r))+'</div><div style="font-size:8pt;color:#555;margin-top:2px;">'+HE(r.servicio||'—')+'</div></td>'
-                            : '<td style="'+tdES+'"></td>';
-                    });
-                    gHtml += '</tr>';
-                });
-                gHtml += '</tbody></table>';
-                if (noBoxRes.length) {
-                    gHtml += '<div style="font-size:8.5pt;color:#666;border-top:1px solid #ddd;padding-top:6px;margin-top:6px;">';
-                    noBoxRes.forEach(function(r){ gHtml += '<div style="margin-bottom:3px;"><strong>'+HE(r.hora||'—')+'</strong> · '+HE(_pjND(r))+' — '+HE(r.servicio||'—')+'</div>'; });
-                    gHtml += '</div>';
-                }
-
-                var css = '@page{size:A4 portrait;margin:18mm 15mm 18mm 15mm;}' +
-                    '*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#111;background:#fff;}' +
-                    '.no-print{display:block;}.print-toolbar{text-align:center;margin:20px 0 14px;padding:14px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;}' +
-                    '.btn-print{padding:10px 26px;background:#111;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 5px;}' +
-                    '.btn-close{padding:10px 16px;background:#fff;color:#555;border:1px solid #ccc;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;margin:0 5px;}' +
-                    '@media print{.no-print{display:none!important;}}';
+                // Separar mañana (< 13:00) y tarde (>= 13:00)
+                var SPLIT = '13:00';
+                var tmMañana = sortedTimes.filter(function(t){ return t < SPLIT; });
+                var tmTarde  = sortedTimes.filter(function(t){ return t >= SPLIT; });
 
                 var p = (f||'').split('-');
                 var dt = p[0]&&p[1]&&p[2] ? new Date(+p[0],+p[1]-1,+p[2]) : null;
                 var fechaFull = dt ? (DIAS_PDF[dt.getDay()]+', '+parseInt(p[2])+' de '+(MESES_PDF[+p[1]-1]||p[1])+' de '+p[0]) : f;
 
-                var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Grilla '+HE(f)+' · Espacio Mimar T</title>' +
+                // ── Construir tabla para un bloque de horarios ──
+                var buildTable = function(times) {
+                    var nRows = times.length;
+                    // Altura de fila: ocupa el espacio disponible de la hoja
+                    // A4 landscape content ≈ 186mm después de cabecera (~30mm); repartir entre filas
+                    var rowH = Math.max(42, Math.floor(155 / Math.max(nRows, 1))) + 'mm';
+                    var thS = 'border:2px solid #111;padding:6px 8px;font-size:9pt;font-weight:800;text-align:center;' +
+                              'background:#fff;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;';
+                    var tdHS = 'border:2px solid #111;padding:0;font-size:14pt;font-weight:800;text-align:center;' +
+                               'vertical-align:middle;white-space:nowrap;width:56px;height:'+rowH+';';
+                    var tdES = 'border:1px solid #bbb;padding:0;vertical-align:top;background:#fff;height:'+rowH+';';
+                    var tdPS = 'border:1px solid #888;padding:8px 10px;vertical-align:top;background:#fff;height:'+rowH+';';
+                    var t = '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">';
+                    t += '<colgroup><col style="width:56px;">';
+                    colBoxes.forEach(function(){ t += '<col>'; });
+                    t += '</colgroup><thead><tr><th style="'+thS+'border-right:2px solid #111;">Hora</th>';
+                    colBoxes.forEach(function(b){ t += '<th style="'+thS+'">'+HE(b.label)+'</th>'; });
+                    t += '</tr></thead><tbody>';
+                    times.forEach(function(hora){
+                        t += '<tr><td style="'+tdHS+'border-right:2px solid #111;">'+HE(hora)+'</td>';
+                        colBoxes.forEach(function(b){
+                            var r = cellMap.get(hora+'|'+b.id);
+                            t += r
+                                ? '<td style="'+tdPS+'">' +
+                                  '<div style="font-size:11pt;font-weight:700;line-height:1.35;">'+HE(_nd(r))+'</div>' +
+                                  '<div style="font-size:8pt;color:#555;margin-top:3px;">'+HE(r.servicio||'—')+'</div>' +
+                                  '</td>'
+                                : '<td style="'+tdES+'"></td>';
+                        });
+                        t += '</tr>';
+                    });
+                    t += '</tbody></table>';
+                    return t;
+                };
+
+                // ── Cabecera de página ──
+                var buildHdr = function(turno, nTurnos) {
+                    return '<div style="border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px;' +
+                               'display:flex;justify-content:space-between;align-items:flex-end;">' +
+                        '<div>' +
+                            '<div style="font-size:15pt;font-weight:800;letter-spacing:-.01em;">Espacio Mimar T</div>' +
+                            '<div style="font-size:12pt;font-weight:700;margin-top:3px;">'+HE(fechaFull)+'</div>' +
+                        '</div>' +
+                        '<div style="text-align:right;font-size:9pt;color:#555;line-height:1.7;">' +
+                            (turno ? '<div style="font-size:14pt;font-weight:800;color:#111;letter-spacing:.02em;">'+turno+'</div>' : '') +
+                            '<div>'+nTurnos+' turno'+(nTurnos!==1?'s':'')+' &nbsp;·&nbsp; '+fechaExport+' '+horaExport+'</div>' +
+                        '</div>' +
+                    '</div>';
+                };
+
+                // ── Sin box asignado ──
+                var noBoxRes = reservasDia.filter(function(r){ return !getBoxId(r); });
+                var noBoxHtml = '';
+                if (noBoxRes.length) {
+                    noBoxHtml = '<div style="font-size:8.5pt;color:#666;border-top:1px solid #ddd;padding-top:5px;margin-top:6px;">' +
+                        noBoxRes.map(function(r){ return '<span style="margin-right:14px;"><strong>'+HE(r.hora||'—')+'</strong> '+HE(_nd(r))+'</span>'; }).join('') +
+                    '</div>';
+                }
+
+                // ── Armar páginas ──
+                var pages = '';
+                var hasMañana = tmMañana.length > 0;
+                var haTarde   = tmTarde.length > 0;
+
+                if (hasMañana) {
+                    pages += '<div class="pg">' +
+                        buildHdr('Turno Mañana', tmMañana.length) +
+                        buildTable(tmMañana) +
+                        (!haTarde ? noBoxHtml : '') +
+                    '</div>';
+                }
+                if (haTarde) {
+                    if (hasMañana) pages += '<div class="pb"></div>';
+                    pages += '<div class="pg">' +
+                        buildHdr('Turno Tarde', tmTarde.length) +
+                        buildTable(tmTarde) +
+                        noBoxHtml +
+                    '</div>';
+                }
+                if (!hasMañana && !haTarde) {
+                    pages += '<div class="pg">' + buildHdr('', reservasDia.length) + buildTable(sortedTimes) + noBoxHtml + '</div>';
+                }
+
+                var css = '@page{size:A4 landscape;margin:12mm 14mm 12mm 14mm;}' +
+                    '*{box-sizing:border-box;margin:0;padding:0;}' +
+                    'body{font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff;}' +
+                    '.pb{page-break-before:always;break-before:always;height:0;}' +
+                    '.pg{page-break-inside:avoid;}' +
+                    '.no-print{display:block;}' +
+                    '.print-toolbar{text-align:center;margin:18px 0 12px;padding:12px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;}' +
+                    '.btn-print{padding:10px 26px;background:#111;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 5px;}' +
+                    '.btn-close{padding:10px 16px;background:#fff;color:#555;border:1px solid #ccc;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;margin:0 5px;}' +
+                    '@media print{.no-print{display:none!important;}}';
+
+                var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+                    '<title>Grilla '+HE(f)+' · Espacio Mimar T</title>' +
                     '<style>'+css+'</style></head><body>' +
                     '<div class="no-print print-toolbar">' +
                         '<button class="btn-print" onclick="window.print()">🖨️ Imprimir grilla</button>' +
                         '<button class="btn-close" onclick="window.close()">Cerrar</button>' +
                     '</div>' +
-                    '<div style="border-bottom:2px solid #111;padding-bottom:9px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start;">' +
-                        '<div><div style="font-size:13pt;font-weight:800;">Espacio Mimar T</div>' +
-                        '<div style="font-size:8.5pt;color:#666;margin-top:1px;">Agenda de jornada</div>' +
-                        '<div style="font-size:12.5pt;font-weight:700;margin-top:4px;">'+HE(fechaFull)+'</div></div>' +
-                        '<div style="text-align:right;font-size:8pt;color:#777;line-height:1.8;">' +
-                            '<strong>Generado</strong><div>'+fechaExport+' '+horaExport+'</div>' +
-                            '<div style="font-size:7pt;color:#bbb;margin-top:3px;">'+reservasDia.length+' turno'+(reservasDia.length!==1?'s':'')+' · espaciomimart.com</div>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div style="font-size:10pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #111;margin-bottom:11px;">' +
-                        'Grilla del día — '+reservasDia.length+' turno'+(reservasDia.length!==1?'s':'')+
-                    '</div>' +
-                    gHtml +
+                    pages +
                     '</body></html>';
 
-                var w = window.open('', '_blank', 'width=900,height=700');
+                var w = window.open('', '_blank', 'width=1100,height=750');
                 if (!w) { mostrarAviso('Permitir ventanas emergentes para imprimir la grilla.'); return; }
                 w.document.write(html);
                 w.document.close();
