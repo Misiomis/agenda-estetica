@@ -1081,6 +1081,7 @@
                             <button class="hdr-drop-item btn-nav" id="btn-export" onclick="navegar('export')" role="menuitem">📤 Exportar</button>
                             <button class="hdr-drop-item btn-nav" id="btn-control-consultas" onclick="navegar('control-consultas')" role="menuitem">📋 Control de consultas</button>
                             <button class="hdr-drop-item btn-nav" id="btn-agenda-ci" onclick="navegar('agenda-ci')" role="menuitem" style="background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.22);color:rgba(140,225,185,0.88);">🗓 Agenda CI</button>
+                            <button class="hdr-drop-item btn-nav" id="btn-preparar-jornada" onclick="navegar('preparar-jornada')" role="menuitem" style="background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.22);color:rgba(253,230,138,0.90);font-weight:700;">📋 Preparar jornada</button>
                             <button class="hdr-drop-item btn-nav" id="btn-ultimos-movimientos" onclick="mostrarUltimosMovimientos()" role="menuitem">🕐 Movimientos</button>
                         </div>
                     </div>
@@ -1177,6 +1178,7 @@
                 <button class="bsh-item" onclick="navegar('consultas');cerrarBottomSheet()">✨ Consultas</button>
                 <button class="bsh-item" onclick="navegar('control-consultas');cerrarBottomSheet()">📋 Control consultas</button>
                 <button class="bsh-item" onclick="navegar('agenda-ci');cerrarBottomSheet()" style="color:rgba(140,225,185,0.90);">🗓 Agenda CI</button>
+                <button class="bsh-item" onclick="navegar('preparar-jornada');cerrarBottomSheet()" style="color:rgba(253,230,138,0.90);font-weight:700;">📋 Preparar jornada</button>
                 <button class="bsh-item" onclick="navegar('cursos');cerrarBottomSheet()">💄 Mis Cursos</button>
                 <button class="bsh-item" onclick="navegar('pedidos-kit');cerrarBottomSheet()">📦 Kit</button>
                 <button class="bsh-item" onclick="navegar('calculadora');cerrarBottomSheet()">🧮 Calculadora</button>
@@ -1778,6 +1780,9 @@
                     <div id="consI-slots" style="margin-top:10px;"></div>
                 </div>
             </div><!-- /sec-agenda-ci -->
+
+            <!-- ══ PREPARAR JORNADA ══ -->
+            <div id="sec-preparar-jornada" class="section"></div>
 
             <!-- ══ CONTROL DE CONSULTAS ══ -->
             <div id="sec-control-consultas" class="section">
@@ -5416,6 +5421,376 @@
         };
         /* ══ FIN EXPORTAR HISTORIAL PDF ══════════════════════════════════════ */
 
+        /* ══ PREPARAR JORNADA ═══════════════════════════════════════════════ */
+        (function(){
+            var _pjFecha = null;
+            var _pjLastGenTs = null;
+            var _pjLastGenFecha = null;
+
+            function _pjNombreKey(r) {
+                return ((r.nombre || r.paciente || '').trim()).toLowerCase().replace(/\s+/g,' ');
+            }
+            function _pjNombreDisplay(r) {
+                return (r.nombre || r.paciente || '—').trim();
+            }
+            function _pjFechaFull(f) {
+                if (!f) return '—';
+                var DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+                var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                var p = f.split('-');
+                if (!p[0]||!p[1]||!p[2]) return f;
+                var dt = new Date(+p[0],+p[1]-1,+p[2]);
+                return DIAS[dt.getDay()] + ', ' + parseInt(p[2]) + ' de ' + (MESES[+p[1]-1]||p[1]) + ' de ' + p[0];
+            }
+            function _pjFechaShort(f) {
+                if (!f) return '—';
+                var DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+                var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+                var p = f.split('-');
+                if (!p[0]||!p[1]||!p[2]) return f;
+                var dt = new Date(+p[0],+p[1]-1,+p[2]);
+                return DIAS[dt.getDay()] + ' ' + parseInt(p[2]) + ' ' + MESES[+p[1]-1] + ' ' + p[0];
+            }
+            function _pjFechasConReservas() {
+                var seen = new Set();
+                todasLasReservas.forEach(function(r){ if (r.fecha) seen.add(r.fecha); });
+                return [...seen].sort();
+            }
+            function _pjProximoDia() {
+                var hoyStr = new Date().toISOString().slice(0,10);
+                var fechas = _pjFechasConReservas().filter(function(f){
+                    return f >= hoyStr && todasLasReservas.some(function(r){ return r.fecha === f && esReservaActiva(r); });
+                });
+                return fechas[0] || null;
+            }
+            function _pjNavFecha(delta) {
+                var todas = _pjFechasConReservas().filter(function(f){
+                    return todasLasReservas.some(function(r){ return r.fecha === f && esReservaActiva(r); });
+                });
+                if (!todas.length) return;
+                var idx = todas.indexOf(_pjFecha);
+                var ni = idx < 0 ? (delta > 0 ? 0 : todas.length-1) : Math.max(0, Math.min(todas.length-1, idx+delta));
+                _pjFecha = todas[ni];
+                _pjRender();
+            }
+
+            function _pjRender() {
+                var cont = document.getElementById('sec-preparar-jornada');
+                if (!cont) return;
+                var f = _pjFecha || '';
+                var reservasDia = todasLasReservas
+                    .filter(function(r){ return r.fecha === f && esReservaActiva(r); })
+                    .sort(function(a,b){ return (a.hora||'')<(b.hora||'') ? -1 : (a.hora||'')>(b.hora||'') ? 1 : 0; });
+
+                var patientMap = new Map();
+                reservasDia.forEach(function(r){
+                    var k = _pjNombreKey(r);
+                    if (!k) return;
+                    if (!patientMap.has(k)) patientMap.set(k, { nombre: _pjNombreDisplay(r), key: k, reservas: [] });
+                    patientMap.get(k).reservas.push(r);
+                });
+                var patients = [...patientMap.values()];
+
+                var lastGenHtml = '';
+                if (_pjLastGenTs && _pjLastGenFecha === f) {
+                    lastGenHtml = '<div style="margin-top:6px;font-size:11px;color:rgba(253,230,138,0.65);font-style:italic;">⏱ Último PDF generado: ' + new Date(_pjLastGenTs).toLocaleString('es-AR') + '</div>';
+                }
+
+                var navHtml = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">' +
+                    '<button onclick="window._pjNavFecha(-1)" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.13);border-radius:8px;color:#aaa;padding:6px 14px;cursor:pointer;font-size:15px;font-family:inherit;">←</button>' +
+                    '<span style="flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--texto);">' + _pjFechaShort(f) + '</span>' +
+                    '<button onclick="window._pjNavFecha(1)" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.13);border-radius:8px;color:#aaa;padding:6px 14px;cursor:pointer;font-size:15px;font-family:inherit;">→</button>' +
+                '</div>';
+
+                var listHtml = '';
+                if (!reservasDia.length) {
+                    listHtml = '<div style="color:rgba(255,255,255,0.4);font-size:13px;text-align:center;padding:24px 0;font-style:italic;">Sin reservas activas para esta fecha.</div>';
+                } else {
+                    listHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">' +
+                        '<span style="font-size:11.5px;color:rgba(255,255,255,0.45);font-weight:600;letter-spacing:.04em;text-transform:uppercase;">' + reservasDia.length + ' turno' + (reservasDia.length!==1?'s':'') + ' · ' + patients.length + ' paciente' + (patients.length!==1?'s':'') + '</span>' +
+                        '<span style="font-size:12px;">' +
+                            '<button onclick="window._pjSelAll(true)" style="background:none;border:none;color:rgba(140,220,185,0.75);cursor:pointer;font-size:12px;padding:2px 6px;font-family:inherit;">Todos</button>' +
+                            '<span style="color:rgba(255,255,255,0.18);">|</span>' +
+                            '<button onclick="window._pjSelAll(false)" style="background:none;border:none;color:rgba(255,255,255,0.38);cursor:pointer;font-size:12px;padding:2px 6px;font-family:inherit;">Ninguno</button>' +
+                        '</span>' +
+                    '</div>';
+                    reservasDia.forEach(function(r){
+                        var k = _pjNombreKey(r);
+                        var pm = patientMap.get(k);
+                        var isFirst = pm && pm.reservas[0] === r;
+                        var box = (typeof _grilla_boxDeReserva === 'function') ? _grilla_boxDeReserva(r) : '';
+                        var boxLabel = box ? ({b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[box]||box) : '';
+                        listHtml += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;margin-bottom:6px;background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);border-radius:10px;">';
+                        if (isFirst) {
+                            listHtml += '<input type="checkbox" class="pj-chk" data-key="' + k.replace(/"/g,'&quot;') + '" checked onchange="window._pjUpdateBtn()" style="margin-top:3px;width:16px;height:16px;accent-color:#facc15;cursor:pointer;flex-shrink:0;">';
+                        } else {
+                            listHtml += '<div style="width:16px;height:16px;flex-shrink:0;margin-top:3px;"></div>';
+                        }
+                        listHtml += '<div style="flex:1;min-width:0;">' +
+                            '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
+                                '<span style="font-size:13px;font-weight:800;color:rgba(253,230,138,0.9);min-width:40px;">' + (r.hora||'—') + '</span>' +
+                                '<span style="font-size:13px;font-weight:600;color:var(--texto);">' + _pjNombreDisplay(r) + '</span>' +
+                                (boxLabel ? '<span style="font-size:10.5px;color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.13);border-radius:5px;padding:1px 6px;">' + boxLabel + '</span>' : '') +
+                            '</div>' +
+                            '<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:2px;">' + (r.servicio||'—') + '</div>' +
+                            ((r.detalleSesion||'').trim() ? '<div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:3px;font-style:italic;white-space:pre-line;">' + (r.detalleSesion||'').trim().slice(0,110) + ((r.detalleSesion||'').length>110?'…':'') + '</div>' : '') +
+                        '</div></div>';
+                    });
+                }
+
+                var btnHtml = patients.length > 0 ?
+                    '<button id="pj-pdf-btn" onclick="window.generarPDFJornada()" style="width:100%;padding:12px 16px;margin-top:14px;background:rgba(202,138,4,0.12);border:1.5px solid rgba(251,191,36,0.30);border-radius:12px;color:rgba(253,230,138,0.92);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.02em;font-family:inherit;">📄 Generar PDF jornada (' + patients.length + ' paciente' + (patients.length!==1?'s':'') + ')</button>' : '';
+
+                cont.innerHTML =
+                    '<div class="detalle-dia-card" style="margin-bottom:18px;box-shadow:0 6px 24px rgba(63,143,111,0.13);border-radius:22px;border-top:6px solid #facc15;">' +
+                        '<h3 style="margin-top:0;color:rgba(253,230,138,0.9);font-family:\'Playfair Display\',serif;font-size:1.35em;letter-spacing:0.01em;margin-bottom:14px;">📋 Preparar jornada</h3>' +
+                        navHtml +
+                        lastGenHtml +
+                        '<div style="margin-top:12px;">' + listHtml + '</div>' +
+                        btnHtml +
+                    '</div>';
+            }
+
+            window.cargarPreparaJornada = function(fecha) {
+                if (fecha) {
+                    _pjFecha = fecha;
+                } else if (!_pjFecha) {
+                    _pjFecha = _pjProximoDia() || new Date().toISOString().slice(0,10);
+                }
+                _pjRender();
+            };
+            window._pjNavFecha = function(d) { _pjNavFecha(d); };
+            window._pjSelAll = function(v) {
+                document.querySelectorAll('.pj-chk').forEach(function(c){ c.checked = !!v; });
+                window._pjUpdateBtn();
+            };
+            window._pjUpdateBtn = function() {
+                var sel = document.querySelectorAll('.pj-chk:checked').length;
+                var btn = document.getElementById('pj-pdf-btn');
+                if (btn) btn.textContent = '📄 Generar PDF jornada (' + sel + ' paciente' + (sel!==1?'s':'') + ')';
+            };
+
+            window.generarPDFJornada = function() {
+                var f = _pjFecha;
+                if (!f) return;
+                var selected = new Set();
+                document.querySelectorAll('.pj-chk:checked').forEach(function(c){ selected.add(c.dataset.key); });
+                if (!selected.size) { mostrarAviso('Seleccioná al menos un paciente.'); return; }
+
+                var reservasDia = todasLasReservas
+                    .filter(function(r){ return r.fecha === f && esReservaActiva(r); })
+                    .sort(function(a,b){ return (a.hora||'')<(b.hora||'') ? -1 : 1; });
+
+                var patientData = [];
+                var now = Date.now();
+                var seen = new Set();
+                reservasDia.forEach(function(r){
+                    var k = _pjNombreKey(r);
+                    if (!k || !selected.has(k) || seen.has(k)) return;
+                    seen.add(k);
+                    var nombre = _pjNombreDisplay(r);
+                    var all = todasLasReservas.filter(function(x){ return _pjNombreKey(x) === k; });
+                    var pend = [], comp = [], canc = [];
+                    all.forEach(function(x){
+                        var st = (x.estado||x.status||'').toLowerCase();
+                        var xMs = new Date((x.fecha||'1970-01-01') + 'T00:00:00').getTime() +
+                            ((parseInt(((x.hora||'00:00').split(':')[0]))||0)*60 + (parseInt(((x.hora||'00:00').split(':')[1]))||0)) * 60000;
+                        if (st === 'cancelado') canc.push(x);
+                        else if (now < xMs) pend.push(x);
+                        else comp.push(x);
+                    });
+                    var firstR = all.find(function(x){ return !!(x.phone||x.telefono||x.phoneWA); });
+                    var phone = firstR ? (firstR.phone||firstR.telefono||firstR.phoneWA||'') : '';
+                    patientData.push({ nombre: nombre, key: k, phone: phone, pendientes: pend, completadas: comp, canceladas: canc });
+                });
+
+                if (!patientData.length) { mostrarAviso('Sin datos para generar.'); return; }
+                _pjLastGenTs = Date.now();
+                _pjLastGenFecha = f;
+
+                // ── Build PDF HTML ──
+                var HE = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+                var MESES_PDF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                var DIAS_PDF  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+                var fechaExport = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+                var horaExport  = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+
+                var fmtF = function(ff){
+                    var p = (ff||'').split('-');
+                    if (!p[0]||!p[1]||!p[2]) return HE(ff||'—');
+                    var dt = new Date(+p[0],+p[1]-1,+p[2]);
+                    return HE(DIAS_PDF[dt.getDay()] + ' ' + parseInt(p[2]) + ' de ' + (MESES_PDF[+p[1]-1]||p[1]) + ' de ' + p[0]);
+                };
+                var fmtBox = function(r){
+                    var bid = typeof _grilla_boxDeReserva === 'function' ? _grilla_boxDeReserva(r) : '';
+                    if (!bid) return '';
+                    if (typeof GRILLA_BOXES !== 'undefined') {
+                        var bo = GRILLA_BOXES.find(function(b){ return b.id === bid; });
+                        if (bo) return HE(bo.icon + ' ' + bo.title + (bo.sub ? ' — ' + bo.sub : ''));
+                    }
+                    return HE({b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[bid]||bid);
+                };
+
+                var css = '@page{size:A4 portrait;margin:20mm 18mm 22mm 18mm;@bottom-center{content:"Pág. " counter(page) " de " counter(pages);font-size:8pt;color:#999;font-family:Arial,sans-serif;}@bottom-left{content:"Espacio Mimar T · Jornada ' + HE(f) + '";font-size:7.5pt;color:#bbb;font-family:Arial,sans-serif;}}' +
+                    '*{box-sizing:border-box;margin:0;padding:0;}' +
+                    'body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#111;background:#fff;line-height:1.5;}' +
+                    '.hdr{border-bottom:2.5px solid #111;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}' +
+                    '.hdr h1{font-size:14pt;font-weight:800;margin-bottom:2px;}.hdr .sub{font-size:9pt;color:#666;}.hdr .fj{font-size:13pt;font-weight:700;margin-top:5px;}' +
+                    '.hdr-r{text-align:right;font-size:8pt;color:#777;line-height:1.8;min-width:110px;}' +
+                    '.ag-tit{font-size:11pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #111;padding-bottom:5px;margin-bottom:12px;}' +
+                    '.ag-row{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;margin-bottom:6px;border:1px solid #ddd;border-radius:5px;page-break-inside:avoid;break-inside:avoid;}' +
+                    '.ag-hora{font-size:12pt;font-weight:800;color:#1e5c3f;min-width:52px;}.ag-main{flex:1;}.ag-pac{font-size:11.5pt;font-weight:700;}' +
+                    '.ag-srv{font-size:9.5pt;color:#555;margin-top:1px;}.ag-box{font-size:8.5pt;color:#888;margin-top:1px;}' +
+                    '.ag-det{font-size:9pt;color:#333;background:#f6f6f6;border-left:3px solid #b0ccc0;border-radius:3px;padding:5px 8px;margin-top:5px;white-space:pre-wrap;word-break:break-word;}' +
+                    '.pac-hdr{border-bottom:2.5px solid #111;padding-bottom:10px;margin-bottom:12px;}' +
+                    '.pac-name{font-size:13pt;font-weight:800;margin-bottom:2px;}.pac-sub{font-size:9pt;color:#666;}' +
+                    '.resumen{background:#f3f3f3;border:1px solid #ddd;border-radius:5px;padding:8px 12px;margin-bottom:14px;font-size:9.5pt;line-height:1.7;}' +
+                    '.resumen strong{display:block;font-size:10pt;margin-bottom:2px;}' +
+                    '.sec-tit{font-size:10.5pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #111;margin-bottom:12px;}' +
+                    '.sec-tit.pend{border-color:#9a6f00;color:#5a3f00;}.sec-tit.real{border-color:#1e5c3f;color:#1e5c3f;}.sec-tit.canc{border-color:#999;color:#555;}' +
+                    '.mes-hdr{font-size:9pt;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#1e5c3f;background:#eaf4ee;border:1px solid #c0ddd0;border-radius:4px;padding:4px 9px;margin:12px 0 7px;page-break-after:avoid;break-after:avoid;}' +
+                    '.card{border:1px solid #ccc;border-radius:6px;padding:10px 12px;margin-bottom:8px;page-break-inside:avoid;break-inside:avoid;}' +
+                    '.card.pend{border-left:4px solid #c8a000;background:#fffdf0;}.card.real{border-left:4px solid #1e5c3f;background:#f4faf7;}.card.canc{border-left:4px solid #aaa;background:#f8f8f8;opacity:.75;}' +
+                    '.card-n{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:3px;}' +
+                    '.card-fecha{font-size:11pt;font-weight:700;margin-bottom:1px;}.card-hora{font-size:9.5pt;color:#555;margin-bottom:3px;}' +
+                    '.card-srv{font-size:10.5pt;font-weight:600;margin-bottom:2px;}.card-box{font-size:8.5pt;color:#666;margin-bottom:4px;}' +
+                    '.card-det-lbl{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#888;margin:7px 0 3px;}' +
+                    '.card-det{font-size:9.5pt;background:rgba(0,0,0,.04);border-left:3px solid #bbb;border-radius:3px;padding:6px 9px;white-space:pre-wrap;word-break:break-word;line-height:1.55;}' +
+                    '.card-det.pend{border-left-color:#c8a000;background:#fff8e1;}.card-det.real{border-left-color:#1e5c3f;background:#e8f5ee;}' +
+                    '.blank-lbl{font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#999;margin:8px 0 5px;}' +
+                    '.blank-ln{border-bottom:1px solid #aaa;height:22px;margin-bottom:8px;}' +
+                    '.estado-badge{display:inline-block;font-size:7.5pt;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:5px;vertical-align:middle;}' +
+                    '.badge-canc{background:#f0e0e0;color:#a00;border:1px solid #d0b0b0;}.badge-rep{background:#fff0d0;color:#7a4a00;border:1px solid #ddd0a0;}' +
+                    '.pb{page-break-before:always;break-before:always;height:0;margin:0;padding:0;}' +
+                    '.no-print{display:block;}' +
+                    '.print-toolbar{text-align:center;margin:24px 0 14px;padding:14px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;}' +
+                    '.btn-print{padding:11px 28px;background:#1e5c3f;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 5px;}' +
+                    '.btn-close{padding:11px 18px;background:#fff;color:#555;border:1px solid #ccc;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit;margin:0 5px;}' +
+                    '.preview-note{font-size:9.5px;color:#aaa;margin-top:7px;}' +
+                    '@media print{.no-print{display:none!important;}.card,.ag-row{page-break-inside:avoid;break-inside:avoid;}}';
+
+                var cardPend = function(r, i, tot){
+                    var det=(r.detalleSesion||'').trim(), det2=(r.detalleSesion2||'').trim(), box=fmtBox(r);
+                    var parts = ['<div class="card pend">','<div class="card-n">Sesión pendiente '+(i+1)+' de '+tot+'</div>',
+                        '<div class="card-fecha">'+fmtF(r.fecha)+'</div>','<div class="card-hora">'+HE(r.hora||'—')+' hs</div>',
+                        '<div class="card-srv">'+HE(r.servicio||'—')+'</div>', box?'<div class="card-box">'+box+'</div>':''];
+                    if (det)  parts.push('<div class="card-det-lbl">Observaciones previas</div><div class="card-det pend">'+HE(det)+'</div>');
+                    if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det pend">'+HE(det2)+'</div>');
+                    parts.push('<div class="blank-lbl">Anotaciones de la sesión</div><div class="blank-ln"></div><div class="blank-ln"></div></div>');
+                    return parts.join('');
+                };
+                var cardReal = function(r, n, tot){
+                    var det=(r.detalleSesion||'').trim(), det2=(r.detalleSesion2||'').trim(), box=fmtBox(r);
+                    var est=(r.estado||r.status||'').toLowerCase();
+                    var badg = est==='cancelado' ? '<span class="estado-badge badge-canc">Cancelada</span>' : est==='reprogramado' ? '<span class="estado-badge badge-rep">Reprogramada</span>' : '';
+                    var parts = ['<div class="card real">','<div class="card-n">Sesión realizada '+n+' de '+tot+'</div>',
+                        '<div class="card-fecha">'+fmtF(r.fecha)+badg+'</div>','<div class="card-hora">'+HE(r.hora||'—')+' hs</div>',
+                        '<div class="card-srv">'+HE(r.servicio||'—')+'</div>', box?'<div class="card-box">'+box+'</div>':''];
+                    if (det)  parts.push('<div class="card-det-lbl">Detalle de la sesión</div><div class="card-det real">'+HE(det)+'</div>');
+                    if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det real">'+HE(det2)+'</div>');
+                    if (!det && !det2) parts.push('<div style="font-size:9pt;color:#aaa;margin-top:4px;font-style:italic;">Sin detalle registrado</div>');
+                    parts.push('</div>');
+                    return parts.join('');
+                };
+                var cardCanc = function(r, i){
+                    var box = fmtBox(r);
+                    return '<div class="card canc"><div class="card-n">Cancelada '+(i+1)+'</div>'+
+                        '<div class="card-fecha">'+fmtF(r.fecha)+' <span class="estado-badge badge-canc">Cancelada</span></div>'+
+                        '<div class="card-hora">'+HE(r.hora||'—')+' hs</div>'+
+                        '<div class="card-srv">'+HE(r.servicio||'—')+'</div>'+
+                        (box?'<div class="card-box">'+box+'</div>':'')+
+                        '</div>';
+                };
+
+                // Agenda del día
+                var agRows = '';
+                reservasDia.filter(function(r){ return selected.has(_pjNombreKey(r)); }).forEach(function(r){
+                    var box = fmtBox(r);
+                    var det = (r.detalleSesion||'').trim();
+                    agRows += '<div class="ag-row">' +
+                        '<div class="ag-hora">'+HE(r.hora||'—')+'</div>' +
+                        '<div class="ag-main">' +
+                            '<div class="ag-pac">'+HE(_pjNombreDisplay(r))+'</div>' +
+                            '<div class="ag-srv">'+HE(r.servicio||'—')+'</div>' +
+                            (box?'<div class="ag-box">'+box+'</div>':'') +
+                            (det?'<div class="ag-det">'+HE(det)+'</div>':'') +
+                        '</div></div>';
+                });
+
+                var totalTurnos = reservasDia.filter(function(r){ return selected.has(_pjNombreKey(r)); }).length;
+                var agendaSec = '<div class="hdr">' +
+                    '<div><h1>Espacio Mimar T</h1><div class="sub">Agenda de jornada</div><div class="fj">' + HE(_pjFechaFull(f)) + '</div></div>' +
+                    '<div class="hdr-r"><strong>Generado</strong><div>' + fechaExport + ' ' + horaExport + '</div>' +
+                    '<div style="margin-top:4px;font-size:7pt;color:#bbb;">' + patientData.length + ' paciente' + (patientData.length!==1?'s':'') + ' · espaciomimart.com</div></div>' +
+                    '</div>' +
+                    '<div class="ag-tit">Agenda del día — ' + totalTurnos + ' turno' + (totalTurnos!==1?'s':'') + '</div>' +
+                    agRows;
+
+                // Historiales por paciente
+                var patSecs = '';
+                patientData.forEach(function(pd){
+                    var pend=pd.pendientes, real=pd.completadas, canc=pd.canceladas;
+                    var total = pend.length + real.length + canc.length;
+
+                    var pendSec = '';
+                    if (pend.length) {
+                        pendSec = '<div class="sec-tit pend">Próximas Sesiones ('+pend.length+')</div>';
+                        pend.forEach(function(r,i){ pendSec += cardPend(r,i,pend.length); });
+                    }
+                    var realSec = '';
+                    if (real.length) {
+                        var byM = new Map();
+                        real.forEach(function(r){ var ym=(r.fecha||'').slice(0,7); if(!byM.has(ym))byM.set(ym,[]); byM.get(ym).push(r); });
+                        realSec = '<div class="sec-tit real">Sesiones Realizadas ('+real.length+')</div>';
+                        var nG = 0;
+                        byM.forEach(function(mes,ym){
+                            var pts=ym.split('-');
+                            realSec += '<div class="mes-hdr">'+HE((MESES_PDF[+pts[1]-1]||ym).toUpperCase()+' '+pts[0])+' — '+mes.length+' sesión'+(mes.length!==1?'es':'')+'</div>';
+                            mes.sort(function(a,b){ return (a.fecha||'')<(b.fecha||'') ? -1 : (a.fecha||'')>(b.fecha||'') ? 1 : (a.hora||'')<(b.hora||'') ? -1 : 1; })
+                               .forEach(function(r){ nG++; realSec += cardReal(r,nG,real.length); });
+                        });
+                    }
+                    var cancSec = '';
+                    if (canc.length) {
+                        cancSec = '<hr style="margin:14px 0;border:none;border-top:1px solid #ddd;"><div class="sec-tit canc">Sesiones Canceladas ('+canc.length+')</div>';
+                        canc.sort(function(a,b){ return (a.fecha||'')<(b.fecha||'') ? -1 : 1; }).forEach(function(r,i){ cancSec += cardCanc(r,i); });
+                    }
+
+                    patSecs += '<div class="pb"></div>' +
+                        '<div class="pac-hdr">' +
+                            '<div class="pac-name">'+HE(pd.nombre)+'</div>' +
+                            '<div class="pac-sub">Historial completo' + (pd.phone ? ' · '+HE(pd.phone) : '') + '</div>' +
+                        '</div>' +
+                        '<div class="resumen"><strong>Resumen del historial</strong>' +
+                            'Total: <strong>'+total+'</strong> &nbsp;·&nbsp; Realizadas: <strong>'+real.length+'</strong> &nbsp;·&nbsp; Próximas: <strong>'+pend.length+'</strong>' +
+                            (canc.length ? ' &nbsp;·&nbsp; Canceladas: <strong>'+canc.length+'</strong>' : '') +
+                        '</div>' +
+                        (pendSec||'') +
+                        (realSec ? '<div class="pb"></div>' + realSec : '') +
+                        cancSec;
+                });
+
+                var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+                    '<title>Jornada ' + HE(f) + ' · Espacio Mimar T</title>' +
+                    '<style>' + css + '</style></head><body>' +
+                    '<div class="no-print print-toolbar">' +
+                        '<button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>' +
+                        '<button class="btn-close" onclick="window.close()">Cerrar</button>' +
+                        '<div class="preview-note">Vista previa · Al imprimir, elegí "Guardar como PDF" y tamaño A4 vertical</div>' +
+                    '</div>' +
+                    agendaSec + patSecs +
+                    '</body></html>';
+
+                var w = window.open('', '_blank', 'width=1000,height=880');
+                if (!w) { mostrarAviso('Permitir ventanas emergentes para generar el PDF.'); return; }
+                w.document.write(html);
+                w.document.close();
+                w.focus();
+                _pjRender();
+            };
+        })();
+        /* ══ FIN PREPARAR JORNADA ══════════════════════════════════════════════ */
+
         window.buscarSesionesPorNombreInput = debounce(function() {
             var raw = ((document.getElementById("inpBuscadorSesiones") || {}).value || "").trim();
             var contenedor = document.getElementById("contenedorSesionesBuscadas");
@@ -6460,7 +6835,7 @@
             document.getElementById(`sec-${s}`)?.classList.add('active');
             document.getElementById(`btn-${s}`)?.classList.add('active');
             // "Más" se resalta si la sección está dentro de ese dropdown
-            const _masItems = ['buscar','historias','cursos','pedidos-kit','calculadora','servicios','export','ultimos-movimientos','control','control-consultas','agenda-ci'];
+            const _masItems = ['buscar','historias','cursos','pedidos-kit','calculadora','servicios','export','ultimos-movimientos','control','control-consultas','agenda-ci','preparar-jornada'];
             if (_masItems.includes(s)) document.getElementById('btnMas')?.classList.add('active');
             // Bottom nav: marcar item activo por data-section
             document.querySelectorAll('.bni').forEach(x => x.classList.remove('active'));
@@ -6479,6 +6854,7 @@
             if (s === 'agenda-ci') cargarDisponibilidadConsI(_consI_fecha);
             if (s === 'control-consultas') window.cargarControlConsultas();
             if (s === 'cursos') window.cargarCursos();
+            if (s === 'preparar-jornada') window.cargarPreparaJornada();
         };
 
         // ═══ DROPDOWNS DE HEADER ═══
