@@ -5214,6 +5214,41 @@
         /* ══ EXPORTAR HISTORIAL PDF ══════════════════════════════════════════ */
         window._sesExportDB = [];
 
+        // Helper: edad a partir de fechaNacimiento (YYYY-MM-DD)
+        function _calcEdadFecha(fn) {
+            if (!fn) return null;
+            var p = fn.split('-');
+            if (!p[0]||!p[1]||!p[2]) return null;
+            var nac = new Date(+p[0], +p[1]-1, +p[2]);
+            var h = new Date();
+            var e = h.getFullYear() - nac.getFullYear();
+            var m = h.getMonth() - nac.getMonth();
+            if (m < 0 || (m === 0 && h.getDate() < nac.getDate())) e--;
+            return (e >= 0 && e < 130) ? e : null;
+        }
+
+        // Busca edad: primero en reservas, luego en todasLasConsultas por tel/nombre
+        function _buscarEdad(nombre, phone, sesiones) {
+            var edadR = null;
+            (sesiones||[]).forEach(function(r){ if (!edadR && r.edad) edadR = r.edad; });
+            if (edadR) return edadR + ' años';
+            if (typeof todasLasConsultas === 'undefined' || !todasLasConsultas.length) return '';
+            var normF = function(v){ return (v||'').toString().replace(/\D/g,''); };
+            var normN = function(v){ return (v||'').toLowerCase().trim(); };
+            var telBusq = normF(phone);
+            var nomBusq = normN(nombre);
+            var c = todasLasConsultas.find(function(c){
+                if (telBusq && normF(c.telefono||c.phone||'') === telBusq) return true;
+                if (nomBusq && normN(c.nombre||'') === nomBusq) return true;
+                return false;
+            });
+            if (!c) return '';
+            var eCalc = _calcEdadFecha(c.fechaNacimiento);
+            if (eCalc !== null) return eCalc + ' años';
+            if (c.edad) return c.edad + ' años';
+            return '';
+        }
+
         window.exportarHistorialPDF = function(idx) {
             var d = window._sesExportDB[idx];
             if (!d) { mostrarAviso('Datos no disponibles. Buscá el paciente de nuevo.'); return; }
@@ -5239,10 +5274,7 @@
                 return H({b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[bid]||bid);
             };
 
-            // Edad: tomar del primer registro que la tenga
-            var edadVal = null;
-            (d.sesiones||[]).forEach(function(r){ if (!edadVal && r.edad) edadVal = r.edad; });
-            var edadStr = edadVal ? (edadVal + ' años') : '';
+            var edadStr = _buscarEdad(d.nombre, d.phone, d.sesiones);
 
             var fechaExport = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
 
@@ -5813,10 +5845,7 @@
                 var patSecs = '';
                 patientData.forEach(function(pd, pdIdx){
                     var allR = todasLasReservas.filter(function(x){ return _pjNombreKey(x) === pd.key; });
-                    // Edad: tomar del primer registro que la tenga
-                    var edadVal = null;
-                    allR.forEach(function(r){ if (!edadVal && r.edad) edadVal = r.edad; });
-                    var edadStr = edadVal ? (edadVal + ' años') : '';
+                    var edadStr = _buscarEdad(pd.nombre, pd.phone, allR);
 
                     // Secuencia cronológica unificada
                     var allSes = [];
