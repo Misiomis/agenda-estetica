@@ -5239,36 +5239,62 @@
                 return H({b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[bid]||bid);
             };
 
+            // Edad: tomar del primer registro que la tenga
+            var edadVal = null;
+            (d.sesiones||[]).forEach(function(r){ if (!edadVal && r.edad) edadVal = r.edad; });
+            var edadStr = edadVal ? (edadVal + ' años') : 'No registrado';
+
             var fechaExport = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
-            var pend = d.pendientes, real = d.completadas, canc = d.canceladas;
-            var totalSes = pend.length + real.length + canc.length;
+
+            // ── Secuencia unificada cronológica ──
+            var now = Date.now();
+            var allSessions = [];
+            (d.sesiones||[]).forEach(function(r) {
+                var st = (r.estado||r.status||'').toLowerCase();
+                var xDate = r.fecha || '';
+                var xTime = r.hora || '';
+                var isCancelled = st === 'cancelado';
+                var xMs = xDate ? (new Date(xDate+'T00:00:00').getTime() +
+                    ((parseInt((xTime.split(':')[0])||0)*60 + parseInt((xTime.split(':')[1])||0)) * 60000)) : null;
+                var isPending = !isCancelled && xMs !== null && now < xMs;
+                allSessions.push({
+                    r: r,
+                    sortKey: xDate ? (xDate+'T'+(xTime||'00:00')) : 'ZZZZ',
+                    status: isCancelled ? 'canc' : (isPending ? 'pend' : 'real')
+                });
+            });
+            allSessions.sort(function(a,b){
+                if (a.sortKey==='ZZZZ'&&b.sortKey==='ZZZZ') return 0;
+                if (a.sortKey==='ZZZZ') return 1;
+                if (b.sortKey==='ZZZZ') return -1;
+                return a.sortKey<b.sortKey?-1:a.sortKey>b.sortKey?1:0;
+            });
+
+            var totalSes = allSessions.length;
+            var nPend = allSessions.filter(function(s){ return s.status==='pend'; }).length;
+            var nReal = allSessions.filter(function(s){ return s.status==='real'; }).length;
+            var nCanc = allSessions.filter(function(s){ return s.status==='canc'; }).length;
+            var hasSinFecha = allSessions.some(function(s){ return !s.r.fecha; });
 
             var css = [
                 '@page{size:A4 portrait;margin:22mm 20mm 22mm 20mm;',
-                '@bottom-center{content:"Página " counter(page) " de " counter(pages);font-size:8pt;color:#999;font-family:Arial,sans-serif;}',
+                '@bottom-center{content:"Hoja " counter(page) " de " counter(pages);font-size:8pt;color:#999;font-family:Arial,sans-serif;}',
                 '@bottom-left{content:"Espacio Mimar T · '+H(d.nombre)+'";font-size:7.5pt;color:#bbb;font-family:Arial,sans-serif;}',
                 '}',
                 '*{box-sizing:border-box;margin:0;padding:0;}',
                 'body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;background:#fff;line-height:1.5;}',
                 '.hdr{border-bottom:2.5px solid #111;padding-bottom:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}',
                 '.hdr-left h1{font-size:15pt;font-weight:800;margin-bottom:2px;}',
-                '.hdr-left .pac{font-size:13pt;font-weight:700;margin-top:6px;}',
-                '.hdr-left .tel{font-size:9pt;color:#666;margin-top:2px;}',
+                '.hdr-left .pac{font-size:14pt;font-weight:800;color:#dc2626;margin-top:6px;}',
+                '.hdr-left .pac-info{font-size:9pt;color:#555;margin-top:3px;}',
                 '.hdr-right{text-align:right;font-size:8.5pt;color:#777;line-height:1.8;min-width:120px;}',
                 '.resumen{background:#f3f3f3;border:1px solid #ddd;border-radius:5px;padding:9px 14px;margin-bottom:18px;font-size:10pt;line-height:1.7;}',
-                '.resumen strong{display:block;font-size:10.5pt;margin-bottom:2px;}',
-                '.sep{height:0;border:none;border-top:1px solid #ddd;margin:16px 0;}',
-                '.sec-tit{font-size:11pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #111;margin-bottom:14px;}',
-                '.sec-tit.pend{border-color:#9a6f00;color:#5a3f00;}',
-                '.sec-tit.real{border-color:#1e5c3f;color:#1e5c3f;}',
-                '.sec-tit.canc{border-color:#999;color:#555;}',
-                '.mes-hdr{font-size:9.5pt;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#1e5c3f;',
-                'background:#eaf4ee;border:1px solid #c0ddd0;border-radius:4px;padding:5px 10px;margin:14px 0 8px;page-break-after:avoid;break-after:avoid;}',
                 '.card{border:1px solid #ccc;border-radius:6px;padding:12px 14px;margin-bottom:10px;page-break-inside:avoid;break-inside:avoid;}',
                 '.card.pend{border-left:4px solid #c8a000;background:#fffdf0;}',
                 '.card.real{border-left:4px solid #1e5c3f;background:#f4faf7;}',
                 '.card.canc{border-left:4px solid #aaa;background:#f8f8f8;opacity:.75;}',
-                '.card-n{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:4px;}',
+                '.card-pac{font-size:8pt;font-weight:800;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}',
+                '.card-n{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#555;margin-bottom:4px;}',
                 '.card-fecha{font-size:12pt;font-weight:700;margin-bottom:1px;}',
                 '.card-hora{font-size:10pt;color:#555;margin-bottom:3px;}',
                 '.card-srv{font-size:11pt;font-weight:600;margin-bottom:2px;}',
@@ -5278,11 +5304,7 @@
                 '.card-det.pend{border-left-color:#c8a000;background:#fff8e1;}',
                 '.card-det.real{border-left-color:#1e5c3f;background:#e8f5ee;}',
                 '.blank-lbl{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#999;margin:10px 0 6px;}',
-                '.blank-ln{border-bottom:1px solid #aaa;height:24px;margin-bottom:9px;}',
-                '.estado-badge{display:inline-block;font-size:8pt;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:6px;vertical-align:middle;}',
-                '.badge-canc{background:#f0e0e0;color:#a00;border:1px solid #d0b0b0;}',
-                '.badge-rep{background:#fff0d0;color:#7a4a00;border:1px solid #ddd0a0;}',
-                '.pb{page-break-before:always;break-before:always;height:0;margin:0;padding:0;}',
+                '.blank-ln{border-bottom:1px solid #aaa;height:24px;}',
                 '.no-print{display:block;}',
                 '.print-toolbar{text-align:center;margin:28px 0 16px;padding:16px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;}',
                 '.btn-print{padding:12px 32px;background:#1e5c3f;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 6px;}',
@@ -5291,94 +5313,41 @@
                 '@media print{.no-print{display:none!important;}.card{page-break-inside:avoid;break-inside:avoid;}}'
             ].join('');
 
-            // ── Sesión card helper ──
-            var cardPend = function(r, i) {
-                var det = (r.detalleSesion||'').trim();
-                var det2 = (r.detalleSesion2||'').trim();
-                var box = fmtBox(r);
-                var parts = [
-                    '<div class="card pend">',
-                    '<div class="card-n">Sesión pendiente ' + (i+1) + ' de ' + pend.length + '</div>',
-                    '<div class="card-fecha">' + fmtF(r.fecha) + '</div>',
-                    '<div class="card-hora">' + H(r.hora||'—') + ' hs</div>',
-                    '<div class="card-srv">' + H(r.servicio||'—') + '</div>',
-                    box ? '<div class="card-box">' + box + '</div>' : ''
-                ];
-                if (det)  parts.push('<div class="card-det-lbl">Observaciones previas</div><div class="card-det pend">' + H(det) + '</div>');
-                if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det pend">' + H(det2) + '</div>');
-                parts.push('<div class="blank-lbl">Anotaciones de la sesión</div><div class="blank-ln"></div><div class="blank-ln"></div>');
-                parts.push('</div>');
-                return parts.join('');
-            };
-
-            var cardReal = function(r, n, tot) {
+            // ── Card unificada (pendiente / realizada / cancelada) ──
+            var cardSesion = function(ses, n, tot) {
+                var r = ses.r, status = ses.status;
                 var det  = (r.detalleSesion||'').trim();
                 var det2 = (r.detalleSesion2||'').trim();
                 var box  = fmtBox(r);
                 var est  = (r.estado||r.status||'').toLowerCase();
-                var badg = est === 'cancelado' ? '<span class="estado-badge badge-canc">Cancelada</span>'
-                         : est === 'reprogramado' ? '<span class="estado-badge badge-rep">Reprogramada</span>' : '';
+                var statusLabel, dotColor;
+                if (status==='pend') { statusLabel='PENDIENTE'; dotColor='#dc2626'; }
+                else if (status==='canc') { statusLabel='CANCELADA'; dotColor='#888'; }
+                else { statusLabel='REALIZADA'; dotColor='#1e5c3f'; }
+                if (est==='reprogramado') statusLabel='REPROGRAMADA';
+                var fechaHtml = r.fecha ? fmtF(r.fecha) : '<span style="color:#aaa;font-style:italic;">Sin fecha registrada</span>';
                 var parts = [
-                    '<div class="card real">',
-                    '<div class="card-n">Sesión realizada ' + n + ' de ' + tot + '</div>',
-                    '<div class="card-fecha">' + fmtF(r.fecha) + badg + '</div>',
-                    '<div class="card-hora">' + H(r.hora||'—') + ' hs</div>',
-                    '<div class="card-srv">' + H(r.servicio||'—') + '</div>',
-                    box ? '<div class="card-box">' + box + '</div>' : ''
+                    '<div class="card '+status+'">',
+                    '<div class="card-pac">'+H(d.nombre)+'</div>',
+                    '<div class="card-n">Sesión '+n+' de '+tot+' &nbsp;<span style="color:'+dotColor+';font-weight:800;">'+statusLabel+'</span></div>',
+                    '<div class="card-fecha">'+fechaHtml+'</div>',
+                    r.hora ? '<div class="card-hora">'+H(r.hora)+' hs</div>' : '',
+                    '<div class="card-srv">'+H(r.servicio||'—')+'</div>',
+                    box ? '<div class="card-box">'+box+'</div>' : ''
                 ];
-                if (det)  parts.push('<div class="card-det-lbl">Detalle de la sesión</div><div class="card-det real">' + H(det) + '</div>');
-                if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det real">' + H(det2) + '</div>');
-                if (!det && !det2) parts.push('<div style="font-size:9pt;color:#aaa;margin-top:5px;font-style:italic;">Sin detalle registrado</div>');
+                if (det)  parts.push('<div class="card-det-lbl">'+(status==='pend'?'Observaciones previas':'Detalle de la sesión')+'</div><div class="card-det '+status+'">'+H(det)+'</div>');
+                if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det '+status+'">'+H(det2)+'</div>');
+                if (status==='pend') {
+                    parts.push('<div class="blank-lbl">Anotaciones de la sesión</div><div class="blank-ln"></div>');
+                } else if (status==='real' && !det && !det2) {
+                    parts.push('<div style="font-size:9pt;color:#aaa;margin-top:5px;font-style:italic;">Sin detalle registrado</div>');
+                }
                 parts.push('</div>');
                 return parts.join('');
             };
 
-            var cardCanc = function(r, i) {
-                var box = fmtBox(r);
-                return '<div class="card canc">' +
-                    '<div class="card-n">Cancelada ' + (i+1) + '</div>' +
-                    '<div class="card-fecha">' + fmtF(r.fecha) + ' <span class="estado-badge badge-canc">Cancelada</span></div>' +
-                    '<div class="card-hora">' + H(r.hora||'—') + ' hs</div>' +
-                    '<div class="card-srv">' + H(r.servicio||'—') + '</div>' +
-                    (box ? '<div class="card-box">' + box + '</div>' : '') +
-                    '</div>';
-            };
-
-            // ── Secciones ──
-            var pendSec = '';
-            if (pend.length) {
-                pendSec = '<div class="sec-tit pend">Próximas Sesiones (' + pend.length + ')</div>';
-                pend.forEach(function(r, i) { pendSec += cardPend(r, i); });
-            }
-
-            var realSec = '';
-            if (real.length) {
-                var byM = new Map();
-                real.forEach(function(r) {
-                    var ym = (r.fecha||'').slice(0,7);
-                    if (!byM.has(ym)) byM.set(ym, []);
-                    byM.get(ym).push(r);
-                });
-                realSec = '<div class="sec-tit real">Sesiones Realizadas (' + real.length + ')</div>';
-                var nGlobal = 0;
-                byM.forEach(function(mes, ym) {
-                    var pts = ym.split('-');
-                    var ml = (MESES_PDF[+pts[1]-1]||ym).toUpperCase() + ' ' + pts[0];
-                    realSec += '<div class="mes-hdr">' + H(ml) + ' — ' + mes.length + ' sesión' + (mes.length!==1?'es':'') + '</div>';
-                    mes.sort(function(a,b){ return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1; }).forEach(function(r) {
-                        nGlobal++;
-                        realSec += cardReal(r, nGlobal, real.length);
-                    });
-                });
-            }
-
-            var cancSec = '';
-            if (canc.length) {
-                cancSec = '<hr class="sep"><div class="sec-tit canc">Sesiones Canceladas (' + canc.length + ')</div>';
-                canc.sort(function(a,b){ return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0; }).forEach(function(r, i) {
-                    cancSec += cardCanc(r, i);
-                });
-            }
+            var sesionesHtml = '';
+            allSessions.forEach(function(ses, i) { sesionesHtml += cardSesion(ses, i+1, totalSes); });
 
             var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
                 '<title>Historial — ' + H(d.nombre) + '</title>' +
@@ -5388,7 +5357,7 @@
                         '<h1>Espacio Mimar T</h1>' +
                         '<div style="font-size:9pt;color:#666;">Historial de paciente</div>' +
                         '<div class="pac">' + H(d.nombre) + '</div>' +
-                        (d.phone ? '<div class="tel">Tel: ' + H(d.phone) + '</div>' : '') +
+                        '<div class="pac-info">' + H(edadStr) + (d.phone ? ' &nbsp;·&nbsp; Tel: ' + H(d.phone) : '') + '</div>' +
                     '</div>' +
                     '<div class="hdr-right">' +
                         '<strong>Exportación</strong>' +
@@ -5397,20 +5366,18 @@
                     '</div>' +
                 '</div>' +
                 '<div class="resumen">' +
-                    '<strong>Resumen del historial</strong>' +
-                    'Total de sesiones registradas: <strong>' + totalSes + '</strong> &nbsp;·&nbsp; ' +
-                    'Realizadas: <strong>' + real.length + '</strong> &nbsp;·&nbsp; ' +
-                    'Próximas: <strong>' + pend.length + '</strong>' +
-                    (canc.length ? ' &nbsp;·&nbsp; Canceladas: <strong>' + canc.length + '</strong>' : '') +
+                    'Total de sesiones: <strong>' + totalSes + '</strong> &nbsp;·&nbsp; ' +
+                    'Realizadas: <strong>' + nReal + '</strong> &nbsp;·&nbsp; ' +
+                    'Pendientes: <strong>' + nPend + '</strong>' +
+                    (nCanc ? ' &nbsp;·&nbsp; Canceladas: <strong>' + nCanc + '</strong>' : '') +
+                    (hasSinFecha ? ' &nbsp;·&nbsp; <span style="color:#aaa;font-size:9pt;">* Sin fecha al final</span>' : '') +
                 '</div>' +
                 '<div class="no-print print-toolbar">' +
                     '<button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>' +
                     '<button class="btn-close" onclick="window.close()">Cerrar</button>' +
                     '<div class="preview-note">Vista previa · Al imprimir, elegí "Guardar como PDF" y tamaño A4 vertical</div>' +
                 '</div>' +
-                (pendSec ? pendSec : '') +
-                (realSec ? '<div class="pb"></div>' + realSec : '') +
-                cancSec +
+                sesionesHtml +
                 '</body></html>';
 
             var w = window.open('', '_blank', 'width=960,height=860');
@@ -5539,7 +5506,10 @@
                 }
 
                 var btnHtml = patients.length > 0 ?
-                    '<button id="pj-pdf-btn" onclick="window.generarPDFJornada()" style="width:100%;padding:12px 16px;margin-top:14px;background:rgba(202,138,4,0.12);border:1.5px solid rgba(251,191,36,0.30);border-radius:12px;color:rgba(253,230,138,0.92);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.02em;font-family:inherit;">📄 Generar PDF jornada (' + patients.length + ' paciente' + (patients.length!==1?'s':'') + ')</button>' : '';
+                    '<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:rgba(255,255,255,0.55);cursor:pointer;">' +
+                        '<input type="checkbox" id="pj-duplex" style="accent-color:#facc15;width:14px;height:14px;cursor:pointer;"> Preparar para doble cara (hoja nueva por paciente)' +
+                    '</label>' +
+                    '<button id="pj-pdf-btn" onclick="window.generarPDFJornada()" style="width:100%;padding:12px 16px;margin-top:10px;background:rgba(202,138,4,0.12);border:1.5px solid rgba(251,191,36,0.30);border-radius:12px;color:rgba(253,230,138,0.92);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.02em;font-family:inherit;">📄 Generar PDF jornada (' + patients.length + ' paciente' + (patients.length!==1?'s':'') + ')</button>' : '';
 
                 cont.innerHTML =
                     '<div class="detalle-dia-card" style="margin-bottom:18px;box-shadow:0 6px 24px rgba(63,143,111,0.13);border-radius:22px;border-top:6px solid #facc15;">' +
@@ -5632,33 +5602,30 @@
                 };
                 var getBoxId = function(r){ return typeof _grilla_boxDeReserva === 'function' ? (_grilla_boxDeReserva(r)||'') : ''; };
 
-                var css = '@page{size:A4 portrait;margin:18mm 15mm 20mm 15mm;' +
-                    '@bottom-center{content:"Pág. " counter(page) " de " counter(pages);font-size:8pt;color:#999;font-family:Arial,sans-serif;}' +
-                    '@bottom-left{content:"Espacio Mimar T · Jornada ' + HE(f) + '";font-size:7.5pt;color:#bbb;font-family:Arial,sans-serif;}}' +
+                var css = '@page{size:A4 portrait;margin:18mm 15mm 22mm 15mm;}' +
                     '*{box-sizing:border-box;margin:0;padding:0;}' +
                     'body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;color:#111;background:#fff;line-height:1.45;}' +
                     '.hdr{border-bottom:2px solid #111;padding-bottom:9px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}' +
                     '.hdr h1{font-size:13pt;font-weight:800;margin-bottom:1px;}.hdr .sub{font-size:8.5pt;color:#666;}.hdr .fj{font-size:12.5pt;font-weight:700;margin-top:4px;}' +
                     '.hdr-r{text-align:right;font-size:8pt;color:#777;line-height:1.8;min-width:100px;}' +
                     '.sec-tit{font-size:10pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding-bottom:5px;border-bottom:2px solid #111;margin-bottom:11px;}' +
-                    '.sec-tit.pend{border-color:#dc2626;color:#dc2626;}.sec-tit.real{border-color:#dc2626;color:#dc2626;}.sec-tit.canc{border-color:#aaa;color:#666;}' +
-                    '.pac-div{border:none;border-top:3px solid #16a34a;margin:22px 0 18px;page-break-after:avoid;break-after:avoid;}' +
-                    '.mes-hdr{font-size:8.5pt;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#333;border-bottom:1px solid #ccc;padding:3px 0 3px;margin:11px 0 6px;page-break-after:avoid;break-after:avoid;}' +
+                    '.pat-start{page-break-before:always;break-before:always;}' +
+                    '.pac-hdr{border-bottom:2px solid #dc2626;padding-bottom:9px;margin-bottom:11px;}' +
+                    '.pac-name{font-size:14pt;font-weight:800;color:#dc2626;margin-bottom:3px;}' +
+                    '.pac-info{font-size:9pt;color:#555;margin-top:2px;}' +
+                    '.resumen{background:#fff;border:1px solid #ccc;border-radius:4px;padding:7px 11px;margin-bottom:12px;font-size:9pt;line-height:1.6;}' +
                     '.card{border:1px solid #ccc;border-radius:5px;padding:9px 11px;margin-bottom:7px;page-break-inside:avoid;break-inside:avoid;background:#fff;}' +
-                    '.card.pend{border-left:3px solid #888;}.card.real{border-left:3px solid #333;}.card.canc{border-left:3px solid #ccc;opacity:.80;}' +
-                    '.card-n{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:2px;}' +
+                    '.card.pend{border-left:3px solid #c8a000;background:#fffdf0;}' +
+                    '.card.real{border-left:3px solid #1e5c3f;background:#f4faf7;}' +
+                    '.card.canc{border-left:3px solid #ccc;opacity:.78;}' +
+                    '.card-pac{font-size:7.5pt;font-weight:800;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}' +
+                    '.card-n{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#555;margin-bottom:2px;}' +
                     '.card-fecha{font-size:10.5pt;font-weight:700;margin-bottom:1px;}.card-hora{font-size:9pt;color:#555;margin-bottom:2px;}' +
                     '.card-srv{font-size:10pt;font-weight:600;margin-bottom:2px;}.card-box{font-size:8pt;color:#666;margin-bottom:3px;}' +
                     '.card-det-lbl{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#888;margin:6px 0 2px;}' +
                     '.card-det{font-size:9pt;background:#fff;border-left:2px solid #bbb;border-radius:2px;padding:5px 8px;white-space:pre-wrap;word-break:break-word;line-height:1.5;}' +
                     '.blank-lbl{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#aaa;margin:7px 0 4px;}' +
-                    '.blank-ln{border-bottom:1px solid #bbb;height:20px;margin-bottom:7px;}' +
-                    '.estado-badge{display:inline-block;font-size:7pt;font-weight:700;padding:2px 6px;border-radius:3px;margin-left:5px;vertical-align:middle;background:#eee;color:#666;border:1px solid #ccc;}' +
-                    '.badge-canc{background:#fff;color:#a00;border-color:#c00;}.badge-rep{background:#fff;color:#7a4a00;border-color:#c8a000;}' +
-                    '.pac-hdr{border-bottom:2px solid #111;padding-bottom:9px;margin-bottom:11px;}' +
-                    '.pac-name{font-size:12.5pt;font-weight:800;margin-bottom:2px;}.pac-sub{font-size:8.5pt;color:#666;}' +
-                    '.resumen{background:#fff;border:1px solid #ccc;border-radius:4px;padding:7px 11px;margin-bottom:12px;font-size:9pt;line-height:1.6;}' +
-                    '.resumen strong{display:block;font-size:9.5pt;margin-bottom:2px;}' +
+                    '.blank-ln{border-bottom:1px solid #bbb;height:22px;}' +
                     '.no-print{display:block;}' +
                     '.print-toolbar{text-align:center;margin:20px 0 14px;padding:14px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;}' +
                     '.btn-print{padding:10px 26px;background:#111;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 5px;}' +
@@ -5667,43 +5634,40 @@
                     'table.grilla{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9.5pt;}' +
                     'table.grilla th{border:1px solid #333;padding:5px 7px;font-size:8.5pt;font-weight:800;text-align:left;background:#fff;text-transform:uppercase;letter-spacing:.04em;}' +
                     'table.grilla td{border:1px solid #bbb;padding:6px 8px;vertical-align:top;background:#fff;}' +
-                    'table.grilla td.hora-cell{font-size:11pt;font-weight:800;white-space:nowrap;width:52px;text-align:center;}' +
-                    'table.grilla td.pac-cell .pac{font-size:10.5pt;font-weight:700;line-height:1.3;}' +
-                    'table.grilla td.pac-cell .srv{font-size:8pt;color:#555;margin-top:2px;}' +
                     'table.grilla td.empty-cell{background:#fafafa;}' +
                     '@media print{.no-print{display:none!important;}.card{page-break-inside:avoid;break-inside:avoid;}}';
 
-                var cardPend = function(r, i, tot){
-                    var det=(r.detalleSesion||'').trim(), det2=(r.detalleSesion2||'').trim(), box=fmtBox(r);
-                    var parts = ['<div class="card pend">','<div class="card-n">Próxima sesión '+(i+1)+' de '+tot+'</div>',
-                        '<div class="card-fecha">'+fmtF(r.fecha)+'</div>','<div class="card-hora">'+HE(r.hora||'—')+' hs</div>',
-                        '<div class="card-srv">'+HE(r.servicio||'—')+'</div>', box?'<div class="card-box">'+box+'</div>':''];
-                    if (det)  parts.push('<div class="card-det-lbl">Observaciones previas</div><div class="card-det">'+HE(det)+'</div>');
+                // ── Card unificada (pend / real / canc) ──
+                var cardSesion = function(ses, n, tot, nombre) {
+                    var r = ses.r, status = ses.status;
+                    var det  = (r.detalleSesion||'').trim();
+                    var det2 = (r.detalleSesion2||'').trim();
+                    var box  = fmtBox(r);
+                    var est  = (r.estado||r.status||'').toLowerCase();
+                    var statusLabel, dotColor;
+                    if (status==='pend') { statusLabel='PENDIENTE'; dotColor='#dc2626'; }
+                    else if (status==='canc') { statusLabel='CANCELADA'; dotColor='#888'; }
+                    else { statusLabel='REALIZADA'; dotColor='#1e5c3f'; }
+                    if (est==='reprogramado') statusLabel='REPROGRAMADA';
+                    var fechaHtml = r.fecha ? fmtF(r.fecha) : '<span style="color:#aaa;font-style:italic;">Sin fecha</span>';
+                    var parts = [
+                        '<div class="card '+status+'">',
+                        '<div class="card-pac">'+HE(nombre)+'</div>',
+                        '<div class="card-n">Sesión '+n+' de '+tot+' &nbsp;<span style="color:'+dotColor+';font-weight:800;">'+statusLabel+'</span></div>',
+                        '<div class="card-fecha">'+fechaHtml+'</div>',
+                        r.hora ? '<div class="card-hora">'+HE(r.hora)+' hs</div>' : '',
+                        '<div class="card-srv">'+HE(r.servicio||'—')+'</div>',
+                        box ? '<div class="card-box">'+box+'</div>' : ''
+                    ];
+                    if (det)  parts.push('<div class="card-det-lbl">'+(status==='pend'?'Observaciones previas':'Detalle de la sesión')+'</div><div class="card-det">'+HE(det)+'</div>');
                     if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det">'+HE(det2)+'</div>');
-                    parts.push('<div class="blank-lbl">Anotaciones de la sesión</div><div class="blank-ln"></div><div class="blank-ln"></div></div>');
-                    return parts.join('');
-                };
-                var cardReal = function(r, n, tot){
-                    var det=(r.detalleSesion||'').trim(), det2=(r.detalleSesion2||'').trim(), box=fmtBox(r);
-                    var est=(r.estado||r.status||'').toLowerCase();
-                    var badg = est==='cancelado' ? '<span class="estado-badge badge-canc">Cancelada</span>' : est==='reprogramado' ? '<span class="estado-badge badge-rep">Reprogramada</span>' : '';
-                    var parts = ['<div class="card real">','<div class="card-n">Sesión realizada '+n+' de '+tot+'</div>',
-                        '<div class="card-fecha">'+fmtF(r.fecha)+badg+'</div>','<div class="card-hora">'+HE(r.hora||'—')+' hs</div>',
-                        '<div class="card-srv">'+HE(r.servicio||'—')+'</div>', box?'<div class="card-box">'+box+'</div>':''];
-                    if (det)  parts.push('<div class="card-det-lbl">Detalle de la sesión</div><div class="card-det">'+HE(det)+'</div>');
-                    if (det2) parts.push('<div class="card-det-lbl">Nota adicional</div><div class="card-det">'+HE(det2)+'</div>');
-                    if (!det && !det2) parts.push('<div style="font-size:9pt;color:#aaa;margin-top:4px;font-style:italic;">Sin detalle registrado</div>');
+                    if (status==='pend') {
+                        parts.push('<div class="blank-lbl">Anotaciones de la sesión</div><div class="blank-ln"></div>');
+                    } else if (status==='real' && !det && !det2) {
+                        parts.push('<div style="font-size:9pt;color:#aaa;margin-top:4px;font-style:italic;">Sin detalle registrado</div>');
+                    }
                     parts.push('</div>');
                     return parts.join('');
-                };
-                var cardCanc = function(r, i){
-                    var box = fmtBox(r);
-                    return '<div class="card canc"><div class="card-n">Cancelada '+(i+1)+'</div>'+
-                        '<div class="card-fecha">'+fmtF(r.fecha)+' <span class="estado-badge badge-canc">Cancelada</span></div>'+
-                        '<div class="card-hora">'+HE(r.hora||'—')+' hs</div>'+
-                        '<div class="card-srv">'+HE(r.servicio||'—')+'</div>'+
-                        (box?'<div class="card-box">'+box+'</div>':'')+
-                        '</div>';
                 };
 
                 // ── Agenda: grilla por boxes (entra en 1 cara A4) ──
@@ -5768,60 +5732,78 @@
                     '<div class="sec-tit">Grilla del día — '+totalTurnos+' turno'+(totalTurnos!==1?'s':'')+'</div>' +
                     grillaHtml;
 
-                // ── Historiales por paciente ──
+                // ── Historiales por paciente — orden cronológico unificado ──
+                var _duplexMode = document.getElementById('pj-duplex') && document.getElementById('pj-duplex').checked;
                 var patSecs = '';
-                patientData.forEach(function(pd){
-                    // Pendientes ordenadas por fecha+hora ascendente (más próxima primero)
-                    var pend = pd.pendientes.slice().sort(function(a,b){
-                        var ka=(a.fecha||'')+(a.hora||''), kb=(b.fecha||'')+(b.hora||'');
-                        return ka<kb?-1:ka>kb?1:0;
-                    });
-                    var real=pd.completadas, canc=pd.canceladas;
-                    var total = pend.length + real.length + canc.length;
+                patientData.forEach(function(pd, pdIdx){
+                    var allR = todasLasReservas.filter(function(x){ return _pjNombreKey(x) === pd.key; });
+                    // Edad: tomar del primer registro que la tenga
+                    var edadVal = null;
+                    allR.forEach(function(r){ if (!edadVal && r.edad) edadVal = r.edad; });
+                    var edadStr = edadVal ? (edadVal + ' años') : 'No registrado';
 
-                    var pendSec = '';
-                    if (pend.length) {
-                        pendSec = '<div class="sec-tit pend">Próximas Sesiones ('+pend.length+')</div>';
-                        pend.forEach(function(r,i){ pendSec += cardPend(r,i,pend.length); });
-                    }
-                    var realSec = '';
-                    if (real.length) {
-                        var byM = new Map();
-                        real.forEach(function(r){ var ym=(r.fecha||'').slice(0,7); if(!byM.has(ym))byM.set(ym,[]); byM.get(ym).push(r); });
-                        realSec = '<div class="sec-tit real">Sesiones Realizadas ('+real.length+')</div>';
-                        var nG = 0;
-                        byM.forEach(function(mes,ym){
-                            var pts=ym.split('-');
-                            realSec += '<div class="mes-hdr">'+HE((MESES_PDF[+pts[1]-1]||ym).toUpperCase()+' '+pts[0])+' — '+mes.length+' sesión'+(mes.length!==1?'es':'')+'</div>';
-                            mes.sort(function(a,b){ return (a.fecha||'')<(b.fecha||'') ? -1 : (a.fecha||'')>(b.fecha||'') ? 1 : (a.hora||'')<(b.hora||'') ? -1 : 1; })
-                               .forEach(function(r){ nG++; realSec += cardReal(r,nG,real.length); });
+                    // Secuencia cronológica unificada
+                    var allSes = [];
+                    allR.forEach(function(r) {
+                        var st = (r.estado||r.status||'').toLowerCase();
+                        var xDate = r.fecha || '';
+                        var xTime = r.hora || '';
+                        var isCancelled = st === 'cancelado';
+                        var xMs = xDate ? (new Date(xDate+'T00:00:00').getTime() +
+                            ((parseInt((xTime.split(':')[0])||0)*60 + parseInt((xTime.split(':')[1])||0)) * 60000)) : null;
+                        var isPending = !isCancelled && xMs !== null && now < xMs;
+                        allSes.push({
+                            r: r,
+                            sortKey: xDate ? (xDate+'T'+(xTime||'00:00')) : 'ZZZZ',
+                            status: isCancelled ? 'canc' : (isPending ? 'pend' : 'real')
                         });
-                    }
-                    var cancSec = '';
-                    if (canc.length) {
-                        cancSec = '<hr style="margin:12px 0;border:none;border-top:1px solid #ddd;"><div class="sec-tit canc">Sesiones Canceladas ('+canc.length+')</div>';
-                        canc.sort(function(a,b){ return (a.fecha||'')<(b.fecha||'') ? -1 : 1; }).forEach(function(r,i){ cancSec += cardCanc(r,i); });
-                    }
+                    });
+                    allSes.sort(function(a,b){
+                        if (a.sortKey==='ZZZZ'&&b.sortKey==='ZZZZ') return 0;
+                        if (a.sortKey==='ZZZZ') return 1;
+                        if (b.sortKey==='ZZZZ') return -1;
+                        return a.sortKey<b.sortKey?-1:a.sortKey>b.sortKey?1:0;
+                    });
 
-                    var divider = patSecs.length ? '<hr class="pac-div">' : '';
-                    patSecs += divider +
+                    var total = allSes.length;
+                    var nPend = allSes.filter(function(s){ return s.status==='pend'; }).length;
+                    var nReal = allSes.filter(function(s){ return s.status==='real'; }).length;
+                    var nCanc = allSes.filter(function(s){ return s.status==='canc'; }).length;
+
+                    var sesCards = '';
+                    allSes.forEach(function(ses, i){ sesCards += cardSesion(ses, i+1, total, pd.nombre); });
+
+                    // Cada paciente en página propia; doble cara: página extra entre pacientes
+                    var _duplexSep = (_duplexMode && pdIdx > 0)
+                        ? '<div style="page-break-before:always;break-before:always;height:0;margin:0;padding:0;"></div>' : '';
+                    patSecs += _duplexSep +
+                        '<div class="pat-start" data-pat-idx="'+pdIdx+'" data-pat-name="'+HE(pd.nombre)+'">' +
                         '<div class="pac-hdr">' +
                             '<div class="pac-name">'+HE(pd.nombre)+'</div>' +
-                            '<div class="pac-sub">Historial completo'+(pd.phone?' · '+HE(pd.phone):'')+'</div>' +
+                            '<div class="pac-info">'+HE(edadStr)+(pd.phone?' &nbsp;·&nbsp; '+HE(pd.phone):'')+'</div>' +
                         '</div>' +
-                        '<div class="resumen"><strong>Resumen del historial</strong>' +
-                            'Total: <strong>'+total+'</strong> &nbsp;·&nbsp; Realizadas: <strong>'+real.length+'</strong> &nbsp;·&nbsp; Próximas: <strong>'+pend.length+'</strong>' +
-                            (canc.length?' &nbsp;·&nbsp; Canceladas: <strong>'+canc.length+'</strong>':'') +
+                        '<div class="resumen">' +
+                            'Total de sesiones: <strong>'+total+'</strong> &nbsp;·&nbsp; ' +
+                            'Realizadas: <strong>'+nReal+'</strong> &nbsp;·&nbsp; ' +
+                            'Pendientes: <strong>'+nPend+'</strong>' +
+                            (nCanc?' &nbsp;·&nbsp; Canceladas: <strong>'+nCanc+'</strong>':'') +
                         '</div>' +
-                        (pendSec||'') +
-                        realSec +
-                        cancSec;
+                        sesCards +
+                        '</div>';
                 });
 
                 var _saveFn = 'function _savePdf(){' +
                     'var btn=document.getElementById("btn-sp");' +
                     'if(btn){btn.disabled=true;btn.textContent="Generando…";}' +
                     'var el=document.getElementById("pdf-main");' +
+                    // Measure patient section positions before rendering
+                    'var A4H=971;' + // content height px: (297-18-22)*96/25.4
+                    'var patMap=[];' +
+                    'el.querySelectorAll(".pat-start[data-pat-idx]").forEach(function(m){' +
+                        'var top=0,node=m;' +
+                        'while(node&&node!==el){top+=node.offsetTop;node=node.offsetParent;}' +
+                        'patMap.push({name:m.dataset.patName,startPage:Math.max(1,Math.floor(top/A4H)+1)});' +
+                    '});' +
                     'function run(){' +
                         'html2pdf().set({' +
                             'margin:[18,15,22,15],' +
@@ -5829,17 +5811,29 @@
                             'image:{type:"jpeg",quality:0.98},' +
                             'html2canvas:{scale:2,useCORS:true,logging:false},' +
                             'jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},' +
-                            'pagebreak:{mode:["css","legacy"],avoid:".card,.pac-hdr,.mes-hdr"}' +
+                            'pagebreak:{mode:["css","legacy"],avoid:".card,.pac-hdr"}' +
                         '}).from(el).toPdf().get("pdf").then(function(pdf){' +
                             'var tot=pdf.internal.getNumberOfPages();' +
+                            'for(var pi=0;pi<patMap.length;pi++){' +
+                                'patMap[pi].endPage=(pi<patMap.length-1)?patMap[pi+1].startPage-1:tot;' +
+                                'patMap[pi].tot=patMap[pi].endPage-patMap[pi].startPage+1;' +
+                            '}' +
                             'var pw=pdf.internal.pageSize.getWidth();' +
                             'var ph=pdf.internal.pageSize.getHeight();' +
                             'for(var i=1;i<=tot;i++){' +
                                 'pdf.setPage(i);' +
-                                'pdf.setFontSize(7.5);' +
-                                'pdf.setTextColor(150,150,150);' +
-                                'pdf.text("Espacio Mimar T  ·  Jornada ' + f + '",15,ph-7);' +
-                                'pdf.text("Pág. "+i+" / "+tot,pw-15,ph-7,{align:"right"});' +
+                                'pdf.setFontSize(7);' +
+                                'pdf.setTextColor(140,140,140);' +
+                                'var curPat=null;' +
+                                'for(var pi=patMap.length-1;pi>=0;pi--){if(i>=patMap[pi].startPage){curPat=patMap[pi];break;}}' +
+                                'if(curPat){' +
+                                    'var hoja=i-curPat.startPage+1;' +
+                                    'pdf.text("Espacio Mimar T  ·  "+curPat.name+"  ·  Jornada ' + f + '",15,ph-7);' +
+                                    'pdf.text("Hoja "+hoja+" de "+curPat.tot,pw-15,ph-7,{align:"right"});' +
+                                '} else {' +
+                                    'pdf.text("Espacio Mimar T  ·  Jornada ' + f + '",15,ph-7);' +
+                                    'pdf.text("Pág. "+i+" / "+tot,pw-15,ph-7,{align:"right"});' +
+                                '}' +
                             '}' +
                         '}).save().then(function(){' +
                             'if(btn){btn.disabled=false;btn.textContent="💾 Guardar como PDF";}' +
