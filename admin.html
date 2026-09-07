@@ -5824,13 +5824,24 @@
                     'var el=document.getElementById("pdf-main");' +
                     'function run(){' +
                         'html2pdf().set({' +
-                            'margin:[18,15,20,15],' +
+                            'margin:[18,15,22,15],' +
                             'filename:"jornada-' + f + '.pdf",' +
                             'image:{type:"jpeg",quality:0.98},' +
                             'html2canvas:{scale:2,useCORS:true,logging:false},' +
                             'jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},' +
                             'pagebreak:{mode:["css","legacy"],avoid:".card,.pac-hdr,.mes-hdr"}' +
-                        '}).from(el).save().then(function(){' +
+                        '}).from(el).toPdf().get("pdf").then(function(pdf){' +
+                            'var tot=pdf.internal.getNumberOfPages();' +
+                            'var pw=pdf.internal.pageSize.getWidth();' +
+                            'var ph=pdf.internal.pageSize.getHeight();' +
+                            'for(var i=1;i<=tot;i++){' +
+                                'pdf.setPage(i);' +
+                                'pdf.setFontSize(7.5);' +
+                                'pdf.setTextColor(150,150,150);' +
+                                'pdf.text("Espacio Mimar T  ·  Jornada ' + f + '",15,ph-7);' +
+                                'pdf.text("Pág. "+i+" / "+tot,pw-15,ph-7,{align:"right"});' +
+                            '}' +
+                        '}).save().then(function(){' +
                             'if(btn){btn.disabled=false;btn.textContent="💾 Guardar como PDF";}' +
                         '});' +
                     '}' +
