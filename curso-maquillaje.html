@@ -346,6 +346,10 @@
     .sesion-fecha { font-size: 1rem; font-weight: 500; line-height: 1.4; color: #e6f0de; }
     .sesion-hora { margin-top: 5px; font-size: .9375rem; line-height: 1.4; font-weight: 400; color: #c0d4ac; }
     .sesion-cap { margin-top: 6px; color: #b1c6ad; font-size: .8125rem; line-height: 1.5; }
+    .sesion-cap-urgente { color: #f0b429; font-weight: 700; }
+    .sesion-cap-completa { color: #d4796a; font-weight: 600; }
+    .sesion-card.sesion-completa { cursor: not-allowed; opacity: .55; }
+    .sesion-card.sesion-completa:hover { border-color: #36513c; background: #0e2116; }
 
     /* Se conservan los mismos estados ocultos, de éxito y de error. */
     #sesion-error { font-size: .9375rem !important; color: #bccdb7 !important; line-height: 1.65; }
@@ -533,14 +537,29 @@ const _fechaLinda = (iso) => {
 };
 
 // ── Cargar sesiones disponibles ──
+// La ocupación real (cuántas ya se inscribieron) sale de 'cursoMaquillaje',
+// igual criterio que Admin: toda inscripción que no esté cancelada cuenta.
 async function cargarSesiones() {
     try {
-        const snap = await getDocs(collection(db, 'cursoSesiones'));
+        const [sesSnap, insSnap] = await Promise.all([
+            getDocs(collection(db, 'cursoSesiones')),
+            getDocs(collection(db, 'cursoMaquillaje'))
+        ]);
+        const inscPorSesion = {};
+        insSnap.forEach(d => {
+            const c = d.data() || {};
+            if ((c.estado || 'inscripta') === 'cancelada') return;
+            inscPorSesion[c.sesionId] = (inscPorSesion[c.sesionId] || 0) + 1;
+        });
+
         _sesionesDisponibles = [];
         const hoy = new Date().toISOString().slice(0, 10);
-        snap.forEach(d => {
+        sesSnap.forEach(d => {
             const s = { id: d.id, ...d.data() };
-            if (s.activa && s.fecha >= hoy) _sesionesDisponibles.push(s);
+            if (!s.activa || s.fecha < hoy) return;
+            s.inscriptas = inscPorSesion[d.id] || 0;
+            s.restantes = Math.max(0, (s.capacidad || 10) - s.inscriptas);
+            _sesionesDisponibles.push(s);
         });
         _sesionesDisponibles.sort((a, b) => `${a.fecha}${a.horaInicio}`.localeCompare(`${b.fecha}${b.horaInicio}`));
         renderSesionesPicker();
@@ -548,6 +567,15 @@ async function cargarSesiones() {
         console.error(e);
         document.getElementById('sesiones-picker').innerHTML = '<div style="color:rgba(248,113,113,0.70);font-size:13px;text-align:center;padding:16px;">Error al cargar fechas disponibles.</div>';
     }
+}
+
+// Nunca mostramos el número total de lugares (ni "quedan 8"): solo un aviso
+// genérico, salvo cuando realmente queda 1 o 2 — ahí sí conviene la urgencia.
+function _etiquetaCupos(restantes) {
+    if (restantes <= 0) return { texto: 'Sesión completa', clase: 'completa' };
+    if (restantes === 1) return { texto: 'Último lugar', clase: 'urgente' };
+    if (restantes === 2) return { texto: 'Últimos 2 lugares', clase: 'urgente' };
+    return { texto: 'Cupos limitados', clase: '' };
 }
 
 function renderSesionesPicker() {
@@ -559,23 +587,28 @@ function renderSesionesPicker() {
         return;
     }
     if (errDiv) errDiv.style.display = 'none';
-    cont.innerHTML = _sesionesDisponibles.map(s => `
-        <div class="sesion-card" id="sc-${s.id}" onclick="seleccionarSesion('${s.id}')">
+    cont.innerHTML = _sesionesDisponibles.map(s => {
+        const cupos = _etiquetaCupos(s.restantes);
+        const completa = s.restantes <= 0;
+        return `
+        <div class="sesion-card${completa ? ' sesion-completa' : ''}" id="sc-${s.id}" ${completa ? '' : `onclick="seleccionarSesion('${s.id}')"`}>
             <div class="sesion-radio"><div class="sesion-radio-dot"></div></div>
             <div class="sesion-info">
                 <div class="sesion-fecha">${_fechaLinda(s.fecha)}</div>
                 <div class="sesion-hora">🕐 ${s.horaInicio} – ${s.horaFin} hs</div>
-                <div class="sesion-cap">${s.capacidad || 10} lugares disponibles</div>
+                <div class="sesion-cap${cupos.clase ? ' sesion-cap-' + cupos.clase : ''}">${cupos.texto}</div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 
     const continuar = `<button onclick="continuarConSesion()" style="width:100%;margin-top:6px;padding:13px;background:linear-gradient(135deg,rgba(236,72,153,0.80),rgba(190,24,93,0.90));border:none;border-radius:13px;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;opacity:0.4;transition:opacity .2s;" id="btn-continuar-sesion" disabled>Continuar →</button>`;
     cont.insertAdjacentHTML('beforeend', continuar);
 }
 
 window.seleccionarSesion = function(id) {
-    _sesionSeleccionada = _sesionesDisponibles.find(s => s.id === id) || null;
+    const sesion = _sesionesDisponibles.find(s => s.id === id) || null;
+    if (!sesion || sesion.restantes <= 0) return;
+    _sesionSeleccionada = sesion;
     document.querySelectorAll('.sesion-card').forEach(c => c.classList.remove('seleccionada'));
     const card = document.getElementById(`sc-${id}`);
     if (card) card.classList.add('seleccionada');

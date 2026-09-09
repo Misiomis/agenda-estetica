@@ -310,19 +310,16 @@
 <div id="modalOk">
     <div class="modal-content">
         <h2>Reserva confirmada</h2>
-        <p>Tu turno fue registrado. Te vamos a avisar por WhatsApp.</p>
+        <p>Tu turno fue registrado. Nuestro equipo te confirma por WhatsApp a la brevedad.</p>
         <button class="btn-confirmar" onclick="window.location.href='index.html'">Finalizar</button>
     </div>
 </div>
 
 <script type="module">
 import {
-    db, doc, getDoc, collection, query, where, getDocs,
+    db, doc, collection, query, where, getDocs,
     runTransaction, serverTimestamp
 } from "/js/firebase-web.js";
-
-// ── Endpoints ────────────────────────────────────────────────────────────────
-const CF_CONFIRMAR_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarConfirmacionTurno";
 
 // ── Referencias DOM ───────────────────────────────────────────────────────────
 const btn    = document.getElementById("btnEjecutar");
@@ -379,45 +376,6 @@ window.validarDuo = function () {
         .every(id => document.getElementById(id).value.trim() !== "");
     btn.disabled = !ok;
 };
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-// Obtiene telefono de un cliente por DNI desde Firestore
-async function obtenerTelefono(dniCliente) {
-    if (!dniCliente) return "";
-    try {
-        const snap = await getDoc(doc(db, "clients", String(dniCliente).replace(/\D/g, "")));
-        if (snap.exists()) {
-            const d = snap.data();
-            return d.phone || d.telefono || d.whatsapp || "";
-        }
-    } catch (_) {}
-    return "";
-}
-
-// Envia confirmacion via Cloud Function (plantilla turno_confirmado de Meta)
-async function enviarConfirmacionWhatsApp({ telefono, nombrePaciente, dniPaciente }) {
-    try {
-        const resp = await fetch(CF_CONFIRMAR_URL, {
-            method:  "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                nombre:   nombrePaciente,
-                servicio: servicio,
-                fecha:    fecha,
-                hora:     hora + " hs",
-                telefono: telefono || undefined,
-                dni:      dniPaciente || undefined,
-                descontarBalance: false
-            })
-        });
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) console.warn("CF respuesta no-ok:", data);
-    } catch (e) {
-        console.warn("enviarConfirmacionWhatsApp:", e.message);
-        // No bloquear el flujo si falla el envio de WA
-    }
-}
 
 // ── Confirmar reserva ─────────────────────────────────────────────────────────
 btn.addEventListener("click", async () => {
@@ -500,19 +458,8 @@ btn.addEventListener("click", async () => {
             }
         });
 
-        status.textContent = "Enviando confirmacion...";
-
-        // Notificaciones por WhatsApp (no bloquean el flujo)
-        const telPrincipal = localStorage.getItem("clientePhoneIngresado") || await obtenerTelefono(dni);
-        await enviarConfirmacionWhatsApp({ telefono: telPrincipal, nombrePaciente: nombre, dniPaciente: dni });
-
-        if (esDuo) {
-            const dni2 = document.getElementById("duoDni2").value.trim();
-            const nom2 = document.getElementById("duoNombre2").value.trim();
-            const tel2 = await obtenerTelefono(dni2);
-            await enviarConfirmacionWhatsApp({ telefono: tel2, nombrePaciente: nom2, dniPaciente: dni2 });
-        }
-
+        // La confirmación por WhatsApp ya no se dispara automáticamente al
+        // guardar la reserva: nuestro equipo la envía manualmente desde Admin.
         document.getElementById("modalOk").style.display = "flex";
 
     } catch (e) {

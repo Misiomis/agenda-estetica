@@ -178,12 +178,12 @@
             <p>Fecha y hora: <strong><span id="txtFecha">-</span> a las <span id="txtHora">-</span></strong></p>
         </div>
 
-        <label class="label" for="telefonos">Números de WhatsApp para aviso</label>
+        <label class="label" for="telefonos">Teléfono/s de contacto</label>
         <textarea id="telefonos" placeholder="Ejemplo: 5491122334455, 5491166677788"></textarea>
-        <div class="hint">Podes cargar uno o varios números separados por coma.</div>
+        <div class="hint">Podes cargar uno o varios números separados por coma. Nuestro equipo confirma el turno por WhatsApp a la brevedad.</div>
 
         <div id="status" class="status"></div>
-        <button id="btnConfirmar" class="btn" type="button">Confirmar y enviar aviso por WhatsApp</button>
+        <button id="btnConfirmar" class="btn" type="button">Confirmar turno</button>
     </div>
 
     <div id="modalOk">
@@ -287,31 +287,6 @@
             }
         }
 
-        async function enviarWhatsApp(destinos) {
-            let ok = 0;
-            let fail = 0;
-            const warnings = new Set();
-
-            for (const [index, telefono] of destinos.entries()) {
-                const resultado = await ejecutarConfirmacionBackend({
-                    telefono,
-                    descontarBalance: index === 0 && !!dniLs,
-                    omitirWhatsapp: false
-                });
-
-                if (!resultado.ok) {
-                    if (index === 0 && dniLs) warnings.add("balance_update_failed");
-                    fail += 1;
-                    continue;
-                }
-
-                (resultado.data?.warnings || []).forEach((w) => warnings.add(w));
-                if (resultado.data?.whatsappSent) ok += 1;
-                else fail += 1;
-            }
-            return { ok, fail, warnings: Array.from(warnings) };
-        }
-
         async function confirmarTurnoJornada() {
             btnConfirmar.disabled = true;
             btnConfirmar.textContent = "Procesando...";
@@ -384,16 +359,15 @@
                     }
                 });
 
-                let resumen = "Turno confirmado.";
-                if (telefonos.length) {
-                    setStatus("Enviando avisos por WhatsApp...");
-                    const { ok, warnings } = await enviarWhatsApp(telefonos);
-                    resumen = ok > 0 ? "Mensaje enviado." : "Turno confirmado.";
-                    if (warnings.some(w => w.includes("balance"))) console.warn("Revisar balance:", warnings);
-                } else {
-                    await ejecutarConfirmacionBackend({ descontarBalance: !!dniLs, omitirWhatsapp: true });
-                    resumen = "Turno confirmado.";
+                // La confirmación por WhatsApp ya no se dispara automáticamente
+                // al guardar la reserva; nuestro equipo la envía manualmente
+                // desde Admin. Esta llamada solo conserva el descuento de
+                // hoursBalance cuando corresponde.
+                const resultadoBalance = await ejecutarConfirmacionBackend({ descontarBalance: !!dniLs, omitirWhatsapp: true });
+                if (!resultadoBalance.ok || (resultadoBalance.data?.warnings || []).some(w => w.includes("balance"))) {
+                    console.warn("Revisar balance:", resultadoBalance.data?.warnings || resultadoBalance.error);
                 }
+                const resumen = "Turno confirmado.";
 
                 document.getElementById("resultadoFinal").textContent = resumen;
                 document.getElementById("modalOk").style.display = "flex";

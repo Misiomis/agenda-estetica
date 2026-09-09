@@ -145,7 +145,7 @@
       keywords: ['turno', 'reservar', 'reserva', 'agendar', 'agenda', 'cita', 'sacar turno',
                  'pedir turno', 'disponibilidad', 'fecha', 'horario', 'como reservo',
                  'cómo reservo', 'cuando puedo', 'cuándo puedo'],
-      answer: '📅 Podés agendar acá mismo desde la web — el sistema muestra disponibilidad <strong>en tiempo real</strong>. Una vez que elijas el horario, te llega la confirmación por WhatsApp. ¿Necesitás ayuda para empezar?'
+      answer: '📅 Podés agendar acá mismo desde la web — el sistema muestra disponibilidad <strong>en tiempo real</strong>. Una vez que elijas el horario, nuestro equipo te confirma por WhatsApp. ¿Necesitás ayuda para empezar?'
     },
     {
       id: 'sabados',
@@ -159,14 +159,14 @@
                  'mensaje confirmacion', 'me llega', 'te llega', 'aviso',
                  'notificacion', 'notificación', 'reservé', 'reserve',
                  'no me llego', 'no me llegó'],
-      answer: '📩 Una vez que confirmás en la web te llega un <strong>mensaje automático en tu WhatsApp</strong> con todos los detalles del turno. Si no te llegó, verificá que el número en tu ficha sea el correcto.'
+      answer: '📩 Una vez que confirmás en la web, <strong>nuestro equipo te confirma por WhatsApp</strong> con todos los detalles del turno. Si no te llegó, escribinos y lo confirmamos al toque.'
     },
     {
       id: 'cancelar',
       keywords: ['cancelar', 'cancelacion', 'cancelación', 'reprogramar', 'cambiar turno',
                  'anular', 'no puedo ir', 'no voy a poder', 'cambiar fecha',
                  'cambiar horario', 'modificar turno'],
-      answer: '⚠️ Podés cancelar un turno directamente desde la sección <strong>"Mis Próximos Turnos"</strong> en la web. Es necesario <strong>justificar el motivo</strong> — se notifica a Gimena automáticamente. Al cancelar, se te <strong>devuelve 1 hora de saldo</strong> a tu cuenta. Cancelá con anticipación para que otro paciente pueda tomar ese horario.'
+      answer: '⚠️ Podés cancelar un turno directamente desde la sección <strong>"Mis Próximos Turnos"</strong> en la web. Es necesario <strong>justificar el motivo</strong>. Al cancelar, se te <strong>devuelve 1 hora de saldo</strong> a tu cuenta. Cancelá con anticipación para que otro paciente pueda tomar ese horario.'
     },
     {
       id: 'ver_turnos',
@@ -216,7 +216,7 @@
       keywords: ['donde', 'dónde', 'ubicacion', 'ubicación', 'direccion', 'dirección',
                  'lugar', 'queda', 'andresito', 'mapa', 'como llego', 'cómo llego',
                  'donde estan', 'dónde están', 'donde queda', 'dónde queda'],
-      answer: '📍 Estamos en <strong>Comandante Andresito, Misiones</strong>. Al confirmar tu turno, el sistema te envía la dirección exacta por WhatsApp para que llegues sin problema.'
+      answer: '📍 Estamos en <strong>Comandante Andresito, Misiones</strong>. Al confirmar tu turno por WhatsApp te pasamos la dirección exacta para que llegues sin problema.'
     },
     {
       id: 'whatsapp',
@@ -354,11 +354,11 @@ El pago se coordina directamente con Gimena. Se solicita desde la sección de se
 Paso 1 → Identificación en index.html (nombre + DNI)
 Paso 2 → Selección de servicio en servicios.html
 Paso 3 → Elección de fecha y hora en fecha.html (miembros) o fechaocasional.html (ocasionales)
-Paso 4 → Confirmación en confirmar.html → WhatsApp automático con los detalles
+Paso 4 → Confirmación en confirmar.html → el equipo confirma por WhatsApp con los detalles (no es automático, lo manda una persona)
 
 # POLÍTICA DE CANCELACIÓN
 - El paciente puede cancelar directamente desde servicios.html → "Mis Próximos Turnos"
-- Cancelar requiere justificar el motivo (obligatorio) — se notifica a Gimena automáticamente
+- Cancelar requiere justificar el motivo (obligatorio)
 - Al cancelar se devuelve 1 hoursBalance (hora de saldo) al paciente
 - El horario cancelado vuelve a estar disponible para otros pacientes
 
@@ -376,7 +376,7 @@ Pacientes con membresía activa acceden a fecha.html directamente. Las no-miembr
 - servicios.html: selección de servicio, mis turnos, cancelación, kit facial
 - fecha.html: selección de fecha y hora (solo miembros)
 - fechaocasional.html: selección de fecha y hora (pacientes ocasionales)
-- confirmar.html: confirmación final → WhatsApp automático
+- confirmar.html: confirmación final → el equipo confirma por WhatsApp manualmente
 - politica.html: política de cancelación completa
 - historia.html: historia clínica del paciente
 - servicioincluido.html: detalle de qué incluye cada sesión

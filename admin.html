@@ -989,6 +989,272 @@
             .gcb-ico { font-size: 11px; }
             .gcb-txt { font-size: 7px; }
         }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           MIS CURSOS — tema propio (grafito + verde esmeralda), aislado del
+           resto de Admin. Toda la paleta vive en estas variables scoped a
+           #sec-cursos; nada de acá se filtra a otras secciones y nada de otras
+           secciones puede pisar esto (ver justificación de contraste en cada
+           color más abajo).
+           ═══════════════════════════════════════════════════════════════════ */
+        #sec-cursos {
+            --cm-fondo: #0B1110;
+            --cm-tarjeta: #14201C;
+            --cm-tarjeta-hover: #182821;
+            --cm-campo: #0B1512;
+            --cm-borde: #2B443A;
+            --cm-borde-fuerte: #3c5c4e;
+            --cm-acento: #38D9A9;
+            --cm-acento-fuerte: #2bb98f;
+            --cm-on-acento: #06291F;
+            --cm-texto: #F2F7F4;
+            --cm-texto-sec: #B5C8BD;
+            --cm-warn: #f0b429;
+            --cm-danger: #e5675a;
+            --cm-danger-bg: rgba(229,103,90,0.12);
+            --cm-danger-bd: rgba(229,103,90,0.34);
+            font-size: 16px;
+            color: var(--cm-texto);
+        }
+        #sec-cursos .cm-card {
+            background: var(--cm-tarjeta);
+            border: 1px solid var(--cm-borde);
+            border-radius: 16px;
+        }
+        #sec-cursos .cm-field {
+            width: 100%;
+            background: var(--cm-campo);
+            border: 1px solid var(--cm-borde);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: var(--cm-texto);
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+            box-sizing: border-box;
+            min-height: 44px;
+        }
+        #sec-cursos .cm-field:focus { border-color: var(--cm-acento); }
+        #sec-cursos .cm-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            color: var(--cm-texto-sec);
+            margin-bottom: 6px;
+        }
+        #sec-cursos .cm-eyebrow {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--cm-acento);
+            opacity: .85;
+        }
+        #sec-cursos .cm-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 44px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--cm-borde);
+            background: transparent;
+            color: var(--cm-texto-sec);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: border-color .15s, background .15s, color .15s;
+        }
+        #sec-cursos .cm-btn:hover { border-color: var(--cm-borde-fuerte); color: var(--cm-texto); }
+        #sec-cursos .cm-btn-primary {
+            background: var(--cm-acento);
+            border-color: var(--cm-acento);
+            color: var(--cm-on-acento);
+        }
+        #sec-cursos .cm-btn-primary:hover { background: var(--cm-acento-fuerte); border-color: var(--cm-acento-fuerte); }
+        #sec-cursos .cm-btn-ghost { background: rgba(56,217,169,0.08); border-color: rgba(56,217,169,0.28); color: var(--cm-acento); }
+        #sec-cursos .cm-btn-danger { background: var(--cm-danger-bg); border-color: var(--cm-danger-bd); color: var(--cm-danger); }
+        #sec-cursos .cm-btn-sm { min-height: 40px; padding: 8px 12px; font-size: 13px; }
+        #sec-cursos .cm-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+            border: 1px solid var(--cm-borde);
+            color: var(--cm-texto-sec);
+            white-space: nowrap;
+        }
+        #sec-cursos .cm-pill-acento { background: rgba(56,217,169,0.14); border-color: rgba(56,217,169,0.36); color: var(--cm-acento); }
+        #sec-cursos .cm-pill-warn { background: rgba(240,180,41,0.14); border-color: rgba(240,180,41,0.36); color: var(--cm-warn); }
+        #sec-cursos .cm-pill-danger { background: var(--cm-danger-bg); border-color: var(--cm-danger-bd); color: var(--cm-danger); }
+        #sec-cursos .cm-muted { color: var(--cm-texto-sec); }
+
+        /* Encabezado + navegación */
+        #sec-cursos .cm-header-title { font-family:'Playfair Display',serif; font-size: 1.3em; margin: 0; color: var(--cm-texto); line-height: 1.25; }
+        #sec-cursos .cm-header-sub { margin: 6px 0 0; font-size: 13px; color: var(--cm-texto-sec); }
+        #sec-cursos .cm-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--cm-campo);
+            border: 1px solid var(--cm-borde);
+            border-radius: 12px;
+            padding: 4px;
+        }
+        #sec-cursos .cm-tab {
+            flex: 1;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border-radius: 9px;
+            border: none;
+            background: transparent;
+            color: var(--cm-texto-sec);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        #sec-cursos .cm-tab.activa { background: var(--cm-acento); color: var(--cm-on-acento); }
+
+        /* Formulario "+ Nueva fecha" colapsable */
+        #sec-cursos .cm-nueva-toggle {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 48px;
+        }
+        #sec-cursos details.cm-nueva { margin-bottom: 16px; }
+        #sec-cursos details.cm-nueva[open] .cm-nueva-toggle { display: none; }
+        #sec-cursos details.cm-nueva:not([open]) .cm-nueva-body { display: none; }
+        #sec-cursos .cm-nueva-body {
+            margin-top: 12px;
+            padding: 16px;
+        }
+        #sec-cursos .cm-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 480px) {
+            #sec-cursos .cm-grid-2 { grid-template-columns: 1fr; }
+        }
+
+        /* Tarjetas de sesión */
+        #sec-cursos .cm-fecha-header {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--cm-texto);
+            margin: 0 0 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--cm-borde);
+        }
+        #sec-cursos .cm-sesion-card { padding: 16px; margin-bottom: 12px; }
+        #sec-cursos .cm-sesion-top {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        #sec-cursos .cm-sesion-hora { font-size: 16px; font-weight: 800; color: var(--cm-acento); }
+        #sec-cursos .cm-ocupacion-texto { font-size: 13px; color: var(--cm-texto-sec); margin-bottom: 6px; }
+        #sec-cursos .cm-barra { height: 6px; border-radius: 99px; background: var(--cm-campo); overflow: hidden; }
+        #sec-cursos .cm-barra-fill { height: 100%; border-radius: 99px; transition: width .3s; }
+        #sec-cursos .cm-nota-preview {
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--cm-texto-sec);
+            background: var(--cm-campo);
+            border: 1px solid var(--cm-borde);
+            border-radius: 10px;
+            padding: 10px 12px;
+            cursor: pointer;
+        }
+        #sec-cursos .cm-acciones-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+        /* "Más acciones" — <details> nativo: teclado y touch gratis */
+        #sec-cursos details.cm-more { position: relative; }
+        #sec-cursos details.cm-more summary {
+            list-style: none;
+            cursor: pointer;
+        }
+        #sec-cursos details.cm-more summary::-webkit-details-marker { display: none; }
+        #sec-cursos details.cm-more .cm-more-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
+            z-index: 20;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px;
+            background: var(--cm-tarjeta);
+            border: 1px solid var(--cm-borde-fuerte);
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+        }
+        #sec-cursos details.cm-more .cm-more-menu button {
+            width: 100%;
+            justify-content: flex-start;
+            border: none;
+            background: transparent;
+        }
+        #sec-cursos details.cm-more .cm-more-menu button:hover { background: rgba(255,255,255,0.06); }
+
+        /* Historial colapsable */
+        #sec-cursos details.cm-historial > summary {
+            list-style: none;
+            cursor: pointer;
+            min-height: 48px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--cm-texto-sec);
+        }
+        #sec-cursos details.cm-historial > summary::-webkit-details-marker { display: none; }
+        #sec-cursos details.cm-historial > summary::before { content: '▸'; color: var(--cm-acento); transition: transform .15s; }
+        #sec-cursos details.cm-historial[open] > summary::before { transform: rotate(90deg); }
+
+        /* Tarjetas de inscriptas */
+        #sec-cursos .cm-alumna-card { padding: 18px; margin-bottom: 10px; }
+        #sec-cursos .cm-alumna-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+        #sec-cursos .cm-alumna-nombre { font-size: 16px; font-weight: 700; color: var(--cm-texto); flex: 1; min-width: 120px; }
+        #sec-cursos .cm-datos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 6px 12px;
+            font-size: 13px;
+            color: var(--cm-texto-sec);
+            margin-bottom: 10px;
+        }
+
+        /* Grupo "Sin sesión asignada" — usa el color de advertencia real */
+        #sec-cursos .cm-sin-sesion-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 10px 4px;
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 640px) {
+            #sec-cursos .cm-tabs { flex-wrap: wrap; }
+            #sec-cursos .cm-tab { min-width: 100%; }
+            #sec-cursos .cm-datos-grid { grid-template-columns: 1fr 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -1621,67 +1887,69 @@
             <div id="sec-cursos" class="section">
 
                 <!-- Header + tabs -->
-                <div class="detalle-dia-card" style="margin-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none;">
+                <div class="cm-card" style="padding:18px 20px;margin-bottom:12px;display:flex;flex-direction:column;gap:14px;">
+                    <div>
+                        <h3 class="cm-header-title">💄 Curso de Automaquillaje</h3>
+                        <p class="cm-header-sub">Dictado por Gimena · Inscriptas desde la web</p>
+                    </div>
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                        <!-- Título -->
-                        <div style="flex:1;min-width:0;">
-                            <h3 style="margin:0 0 2px;font-family:'Playfair Display',serif;font-size:1.10em;color:rgba(168,190,120,0.95);">💄 Curso de Automaquillaje</h3>
-                            <p style="margin:0;font-size:11.5px;color:rgba(165,205,188,0.45);">Dictado por Gimena · Inscriptas desde la web</p>
+                        <div class="cm-tabs" style="flex:1;min-width:220px;">
+                            <button id="tab-sesiones-btn" class="cm-tab activa" onclick="mostrarTabCurso('sesiones')">📅 Sesiones</button>
+                            <button id="tab-inscriptas-btn" class="cm-tab" onclick="mostrarTabCurso('inscriptas')">👥 Inscriptas</button>
                         </div>
-                        <!-- Pills de navegación -->
-                        <div style="display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:3px;">
-                            <button id="tab-sesiones-btn" onclick="mostrarTabCurso('sesiones')" style="padding:6px 14px;border-radius:8px;border:none;background:rgba(168,190,120,0.18);color:rgba(168,190,120,0.95);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">📅 Sesiones</button>
-                            <button id="tab-inscriptas-btn" onclick="mostrarTabCurso('inscriptas')" style="padding:6px 14px;border-radius:8px;border:none;background:transparent;color:rgba(165,205,188,0.55);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">👥 Inscriptas</button>
-                        </div>
-                        <!-- Actualizar -->
-                        <button class="btn-mini" onclick="cargarCursos()" style="padding:7px 13px;background:rgba(168,190,120,0.10);border-color:rgba(168,190,120,0.30);color:rgba(168,190,120,0.80);font-size:12px;flex-shrink:0;">↻ Actualizar</button>
+                        <button class="cm-btn cm-btn-sm" onclick="cargarCursos()">↻ Actualizar</button>
                     </div>
                 </div>
 
                 <!-- Panel: Sesiones -->
-                <div id="panel-sesiones-curso" class="detalle-dia-card" style="border-top-left-radius:0;border-top-right-radius:0;border-top:none;margin-bottom:12px;">
-                    <p style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(168,190,120,0.45);margin:0 0 14px;">Agenda de sesiones</p>
-                    <!-- Form nueva sesión -->
-                    <div style="background:rgba(168,190,120,0.05);border:1px solid rgba(168,190,120,0.16);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
-                        <p style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(168,190,120,0.50);margin:0 0 12px;">+ Nueva sesión</p>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-                            <div>
-                                <label style="display:block;font-size:11px;color:rgba(165,205,188,0.55);margin-bottom:4px;">Fecha</label>
-                                <input type="date" id="ns-fecha" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:9px 12px;color:rgba(220,242,232,0.90);font-size:13px;outline:none;">
+                <div id="panel-sesiones-curso" class="cm-card" style="padding:18px 20px;margin-bottom:12px;">
+                    <p class="cm-eyebrow" style="margin:0 0 14px;">Agenda de sesiones</p>
+
+                    <!-- Form nueva fecha, colapsado por defecto -->
+                    <details class="cm-nueva" id="cm-nueva-fecha">
+                        <summary class="cm-nueva-toggle cm-btn cm-btn-ghost">+ Nueva fecha</summary>
+                        <div class="cm-card cm-nueva-body">
+                            <div style="margin-bottom:12px;">
+                                <label class="cm-label" for="ns-fecha">Fecha</label>
+                                <input type="date" id="ns-fecha" class="cm-field">
                             </div>
-                            <div>
-                                <label style="display:block;font-size:11px;color:rgba(165,205,188,0.55);margin-bottom:4px;">Capacidad (lugares)</label>
-                                <input type="number" id="ns-cap" value="10" min="1" max="100" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:9px 12px;color:rgba(220,242,232,0.90);font-size:13px;outline:none;">
+                            <div class="cm-grid-2" style="margin-bottom:12px;">
+                                <div>
+                                    <label class="cm-label" for="ns-inicio">Hora inicio</label>
+                                    <input type="time" id="ns-inicio" class="cm-field">
+                                </div>
+                                <div>
+                                    <label class="cm-label" for="ns-fin">Hora fin</label>
+                                    <input type="time" id="ns-fin" class="cm-field">
+                                </div>
+                            </div>
+                            <div style="margin-bottom:14px;">
+                                <label class="cm-label" for="ns-cap">Capacidad (lugares)</label>
+                                <input type="number" id="ns-cap" value="10" min="1" max="100" class="cm-field">
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <button onclick="agregarSesionCurso()" class="cm-btn cm-btn-primary" style="flex:1;min-width:160px;">Crear fecha</button>
+                                <button onclick="document.getElementById('cm-nueva-fecha').open=false" class="cm-btn">Cerrar</button>
                             </div>
                         </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-                            <div>
-                                <label style="display:block;font-size:11px;color:rgba(165,205,188,0.55);margin-bottom:4px;">Hora inicio</label>
-                                <input type="time" id="ns-inicio" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:9px 12px;color:rgba(220,242,232,0.90);font-size:13px;outline:none;">
-                            </div>
-                            <div>
-                                <label style="display:block;font-size:11px;color:rgba(165,205,188,0.55);margin-bottom:4px;">Hora fin</label>
-                                <input type="time" id="ns-fin" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:9px 12px;color:rgba(220,242,232,0.90);font-size:13px;outline:none;">
-                            </div>
-                        </div>
-                        <button onclick="agregarSesionCurso()" style="width:100%;padding:11px;background:linear-gradient(135deg,rgba(168,190,120,0.80),rgba(111,138,74,0.90));border:none;border-radius:10px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">Crear sesión</button>
-                    </div>
+                    </details>
+
                     <!-- Lista de sesiones -->
                     <div id="sesiones-lista" style="display:flex;flex-direction:column;gap:10px;">
-                        <div style="text-align:center;padding:20px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando sesiones...</div>
+                        <div class="cm-muted" style="text-align:center;padding:20px;font-size:14px;">Cargando sesiones...</div>
                     </div>
                 </div>
 
                 <!-- Panel: Inscriptas -->
-                <div id="panel-inscriptas-curso" class="detalle-dia-card" style="display:none;border-top-left-radius:0;border-top-right-radius:0;border-top:none;margin-bottom:12px;">
+                <div id="panel-inscriptas-curso" class="cm-card" style="display:none;padding:18px 20px;margin-bottom:12px;">
                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-                        <button class="btn-mini" id="filtro-cursos-todos" onclick="filtrarCursos('todos')" style="background:rgba(168,190,120,0.15);border-color:rgba(168,190,120,0.40);color:rgba(168,190,120,0.90);">Todas</button>
-                        <button class="btn-mini" id="filtro-cursos-inscripta" onclick="filtrarCursos('inscripta')">Inscriptas</button>
-                        <button class="btn-mini" id="filtro-cursos-presente" onclick="filtrarCursos('presente')">Presentes</button>
-                        <button class="btn-mini" id="filtro-cursos-cancelada" onclick="filtrarCursos('cancelada')">Canceladas</button>
+                        <button class="cm-btn cm-btn-sm cm-btn-ghost" id="filtro-cursos-todos" onclick="filtrarCursos('todos')">Todas</button>
+                        <button class="cm-btn cm-btn-sm" id="filtro-cursos-inscripta" onclick="filtrarCursos('inscripta')">Inscriptas</button>
+                        <button class="cm-btn cm-btn-sm" id="filtro-cursos-presente" onclick="filtrarCursos('presente')">Presentes</button>
+                        <button class="cm-btn cm-btn-sm" id="filtro-cursos-cancelada" onclick="filtrarCursos('cancelada')">Canceladas</button>
                     </div>
                     <div id="cursos-lista" style="display:flex;flex-direction:column;gap:12px;">
-                        <div style="text-align:center;padding:24px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando inscriptas...</div>
+                        <div class="cm-muted" style="text-align:center;padding:24px;font-size:14px;">Cargando inscriptas...</div>
                     </div>
                 </div>
 
@@ -2973,6 +3241,18 @@
             }
         }
         
+        // El backend exige un token de operadora admin valido para mandar
+        // cualquier WhatsApp que no sea el aviso automático a Gimena — este
+        // helper adjunta ese token a cada fetch de envío manual.
+        async function headersConAuthAdmin() {
+            const headers = { "Content-Type": "application/json" };
+            try {
+                const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+                if (token) headers.Authorization = `Bearer ${token}`;
+            } catch (e) { console.warn("No se pudo obtener el token de admin:", e); }
+            return headers;
+        }
+
         let _enviarWBusy = false;
         window.enviarW = async (tel, nombre, fecha, hora, servicio, accion) => {
             if (_enviarWBusy) return;
@@ -2982,7 +3262,7 @@
             try {
                 const resp = await fetch(CF_CONFIRMACION_URL, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: await headersConAuthAdmin(),
                     body: JSON.stringify({
                         telefono: num,
                         nombre,
@@ -2993,17 +3273,20 @@
                         omitirWhatsapp: false
                     })
                 });
-                if (resp.ok) {
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok && data.whatsappSent) {
                     const etiqueta = accion === 'recordar'
                         ? 'Recordatorio'
                         : accion === 'cancelar'
                             ? 'Mensaje'
                             : 'WhatsApp';
                     mostrarAviso(`${etiqueta} enviado a ${nombre}`);
+                } else if (resp.ok) {
+                    console.warn("WA no enviado:", data);
+                    mostrarAviso("No se pudo confirmar tu sesión de admin para enviar el WhatsApp. Recargá la página e intentá de nuevo.");
                 } else {
-                    const err = await resp.json().catch(() => ({}));
-                    console.error("WA error:", err);
-                    mostrarAviso(`Error: ${extraerMensajeErrorWhatsApp(err, String(resp.status))}`);
+                    console.error("WA error:", data);
+                    mostrarAviso(`Error: ${extraerMensajeErrorWhatsApp(data, String(resp.status))}`);
                 }
             } catch (e) {
                 console.error("WA exception:", e);
@@ -5156,15 +5439,6 @@
                 await setDoc(doc(db, "clients", dni), payload, { merge: true });
                 dniClienteCargado = dni;
 
-                // Enviar plantilla de bienvenida por WhatsApp si es un paciente nuevo
-                if (esPacienteNuevo) {
-                    fetch(CF_BIENVENIDA_URL, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ telefono: phone, nombre: fullName, dni })
-                    }).catch((error) => console.error("No se pudo enviar la bienvenida por WhatsApp:", error));
-                }
-
                 // Actualizar lista en memoria sin necesidad de recargar todo
                 const idx = todasLosPacientes.findIndex(p => p.dni === dni);
                 const entradaActualizada = {
@@ -5187,6 +5461,25 @@
 
                 mostrarAviso(`Paciente "${fullName}" guardado ✓`);
                 limpiarFormularioCliente();
+
+                // La bienvenida por WhatsApp ya no es automática — requiere que
+                // la admin la autorice explícitamente para este envío puntual.
+                if (esPacienteNuevo && phone) {
+                    if (confirm(`¿Enviar mensaje de bienvenida por WhatsApp a ${fullName}?`)) {
+                        try {
+                            const resp = await fetch(CF_BIENVENIDA_URL, {
+                                method: "POST",
+                                headers: await headersConAuthAdmin(),
+                                body: JSON.stringify({ telefono: phone, nombre: fullName, dni })
+                            });
+                            const data = await resp.json().catch(() => ({}));
+                            mostrarAviso(resp.ok ? `Bienvenida enviada a ${fullName} ✓` : `No se pudo enviar la bienvenida: ${extraerMensajeErrorWhatsApp(data, String(resp.status))}`);
+                        } catch (waError) {
+                            console.error("No se pudo enviar la bienvenida por WhatsApp:", waError);
+                            mostrarAviso("No se pudo enviar la bienvenida por WhatsApp");
+                        }
+                    }
+                }
             } catch (error) {
                 console.error(error);
                 mostrarAviso("No se pudo guardar el paciente");
@@ -7468,11 +7761,17 @@
         // al re-renderizar (una actualización de datos no debe borrar texto sin
         // guardar ni cerrar un bloque que la admin esté usando).
         function _capturarEstadoSesiones() {
-            const estado = { notas: {}, historialAbierto: false };
+            const estado = { notas: {}, editoresAbiertos: [], masAbiertos: [], historialAbierto: false };
             document.querySelectorAll('#sesiones-lista textarea[id^="nota-sesion-"]').forEach(ta => {
                 const id = ta.id.slice('nota-sesion-'.length);
                 const s = _cursoSesiones.find(x => x.id === id);
                 if (!s || ta.value !== (s.nota || '')) estado.notas[id] = ta.value;
+            });
+            document.querySelectorAll('#sesiones-lista [id^="nota-editor-"]').forEach(div => {
+                if (div.style.display === 'block') estado.editoresAbiertos.push(div.id.slice('nota-editor-'.length));
+            });
+            document.querySelectorAll('#sesiones-lista details.cm-more').forEach(det => {
+                if (det.open && det.id) estado.masAbiertos.push(det.id.slice('mas-sesion-'.length));
             });
             const det = document.getElementById('historial-sesiones-curso');
             if (det) estado.historialAbierto = det.open;
@@ -7483,11 +7782,32 @@
                 const ta = document.getElementById('nota-sesion-' + id);
                 if (ta) ta.value = val;
             });
+            estado.editoresAbiertos.forEach(id => {
+                const div = document.getElementById('nota-editor-' + id);
+                if (div) div.style.display = 'block';
+                const preview = document.getElementById('nota-view-' + id);
+                if (preview) preview.style.display = 'none';
+            });
+            (estado.masAbiertos || []).forEach(id => {
+                const det = document.getElementById('mas-sesion-' + id);
+                if (det) det.open = true;
+            });
             const det = document.getElementById('historial-sesiones-curso');
             if (det && estado.historialAbierto) det.open = true;
         }
+        window.toggleNotaSesion = function(id, forzarCerrar) {
+            const editor = document.getElementById('nota-editor-' + id);
+            const preview = document.getElementById('nota-view-' + id);
+            if (!editor) return;
+            const abrir = forzarCerrar ? false : editor.style.display !== 'block';
+            editor.style.display = abrir ? 'block' : 'none';
+            if (preview) {
+                const s = _cursoSesiones.find(x => x.id === id);
+                preview.style.display = (!abrir && s && s.nota) ? 'block' : 'none';
+            }
+        };
         function _capturarEstadoInscriptas() {
-            const estado = { notas: {}, editAbiertas: [], historialAbierto: false };
+            const estado = { notas: {}, editAbiertas: [], masAbiertos: [], waAbiertos: [], historialAbierto: false };
             document.querySelectorAll('#cursos-lista textarea[id^="nota-ta-"]').forEach(ta => {
                 const id = ta.id.slice('nota-ta-'.length);
                 const c = _cursosCache.find(x => x.id === id);
@@ -7495,6 +7815,12 @@
             });
             document.querySelectorAll('#cursos-lista [id^="nota-edit-"]').forEach(div => {
                 if (div.style.display === 'block') estado.editAbiertas.push(div.id.slice('nota-edit-'.length));
+            });
+            document.querySelectorAll('#cursos-lista details.cm-more[id^="mas-curso-"]').forEach(det => {
+                if (det.open) estado.masAbiertos.push(det.id.slice('mas-curso-'.length));
+            });
+            document.querySelectorAll('#cursos-lista [id^="rec-curso-"]').forEach(div => {
+                if (div.style.display === 'flex') estado.waAbiertos.push(div.id.slice('rec-curso-'.length));
             });
             const det = document.getElementById('historial-inscriptas-curso');
             if (det) estado.historialAbierto = det.open;
@@ -7509,6 +7835,14 @@
                 const div = document.getElementById('nota-edit-' + id);
                 if (div) div.style.display = 'block';
             });
+            (estado.masAbiertos || []).forEach(id => {
+                const det = document.getElementById('mas-curso-' + id);
+                if (det) det.open = true;
+            });
+            (estado.waAbiertos || []).forEach(id => {
+                const div = document.getElementById('rec-curso-' + id);
+                if (div) div.style.display = 'flex';
+            });
             const det = document.getElementById('historial-inscriptas-curso');
             if (det && estado.historialAbierto) det.open = true;
         }
@@ -7519,10 +7853,8 @@
             const panels = { sesiones: document.getElementById('panel-sesiones-curso'), inscriptas: document.getElementById('panel-inscriptas-curso') };
             Object.entries(btns).forEach(([k, btn]) => {
                 if (!btn) return;
-                const activo = k === tab;
-                btn.style.background = activo ? 'rgba(168,190,120,0.18)' : 'transparent';
-                btn.style.color = activo ? 'rgba(168,190,120,0.95)' : 'rgba(165,205,188,0.55)';
-                btn.style.fontWeight = activo ? '700' : '600';
+                btn.classList.toggle('activa', k === tab);
+                btn.setAttribute('aria-selected', k === tab ? 'true' : 'false');
             });
             Object.entries(panels).forEach(([k, p]) => { if (p) p.style.display = k === tab ? 'block' : 'none'; });
         };
@@ -7530,8 +7862,8 @@
         window.cargarCursos = async function() {
             const contS = document.getElementById('sesiones-lista');
             const contI = document.getElementById('cursos-lista');
-            if (contS) contS.innerHTML = '<div style="text-align:center;padding:16px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando...</div>';
-            if (contI) contI.innerHTML = '<div style="text-align:center;padding:16px;color:rgba(165,205,188,0.40);font-size:13px;">Cargando...</div>';
+            if (contS) contS.innerHTML = '<div class="cm-muted" style="text-align:center;padding:16px;font-size:14px;">Cargando...</div>';
+            if (contI) contI.innerHTML = '<div class="cm-muted" style="text-align:center;padding:16px;font-size:14px;">Cargando...</div>';
             try {
                 const [sesSnap, insSnap] = await Promise.all([
                     getDocs(collection(db, 'cursoSesiones')),
@@ -7569,7 +7901,7 @@
                 window.mostrarTabCurso(_tabCursoActual);
             } catch(e) {
                 console.error('Error cargando cursos:', e);
-                const msg = '<div style="color:rgba(255,100,100,0.70);padding:16px;font-size:13px;">Error al cargar. Verificá los permisos de Firestore.</div>';
+                const msg = '<div style="color:var(--cm-danger);padding:16px;font-size:14px;">Error al cargar. Verificá los permisos de Firestore.</div>';
                 if (contS) contS.innerHTML = msg;
                 if (contI) contI.innerHTML = msg;
             }
@@ -7579,7 +7911,7 @@
             const cont = document.getElementById('sesiones-lista');
             if (!cont) return;
             if (!_cursoSesiones.length) {
-                cont.innerHTML = '<div style="text-align:center;padding:24px;color:rgba(165,205,188,0.35);font-size:13px;">No hay sesiones todavía. Creá la primera arriba.</div>';
+                cont.innerHTML = '<div class="cm-muted" style="text-align:center;padding:24px;font-size:14px;">No hay sesiones todavía. Creá la primera arriba.</div>';
                 return;
             }
             const estadoPrevio = _capturarEstadoSesiones();
@@ -7591,39 +7923,42 @@
                 const pct = Math.min(100, Math.round((inscCount / cap) * 100));
                 const casi = pct >= 80;
                 const lleno = inscCount >= cap;
-                const colorBar = lleno ? '#f87171' : casi ? '#fbbf24' : '#4ade80';
+                const colorBar = lleno ? 'var(--cm-danger)' : casi ? 'var(--cm-warn)' : 'var(--cm-acento)';
+                const estadoPill = s.concluida
+                    ? `<span class="cm-pill cm-pill-acento">✓ Concluída</span>`
+                    : `<span class="cm-pill${s.activa ? ' cm-pill-acento' : ''}">${s.activa ? 'Activa' : 'Inactiva'}</span>`;
+                const notaEscapada = escapeHtml(s.nota || '');
+                const notaCorta = notaEscapada.length > 90 ? notaEscapada.slice(0, 90) + '…' : notaEscapada;
                 return `
-                <div style="background:rgba(168,190,120,0.04);border:1px solid rgba(168,190,120,${s.concluida?'0.12':s.activa?'0.18':'0.07'});border-radius:14px;padding:14px 16px;opacity:${s.concluida?'0.80':s.activa?'1':'0.55'};">
-                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-                        ${s.concluida
-                            ? `<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.28);color:#4ade80;">✓ Concluída</span>`
-                            : `<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(${s.activa?'168,190,120':'165,205,188'},0.12);border:1px solid rgba(${s.activa?'168,190,120':'165,205,188'},0.25);color:rgba(${s.activa?'168,190,120':'165,205,188'},0.85);">${s.activa?'Activa':'Inactiva'}</span>`
-                        }
-                        <strong style="flex:1;font-size:14px;color:rgba(220,242,232,0.92);min-width:0;">${_fechaLindaCurso(s.fecha)}</strong>
-                        <span style="font-size:13px;font-weight:700;color:rgba(168,190,120,0.80);white-space:nowrap;">${s.horaInicio} – ${s.horaFin} hs</span>
+                <div class="cm-card cm-sesion-card" style="opacity:${s.concluida ? '0.85' : s.activa ? '1' : '0.55'};">
+                    <div class="cm-sesion-top">
+                        ${estadoPill}
+                        <span class="cm-sesion-hora">${s.horaInicio} – ${s.horaFin} hs</span>
+                        <details class="cm-more" id="mas-sesion-${s.id}" style="margin-left:auto;">
+                            <summary class="cm-btn cm-btn-sm">⋯ Más acciones</summary>
+                            <div class="cm-more-menu">
+                                ${s.concluida
+                                    ? `<button class="cm-btn cm-btn-sm" onclick="marcarSesionConcluida('${s.id}',false)">↩ Reabrir</button>`
+                                    : `<button class="cm-btn cm-btn-sm" onclick="marcarSesionConcluida('${s.id}',true)">✓ Marcar Concluída</button>`
+                                }
+                                <button class="cm-btn cm-btn-sm" onclick="toggleSesionCurso('${s.id}')">${s.activa ? '🔒 Bloquear' : '🔓 Activar'}</button>
+                                <button class="cm-btn cm-btn-sm" onclick="mostrarTabCurso('inscriptas')">👥 Ver inscriptas</button>
+                                <button class="cm-btn cm-btn-sm cm-btn-danger" onclick="eliminarSesionCurso('${s.id}')">🗑 Eliminar</button>
+                            </div>
+                        </details>
                     </div>
-                    <div style="margin-bottom:10px;">
-                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:11.5px;color:rgba(165,205,188,0.55);margin-bottom:5px;">
-                            <span>Inscriptas: <b style="color:rgba(220,242,232,0.80)">${inscCount}</b> / ${cap}</span>
-                            <span style="color:${colorBar};font-weight:700;">${lleno?'¡Completo!':casi?'Casi lleno':pct+'% ocupado'}</span>
+                    <div class="cm-ocupacion-texto">${inscCount} de ${cap} lugares ocupados${lleno ? ' · ¡Completo!' : casi ? ' · Casi lleno' : ''}</div>
+                    <div class="cm-barra"><div class="cm-barra-fill" style="width:${pct}%;background:${colorBar};"></div></div>
+
+                    <div id="nota-view-${s.id}" class="cm-nota-preview" onclick="toggleNotaSesion('${s.id}')" style="${s.nota ? '' : 'display:none'}">📝 ${notaCorta}</div>
+                    ${!s.nota ? `<button class="cm-btn cm-btn-sm" style="margin-top:10px;" onclick="toggleNotaSesion('${s.id}')">+ Agregar nota</button>` : ''}
+                    <div id="nota-editor-${s.id}" style="display:none;margin-top:10px;">
+                        <label class="cm-label">Nota interna de la sesión</label>
+                        <textarea id="nota-sesion-${s.id}" class="cm-field" style="min-height:70px;resize:vertical;" placeholder="Ej: el grupo de 14 a 16 fue más participativo, la sesión de la noche necesitó más tiempo...">${notaEscapada}</textarea>
+                        <div style="display:flex;gap:8px;margin-top:8px;">
+                            <button class="cm-btn cm-btn-sm cm-btn-primary" onclick="guardarNotaSesion('${s.id}')">💾 Guardar nota</button>
+                            <button class="cm-btn cm-btn-sm" onclick="toggleNotaSesion('${s.id}', true)">Cancelar</button>
                         </div>
-                        <div style="height:5px;border-radius:99px;background:rgba(255,255,255,0.07);">
-                            <div style="height:5px;border-radius:99px;background:${colorBar};width:${pct}%;transition:width .4s;"></div>
-                        </div>
-                    </div>
-                    <div style="margin-bottom:10px;">
-                        <label style="display:block;font-size:10.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:rgba(165,205,188,0.40);margin-bottom:5px;">Nota interna de la sesión</label>
-                        <textarea id="nota-sesion-${s.id}" placeholder="Ej: el grupo de 14 a 16 fue más participativo, la sesión de la noche necesitó más tiempo..." style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid rgba(165,205,188,0.16);background:rgba(255,255,255,0.04);color:rgba(220,242,232,0.85);font-size:12.5px;font-family:inherit;resize:vertical;min-height:58px;outline:none;box-sizing:border-box;">${(s.nota||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-                    </div>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                        <button class="btn-mini" onclick="guardarNotaSesion('${s.id}')" style="font-size:12px;background:rgba(114,189,153,0.10);border-color:rgba(114,189,153,0.28);color:rgba(165,205,188,0.85);">💾 Guardar nota</button>
-                        ${s.concluida
-                            ? `<button class="btn-mini" onclick="marcarSesionConcluida('${s.id}',false)" style="font-size:12px;background:rgba(250,200,80,0.06);border-color:rgba(250,200,80,0.20);color:rgba(250,200,80,0.70);">↩ Reabrir</button>`
-                            : `<button class="btn-mini" onclick="marcarSesionConcluida('${s.id}',true)" style="font-size:12px;background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.25);color:#4ade80;">✓ Marcar Concluída</button>`
-                        }
-                        <button class="btn-mini" onclick="toggleSesionCurso('${s.id}')" style="font-size:12px;${s.activa?'background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.80)':'background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.25);color:#4ade80'}">${s.activa?'🔒 Bloquear':'🔓 Activar'}</button>
-                        <button class="btn-mini" onclick="eliminarSesionCurso('${s.id}')" style="font-size:12px;background:rgba(255,100,100,0.04);border-color:rgba(255,100,100,0.16);color:rgba(255,130,130,0.60);">🗑 Eliminar</button>
-                        <button class="btn-mini" onclick="mostrarTabCurso('inscriptas')" style="font-size:12px;background:rgba(168,190,120,0.08);border-color:rgba(168,190,120,0.22);color:rgba(168,190,120,0.80);">👥 Ver inscriptas</button>
                     </div>
                 </div>`;
             };
@@ -7634,17 +7969,17 @@
 
             const bloqueFecha = (fecha, sesiones, muted) => `
                 <div>
-                    <div style="font-size:12.5px;font-weight:700;color:${muted?'rgba(165,205,188,0.55)':'rgba(220,242,232,0.85)'};margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${muted?'rgba(165,205,188,0.12)':'rgba(168,190,120,0.14)'};">${_fechaLindaCurso(fecha)}</div>
+                    <div class="cm-fecha-header"${muted ? ' style="color:var(--cm-texto-sec);"' : ''}>${_fechaLindaCurso(fecha)}</div>
                     <div style="display:flex;flex-direction:column;gap:10px;">${sesiones.map(tarjeta).join('')}</div>
                 </div>`;
 
             let html = `<div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
-                <span style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(168,190,120,0.55);white-space:nowrap;">Hoy y próximas fechas</span>
-                <span style="flex:1;height:1px;background:rgba(168,190,120,0.15);"></span>
+                <span class="cm-eyebrow" style="white-space:nowrap;">Hoy y próximas fechas</span>
+                <span style="flex:1;height:1px;background:var(--cm-borde);"></span>
             </div>`;
 
             if (!vigentes.length) {
-                html += `<div style="text-align:center;padding:18px;color:rgba(165,205,188,0.35);font-size:12.5px;margin-bottom:18px;">No hay sesiones próximas. Creá una nueva arriba.</div>`;
+                html += `<div class="cm-muted" style="text-align:center;padding:18px;font-size:14px;margin-bottom:18px;">No hay sesiones próximas. Creá una nueva arriba.</div>`;
             } else {
                 html += `<div style="display:flex;flex-direction:column;gap:18px;margin-bottom:18px;">${Array.from(_agruparPorFecha(vigentes).entries()).map(([fecha, ses]) => bloqueFecha(fecha, ses, false)).join('')}</div>`;
             }
@@ -7652,12 +7987,12 @@
             if (historial.length) {
                 const porFechaH = _agruparPorFecha(historial);
                 const fechasDesc = Array.from(porFechaH.keys()).sort((a, b) => b.localeCompare(a));
-                html += `<details id="historial-sesiones-curso">
-                    <summary style="cursor:pointer;padding:10px 14px;background:rgba(165,205,188,0.05);border:1px solid rgba(165,205,188,0.14);border-radius:12px;font-size:12px;font-weight:700;color:rgba(165,205,188,0.65);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                html += `<details class="cm-historial" id="historial-sesiones-curso">
+                    <summary>
                         <span>🕓 Historial de sesiones</span>
-                        <span style="background:rgba(165,205,188,0.14);padding:2px 9px;border-radius:999px;font-size:11px;">${historial.length}</span>
+                        <span class="cm-pill">${historial.length}</span>
                     </summary>
-                    <div style="display:flex;flex-direction:column;gap:18px;margin-top:14px;">
+                    <div style="display:flex;flex-direction:column;gap:18px;margin-top:14px;padding:0 2px;">
                         ${fechasDesc.map(fecha => bloqueFecha(fecha, porFechaH.get(fecha), true)).join('')}
                     </div>
                 </details>`;
@@ -7681,6 +8016,9 @@
                 document.getElementById('ns-fecha').value = '';
                 document.getElementById('ns-inicio').value = '';
                 document.getElementById('ns-fin').value = '';
+                const detalles = document.getElementById('cm-nueva-fecha');
+                if (detalles) detalles.open = false;
+                mostrarAviso('Fecha creada ✓');
                 window.renderSesionesCurso();
             } catch(e) { mostrarAviso('Error al crear sesión'); }
         };
@@ -7705,6 +8043,8 @@
                 await updateDoc(doc(db, 'cursoSesiones', id), { nota });
                 if (idx >= 0) _cursoSesiones[idx].nota = nota;
                 mostrarAviso('Nota guardada ✓');
+                window.toggleNotaSesion(id, true);
+                window.renderSesionesCurso();
             } catch(e) { mostrarAviso('Error al guardar nota'); }
         };
 
@@ -7737,9 +8077,7 @@
             ['todos','inscripta','presente','cancelada'].forEach(f => {
                 const btn = document.getElementById(`filtro-cursos-${f}`);
                 if (!btn) return;
-                btn.style.background = f === filtro ? 'rgba(168,190,120,0.18)' : '';
-                btn.style.borderColor = f === filtro ? 'rgba(168,190,120,0.45)' : '';
-                btn.style.color = f === filtro ? 'rgba(168,190,120,0.95)' : '';
+                btn.classList.toggle('cm-btn-ghost', f === filtro);
             });
             window.renderCursos();
         };
@@ -7752,7 +8090,7 @@
                 : _cursosCache.filter(c => (c.estado||'inscripta') === _filtroCursos);
 
             if (!lista.length) {
-                cont.innerHTML = `<div style="text-align:center;padding:28px;color:rgba(165,205,188,0.35);font-size:13px;">${_filtroCursos === 'todos' ? 'No hay inscriptas todavía.' : `No hay inscriptas con estado "${_filtroCursos}".`}</div>`;
+                cont.innerHTML = `<div class="cm-muted" style="text-align:center;padding:28px;font-size:14px;">${_filtroCursos === 'todos' ? 'No hay inscriptas todavía.' : `No hay inscriptas con estado "${_filtroCursos}".`}</div>`;
                 return;
             }
 
@@ -7781,7 +8119,7 @@
 
             const renderCardCurso = (c) => {
                 const estado = c.estado || 'inscripta';
-                const estadoColor = estado === 'presente' ? '#4ade80' : estado === 'cancelada' ? 'rgba(255,100,100,0.75)' : 'rgba(168,190,120,0.85)';
+                const estadoClase = estado === 'presente' ? 'cm-pill-acento' : estado === 'cancelada' ? 'cm-pill-danger' : '';
                 const estadoLabel = estado === 'presente' ? 'Presente ✓' : estado === 'cancelada' ? 'Cancelada' : 'Inscripta';
                 const nivel = c.nivelMaquillaje || 5;
                 const nivelColor = nivelColores[nivel] || '#f472b6';
@@ -7792,51 +8130,58 @@
                 const recMenuId = `rec-curso-${c.id}`;
                 const notaId = `nota-curso-${c.id}`;
                 const notaEditId = `nota-edit-${c.id}`;
+                const notaCorta = escapeHtml(c.nota || '').length > 90 ? escapeHtml(c.nota || '').slice(0, 90) + '…' : escapeHtml(c.nota || '');
                 const waConfirm = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}, te confirmamos tu inscripción al Curso de Automaquillaje en Espacio Mimar T${sesion?` para el ${_fechaLindaCurso(sesion.fecha)} a las ${sesion.horaInicio} hs`:''}. ¡Te esperamos!`)}` : '';
                 const waRecordatorio = waPhone && sesion ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}! Te recordamos que el Curso de Automaquillaje es el ${_fechaLindaCurso(sesion.fecha)} a las ${sesion.horaInicio} hs en Espacio Mimar T. ¡Muchas ganas de verte!💄`)}` : '';
                 return `
-                <div style="background:rgba(168,190,120,0.04);border:1px solid rgba(168,190,120,0.12);border-radius:18px;padding:18px 20px;position:relative;">
-                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-                        <span style="background:rgba(${estado==='presente'?'74,222,128':estado==='cancelada'?'255,100,100':'168,190,120'},0.12);border:1px solid rgba(${estado==='presente'?'74,222,128':estado==='cancelada'?'255,100,100':'168,190,120'},0.32);color:${estadoColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;">${estadoLabel}</span>
-                        <span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;color:${nivelColor};">Nivel ${nivel}/10</span>
-                        <strong style="font-size:15px;color:rgba(220,242,232,0.92);flex:1;">${escapeHtml(c.nombre||'Sin nombre')}</strong>
-                        ${c.edad ? `<span style="font-size:12px;color:rgba(165,205,188,0.50);">${c.edad} años</span>` : ''}
+                <div class="cm-card cm-alumna-card">
+                    <div class="cm-alumna-top">
+                        <span class="cm-pill ${estadoClase}">${estadoLabel}</span>
+                        <span class="cm-pill" style="color:${nivelColor};">Nivel ${nivel}/10</span>
+                        <strong class="cm-alumna-nombre">${escapeHtml(c.nombre||'Sin nombre')}</strong>
+                        ${c.edad ? `<span class="cm-muted" style="font-size:13px;">${c.edad} años</span>` : ''}
                     </div>
-                    ${sesionLabel ? `<div style="font-size:12px;color:rgba(168,190,120,0.65);margin-bottom:10px;display:flex;align-items:center;gap:6px;">📅 ${sesionLabel}</div>` : ''}
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;font-size:12.5px;color:rgba(165,205,188,0.60);margin-bottom:10px;">
-                        ${c.dni ? `<span>DNI: <b style="color:rgba(220,242,232,0.75)">${escapeHtml(c.dni)}</b></span>` : ''}
-                        ${c.telefono ? `<span>Tel: <b style="color:rgba(220,242,232,0.75)">${escapeHtml(c.telefono)}</b></span>` : ''}
-                        ${c.email ? `<span>Email: <b style="color:rgba(220,242,232,0.75)">${escapeHtml(c.email)}</b></span>` : ''}
-                        ${c.fechaNacimiento ? `<span>Nac.: <b style="color:rgba(220,242,232,0.75)">${c.fechaNacimiento}</b></span>` : ''}
-                        <span>Inscripta: <b style="color:rgba(220,242,232,0.75)">${c.fechaRegistro||'—'}</b></span>
+                    ${sesionLabel ? `<div class="cm-eyebrow" style="text-transform:none;letter-spacing:0;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px;">📅 ${sesionLabel}</div>` : ''}
+                    <div class="cm-datos-grid">
+                        ${c.dni ? `<span>DNI: <b style="color:var(--cm-texto)">${escapeHtml(c.dni)}</b></span>` : ''}
+                        ${c.telefono ? `<span>Tel: <b style="color:var(--cm-texto)">${escapeHtml(c.telefono)}</b></span>` : ''}
+                        ${c.email ? `<span>Email: <b style="color:var(--cm-texto)">${escapeHtml(c.email)}</b></span>` : ''}
+                        ${c.fechaNacimiento ? `<span>Nac.: <b style="color:var(--cm-texto)">${c.fechaNacimiento}</b></span>` : ''}
+                        <span>Inscripta: <b style="color:var(--cm-texto)">${c.fechaRegistro||'—'}</b></span>
                     </div>
-                    ${c.nivelDesc ? `<div style="font-size:12px;color:rgba(168,190,120,0.55);margin-bottom:8px;font-style:italic;">"${escapeHtml(c.nivelDesc)}"</div>` : ''}
-                    ${c.expectativas ? `<div style="background:rgba(168,190,120,0.06);border:1px solid rgba(168,190,120,0.14);border-radius:10px;padding:10px 14px;font-size:12.5px;color:rgba(220,242,232,0.70);line-height:1.6;margin-bottom:10px;"><b style="color:rgba(168,190,120,0.65);">Expectativas:</b> ${escapeHtml(c.expectativas)}</div>` : ''}
-                    <!-- Nota -->
-                    <div id="${notaId}" style="margin-bottom:10px;${c.nota?'':'display:none'}">
-                        <div style="background:rgba(53,122,92,0.10);border:1px solid rgba(114,189,153,0.18);border-radius:10px;padding:10px 14px;font-size:13px;color:rgba(180,230,210,0.90);">${escapeHtml(c.nota||'')}</div>
-                    </div>
-                    <div id="${notaEditId}" style="margin-bottom:10px;display:none;">
-                        <textarea id="nota-ta-${c.id}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px;color:rgba(220,242,232,0.90);font-size:13px;resize:vertical;min-height:70px;font-family:inherit;" placeholder="Escribí una nota sobre esta alumna...">${escapeHtml(c.nota||'')}</textarea>
-                        <div style="display:flex;gap:6px;margin-top:6px;">
-                            <button class="btn-mini" onclick="guardarNotaCurso('${c.id}')" style="background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.28);color:#4ade80;">Guardar</button>
-                            <button class="btn-mini" onclick="document.getElementById('${notaEditId}').style.display='none'">Cancelar</button>
+                    ${c.nivelDesc ? `<div class="cm-muted" style="font-size:13px;margin-bottom:8px;font-style:italic;">"${escapeHtml(c.nivelDesc)}"</div>` : ''}
+                    ${c.expectativas ? `<div class="cm-card" style="background:var(--cm-campo);padding:10px 14px;font-size:13px;color:var(--cm-texto-sec);line-height:1.6;margin-bottom:10px;"><b style="color:var(--cm-acento);">Expectativas:</b> ${escapeHtml(c.expectativas)}</div>` : ''}
+
+                    <!-- Nota: vista breve + acceso al texto completo -->
+                    <div id="${notaId}" class="cm-nota-preview" onclick="toggleNotaCurso('${c.id}')" style="${c.nota ? '' : 'display:none'}">📝 ${notaCorta}</div>
+                    <div id="${notaEditId}" style="display:none;margin-top:10px;margin-bottom:6px;">
+                        <textarea id="nota-ta-${c.id}" class="cm-field" style="resize:vertical;min-height:70px;" placeholder="Escribí una nota sobre esta alumna...">${escapeHtml(c.nota||'')}</textarea>
+                        <div style="display:flex;gap:8px;margin-top:8px;">
+                            <button class="cm-btn cm-btn-sm cm-btn-primary" onclick="guardarNotaCurso('${c.id}')">Guardar</button>
+                            <button class="cm-btn cm-btn-sm" onclick="toggleNotaCurso('${c.id}', true)">Cancelar</button>
                         </div>
                     </div>
-                    <!-- Botones de acción -->
-                    <div style="display:flex;flex-wrap:wrap;gap:7px;">
-                        ${estado !== 'presente' ? `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','presente')" style="background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;font-size:12px;">✓ Presente</button>` : `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','inscripta')" style="font-size:12px;">↩ Revertir</button>`}
-                        ${estado !== 'cancelada' ? `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','cancelada')" style="background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);font-size:12px;">✕ Cancelar</button>` : ''}
-                        <button class="btn-mini" onclick="(function(){var ne=document.getElementById('${notaEditId}');ne.style.display=ne.style.display==='none'?'block':'none'})()" style="font-size:12px;">📝 Nota</button>
-                        <button class="btn-mini" onclick="abrirCertificado('${c.id}')" style="background:rgba(168,190,120,0.10);border-color:rgba(168,190,120,0.30);color:rgba(168,190,120,0.90);font-size:12px;">🎓 Certificado</button>
-                        ${waPhone ? `<button class="btn-mini" onclick="(function(){var m=document.getElementById('${recMenuId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="font-size:12px;background:rgba(37,211,102,0.06);border-color:rgba(37,211,102,0.22);color:rgba(100,220,140,0.85);">📲 Enviar por WA</button>` : ''}
-                        <button class="btn-mini" onclick="eliminarInscripta('${c.id}','${escapeHtml(c.nombre||'esta alumna')}')" style="font-size:12px;background:rgba(220,50,50,0.07);border-color:rgba(220,50,50,0.25);color:rgba(240,120,120,0.90);">🗑 Eliminar</button>
+
+                    <!-- Acciones: estado a la vista, el resto en "Más acciones" -->
+                    <div class="cm-acciones-row">
+                        ${estado !== 'presente' ? `<button class="cm-btn cm-btn-sm cm-btn-primary" onclick="cambiarEstadoCurso('${c.id}','presente')">✓ Presente</button>` : `<button class="cm-btn cm-btn-sm" onclick="cambiarEstadoCurso('${c.id}','inscripta')">↩ Revertir</button>`}
+                        ${estado !== 'cancelada' ? `<button class="cm-btn cm-btn-sm cm-btn-danger" onclick="cambiarEstadoCurso('${c.id}','cancelada')">✕ Cancelar</button>` : ''}
+                        ${!c.nota ? `<button class="cm-btn cm-btn-sm" onclick="toggleNotaCurso('${c.id}')">+ Nota</button>` : ''}
+                        <details class="cm-more" id="mas-curso-${c.id}" style="margin-left:auto;">
+                            <summary class="cm-btn cm-btn-sm">⋯ Más acciones</summary>
+                            <div class="cm-more-menu">
+                                ${c.nota ? `<button class="cm-btn cm-btn-sm" onclick="toggleNotaCurso('${c.id}')">📝 Editar nota</button>` : ''}
+                                <button class="cm-btn cm-btn-sm" onclick="abrirCertificado('${c.id}')">🎓 Certificado</button>
+                                ${waPhone ? `<button class="cm-btn cm-btn-sm" onclick="(function(){var m=document.getElementById('${recMenuId}');m.style.display=m.style.display==='flex'?'none':'flex'})()">📲 Enviar por WA</button>` : ''}
+                                <button class="cm-btn cm-btn-sm cm-btn-danger" onclick="eliminarInscripta('${c.id}','${escapeHtml(c.nombre||'esta alumna')}')">🗑 Eliminar</button>
+                            </div>
+                        </details>
                     </div>
                     ${waPhone ? `
-                    <div id="${recMenuId}" style="display:none;flex-direction:column;gap:6px;margin-top:10px;background:rgba(37,211,102,0.05);border:1px solid rgba(37,211,102,0.15);border-radius:12px;padding:12px;">
-                        ${waConfirm ? `<a href="${waConfirm}" target="_blank" rel="noopener" style="display:block;padding:9px 12px;border-radius:8px;background:#25d366;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;">✅ Confirmar inscripción</a>` : ''}
-                        ${waRecordatorio ? `<a href="${waRecordatorio}" target="_blank" rel="noopener" style="display:block;padding:9px 12px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;">🔔 Recordatorio del curso</a>` : ''}
-                        <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}! En el Curso de Automaquillaje que te esperamos, te recomendamos venir sin maquillaje o con el mínimo posible. Traé toda tu energía y ganas de aprender 💄✨ — Espacio Mimar T`)}" target="_blank" rel="noopener" style="display:block;padding:9px 12px;border-radius:8px;background:linear-gradient(135deg,#a8be78,#6f8a4a);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;">💄 Recomendaciones pre-clase</a>
+                    <div id="${recMenuId}" style="display:none;flex-direction:column;gap:6px;margin-top:10px;background:rgba(56,217,169,0.05);border:1px solid rgba(56,217,169,0.18);border-radius:12px;padding:12px;">
+                        ${waConfirm ? `<a href="${waConfirm}" target="_blank" rel="noopener" style="display:block;min-height:44px;box-sizing:border-box;padding:12px;border-radius:8px;background:#25d366;color:#fff;font-weight:700;font-size:14px;text-decoration:none;text-align:center;">✅ Confirmar inscripción</a>` : ''}
+                        ${waRecordatorio ? `<a href="${waRecordatorio}" target="_blank" rel="noopener" style="display:block;min-height:44px;box-sizing:border-box;padding:12px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:14px;text-decoration:none;text-align:center;">🔔 Recordatorio del curso</a>` : ''}
+                        <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}! En el Curso de Automaquillaje que te esperamos, te recomendamos venir sin maquillaje o con el mínimo posible. Traé toda tu energía y ganas de aprender 💄✨ — Espacio Mimar T`)}" target="_blank" rel="noopener" style="display:block;min-height:44px;box-sizing:border-box;padding:12px;border-radius:8px;background:var(--cm-acento);color:var(--cm-on-acento);font-weight:700;font-size:14px;text-decoration:none;text-align:center;">💄 Recomendaciones pre-clase</a>
                     </div>` : ''}
                 </div>`;
             };
@@ -7844,10 +8189,10 @@
             const encabezadoGrupo = (sesion, inscriptas, muted) => {
                 const totalGrupo = inscriptas.length;
                 const presentesGrupo = inscriptas.filter(c => c.estado === 'presente').length;
-                return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 4px 8px;">
-                    <span style="font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(${muted?'165,205,188':'168,190,120'},0.70);">${_fechaLindaCurso(sesion.fecha)}</span>
-                    <span style="font-size:14px;font-weight:700;color:rgba(${muted?'165,205,188':'168,190,120'},0.95);">${sesion.horaInicio} – ${sesion.horaFin} hs</span>
-                    <span style="font-size:11px;color:rgba(165,205,188,0.45);margin-left:auto;">${presentesGrupo}/${totalGrupo} presentes</span>
+                return `<div class="cm-fecha-header" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;${muted ? 'color:var(--cm-texto-sec);' : ''}">
+                    <span>${_fechaLindaCurso(sesion.fecha)}</span>
+                    <span style="color:var(--cm-acento);">${sesion.horaInicio} – ${sesion.horaFin} hs</span>
+                    <span class="cm-muted" style="font-size:12px;margin-left:auto;">${presentesGrupo} de ${totalGrupo} presentes</span>
                 </div>`;
             };
             const bloqueGrupo = (sesion, inscriptas, muted) => encabezadoGrupo(sesion, inscriptas, muted) +
@@ -7857,23 +8202,23 @@
 
             if (gruposSinSesion.length) {
                 const totalSin = gruposSinSesion.reduce((n, g) => n + g.inscriptas.length, 0);
-                html += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 4px 10px;">
-                    <span style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#fbbf24;">⚠ Sin sesión asignada</span>
-                    <span style="background:rgba(251,191,36,0.14);color:#fbbf24;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;">${totalSin}</span>
+                html += `<div class="cm-sin-sesion-header">
+                    <span class="cm-eyebrow" style="color:var(--cm-warn);">⚠ Sin sesión asignada</span>
+                    <span class="cm-pill cm-pill-warn">${totalSin}</span>
                 </div>`;
                 html += `<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">${gruposSinSesion.flatMap(g => g.inscriptas).map(renderCardCurso).join('')}</div>`;
             }
 
             html += `<div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
-                <span style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(168,190,120,0.55);white-space:nowrap;">Hoy y próximas fechas</span>
-                <span style="flex:1;height:1px;background:rgba(168,190,120,0.15);"></span>
+                <span class="cm-eyebrow" style="white-space:nowrap;">Hoy y próximas fechas</span>
+                <span style="flex:1;height:1px;background:var(--cm-borde);"></span>
             </div>`;
 
             const vigentes = gruposConSesion.filter(g => _esSesionCursoVigente(g.sesion, ahora));
             const historial = gruposConSesion.filter(g => !_esSesionCursoVigente(g.sesion, ahora));
 
             if (!vigentes.length) {
-                html += `<div style="text-align:center;padding:16px;color:rgba(165,205,188,0.35);font-size:12.5px;margin-bottom:16px;">No hay inscriptas en sesiones próximas.</div>`;
+                html += `<div class="cm-muted" style="text-align:center;padding:16px;font-size:14px;margin-bottom:16px;">No hay inscriptas en sesiones próximas.</div>`;
             } else {
                 html += vigentes.map(g => bloqueGrupo(g.sesion, g.inscriptas, false)).join('');
             }
@@ -7881,17 +8226,29 @@
             if (historial.length) {
                 historial.sort((a, b) => `${b.sesion.fecha}${b.sesion.horaInicio}`.localeCompare(`${a.sesion.fecha}${a.sesion.horaInicio}`));
                 const totalHist = historial.reduce((n, g) => n + g.inscriptas.length, 0);
-                html += `<details id="historial-inscriptas-curso">
-                    <summary style="cursor:pointer;padding:10px 14px;background:rgba(165,205,188,0.05);border:1px solid rgba(165,205,188,0.14);border-radius:12px;font-size:12px;font-weight:700;color:rgba(165,205,188,0.65);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                html += `<details class="cm-historial" id="historial-inscriptas-curso">
+                    <summary>
                         <span>🕓 Historial de sesiones</span>
-                        <span style="background:rgba(165,205,188,0.14);padding:2px 9px;border-radius:999px;font-size:11px;">${totalHist} inscriptas · ${historial.length} sesión(es)</span>
+                        <span class="cm-pill">${totalHist} inscriptas · ${historial.length} sesión(es)</span>
                     </summary>
-                    <div style="margin-top:14px;">${historial.map(g => bloqueGrupo(g.sesion, g.inscriptas, true)).join('')}</div>
+                    <div style="margin-top:14px;padding:0 2px;">${historial.map(g => bloqueGrupo(g.sesion, g.inscriptas, true)).join('')}</div>
                 </details>`;
             }
 
             cont.innerHTML = html;
             _restaurarEstadoInscriptas(estadoPrevio);
+        };
+
+        window.toggleNotaCurso = function(id, forzarCerrar) {
+            const editor = document.getElementById('nota-edit-' + id);
+            const preview = document.getElementById('nota-curso-' + id);
+            if (!editor) return;
+            const abrir = forzarCerrar ? false : editor.style.display !== 'block';
+            editor.style.display = abrir ? 'block' : 'none';
+            if (preview) {
+                const c = _cursosCache.find(x => x.id === id);
+                preview.style.display = (!abrir && c && c.nota) ? 'block' : 'none';
+            }
         };
 
         window.cambiarEstadoCurso = async function(id, nuevoEstado) {
@@ -7912,10 +8269,9 @@
                 await updateDoc(doc(db, 'cursoMaquillaje', id), { nota });
                 const idx = _cursosCache.findIndex(c => c.id === id);
                 if (idx >= 0) _cursosCache[idx].nota = nota;
-                const notaDiv = document.getElementById(`nota-curso-${id}`);
-                const editDiv = document.getElementById(`nota-edit-${id}`);
-                if (notaDiv) { notaDiv.style.display = nota ? 'block' : 'none'; notaDiv.querySelector('div').textContent = nota; }
-                if (editDiv) editDiv.style.display = 'none';
+                mostrarAviso('Nota guardada ✓');
+                window.toggleNotaCurso(id, true);
+                window.renderCursos();
             } catch(e) { mostrarAviso('Error al guardar nota'); }
         };
 

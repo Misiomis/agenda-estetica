@@ -105,6 +105,51 @@ function buildWhatsAppMessagesUrl(phoneNumberId) {
     return `https://graph.facebook.com/${META_API_VERSION}/${phoneNumberId}/messages`;
 }
 
+// ── Envío manual de WhatsApp: único automatismo permitido a Gimena ───────────
+//
+// Regla de negocio (no de seguridad de datos): ningún proceso automático puede
+// escribirle a pacientes u otros destinatarios por WhatsApp. La única excepción
+// es el aviso de "llegó una reserva/pedido nuevo" a Gimena, a su numero
+// verificado. Todo lo demas requiere que una persona autenticada como admin
+// dispare el envio de forma explicita (ver verificarOperadorAdmin).
+const ADMIN_EMAILS = ["espaciomimart36@gmail.com"]; // igual que esAdmin() en firestore.rules
+const GIMENA_WHATSAPP_NUMBER = normalizarTelefonoAR("3764291807"); // "5493764291807"
+
+function esDestinoGimena(telefono) {
+    return normalizarTelefonoAR(telefono) === GIMENA_WHATSAPP_NUMBER;
+}
+
+// Defensa en profundidad: los 3 avisos automáticos a Gimena ya usan el numero
+// hardcodeado en el propio backend (nunca lo toman de req.body), pero esta
+// comprobacion asegura que un cambio futuro no pueda desviar sin querer un
+// automatismo hacia otro destinatario.
+function asegurarDestinoGimena(telefono, origen) {
+    if (!esDestinoGimena(telefono)) {
+        throw new Error(`Automatismo "${origen}" bloqueado: el destino no es el numero verificado de Gimena.`);
+    }
+}
+
+// Verifica que la request venga de una sesion real de Firebase Auth con el
+// admin del panel (mismo criterio que esAdmin() en firestore.rules). Se usa
+// para exigir una accion explicita de la operadora antes de mandar un
+// WhatsApp que NO sea el aviso a Gimena — no alcanza con que el frontend
+// "no muestre el boton": esto se valida en el servidor.
+async function obtenerOperadorAdminDesdeRequest(req) {
+    const authHeader = String(req.headers.authorization || req.headers.Authorization || "");
+    const match = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (!match) return null;
+
+    try {
+        const decoded = await admin.auth().verifyIdToken(match[1]);
+        const email = String(decoded.email || "").trim().toLowerCase();
+        const esAdmin = decoded.admin === true || ADMIN_EMAILS.includes(email);
+        return esAdmin ? decoded : null;
+    } catch (error) {
+        logger.warn("Token de operador invalido al intentar enviar WhatsApp manual", { error: error.message });
+        return null;
+    }
+}
+
 function validarParametroTemplateTexto(value, placeholderName) {
     const normalizedValue = String(value || "").trim();
     if (!normalizedValue) {
@@ -603,11 +648,11 @@ exports.registrarPacienteJornada = onRequest(async (req, res) => {
 });
 
 exports.enviarConfirmacionTurno = onRequest(async (req, res) => {
-    
+
     // Configuración de CORS para que tu local no rebote
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
     if (req.method === "OPTIONS") {
         return res.status(204).send("");
@@ -632,6 +677,9 @@ exports.enviarConfirmacionTurno = onRequest(async (req, res) => {
             omitirWhatsapp = false
         } = req.body || {};
 
+        // El descuento de hoursBalance es una operacion de negocio propia de la
+        // reserva (no de mensajeria): se preserva para cualquier caller, sea
+        // paciente o admin.
         if (descontarBalance && dni) {
             try {
                 const balanceResult = await descontarHoursBalanceCliente(dni);
@@ -643,7 +691,17 @@ exports.enviarConfirmacionTurno = onRequest(async (req, res) => {
             }
         }
 
-        if (omitirWhatsapp === true) {
+        // El envio de WhatsApp SI requiere una operadora admin autenticada que
+        // disparo esto a proposito (ver obtenerOperadorAdminDesdeRequest). Un
+        // paciente confirmando su propio turno ya no dispara un WhatsApp solo:
+        // omitirWhatsapp=true (explicito) o la ausencia de sesion admin llevan
+        // al mismo resultado — la reserva/el descuento de balance sigue
+        // funcionando igual, solo se omite el mensaje automático.
+        const operadorAdmin = await obtenerOperadorAdminDesdeRequest(req);
+        if (omitirWhatsapp === true || !operadorAdmin) {
+            if (!operadorAdmin && omitirWhatsapp !== true) {
+                warnings.push("whatsapp_omitido_sin_operador_autenticado");
+            }
             return res.status(200).json({
                 status: "success",
                 whatsappSent: false,
@@ -720,7 +778,7 @@ exports.enviarBienvenida = onRequest(async (req, res) => {
 
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
     if (req.method === "OPTIONS") {
         return res.status(204).send("");
@@ -731,6 +789,15 @@ exports.enviarBienvenida = onRequest(async (req, res) => {
     }
 
     try {
+        // Mensaje de bienvenida al paciente: no es el aviso a Gimena, asi que
+        // requiere una operadora admin autenticada que lo dispare a proposito.
+        const operadorAdmin = await obtenerOperadorAdminDesdeRequest(req);
+        if (!operadorAdmin) {
+            return res.status(401).json({
+                error: "Este envío requiere una sesión de administración autenticada."
+            });
+        }
+
         const { nombre, telefono, dni } = req.body || {};
 
         if (!nombre) {
@@ -883,10 +950,17 @@ exports.cancelarReservaPaciente = onRequest(async (req, res) => {
     }
 });
 
-// ── NUEVO ────────────────────────────────────────────────────────────────────
-// enviarRecordatoriosTurnos: scheduler diario a las 09:00 ART para turnos de mañana.
-// Solo procesa reservas confirmadas y evita duplicados con reminderSent.
-// ─────────────────────────────────────────────────────────────────────────────
+// ── DESHABILITADO ──────────────────────────────────────────────────────────
+// enviarRecordatoriosTurnos: ANTES mandaba, sin intervencion humana, un
+// recordatorio de WhatsApp a TODOS los pacientes con turno confirmado para
+// el dia siguiente (cron diario 09:00 ART). Eso viola la regla de negocio
+// vigente: el UNICO automatismo de WhatsApp permitido es el aviso a Gimena
+// (ver asegurarDestinoGimena). Se conserva el shell exportado — con el mismo
+// horario, ya inofensivo — para no tener que borrar la Cloud Function del
+// proyecto de Firebase; el cuerpo ya no lee "reservas" ni llama a la API de
+// WhatsApp bajo ningun caso. Recordar turnos a pacientes ahora es 100%
+// manual (botones "Confirmar"/"Recordar" en Admin, que abren WhatsApp o
+// llaman a la API solo cuando la operadora hace click).
 exports.enviarRecordatoriosTurnos = onSchedule(
     {
         schedule: "0 9 * * *",
@@ -894,138 +968,8 @@ exports.enviarRecordatoriosTurnos = onSchedule(
         region: "us-central1"
     },
     async () => {
-        try {
-            const whatsappConfig = getWhatsAppConfig();
-            const fechaObjetivo = obtenerFechaMananaArgentina();
-            const snapshot = await db.collection("reservas")
-                .where("fecha", "==", fechaObjetivo)
-                .get();
-
-            const resumen = {
-                revisados: 0,
-                enviados: 0,
-                omitidosNoExiste: 0,
-                omitidosEstado: 0,
-                omitidosDuplicado: 0,
-                omitidosTelefono: 0,
-                errores: 0
-            };
-
-            for (const docSnap of snapshot.docs) {
-                resumen.revisados++;
-
-                const latestDoc = await docSnap.ref.get();
-                if (!latestDoc.exists) {
-                    resumen.omitidosNoExiste++;
-                    continue;
-                }
-
-                const reserva = latestDoc.data() || {};
-                if (reserva.fecha !== fechaObjetivo) {
-                    resumen.omitidosEstado++;
-                    continue;
-                }
-
-                const estado = obtenerEstadoReserva(reserva);
-                if (estado !== "confirmado") {
-                    resumen.omitidosEstado++;
-                    continue;
-                }
-
-                if (reserva.reminderSent === true) {
-                    resumen.omitidosDuplicado++;
-                    continue;
-                }
-
-                const nombrePaciente = obtenerNombreReserva(reserva);
-                const destino = await resolverDestinoConfirmacion({
-                    telefono: reserva.telefono || reserva.phone || "",
-                    dni: reserva.dni,
-                    nombre: nombrePaciente
-                });
-
-                if (!destino.telefonoDestino) {
-                    resumen.omitidosTelefono++;
-                    logger.warn("Reserva omitida por falta de telefono", {
-                        reservaId: latestDoc.id,
-                        fechaObjetivo,
-                        dni: reserva.dni || null
-                    });
-                    continue;
-                }
-
-                const turnoAt = obtenerTurnoDate(reserva);
-                const fechaHora = formatearFechaHoraTurno(turnoAt, reserva.fecha, reserva.hora);
-
-                try {
-                    const envio = await enviarTemplateRecordatorioTurno({
-                        telefono: destino.telefonoDestino,
-                        nombrePaciente: destino.nombreReal || nombrePaciente,
-                        fechaHora,
-                        googleMapsLink: whatsappConfig.googleMapsLink,
-                        whatsappConfig
-                    });
-
-                    await latestDoc.ref.update({
-                        reminderSent: true,
-                        reminderSentAt: admin.firestore.FieldValue.serverTimestamp(),
-                        reminderStatus: "sent",
-                        reminderMessageId: envio.response.data?.messages?.[0]?.id || null,
-                        reminderLookupSource: destino.source || "unknown",
-                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-                    });
-
-                    resumen.enviados++;
-                    logger.info("Recordatorio enviado", {
-                        reservaId: latestDoc.id,
-                        fechaObjetivo,
-                        messageId: envio.response.data?.messages?.[0]?.id || null
-                    });
-                } catch (error) {
-                    resumen.errores++;
-
-                    logger.error("Error enviando recordatorio de turno", {
-                        reservaId: latestDoc.id,
-                        fechaObjetivo,
-                        error: error.response?.data || error.message
-                    });
-
-                    await latestDoc.ref.update({
-                        reminderStatus: "error",
-                        reminderLastError: String(error.response?.data?.error?.message || error.message || "Error desconocido"),
-                        reminderLastErrorAt: admin.firestore.FieldValue.serverTimestamp(),
-                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-                    });
-
-                    await registrarErrorMeta({
-                        reservaId: latestDoc.id,
-                        reserva,
-                        error,
-                        requestPayload: error.requestPayload || null,
-                        meta: error.whatsappMeta || {
-                            wabaId: whatsappConfig.wabaId,
-                            phoneNumberId: whatsappConfig.phoneNumberId,
-                            templateName: whatsappConfig.reminderTemplateName,
-                            templateLang: whatsappConfig.reminderTemplateLang
-                        }
-                    });
-                }
-            }
-
-            logger.info("Scheduler de recordatorios finalizado", {
-                fechaObjetivo,
-                ...resumen,
-                wabaId: whatsappConfig.wabaId,
-                phoneNumberId: whatsappConfig.phoneNumberId
-            });
-            return null;
-        } catch (error) {
-            logger.error("Fallo global en enviarRecordatoriosTurnos", {
-                error: error.message,
-                stack: error.stack
-            });
-            return null;
-        }
+        logger.info("enviarRecordatoriosTurnos: deshabilitado por politica de mensajeria manual — no se leyeron reservas ni se envio ningun WhatsApp.");
+        return null;
     }
 );
 
@@ -1057,6 +1001,7 @@ exports.enviarNotificacionKitFacial = onRequest({ invoker: "public" }, async (re
 
         const whatsappConfig = getWhatsAppConfig();
 
+        asegurarDestinoGimena("3764291807", "enviarNotificacionKitFacial");
         const envio = await enviarTemplateWhatsApp({
             telefono: "3764291807",
             templateName: "pedidos_de_kit",
@@ -1116,6 +1061,7 @@ exports.enviarNotificacionConsulta = onRequest({ invoker: "public" }, async (req
 
         const whatsappConfig = getWhatsAppConfig();
 
+        asegurarDestinoGimena("3764291807", "enviarNotificacionConsulta");
         const envio = await enviarTemplateWhatsApp({
             telefono: "3764291807",
             templateName: "nueva_reserva",
@@ -1174,6 +1120,7 @@ exports.notificarNuevaReservaDepi = onRequest({ invoker: "public" }, async (req,
 
         const whatsappConfig = getWhatsAppConfig();
 
+        asegurarDestinoGimena("3764291807", "notificarNuevaReservaDepi");
         const envio = await enviarTemplateWhatsApp({
             telefono: "3764291807",
             templateName: "nueva_reserva",
