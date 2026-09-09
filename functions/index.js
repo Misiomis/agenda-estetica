@@ -1267,6 +1267,11 @@ async function notifyAndroidDevices(collection, docId) {
         if (tokens.length === 0) return;
         const payload = {
             data: { type: "sync", collection, docId },
+            // Sin esto, FCM puede tratar un data message como prioridad normal
+            // y diferirlo bajo Doze/App Standby — justo el escenario en el que
+            // más importa que la cancelación de una reserva borrada llegue
+            // rápido al teléfono con la app cerrada.
+            android: { priority: "high" },
         };
         // Enviar en batches de 500 (límite FCM)
         for (let i = 0; i < tokens.length; i += 500) {

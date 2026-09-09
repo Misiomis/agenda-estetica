@@ -1,3 +1,22 @@
-"scripts": {
-  "deploy": "git checkout gh-pages && git reset --hard main && git push origin gh-pages --force && git checkout main"
+{
+  "name": "mimart-reloj",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "git checkout gh-pages && git reset --hard main && git push origin gh-pages --force && git checkout main",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "test:pdf-jornada": "node tests/pdf-jornada/run-tests.js",
+    "test:identidad-paciente": "node tests/identidad-paciente/run-tests.js",
+    "test:grilla-diaria": "node tests/grilla-diaria/run-tests.js"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0",
+    "jspdf": "2.5.2",
+    "pdf-parse": "^2.4.5"
+  }
 }

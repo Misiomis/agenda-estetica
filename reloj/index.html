@@ -8,6 +8,7 @@
   <meta name="description" content="Reloj de recepción de Espacio Mimar T.">
   <title>Reloj · Mimar T</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./reloj.css">
   <script type="module" src="./reloj.js"></script>
@@ -23,6 +24,7 @@
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
       <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
       <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5m4 3a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+      <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 15a8 8 0 1 1 16 0M12 15l4-5"/></symbol>
     </defs>
   </svg>
   <div class="page-shell">
@@ -34,6 +36,7 @@
       <span class="product-name">Reloj de recepción</span>
       <div class="header-actions">
         <span class="connection" id="connection" role="status"><span class="status-dot"></span><span id="connection-text">Iniciando</span></span>
+        <button class="text-button" id="reload-data-button" type="button" hidden>La carga está tardando · Reintentar</button>
         <button class="icon-button" id="fullscreen-button" type="button" aria-label="Activar pantalla completa" title="Pantalla completa"><svg class="icon"><use href="#i-expand"/></svg></button>
       </div>
     </header>
@@ -65,6 +68,7 @@
       <div class="workspace-heading">
         <div><span class="eyebrow">TU JORNADA</span><h1 id="date-heading">Hoy</h1></div>
         <div class="toolbar">
+          <button class="button button-light" id="diagnostics-button" type="button" hidden><svg class="icon"><use href="#i-gauge"/></svg>Diagnóstico</button>
           <button class="button button-light" id="settings-button" type="button"><svg class="icon"><use href="#i-settings"/></svg>Ajustes</button>
           <button class="button button-primary" id="alarm-button" type="button" aria-pressed="false"><svg class="icon"><use href="#i-bell"/></svg><span id="alarm-button-text">Activar alarmas</span></button>
         </div>
@@ -103,7 +107,7 @@
 
       <footer class="statusbar">
         <span class="alarm-state" id="alarm-state"><span class="status-dot"></span>Sonido pendiente de activar</span>
-        <button class="text-button" id="test-button" type="button"><svg class="icon"><use href="#i-sound"/></svg>Probar sonido</button>
+        <button class="text-button" id="test-button" type="button"><svg class="icon"><use href="#i-sound"/></svg><span id="test-button-label">Probar sonido</span></button>
         <span class="runtime-hint" id="runtime-hint">Mantené el reloj abierto y la PC despierta.</span>
         <button class="text-button" id="install-button" type="button" hidden>Instalar reloj</button>
       </footer>
@@ -117,12 +121,19 @@
       <div class="settings-fields">
         <label for="advance-minutes">Avisar antes del ingreso<select id="advance-minutes" name="advanceMinutes"><option value="0">Sin aviso previo</option><option value="1">1 minuto antes</option><option value="3">3 minutos antes</option><option value="5">5 minutos antes</option><option value="10">10 minutos antes</option><option value="15">15 minutos antes</option></select></label>
         <label class="check-field"><input id="at-start" type="checkbox"><span>Avisar también a la hora del ingreso</span></label>
-        <label for="tone">Sonido<select id="tone"><option value="campana">Campana suave</option><option value="cristal">Cristal</option><option value="doble">Dos notas</option></select></label>
-        <label for="volume">Volumen <output id="volume-output">50 %</output><input id="volume" type="range" min="0" max="100" step="5"></label>
+        <label for="tone" id="tone-field">Sonido<select id="tone"><option value="campana">Campana suave</option><option value="cristal">Cristal</option><option value="doble">Dos notas</option></select></label>
+        <label for="volume" id="volume-field">Volumen <output id="volume-output">50 %</output><input id="volume" type="range" min="0" max="100" step="5"></label>
         <fieldset class="source-settings"><legend>Agendas que activan avisos</legend><div id="source-options"></div></fieldset>
         <label class="check-field"><input id="wake-lock" type="checkbox"><span>Mantener la pantalla encendida mientras el reloj está visible</span></label>
-        <div class="notification-setting"><div><strong>Avisos de escritorio</strong><p id="notification-state">Opcionales. El navegador te pedirá permiso.</p></div><button id="notification-button" class="button button-light" type="button">Activar</button></div>
-        <p class="settings-note">Estos ajustes se guardan en este navegador. Las alarmas requieren el reloj abierto y el equipo activo.</p>
+        <label for="alarm-mode" id="alarm-mode-field" hidden>Modo de aviso<select id="alarm-mode">
+          <option value="sound_vibration">Sonido y vibración</option>
+          <option value="sound_only">Solo sonido</option>
+          <option value="vibration_only">Solo vibración</option>
+        </select></label>
+        <div class="notification-setting" id="alarm-sound-field" hidden><div><strong>Sonido de alarma</strong><p id="alarm-sound-label">Predeterminado del sistema</p></div><button id="alarm-sound-button" class="button button-light" type="button">Cambiar</button></div>
+        <div class="notification-setting" id="permissions-field" hidden><div><strong>Permisos del sistema</strong><p>Si la alarma no suena con la pantalla apagada, revisalos.</p></div><button id="permissions-button" class="button button-light" type="button">Revisar permisos</button></div>
+        <div class="notification-setting" id="notification-setting"><div><strong>Avisos de escritorio</strong><p id="notification-state">Opcionales. El navegador te pedirá permiso.</p></div><button id="notification-button" class="button button-light" type="button">Activar</button></div>
+        <p class="settings-note" id="settings-note">Estos ajustes se guardan en este navegador. Las alarmas requieren el reloj abierto y el equipo activo.</p>
         <p id="settings-error" class="error-text" role="alert"></p>
       </div>
       <div class="dialog-actions"><button class="button button-light" id="settings-test" type="button">Probar sonido</button><button class="button button-primary" type="submit">Guardar ajustes</button></div>
@@ -137,6 +148,29 @@
     <button class="button button-primary" id="alarm-dismiss" type="button"><svg class="icon"><use href="#i-check"/></svg>Entendido</button>
     <p>Confirma el aviso en este reloj. La reserva sigue igual.</p>
   </dialog>
+  <dialog id="diagnostics-dialog" class="settings-dialog" aria-labelledby="diagnostics-title">
+    <div class="dialog-heading"><div><span class="eyebrow">ESTADO REAL</span><h2 id="diagnostics-title">Diagnóstico de alarmas</h2></div><button class="icon-button" type="button" id="diagnostics-close" aria-label="Cerrar diagnóstico"><svg class="icon"><use href="#i-close"/></svg></button></div>
+    <div class="settings-fields diagnostics-fields">
+      <dl class="diag-list">
+        <div><dt>Motor activo</dt><dd id="diag-engine">—</dd></div>
+        <div><dt>Notificaciones</dt><dd id="diag-perm-notifications">—</dd></div>
+        <div><dt>Alarmas exactas</dt><dd id="diag-perm-exact">—</dd></div>
+        <div><dt>Notificaciones emergentes</dt><dd id="diag-perm-fsi">—</dd></div>
+        <div><dt>Batería sin restricciones</dt><dd id="diag-perm-battery">—</dd></div>
+        <div><dt>Última sincronización</dt><dd id="diag-last-sync">—</dd></div>
+      </dl>
+      <p id="diag-sync-error" class="error-text" hidden></p>
+      <fieldset class="source-settings">
+        <legend>Próximas alarmas programadas en este dispositivo</legend>
+        <div id="diag-alarms-list"><p class="empty-copy">Sin datos todavía.</p></div>
+      </fieldset>
+    </div>
+    <div class="dialog-actions">
+      <button class="button button-light" id="diag-refresh" type="button">Actualizar</button>
+      <button class="button button-primary" id="diag-test-1min" type="button">Probar alarma en 1 minuto</button>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" role="status" hidden></div>
   <noscript><p class="notice">Activá JavaScript para utilizar el reloj y sus alarmas.</p></noscript>
 </body>

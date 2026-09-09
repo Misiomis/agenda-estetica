@@ -1071,7 +1071,7 @@
                         <div class="hdr-drop-menu" id="mas-drop" role="menu" hidden>
                             <button class="hdr-drop-item btn-nav" id="btn-buscar" onclick="navegar('buscar')" role="menuitem">🔍 Buscar</button>
                             <button class="hdr-drop-item btn-nav" id="btn-historias" onclick="navegar('historias')" role="menuitem">📋 Historias</button>
-                            <button class="hdr-drop-item btn-nav" id="btn-cursos" onclick="navegar('cursos')" role="menuitem" style="position:relative;background:rgba(249,168,212,0.10);border-color:rgba(249,168,212,0.28);color:rgba(249,168,212,0.90);font-weight:700;">
+                            <button class="hdr-drop-item btn-nav" id="btn-cursos" onclick="navegar('cursos')" role="menuitem" style="position:relative;background:rgba(168,190,120,0.10);border-color:rgba(168,190,120,0.28);color:rgba(168,190,120,0.90);font-weight:700;">
                                 💄 Mis Cursos
                                 <span id="cursos-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:#e53935;color:#fff;font-size:10px;font-weight:800;border-radius:999px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px;"></span>
                             </button>
@@ -1448,7 +1448,7 @@
                             <input type="month" id="exportHasta" style="width:100%;padding:9px 10px;border:1.5px solid rgba(255,255,255,0.14);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(220,242,232,0.95);background:rgba(255,255,255,0.07);outline:none;">
                         </div>
                     </div>
-                    <button class="btn-export-main" onclick="exportarReservasPDF()">Descargar reservas (.pdf)</button>
+                    <button class="btn-export-main" id="btnExportReservasPdf" onclick="exportarReservasPDF()">Descargar reservas (.pdf)</button>
                 </div>
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0">Reporte de Pacientes</h3>
@@ -1625,25 +1625,25 @@
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                         <!-- Título -->
                         <div style="flex:1;min-width:0;">
-                            <h3 style="margin:0 0 2px;font-family:'Playfair Display',serif;font-size:1.10em;color:rgba(249,168,212,0.95);">💄 Curso de Automaquillaje</h3>
+                            <h3 style="margin:0 0 2px;font-family:'Playfair Display',serif;font-size:1.10em;color:rgba(168,190,120,0.95);">💄 Curso de Automaquillaje</h3>
                             <p style="margin:0;font-size:11.5px;color:rgba(165,205,188,0.45);">Dictado por Gimena · Inscriptas desde la web</p>
                         </div>
                         <!-- Pills de navegación -->
                         <div style="display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:3px;">
-                            <button id="tab-sesiones-btn" onclick="mostrarTabCurso('sesiones')" style="padding:6px 14px;border-radius:8px;border:none;background:rgba(249,168,212,0.18);color:rgba(249,168,212,0.95);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">📅 Sesiones</button>
+                            <button id="tab-sesiones-btn" onclick="mostrarTabCurso('sesiones')" style="padding:6px 14px;border-radius:8px;border:none;background:rgba(168,190,120,0.18);color:rgba(168,190,120,0.95);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">📅 Sesiones</button>
                             <button id="tab-inscriptas-btn" onclick="mostrarTabCurso('inscriptas')" style="padding:6px 14px;border-radius:8px;border:none;background:transparent;color:rgba(165,205,188,0.55);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">👥 Inscriptas</button>
                         </div>
                         <!-- Actualizar -->
-                        <button class="btn-mini" onclick="cargarCursos()" style="padding:7px 13px;background:rgba(249,168,212,0.10);border-color:rgba(249,168,212,0.30);color:rgba(249,168,212,0.80);font-size:12px;flex-shrink:0;">↻ Actualizar</button>
+                        <button class="btn-mini" onclick="cargarCursos()" style="padding:7px 13px;background:rgba(168,190,120,0.10);border-color:rgba(168,190,120,0.30);color:rgba(168,190,120,0.80);font-size:12px;flex-shrink:0;">↻ Actualizar</button>
                     </div>
                 </div>
 
                 <!-- Panel: Sesiones -->
                 <div id="panel-sesiones-curso" class="detalle-dia-card" style="border-top-left-radius:0;border-top-right-radius:0;border-top:none;margin-bottom:12px;">
-                    <p style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(249,168,212,0.45);margin:0 0 14px;">Agenda de sesiones</p>
+                    <p style="font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(168,190,120,0.45);margin:0 0 14px;">Agenda de sesiones</p>
                     <!-- Form nueva sesión -->
-                    <div style="background:rgba(249,168,212,0.05);border:1px solid rgba(249,168,212,0.16);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
-                        <p style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(249,168,212,0.50);margin:0 0 12px;">+ Nueva sesión</p>
+                    <div style="background:rgba(168,190,120,0.05);border:1px solid rgba(168,190,120,0.16);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+                        <p style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(168,190,120,0.50);margin:0 0 12px;">+ Nueva sesión</p>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
                             <div>
                                 <label style="display:block;font-size:11px;color:rgba(165,205,188,0.55);margin-bottom:4px;">Fecha</label>
@@ -1664,7 +1664,7 @@
                                 <input type="time" id="ns-fin" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:9px;padding:9px 12px;color:rgba(220,242,232,0.90);font-size:13px;outline:none;">
                             </div>
                         </div>
-                        <button onclick="agregarSesionCurso()" style="width:100%;padding:11px;background:linear-gradient(135deg,rgba(236,72,153,0.80),rgba(190,24,93,0.90));border:none;border-radius:10px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">Crear sesión</button>
+                        <button onclick="agregarSesionCurso()" style="width:100%;padding:11px;background:linear-gradient(135deg,rgba(168,190,120,0.80),rgba(111,138,74,0.90));border:none;border-radius:10px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">Crear sesión</button>
                     </div>
                     <!-- Lista de sesiones -->
                     <div id="sesiones-lista" style="display:flex;flex-direction:column;gap:10px;">
@@ -1675,7 +1675,7 @@
                 <!-- Panel: Inscriptas -->
                 <div id="panel-inscriptas-curso" class="detalle-dia-card" style="display:none;border-top-left-radius:0;border-top-right-radius:0;border-top:none;margin-bottom:12px;">
                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-                        <button class="btn-mini" id="filtro-cursos-todos" onclick="filtrarCursos('todos')" style="background:rgba(249,168,212,0.15);border-color:rgba(249,168,212,0.40);color:rgba(249,168,212,0.90);">Todas</button>
+                        <button class="btn-mini" id="filtro-cursos-todos" onclick="filtrarCursos('todos')" style="background:rgba(168,190,120,0.15);border-color:rgba(168,190,120,0.40);color:rgba(168,190,120,0.90);">Todas</button>
                         <button class="btn-mini" id="filtro-cursos-inscripta" onclick="filtrarCursos('inscripta')">Inscriptas</button>
                         <button class="btn-mini" id="filtro-cursos-presente" onclick="filtrarCursos('presente')">Presentes</button>
                         <button class="btn-mini" id="filtro-cursos-cancelada" onclick="filtrarCursos('cancelada')">Canceladas</button>
@@ -2724,7 +2724,73 @@
             mostrarAviso(`Se eliminaron ${idsABorrar.size} reserva(s) duplicada(s)`);
             return reservas.filter((reserva) => !idsABorrar.has(reserva.id));
         };
-        
+
+        // ─── Identidad de paciente para exportaciones PDF (historial / jornada) ───
+        // DNI si existe; si no, nombre normalizado (sin tildes, sin mayúsculas,
+        // espacios colapsados). Usar SIEMPRE esta clave — no comparar nombres
+        // "tal cual", porque "María" vs "Maria" (o mayúsculas distintas cargadas
+        // por distinto personal) se tratarían como dos pacientes diferentes.
+        const _pacienteMatchKey = (r) => {
+            const dni = (r.dni || r.clienteDni || r.documento || '').toString().trim();
+            if (dni) return 'dni:' + dni;
+            const nombre = (r.nombreLimpio || r.nombre || r.paciente || r.clienteNombre || '').toString();
+            return 'nom:' + nombre.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+        };
+        const _pacienteNombreDisplay = (r) => (r.nombreLimpio || r.nombre || r.paciente || r.clienteNombre || '—').toString().trim();
+
+        // ─── Clasificación única de estado (realizada/pendiente/cancelada) ───────
+        // El buscador, "Preparar jornada" y "Exportar historial PDF" tenían CADA
+        // UNO su propia cuenta de si una sesión ya pasó: el buscador comparaba
+        // contra el FIN del turno (inicio + duracionMinutos) con huso horario
+        // explícito -03:00; jornada e historial comparaban sólo contra el INICIO,
+        // sin huso horario explícito (dependían del huso local del navegador).
+        // Con eso, un turno todavía en curso (dentro de su duración) podía
+        // figurar "pendiente" en el buscador y "realizada" en jornada/historial
+        // en el mismo instante — no por un cambio de datos, sino por la fórmula.
+        // Ahora las tres usan esto. No hay ningún campo en Firestore que registre
+        // si el/la paciente asistió de verdad (ver auditoría) — esto sigue siendo
+        // una inferencia por horario, la mejor disponible con los datos actuales.
+        const _finSesionMs = (r) => {
+            const fecha = (r?.fecha || '').toString().trim();
+            const hora = normalizarHora(r?.hora) || '00:00';
+            if (!fecha) return null;
+            const inicio = new Date(fecha + 'T' + hora + ':00-03:00').getTime();
+            if (Number.isNaN(inicio)) return null;
+            const duracion = Number(r?.duracionMinutos) > 0 ? Number(r.duracionMinutos) : 60;
+            return inicio + duracion * 60000;
+        };
+        const _esSesionPendiente = (r, ahoraMs) => {
+            const finMs = _finSesionMs(r);
+            return finMs !== null && (ahoraMs ?? Date.now()) < finMs;
+        };
+
+        // ─── Historial COMPLETO para exportaciones PDF ────────────────────────────
+        // todasLasReservas sólo cubre el mes que está viendo el calendario (ver
+        // cargarTodo → _mesMin/_mesMax). Los PDF de "historial completo" y
+        // "jornada" necesitan TODAS las sesiones del paciente sin importar el
+        // mes, así que se vuelve a consultar la colección completa en el momento
+        // de exportar — nunca se reutiliza el caché mensual para esto, para no
+        // entregar un historial silenciosamente incompleto.
+        async function _fetchReservasCompletasParaExport() {
+            const snap = await getDocs(collection(db, "reservas"));
+            const completas = snap.docs.map(d => {
+                const data = d.data();
+                const nombreLimpio = toTitleCase(borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || ""));
+                const phone = normalizarTelefono(data.phone ?? data.telefono ?? "");
+                return { id: d.id, ...data, phone, nombreLimpio };
+            });
+            // Control de integridad: la colección completa nunca puede traer MENOS
+            // documentos que el caché mensual/parcial que ya está en memoria — si
+            // eso pasa, la consulta se cortó a mitad (red, cuota, etc.) y no hay
+            // que dejar que un exportador siga adelante creyendo que tiene "todo".
+            if (Array.isArray(todasLasReservas) && completas.length < todasLasReservas.length) {
+                throw new Error('La consulta a la colección de reservas trajo ' + completas.length +
+                    ' documento(s), menos que los ' + todasLasReservas.length + ' ya cargados en memoria. ' +
+                    'Puede estar incompleta — no se generó el documento.');
+            }
+            return completas;
+        }
+
         // ─── FASE 1: datos críticos — render inicial ─────────────────────────────
         // Carga solo lo necesario para mostrar el calendario y controles.
         // Deja historias, pacientes y consultas para la fase 2 en background.
@@ -3547,7 +3613,7 @@
             return capitalizarTexto(datePdfFormatter.format(fecha)).replace(/,\s*/, ' ');
         };
 
-        window.exportarReservasPDF = () => {
+        window.exportarReservasPDF = async () => {
             const tools = getPdfTools();
             if (!tools) return;
             const { jsPDF, runAutoTable } = tools;
@@ -3558,7 +3624,28 @@
             const desde = desdeVal || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
             const hasta = hastaVal || desde;
 
-            const reservasOrdenadas = todasLasReservas
+            // todasLasReservas empieza acotada al mes que se está viendo y se
+            // reemplaza por la colección completa recién cuando termina la
+            // carga en segundo plano (_cargarDatosSecundarios). Si se exporta
+            // antes de que eso termine — apenas se abre el panel, o justo
+            // después de cambiar de mes en el calendario — el rango elegido
+            // acá puede no estar cubierto todavía. Se pide un dato fresco y
+            // completo en vez de confiar en ese timing.
+            const btnReservas = document.getElementById('btnExportReservasPdf');
+            const btnReservasOrig = btnReservas ? btnReservas.textContent : '';
+            if (btnReservas) { btnReservas.disabled = true; btnReservas.textContent = 'Generando…'; }
+            let reservasFuente;
+            try {
+                reservasFuente = await _fetchReservasCompletasParaExport();
+            } catch (err) {
+                console.error(err);
+                mostrarAviso('No se pudo confirmar el listado completo de reservas (¿sin conexión?). No se generó el PDF.');
+                if (btnReservas) { btnReservas.disabled = false; btnReservas.textContent = btnReservasOrig; }
+                return;
+            }
+            if (btnReservas) { btnReservas.disabled = false; btnReservas.textContent = btnReservasOrig; }
+
+            const reservasOrdenadas = reservasFuente
                 .filter((r) => {
                     if (!esReservaExportablePdf(r)) return false;
                     const mes = (r.fecha || '').slice(0, 7);
@@ -3683,8 +3770,11 @@
             docPdf.text(`Generado el ${formatoFechaVisible(fechaHoyISO())}`, 14, 22);
             docPdf.text(`Total de pacientes: ${clientesOrdenados.length}`, 14, 27);
             if (!clientesOrdenados.length) {
-                docPdf.text('No hay pacientes para exportar.', 14, 36);
-                docPdf.save(`pacientes_mimar_t_${fechaHoyISO()}.pdf`);
+                // todasLosPacientes se completa recién cuando termina la carga en
+                // segundo plano (_cargarDatosSecundarios). Una lista vacía acá casi
+                // siempre significa "todavía no cargó", no "no hay pacientes" — así
+                // que se avisa en vez de guardar en silencio un PDF de "0 pacientes".
+                mostrarAviso('Los datos de pacientes todavía se están cargando. Esperá unos segundos y volvé a intentar.');
                 return;
             }
             const pudoRenderizar = runAutoTable(docPdf, {
@@ -5252,9 +5342,34 @@
             return '';
         }
 
-        window.exportarHistorialPDF = function(idx) {
+        window.exportarHistorialPDF = async function(idx, btnEl) {
             var d = window._sesExportDB[idx];
             if (!d) { mostrarAviso('Datos no disponibles. Buscá el paciente de nuevo.'); return; }
+
+            var btnOrigText = btnEl ? btnEl.textContent : '';
+            if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Generando…'; }
+
+            try {
+                // El historial mostrado en pantalla puede venir del caché mensual
+                // del calendario (todasLasReservas). Antes de exportar, se vuelve
+                // a traer TODA la colección y se recalcula el historial de este
+                // paciente con datos completos — así "historial completo" es
+                // una promesa real, no depende de qué mes esté viendo el admin.
+                if (d.matchKey) {
+                    var reservasCompletas = await _fetchReservasCompletasParaExport();
+                    var sesionesCompletas = reservasCompletas.filter(function(r){ return _pacienteMatchKey(r) === d.matchKey; });
+                    if (sesionesCompletas.length) d = Object.assign({}, d, { sesiones: sesionesCompletas });
+                }
+            } catch (err) {
+                // No se pudo confirmar que el historial esté completo: no se
+                // genera un PDF que dice "Historial de paciente" pudiendo estar
+                // incompleto. Se avisa y se corta acá — nunca se entrega en
+                // silencio el dato parcial que hubiera quedado en pantalla.
+                console.error(err);
+                mostrarAviso('No se pudo confirmar el historial completo de ' + (d.nombre || 'este paciente') + ' (' + (err && err.message ? err.message : 'sin conexión') + '). No se generó el PDF — reintentá cuando haya conexión.');
+                if (btnEl) { btnEl.disabled = false; btnEl.textContent = btnOrigText; }
+                return;
+            }
 
             var MESES_PDF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
             var DIAS_PDF  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -5288,9 +5403,7 @@
                 var xDate = r.fecha || '';
                 var xTime = r.hora || '';
                 var isCancelled = st === 'cancelado';
-                var xMs = xDate ? (new Date(xDate+'T00:00:00').getTime() +
-                    ((parseInt((xTime.split(':')[0])||0)*60 + parseInt((xTime.split(':')[1])||0)) * 60000)) : null;
-                var isPending = !isCancelled && xMs !== null && now < xMs;
+                var isPending = !isCancelled && _esSesionPendiente(r, now);
                 allSessions.push({
                     r: r,
                     sortKey: xDate ? (xDate+'T'+(xTime||'00:00')) : 'ZZZZ',
@@ -5309,12 +5422,21 @@
             var nReal = allSessions.filter(function(s){ return s.status==='real'; }).length;
             var nCanc = allSessions.filter(function(s){ return s.status==='canc'; }).length;
             var hasSinFecha = allSessions.some(function(s){ return !s.r.fecha; });
+            var edadTxt = _buscarEdad(d.nombre, d.phone, d.sesiones);
 
+            if (!totalSes) {
+                if (btnEl) { btnEl.disabled = false; btnEl.textContent = btnOrigText; }
+                mostrarAviso('No se encontraron sesiones para ' + (d.nombre || 'este paciente') + '. No se generó el PDF.');
+                return;
+            }
+
+            // Nota: no se usa un footer de página vía CSS de Paged Media
+            // (@bottom-left/@bottom-center) — Chrome y Edge lo ignoran por
+            // completo al imprimir, así que mostraba un pie vacío en la
+            // práctica. La identificación por página se resuelve repitiendo
+            // el nombre del paciente (.card-pac) en cada tarjeta de sesión.
             var css = [
-                '@page{size:A4 portrait;margin:22mm 20mm 22mm 20mm;',
-                '@bottom-center{content:"Hoja " counter(page) " de " counter(pages);font-size:8pt;color:#999;font-family:Arial,sans-serif;}',
-                '@bottom-left{content:"Espacio Mimar T · '+H(d.nombre)+'";font-size:7.5pt;color:#bbb;font-family:Arial,sans-serif;}',
-                '}',
+                '@page{size:A4 portrait;margin:22mm 20mm 22mm 20mm;}',
                 '*{box-sizing:border-box;margin:0;padding:0;}',
                 'body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;background:#fff;line-height:1.5;}',
                 '.hdr{border-bottom:2.5px solid #111;padding-bottom:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}',
@@ -5391,7 +5513,7 @@
                         '<h1>Espacio Mimar T</h1>' +
                         '<div style="font-size:9pt;color:#666;">Historial de paciente</div>' +
                         '<div class="pac">' + H(d.nombre) + '</div>' +
-                        '<div class="pac-info">Edad: <span style="display:inline-block;min-width:70px;border-bottom:1px solid #777;">&nbsp;</span>' + (d.phone ? ' &nbsp;·&nbsp; Tel: ' + H(d.phone) : '') + '</div>' +
+                        '<div class="pac-info">Edad: ' + (edadTxt ? '<strong>' + H(edadTxt) + '</strong>' : '<span style="display:inline-block;min-width:70px;border-bottom:1px solid #777;">&nbsp;</span>') + (d.phone ? ' &nbsp;·&nbsp; Tel: ' + H(d.phone) : '') + '</div>' +
                     '</div>' +
                     '<div class="hdr-right">' +
                         '<strong>Exportación</strong>' +
@@ -5415,10 +5537,15 @@
                 '</body></html>';
 
             var w = window.open('', '_blank', 'width=960,height=860');
-            if (!w) { mostrarAviso('Permitir ventanas emergentes para exportar el PDF.'); return; }
+            if (!w) {
+                mostrarAviso('Permitir ventanas emergentes para exportar el PDF.');
+                if (btnEl) { btnEl.disabled = false; btnEl.textContent = btnOrigText; }
+                return;
+            }
             w.document.write(html);
             w.document.close();
             w.focus();
+            if (btnEl) { btnEl.disabled = false; btnEl.textContent = btnOrigText; }
         };
         /* ══ FIN EXPORTAR HISTORIAL PDF ══════════════════════════════════════ */
 
@@ -5428,12 +5555,12 @@
             var _pjLastGenTs = null;
             var _pjLastGenFecha = null;
 
-            function _pjNombreKey(r) {
-                return ((r.nombre || r.paciente || '').trim()).toLowerCase().replace(/\s+/g,' ');
-            }
-            function _pjNombreDisplay(r) {
-                return (r.nombre || r.paciente || '—').trim();
-            }
+            // Delegan a la clave compartida (DNI o nombre sin tildes/mayúsculas):
+            // agrupar por nombre "tal cual" trataba "María"/"Maria" como dos
+            // pacientes distintas y por eso el historial y el pie de página
+            // podían no coincidir con las sesiones realmente cargadas.
+            function _pjNombreKey(r) { return _pacienteMatchKey(r); }
+            function _pjNombreDisplay(r) { return _pacienteNombreDisplay(r); }
             function _pjFechaFull(f) {
                 if (!f) return '—';
                 var DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -5575,10 +5702,27 @@
                 if (btn) btn.textContent = '📄 Generar PDF jornada (' + sel + ' paciente' + (sel!==1?'s':'') + ')';
             };
 
+            /*
+             * imprimirGrillaJornada — reescrita con jsPDF nativo (medido, no
+             * adivinado). La versión anterior imprimía HTML directo y calculaba
+             * la altura de fila con una división fija (152mm / cantidad de
+             * horarios, entre 14 y 38mm) sin relación con el contenido real ni
+             * con el alto de página disponible: con pocos horarios sobraba
+             * espacio y las filas se veían gigantes; con muchos, la suma de
+             * alturas superaba la página y el navegador cortaba la tabla a
+             * mitad de turno. Acá se mide el texto real (nombre + servicio) a
+             * varios tamaños de fuente candidatos y se elige el más grande que
+             * hace entrar TODO el turno en una sola página — nunca se parte una
+             * tabla entre hojas. El único salto de página permitido es el que
+             * separa mañana de tarde, y solo si ambas tienen turnos.
+             */
             window.imprimirGrillaJornada = function() {
                 var f = _pjFecha;
                 if (!f) return;
-                var HE = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+                var tools = getPdfTools();
+                if (!tools) return;
+                var jsPDF = tools.jsPDF;
+
                 var MESES_PDF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
                 var DIAS_PDF  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
                 var fechaExport = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
@@ -5592,9 +5736,11 @@
 
                 if (!reservasDia.length) { mostrarAviso('Sin reservas activas para esta fecha.'); return; }
 
-                // Todos los boxes (incluyendo vacíos — para escribir a mano)
+                // Todos los boxes (incluyendo vacíos — para escribir a mano). Sin
+                // ícono: jsPDF/Helvetica no dibuja emoji (mismo criterio que
+                // fmtBox en generarPDFJornada, unas líneas más abajo en este archivo).
                 var colBoxes = (typeof GRILLA_BOXES !== 'undefined' && GRILLA_BOXES.length)
-                    ? GRILLA_BOXES.map(function(b){ return {id:b.id, label:(b.icon?b.icon+' ':'')+b.title+(b.sub?' · '+b.sub:'')}; })
+                    ? GRILLA_BOXES.map(function(b){ return {id:b.id, label:b.title+(b.sub?' · '+b.sub:'')}; })
                     : [{id:'b1',label:'Box 1'},{id:'b2',label:'Box 2'},{id:'b3',label:'Box 3'},{id:'b4',label:'Box 4'}];
 
                 var timesSet = new Set();
@@ -5604,282 +5750,283 @@
                 var cellMap = new Map();
                 reservasDia.forEach(function(r){ var bid=getBoxId(r); if(bid&&r.hora) cellMap.set(r.hora+'|'+bid, r); });
 
-                // Separar mañana (< 13:00) y tarde (>= 13:00)
+                // Separar mañana (< 13:00) y tarde (>= 13:00) — mismo corte que la versión anterior.
                 var SPLIT = '13:00';
                 var tmMañana = sortedTimes.filter(function(t){ return t < SPLIT; });
                 var tmTarde  = sortedTimes.filter(function(t){ return t >= SPLIT; });
+                var hasMañana = tmMañana.length > 0;
+                var haTarde   = tmTarde.length > 0;
 
                 var p = (f||'').split('-');
                 var dt = p[0]&&p[1]&&p[2] ? new Date(+p[0],+p[1]-1,+p[2]) : null;
                 var fechaFull = dt ? (DIAS_PDF[dt.getDay()]+', '+parseInt(p[2])+' de '+(MESES_PDF[+p[1]-1]||p[1])+' de '+p[0]) : f;
 
-                // ── Construir tabla para un bloque de horarios ──
-                var buildTable = function(times) {
-                    var nRows = times.length;
-                    // A4 landscape: 210mm - 24mm márgenes = 186mm contenido.
-                    // Cabecera ~20mm + thead ~9mm = ~29mm → tbody disponible ≈ 157mm.
-                    // Cap máximo 38mm/fila para que pocas filas no sean gigantes.
-                    // Cap mínimo 14mm/fila para que texto sea legible.
-                    var rowH = Math.min(38, Math.max(14, Math.floor(152 / Math.max(nRows, 1)))) + 'mm';
-                    var thS = 'border:2px solid #111;padding:6px 8px;font-size:9pt;font-weight:800;text-align:center;' +
-                              'background:#fff;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;';
-                    var tdHS = 'border:2px solid #111;padding:0;font-size:14pt;font-weight:800;text-align:center;' +
-                               'vertical-align:middle;white-space:nowrap;width:56px;height:'+rowH+';';
-                    var tdES = 'border:1px solid #bbb;padding:0;vertical-align:top;background:#fff;height:'+rowH+';';
-                    var tdPS = 'border:1px solid #888;padding:8px 10px;vertical-align:top;background:#fff;height:'+rowH+';';
-                    var t = '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">';
-                    t += '<colgroup><col style="width:56px;">';
-                    colBoxes.forEach(function(){ t += '<col>'; });
-                    t += '</colgroup><thead><tr><th style="'+thS+'border-right:2px solid #111;">Hora</th>';
-                    colBoxes.forEach(function(b){ t += '<th style="'+thS+'">'+HE(b.label)+'</th>'; });
-                    t += '</tr></thead><tbody>';
-                    times.forEach(function(hora){
-                        t += '<tr><td style="'+tdHS+'border-right:2px solid #111;">'+HE(hora)+'</td>';
-                        colBoxes.forEach(function(b){
-                            var r = cellMap.get(hora+'|'+b.id);
-                            t += r
-                                ? '<td style="'+tdPS+'">' +
-                                  '<div style="font-size:11pt;font-weight:700;line-height:1.35;">'+HE(_nd(r))+'</div>' +
-                                  '<div style="font-size:8pt;color:#555;margin-top:3px;">'+HE(r.servicio||'—')+'</div>' +
-                                  '</td>'
-                                : '<td style="'+tdES+'"></td>';
-                        });
-                        t += '</tr>';
-                    });
-                    t += '</tbody></table>';
-                    return t;
-                };
-
-                // ── Cabecera de página ──
-                var buildHdr = function(turno, nTurnos) {
-                    return '<div style="border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px;' +
-                               'display:flex;justify-content:space-between;align-items:flex-end;">' +
-                        '<div>' +
-                            '<div style="font-size:15pt;font-weight:800;letter-spacing:-.01em;">Espacio Mimar T</div>' +
-                            '<div style="font-size:12pt;font-weight:700;margin-top:3px;">'+HE(fechaFull)+'</div>' +
-                        '</div>' +
-                        '<div style="text-align:right;font-size:9pt;color:#555;line-height:1.7;">' +
-                            (turno ? '<div style="font-size:14pt;font-weight:800;color:#111;letter-spacing:.02em;">'+turno+'</div>' : '') +
-                            '<div>'+nTurnos+' turno'+(nTurnos!==1?'s':'')+' &nbsp;·&nbsp; '+fechaExport+' '+horaExport+'</div>' +
-                        '</div>' +
-                    '</div>';
-                };
-
-                // ── Sin box asignado ──
+                // Sin box asignado: se muestra UNA sola vez (como antes), en la
+                // última página que se genere (tarde si existe, si no mañana).
                 var noBoxRes = reservasDia.filter(function(r){ return !getBoxId(r); });
-                var noBoxHtml = '';
-                if (noBoxRes.length) {
-                    noBoxHtml = '<div style="font-size:8.5pt;color:#666;border-top:1px solid #ddd;padding-top:5px;margin-top:6px;">' +
-                        noBoxRes.map(function(r){ return '<span style="margin-right:14px;"><strong>'+HE(r.hora||'—')+'</strong> '+HE(_nd(r))+'</span>'; }).join('') +
-                    '</div>';
+
+                // ── Geometría A4 horizontal (mm) ──
+                var PAGE_W = 297, PAGE_H = 210, MARGIN_L = 14, MARGIN_R = 14, MARGIN_T = 12, MARGIN_B = 12;
+                var CONTENT_W = PAGE_W - MARGIN_L - MARGIN_R;
+                var CONTENT_BOTTOM = PAGE_H - MARGIN_B;
+                var HORA_W = 24;
+                var BOX_W = (CONTENT_W - HORA_W) / colBoxes.length;
+                var CELL_PAD = 2.2;
+
+                var doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+
+                // mm por línea para un tamaño de fuente en puntos (factor probado
+                // en generarPDFJornada: ~1.43x la altura natural del punto).
+                var mmPerPt = function(pt) { return pt * 0.3528 * 1.43; };
+
+                function drawHeader(turno, nTurnos) {
+                    var y = MARGIN_T;
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(17,17,17);
+                    doc.text('Espacio Mimar T', MARGIN_L, y + 4);
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+                    doc.text(fechaFull, MARGIN_L, y + 10.5);
+                    if (turno) {
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(17,17,17);
+                        doc.text(turno, PAGE_W - MARGIN_R, y + 4, { align: 'right' });
+                    }
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(85,85,85);
+                    doc.text(nTurnos + ' turno' + (nTurnos!==1?'s':'') + '   ·   ' + fechaExport + ' ' + horaExport, PAGE_W - MARGIN_R, y + 10.5, { align: 'right' });
+                    doc.setDrawColor(17,17,17); doc.setLineWidth(0.7);
+                    doc.line(MARGIN_L, y + 13.5, PAGE_W - MARGIN_R, y + 13.5);
+                    return y + 17.5; // tope de la tabla
                 }
 
-                // ── Armar páginas ──
-                var pages = '';
-                var hasMañana = tmMañana.length > 0;
-                var haTarde   = tmTarde.length > 0;
+                // Tamaño del encabezado de columnas: fijo, no depende del tamaño
+                // de fila elegido (los títulos de box son cortos y conocidos).
+                // Se calcula UNA sola vez y se usa igual acá y al dibujar, para
+                // que lo medido sea exactamente lo que se traza.
+                var THEAD_PT = colBoxes.some(function(b){ return b.label.length > 16; }) ? 7.5 : 9;
 
-                if (hasMañana) {
-                    pages += '<div class="pg">' +
-                        buildHdr('Turno Mañana', tmMañana.length) +
-                        buildTable(tmMañana) +
-                        (!haTarde ? noBoxHtml : '') +
-                    '</div>';
+                // ── Mide cuánto ocupa un turno completo (thead + filas + "sin
+                // box") a un tamaño de fuente candidato, sin dibujar nada. ──
+                function medirLayout(times, cellPt, incluirNoBox) {
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(THEAD_PT);
+                    var theadLines = 1;
+                    colBoxes.forEach(function(b) {
+                        var lines = doc.splitTextToSize(b.label.toUpperCase(), BOX_W - CELL_PAD * 2);
+                        theadLines = Math.max(theadLines, lines.length);
+                    });
+                    var theadH = Math.max(7, theadLines * mmPerPt(THEAD_PT) + CELL_PAD * 2);
+
+                    var servPt = Math.max(6, cellPt - 1.5);
+                    var rowHeights = times.map(function(hora) {
+                        var maxLines = 0;
+                        colBoxes.forEach(function(b) {
+                            var r = cellMap.get(hora + '|' + b.id);
+                            if (!r) return;
+                            doc.setFont('helvetica', 'bold'); doc.setFontSize(cellPt);
+                            var nomLines = doc.splitTextToSize(_nd(r), BOX_W - CELL_PAD * 2).length;
+                            doc.setFont('helvetica', 'normal'); doc.setFontSize(servPt);
+                            var srvLines = doc.splitTextToSize(r.servicio || '—', BOX_W - CELL_PAD * 2).length;
+                            var neededMm = CELL_PAD * 2 + nomLines * mmPerPt(cellPt) + 0.8 + srvLines * mmPerPt(servPt);
+                            maxLines = Math.max(maxLines, neededMm);
+                        });
+                        return Math.max(maxLines, mmPerPt(cellPt) + CELL_PAD * 2);
+                    });
+
+                    var noBoxH = 0;
+                    if (incluirNoBox && noBoxRes.length) {
+                        doc.setFont('helvetica', 'normal'); doc.setFontSize(Math.max(6.5, cellPt - 1.5));
+                        var noBoxTxt = noBoxRes.map(function(r){ return (r.hora||'—') + ' ' + _nd(r); }).join('     ·     ');
+                        var noBoxLines = doc.splitTextToSize(noBoxTxt, CONTENT_W).length;
+                        noBoxH = 4 + noBoxLines * mmPerPt(Math.max(6.5, cellPt - 1.5)) + 3;
+                    }
+
+                    var total = theadH + rowHeights.reduce(function(s,h){ return s+h; }, 0) + noBoxH;
+                    return { cellPt: cellPt, servPt: servPt, theadH: theadH, rowHeights: rowHeights, noBoxH: noBoxH, total: total };
                 }
-                if (haTarde) {
-                    if (hasMañana) pages += '<div class="pb"></div>';
-                    pages += '<div class="pg">' +
-                        buildHdr('Turno Tarde', tmTarde.length) +
-                        buildTable(tmTarde) +
-                        noBoxHtml +
-                    '</div>';
+
+                // Prueba tamaños de fuente de mayor a menor y usa el más grande
+                // que hace entrar el turno completo — nunca se elige un tamaño
+                // que fuerce a partir la tabla entre páginas.
+                var FONT_CANDIDATES = [11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6];
+                function elegirLayout(times, availableH, incluirNoBox) {
+                    var last = null;
+                    for (var i = 0; i < FONT_CANDIDATES.length; i++) {
+                        var layout = medirLayout(times, FONT_CANDIDATES[i], incluirNoBox);
+                        last = layout;
+                        if (layout.total <= availableH) return layout;
+                    }
+                    return last; // ni al tamaño mínimo entra — se informa más abajo, no se dibuja partido
                 }
-                if (!hasMañana && !haTarde) {
-                    pages += '<div class="pg">' + buildHdr('', reservasDia.length) + buildTable(sortedTimes) + noBoxHtml + '</div>';
+
+                // ── Dibuja un turno completo en la página actual ──
+                function drawShift(times, turno, nTurnos, incluirNoBox) {
+                    var y = drawHeader(turno, nTurnos);
+                    var availableH = CONTENT_BOTTOM - y;
+                    var layout = elegirLayout(times, availableH, incluirNoBox);
+                    if (layout.total > availableH + 0.5) {
+                        throw new Error('El turno ' + (turno || '') + ' tiene ' + times.length + ' horario(s) y no entra en una sola página aun con la tipografía mínima (' +
+                            FONT_CANDIDATES[FONT_CANDIDATES.length-1] + 'pt). Reducí la cantidad de boxes impresos o dividí la jornada.');
+                    }
+
+                    // ── Encabezado de tabla ──
+                    doc.setDrawColor(17,17,17); doc.setLineWidth(0.6);
+                    doc.setFillColor(255,255,255);
+                    doc.rect(MARGIN_L, y, HORA_W, layout.theadH);
+                    doc.rect(MARGIN_L + HORA_W, y, CONTENT_W - HORA_W, layout.theadH);
+                    var xBox = MARGIN_L + HORA_W;
+                    colBoxes.forEach(function(b) {
+                        doc.rect(xBox, y, BOX_W, layout.theadH);
+                        xBox += BOX_W;
+                    });
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(THEAD_PT); doc.setTextColor(17,17,17);
+                    doc.text('HORA', MARGIN_L + HORA_W/2, y + layout.theadH/2 + 1.2, { align: 'center' });
+                    xBox = MARGIN_L + HORA_W;
+                    colBoxes.forEach(function(b) {
+                        var lines = doc.splitTextToSize(b.label.toUpperCase(), BOX_W - CELL_PAD*2);
+                        var startY = y + layout.theadH/2 - ((lines.length-1) * mmPerPt(THEAD_PT)/2) + 1.2;
+                        doc.text(lines, xBox + BOX_W/2, startY, { align: 'center' });
+                        xBox += BOX_W;
+                    });
+                    y += layout.theadH;
+
+                    // ── Filas ──
+                    times.forEach(function(hora, i) {
+                        var rowH = layout.rowHeights[i];
+                        doc.setDrawColor(17,17,17); doc.setLineWidth(0.6);
+                        doc.rect(MARGIN_L, y, HORA_W, rowH);
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(17,17,17);
+                        doc.text(hora, MARGIN_L + HORA_W/2, y + rowH/2 + 1.4, { align: 'center' });
+
+                        var xC = MARGIN_L + HORA_W;
+                        colBoxes.forEach(function(b) {
+                            doc.setDrawColor(150,150,150); doc.setLineWidth(0.3);
+                            doc.rect(xC, y, BOX_W, rowH);
+                            var r = cellMap.get(hora + '|' + b.id);
+                            if (r) {
+                                var cy = y + CELL_PAD + mmPerPt(layout.cellPt) * 0.75;
+                                doc.setFont('helvetica', 'bold'); doc.setFontSize(layout.cellPt); doc.setTextColor(20,20,20);
+                                var nomLines = doc.splitTextToSize(_nd(r), BOX_W - CELL_PAD*2);
+                                doc.text(nomLines, xC + CELL_PAD, cy);
+                                cy += nomLines.length * mmPerPt(layout.cellPt) + 0.8;
+                                doc.setFont('helvetica', 'normal'); doc.setFontSize(layout.servPt); doc.setTextColor(85,85,85);
+                                var srvLines = doc.splitTextToSize(r.servicio || '—', BOX_W - CELL_PAD*2);
+                                doc.text(srvLines, xC + CELL_PAD, cy);
+                            }
+                            xC += BOX_W;
+                        });
+                        y += rowH;
+                    });
+
+                    // ── Sin box asignado (una sola vez, en la última página) ──
+                    if (incluirNoBox && noBoxRes.length) {
+                        y += 3;
+                        doc.setDrawColor(210,210,210); doc.setLineWidth(0.3);
+                        doc.line(MARGIN_L, y, PAGE_W - MARGIN_R, y);
+                        y += 4;
+                        var noBoxPt = Math.max(6.5, layout.cellPt - 1.5);
+                        doc.setFont('helvetica', 'normal'); doc.setFontSize(noBoxPt); doc.setTextColor(100,100,100);
+                        var noBoxTxt = noBoxRes.map(function(r){ return (r.hora||'—') + ' ' + _nd(r); }).join('     ·     ');
+                        var noBoxLines = doc.splitTextToSize(noBoxTxt, CONTENT_W);
+                        doc.text(noBoxLines, MARGIN_L, y + mmPerPt(noBoxPt)*0.75);
+                    }
                 }
 
-                var css = '@page{size:A4 landscape;margin:12mm 14mm 12mm 14mm;}' +
-                    '*{box-sizing:border-box;margin:0;padding:0;}' +
-                    'html,body{height:100%;}' +
-                    'body{font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff;}' +
-                    '.pb{page-break-before:always;break-before:page;height:0;}' +
-                    '.pg{page-break-inside:avoid;break-inside:avoid;overflow:hidden;}' +
-                    '.no-print{display:block;}' +
-                    '.print-toolbar{text-align:center;margin:18px 0 12px;padding:12px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;}' +
-                    '.btn-print{padding:10px 26px;background:#111;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 5px;}' +
-                    '.btn-close{padding:10px 16px;background:#fff;color:#555;border:1px solid #ccc;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;margin:0 5px;}' +
-                    '@media print{.no-print{display:none!important;}}';
+                var sessionsWritten = 0;
+                var expectedPages = (hasMañana && haTarde) ? 2 : 1;
 
-                var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
-                    '<title>Grilla '+HE(f)+' · Espacio Mimar T</title>' +
-                    '<style>'+css+'</style></head><body>' +
-                    '<div class="no-print print-toolbar">' +
-                        '<button class="btn-print" onclick="window.print()">🖨️ Imprimir grilla</button>' +
-                        '<button class="btn-close" onclick="window.close()">Cerrar</button>' +
-                    '</div>' +
-                    pages +
-                    '</body></html>';
+                try {
+                    if (hasMañana) {
+                        drawShift(tmMañana, 'Turno Mañana', tmMañana.length, !haTarde);
+                        sessionsWritten += tmMañana.length;
+                    }
+                    if (haTarde) {
+                        if (hasMañana) doc.addPage();
+                        drawShift(tmTarde, 'Turno Tarde', tmTarde.length, true);
+                        sessionsWritten += tmTarde.length;
+                    }
+                    if (!hasMañana && !haTarde) {
+                        drawShift(sortedTimes, '', reservasDia.length, true);
+                        sessionsWritten += sortedTimes.length;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    mostrarAviso('No se pudo generar la grilla: ' + (err && err.message ? err.message : 'error desconocido'));
+                    return;
+                }
 
-                var w = window.open('', '_blank', 'width=1100,height=750');
+                // ── Control de integridad: la cantidad de páginas y de
+                // horarios dibujados debe coincidir exactamente con lo esperado
+                // — si no, se avisa en vez de entregar una grilla incompleta. ──
+                var totalPages = doc.internal.getNumberOfPages();
+                if (totalPages !== expectedPages || sessionsWritten !== sortedTimes.length) {
+                    mostrarAviso('La grilla no se generó correctamente (páginas: ' + totalPages + '/' + expectedPages +
+                        ', horarios: ' + sessionsWritten + '/' + sortedTimes.length + '). No se abrió para imprimir.');
+                    return;
+                }
+
+                doc.autoPrint();
+                var blobUrl = doc.output('bloburl');
+                var w = window.open(blobUrl, '_blank');
                 if (!w) { mostrarAviso('Permitir ventanas emergentes para imprimir la grilla.'); return; }
-                w.document.write(html);
-                w.document.close();
-                w.focus();
             };
 
-            window.generarPDFJornada = function() {
+            /*
+             * generarPDFJornada — reescrito para dibujar el PDF con jsPDF nativo
+             * (texto real, no una imagen de html2canvas). Motivo: la versión
+             * anterior renderizaba todo el HTML como una única imagen larga y
+             * la cortaba en páginas con una fórmula aproximada (altura de
+             * página fija en px + una medición de offsetTop que ni siquiera
+             * llegaba a acumularse bien) — eso producía nombres de pie de
+             * página equivocados y filas/nombres cortados a mitad de línea.
+             * Acá el corte de página lo decide el propio código, línea por
+             * línea, así que "en qué hoja estoy" y "de quién es esta hoja"
+             * son datos exactos, no una estimación.
+             */
+            window.generarPDFJornada = async function() {
                 var f = _pjFecha;
                 if (!f) return;
                 var selected = new Set();
                 document.querySelectorAll('.pj-chk:checked').forEach(function(c){ selected.add(c.dataset.key); });
                 if (!selected.size) { mostrarAviso('Seleccioná al menos un paciente.'); return; }
 
-                var reservasDia = todasLasReservas
+                var tools = getPdfTools();
+                if (!tools) return;
+                var jsPDF = tools.jsPDF;
+
+                var btn = document.getElementById('pj-pdf-btn');
+                var btnOrigText = btn ? btn.textContent : '';
+                if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
+
+                try {
+
+                // Historial completo real: todasLasReservas sólo cubre el mes que
+                // está viendo el calendario. Se vuelve a traer toda la colección
+                // acá para no entregar un PDF con sesiones de otros meses faltantes.
+                var reservasCompletas = await _fetchReservasCompletasParaExport();
+
+                var reservasDia = reservasCompletas
                     .filter(function(r){ return r.fecha === f && esReservaActiva(r); })
                     .sort(function(a,b){ return (a.hora||'')<(b.hora||'') ? -1 : 1; });
 
-                var patientData = [];
                 var now = Date.now();
+                var patientData = [];
                 var seen = new Set();
                 reservasDia.forEach(function(r){
                     var k = _pjNombreKey(r);
                     if (!k || !selected.has(k) || seen.has(k)) return;
                     seen.add(k);
                     var nombre = _pjNombreDisplay(r);
-                    var all = todasLasReservas.filter(function(x){ return _pjNombreKey(x) === k; });
-                    var pend = [], comp = [], canc = [];
-                    all.forEach(function(x){
-                        var st = (x.estado||x.status||'').toLowerCase();
-                        var xMs = new Date((x.fecha||'1970-01-01') + 'T00:00:00').getTime() +
-                            ((parseInt(((x.hora||'00:00').split(':')[0]))||0)*60 + (parseInt(((x.hora||'00:00').split(':')[1]))||0)) * 60000;
-                        if (st === 'cancelado') canc.push(x);
-                        else if (now < xMs) pend.push(x);
-                        else comp.push(x);
-                    });
-                    var firstR = all.find(function(x){ return !!(x.phone||x.telefono||x.phoneWA); });
+                    var allR = reservasCompletas.filter(function(x){ return _pjNombreKey(x) === k; });
+                    var firstR = allR.find(function(x){ return !!(x.phone||x.telefono||x.phoneWA); });
                     var phone = firstR ? (firstR.phone||firstR.telefono||firstR.phoneWA||'') : '';
-                    patientData.push({ nombre: nombre, key: k, phone: phone, pendientes: pend, completadas: comp, canceladas: canc });
-                });
 
-                if (!patientData.length) { mostrarAviso('Sin datos para generar.'); return; }
-                _pjLastGenTs = Date.now();
-                _pjLastGenFecha = f;
-
-                // ── Build PDF HTML ──
-                var HE = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
-                var MESES_PDF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-                var DIAS_PDF  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-
-                var fmtF = function(ff){
-                    var p = (ff||'').split('-');
-                    if (!p[0]||!p[1]||!p[2]) return HE(ff||'—');
-                    var dt = new Date(+p[0],+p[1]-1,+p[2]);
-                    return HE(DIAS_PDF[dt.getDay()] + ' ' + parseInt(p[2]) + ' de ' + (MESES_PDF[+p[1]-1]||p[1]) + ' de ' + p[0]);
-                };
-                var fmtBox = function(r){
-                    var bid = typeof _grilla_boxDeReserva === 'function' ? _grilla_boxDeReserva(r) : '';
-                    if (!bid) return '';
-                    if (typeof GRILLA_BOXES !== 'undefined') {
-                        var bo = GRILLA_BOXES.find(function(b){ return b.id === bid; });
-                        if (bo) return HE(bo.icon + ' ' + bo.title + (bo.sub ? ' — ' + bo.sub : ''));
-                    }
-                    return HE({b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[bid]||bid);
-                };
-
-                var css = '@page{size:A4 portrait;margin:16mm 14mm 22mm 14mm;}' +
-                    '*{box-sizing:border-box;margin:0;padding:0;}' +
-                    'body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#111;background:#fff;line-height:1.38;}' +
-                    '.pat-start{page-break-before:always;break-before:always;}' +
-                    '.pat-top{page-break-inside:avoid;break-inside:avoid;}' +
-                    '.pac-hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #dc2626;padding-bottom:6px;margin-bottom:8px;page-break-inside:avoid;break-inside:avoid;page-break-after:avoid;break-after:avoid;}' +
-                    '.pac-name{font-size:13pt;font-weight:800;color:#dc2626;}' +
-                    '.pac-info{font-size:8pt;color:#555;text-align:right;white-space:nowrap;}' +
-                    '.resumen{background:#f8f8f8;border:1px solid #ddd;border-radius:3px;padding:5px 9px;margin-bottom:8px;font-size:8pt;line-height:1.5;page-break-inside:avoid;break-inside:avoid;}' +
-                    /* ── Tarjeta horizontal 3 columnas ── */
-                    '.card{display:flex;flex-direction:row;border:1px solid #d0d0d0;border-radius:3px;margin-bottom:4px;page-break-inside:avoid;break-inside:avoid;overflow:hidden;}' +
-                    '.card.pend{border-left:3px solid #c8a000;}' +
-                    '.card.real{border-left:3px solid #1e5c3f;}' +
-                    '.card.canc{border-left:3px solid #bbb;opacity:.76;}' +
-                    '.ca{flex:0 0 17%;padding:6px 7px;border-right:1px solid #ebebeb;display:flex;flex-direction:column;gap:3px;background:inherit;}' +
-                    '.cb{flex:0 0 27%;padding:6px 8px;border-right:1px solid #ebebeb;background:inherit;}' +
-                    '.cc{flex:1 1 auto;padding:6px 9px;background:inherit;}' +
-                    '.card.pend{background:#fffef5;}.card.real{background:#f5fbf7;}.card.canc{background:#fafafa;}' +
-                    '.sn{font-size:7pt;font-weight:800;color:#777;letter-spacing:.02em;}' +
-                    '.sbadge{display:inline-block;font-size:6pt;font-weight:800;padding:1px 4px;border-radius:2px;text-transform:uppercase;letter-spacing:.06em;}' +
-                    '.sbadge.real{background:#d4eddf;color:#1a5235;}' +
-                    '.sbadge.pend{background:#ffefc0;color:#7a5800;}' +
-                    '.sbadge.canc{background:#e8e8e8;color:#888;}' +
-                    '.cpac{font-size:6pt;font-weight:800;color:#dc2626;text-transform:uppercase;letter-spacing:.04em;margin-top:auto;padding-top:5px;word-break:break-word;line-height:1.3;}' +
-                    '.cfecha{font-size:9pt;font-weight:700;line-height:1.3;margin-bottom:2px;}' +
-                    '.chora{font-size:7.5pt;color:#555;margin-bottom:2px;}' +
-                    '.cbox{font-size:7pt;color:#666;line-height:1.3;}' +
-                    '.csrv{font-size:9pt;font-weight:700;margin-bottom:3px;}' +
-                    '.cdet-lbl{font-size:6pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#aaa;margin:4px 0 2px;}' +
-                    '.cdet{font-size:8pt;border-left:2px solid #ccc;padding:2px 6px;white-space:pre-wrap;word-break:break-word;line-height:1.4;color:#333;}' +
-                    '.cdet.real{border-left-color:#1e5c3f;background:#eef6f1;}' +
-                    '.cdet.pend{border-left-color:#c8a000;background:#fffaec;}' +
-                    '.blank-ln{border-bottom:1px solid #bbb;height:18px;margin-top:3px;}' +
-                    '.no-print{display:block;}' +
-                    '.print-toolbar{text-align:center;margin:18px 0 12px;padding:12px;background:#f5f5f5;border-radius:7px;border:1px solid #e0e0e0;}' +
-                    '.btn-print{padding:9px 24px;background:#111;color:#fff;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin:0 5px;}' +
-                    '.btn-close{padding:9px 14px;background:#fff;color:#555;border:1px solid #ccc;border-radius:5px;font-size:11px;cursor:pointer;font-family:inherit;margin:0 5px;}' +
-                    '@media print{.no-print{display:none!important;}.card{page-break-inside:avoid;break-inside:avoid;}}';
-
-                // ── Card horizontal 3 columnas (pend / real / canc) ──
-                var cardSesion = function(ses, n, tot, nombre) {
-                    var r = ses.r, status = ses.status;
-                    var det  = (r.detalleSesion||'').trim();
-                    var det2 = (r.detalleSesion2||'').trim();
-                    var box  = fmtBox(r);
-                    var est  = (r.estado||r.status||'').toLowerCase();
-                    var statusLabel;
-                    if (status==='pend') statusLabel='PENDIENTE';
-                    else if (status==='canc') statusLabel='CANCELADA';
-                    else statusLabel='REALIZADA';
-                    if (est==='reprogramado') statusLabel='REPROGRAMADA';
-                    var fechaHtml = r.fecha ? fmtF(r.fecha) : '<span style="color:#aaa;font-style:italic;">Sin fecha</span>';
-                    // Col A: sesión # + badge + nombre
-                    var colA = '<div class="ca">' +
-                        '<div class="sn">S.'+n+'/'+tot+'</div>' +
-                        '<div><span class="sbadge '+status+'">'+statusLabel+'</span></div>' +
-                        '<div class="cpac">'+HE(nombre)+'</div>' +
-                        '</div>';
-                    // Col B: fecha + hora + box
-                    var colB = '<div class="cb">' +
-                        '<div class="cfecha">'+fechaHtml+'</div>' +
-                        (r.hora ? '<div class="chora">'+HE(r.hora)+' hs</div>' : '') +
-                        (box ? '<div class="cbox">'+box+'</div>' : '') +
-                        '</div>';
-                    // Col C: servicio + detalle / anotaciones
-                    var colC = '<div class="cc">' +
-                        '<div class="csrv">'+HE(r.servicio||'—')+'</div>';
-                    if (det)  colC += '<div class="cdet-lbl">'+(status==='pend'?'Obs. previas':'Detalle de la sesión')+'</div><div class="cdet '+status+'">'+HE(det)+'</div>';
-                    if (det2) colC += '<div class="cdet-lbl">Nota adicional</div><div class="cdet '+status+'">'+HE(det2)+'</div>';
-                    if (status==='pend') colC += '<div class="cdet-lbl">Anotaciones de la sesión</div><div class="blank-ln"></div>';
-                    else if (status==='real' && !det && !det2) colC += '<div style="font-size:7.5pt;color:#aaa;margin-top:3px;font-style:italic;">Sin detalle registrado</div>';
-                    colC += '</div>';
-                    return '<div class="card '+status+'">'+colA+colB+colC+'</div>';
-                };
-
-                // ── Historiales por paciente — orden cronológico unificado ──
-                var _duplexMode = document.getElementById('pj-duplex') && document.getElementById('pj-duplex').checked;
-                var patSecs = '';
-                patientData.forEach(function(pd, pdIdx){
-                    var allR = todasLasReservas.filter(function(x){ return _pjNombreKey(x) === pd.key; });
-
-
-                    // Secuencia cronológica unificada
+                    // Secuencia cronológica unificada (realizadas/pendientes/canceladas mezcladas por fecha)
                     var allSes = [];
-                    allR.forEach(function(r) {
-                        var st = (r.estado||r.status||'').toLowerCase();
-                        var xDate = r.fecha || '';
-                        var xTime = r.hora || '';
+                    allR.forEach(function(x) {
+                        var st = (x.estado||x.status||'').toLowerCase();
+                        var xDate = x.fecha || '';
+                        var xTime = x.hora || '';
                         var isCancelled = st === 'cancelado';
-                        var xMs = xDate ? (new Date(xDate+'T00:00:00').getTime() +
-                            ((parseInt((xTime.split(':')[0])||0)*60 + parseInt((xTime.split(':')[1])||0)) * 60000)) : null;
-                        var isPending = !isCancelled && xMs !== null && now < xMs;
+                        var isPending = !isCancelled && _esSesionPendiente(x, now);
                         allSes.push({
-                            r: r,
+                            r: x,
                             sortKey: xDate ? (xDate+'T'+(xTime||'00:00')) : 'ZZZZ',
                             status: isCancelled ? 'canc' : (isPending ? 'pend' : 'real')
                         });
@@ -5891,106 +6038,263 @@
                         return a.sortKey<b.sortKey?-1:a.sortKey>b.sortKey?1:0;
                     });
 
-                    var total = allSes.length;
-                    var nPend = allSes.filter(function(s){ return s.status==='pend'; }).length;
-                    var nReal = allSes.filter(function(s){ return s.status==='real'; }).length;
-                    var nCanc = allSes.filter(function(s){ return s.status==='canc'; }).length;
-
-                    var sesCards = '';
-                    allSes.forEach(function(ses, i){ sesCards += cardSesion(ses, i+1, total, pd.nombre); });
-
-                    // Cada paciente en página propia; doble cara: página extra entre pacientes
-                    var _duplexSep = (_duplexMode && pdIdx > 0)
-                        ? '<div style="page-break-before:always;break-before:always;height:0;margin:0;padding:0;"></div>' : '';
-                    patSecs += _duplexSep +
-                        '<div class="pat-start" data-pat-idx="'+pdIdx+'" data-pat-name="'+HE(pd.nombre)+'">' +
-                        '<div class="pat-top">' +
-                        '<div class="pac-hdr">' +
-                            '<div class="pac-name">'+HE(pd.nombre)+'</div>' +
-                            '<div class="pac-info">Edad: <span style="display:inline-block;min-width:70px;border-bottom:1px solid #777;">&nbsp;</span>' + (pd.phone ? ' &nbsp;·&nbsp; Tel: ' + HE(pd.phone) : '') + '</div>' +
-                        '</div>' +
-                        '<div class="resumen">' +
-                            'Total de sesiones: <strong>'+total+'</strong> &nbsp;·&nbsp; ' +
-                            'Realizadas: <strong>'+nReal+'</strong> &nbsp;·&nbsp; ' +
-                            'Pendientes: <strong>'+nPend+'</strong>' +
-                            (nCanc?' &nbsp;·&nbsp; Canceladas: <strong>'+nCanc+'</strong>':'') +
-                        '</div>' +
-                        '</div>' +
-                        sesCards +
-                        '</div>';
+                    patientData.push({ nombre: nombre, key: k, phone: phone, edad: _buscarEdad(nombre, phone, allR), sesiones: allSes });
                 });
 
-                var _saveFn = 'function _savePdf(){' +
-                    'var btn=document.getElementById("btn-sp");' +
-                    'if(btn){btn.disabled=true;btn.textContent="Generando…";}' +
-                    'var el=document.getElementById("pdf-main");' +
-                    // Measure patient section positions before rendering
-                    'var A4H=979;' + // content height px: (297-16-22)*96/25.4
-                    'var patMap=[];' +
-                    'el.querySelectorAll(".pat-start[data-pat-idx]").forEach(function(m){' +
-                        'var top=0,node=m;' +
-                        'while(node&&node!==el){top+=node.offsetTop;node=node.offsetParent;}' +
-                        'patMap.push({name:m.dataset.patName,startPage:Math.max(1,Math.floor(top/A4H)+1)});' +
-                    '});' +
-                    'function run(){' +
-                        'html2pdf().set({' +
-                            'margin:[16,14,22,14],' +
-                            'filename:"jornada-' + f + '.pdf",' +
-                            'image:{type:"jpeg",quality:0.98},' +
-                            'html2canvas:{scale:2,useCORS:true,logging:false},' +
-                            'jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},' +
-                            'pagebreak:{mode:["css","legacy"],avoid:".card,.pac-hdr,.pat-top,.resumen"}' +
-                        '}).from(el).toPdf().get("pdf").then(function(pdf){' +
-                            'var tot=pdf.internal.getNumberOfPages();' +
-                            'for(var pi=0;pi<patMap.length;pi++){' +
-                                'patMap[pi].endPage=(pi<patMap.length-1)?patMap[pi+1].startPage-1:tot;' +
-                                'patMap[pi].tot=patMap[pi].endPage-patMap[pi].startPage+1;' +
-                            '}' +
-                            'var pw=pdf.internal.pageSize.getWidth();' +
-                            'var ph=pdf.internal.pageSize.getHeight();' +
-                            'for(var i=1;i<=tot;i++){' +
-                                'pdf.setPage(i);' +
-                                'pdf.setFontSize(7);' +
-                                'pdf.setTextColor(140,140,140);' +
-                                'var curPat=null;' +
-                                'for(var pi=patMap.length-1;pi>=0;pi--){if(i>=patMap[pi].startPage){curPat=patMap[pi];break;}}' +
-                                'if(curPat){' +
-                                    'var hoja=i-curPat.startPage+1;' +
-                                    'pdf.text("Espacio Mimar T  ·  "+curPat.name+"  ·  Jornada ' + f + '",15,ph-7);' +
-                                    'pdf.text("Hoja "+hoja+" de "+curPat.tot,pw-15,ph-7,{align:"right"});' +
-                                '} else {' +
-                                    'pdf.text("Espacio Mimar T  ·  Jornada ' + f + '",15,ph-7);' +
-                                    'pdf.text("Pág. "+i+" / "+tot,pw-15,ph-7,{align:"right"});' +
-                                '}' +
-                            '}' +
-                        '}).save().then(function(){' +
-                            'if(btn){btn.disabled=false;btn.textContent="💾 Guardar como PDF";}' +
-                        '});' +
-                    '}' +
-                    'if(typeof html2pdf!=="undefined"){run();return;}' +
-                    'var s=document.createElement("script");' +
-                    's.src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js";' +
-                    's.onload=run;document.head.appendChild(s);' +
-                '}';
-                var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
-                    '<title>Jornada ' + HE(f) + ' · Espacio Mimar T</title>' +
-                    '<style>' + css + '</style>' +
-                    '<script>' + _saveFn + '<' + '/script>' +
-                    '</head><body>' +
-                    '<div class="no-print print-toolbar">' +
-                        '<button id="btn-sp" class="btn-print" onclick="_savePdf()">💾 Guardar como PDF</button>' +
-                        '<button class="btn-print" onclick="window.print()" style="background:#444;margin-left:8px;">🖨️ Imprimir</button>' +
-                        '<button class="btn-close" onclick="window.close()">Cerrar</button>' +
-                    '</div>' +
-                    '<div id="pdf-main">' + patSecs + '</div>' +
-                    '</body></html>';
+                if (!patientData.length) { mostrarAviso('Sin datos para generar.'); return; }
+                var totalEsperado = patientData.reduce(function(s,p){ return s + p.sesiones.length; }, 0);
+                if (!totalEsperado) { mostrarAviso('Los pacientes seleccionados no tienen sesiones registradas.'); return; }
 
-                var w = window.open('', '_blank', 'width=1000,height=880');
-                if (!w) { mostrarAviso('Permitir ventanas emergentes para generar el PDF.'); return; }
-                w.document.write(html);
-                w.document.close();
-                w.focus();
-                _pjRender();
+                var duplex = document.getElementById('pj-duplex') && document.getElementById('pj-duplex').checked;
+
+                var MESES_PDF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                var DIAS_PDF  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+                var fmtF = function(ff){
+                    var p = (ff||'').split('-');
+                    if (!p[0]||!p[1]||!p[2]) return ff||'—';
+                    var dt = new Date(+p[0],+p[1]-1,+p[2]);
+                    return DIAS_PDF[dt.getDay()] + ' ' + parseInt(p[2]) + ' de ' + (MESES_PDF[+p[1]-1]||p[1]) + ' de ' + p[0];
+                };
+                var fmtBox = function(r){
+                    var bid = typeof _grilla_boxDeReserva === 'function' ? _grilla_boxDeReserva(r) : '';
+                    if (!bid) return '';
+                    if (typeof GRILLA_BOXES !== 'undefined') {
+                        var bo = GRILLA_BOXES.find(function(b){ return b.id === bid; });
+                        if (bo) return (bo.title || '') + (bo.sub ? ' — ' + bo.sub : '');
+                    }
+                    return {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[bid]||bid;
+                };
+                var fechaLargaJornada = fmtF(f);
+
+                // ── Geometría de página (mm, A4 vertical) ──
+                var PAGE_W = 210, PAGE_H = 297;
+                var MARGIN_L = 14, MARGIN_R = 14;
+                var CONTENT_W = PAGE_W - MARGIN_L - MARGIN_R;
+                var CONTENT_BOTTOM = 278;   // debajo de esto, hay que cambiar de página
+                var FOOTER_Y = 288;
+                var HEADER_TOP = 16;
+                var CONTINUATION_HEADER_H = 24; // alto que ocupa el encabezado de continuación
+
+                var doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+                var patientRanges = [];
+                var sessionsWritten = 0;
+                var firstPage = true;
+
+                function drawHeader(pd, isContinuation) {
+                    var y = HEADER_TOP;
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+                    doc.setTextColor(140,140,140);
+                    doc.text('JORNADA · ' + fechaLargaJornada, MARGIN_L, y);
+                    y += isContinuation ? 6 : 8;
+                    doc.setFont('helvetica', 'bold'); doc.setFontSize(isContinuation ? 12 : 16);
+                    doc.setTextColor(220,38,38);
+                    doc.text(pd.nombre + (isContinuation ? '  (continuación)' : ''), MARGIN_L, y);
+                    y += 2;
+                    doc.setDrawColor(220,38,38); doc.setLineWidth(0.6);
+                    doc.line(MARGIN_L, y, MARGIN_L + CONTENT_W, y);
+                    y += 5;
+                    if (!isContinuation) {
+                        doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+                        doc.setTextColor(90,90,90);
+                        doc.text('Edad: ' + (pd.edad || '______________') + (pd.phone ? '     ·     Tel: ' + pd.phone : ''), MARGIN_L, y);
+                        y += 6;
+                        var total = pd.sesiones.length;
+                        var nReal = pd.sesiones.filter(function(s){ return s.status==='real'; }).length;
+                        var nPend = pd.sesiones.filter(function(s){ return s.status==='pend'; }).length;
+                        var nCanc = pd.sesiones.filter(function(s){ return s.status==='canc'; }).length;
+                        doc.setFillColor(248,248,248); doc.setDrawColor(220,220,220);
+                        doc.rect(MARGIN_L, y - 4, CONTENT_W, 8, 'FD');
+                        doc.setFontSize(8.5); doc.setTextColor(60,60,60);
+                        doc.text('Total de sesiones: ' + total + '   ·   Realizadas: ' + nReal + '   ·   Pendientes: ' + nPend + (nCanc ? '   ·   Canceladas: ' + nCanc : ''), MARGIN_L + 3, y + 1);
+                        y += 9;
+                    }
+                    return y;
+                }
+
+                function statusColors(status) {
+                    if (status === 'real') return { bar:[30,92,63],  badgeBg:[212,237,223], badgeFg:[26,82,53],  label:'REALIZADA' };
+                    if (status === 'pend') return { bar:[200,160,0], badgeBg:[255,239,192], badgeFg:[122,88,0],  label:'PENDIENTE' };
+                    return                        { bar:[170,170,170], badgeBg:[232,232,232], badgeFg:[136,136,136], label:'CANCELADA' };
+                }
+
+                var COL_A_X = MARGIN_L + 3, COL_A_W = 24;
+                var COL_B_X = COL_A_X + COL_A_W + 3, COL_B_W = 38;
+                var COL_C_X = COL_B_X + COL_B_W + 3;
+                var COL_C_W = MARGIN_L + CONTENT_W - COL_C_X - 3;
+                var LINE_H = 4.2;
+
+                patientData.forEach(function(pd) {
+                    if (!firstPage) doc.addPage(); else firstPage = false;
+                    var patStartPage = doc.internal.getNumberOfPages();
+                    var y = drawHeader(pd, false);
+                    var tot = pd.sesiones.length;
+
+                    pd.sesiones.forEach(function(ses, i) {
+                        var n = i + 1;
+                        var r = ses.r, status = ses.status;
+                        var sc = statusColors(status);
+                        var est = (r.estado||r.status||'').toLowerCase();
+                        var statusLabel = est === 'reprogramado' ? 'REPROGRAMADA' : sc.label;
+                        var det  = (r.detalleSesion||'').trim();
+                        var det2 = (r.detalleSesion2||'').trim();
+                        var box  = fmtBox(r);
+                        var servicio = r.servicio || '—';
+
+                        // Columna C: contenido íntegro, sin truncar — se mide para
+                        // saber cuánto ocupa antes de decidir dónde cortar página.
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
+                        var servicioLines = doc.splitTextToSize(servicio, COL_C_W);
+                        doc.setFont('helvetica', 'normal'); doc.setFontSize(8.3);
+                        var detLines  = det  ? doc.splitTextToSize(det, COL_C_W - 3)  : [];
+                        var det2Lines = det2 ? doc.splitTextToSize(det2, COL_C_W - 3) : [];
+
+                        var colCBlocks = [{ kind: 'servicio', lines: servicioLines }];
+                        if (det)  { colCBlocks.push({ kind: 'lbl', text: status==='pend' ? 'Obs. previas' : 'Detalle de la sesión' }); colCBlocks.push({ kind: 'det', lines: detLines }); }
+                        if (det2) { colCBlocks.push({ kind: 'lbl', text: 'Nota adicional' }); colCBlocks.push({ kind: 'det', lines: det2Lines }); }
+                        if (status === 'pend') { colCBlocks.push({ kind: 'lbl', text: 'Anotaciones de la sesión' }); colCBlocks.push({ kind: 'blankline' }); }
+                        else if (status === 'real' && !det && !det2) { colCBlocks.push({ kind: 'muted', text: 'Sin detalle registrado' }); }
+
+                        var colCHeight = 2;
+                        colCBlocks.forEach(function(b) {
+                            if (b.kind === 'blankline') colCHeight += 7;
+                            else if (b.kind === 'lbl' || b.kind === 'muted') colCHeight += LINE_H;
+                            else colCHeight += b.lines.length * LINE_H;
+                        });
+                        var blockH = Math.max(17, colCHeight) + 4;
+
+                        // Si la tarjeta completa no entra en lo que queda de página
+                        // pero SÍ entra en una página nueva, se pasa entera — nunca
+                        // se empieza una tarjeta a 3mm del borde para cortarla enseguida.
+                        if (y + blockH > CONTENT_BOTTOM && blockH <= (CONTENT_BOTTOM - CONTINUATION_HEADER_H)) {
+                            doc.addPage();
+                            y = drawHeader(pd, true);
+                        }
+
+                        var cardTopY = y;
+                        var pageFragmentTop = cardTopY;
+                        var cy = cardTopY + 3;
+
+                        // Columna A/B: contenido fijo y corto, se dibuja una sola vez
+                        // (si la tarjeta se corte más abajo, la continuación repite
+                        // sólo un rótulo "Sesión N/tot (continuación)", no A/B enteras).
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+                        doc.setTextColor(120,120,120);
+                        doc.text('S.' + n + '/' + tot, COL_A_X, cardTopY + 3);
+                        doc.setFillColor(sc.badgeBg[0], sc.badgeBg[1], sc.badgeBg[2]);
+                        doc.rect(COL_A_X, cardTopY + 5, COL_A_W, 4.2, 'F');
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(6.2);
+                        doc.setTextColor(sc.badgeFg[0], sc.badgeFg[1], sc.badgeFg[2]);
+                        doc.text(statusLabel, COL_A_X + COL_A_W/2, cardTopY + 7.8, { align: 'center' });
+
+                        doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
+                        doc.setTextColor(20,20,20);
+                        var fechaTxt = r.fecha ? fmtF(r.fecha) : 'Sin fecha';
+                        var fechaLines = doc.splitTextToSize(fechaTxt, COL_B_W);
+                        doc.text(fechaLines, COL_B_X, cardTopY + 3);
+                        var bY = cardTopY + 3 + fechaLines.length * 4;
+                        doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+                        doc.setTextColor(90,90,90);
+                        if (r.hora) { doc.text(r.hora + ' hs', COL_B_X, bY); bY += 3.6; }
+                        if (box) { doc.text(doc.splitTextToSize(box, COL_B_W), COL_B_X, bY); }
+
+                        // Columna C: se escribe renglón por renglón. El corte de
+                        // página, si hace falta, siempre cae ENTRE renglones —
+                        // nunca a mitad de una letra o palabra.
+                        colCBlocks.forEach(function(b) {
+                            var linesToWrite = b.kind === 'lbl' ? [b.text] : b.kind === 'blankline' ? [''] : b.kind === 'muted' ? [b.text] : b.lines;
+                            linesToWrite.forEach(function(line) {
+                                if (cy + LINE_H > CONTENT_BOTTOM) {
+                                    doc.setDrawColor(sc.bar[0], sc.bar[1], sc.bar[2]); doc.setLineWidth(1.2);
+                                    doc.line(MARGIN_L, pageFragmentTop, MARGIN_L, cy);
+                                    doc.addPage();
+                                    y = drawHeader(pd, true);
+                                    doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+                                    doc.setTextColor(120,120,120);
+                                    doc.text('S.' + n + '/' + tot + ' (continuación)', MARGIN_L + 3, y + 3);
+                                    y += 8;
+                                    pageFragmentTop = y;
+                                    cy = y + 2;
+                                }
+                                if (b.kind === 'blankline') {
+                                    doc.setDrawColor(160,160,160); doc.setLineWidth(0.3);
+                                    doc.line(COL_C_X, cy + 2, COL_C_X + COL_C_W, cy + 2);
+                                    cy += 7;
+                                } else if (b.kind === 'lbl') {
+                                    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.4);
+                                    doc.setTextColor(150,150,150);
+                                    doc.text(line.toUpperCase(), COL_C_X, cy);
+                                    cy += LINE_H;
+                                } else if (b.kind === 'muted') {
+                                    doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5);
+                                    doc.setTextColor(170,170,170);
+                                    doc.text(line, COL_C_X, cy);
+                                    cy += LINE_H;
+                                } else if (b.kind === 'servicio') {
+                                    doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
+                                    doc.setTextColor(20,20,20);
+                                    doc.text(line, COL_C_X, cy);
+                                    cy += LINE_H;
+                                } else {
+                                    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.3);
+                                    doc.setTextColor(50,50,50);
+                                    doc.text(line, COL_C_X, cy);
+                                    cy += LINE_H;
+                                }
+                            });
+                        });
+
+                        doc.setDrawColor(sc.bar[0], sc.bar[1], sc.bar[2]); doc.setLineWidth(1.2);
+                        doc.line(MARGIN_L, pageFragmentTop, MARGIN_L, Math.max(cy, pageFragmentTop + 17));
+
+                        y = Math.max(cy, cardTopY + 17) + 3;
+                        sessionsWritten++;
+                    });
+
+                    var patEndPage = doc.internal.getNumberOfPages();
+                    if (duplex) {
+                        var pagesUsed = patEndPage - patStartPage + 1;
+                        if (pagesUsed % 2 !== 0) { doc.addPage(); patEndPage = doc.internal.getNumberOfPages(); }
+                    }
+                    patientRanges.push({ name: pd.nombre, startPage: patStartPage, endPage: patEndPage });
+                });
+
+                // Comprobación de integridad: si por algún motivo se escribieron
+                // menos (o más) sesiones que las que había que exportar, se avisa
+                // en vez de entregar en silencio un PDF incompleto.
+                if (sessionsWritten !== totalEsperado) {
+                    throw new Error('Se escribieron ' + sessionsWritten + ' sesiones pero se esperaban ' + totalEsperado + '.');
+                }
+
+                // ── Pie de página: con los rangos reales, no una estimación ──
+                var totalPages = doc.internal.getNumberOfPages();
+                for (var p = 1; p <= totalPages; p++) {
+                    doc.setPage(p);
+                    var owner = null;
+                    for (var pi = patientRanges.length - 1; pi >= 0; pi--) {
+                        if (p >= patientRanges[pi].startPage) { owner = patientRanges[pi]; break; }
+                    }
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140,140,140);
+                    if (owner && p <= owner.endPage) {
+                        var hoja = p - owner.startPage + 1;
+                        var totHojas = owner.endPage - owner.startPage + 1;
+                        doc.text('Espacio Mimar T  ·  ' + owner.name + '  ·  Jornada ' + f, MARGIN_L, FOOTER_Y);
+                        doc.text('Hoja ' + hoja + ' de ' + totHojas, PAGE_W - MARGIN_R, FOOTER_Y, { align: 'right' });
+                    } else {
+                        doc.text('Espacio Mimar T  ·  Jornada ' + f, MARGIN_L, FOOTER_Y);
+                        doc.text('Pág. ' + p + ' / ' + totalPages, PAGE_W - MARGIN_R, FOOTER_Y, { align: 'right' });
+                    }
+                }
+
+                doc.save('jornada-' + f + '.pdf');
+                _pjLastGenTs = Date.now();
+                _pjLastGenFecha = f;
+                } catch (err) {
+                    console.error(err);
+                    mostrarAviso('No se pudo generar el PDF: ' + (err && err.message ? err.message : 'error desconocido'));
+                } finally {
+                    if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                    _pjRender();
+                }
             };
         })();
         /* ══ FIN PREPARAR JORNADA ══════════════════════════════════════════════ */
@@ -6024,12 +6328,18 @@
                 return;
             }
 
-            // ── Agrupar por paciente (DNI prioritario, si no nombre normalizado) ──
+            // ── Agrupar por paciente: SIEMPRE _pacienteMatchKey (DNI prioritario,
+            // si no nombre normalizado) — la misma función que usan
+            // exportarHistorialPDF/generarPDFJornada para volver a traer el
+            // historial completo. Antes este bloque calculaba su propia clave
+            // ("22010510") en un formato distinto al de _pacienteMatchKey
+            // ("dni:22010510"): como matchKey nunca coincidía, el refresco a
+            // historial completo de exportarHistorialPDF nunca encontraba nada
+            // y exportaba en silencio los datos parciales que hubiera en pantalla.
             var gruposMap = new Map();
             todasMatch.forEach(function(r) {
-                var dni = (r.dni || r.clienteDni || r.documento || '').toString().trim();
-                var gKey = dni || _norm(r.nombreLimpio || r.nombre || 'desconocido');
-                if (!gruposMap.has(gKey)) gruposMap.set(gKey, { nombre: r.nombreLimpio || r.nombre || '—', phone: '', sesiones: [] });
+                var gKey = _pacienteMatchKey(r);
+                if (!gruposMap.has(gKey)) gruposMap.set(gKey, { nombre: _pacienteNombreDisplay(r), phone: '', sesiones: [] });
                 var g = gruposMap.get(gKey);
                 if (!g.phone) g.phone = (r.phone || r.telefono || '').toString().replace(/\D/g,'');
                 g.sesiones.push(r);
@@ -6040,7 +6350,7 @@
 
             var htmlTotal = '';
 
-            gruposMap.forEach(function(grupo) {
+            gruposMap.forEach(function(grupo, gKey) {
                 var sesiones = grupo.sesiones.sort(function(a,b){ return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : (a.hora||'') < (b.hora||'') ? -1 : 1; });
                 var phoneWA = grupo.phone;
                 var nombreDisplay = escapeHtml(grupo.nombre);
@@ -6059,15 +6369,14 @@
                 var pendientes = [], completadas = [], canceladas = [];
                 sesiones.forEach(function(r) {
                     var isCan = (r.estado||r.status||'').toLowerCase() === 'cancelado';
-                    var finMs = new Date((r.fecha||'1970-01-01') + 'T' + (normalizarHora(r.hora)||'00:00') + ':00-03:00').getTime() + (r.duracionMinutos||60)*60000;
                     if (isCan) canceladas.push(r);
-                    else if (Date.now() < finMs) pendientes.push(r);
+                    else if (_esSesionPendiente(r)) pendientes.push(r);
                     else completadas.push(r);
                 });
                 // Guardar datos para exportación PDF
                 if (!window._sesExportDB) window._sesExportDB = [];
                 var _exportIdx = window._sesExportDB.length;
-                window._sesExportDB.push({ nombre: grupo.nombre, phone: phoneWA, sesiones: sesiones, pendientes: pendientes, completadas: completadas, canceladas: canceladas });
+                window._sesExportDB.push({ nombre: grupo.nombre, phone: phoneWA, matchKey: gKey, sesiones: sesiones, pendientes: pendientes, completadas: completadas, canceladas: canceladas });
                 // ── Helpers compartidos de mensajes ──
                 var _mesFull = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
                 var _diasFull = ['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
@@ -6129,7 +6438,7 @@
                     (pendientes.length ? "<button onclick='window._sesMsgShow("+_msgPendIdx+")' style='flex:1;min-width:140px;padding:10px 14px;background:rgba(200,160,30,0.07);border:1px solid rgba(245,200,50,0.22);border-radius:10px;color:rgba(252,211,77,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>Enviar sesiones pendientes ("+pendientes.length+")</button>" : "<div style='flex:1;min-width:140px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;color:rgba(140,180,160,0.28);font-size:12px;text-align:center;'>Sin pendientes</div>") +
                     (completadas.length ? "<button onclick='window._sesMsgShow("+_msgRealIdx+")' style='flex:1;min-width:140px;padding:10px 14px;background:rgba(53,122,92,0.07);border:1px solid rgba(114,189,153,0.22);border-radius:10px;color:rgba(140,220,185,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>Enviar sesiones realizadas ("+completadas.length+")</button>" : "<div style='flex:1;min-width:140px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;color:rgba(140,180,160,0.28);font-size:12px;text-align:center;'>Sin realizadas</div>") +
                     "</div>" +
-                    "<div style='margin-bottom:14px;'><button onclick='window.exportarHistorialPDF("+_exportIdx+")' style='width:100%;padding:10px 16px;background:rgba(80,40,130,0.08);border:1px solid rgba(160,110,220,0.28);border-radius:10px;color:rgba(200,160,255,0.90);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.02em;font-family:inherit;'>📄 Exportar historial completo PDF (" + (pendientes.length+completadas.length+canceladas.length) + " sesiones)</button></div>";
+                    "<div style='margin-bottom:14px;'><button onclick='window.exportarHistorialPDF("+_exportIdx+",this)' style='width:100%;padding:10px 16px;background:rgba(80,40,130,0.08);border:1px solid rgba(160,110,220,0.28);border-radius:10px;color:rgba(200,160,255,0.90);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.02em;font-family:inherit;'>📄 Exportar historial completo PDF (" + (pendientes.length+completadas.length+canceladas.length) + " sesiones)</button></div>";
 
                 // ── Helper de card de sesión ──
                 var _bxNumsT = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
@@ -7137,8 +7446,8 @@
             Object.entries(btns).forEach(([k, btn]) => {
                 if (!btn) return;
                 const activo = k === tab;
-                btn.style.background = activo ? 'rgba(249,168,212,0.18)' : 'transparent';
-                btn.style.color = activo ? 'rgba(249,168,212,0.95)' : 'rgba(165,205,188,0.55)';
+                btn.style.background = activo ? 'rgba(168,190,120,0.18)' : 'transparent';
+                btn.style.color = activo ? 'rgba(168,190,120,0.95)' : 'rgba(165,205,188,0.55)';
                 btn.style.fontWeight = activo ? '700' : '600';
             });
             Object.entries(panels).forEach(([k, p]) => { if (p) p.style.display = k === tab ? 'block' : 'none'; });
@@ -7207,14 +7516,14 @@
                 const lleno = inscCount >= cap;
                 const colorBar = lleno ? '#f87171' : casi ? '#fbbf24' : '#4ade80';
                 return `
-                <div style="background:rgba(249,168,212,0.04);border:1px solid rgba(249,168,212,${s.concluida?'0.12':s.activa?'0.18':'0.07'});border-radius:14px;padding:14px 16px;opacity:${s.concluida?'0.80':s.activa?'1':'0.55'};">
+                <div style="background:rgba(168,190,120,0.04);border:1px solid rgba(168,190,120,${s.concluida?'0.12':s.activa?'0.18':'0.07'});border-radius:14px;padding:14px 16px;opacity:${s.concluida?'0.80':s.activa?'1':'0.55'};">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
                         ${s.concluida
                             ? `<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.28);color:#4ade80;">✓ Concluída</span>`
-                            : `<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(${s.activa?'249,168,212':'165,205,188'},0.12);border:1px solid rgba(${s.activa?'249,168,212':'165,205,188'},0.25);color:rgba(${s.activa?'249,168,212':'165,205,188'},0.85);">${s.activa?'Activa':'Inactiva'}</span>`
+                            : `<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(${s.activa?'168,190,120':'165,205,188'},0.12);border:1px solid rgba(${s.activa?'168,190,120':'165,205,188'},0.25);color:rgba(${s.activa?'168,190,120':'165,205,188'},0.85);">${s.activa?'Activa':'Inactiva'}</span>`
                         }
                         <strong style="flex:1;font-size:14px;color:rgba(220,242,232,0.92);">${_fechaLindaCurso(s.fecha)}</strong>
-                        <span style="font-size:13px;font-weight:700;color:rgba(249,168,212,0.80);">${s.horaInicio} – ${s.horaFin} hs</span>
+                        <span style="font-size:13px;font-weight:700;color:rgba(168,190,120,0.80);">${s.horaInicio} – ${s.horaFin} hs</span>
                     </div>
                     <div style="margin-bottom:10px;">
                         <div style="display:flex;justify-content:space-between;font-size:11.5px;color:rgba(165,205,188,0.55);margin-bottom:5px;">
@@ -7237,7 +7546,7 @@
                         }
                         <button class="btn-mini" onclick="toggleSesionCurso('${s.id}')" style="font-size:12px;${s.activa?'background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.80)':'background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.25);color:#4ade80'}">${s.activa?'🔒 Bloquear':'🔓 Activar'}</button>
                         <button class="btn-mini" onclick="eliminarSesionCurso('${s.id}')" style="font-size:12px;background:rgba(255,100,100,0.04);border-color:rgba(255,100,100,0.16);color:rgba(255,130,130,0.60);">🗑 Eliminar</button>
-                        <button class="btn-mini" onclick="mostrarTabCurso('inscriptas')" style="font-size:12px;background:rgba(249,168,212,0.08);border-color:rgba(249,168,212,0.22);color:rgba(249,168,212,0.80);">👥 Ver inscriptas</button>
+                        <button class="btn-mini" onclick="mostrarTabCurso('inscriptas')" style="font-size:12px;background:rgba(168,190,120,0.08);border-color:rgba(168,190,120,0.22);color:rgba(168,190,120,0.80);">👥 Ver inscriptas</button>
                     </div>
                 </div>`;
             }).join('');
@@ -7313,9 +7622,9 @@
             ['todos','inscripta','presente','cancelada'].forEach(f => {
                 const btn = document.getElementById(`filtro-cursos-${f}`);
                 if (!btn) return;
-                btn.style.background = f === filtro ? 'rgba(249,168,212,0.18)' : '';
-                btn.style.borderColor = f === filtro ? 'rgba(249,168,212,0.45)' : '';
-                btn.style.color = f === filtro ? 'rgba(249,168,212,0.95)' : '';
+                btn.style.background = f === filtro ? 'rgba(168,190,120,0.18)' : '';
+                btn.style.borderColor = f === filtro ? 'rgba(168,190,120,0.45)' : '';
+                btn.style.color = f === filtro ? 'rgba(168,190,120,0.95)' : '';
             });
             window.renderCursos();
         };
@@ -7353,7 +7662,7 @@
 
             const renderCardCurso = (c) => {
                 const estado = c.estado || 'inscripta';
-                const estadoColor = estado === 'presente' ? '#4ade80' : estado === 'cancelada' ? 'rgba(255,100,100,0.75)' : 'rgba(249,168,212,0.85)';
+                const estadoColor = estado === 'presente' ? '#4ade80' : estado === 'cancelada' ? 'rgba(255,100,100,0.75)' : 'rgba(168,190,120,0.85)';
                 const estadoLabel = estado === 'presente' ? 'Presente ✓' : estado === 'cancelada' ? 'Cancelada' : 'Inscripta';
                 const nivel = c.nivelMaquillaje || 5;
                 const nivelColor = nivelColores[nivel] || '#f472b6';
@@ -7367,14 +7676,14 @@
                 const waConfirm = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}, te confirmamos tu inscripción al Curso de Automaquillaje en Espacio Mimar T${sesion?` para el ${_fechaLindaCurso(sesion.fecha)} a las ${sesion.horaInicio} hs`:''}. ¡Te esperamos!`)}` : '';
                 const waRecordatorio = waPhone && sesion ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}! Te recordamos que el Curso de Automaquillaje es el ${_fechaLindaCurso(sesion.fecha)} a las ${sesion.horaInicio} hs en Espacio Mimar T. ¡Muchas ganas de verte!💄`)}` : '';
                 return `
-                <div style="background:rgba(249,168,212,0.04);border:1px solid rgba(249,168,212,0.12);border-radius:18px;padding:18px 20px;position:relative;">
+                <div style="background:rgba(168,190,120,0.04);border:1px solid rgba(168,190,120,0.12);border-radius:18px;padding:18px 20px;position:relative;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-                        <span style="background:rgba(${estado==='presente'?'74,222,128':estado==='cancelada'?'255,100,100':'249,168,212'},0.12);border:1px solid rgba(${estado==='presente'?'74,222,128':estado==='cancelada'?'255,100,100':'249,168,212'},0.32);color:${estadoColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;">${estadoLabel}</span>
+                        <span style="background:rgba(${estado==='presente'?'74,222,128':estado==='cancelada'?'255,100,100':'168,190,120'},0.12);border:1px solid rgba(${estado==='presente'?'74,222,128':estado==='cancelada'?'255,100,100':'168,190,120'},0.32);color:${estadoColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;">${estadoLabel}</span>
                         <span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;color:${nivelColor};">Nivel ${nivel}/10</span>
                         <strong style="font-size:15px;color:rgba(220,242,232,0.92);flex:1;">${escapeHtml(c.nombre||'Sin nombre')}</strong>
                         ${c.edad ? `<span style="font-size:12px;color:rgba(165,205,188,0.50);">${c.edad} años</span>` : ''}
                     </div>
-                    ${sesionLabel ? `<div style="font-size:12px;color:rgba(249,168,212,0.65);margin-bottom:10px;display:flex;align-items:center;gap:6px;">📅 ${sesionLabel}</div>` : ''}
+                    ${sesionLabel ? `<div style="font-size:12px;color:rgba(168,190,120,0.65);margin-bottom:10px;display:flex;align-items:center;gap:6px;">📅 ${sesionLabel}</div>` : ''}
                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;font-size:12.5px;color:rgba(165,205,188,0.60);margin-bottom:10px;">
                         ${c.dni ? `<span>DNI: <b style="color:rgba(220,242,232,0.75)">${escapeHtml(c.dni)}</b></span>` : ''}
                         ${c.telefono ? `<span>Tel: <b style="color:rgba(220,242,232,0.75)">${escapeHtml(c.telefono)}</b></span>` : ''}
@@ -7382,8 +7691,8 @@
                         ${c.fechaNacimiento ? `<span>Nac.: <b style="color:rgba(220,242,232,0.75)">${c.fechaNacimiento}</b></span>` : ''}
                         <span>Inscripta: <b style="color:rgba(220,242,232,0.75)">${c.fechaRegistro||'—'}</b></span>
                     </div>
-                    ${c.nivelDesc ? `<div style="font-size:12px;color:rgba(249,168,212,0.55);margin-bottom:8px;font-style:italic;">"${escapeHtml(c.nivelDesc)}"</div>` : ''}
-                    ${c.expectativas ? `<div style="background:rgba(249,168,212,0.06);border:1px solid rgba(249,168,212,0.14);border-radius:10px;padding:10px 14px;font-size:12.5px;color:rgba(220,242,232,0.70);line-height:1.6;margin-bottom:10px;"><b style="color:rgba(249,168,212,0.65);">Expectativas:</b> ${escapeHtml(c.expectativas)}</div>` : ''}
+                    ${c.nivelDesc ? `<div style="font-size:12px;color:rgba(168,190,120,0.55);margin-bottom:8px;font-style:italic;">"${escapeHtml(c.nivelDesc)}"</div>` : ''}
+                    ${c.expectativas ? `<div style="background:rgba(168,190,120,0.06);border:1px solid rgba(168,190,120,0.14);border-radius:10px;padding:10px 14px;font-size:12.5px;color:rgba(220,242,232,0.70);line-height:1.6;margin-bottom:10px;"><b style="color:rgba(168,190,120,0.65);">Expectativas:</b> ${escapeHtml(c.expectativas)}</div>` : ''}
                     <!-- Nota -->
                     <div id="${notaId}" style="margin-bottom:10px;${c.nota?'':'display:none'}">
                         <div style="background:rgba(53,122,92,0.10);border:1px solid rgba(114,189,153,0.18);border-radius:10px;padding:10px 14px;font-size:13px;color:rgba(180,230,210,0.90);">${escapeHtml(c.nota||'')}</div>
@@ -7400,7 +7709,7 @@
                         ${estado !== 'presente' ? `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','presente')" style="background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;font-size:12px;">✓ Presente</button>` : `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','inscripta')" style="font-size:12px;">↩ Revertir</button>`}
                         ${estado !== 'cancelada' ? `<button class="btn-mini" onclick="cambiarEstadoCurso('${c.id}','cancelada')" style="background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(255,130,130,0.85);font-size:12px;">✕ Cancelar</button>` : ''}
                         <button class="btn-mini" onclick="(function(){var ne=document.getElementById('${notaEditId}');ne.style.display=ne.style.display==='none'?'block':'none'})()" style="font-size:12px;">📝 Nota</button>
-                        <button class="btn-mini" onclick="abrirCertificado('${c.id}')" style="background:rgba(249,168,212,0.10);border-color:rgba(249,168,212,0.30);color:rgba(249,168,212,0.90);font-size:12px;">🎓 Certificado</button>
+                        <button class="btn-mini" onclick="abrirCertificado('${c.id}')" style="background:rgba(168,190,120,0.10);border-color:rgba(168,190,120,0.30);color:rgba(168,190,120,0.90);font-size:12px;">🎓 Certificado</button>
                         ${waPhone ? `<button class="btn-mini" onclick="(function(){var m=document.getElementById('${recMenuId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="font-size:12px;background:rgba(37,211,102,0.06);border-color:rgba(37,211,102,0.22);color:rgba(100,220,140,0.85);">📲 Enviar por WA</button>` : ''}
                         <button class="btn-mini" onclick="eliminarInscripta('${c.id}','${escapeHtml(c.nombre||'esta alumna')}')" style="font-size:12px;background:rgba(220,50,50,0.07);border-color:rgba(220,50,50,0.25);color:rgba(240,120,120,0.90);">🗑 Eliminar</button>
                     </div>
@@ -7408,7 +7717,7 @@
                     <div id="${recMenuId}" style="display:none;flex-direction:column;gap:6px;margin-top:10px;background:rgba(37,211,102,0.05);border:1px solid rgba(37,211,102,0.15);border-radius:12px;padding:12px;">
                         ${waConfirm ? `<a href="${waConfirm}" target="_blank" rel="noopener" style="display:block;padding:9px 12px;border-radius:8px;background:#25d366;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;">✅ Confirmar inscripción</a>` : ''}
                         ${waRecordatorio ? `<a href="${waRecordatorio}" target="_blank" rel="noopener" style="display:block;padding:9px 12px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;">🔔 Recordatorio del curso</a>` : ''}
-                        <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}! En el Curso de Automaquillaje que te esperamos, te recomendamos venir sin maquillaje o con el mínimo posible. Traé toda tu energía y ganas de aprender 💄✨ — Espacio Mimar T`)}" target="_blank" rel="noopener" style="display:block;padding:9px 12px;border-radius:8px;background:linear-gradient(135deg,#ec4899,#be185d);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;">💄 Recomendaciones pre-clase</a>
+                        <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}! En el Curso de Automaquillaje que te esperamos, te recomendamos venir sin maquillaje o con el mínimo posible. Traé toda tu energía y ganas de aprender 💄✨ — Espacio Mimar T`)}" target="_blank" rel="noopener" style="display:block;padding:9px 12px;border-radius:8px;background:linear-gradient(135deg,#a8be78,#6f8a4a);color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;">💄 Recomendaciones pre-clase</a>
                     </div>` : ''}
                 </div>`;
             };
@@ -7423,8 +7732,8 @@
 
                 if (sesion) {
                     html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 4px 8px;">
-                        <span style="font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(249,168,212,0.70);">${_fechaLindaCurso(sesion.fecha)}</span>
-                        <span style="font-size:14px;font-weight:700;color:rgba(249,168,212,0.95);">${sesion.horaInicio} – ${sesion.horaFin} hs</span>
+                        <span style="font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(168,190,120,0.70);">${_fechaLindaCurso(sesion.fecha)}</span>
+                        <span style="font-size:14px;font-weight:700;color:rgba(168,190,120,0.95);">${sesion.horaInicio} – ${sesion.horaFin} hs</span>
                         <span style="font-size:11px;color:rgba(165,205,188,0.45);margin-left:auto;">${presentesGrupo}/${totalGrupo} presentes</span>
                     </div>`;
                 } else {

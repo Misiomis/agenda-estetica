@@ -1,0 +1,339 @@
+{
+  "_comoUsarEsteArchivo": [
+    "1. Leé la sección 'proyecto': ahí está documentada la base real del sitio (Firestore, Cloud Functions, WhatsApp, reglas de negocio) para que sepas qué datos y endpoints tiene n8n disponibles.",
+    "2. Para importar el flujo en n8n: copiá SOLO el objeto 'n8nWorkflow' (con sus llaves { } incluidas), pegalo en un archivo .json aparte y usá 'Import from File', o pegalo directo (Ctrl+V) sobre el lienzo de n8n.",
+    "3. Antes de activarlo, cargá las credenciales descriptas en 'configuracionWebhook.credencialesAConfigurarEnN8n' — los nodos HTTP Request van a quedar en error hasta que existan.",
+    "4. El flujo asume dos endpoints chicos que todavía no existen ('obtenerTurnosParaRecordatorio' y 'marcarRecordatorioEnviado', detallados en 'funcionesNuevasRecomendadas'). Si querés, te los agrego ahora mismo a functions/index.js siguiendo el mismo estilo del archivo — avisame y los publico.",
+    "5. Recién activá el workflow cuando estén: credenciales + endpoints nuevos + plantilla 'recordatorio_turno' aprobada por Meta."
+  ],
+
+  "proyecto": {
+    "nombre": "Espacio Mimar T",
+    "descripcionGeneral": "Sitio de agenda y autogestión de turnos para un centro de estética. Frontend en HTML/CSS/JS vanilla con PWA, backend 100% en Firebase (Firestore + Cloud Functions), envío de mensajes vía WhatsApp Business Cloud API (Meta).",
+    "stackTecnologico": {
+      "frontend": "HTML + CSS + JavaScript vanilla (sin framework). PWA con manifest.webmanifest y service worker (sw.js)",
+      "backend": "Firebase — proyecto 'estetica-8d067', región 'us-central1'. Firestore como base de datos, Cloud Functions (codebases 'default' y 'mimar_webhook') como API",
+      "mensajeria": "WhatsApp Business Cloud API (Meta Graph API v21.0) usando un token permanente (igual que el que ya tenés vos)",
+      "automatizacionPropuesta": "n8n — orquesta el envío escalonado de recordatorios (h48/h24/h12/h6) reutilizando datos que el sitio ya genera"
+    },
+    "paginasYArchivosClave": {
+      "servicios.html": "Vista de autogestión del paciente ('Tus Turnos'/'Mis próximos turnos'): pendientes primero, cuenta regresiva y badge de estado con la regla de 60 minutos ya aplicada",
+      "admin.html": "Panel de administración de Gimena: agenda, buscador de sesiones, gestión de servicios/clientes",
+      "js/panel.js": "Lógica de reserva del paciente — crea los documentos en la colección 'reservas' (función reservarTurno)",
+      "js/admin.js": "Lógica del panel admin — define 'CF_RESUMEN_URL' y consume las Cloud Functions desde el frontend",
+      "sw.js": "Service worker de la PWA (versión 'mimar-sw-v15') — gestiona notificaciones push locales y su click",
+      "functions/index.js": "Cloud Functions principales: confirmaciones, cancelaciones, recordatorio diario, resumen de sesión, helpers de WhatsApp",
+      "mimar_webhook/index.js": "Codebase aparte: webhook oficial de Meta/WhatsApp ya verificado (chatbot 'Mimi')"
+    },
+    "firestore": {
+      "projectId": "estetica-8d067",
+      "region": "us-central1",
+      "colecciones": {
+        "reservas": {
+          "descripcion": "Un documento por turno reservado. Es la colección central para los recordatorios automáticos.",
+          "camposClave": {
+            "clientId": "string — referencia al documento en 'clients'",
+            "nombreCliente": "string",
+            "emailCliente": "string",
+            "telefono": "string — tal como lo cargó el cliente, sin normalizar",
+            "servicio": "string — nombre del servicio reservado",
+            "fecha": "string 'YYYY-MM-DD'",
+            "hora": "string 'HH:MM'",
+            "turnoAt": "Timestamp de Firestore — fecha/hora exacta del turno (zona America/Argentina/Buenos_Aires, offset -03:00)",
+            "status / estado": "'confirmado' | 'cancelado' (campo duplicado por compatibilidad histórica, ver obtenerEstadoReserva)",
+            "reminderSent": "boolean — flag legado que usa el scheduler diario 'enviarRecordatoriosTurnos' para no duplicar el aviso del día anterior",
+            "recordatorios": "objeto YA CREADO en cada reserva nueva (ver panel.js → reservarTurno) con 4 ventanas: { h48:{enviado:false}, h24:{enviado:false}, h12:{enviado:false}, h6:{enviado:false} }. HOY NINGÚN proceso lo lee ni lo actualiza: es terreno listo para que n8n lo use sin tocar el frontend",
+            "timestamp": "serverTimestamp — momento de creación de la reserva"
+          }
+        },
+        "clients": "Documentos de clientes, indexados por DNI normalizado. Campos típicos: nombre/fullName, email, phone/telefono/whatsapp, username, dni",
+        "services": "Catálogo de servicios. Todas las sesiones duran 60 minutos exactos",
+        "horarios": "Disponibilidad de turnos por día/profesional",
+        "historias": "Historias clínicas / fichas de cada paciente",
+        "error_logs": "Errores de envío de WhatsApp (Meta) que registra 'registrarErrorMeta' para diagnóstico — útil para ver si un recordatorio falló"
+      }
+    },
+    "cloudFunctions": {
+      "codebase_default_carpeta_functions": {
+        "registrarPacienteJornada": "onRequest — registra asistencia del día",
+        "enviarConfirmacionTurno": "onRequest — envía la plantilla 'turno_confirmado' al reservar",
+        "cancelarReservaPaciente": "onRequest — cancela un turno desde la autogestión del paciente",
+        "enviarRecordatoriosTurnos": "onSchedule '0 9 * * *' (09:00 hora Argentina) — manda UN recordatorio por día para los turnos de MAÑANA, controla duplicados con 'reminderSent'. Sigue funcionando en paralelo: n8n puede sumarse para cubrir las ventanas más finas h48/h24/h12/h6 sin pisarla",
+        "enviarNotificacionKitFacial": "onRequest público — avisa pedidos de kit facial",
+        "enviarResumenSesion": "onRequest público — manda por WhatsApp el resumen de las sesiones del día (consumida desde admin.js vía CF_RESUMEN_URL)"
+      },
+      "codebase_mimar_webhook_carpeta_mimar_webhook": {
+        "webhook": "onRequest — webhook OFICIAL de Meta para WhatsApp, YA VERIFICADO. Atiende el handshake GET (hub.mode/hub.verify_token='mimar2026'/hub.challenge) y recibe eventos POST (mensajes entrantes y estados de los salientes). URL pública: https://us-central1-estetica-8d067.cloudfunctions.net/webhook. Lo usa el chatbot 'Mimi' (ver mimi-config-maestro.json) — NO debe reemplazarse ni reapuntarse"
+      }
+    },
+    "whatsapp": {
+      "proveedor": "Meta WhatsApp Business Cloud API",
+      "apiVersion": "v21.0",
+      "endpointEnvioMensajes": "https://graph.facebook.com/v21.0/{phoneNumberId}/messages",
+      "phoneNumberId": "995248997010108",
+      "wabaId": "995248997010108",
+      "tokenPermanente": "El usuario ya dispone de un token permanente de la API oficial. Por seguridad NO se incluye acá ni debe pegarse en ningún nodo en texto plano — se carga como credencial cifrada en n8n (Header Auth: Authorization = Bearer <token>), exactamente como hoy lo resuelve 'getWhatsAppConfig()' en el backend (functions.config()/variables de entorno, nunca hardcodeado en el repo)",
+      "plantillasYaAprobadas": {
+        "recordatorio_turno": { "idioma": "es_AR", "uso": "Recordatorio de turno — variables de cuerpo {{1}} nombre del paciente, {{2}} fecha y hora, {{3}} link de Google Maps" },
+        "turno_confirmado": { "idioma": "en", "uso": "Confirmación al reservar un turno" },
+        "resumen_sesion": { "idioma": "es_AR", "uso": "Resumen de sesiones realizadas en el día" },
+        "pedidos_de_kit": { "idioma": "es_AR", "uso": "Aviso de pedido de kit facial" }
+      },
+      "normalizacionTelefono": "normalizarTelefonoAR(): deja solo dígitos y antepone '549' si el número no arranca con '54' (formato esperado por WhatsApp para Argentina, ej. 5491122334455)",
+      "googleMapsLink": "https://maps.google.com/?q=Espacio+Mimar+T (configurable vía whatsapp.google_maps_link)"
+    },
+    "reglaDeNegocioTurnos": {
+      "duracionSesion": "60 minutos exactos para todas las sesiones, sin excepción",
+      "estadoPendienteVsRealizado": "Un turno es 'pendiente' hasta que pasan 60 minutos COMPLETOS desde su hora de inicio; recién ahí pasa a 'realizado' (cero margen de error — mismo criterio ya aplicado en servicios.html / admin.html / servicios-pro.html con finTurno = inicio + 60min)",
+      "zonaHoraria": "America/Argentina/Buenos_Aires, offset fijo -03:00. Toda fecha/hora de turno se arma como '${fecha}T${hora}:00-03:00' para no errar por husos horarios"
+    },
+    "pwaYNotificaciones": {
+      "manifest": "manifest.webmanifest — app 'Mimar T', start_url '/index.html', display 'standalone'",
+      "serviceWorker": "sw.js (versión 'mimar-sw-v15') — escucha 'notificationclick' y enfoca/abre servicios-pro.html. Las notificaciones push LOCALES de la cuenta regresiva ya están resueltas en el frontend (programarNotificacionesTurnos); n8n no reemplaza eso, lo COMPLEMENTA mandando WhatsApp aunque el paciente no tenga la app abierta o instalada"
+    }
+  },
+
+  "n8nWorkflow": {
+    "name": "Espacio Mimar T - Recordatorios automáticos de turnos (WhatsApp)",
+    "active": false,
+    "settings": { "executionOrder": "v1" },
+    "nodes": [
+      {
+        "id": "n1-schedule",
+        "name": "Cada 15 minutos",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [240, 260],
+        "parameters": {
+          "rule": { "interval": [ { "field": "minutes", "minutesInterval": 15 } ] }
+        }
+      },
+      {
+        "id": "n2-webhook-manual",
+        "name": "Disparo manual (panel admin)",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [240, 460],
+        "webhookId": "mimar-recordatorios-manual",
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "mimar-recordatorios-manual",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "n3-respond-manual",
+        "name": "Responder al panel",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [460, 560],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { \"ok\": true, \"mensaje\": \"Revisión de recordatorios en curso\" } }}",
+          "options": {}
+        }
+      },
+      {
+        "id": "n4-get-candidatos",
+        "name": "Buscar turnos a recordar",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [520, 360],
+        "parameters": {
+          "method": "GET",
+          "url": "https://us-central1-estetica-8d067.cloudfunctions.net/obtenerTurnosParaRecordatorio",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "options": {}
+        },
+        "credentials": {
+          "httpHeaderAuth": { "id": "CRED_API_KEY", "name": "Mimar API Key (header x-api-key)" }
+        }
+      },
+      {
+        "id": "n5-split",
+        "name": "Separar cada turno",
+        "type": "n8n-nodes-base.splitOut",
+        "typeVersion": 1,
+        "position": [740, 360],
+        "parameters": {
+          "fieldToSplitOut": "candidatos",
+          "options": {}
+        }
+      },
+      {
+        "id": "n6-filter",
+        "name": "Filtrar pendientes de envío",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.2,
+        "position": [960, 360],
+        "parameters": {
+          "conditions": {
+            "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-no-enviado",
+                "leftValue": "={{$json.yaEnviado}}",
+                "rightValue": false,
+                "operator": { "type": "boolean", "operation": "equals" }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "n7-send-whatsapp",
+        "name": "Enviar plantilla WhatsApp",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1180, 280],
+        "parameters": {
+          "method": "POST",
+          "url": "https://graph.facebook.com/v21.0/995248997010108/messages",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"messaging_product\":\"whatsapp\",\"recipient_type\":\"individual\",\"to\":$json.telefono,\"type\":\"template\",\"template\":{\"name\":\"recordatorio_turno\",\"language\":{\"code\":\"es_AR\"},\"components\":[{\"type\":\"body\",\"parameters\":[{\"type\":\"text\",\"text\":$json.nombrePaciente},{\"type\":\"text\",\"text\":$json.fechaHora},{\"type\":\"text\",\"text\":$json.googleMapsLink}]}]}} }}",
+          "options": {}
+        },
+        "credentials": {
+          "httpHeaderAuth": { "id": "CRED_WHATSAPP_TOKEN", "name": "WhatsApp Cloud API (token permanente)" }
+        }
+      },
+      {
+        "id": "n8-if-ok",
+        "name": "¿Se envió OK?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [1400, 280],
+        "parameters": {
+          "conditions": {
+            "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-mensaje-id",
+                "leftValue": "={{$json.messages && $json.messages[0] && $json.messages[0].id}}",
+                "rightValue": "",
+                "operator": { "type": "string", "operation": "exists" }
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "n9-marcar-enviado",
+        "name": "Marcar recordatorio enviado",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1620, 200],
+        "parameters": {
+          "method": "POST",
+          "url": "https://us-central1-estetica-8d067.cloudfunctions.net/marcarRecordatorioEnviado",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ {\"reservaId\": $('Separar cada turno').item.json.reservaId, \"ventana\": $('Separar cada turno').item.json.ventana, \"messageId\": ($json.messages && $json.messages[0] && $json.messages[0].id) || null} }}",
+          "options": {}
+        },
+        "credentials": {
+          "httpHeaderAuth": { "id": "CRED_API_KEY", "name": "Mimar API Key (header x-api-key)" }
+        }
+      },
+      {
+        "id": "n10-noop-error",
+        "name": "Registrar error para revisión",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [1620, 400],
+        "parameters": {}
+      }
+    ],
+    "connections": {
+      "Cada 15 minutos": {
+        "main": [ [ { "node": "Buscar turnos a recordar", "type": "main", "index": 0 } ] ]
+      },
+      "Disparo manual (panel admin)": {
+        "main": [ [
+          { "node": "Responder al panel", "type": "main", "index": 0 },
+          { "node": "Buscar turnos a recordar", "type": "main", "index": 0 }
+        ] ]
+      },
+      "Buscar turnos a recordar": {
+        "main": [ [ { "node": "Separar cada turno", "type": "main", "index": 0 } ] ]
+      },
+      "Separar cada turno": {
+        "main": [ [ { "node": "Filtrar pendientes de envío", "type": "main", "index": 0 } ] ]
+      },
+      "Filtrar pendientes de envío": {
+        "main": [ [ { "node": "Enviar plantilla WhatsApp", "type": "main", "index": 0 } ] ]
+      },
+      "Enviar plantilla WhatsApp": {
+        "main": [ [ { "node": "¿Se envió OK?", "type": "main", "index": 0 } ] ]
+      },
+      "¿Se envió OK?": {
+        "main": [
+          [ { "node": "Marcar recordatorio enviado", "type": "main", "index": 0 } ],
+          [ { "node": "Registrar error para revisión", "type": "main", "index": 0 } ]
+        ]
+      }
+    }
+  },
+
+  "configuracionWebhook": {
+    "ideaGeneral": "Para EL ENVÍO de recordatorios no hace falta ningún webhook entrante: lo correcto es un disparador por tiempo (Schedule Trigger / cron), porque un recordatorio depende de cuánto falta para el turno, no de un evento externo. El nodo 'Cada 15 minutos' del workflow ya cumple ese rol. Aun así, hay DOS usos legítimos de webhook que conviene entender:",
+    "1_disparo_manual_desde_el_panel": {
+      "paraQueSirve": "Que Gimena pueda apretar un botón en admin.html y forzar 'revisar recordatorios ahora', sin esperar el próximo ciclo de 15 minutos.",
+      "comoConfigurarlo": [
+        "El nodo 'Disparo manual (panel admin)' ya es un nodo Webhook (POST).",
+        "Activá el workflow en n8n (toggle 'Active'). n8n te muestra dos URLs: una de prueba (Test URL, solo activa con el editor abierto) y la de Producción.",
+        "Copiá la Production URL (va a tener forma https://TU-INSTANCIA-N8N/webhook/mimar-recordatorios-manual).",
+        "Agregá un botón en admin.html que haga fetch(url, {method:'POST'}) — no necesita body. El nodo 'Responder al panel' devuelve { ok:true } para que el botón confirme visualmente.",
+        "Si querés blindarlo: agregá un header propio (ej. 'x-mimar-trigger: <clave que vos definas>') y un nodo IF al inicio que lo valide — no necesita el handshake de Meta porque sos vos mismo quien lo dispara, no un tercero."
+      ]
+    },
+    "2_webhook_oficial_de_meta_whatsapp_YA_RESUELTO": {
+      "estadoActual": "Ya está configurado y verificado: la función 'webhook' del codebase 'mimar_webhook' (mimar_webhook/index.js) responde el handshake GET de Meta (hub.mode=subscribe, hub.verify_token='mimar2026', responde hub.challenge) y recibe los POST con mensajes entrantes / estados de mensajes salientes. URL pública: https://us-central1-estetica-8d067.cloudfunctions.net/webhook, dada de alta en Meta for Developers > WhatsApp > Configuration > Webhook.",
+      "recomendacion": "NO la reemplaces ni la reapuntes hacia n8n. Cambiar esa URL obliga a re-verificar el webhook ante Meta y arriesga cortar la recepción de mensajes que usa el chatbot 'Mimi' (ver mimi-config-maestro.json). La forma segura de que n8n se entere de eventos (por ejemplo, si un recordatorio fue entregado o leído) es agregar un reenvío interno, no reemplazar nada.",
+      "comoReenviarEventosAN8nSinRomperNada": [
+        "En mimar_webhook/index.js, dentro del bloque 'if (req.method === \"POST\")', sumá una llamada fire-and-forget (axios/fetch) que reenvíe el mismo req.body a la Production URL de un segundo webhook de n8n (ej. https://TU-INSTANCIA-N8N/webhook/mimar-whatsapp-eventos), sin esperar su respuesta y sin que un fallo ahí afecte el 200 OK que hay que devolverle a Meta.",
+        "En n8n armá un workflow chico aparte: nodo Webhook (POST, path 'mimar-whatsapp-eventos', Response Mode 'Immediately') → nodo Code que filtre los eventos 'statuses' (delivered/read) de mensajes con template 'recordatorio_turno' → lo que quieras hacer con esa estadística (guardarla, notificar, etc.).",
+        "Esto es 100% opcional: el envío de recordatorios funciona perfecto sin este paso."
+      ]
+    },
+    "credencialesAConfigurarEnN8n": [
+      "'Mimar API Key (header x-api-key)' → tipo Header Auth → Name: x-api-key, Value: una clave secreta que vos definas (la van a validar los dos endpoints nuevos antes de responder)",
+      "'WhatsApp Cloud API (token permanente)' → tipo Header Auth → Name: Authorization, Value: Bearer <tu token permanente de Meta> — se carga UNA sola vez acá, cifrado por n8n; nunca va en el JSON del workflow ni en el repo"
+    ]
+  },
+
+  "funcionesNuevasRecomendadas": {
+    "explicacion": "El workflow de arriba asume dos endpoints chicos que hoy no existen. Reutilizan exactamente los mismos helpers que ya están en functions/index.js (normalizarTelefonoAR, construirFechaTurno, obtenerEstadoReserva, formatearFechaHoraTurno, ARGENTINA_TIME_ZONE, getWhatsAppConfig), así que mantienen el mismo estilo y nivel de seguridad que el resto del backend. Si me das luz verde te los agrego a functions/index.js y los publico — son aditivos, no tocan nada existente.",
+    "obtenerTurnosParaRecordatorio": {
+      "metodo": "GET",
+      "url": "https://us-central1-estetica-8d067.cloudfunctions.net/obtenerTurnosParaRecordatorio",
+      "seguridad": "Header 'x-api-key' validado contra functions.config().mimar.api_key (mismo patrón de configuración que getWhatsAppConfig)",
+      "logica": "Recorre 'reservas' con status/estado='confirmado' y turnoAt entre ahora y +48hs. Para cada una calcula las horas restantes y determina qué ventana (h48, h24, h12 o h6) ya cruzó su umbral Y todavía tiene recordatorios.<ventana>.enviado === false. Devuelve solo esos, listos para enviar — uno por ventana, nunca duplica",
+      "respuestaEjemplo": "{ \"candidatos\": [ { \"reservaId\": \"abc123\", \"ventana\": \"h24\", \"telefono\": \"5491122334455\", \"nombrePaciente\": \"Romina Gómez\", \"fechaHora\": \"08/06/2026 17:00 hs\", \"googleMapsLink\": \"https://maps.google.com/?q=Espacio+Mimar+T\", \"yaEnviado\": false } ] }"
+    },
+    "marcarRecordatorioEnviado": {
+      "metodo": "POST",
+      "url": "https://us-central1-estetica-8d067.cloudfunctions.net/marcarRecordatorioEnviado",
+      "seguridad": "Mismo header 'x-api-key'",
+      "bodyEjemplo": "{ \"reservaId\": \"abc123\", \"ventana\": \"h24\", \"messageId\": \"wamid.HBgL...\" }",
+      "logica": "Hace update en reservas/{reservaId} seteando recordatorios.<ventana> = { enviado:true, enviadoEn: serverTimestamp(), messageId }. Así la próxima corrida del cron ya no lo cuenta como candidato — cero duplicados, cero margen de error, igual que pediste para la regla de los 60 minutos"
+    }
+  },
+
+  "notasDeSeguridad": [
+    "El token permanente de WhatsApp NUNCA va en texto plano: ni en este JSON, ni en un nodo de n8n, ni en un commit. Se guarda como credencial cifrada en n8n y como variable de entorno/functions.config() en Firebase — igual que ya resuelve getWhatsAppConfig() en functions/index.js.",
+    "El verify_token 'mimar2026' del webhook de Meta tampoco debería circular fuera del código fuente del proyecto.",
+    "Cualquier endpoint nuevo que devuelva datos personales de 'reservas' (teléfonos, nombres) tiene que ir protegido con clave compartida (x-api-key) — no exponerlo como 'invoker: public' salvo necesidad real, a diferencia de 'enviarResumenSesion' que sí lo es por su propio caso de uso."
+  ]
+}

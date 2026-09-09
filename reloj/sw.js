@@ -1,11 +1,11 @@
 // Solo conserva la interfaz pública del reloj. No intercepta Firebase, no
 // almacena reservas y no ejecuta alarmas con la aplicación cerrada.
 const PREFIX = "mimar-reloj-shell:" + self.registration.scope + ":";
-const CACHE = PREFIX + "v1";
+const CACHE = PREFIX + "v3"; // v3: correcciones de diálogos/diagnóstico/sincronización — refresca clientes instalados
 const FILES = [
   "./", "./index.html", "./reloj.css", "./reloj.js", "./motor.js",
   "./alarmas.js", "./config.js", "./demo.js", "./manifest.webmanifest",
-  "./icon.svg", "./icon-192.png", "./icon-512.png"
+  "./icon.svg", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"
 ];
 const urls = FILES.map(path => new URL(path, self.registration.scope).href);
 const paths = new Set(urls.map(url => new URL(url).pathname));

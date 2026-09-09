@@ -9,6 +9,8 @@ const $ = id => document.getElementById(id);
 const demo = new URLSearchParams(location.search).get("demo") === "1";
 const prefsKey = "mimar-reloj-preferencias-v1" + (demo ? "-demo" : "");
 const chime = new Chime();
+const AlarmPlugin = window.Capacitor?.Plugins?.AlarmPlugin;
+const nativeApp = !!(window.Capacitor?.isNativePlatform?.());
 let prefs = loadPreferences();
 let sdk = null, ledger = null, user = null;
 let enabled = false, busy = false, authEpoch = 0, feedEpoch = 0;
@@ -20,8 +22,26 @@ let wake = null, wakeRequest = false, installPrompt = null, toastTimer;
 let nextSignature = "", listSignature = "", bannerSignature = "";
 let demoInjection = null;
 let notificationWindows = [];
+let settingsSaveEpoch = 0;
+let loadWatchdog = null;
 const nodes = new Map();
 const observedEvents = new Set();
+
+// Ninguna llamada al puente nativo (Capacitor→Kotlin) tenía límite de tiempo:
+// si una promesa nativa quedaba sin resolver (actividad recreada a mitad de
+// una llamada, corrutina cancelada, etc.) todo lo que la esperaba con `await`
+// quedaba esperando para siempre — un diálogo que nunca llega a abrirse, un
+// botón que nunca se re-habilita. withTimeout() convierte ese "nunca" en un
+// error visible y recuperable después de `ms`.
+function withTimeout(promise, ms, label) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timeout:" + label)), ms);
+    promise.then(
+      value => { clearTimeout(timer); resolve(value); },
+      error => { clearTimeout(timer); reject(error); }
+    );
+  });
+}
 
 function loadPreferences() {
   try { return cleanPreferences(JSON.parse(localStorage.getItem(prefsKey) || "{}")); }
@@ -96,14 +116,30 @@ function setAlarmUI() {
   $("alarm-state").dataset.active = String(enabled);
   $("alarm-state").replaceChildren(el("span", "status-dot"),
     document.createTextNode(enabled
-      ? (prefs.volume === 0 ? "Avisos activos · volumen en cero"
+      ? (nativeApp ? "Alarmas activas · funcionan aunque cierres la app"
+        : prefs.volume === 0 ? "Avisos activos · volumen en cero"
         : chime.context?.state !== "running" ? "Audio pausado · tocá Probar sonido" : "Alarmas activas")
-      : "Sonido pendiente de activar"));
+      : nativeApp ? "Alarmas en pausa" : "Sonido pendiente de activar"));
+}
+// Cierra un <dialog> y fuerza además un repintado normal por display: en al
+// menos un dispositivo probado, cerrar sin gesto real del usuario (p. ej.
+// desde el botón Atrás de Android, vía evaluateJavascript, o al volver de una
+// actividad nativa como el selector de sonido) actualiza el DOM pero Chromium
+// no repinta la "capa superior" del <dialog>: dialog.open pasa a false, pero
+// se sigue viendo abierto. Por eso NO hay que cortar acá si dialog.open ya es
+// false — si se cortara, un cierre anterior "atascado" (open ya en false pero
+// aún visible) sería imposible de destrabar, porque cualquier intento
+// posterior (la cruz, Atrás) volvería a leer open=false y no haría nada.
+// Alternar display sí fuerza un repintado normal, sin depender de gesto.
+function forceCloseDialog(dialog) {
+  dialog.close();
+  dialog.style.display = "none";
+  requestAnimationFrame(() => { dialog.style.display = ""; });
 }
 function clearPending() {
   pendingAlerts = [];
   chime.stop();
-  if ($("alarm-dialog").open) $("alarm-dialog").close();
+  forceCloseDialog($("alarm-dialog"));
   $("alarm-items").replaceChildren();
   for (const notification of notificationWindows) notification.close();
   notificationWindows = [];
@@ -122,7 +158,7 @@ function stopSession() {
   user = null; enabled = false;
   clearPending();
   releaseWake();
-  $("settings-dialog").close();
+  forceCloseDialog($("settings-dialog"));
   nodes.clear();
   observedEvents.clear();
   $("schedule-list").replaceChildren();
@@ -167,6 +203,13 @@ async function connectFirebase() {
         ledger = new AlarmLedger(account.uid);
         $("access-panel").hidden = true;
         $("workspace").hidden = false;
+        if (nativeApp && AlarmPlugin) {
+          try {
+            const native = await AlarmPlugin.getPrefs();
+            enabled = !!native.alarmsEnabled;
+            setAlarmUI();
+          } catch { /* Se puede activar manualmente con el botón. */ }
+        }
         subscribe();
       } catch {
         if (epoch !== authEpoch) return;
@@ -189,6 +232,8 @@ async function connectFirebase() {
 
 function subscribe() {
   stopData();
+  clearTimeout(loadWatchdog);
+  $("reload-data-button").hidden = true;
   if (!user) return;
   const epoch = feedEpoch;
   feedDay = dayKey();
@@ -196,6 +241,18 @@ function subscribe() {
     startDemo(epoch);
     return;
   }
+  // Vigía de carga: si ninguna fuente salió nunca de "loading" (el primer
+  // callback de onSnapshot no llegó ni con datos ni con error — se vio en la
+  // práctica, no solo en teoría), no hay ningún otro aviso en pantalla y la
+  // persona queda mirando "Buscando los próximos ingresos…" sin ninguna
+  // salida más que cerrar y volver a abrir la app entera. Este botón ofrece
+  // "Reintentar" sin necesidad de eso.
+  clearTimeout(loadWatchdog);
+  loadWatchdog = setTimeout(() => {
+    if (epoch !== feedEpoch) return;
+    const stillWaiting = prefs.sources.some(s => (sourceState.get(s)?.kind ?? "loading") === "loading");
+    $("reload-data-button").hidden = !stillWaiting;
+  }, 20000);
   if (sdk.doc) {
     labelUnsubscriber = sdk.onSnapshot(sdk.doc(sdk.db, "configuracion", "boxesLabels"), snapshot => {
       if (epoch !== feedEpoch) return;
@@ -396,7 +453,10 @@ function showAlerts(events) {
     pendingAlerts.push(event);
   }
   renderAlerts();
-  if ($("settings-dialog").open) $("settings-dialog").close();
+  // Un aviso de ingreso tiene prioridad: cierra cualquier otro panel abierto
+  // para que no quede una capa superpuesta debajo del aviso.
+  forceCloseDialog($("settings-dialog"));
+  forceCloseDialog($("diagnostics-dialog"));
   if (!$("alarm-dialog").open) $("alarm-dialog").showModal();
   if (!chime.play(prefs, 2)) toast("El aviso está en pantalla. Tocá Probar sonido para volver a habilitar el audio.");
   if (prefs.notifications && "Notification" in window && Notification.permission === "granted") {
@@ -418,25 +478,69 @@ function showAlerts(events) {
 async function activateAlarms() {
   if (!user || !ledger) return;
   if (enabled) {
-    enabled = false; clearPending(); releaseWake(); setAlarmUI(); return;
+    enabled = false; clearPending(); releaseWake(); setAlarmUI();
+    if (nativeApp && AlarmPlugin) AlarmPlugin.setPrefs({ alarmsEnabled: false }).catch(() => {});
+    return;
   }
   const epoch = authEpoch;
   $("alarm-button").disabled = true;
   try {
-    // Debe ejecutarse desde este clic, antes de cualquier petición a la base.
-    await chime.unlock();
+    if (nativeApp && AlarmPlugin) {
+      await activateNativeAlarms();
+    } else {
+      // Debe ejecutarse desde este clic, antes de cualquier petición a la base.
+      await chime.unlock();
+    }
     await ledger.open();
     if (epoch !== authEpoch || !user) return;
     ledger.prune();
     enabled = true;
     setAlarmUI();
-    chime.play(prefs);
-    requestWake();
-    toast("Alarmas activadas. Dejá abierto el reloj y mantené la PC despierta.");
+    if (nativeApp) {
+      toast("Alarmas activadas. Vas a recibir avisos aunque cierres la app.");
+    } else {
+      chime.play(prefs);
+      requestWake();
+      toast("Alarmas activadas. Dejá abierto el reloj y mantené la PC despierta.");
+    }
     await scanAlarms(Date.now());
   } catch {
     toast("No se pudieron activar las alarmas. Permití el sonido y el almacenamiento del sitio, y volvé a intentarlo.");
   } finally { $("alarm-button").disabled = false; }
+}
+
+async function activateNativeAlarms() {
+  await checkNativePermissions();
+  await withTimeout(
+    AlarmPlugin.setPrefs({ alarmsEnabled: true, advanceMinutes: prefs.advanceMinutes }),
+    8000, "setPrefs-activate"
+  );
+}
+
+// Revisa y pide, de a uno, los permisos que Android/Samsung necesitan para
+// que la alarma suene con la pantalla apagada o la app cerrada.
+async function checkNativePermissions() {
+  const status = await withTimeout(AlarmPlugin.getPermissionStatus(), 8000, "getPermissionStatus");
+  const pending = [];
+  if (status.notifications !== "granted") {
+    await withTimeout(AlarmPlugin.requestNotificationPermission(), 30000, "requestNotificationPermission").catch(() => {});
+  }
+  if (status.exactAlarm !== "granted") {
+    await AlarmPlugin.requestExactAlarmPermission().catch(() => {});
+    pending.push("\"Alarmas y recordatorios\"");
+  }
+  if (status.fullScreenIntent !== "granted") {
+    await AlarmPlugin.requestFullScreenIntentPermission().catch(() => {});
+    pending.push("\"Notificaciones emergentes\" (pantalla completa)");
+  }
+  if (!status.batteryUnrestricted) {
+    await AlarmPlugin.requestIgnoreBatteryOptimizations().catch(() => {});
+    pending.push("\"Sin restricciones\" de batería");
+  }
+  if (pending.length) {
+    toast("Activá estos permisos para que suene con la pantalla apagada: " + pending.join(", ") + ".");
+  }
+  return status;
 }
 
 async function requestWake() {
@@ -489,7 +593,88 @@ function updateNotificationUI() {
     : permission === "denied" ? "Bloqueados. Podés habilitarlos desde los permisos del sitio."
       : active ? "Activos. Muestran un aviso sin datos de pacientes." : "Opcionales. El navegador te pedirá permiso.";
 }
-function openSettings() {
+const diagDateTimeFormatter = new Intl.DateTimeFormat("es-AR", {
+  timeZone: CONFIG.timeZone, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+});
+function setDiagRow(id, ok, okText, badText) {
+  const node = $(id);
+  node.textContent = ok ? okText : badText;
+  node.dataset.state = ok ? "ok" : "bad";
+}
+async function openDiagnostics() {
+  $("diag-engine").textContent = nativeApp ? "Android nativo" : "Web (navegador)";
+  // La ventana se abre YA, sin esperar al puente nativo. Antes, si alguna de
+  // las llamadas nativas de refreshDiagnostics() no llegaba a resolver (una
+  // corrutina cortada, la Activity recreada a mitad de la llamada), este
+  // await nunca terminaba y el diálogo de Diagnóstico NUNCA llegaba a
+  // mostrarse — no se veía "trabado adentro", directamente no abría.
+  $("diagnostics-dialog").showModal();
+  if (!nativeApp || !AlarmPlugin) return;
+  await refreshDiagnostics();
+}
+async function refreshDiagnostics() {
+  if (!nativeApp || !AlarmPlugin) return;
+  $("diag-refresh").disabled = true;
+  $("diag-sync-error").hidden = true;
+  try {
+    const [status, native, scheduled] = await withTimeout(Promise.all([
+      AlarmPlugin.getPermissionStatus(),
+      AlarmPlugin.getPrefs(),
+      AlarmPlugin.getScheduled()
+    ]), 8000, "diagnostics");
+    setDiagRow("diag-perm-notifications", status.notifications === "granted", "Concedido", "Denegado");
+    setDiagRow("diag-perm-exact", status.exactAlarm === "granted", "Concedido", "Denegado");
+    setDiagRow("diag-perm-fsi", status.fullScreenIntent === "granted", "Concedido", "Denegado");
+    setDiagRow("diag-perm-battery", !!status.batteryUnrestricted, "Sin restricciones", "Restringida (puede matar la alarma)");
+
+    $("diag-last-sync").textContent = native.lastSyncMs
+      ? diagDateTimeFormatter.format(native.lastSyncMs) + " · " + native.lastSyncScheduledCount + " alarma(s) programadas" +
+        (native.lastSyncCancelledStaleCount ? " · " + native.lastSyncCancelledStaleCount + " canceladas por reserva borrada" : "")
+      : "Todavía no sincronizó";
+    if (native.lastSyncError) {
+      $("diag-sync-error").hidden = false;
+      $("diag-sync-error").textContent = "Último error de sincronización: " + native.lastSyncError;
+    } else {
+      $("diag-sync-error").hidden = true;
+    }
+
+    const list = $("diag-alarms-list");
+    // getScheduled() nativo ahora trae SCHEDULED + lo tocado en las últimas
+    // 24h (CANCELLED/FIRED/DISMISSED/SNOOZED) — así se puede comprobar POR
+    // QUÉ una alarma ya no está, no solo cuáles siguen vigentes.
+    const STATUS_LABEL = { SCHEDULED: "Programada", CANCELLED: "Cancelada", FIRED: "Sonó", DISMISSED: "Detenida", SNOOZED: "Pospuesta" };
+    const alarms = (scheduled.alarms || []).slice().sort((a, b) => (b.updatedAt || b.fireAtMs) - (a.updatedAt || a.fireAtMs));
+    const VISIBLE_LIMIT = 20;
+    if (!alarms.length) {
+      list.replaceChildren(el("p", "empty-copy", native.alarmsEnabled
+        ? "No hay alarmas programadas todavía. Si acabás de activar, esperá unos segundos y tocá Actualizar."
+        : "Las alarmas están pausadas."));
+    } else {
+      const rows = alarms.slice(0, VISIBLE_LIMIT).map(a => {
+        const row = el("div", "diag-alarm-row");
+        row.dataset.status = a.status;
+        const label = (a.type === "advance" ? "Aviso previo · " : "Ingreso · ") + a.patientName;
+        const statusTxt = STATUS_LABEL[a.status] || a.status;
+        row.append(
+          el("span", "diag-alarm-time", diagDateTimeFormatter.format(a.fireAtMs)),
+          el("span", "diag-alarm-info", label + (a.box ? " · " + a.box : "") + " · " + statusTxt)
+        );
+        return row;
+      });
+      if (alarms.length > VISIBLE_LIMIT) {
+        rows.push(el("p", "empty-copy", "Y " + (alarms.length - VISIBLE_LIMIT) + " más (" + alarms.length + " en total)."));
+      }
+      list.replaceChildren(...rows);
+    }
+  } catch (error) {
+    $("diag-sync-error").hidden = false;
+    $("diag-sync-error").textContent = String(error?.message || "").startsWith("timeout:")
+      ? "El estado nativo tardó demasiado en responder. Tocá Actualizar para reintentar."
+      : "No se pudo leer el estado nativo. Tocá Actualizar para reintentar.";
+  } finally { $("diag-refresh").disabled = false; }
+}
+
+async function openSettings() {
   $("advance-minutes").value = String(prefs.advanceMinutes);
   $("at-start").checked = prefs.atStart;
   $("volume").value = String(Math.round(prefs.volume * 100));
@@ -498,7 +683,22 @@ function openSettings() {
   $("wake-lock").checked = prefs.wakeLock;
   $("settings-error").textContent = "";
   fillSourceControls();
-  updateNotificationUI();
+  if (nativeApp && AlarmPlugin) {
+    $("notification-setting").hidden = true;
+    $("tone-field").hidden = true;
+    $("volume-field").hidden = true;
+    $("alarm-mode-field").hidden = false;
+    $("alarm-sound-field").hidden = false;
+    $("permissions-field").hidden = false;
+    $("settings-note").textContent = "Las alarmas se guardan en este dispositivo y suenan aunque cierres la app.";
+    try {
+      const native = await AlarmPlugin.getPrefs();
+      $("alarm-mode").value = native.alarmMode || "sound_vibration";
+      $("alarm-sound-label").textContent = native.alarmSoundLabel || "Predeterminado del sistema";
+    } catch { /* Se guardan los valores por defecto. */ }
+  } else {
+    updateNotificationUI();
+  }
   $("settings-dialog").showModal();
 }
 
@@ -519,7 +719,7 @@ function tick() {
     }
     renderNext(now);
     renderList(now);
-    scanAlarms(now);
+    if (!nativeApp) scanAlarms(now);
   }
   lastTick = now;
 }
@@ -544,13 +744,72 @@ $("login-form").addEventListener("submit", async event => {
 });
 $("alarm-button").addEventListener("click", activateAlarms);
 $("settings-button").addEventListener("click", openSettings);
-$("settings-close").addEventListener("click", () => $("settings-dialog").close());
+$("diagnostics-button").addEventListener("click", openDiagnostics);
+function closeDiagnosticsDialog() { forceCloseDialog($("diagnostics-dialog")); }
+function closeSettingsDialog() { forceCloseDialog($("settings-dialog")); }
+$("diagnostics-close").addEventListener("click", closeDiagnosticsDialog);
+$("diag-refresh").addEventListener("click", refreshDiagnostics);
+$("diag-test-1min").addEventListener("click", async () => {
+  if (!nativeApp || !AlarmPlugin) return;
+  $("diag-test-1min").disabled = true;
+  try {
+    await AlarmPlugin.testAlarm({ delayMs: 60_000 });
+    toast("Alarma de prueba programada para dentro de 1 minuto. Podés bloquear la pantalla.");
+  } catch (error) {
+    toast("No se pudo programar la prueba: " + (error?.message || "revisá los permisos."));
+  } finally {
+    $("diag-test-1min").disabled = false;
+    refreshDiagnostics();
+  }
+});
+$("settings-close").addEventListener("click", closeSettingsDialog);
 $("alarm-dismiss").addEventListener("click", clearPending);
 $("alarm-dialog").addEventListener("cancel", event => { event.preventDefault(); clearPending(); });
-$("test-button").addEventListener("click", () => testSound());
-$("settings-test").addEventListener("click", () => testSound({
-  ...prefs, tone: $("tone").value, volume: Number($("volume").value) / 100
-}));
+
+// Botón/gesto "Atrás" de Android (llamado desde MainActivity.kt vía evaluateJavascript).
+// Cierra solamente la capa superior; si no hay ninguna abierta, devuelve false
+// y el sistema hace lo de siempre (minimizar la app a la pantalla raíz).
+// MainActivity.kt sigue esto con un toque sintético inofensivo: cerrar un
+// <dialog> desde código nativo actualiza el DOM pero, en al menos un
+// dispositivo probado, Chromium no repinta sin un gesto real de por medio.
+window.__mimartHandleBack = function () {
+  if ($("alarm-dialog").open) { clearPending(); return true; }
+  if ($("diagnostics-dialog").open) { closeDiagnosticsDialog(); return true; }
+  if ($("settings-dialog").open) { closeSettingsDialog(); return true; }
+  return false;
+};
+$("test-button").addEventListener("click", () => {
+  if (nativeApp && AlarmPlugin) AlarmPlugin.testAlarm({ delayMs: 3000 }).catch(() => {});
+  else testSound();
+});
+$("settings-test").addEventListener("click", () => {
+  if (nativeApp && AlarmPlugin) AlarmPlugin.testAlarm({ delayMs: 3000 }).catch(() => {});
+  else testSound({ ...prefs, tone: $("tone").value, volume: Number($("volume").value) / 100 });
+});
+$("permissions-button")?.addEventListener("click", async () => {
+  if (!nativeApp || !AlarmPlugin) return;
+  $("permissions-button").disabled = true;
+  try {
+    const status = await checkNativePermissions();
+    if (status.notifications === "granted" && status.exactAlarm === "granted" &&
+        status.fullScreenIntent === "granted" && status.batteryUnrestricted) {
+      toast("Todos los permisos están en orden.");
+    }
+  } finally { $("permissions-button").disabled = false; }
+});
+$("alarm-sound-button")?.addEventListener("click", async () => {
+  if (!nativeApp || !AlarmPlugin || $("alarm-sound-button").disabled) return;
+  $("alarm-sound-button").disabled = true;
+  try {
+    // Timeout generoso: espera a que la persona elija en el selector nativo,
+    // pero no para siempre — si la Activity del selector no llega a devolver
+    // resultado (caso raro, p. ej. tras recrearse la Activity), esto se corta
+    // solo en vez de dejar el botón inhabilitado sin ninguna salida.
+    const result = await withTimeout(AlarmPlugin.pickAlarmSound(), 120000, "pickAlarmSound");
+    $("alarm-sound-label").textContent = result.alarmSoundLabel || "Predeterminado del sistema";
+  } catch { /* El usuario canceló el selector, o no respondió a tiempo. */ }
+  finally { $("alarm-sound-button").disabled = false; }
+});
 $("volume").addEventListener("input", () => { $("volume-output").textContent = $("volume").value + " %"; });
 $("source-filter").addEventListener("change", () => { listSignature = ""; renderList(Date.now()); });
 $("settings-form").addEventListener("submit", event => {
@@ -571,8 +830,30 @@ $("settings-form").addEventListener("submit", event => {
   if (oldSources !== prefs.sources.join("|")) { fillSourceControls(); subscribe(); }
   if (prefs.wakeLock) requestWake(); else releaseWake();
   setAlarmUI();
-  $("settings-dialog").close();
-  toast("Ajustes guardados para este navegador.");
+  // Cerrar y confirmar "ajustes guardados" pasa YA — es local (localStorage),
+  // siempre funciona, y no depende de si el puente nativo responde. Cerrar
+  // nunca debe esperar a la reprogramación nativa: si esa llamada se
+  // demorara, la ventana quedaría atascada esperando en vez de cerrarse.
+  forceCloseDialog($("settings-dialog"));
+  toast("Ajustes guardados.");
+  // "Alarmas reprogramadas" es una confirmación APARTE: se muestra sólo
+  // después de comprobar el resultado real de la llamada nativa, nunca antes.
+  // settingsSaveEpoch evita que una respuesta demorada de ESTE guardado
+  // muestre su resultado después de que ya se hizo un guardado más nuevo.
+  if (nativeApp && AlarmPlugin) {
+    const epoch = ++settingsSaveEpoch;
+    withTimeout(AlarmPlugin.setPrefs({
+      advanceMinutes: prefs.advanceMinutes,
+      atStart: prefs.atStart,
+      alarmMode: $("alarm-mode").value
+    }), 8000, "setPrefs").then(() => {
+      if (epoch !== settingsSaveEpoch) return;
+      toast("Alarmas reprogramadas con los nuevos ajustes.");
+    }).catch(() => {
+      if (epoch !== settingsSaveEpoch) return;
+      toast("Los ajustes se guardaron, pero no se pudo confirmar la reprogramación de alarmas. Revisá Diagnóstico o volvé a intentar.");
+    });
+  }
 });
 $("notification-button").addEventListener("click", async () => {
   if (!("Notification" in window)) return;
@@ -619,6 +900,10 @@ $("install-button").addEventListener("click", async () => {
   installPrompt = null;
   $("install-button").hidden = true;
 });
+$("reload-data-button").addEventListener("click", () => {
+  $("reload-data-button").hidden = true;
+  if (user) subscribe();
+});
 $("demo-ingress").addEventListener("click", () => {
   if (!demo || !prefs.sources.includes("reservas")) {
     toast("Activá Agenda estética en Ajustes para probar el ingreso."); return;
@@ -634,6 +919,12 @@ $("demo-ingress").addEventListener("click", () => {
   toast(enabled ? "El ingreso de prueba se avisará en 10 segundos." : "Activá las alarmas para escuchar el ingreso de prueba.");
 });
 
+if (nativeApp) {
+  $("runtime-hint").textContent = "Las alarmas siguen sonando aunque cierres la app.";
+  $("test-button-label").textContent = "Probar alarma";
+  $("settings-test").textContent = "Probar alarma";
+  $("diagnostics-button").hidden = false;
+}
 fillSourceControls();
 chime.onStateChange = setAlarmUI;
 setAlarmUI();
