@@ -7439,6 +7439,80 @@
             return `${_diasES[dt.getDay()]} ${d} de ${_mesesES[m-1]} de ${y}`;
         };
 
+        // Clasificación vigente/historial de sesiones del curso: por FIN real
+        // (fecha + horaFin) en huso -03:00, igual criterio que _finSesionMs para
+        // reservas. Es solo para AGRUPAR en la UI — nunca escribe en Firestore,
+        // así que no toca ni reemplaza los flags manuales "activa"/"concluida".
+        const _finSesionCursoMs = (s) => {
+            const fecha = (s?.fecha || '').toString().trim();
+            if (!fecha) return null;
+            const horaFin = (s?.horaFin || s?.horaInicio || '23:59').toString().trim();
+            const fin = new Date(fecha + 'T' + horaFin + ':00-03:00').getTime();
+            return Number.isNaN(fin) ? null : fin;
+        };
+        const _esSesionCursoVigente = (s, ahoraMs) => {
+            const finMs = _finSesionCursoMs(s);
+            return finMs === null || (ahoraMs ?? Date.now()) < finMs;
+        };
+        const _agruparPorFecha = (arr) => {
+            const map = new Map();
+            arr.forEach(s => {
+                const key = s.fecha || '—';
+                if (!map.has(key)) map.set(key, []);
+                map.get(key).push(s);
+            });
+            return map;
+        };
+
+        // Preservar notas en edición y el estado abierto/cerrado del historial
+        // al re-renderizar (una actualización de datos no debe borrar texto sin
+        // guardar ni cerrar un bloque que la admin esté usando).
+        function _capturarEstadoSesiones() {
+            const estado = { notas: {}, historialAbierto: false };
+            document.querySelectorAll('#sesiones-lista textarea[id^="nota-sesion-"]').forEach(ta => {
+                const id = ta.id.slice('nota-sesion-'.length);
+                const s = _cursoSesiones.find(x => x.id === id);
+                if (!s || ta.value !== (s.nota || '')) estado.notas[id] = ta.value;
+            });
+            const det = document.getElementById('historial-sesiones-curso');
+            if (det) estado.historialAbierto = det.open;
+            return estado;
+        }
+        function _restaurarEstadoSesiones(estado) {
+            Object.entries(estado.notas).forEach(([id, val]) => {
+                const ta = document.getElementById('nota-sesion-' + id);
+                if (ta) ta.value = val;
+            });
+            const det = document.getElementById('historial-sesiones-curso');
+            if (det && estado.historialAbierto) det.open = true;
+        }
+        function _capturarEstadoInscriptas() {
+            const estado = { notas: {}, editAbiertas: [], historialAbierto: false };
+            document.querySelectorAll('#cursos-lista textarea[id^="nota-ta-"]').forEach(ta => {
+                const id = ta.id.slice('nota-ta-'.length);
+                const c = _cursosCache.find(x => x.id === id);
+                if (!c || ta.value !== (c.nota || '')) estado.notas[id] = ta.value;
+            });
+            document.querySelectorAll('#cursos-lista [id^="nota-edit-"]').forEach(div => {
+                if (div.style.display === 'block') estado.editAbiertas.push(div.id.slice('nota-edit-'.length));
+            });
+            const det = document.getElementById('historial-inscriptas-curso');
+            if (det) estado.historialAbierto = det.open;
+            return estado;
+        }
+        function _restaurarEstadoInscriptas(estado) {
+            Object.entries(estado.notas).forEach(([id, val]) => {
+                const ta = document.getElementById('nota-ta-' + id);
+                if (ta) ta.value = val;
+            });
+            estado.editAbiertas.forEach(id => {
+                const div = document.getElementById('nota-edit-' + id);
+                if (div) div.style.display = 'block';
+            });
+            const det = document.getElementById('historial-inscriptas-curso');
+            if (det && estado.historialAbierto) det.open = true;
+        }
+
         window.mostrarTabCurso = function(tab) {
             _tabCursoActual = tab;
             const btns = { sesiones: document.getElementById('tab-sesiones-btn'), inscriptas: document.getElementById('tab-inscriptas-btn') };
@@ -7508,7 +7582,10 @@
                 cont.innerHTML = '<div style="text-align:center;padding:24px;color:rgba(165,205,188,0.35);font-size:13px;">No hay sesiones todavía. Creá la primera arriba.</div>';
                 return;
             }
-            cont.innerHTML = _cursoSesiones.map(s => {
+            const estadoPrevio = _capturarEstadoSesiones();
+            const ahora = Date.now();
+
+            const tarjeta = (s) => {
                 const inscCount = _cursosCache.filter(c => c.sesionId === s.id && (c.estado||'inscripta') !== 'cancelada').length;
                 const cap = s.capacidad || 10;
                 const pct = Math.min(100, Math.round((inscCount / cap) * 100));
@@ -7522,11 +7599,11 @@
                             ? `<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.28);color:#4ade80;">✓ Concluída</span>`
                             : `<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(${s.activa?'168,190,120':'165,205,188'},0.12);border:1px solid rgba(${s.activa?'168,190,120':'165,205,188'},0.25);color:rgba(${s.activa?'168,190,120':'165,205,188'},0.85);">${s.activa?'Activa':'Inactiva'}</span>`
                         }
-                        <strong style="flex:1;font-size:14px;color:rgba(220,242,232,0.92);">${_fechaLindaCurso(s.fecha)}</strong>
-                        <span style="font-size:13px;font-weight:700;color:rgba(168,190,120,0.80);">${s.horaInicio} – ${s.horaFin} hs</span>
+                        <strong style="flex:1;font-size:14px;color:rgba(220,242,232,0.92);min-width:0;">${_fechaLindaCurso(s.fecha)}</strong>
+                        <span style="font-size:13px;font-weight:700;color:rgba(168,190,120,0.80);white-space:nowrap;">${s.horaInicio} – ${s.horaFin} hs</span>
                     </div>
                     <div style="margin-bottom:10px;">
-                        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:rgba(165,205,188,0.55);margin-bottom:5px;">
+                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:11.5px;color:rgba(165,205,188,0.55);margin-bottom:5px;">
                             <span>Inscriptas: <b style="color:rgba(220,242,232,0.80)">${inscCount}</b> / ${cap}</span>
                             <span style="color:${colorBar};font-weight:700;">${lleno?'¡Completo!':casi?'Casi lleno':pct+'% ocupado'}</span>
                         </div>
@@ -7549,7 +7626,45 @@
                         <button class="btn-mini" onclick="mostrarTabCurso('inscriptas')" style="font-size:12px;background:rgba(168,190,120,0.08);border-color:rgba(168,190,120,0.22);color:rgba(168,190,120,0.80);">👥 Ver inscriptas</button>
                     </div>
                 </div>`;
-            }).join('');
+            };
+
+            // _cursoSesiones ya está ordenado ascendente por fecha+horaInicio.
+            const vigentes = _cursoSesiones.filter(s => _esSesionCursoVigente(s, ahora));
+            const historial = _cursoSesiones.filter(s => !_esSesionCursoVigente(s, ahora));
+
+            const bloqueFecha = (fecha, sesiones, muted) => `
+                <div>
+                    <div style="font-size:12.5px;font-weight:700;color:${muted?'rgba(165,205,188,0.55)':'rgba(220,242,232,0.85)'};margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${muted?'rgba(165,205,188,0.12)':'rgba(168,190,120,0.14)'};">${_fechaLindaCurso(fecha)}</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">${sesiones.map(tarjeta).join('')}</div>
+                </div>`;
+
+            let html = `<div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
+                <span style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(168,190,120,0.55);white-space:nowrap;">Hoy y próximas fechas</span>
+                <span style="flex:1;height:1px;background:rgba(168,190,120,0.15);"></span>
+            </div>`;
+
+            if (!vigentes.length) {
+                html += `<div style="text-align:center;padding:18px;color:rgba(165,205,188,0.35);font-size:12.5px;margin-bottom:18px;">No hay sesiones próximas. Creá una nueva arriba.</div>`;
+            } else {
+                html += `<div style="display:flex;flex-direction:column;gap:18px;margin-bottom:18px;">${Array.from(_agruparPorFecha(vigentes).entries()).map(([fecha, ses]) => bloqueFecha(fecha, ses, false)).join('')}</div>`;
+            }
+
+            if (historial.length) {
+                const porFechaH = _agruparPorFecha(historial);
+                const fechasDesc = Array.from(porFechaH.keys()).sort((a, b) => b.localeCompare(a));
+                html += `<details id="historial-sesiones-curso">
+                    <summary style="cursor:pointer;padding:10px 14px;background:rgba(165,205,188,0.05);border:1px solid rgba(165,205,188,0.14);border-radius:12px;font-size:12px;font-weight:700;color:rgba(165,205,188,0.65);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span>🕓 Historial de sesiones</span>
+                        <span style="background:rgba(165,205,188,0.14);padding:2px 9px;border-radius:999px;font-size:11px;">${historial.length}</span>
+                    </summary>
+                    <div style="display:flex;flex-direction:column;gap:18px;margin-top:14px;">
+                        ${fechasDesc.map(fecha => bloqueFecha(fecha, porFechaH.get(fecha), true)).join('')}
+                    </div>
+                </details>`;
+            }
+
+            cont.innerHTML = html;
+            _restaurarEstadoSesiones(estadoPrevio);
         };
 
         window.agregarSesionCurso = async function() {
@@ -7641,9 +7756,13 @@
                 return;
             }
 
+            const estadoPrevio = _capturarEstadoInscriptas();
+            const ahora = Date.now();
             const nivelColores = { 1:'#f87171',2:'#fb923c',3:'#fbbf24',4:'#a3e635',5:'#4ade80',6:'#34d399',7:'#22d3ee',8:'#60a5fa',9:'#a78bfa',10:'#f472b6' };
 
-            // Agrupar por sesión
+            // Agrupar por sesión (clave especial '__sin_sesion__' para inscriptas
+            // sin sesionId válido — se muestran en un grupo identificado propio,
+            // nunca mezcladas con una fecha arbitraria).
             const grupos = {};
             lista.forEach(c => {
                 const key = c.sesionId || '__sin_sesion__';
@@ -7651,14 +7770,14 @@
                 grupos[key].push(c);
             });
 
-            // Ordenar grupos por horaInicio de la sesión
-            const sesionesOrdenadas = Object.keys(grupos).sort((a, b) => {
-                const sa = _cursoSesiones.find(s => s.id === a);
-                const sb = _cursoSesiones.find(s => s.id === b);
-                const ka = sa ? `${sa.fecha}${sa.horaInicio}` : 'z';
-                const kb = sb ? `${sb.fecha}${sb.horaInicio}` : 'z';
-                return ka.localeCompare(kb);
+            const gruposConSesion = [];
+            const gruposSinSesion = [];
+            Object.keys(grupos).forEach(key => {
+                const sesion = _cursoSesiones.find(s => s.id === key);
+                if (sesion) gruposConSesion.push({ sesion, inscriptas: grupos[key] });
+                else gruposSinSesion.push({ inscriptas: grupos[key] });
             });
+            gruposConSesion.sort((a, b) => `${a.sesion.fecha}${a.sesion.horaInicio}`.localeCompare(`${b.sesion.fecha}${b.sesion.horaInicio}`));
 
             const renderCardCurso = (c) => {
                 const estado = c.estado || 'inscripta';
@@ -7722,30 +7841,57 @@
                 </div>`;
             };
 
-            // Renderizar grupos con encabezado de sesión
-            let html = '';
-            sesionesOrdenadas.forEach(key => {
-                const inscriptas = grupos[key];
-                const sesion = _cursoSesiones.find(s => s.id === key);
+            const encabezadoGrupo = (sesion, inscriptas, muted) => {
                 const totalGrupo = inscriptas.length;
                 const presentesGrupo = inscriptas.filter(c => c.estado === 'presente').length;
+                return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 4px 8px;">
+                    <span style="font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(${muted?'165,205,188':'168,190,120'},0.70);">${_fechaLindaCurso(sesion.fecha)}</span>
+                    <span style="font-size:14px;font-weight:700;color:rgba(${muted?'165,205,188':'168,190,120'},0.95);">${sesion.horaInicio} – ${sesion.horaFin} hs</span>
+                    <span style="font-size:11px;color:rgba(165,205,188,0.45);margin-left:auto;">${presentesGrupo}/${totalGrupo} presentes</span>
+                </div>`;
+            };
+            const bloqueGrupo = (sesion, inscriptas, muted) => encabezadoGrupo(sesion, inscriptas, muted) +
+                `<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">${inscriptas.map(renderCardCurso).join('')}</div>`;
 
-                if (sesion) {
-                    html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 4px 8px;">
-                        <span style="font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(168,190,120,0.70);">${_fechaLindaCurso(sesion.fecha)}</span>
-                        <span style="font-size:14px;font-weight:700;color:rgba(168,190,120,0.95);">${sesion.horaInicio} – ${sesion.horaFin} hs</span>
-                        <span style="font-size:11px;color:rgba(165,205,188,0.45);margin-left:auto;">${presentesGrupo}/${totalGrupo} presentes</span>
-                    </div>`;
-                } else {
-                    html += `<div style="padding:8px 4px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(165,205,188,0.40);">Sin sesión asignada</div>`;
-                }
+            let html = '';
 
-                html += `<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">`;
-                inscriptas.forEach(c => { html += renderCardCurso(c); });
-                html += `</div>`;
-            });
+            if (gruposSinSesion.length) {
+                const totalSin = gruposSinSesion.reduce((n, g) => n + g.inscriptas.length, 0);
+                html += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 4px 10px;">
+                    <span style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#fbbf24;">⚠ Sin sesión asignada</span>
+                    <span style="background:rgba(251,191,36,0.14);color:#fbbf24;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;">${totalSin}</span>
+                </div>`;
+                html += `<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">${gruposSinSesion.flatMap(g => g.inscriptas).map(renderCardCurso).join('')}</div>`;
+            }
+
+            html += `<div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
+                <span style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(168,190,120,0.55);white-space:nowrap;">Hoy y próximas fechas</span>
+                <span style="flex:1;height:1px;background:rgba(168,190,120,0.15);"></span>
+            </div>`;
+
+            const vigentes = gruposConSesion.filter(g => _esSesionCursoVigente(g.sesion, ahora));
+            const historial = gruposConSesion.filter(g => !_esSesionCursoVigente(g.sesion, ahora));
+
+            if (!vigentes.length) {
+                html += `<div style="text-align:center;padding:16px;color:rgba(165,205,188,0.35);font-size:12.5px;margin-bottom:16px;">No hay inscriptas en sesiones próximas.</div>`;
+            } else {
+                html += vigentes.map(g => bloqueGrupo(g.sesion, g.inscriptas, false)).join('');
+            }
+
+            if (historial.length) {
+                historial.sort((a, b) => `${b.sesion.fecha}${b.sesion.horaInicio}`.localeCompare(`${a.sesion.fecha}${a.sesion.horaInicio}`));
+                const totalHist = historial.reduce((n, g) => n + g.inscriptas.length, 0);
+                html += `<details id="historial-inscriptas-curso">
+                    <summary style="cursor:pointer;padding:10px 14px;background:rgba(165,205,188,0.05);border:1px solid rgba(165,205,188,0.14);border-radius:12px;font-size:12px;font-weight:700;color:rgba(165,205,188,0.65);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span>🕓 Historial de sesiones</span>
+                        <span style="background:rgba(165,205,188,0.14);padding:2px 9px;border-radius:999px;font-size:11px;">${totalHist} inscriptas · ${historial.length} sesión(es)</span>
+                    </summary>
+                    <div style="margin-top:14px;">${historial.map(g => bloqueGrupo(g.sesion, g.inscriptas, true)).join('')}</div>
+                </details>`;
+            }
 
             cont.innerHTML = html;
+            _restaurarEstadoInscriptas(estadoPrevio);
         };
 
         window.cambiarEstadoCurso = async function(id, nuevoEstado) {
