@@ -10,6 +10,7 @@ import {
   getDocs,
   query,
   where,
+  orderBy,
   doc,
   updateDoc,
   setDoc,
@@ -48,7 +49,7 @@ const auth = getAuth(app);
 export {
   addDoc, app, auth, collection, db, deleteDoc, doc, firebaseConfig,
   getApp, getAuth, getDoc, getDocFromServer, getDocs, getFirestore,
-  increment, initializeApp, limit, onAuthStateChanged,
+  increment, initializeApp, limit, onAuthStateChanged, orderBy,
   onSnapshot, query, serverTimestamp, setDoc, signInWithEmailAndPassword,
   signOut, updateDoc, where, writeBatch, runTransaction,
 };

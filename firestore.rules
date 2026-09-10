@@ -122,9 +122,39 @@ service cloud.firestore {
       allow read, write: if esAdmin();
     }
 
-    // Tokens FCM para app Android — cada documento es un dispositivo del admin
-    // Solo el admin puede leer/escribir sus propios tokens
-    match /deviceTokens/{userId} {
+    // Tokens FCM para las apps Android — un documento por dispositivo+app
+    // (id: {uid}_{appId}_{installId}). Solo el admin autenticado puede
+    // leer/escribir, y únicamente sus propios tokens (uid del documento debe
+    // coincidir con quien hace la request) — así un admin no puede leer o
+    // pisar el token de otro dispositivo/usuario.
+    match /deviceTokens/{tokenId} {
+      allow read:   if esAdmin() && resource.data.uid == request.auth.uid;
+      allow create: if esAdmin() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if esAdmin() && resource.data.uid == request.auth.uid;
+    }
+
+    // Bandeja de actividad (Mimar T Inteligente, punto 2) — la genera el
+    // Admin SDK desde Cloud Functions, que no pasa por estas reglas. Desde
+    // el cliente solo se permite un update acotado a "leído"/"atendido":
+    // nunca se puede reescribir el resumen ni el resto del evento.
+    match /activityLog/{eventId} {
+      allow read: if esAdmin();
+      allow create, delete: if false;
+      allow update: if esAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['leidoPor', 'atendido', 'atendidoPor', 'atendidoAt']);
+    }
+
+    // Resumen diario de cumpleaños (punto 4) — lo escribe solo la función
+    // programada (Admin SDK, sin pasar por estas reglas).
+    match /resumenesCumpleanos/{fecha} {
+      allow read:  if esAdmin();
+      allow write: if false;
+    }
+
+    // Seguimiento de contactos por WhatsApp (punto 3) — mismo criterio que
+    // control_consultas_iniciales: solo admin, sin acceso público.
+    match /contactosWhatsApp/{contactoId} {
       allow read, write: if esAdmin();
     }
 

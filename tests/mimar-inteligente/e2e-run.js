@@ -26,6 +26,14 @@ let scriptSrc = fs.readFileSync(path.join(APP_DIR, 'mimar-inteligente.js'), 'utf
 scriptSrc = scriptSrc.replace('from "./firebase-web.js"', 'from "./fake-firebase-web.js"');
 const logicUrl = 'file:///' + path.join(APP_DIR, 'mimar-inteligente-logic.js').replace(/\\/g, '/');
 scriptSrc = scriptSrc.replace('from "./mimar-inteligente-logic.js"', `from "${logicUrl}"`);
+// contact-tracking.js es puro (recibe setDoc/doc/serverTimestamp por
+// parámetro) — se usa el archivo real (la copia local de mimar-inteligente/,
+// mismo patrón que mimar-inteligente-logic.js), resolviendo la ruta relativa
+// a una ruta de archivo real para que Node pueda importarlo fuera de esa carpeta.
+const contactTrackingUrl = 'file:///' + path.join(APP_DIR, 'contact-tracking.js').replace(/\\/g, '/');
+scriptSrc = scriptSrc.replace('from "./contact-tracking.js"', `from "${contactTrackingUrl}"`);
+const updateCheckUrl = 'file:///' + path.join(APP_DIR, 'update-check.js').replace(/\\/g, '/');
+scriptSrc = scriptSrc.replace('from "./update-check.js"', `from "${updateCheckUrl}"`);
 const scriptPath = path.join(__dirname, '_page-script.generated.mjs');
 fs.writeFileSync(scriptPath, scriptSrc);
 
@@ -54,6 +62,17 @@ function emitirSnapshot(coleccionPath, docs, fromCache = false) {
   entrada.onNext(fakeFb.fakeSnap(docs));
 }
 function emitirError(coleccionPath, err) { ultimaSub(coleccionPath).onError(err); }
+
+function emitirDoc(path, data) {
+  const entrada = ultimaSub(path);
+  if (!entrada) throw new Error('No hay suscripción activa para ' + path);
+  entrada.onNext(fakeFb.fakeDocSnap(true, 'doc', data));
+}
+function emitirDocError(path, err) {
+  const entrada = ultimaSub(path);
+  if (!entrada) throw new Error('No hay suscripción activa para ' + path);
+  entrada.onError(err);
+}
 
 async function run() {
   console.log('\n=== Login con cuenta NO admin: se rechaza, no arma suscripciones ===');
@@ -208,6 +227,73 @@ async function run() {
     document.dispatchEvent(new window.Event('visibilitychange'));
     const reservasSubsDespues = fakeFb.calls.onSnapshotCalls.filter(e => e.path === 'reservas' && !e.unsubscribed).length;
     check('volver a la pantalla no crea una suscripción nueva', reservasSubsAntes === reservasSubsDespues && reservasSubsDespues === 1);
+  }
+
+  console.log('\n=== Pedidos de kits: se listan, no afectan el badge de conexión ===');
+  {
+    emitirSnapshot('pedidosKit', [
+      ['kit1', { nombrePaciente: 'Pide Kit', productos: ['Limpiador', 'Tónico'], estado: 'pendiente', telefono: '3764777777' }],
+    ]);
+    check('el pedido aparece en la lista de kits', $('lista-kits').innerHTML.includes('Pide Kit') && $('lista-kits').innerHTML.includes('Limpiador'));
+    check('el contador de kits es 1', $('count-kits').textContent === '1');
+    check('la conexión sigue "live" aunque pedidosKit recién esté cargando otra vez', $('connection').getAttribute('data-state') !== 'error');
+  }
+
+  console.log('\n=== Bandeja de actividad: se lista y "Marcar atendido" no toca la reserva original ===');
+  {
+    emitirSnapshot('activityLog', [
+      ['ev1', { coleccion: 'reservas', docId: 'boxA', tipo: 'create', resumen: 'Nueva reserva: Persona A', atendido: false, leidoPor: {} }],
+    ]);
+    check('el evento aparece en Actividad', $('lista-actividad').innerHTML.includes('Nueva reserva: Persona A'));
+    check('muestra el botón "Marcar atendido" cuando no está atendido', $('lista-actividad').innerHTML.includes('data-atender="ev1"'));
+    document.querySelector('[data-atender="ev1"]').click();
+    await new Promise((r) => setTimeout(r, 0));
+    const upd = fakeFb.calls.updateDocCalls.find((c) => c.path === 'activityLog' && c.id === 'ev1');
+    check('"Marcar atendido" actualiza SOLO el evento (activityLog), nunca la reserva', !!upd && Object.keys(upd.data).every((k) => ['atendido', 'atendidoPor', 'atendidoAt'].includes(k)));
+    check('ninguna reserva se tocó por marcar el evento como atendido', !fakeFb.calls.updateDocCalls.some((c) => c.path === 'reservas'));
+  }
+
+  console.log('\n=== Cumpleaños: distingue "no hay" de "no se pudo consultar" ===');
+  {
+    emitirDoc('resumenesCumpleanos', { estado: 'ok', personas: [] });
+    check('"no hay cumpleaños" se muestra distinto de un error', $('lista-cumpleanos').innerHTML.includes('No hay cumpleaños') && !$('lista-cumpleanos').innerHTML.toLowerCase().includes('no se pudo'));
+    emitirDoc('resumenesCumpleanos', { estado: 'ok', personas: [{ clientId: 'c1', nombre: 'Marta Sosa', telefonoDisponible: true, telefono: '3764888888' }] });
+    check('con cumpleaños hoy, aparece el nombre', $('lista-cumpleanos').innerHTML.includes('Marta Sosa'));
+    check('el contador de cumpleaños es 1', $('count-cumpleanos').textContent === '1');
+    emitirDocError('resumenesCumpleanos', { message: 'permission-denied' });
+    check('un error de lectura se distingue como "no se pudo consultar", no como "no hay"', $('lista-cumpleanos').innerHTML.toLowerCase().includes('no se pudo consultar'));
+  }
+
+  console.log('\n=== Preparar WhatsApp registra el contacto como "preparado" (punto 3) ===');
+  {
+    emitirSnapshot('reservas', [
+      reservaDoc('boxA', { nombre: 'Persona A', fecha: HOY, hora: '23:57', box: 'b1', telefono: '3764111111', servicio: 'Facial', estado: 'confirmado' }),
+    ]);
+    document.querySelector('[data-abrir="reservas::boxA"]').click();
+    window.__ultimaUrlAbierta = null;
+    fakeFb.calls.setDocCalls.length = 0;
+    fakeFb.calls.getDocFromServerQueue.push({
+      snap: fakeFb.fakeDocSnap(true, 'boxA', { nombre: 'Persona A', fecha: HOY, hora: '23:57', box: 'b1', telefono: '3764111111', servicio: 'Facial', estado: 'confirmado' }),
+    });
+    await $('btn-preparar-wa').click();
+    await new Promise((r) => setTimeout(r, 0));
+    const prep = fakeFb.calls.setDocCalls.find((c) => c.path === 'contactosWhatsApp');
+    check('se abrió WhatsApp', !!window.__ultimaUrlAbierta);
+    check('se registró un contacto con estado "preparado" (nunca "enviado" todavía)', !!prep && prep.data.estado === 'preparado');
+    check('"preparado" no implica "enviado" — construirTextoConfirmacion no marca nada como confirmado', prep.data.estado !== 'enviado');
+  }
+
+  console.log('\n=== "¿Enviaste el mensaje?" — no bloquea, registra la respuesta real ===');
+  {
+    fakeFb.calls.setDocCalls.length = 0;
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    document.dispatchEvent(new window.Event('visibilitychange'));
+    check('aparece el banner de confirmación tras volver de WhatsApp', $('confirm-envio-banner').hidden === false);
+    $('btn-confirmo-enviado').click();
+    await new Promise((r) => setTimeout(r, 0));
+    const conf = fakeFb.calls.setDocCalls.find((c) => c.path === 'contactosWhatsApp' && c.data.estado === 'enviado');
+    check('"Sí, registrar envío" escribe estado "enviado"', !!conf);
+    check('el banner se oculta después de responder', $('confirm-envio-banner').hidden === true);
   }
 
   console.log('\n' + '='.repeat(60));

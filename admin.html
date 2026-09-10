@@ -2151,7 +2151,34 @@
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
     <script type="module">
         import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where } from "/js/firebase-web.js";
-        
+        import { registrarContactoPreparado, registrarContactoEstado } from "/js/contact-tracking.js";
+
+        // Seguimiento centralizado de contactos por WhatsApp (punto 3 del
+        // pedido de Mimar T Inteligente) — Admin también alimenta la misma
+        // colección contactosWhatsApp que usa la app, para que la bandeja
+        // de "pendientes de contacto" refleje lo que pasa acá también.
+        let _pendienteConfirmarEnvioAdmin = null;
+        async function registrarContactoWA(reservaId, tipoMensaje, nombre) {
+            try {
+                const operador = auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null;
+                await registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion: "reservas", docId: reservaId, tipoMensaje, operador });
+                _pendienteConfirmarEnvioAdmin = { coleccion: "reservas", docId: reservaId, tipoMensaje, nombre };
+            } catch (e) { console.warn("No se pudo registrar el contacto WhatsApp:", e); }
+        }
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState !== "visible" || !_pendienteConfirmarEnvioAdmin) return;
+            const { coleccion, docId, tipoMensaje, nombre } = _pendienteConfirmarEnvioAdmin;
+            _pendienteConfirmarEnvioAdmin = null;
+            setTimeout(async () => {
+                const enviado = confirm(`¿Enviaste el mensaje a ${nombre}?\n\nAceptar = sí lo envié · Cancelar = todavía no`);
+                try {
+                    const operador = auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null;
+                    await registrarContactoEstado({ setDoc, doc, serverTimestamp, db, coleccion, docId, tipoMensaje, estado: enviado ? "enviado" : "no_enviado", operador });
+                    mostrarAviso(enviado ? "Confirmación marcada como enviada" : "Registrado: no se envió todavía");
+                } catch (e) { console.warn("No se pudo registrar el estado del envío:", e); }
+            }, 400); // pequeña demora para no competir con el propio evento de foco
+        });
+
         const COMPACT_STORAGE_KEY = "mimar_compact_mode";
         const ADMIN_EMAILS = ["espaciomimart36@gmail.com"];
         const escapeHtml = (v) => (v ?? "").toString()
@@ -3165,19 +3192,23 @@
         // Abre WhatsApp con el texto precargado en el teléfono de quien hace
         // clic (la admin) — nunca manda nada por sí solo, requiere que la
         // persona presione Enviar dentro de WhatsApp.
-        window.enviarW = (tel, nombre, fecha, hora, servicio, accion) => {
+        window.enviarW = (tel, nombre, fecha, hora, servicio, accion, reservaId) => {
             const num = formatearTelefonoWhatsApp(tel);
             if (!num) { mostrarAviso("Sin teléfono registrado"); return; }
             const nombrePila = (nombre || "").toString().split(" ")[0] || nombre || "";
             const fechaFmt = (() => { try { return formatoFechaISO(fecha); } catch (_) { return fecha; } })();
-            let texto;
+            let texto, tipoMensaje;
             if (accion === "recordar") {
                 texto = `Hola ${nombrePila}, te recordamos tu turno en Espacio MimarT para el ${fechaFmt} a las ${hora} hs. ¡Te esperamos!`;
+                tipoMensaje = "recordatorio";
             } else if (accion === "cancelar") {
                 texto = `Hola ${nombrePila}, queremos avisarte que tu turno en Espacio MimarT del ${fechaFmt} a las ${hora} hs no puede realizarse. Comunicáte con nosotros para reprogramar.`;
+                tipoMensaje = "aviso_cancelacion";
             } else {
                 texto = `Hola ${nombrePila}, te confirmamos tu turno en Espacio MimarT para el ${fechaFmt} a las ${hora} hs (${servicio || "Tratamiento"}). ¡Te esperamos!`;
+                tipoMensaje = "confirmacion";
             }
+            if (reservaId) registrarContactoWA(reservaId, tipoMensaje, nombrePila);
             window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, "_blank");
         };
 
@@ -3369,11 +3400,11 @@
                     ${notaDisplay1}
                     ${notaDisplay2}
                     <div class="ac-row-primary">
-                        <button class="btn-ws btn-confirmar" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','confirmar')">Confirmar</button>
-                        <button class="btn-ws btn-recordar" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','recordar')">Recordar</button>
+                        <button class="btn-ws btn-confirmar" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','confirmar','${r.id}')">Confirmar</button>
+                        <button class="btn-ws btn-recordar" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','recordar','${r.id}')">Recordar</button>
                     </div>
                     <div class="ac-row-secondary">
-                        <button class="btn-ws btn-cancelar ac-avisar-btn" title="Solo envía mensaje de aviso" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar')">Avisar Canc.</button>
+                        <button class="btn-ws btn-cancelar ac-avisar-btn" title="Solo envía mensaje de aviso" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar','${r.id}')">Avisar Canc.</button>
                         <button onclick="window._adminToggleMas('r${r.id}')" class="ac-mas-btn" id="admas-btn-r${r.id}">··· Más</button>
                     </div>
                     <div id="admas-r${r.id}" class="ac-mas-panel" style="display:none;margin-top:8px;">

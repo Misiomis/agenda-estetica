@@ -10,12 +10,25 @@ export const calls = {
   signInCalls: [],
   signOutCalls: 0,
   getDocFromServerQueue: [],
+  setDocCalls: [], // { path, id, data, options }
+  updateDocCalls: [], // { path, id, data }
 };
 
 export function collection(_db, path) { return { __type: 'collection', path }; }
-export function query(colRef, ...clauses) { return { __type: 'query', path: colRef.path, clauses }; }
+export function query(colRefOrDoc, ...clauses) { return { __type: 'query', path: colRefOrDoc.path, clauses }; }
 export function where(field, op, value) { return { __type: 'where', field, op, value }; }
+export function orderBy(field, direction) { return { __type: 'orderBy', field, direction }; }
+export function limit(n) { return { __type: 'limit', n }; }
 export function doc(_db, path, id) { return { __type: 'doc', path, id }; }
+export function serverTimestamp() { return { __type: 'serverTimestamp' }; }
+
+export async function setDoc(ref, data, options) {
+  calls.setDocCalls.push({ path: ref.path, id: ref.id, data, options });
+}
+
+export async function updateDoc(ref, data) {
+  calls.updateDocCalls.push({ path: ref.path, id: ref.id, data });
+}
 
 export function onSnapshot(queryOrDoc, optionsOrNext, maybeNext, maybeError) {
   let onNext, onError;

@@ -183,3 +183,68 @@ export function normalizarTelefonoWA(telefono) {
   if (d.length === 11 && d.startsWith("9")) return "54" + d;
   return "549" + d;
 }
+
+// ── Plantillas de mensaje (punto 7) ──────────────────────────────────────
+// Texto plano con *negritas* estilo WhatsApp y saltos de línea reales — sin
+// HTML, sin colores, sin nada que WhatsApp no pueda mostrar. Firma fija
+// "Espacio Mimar T" en todas. Se arman acá (no en el HTML) para poder
+// probarlas sin DOM y para que admin.html/depilacion.html/kit-facial.html
+// las reusen si hace falta.
+
+export function construirTextoRecordatorio(item) {
+  const nombre = item.nombre || "Paciente";
+  const primerNombre = nombre.split(" ")[0] || nombre;
+  const fechaLegible = item.fecha || "fecha a confirmar";
+  const horaLegible = item.hora ? `${item.hora} hs` : "horario a confirmar";
+  const servicio = item.servicio ? ` para ${item.servicio}` : "";
+  return `Hola ${primerNombre} 🤍\n\nTe recordamos tu turno${servicio} *mañana ${fechaLegible} a las ${horaLegible}* en Espacio Mimar T.\n\n¡Te esperamos!\n\n*Espacio Mimar T*`;
+}
+
+export function construirTextoCumpleanos(nombre) {
+  const primerNombre = (nombre || "Paciente").split(" ")[0] || nombre;
+  return `¡Feliz cumpleaños, ${primerNombre}! 🎂🤍\n\nDesde Espacio Mimar T te deseamos un día hermoso. Gracias por ser parte de nuestra comunidad.\n\n*Espacio Mimar T*`;
+}
+
+export function construirTextoConsulta(item) {
+  const nombre = item.nombre || "Paciente";
+  const primerNombre = nombre.split(" ")[0] || nombre;
+  const fechaLegible = item.fecha || "fecha a confirmar";
+  const horaLegible = item.hora ? `${item.hora} hs` : "horario a confirmar";
+  return `Hola ${primerNombre} 🤍\n\nTe confirmamos tu *consulta inicial* en Espacio Mimar T para el ${fechaLegible} a las ${horaLegible}.\n\nCualquier duda, escribinos por acá.\n\n*Espacio Mimar T*`;
+}
+
+export function construirTextoKit(nombre) {
+  const primerNombre = (nombre || "Paciente").split(" ")[0] || nombre;
+  return `Hola ${primerNombre} 🤍\n\nTu kit ya está listo para retirar en Farmacia Central, de 08:00 a 12:00 y de 16:00 a 20:00.\n\nSi tenés envases vacíos de productos anteriores, te agradecemos que los traigas para reciclarlos. 💚\n\n*Espacio Mimar T*`;
+}
+
+// ── Estado de contacto por WhatsApp (punto 3) ────────────────────────────
+// Combina un item de agenda con su doc de contactosWhatsApp (si existe) en
+// un estado para mostrar en pantalla. Nunca inventa "enviado" — si no hay
+// doc de contacto, el estado es "pendiente" explícito, no vacío ni null.
+export function idContactoParaItem(item, tipoMensaje) {
+  return `${item.coleccion}_${item.id}_${tipoMensaje}`;
+}
+
+export function estadoContacto(contactoDoc) {
+  return contactoDoc?.estado || "pendiente";
+}
+
+export function etiquetaEstadoContacto(estado) {
+  switch (estado) {
+    case "preparado": return "Texto preparado / WhatsApp abierto";
+    case "enviado": return "Enviado según registro del operador";
+    case "no_enviado": return "No enviado según registro del operador";
+    default: return "Pendiente de contacto";
+  }
+}
+
+// "Vencido" = sigue sin estado "enviado" y ya estamos a menos de plazoMs del
+// turno (o el turno ya pasó). plazoMs configurable — no hay un valor
+// hardcodeado "correcto" para todas las estéticas.
+export function contactoVencido(item, contactoDoc, plazoMs, ahoraMs = Date.now()) {
+  const estado = estadoContacto(contactoDoc);
+  if (estado === "enviado") return false;
+  if (item.inicioMs === null) return false; // sin fecha/hora utilizable, no se puede evaluar plazo
+  return (item.inicioMs - ahoraMs) <= plazoMs;
+}

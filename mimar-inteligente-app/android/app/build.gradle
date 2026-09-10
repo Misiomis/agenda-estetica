@@ -1,4 +1,17 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+// Firma de release: se lee de keystore.properties (nunca al repo — ver
+// android/.gitignore). Si el archivo no existe (p.ej. un checkout nuevo sin
+// el keystore todavía copiado), el build de release simplemente no tiene
+// signingConfig propio y Gradle usa el debug, dejando el motivo bien visible
+// en vez de fallar de forma críptica.
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+def tieneKeystoreRelease = keystorePropertiesFile.exists()
+if (tieneKeystoreRelease) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
 
 android {
     namespace "ar.mimart.inteligente"
@@ -16,11 +29,29 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (tieneKeystoreRelease) {
+            release {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig tieneKeystoreRelease ? signingConfigs.release : signingConfigs.debug
         }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
     }
 }
 
@@ -40,6 +71,10 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+
+    // ── Firebase Cloud Messaging (notificaciones nativas — ver punto 6) ───
+    implementation platform('com.google.firebase:firebase-bom:33.1.2')
+    implementation 'com.google.firebase:firebase-messaging-ktx'
 }
 
 apply from: 'capacitor.build.gradle'

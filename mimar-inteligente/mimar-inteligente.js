@@ -3,13 +3,20 @@
 // identidad del Reloj Mimar T y comportamiento correcto dentro de la app
 // Android (botón Atrás, retorno de segundo plano, sin listeners duplicados).
 import {
-  db, auth, collection, query, where, onSnapshot, doc, getDoc, getDocFromServer,
+  db, auth, collection, query, where, orderBy, limit, onSnapshot, doc, getDoc, getDocFromServer,
+  setDoc, updateDoc, serverTimestamp,
   onAuthStateChanged, signInWithEmailAndPassword, signOut,
 } from "./firebase-web.js";
 import {
   ZONA_HORARIA, fechaISOEnZona, sumarDiasISO, normalizarItemAgenda, construirAgenda,
   obtenerProximaReserva, obtenerBandejaRevisiones, construirTextoConfirmacion, normalizarTelefonoWA,
+  construirTextoRecordatorio, construirTextoCumpleanos, construirTextoConsulta, construirTextoKit,
+  idContactoParaItem, estadoContacto, etiquetaEstadoContacto, contactoVencido,
 } from "./mimar-inteligente-logic.js";
+import {
+  registrarContactoPreparado, registrarContactoEstado, registrarContactoManual,
+} from "./contact-tracking.js";
+import { verificarActualizacion } from "./update-check.js";
 
 const ADMIN_EMAILS = ["espaciomimart36@gmail.com"];
 const esEmailAdmin = (email) => ADMIN_EMAILS.includes((email || "").trim().toLowerCase());
@@ -44,15 +51,30 @@ function toast(msg, ms = 3200) {
 const fuentes = {
   reservas: { estado: "cargando", error: null, fromCache: true, items: [] },
   consultas: { estado: "cargando", error: null, fromCache: true, items: [] },
+  pedidosKit: { estado: "cargando", error: null, fromCache: true, items: [] },
 };
 
 let unsubReservas = null;
 let unsubConsultas = null;
+let unsubPedidosKit = null;
+let unsubActividad = null;
+let unsubContactos = null;
+let unsubCumpleanos = null;
 let uidActual = null;
 let tickInterval = null;
 let itemSeleccionado = null;
 let ultimaAgenda = [];
 let ultimaSincronizacion = null;
+
+// contactosWhatsApp cargados, indexados por id (coleccion_docId_tipoMensaje)
+let contactosPorId = {};
+// activityLog cargado (ya ordenado desc por el propio query)
+let actividadItems = [];
+// resumenesCumpleanos/{hoyISO} — null mientras no cargó, luego { estado, personas, generadoAt }
+let cumpleanosHoy = null;
+// { coleccion, id, tipoMensaje, nombre } — recién se abrió wa.me y se está
+// esperando la respuesta de "¿Enviaste el mensaje?" al volver a la app.
+let pendienteConfirmarEnvio = null;
 
 // ── Login ────────────────────────────────────────────────────────────────
 $("login-form").addEventListener("submit", async (ev) => {
@@ -87,10 +109,64 @@ $("btn-salir").addEventListener("click", async () => {
   try { await signOut(auth); toast("Sesión cerrada."); } catch (_) {}
 });
 
+$("btn-ajustes-notif").addEventListener("click", () => {
+  window.Capacitor?.Plugins?.FcmPlugin?.openNotificationSettings?.();
+});
+
+// ── Actualización remota de la APK (punto 8) ─────────────────────────────
+let manifestPendiente = null;
+
+async function buscarActualizacion({ manual = false } = {}) {
+  try {
+    const resultado = await verificarActualizacion();
+    if (!resultado) return; // no estamos en la app nativa
+    if (resultado.hayActualizacion) {
+      manifestPendiente = resultado.manifest;
+      $("update-texto").textContent = `Nueva versión disponible (v${resultado.manifest.versionName || resultado.versionRemota})`;
+      $("update-notas").textContent = resultado.manifest.notas || "";
+      $("update-banner").hidden = false;
+    } else if (manual) {
+      toast("Ya tenés la última versión instalada.");
+    }
+  } catch (e) {
+    if (manual) toast("No se pudo buscar actualizaciones: " + (e.message || "error de red"));
+    else console.warn("buscarActualizacion:", e);
+  }
+}
+
+$("btn-buscar-update").addEventListener("click", () => buscarActualizacion({ manual: true }));
+
+$("btn-update-mas-tarde").addEventListener("click", () => { $("update-banner").hidden = true; });
+
+$("btn-update-instalar").addEventListener("click", async () => {
+  const UpdatePlugin = window.Capacitor?.Plugins?.UpdatePlugin;
+  if (!UpdatePlugin || !manifestPendiente) return;
+  const boton = $("btn-update-instalar");
+  boton.disabled = true;
+  boton.textContent = "Descargando…";
+  try {
+    await UpdatePlugin.downloadAndInstall({
+      apkUrl: manifestPendiente.apkUrl,
+      sha256: manifestPendiente.sha256 || ""
+    });
+    // A partir de acá Android muestra su propio instalador — la app puede
+    // quedar en segundo plano mientras la persona confirma. Si la firma no
+    // coincide con la instalada, el instalador del sistema lo va a explicar
+    // (INSTALL_FAILED_UPDATE_INCOMPATIBLE), no esta pantalla.
+    $("update-banner").hidden = true;
+  } catch (e) {
+    toast("No se pudo descargar la actualización: " + (e.message || e));
+  } finally {
+    boton.disabled = false;
+    boton.textContent = "Actualizar";
+  }
+});
+
 function mostrarAcceso(mensaje) {
   $("access-panel").hidden = false;
   $("workspace").hidden = true;
   $("btn-salir").hidden = true;
+  $("btn-ajustes-notif").hidden = true;
   $("login-form").hidden = true;
   $("access-message").textContent = mensaje;
 }
@@ -125,17 +201,80 @@ onAuthStateChanged(auth, async (user) => {
   $("access-panel").hidden = true;
   $("workspace").hidden = false;
   $("btn-salir").hidden = false;
+  if (nativeApp && window.Capacitor?.Plugins?.FcmPlugin) $("btn-ajustes-notif").hidden = false;
+  if (nativeApp && window.Capacitor?.Plugins?.UpdatePlugin) {
+    $("btn-buscar-update").hidden = false;
+    buscarActualizacion(); // chequeo silencioso al abrir — no molesta si no hay nada nuevo
+  }
 
   if (uidActual !== user.uid) {
     uidActual = user.uid;
     iniciarSuscripciones();
+    registrarTokenFcm();
   }
+});
+
+// ── Token FCM (punto 6) ──────────────────────────────────────────────────
+// El token se pide y se sube a Firestore desde acá (WebView, ya autenticado
+// con Firebase Auth) — el proceso nativo (FCMService.kt) no tiene su propia
+// sesión de Firestore. Un id estable por instalación evita que un mismo
+// admin con dos dispositivos se pise el token del otro.
+function obtenerInstallId() {
+  let id;
+  try { id = localStorage.getItem("mimarInstallId"); } catch (_) {}
+  if (!id) {
+    id = "inst_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    try { localStorage.setItem("mimarInstallId", id); } catch (_) {}
+  }
+  return id;
+}
+
+async function registrarTokenFcm() {
+  if (!nativeApp) return; // en navegador de escritorio no hay FCM nativo
+  const FcmPlugin = window.Capacitor?.Plugins?.FcmPlugin;
+  if (!FcmPlugin?.getToken) return;
+  try {
+    const permStatus = await FcmPlugin.requestNotificationPermission();
+    if (permStatus?.notifications !== "granted") return;
+    const { token } = await FcmPlugin.getToken();
+    if (!token || !uidActual) return;
+    const tokenDocId = `${uidActual}_inteligente_${obtenerInstallId()}`;
+    await setDoc(doc(db, "deviceTokens", tokenDocId), {
+      uid: uidActual, appId: "inteligente", token, platform: "android",
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  } catch (e) { console.warn("No se pudo registrar el token FCM:", e); }
+}
+
+// ── Deep link desde una notificación tocada (punto 5) ────────────────────
+// Si el item todavía no llegó por onSnapshot (recién se abrió la app),
+// reintenta unas pocas veces en vez de fallar directo.
+window.addEventListener("mimarDeepLink", (ev) => {
+  const { coleccion, docId } = ev.detail || {};
+  if (!coleccion || !docId || coleccion === "clients") return; // cumpleaños no tiene modal de detalle propio en v1
+  let intentos = 0;
+  const intentar = () => {
+    const existe = coleccion === "pedidosKit"
+      ? fuentes.pedidosKit.items.some((k) => k.id === docId)
+      : ultimaAgenda.some((it) => it.coleccion === coleccion && it.id === docId);
+    if (existe) { abrirModal(`${coleccion}::${docId}`); return true; }
+    return false;
+  };
+  if (intentar()) return;
+  const iv = setInterval(() => {
+    intentos++;
+    if (intentar() || intentos > 20) clearInterval(iv);
+  }, 300);
 });
 
 // ── Suscripciones Firestore ──────────────────────────────────────────────
 function detenerSuscripciones() {
   if (unsubReservas) { unsubReservas(); unsubReservas = null; }
   if (unsubConsultas) { unsubConsultas(); unsubConsultas = null; }
+  if (unsubPedidosKit) { unsubPedidosKit(); unsubPedidosKit = null; }
+  if (unsubActividad) { unsubActividad(); unsubActividad = null; }
+  if (unsubContactos) { unsubContactos(); unsubContactos = null; }
+  if (unsubCumpleanos) { unsubCumpleanos(); unsubCumpleanos = null; }
   if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
 }
 
@@ -156,6 +295,29 @@ function iniciarSuscripciones() {
     (snap) => manejarSnapshot("consultas", snap),
     (err) => manejarErrorFuente("consultas", err));
 
+  // Pedidos de kit pendientes — los "entregado" ya no son una novedad activa.
+  const qKits = query(collection(db, "pedidosKit"), where("estado", "==", "pendiente"));
+  unsubPedidosKit = onSnapshot(qKits, { includeMetadataChanges: true },
+    (snap) => manejarSnapshotKits(snap),
+    (err) => manejarErrorFuente("pedidosKit", err));
+
+  // Bandeja de actividad (punto 2) — últimos eventos, más nuevo primero.
+  const qActividad = query(collection(db, "activityLog"), orderBy("timestamp", "desc"), limit(60));
+  unsubActividad = onSnapshot(qActividad,
+    (snap) => { const items = []; snap.forEach((d) => items.push({ id: d.id, ...d.data() })); actividadItems = items; renderActividad(); },
+    (err) => { console.warn("activityLog:", err?.message || err); });
+
+  // Estado real de contacto por WhatsApp (punto 3) — para no mostrar nunca
+  // un turno como "confirmado" solo porque alguien abrió WhatsApp.
+  unsubContactos = onSnapshot(collection(db, "contactosWhatsApp"),
+    (snap) => { contactosPorId = {}; snap.forEach((d) => { contactosPorId[d.id] = d.data(); }); renderTodo(); },
+    (err) => { console.warn("contactosWhatsApp:", err?.message || err); });
+
+  // Cumpleaños de hoy (punto 4) — documento generado por la función programada.
+  unsubCumpleanos = onSnapshot(doc(db, "resumenesCumpleanos", hoyISO),
+    (snap) => { cumpleanosHoy = snap.exists() ? snap.data() : { estado: "no_generado" }; renderCumpleanos(); },
+    (err) => { cumpleanosHoy = { estado: "error", detalle: err?.message || String(err) }; renderCumpleanos(); });
+
   tickInterval = setInterval(renderTodo, 1000); // el reloj y la cuenta regresiva necesitan tick fino
 }
 
@@ -165,6 +327,23 @@ function manejarSnapshot(fuenteId, snap) {
   fuentes[fuenteId] = { estado: "ok", error: null, fromCache: snap.metadata.fromCache, items };
   if (!snap.metadata.fromCache) ultimaSincronizacion = Date.now();
   renderTodo();
+}
+
+function manejarSnapshotKits(snap) {
+  const items = [];
+  snap.forEach((d) => {
+    const data = d.data() || {};
+    items.push({
+      id: d.id,
+      nombre: data.nombrePaciente || "Paciente",
+      productos: Array.isArray(data.productos) ? data.productos : [],
+      telefono: data.telefono || data.phone || null,
+      dni: data.dni || null,
+      fecha: data.fecha || null,
+    });
+  });
+  fuentes.pedidosKit = { estado: "ok", error: null, fromCache: snap.metadata.fromCache, items };
+  renderKits();
 }
 
 function manejarErrorFuente(fuenteId, err) {
@@ -197,19 +376,27 @@ function renderReloj(ahoraMs) {
   $("clock-seconds").textContent = partes.second;
 }
 
+// El badge de conexión refleja específicamente la agenda núcleo (reservas +
+// consultas, que alimentan el próximo turno y la bandeja de revisiones).
+// pedidosKit/activityLog/cumpleaños tienen su propio indicador de carga en
+// cada sección — no hace falta que una demora ahí tiña de "error" a toda la
+// pantalla.
+const FUENTES_CONEXION = ["reservas", "consultas"];
+
 function renderConexion() {
-  const estados = Object.values(fuentes).map((f) => f.estado);
+  const fuentesNucleo = FUENTES_CONEXION.map((id) => fuentes[id]);
+  const estados = fuentesNucleo.map((f) => f.estado);
   const conn = $("connection");
   const txt = $("connection-text");
   let estado = "live", texto = "Al día";
   if (typeof navigator !== "undefined" && navigator.onLine === false) { estado = "offline"; texto = "Sin conexión"; }
   else if (estados.includes("error")) { estado = "error"; texto = "Error de datos"; }
   else if (estados.includes("cargando")) { estado = "warning"; texto = "Sincronizando…"; }
-  else if (Object.values(fuentes).some((f) => f.fromCache)) { estado = "warning"; texto = "Verificando…"; }
+  else if (fuentesNucleo.some((f) => f.fromCache)) { estado = "warning"; texto = "Verificando…"; }
   conn.setAttribute("data-state", estado);
   txt.textContent = texto;
 
-  const errores = Object.entries(fuentes).filter(([, f]) => f.estado === "error");
+  const errores = FUENTES_CONEXION.filter((id) => fuentes[id].estado === "error").map((id) => [id, fuentes[id]]);
   const aviso = $("fuentes-aviso");
   if (errores.length) {
     const nombres = { reservas: "Reservas", consultas: "Consultas" };
@@ -258,7 +445,25 @@ function renderProximoTurno(agenda, ahoraMs) {
   }
 }
 
-function tarjetaHtml(item, { conMotivos } = {}) {
+// Plazo por defecto para marcar un contacto como "vencido" en pantalla —
+// configurable a futuro desde configuracion/notificaciones; mientras tanto
+// un valor fijo razonable (1h) documentado acá, no oculto en el HTML.
+const PLAZO_CONTACTO_VENCIDO_MS = 60 * 60000;
+
+function contactoDeItem(item, tipoMensaje = "confirmacion") {
+  return contactosPorId[idContactoParaItem(item, tipoMensaje)] || null;
+}
+
+function pillEstadoContacto(item, ahoraMs) {
+  const contacto = contactoDeItem(item);
+  const estado = estadoContacto(contacto);
+  const vencido = contactoVencido(item, contacto, PLAZO_CONTACTO_VENCIDO_MS, ahoraMs);
+  const clase = estado === "enviado" ? "pill-ok" : vencido ? "pill-warn" : "pill-muted";
+  const texto = estado === "enviado" ? "✓ Enviado" : estado === "preparado" ? "WhatsApp abierto" : estado === "no_enviado" ? "No enviado" : (vencido ? "⚠ Sin envío registrado" : "Pendiente de contacto");
+  return `<span class="pill ${clase}" title="${escapeHtml(etiquetaEstadoContacto(estado))}">${escapeHtml(texto)}</span>`;
+}
+
+function tarjetaHtml(item, { conMotivos, ahoraMs = Date.now() } = {}) {
   const box = boxLabel(item.box);
   const idAttr = `${item.coleccion}::${item.id}`;
   const motivosHtml = conMotivos && item._revision
@@ -275,6 +480,7 @@ function tarjetaHtml(item, { conMotivos } = {}) {
       ${box ? `<span class="pill pill-box">${escapeHtml(box)}</span>` : `<span class="pill pill-muted">Box no asignado</span>`}
       ${item.telefono ? `<span class="pill pill-muted">📞 ${escapeHtml(item.telefono)}</span>` : `<span class="pill pill-warn">Sin teléfono</span>`}
       <span class="pill pill-muted">${escapeHtml(item.estadoBruto || "sin estado")}</span>
+      ${pillEstadoContacto(item, ahoraMs)}
     </div>
     ${motivosHtml}
     <div class="item-actions"><button class="button button-light" data-abrir="${idAttr}" type="button">Ver detalle</button></div>
@@ -320,6 +526,114 @@ function renderAgenda(agenda, hoyISO, mananaISO) {
   cont.innerHTML = html;
 }
 
+function renderKits() {
+  const cont = $("lista-kits");
+  if (!cont) return;
+  if (fuentes.pedidosKit.estado === "cargando") {
+    cont.innerHTML = `<div class="loading-state">Cargando…</div>`;
+    return;
+  }
+  const items = fuentes.pedidosKit.items;
+  $("count-kits").textContent = String(items.length);
+  if (!items.length) {
+    cont.innerHTML = `<div class="empty-state"><h3>Sin pedidos pendientes</h3><p>No hay kits esperando entrega.</p></div>`;
+    return;
+  }
+  cont.innerHTML = items.map((k) => `
+    <div class="item-row" data-item="pedidosKit::${k.id}">
+      <div class="item-row-top"><span class="item-name">${escapeHtml(k.nombre)}</span></div>
+      <div class="item-service">${escapeHtml(k.productos.join(", ") || "Sin detalle de productos")}</div>
+      <div class="item-pills">
+        ${k.telefono ? `<span class="pill pill-muted">📞 ${escapeHtml(k.telefono)}</span>` : `<span class="pill pill-warn">Sin teléfono</span>`}
+      </div>
+      <div class="item-actions"><button class="button button-light" data-abrir="pedidosKit::${k.id}" type="button">Ver detalle</button></div>
+    </div>`).join("");
+}
+
+function renderCumpleanos() {
+  const cont = $("lista-cumpleanos");
+  if (!cont) return;
+  if (!cumpleanosHoy) {
+    cont.innerHTML = `<div class="loading-state">Cargando…</div>`;
+    return;
+  }
+  if (cumpleanosHoy.estado === "error") {
+    cont.innerHTML = `<div class="empty-state"><h3>No se pudo consultar</h3><p>${escapeHtml(cumpleanosHoy.detalle || "Error desconocido")}</p></div>`;
+    $("count-cumpleanos").textContent = "?";
+    return;
+  }
+  if (cumpleanosHoy.estado === "no_generado") {
+    cont.innerHTML = `<div class="empty-state"><h3>Todavía no se generó el resumen de hoy</h3><p>Se genera automáticamente a la hora configurada.</p></div>`;
+    $("count-cumpleanos").textContent = "—";
+    return;
+  }
+  const personas = cumpleanosHoy.personas || [];
+  $("count-cumpleanos").textContent = String(personas.length);
+  if (!personas.length) {
+    cont.innerHTML = `<div class="empty-state"><h3>No hay cumpleaños hoy</h3></div>`;
+    return;
+  }
+  cont.innerHTML = personas.map((p) => {
+    const num = normalizarTelefonoWA(p.telefonoDisponible ? p.telefono : "");
+    const texto = construirTextoCumpleanos(p.nombre);
+    const href = p.telefonoDisponible ? `https://wa.me/${escapeHtml(num)}?text=${encodeURIComponent(texto)}` : null;
+    return `
+    <div class="item-row">
+      <div class="item-row-top"><span class="item-name">🎂 ${escapeHtml(p.nombre)}</span></div>
+      <div class="item-pills">${p.telefonoDisponible ? "" : `<span class="pill pill-warn">Sin teléfono</span>`}</div>
+      <div class="item-actions">
+        ${href ? `<a class="button button-light" href="${href}" target="_blank" rel="noopener" data-preparar-cumple="${escapeHtml(p.clientId)}"><svg class="icon"><use href="#i-whatsapp"/></svg> Preparar saludo</a>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+const ETIQUETA_TIPO_EVENTO = {
+  reservas: "Reserva", consultas: "Consulta", pedidosKit: "Kit", clients: "Paciente",
+  cursoMaquillaje: "Curso", reservasDepi: "Depilación",
+};
+
+function renderActividad() {
+  const cont = $("lista-actividad");
+  if (!cont) return;
+  if (!actividadItems.length) {
+    cont.innerHTML = `<div class="empty-state"><h3>Sin actividad todavía</h3><p>Acá van a aparecer las altas, bajas y cambios de Firestore a medida que ocurran.</p></div>`;
+    return;
+  }
+  cont.innerHTML = actividadItems.map((ev) => {
+    const leido = !!(ev.leidoPor && ev.leidoPor[uidActual]);
+    const cuando = ev.timestamp?.toDate ? ev.timestamp.toDate() : null;
+    const cuandoTxt = cuando ? new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: ZONA_HORARIA }).format(cuando) : "recién";
+    return `
+    <div class="item-row ${leido ? "" : "item-no-leido"}" data-evento="${escapeHtml(ev.id)}">
+      <div class="item-row-top">
+        <span class="pill pill-muted">${escapeHtml(ETIQUETA_TIPO_EVENTO[ev.coleccion] || ev.coleccion)}</span>
+        <span class="item-time">${cuandoTxt}</span>
+      </div>
+      <div class="item-service">${escapeHtml(ev.resumen || "")}</div>
+      <div class="item-actions">
+        ${!ev.atendido ? `<button class="button button-light" data-atender="${escapeHtml(ev.id)}" type="button">Marcar atendido</button>` : `<span class="pill pill-ok">✓ Atendido</span>`}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderConsultas(agenda) {
+  const cont = $("lista-consultas");
+  if (!cont) return;
+  if (fuentes.consultas.estado === "cargando") {
+    cont.innerHTML = `<div class="loading-state">Cargando…</div>`;
+    return;
+  }
+  const items = agenda.filter((it) => it.coleccion === "consultas" && it.activa);
+  $("count-consultas").textContent = String(items.length);
+  if (!items.length) {
+    cont.innerHTML = `<div class="empty-state"><h3>Sin consultas iniciales</h3><p>No hay consultas activas para hoy ni mañana.</p></div>`;
+    return;
+  }
+  cont.innerHTML = items.map((it) => tarjetaHtml(it, { conMotivos: false })).join("");
+}
+
 function renderTodo() {
   const ahoraMs = Date.now();
   const hoyISO = fechaISOEnZona(ahoraMs);
@@ -330,6 +644,7 @@ function renderTodo() {
   renderProximoTurno(ultimaAgenda, ahoraMs);
   renderRevisiones(ultimaAgenda, ahoraMs);
   renderAgenda(ultimaAgenda, hoyISO, mananaISO);
+  renderConsultas(ultimaAgenda);
 }
 
 // ── Accesos rápidos (scroll dentro de la misma pantalla) ────────────────
@@ -350,26 +665,41 @@ const detalleDialog = $("detalle-dialog");
 
 function abrirModal(idAttr) {
   const [coleccion, id] = idAttr.split("::");
-  const item = ultimaAgenda.find((it) => it.coleccion === coleccion && it.id === id);
-  if (!item) { toast("Ya no se encuentra esta reserva."); return; }
-  itemSeleccionado = { coleccion, id };
+  const esKit = coleccion === "pedidosKit";
+  const item = esKit
+    ? fuentes.pedidosKit.items.find((it) => it.id === id)
+    : ultimaAgenda.find((it) => it.coleccion === coleccion && it.id === id);
+  if (!item) { toast("Ya no se encuentra este registro."); return; }
+  const tipoMensaje = esKit ? "kit" : coleccion === "consultas" ? "consulta" : "confirmacion";
+  itemSeleccionado = { coleccion, id, tipoMensaje };
   $("detalle-titulo").textContent = item.nombre || "Sin nombre registrado";
   const statusEl = $("detalle-status");
   statusEl.className = "dialog-status";
   statusEl.textContent = "";
   $("btn-preparar-wa").disabled = false;
   $("btn-preparar-wa").innerHTML = `<svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp`;
-  const box = boxLabel(item.box);
-  $("detalle-body").innerHTML = `
-    <div class="detail-row"><span>Fecha</span><span>${escapeHtml(item.fecha || "—")}</span></div>
-    <div class="detail-row"><span>Hora</span><span>${escapeHtml(item.hora || "—")}</span></div>
-    <div class="detail-row"><span>Servicio</span><span>${escapeHtml(item.servicio || "sin registrar")}</span></div>
-    <div class="detail-row"><span>Duración</span><span>${item.duracionMinutos ? item.duracionMinutos + " min" : "estimada (60 min, no registrada)"}</span></div>
-    <div class="detail-row"><span>Box</span><span>${box ? escapeHtml(box) : "no asignado"}</span></div>
-    <div class="detail-row"><span>Teléfono</span><span>${item.telefono ? escapeHtml(item.telefono) : "sin registrar"}</span></div>
-    <div class="detail-row"><span>Estado registrado</span><span>${escapeHtml(item.estadoBruto || "sin estado")}</span></div>
-    <div class="detail-row"><span>Agenda</span><span>${item.coleccion === "consultas" ? "Consultas iniciales" : "Reservas"}</span></div>
-  `;
+
+  if (esKit) {
+    $("detalle-body").innerHTML = `
+      <div class="detail-row"><span>Productos</span><span>${escapeHtml(item.productos.join(", ") || "sin detalle")}</span></div>
+      <div class="detail-row"><span>Teléfono</span><span>${item.telefono ? escapeHtml(item.telefono) : "sin registrar"}</span></div>
+      <div class="detail-row"><span>Agenda</span><span>Pedido de kit</span></div>
+    `;
+  } else {
+    const box = boxLabel(item.box);
+    $("detalle-body").innerHTML = `
+      <div class="detail-row"><span>Fecha</span><span>${escapeHtml(item.fecha || "—")}</span></div>
+      <div class="detail-row"><span>Hora</span><span>${escapeHtml(item.hora || "—")}</span></div>
+      <div class="detail-row"><span>Servicio</span><span>${escapeHtml(item.servicio || "sin registrar")}</span></div>
+      <div class="detail-row"><span>Duración</span><span>${item.duracionMinutos ? item.duracionMinutos + " min" : "estimada (60 min, no registrada)"}</span></div>
+      <div class="detail-row"><span>Box</span><span>${box ? escapeHtml(box) : "no asignado"}</span></div>
+      <div class="detail-row"><span>Teléfono</span><span>${item.telefono ? escapeHtml(item.telefono) : "sin registrar"}</span></div>
+      <div class="detail-row"><span>Estado registrado</span><span>${escapeHtml(item.estadoBruto || "sin estado")}</span></div>
+      <div class="detail-row"><span>Agenda</span><span>${item.coleccion === "consultas" ? "Consultas iniciales" : "Reservas"}</span></div>
+    `;
+  }
+  const contacto = esKit ? null : contactoDeItem(item, tipoMensaje);
+  $("detalle-estado-contacto").textContent = etiquetaEstadoContacto(estadoContacto(contacto));
   if (typeof detalleDialog.showModal === "function") detalleDialog.showModal();
   else detalleDialog.setAttribute("open", "");
 }
@@ -390,13 +720,18 @@ function mostrarModalStatus(texto, tipo) {
   el.className = `dialog-status mostrar ${tipo}`;
 }
 
+async function operadorActual() {
+  const u = auth.currentUser;
+  return u ? { uid: u.uid, email: u.email } : null;
+}
+
 $("btn-preparar-wa").addEventListener("click", async () => {
   if (!itemSeleccionado) return;
-  const { coleccion, id } = itemSeleccionado;
+  const { coleccion, id, tipoMensaje } = itemSeleccionado;
   const btn = $("btn-preparar-wa");
   btn.disabled = true;
   btn.textContent = "Verificando con el servidor…";
-  mostrarModalStatus("Verificando la reserva con el servidor antes de preparar el mensaje…", "info");
+  mostrarModalStatus("Verificando con el servidor antes de preparar el mensaje…", "info");
 
   let snap;
   try {
@@ -409,28 +744,126 @@ $("btn-preparar-wa").addEventListener("click", async () => {
   }
 
   if (!snap.exists()) {
-    mostrarModalStatus("Esta reserva ya no existe (fue eliminada). No se preparó ningún mensaje.", "error");
-    btn.disabled = true; btn.textContent = "Reserva eliminada";
-    return;
-  }
-  const fresco = normalizarItemAgenda(coleccion, id, snap.data());
-  if (!fresco.activa) {
-    mostrarModalStatus("Esta reserva fue cancelada. No se preparó ningún mensaje.", "error");
-    btn.disabled = true; btn.textContent = "Reserva cancelada";
-    return;
-  }
-  if (!fresco.telefono) {
-    mostrarModalStatus("No hay teléfono registrado para esta reserva — no se puede abrir WhatsApp.", "error");
-    btn.disabled = false; btn.innerHTML = `<svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp`;
+    mostrarModalStatus("Este registro ya no existe (fue eliminado). No se preparó ningún mensaje.", "error");
+    btn.disabled = true; btn.textContent = "Eliminado";
     return;
   }
 
-  abrirModal(`${coleccion}::${id}`); // refleja cualquier cambio (reprogramación) antes de armar el texto
-  const numero = normalizarTelefonoWA(fresco.telefono);
-  const texto = construirTextoConfirmacion(fresco);
+  let numero, texto, nombreDestino;
+  if (coleccion === "pedidosKit") {
+    const data = snap.data();
+    if (!(data.telefono || data.phone)) {
+      mostrarModalStatus("No hay teléfono registrado para este pedido — no se puede abrir WhatsApp.", "error");
+      btn.disabled = false; btn.innerHTML = `<svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp`;
+      return;
+    }
+    nombreDestino = data.nombrePaciente || "Paciente";
+    numero = normalizarTelefonoWA(data.telefono || data.phone);
+    texto = construirTextoKit(nombreDestino);
+  } else {
+    const fresco = normalizarItemAgenda(coleccion, id, snap.data());
+    if (!fresco.activa) {
+      mostrarModalStatus("Este registro fue cancelado. No se preparó ningún mensaje.", "error");
+      btn.disabled = true; btn.textContent = "Cancelado";
+      return;
+    }
+    if (!fresco.telefono) {
+      mostrarModalStatus("No hay teléfono registrado — no se puede abrir WhatsApp.", "error");
+      btn.disabled = false; btn.innerHTML = `<svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp`;
+      return;
+    }
+    abrirModal(`${coleccion}::${id}`); // refleja cualquier cambio (reprogramación) antes de armar el texto
+    nombreDestino = fresco.nombre;
+    numero = normalizarTelefonoWA(fresco.telefono);
+    texto = coleccion === "consultas" ? construirTextoConsulta(fresco) : construirTextoConfirmacion(fresco);
+  }
+
   const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
+
+  try {
+    const operador = await operadorActual();
+    await registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion, docId: id, tipoMensaje, operador, versionDatos: snap.updateTime?.toMillis?.() || Date.now() });
+  } catch (e) { console.warn("No se pudo registrar el contacto como preparado:", e); }
+
+  pendienteConfirmarEnvio = { coleccion, id, tipoMensaje, nombre: nombreDestino };
   mostrarModalStatus("Datos verificados con el servidor. Se abrió WhatsApp con el mensaje listo — vos decidís si lo enviás.", "info");
   window.open(url, "_blank", "noopener");
+});
+
+// Registro manual de un envío hecho por fuera de este flujo (WhatsApp Web,
+// otro teléfono, etc.). No lee WhatsApp ni infiere nada.
+$("btn-registrar-manual")?.addEventListener("click", async () => {
+  if (!itemSeleccionado) return;
+  const { coleccion, id, tipoMensaje } = itemSeleccionado;
+  try {
+    const operador = await operadorActual();
+    await registrarContactoManual({ setDoc, doc, serverTimestamp, db, coleccion, docId: id, tipoMensaje, operador, nota: "Registrado manualmente desde Mimar T Inteligente" });
+    mostrarModalStatus("Envío registrado manualmente.", "info");
+    toast("Confirmación marcada como enviada");
+  } catch (e) {
+    mostrarModalStatus("No se pudo registrar el envío manual.", "error");
+  }
+});
+
+// ── Prompt "¿Enviaste el mensaje?" — no bloqueante ───────────────────────
+function ocultarPromptEnvio() {
+  const el = $("confirm-envio-banner");
+  if (el) el.hidden = true;
+}
+
+function mostrarPromptEnvio() {
+  if (!pendienteConfirmarEnvio) return;
+  const el = $("confirm-envio-banner");
+  if (!el) return;
+  $("confirm-envio-texto").textContent = `¿Enviaste el mensaje a ${pendienteConfirmarEnvio.nombre}?`;
+  el.hidden = false;
+}
+
+async function responderPromptEnvio(estado) {
+  if (!pendienteConfirmarEnvio) return;
+  const { coleccion, id, tipoMensaje, nombre } = pendienteConfirmarEnvio;
+  if (estado === "mas_tarde") { ocultarPromptEnvio(); return; } // sigue "preparado", no se pierde el pendiente
+  try {
+    const operador = await operadorActual();
+    await registrarContactoEstado({ setDoc, doc, serverTimestamp, db, coleccion, docId: id, tipoMensaje, estado, operador });
+    toast(estado === "enviado" ? `Confirmación marcada como enviada (${nombre})` : `Registrado: no se envió (${nombre})`);
+  } catch (e) {
+    toast("No se pudo registrar el estado del envío");
+  }
+  pendienteConfirmarEnvio = null;
+  ocultarPromptEnvio();
+}
+$("btn-confirmo-enviado")?.addEventListener("click", () => responderPromptEnvio("enviado"));
+$("btn-confirmo-no-enviado")?.addEventListener("click", () => responderPromptEnvio("no_enviado"));
+$("btn-confirmo-mas-tarde")?.addEventListener("click", () => responderPromptEnvio("mas_tarde"));
+
+// ── Marcar novedad como atendida (bandeja de actividad) ──────────────────
+// Nunca toca la reserva/consulta original — solo el propio evento.
+document.addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("[data-atender]");
+  if (!btn) return;
+  const eventId = btn.getAttribute("data-atender");
+  try {
+    const operador = await operadorActual();
+    await updateDoc(doc(db, "activityLog", eventId), {
+      atendido: true,
+      atendidoPor: operador?.email || operador?.uid || null,
+      atendidoAt: serverTimestamp(),
+    });
+  } catch (e) { toast("No se pudo marcar como atendido"); }
+});
+
+// Preparar saludo de cumpleaños: registra el contacto igual que cualquier
+// otro wa.me (mismo criterio, mismo seguimiento de estado).
+document.addEventListener("click", async (ev) => {
+  const link = ev.target.closest("[data-preparar-cumple]");
+  if (!link) return;
+  const clientId = link.getAttribute("data-preparar-cumple");
+  try {
+    const operador = await operadorActual();
+    await registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion: "clients", docId: clientId, tipoMensaje: "cumpleanos", operador });
+    pendienteConfirmarEnvio = { coleccion: "clients", id: clientId, tipoMensaje: "cumpleanos", nombre: "esta persona" };
+  } catch (e) { console.warn("No se pudo registrar el saludo de cumpleaños:", e); }
 });
 
 // ── Botón Atrás (solo dentro de la app Android) ──────────────────────────
@@ -448,8 +881,19 @@ if (nativeApp && AppPlugin?.addListener) {
   });
 
   // Al volver a primer plano, verificar de nuevo con el servidor antes de
-  // que cualquier acción (p.ej. Preparar WhatsApp) asuma datos vigentes.
+  // que cualquier acción (p.ej. Preparar WhatsApp) asuma datos vigentes, y
+  // preguntar si quedó un mensaje por confirmar (punto 3).
   AppPlugin.addListener("appStateChange", ({ isActive }) => {
-    if (isActive) reconciliar();
+    if (isActive) {
+      reconciliar();
+      mostrarPromptEnvio();
+    }
+  });
+} else {
+  // En navegador de escritorio no hay appStateChange nativo — se usa
+  // visibilitychange, que ya dispara reconciliar() más arriba.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") mostrarPromptEnvio();
   });
 }
+

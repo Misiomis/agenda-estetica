@@ -4,7 +4,9 @@ import {
   inicioTurnoMs, finTurnoMs, esActiva, normalizarItemAgenda, construirAgenda,
   obtenerProximaReserva, calcularRevision, obtenerBandejaRevisiones,
   construirTextoConfirmacion, normalizarTelefonoWA, VENTANA_REVISION_MS,
-  DURACION_DEFECTO_MIN,
+  DURACION_DEFECTO_MIN, construirTextoRecordatorio, construirTextoCumpleanos,
+  construirTextoConsulta, construirTextoKit, idContactoParaItem, estadoContacto,
+  etiquetaEstadoContacto, contactoVencido,
 } from '../../mimar-inteligente/mimar-inteligente-logic.js';
 
 let fails = 0;
@@ -140,6 +142,41 @@ console.log('\n=== Mensaje de WhatsApp manual ===');
   check('el texto usa el primer nombre', texto.includes('Hola Carla!'));
   check('el texto incluye fecha, hora y servicio reales — no un texto genérico', texto.includes(HOY) && texto.includes('16:00') && texto.includes('Presoterapia'));
   check('normalizarTelefonoWA arma el prefijo 549 igual que el resto del proyecto', normalizarTelefonoWA('3764555555') === '5493764555555');
+}
+
+console.log('\n=== Plantillas de mensaje (texto plano, sin HTML) ===');
+{
+  const it = normalizarItemAgenda('reservas', 'rT', { nombre: 'Lucía Paz', fecha: HOY, hora: '11:00', servicio: 'Drenaje', telefono: '3764555555' });
+  const recordatorio = construirTextoRecordatorio(it);
+  check('recordatorio usa el primer nombre', recordatorio.includes('Hola Lucía'));
+  check('recordatorio incluye fecha/hora/servicio reales', recordatorio.includes(HOY) && recordatorio.includes('11:00') && recordatorio.includes('Drenaje'));
+  check('recordatorio no contiene HTML (ni "<")', !recordatorio.includes('<'));
+  check('recordatorio firma como Espacio Mimar T', recordatorio.includes('Espacio Mimar T'));
+
+  const cumple = construirTextoCumpleanos('Marta Sosa');
+  check('cumpleaños usa el primer nombre', cumple.includes('Marta'));
+  check('cumpleaños no contiene HTML', !cumple.includes('<'));
+
+  const consulta = construirTextoConsulta(normalizarItemAgenda('consultas', 'c9', { nombre: 'Nico Ruiz', fecha: HOY, hora: '09:30' }));
+  check('consulta usa el primer nombre y menciona "consulta inicial"', consulta.includes('Nico') && /consulta inicial/i.test(consulta));
+
+  const kit = construirTextoKit('Vale Díaz');
+  check('kit usa el primer nombre y menciona Farmacia Central', kit.includes('Vale') && kit.includes('Farmacia Central'));
+}
+
+console.log('\n=== Estado de contacto por WhatsApp (punto 3) ===');
+{
+  const it = normalizarItemAgenda('reservas', 'rK', { nombre: 'Contacto Test', fecha: HOY, hora: '14:00', telefono: '3764555555' });
+  check('id de contacto compone coleccion_id_tipo', idContactoParaItem(it, 'confirmacion') === 'reservas_rK_confirmacion');
+  check('sin doc de contacto → "pendiente" explícito, no vacío', estadoContacto(null) === 'pendiente' && estadoContacto(undefined) === 'pendiente');
+  check('con doc de contacto → toma su estado real', estadoContacto({ estado: 'enviado' }) === 'enviado');
+  check('etiqueta legible por cada estado (frase completa, no el código crudo)', etiquetaEstadoContacto('preparado').startsWith('Texto preparado'));
+  check('etiqueta de "pendiente" es distinta de "enviado" (no se confunden)', etiquetaEstadoContacto('pendiente') !== etiquetaEstadoContacto('enviado'));
+
+  const turno = new Date(`${HOY}T14:00:00-03:00`).getTime();
+  check('sin enviar y a pocos minutos del turno → vencido', contactoVencido(it, null, 30 * 60000, turno - 10 * 60000) === true);
+  check('sin enviar pero todavía lejos del turno → no vencido', contactoVencido(it, null, 30 * 60000, turno - 5 * 3600000) === false);
+  check('ya "enviado" → nunca vencido, sea cual sea el plazo', contactoVencido(it, { estado: 'enviado' }, 30 * 60000, turno + 3600000) === false);
 }
 
 console.log('\n' + '='.repeat(60));

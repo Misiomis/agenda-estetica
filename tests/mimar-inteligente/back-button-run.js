@@ -43,6 +43,10 @@ let scriptSrc = fs.readFileSync(path.join(APP_DIR, 'mimar-inteligente.js'), 'utf
 scriptSrc = scriptSrc.replace('from "./firebase-web.js"', 'from "./fake-firebase-web.js"');
 const logicUrl = 'file:///' + path.join(APP_DIR, 'mimar-inteligente-logic.js').replace(/\\/g, '/');
 scriptSrc = scriptSrc.replace('from "./mimar-inteligente-logic.js"', `from "${logicUrl}"`);
+const contactTrackingUrl = 'file:///' + path.join(APP_DIR, 'contact-tracking.js').replace(/\\/g, '/');
+scriptSrc = scriptSrc.replace('from "./contact-tracking.js"', `from "${contactTrackingUrl}"`);
+const updateCheckUrl = 'file:///' + path.join(APP_DIR, 'update-check.js').replace(/\\/g, '/');
+scriptSrc = scriptSrc.replace('from "./update-check.js"', `from "${updateCheckUrl}"`);
 const scriptPath = path.join(__dirname, '_back-page-script.generated.mjs');
 fs.writeFileSync(scriptPath, scriptSrc);
 
