@@ -198,7 +198,9 @@
     <script type="module">
         import { db, collection, addDoc, doc, getDoc, getDocs, query, where, runTransaction, serverTimestamp } from "/js/firebase-web.js";
 
-        const CF_CONFIRM_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarConfirmacionTurno";
+        // Esta función ya no envía WhatsApp — solo descuenta hoursBalance
+        // cuando corresponde (ver functions/index.js: descontarHoraSesion).
+        const CF_DESCONTAR_HORA_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/descontarHoraSesion";
 
         const dniLs = localStorage.getItem("clienteDNI") || "";
         const nombreLs = localStorage.getItem("clienteNombre") || localStorage.getItem("nombre") || "Paciente";
@@ -264,21 +266,12 @@
             }
         }
 
-        async function ejecutarConfirmacionBackend({ telefono = "", descontarBalance = false, omitirWhatsapp = false }) {
+        async function descontarHoraSesionBackend({ descontarBalance = false }) {
             try {
-                const response = await fetch(CF_CONFIRM_URL, {
+                const response = await fetch(CF_DESCONTAR_HORA_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        nombre: nombreLs,
-                        servicio: servicioLs,
-                        fecha: fechaLs,
-                        hora: `${horaLs} hs`,
-                        telefono,
-                        dni: dniLs,
-                        descontarBalance,
-                        omitirWhatsapp
-                    })
+                    body: JSON.stringify({ dni: dniLs, descontarBalance })
                 });
                 const data = await response.json().catch(() => ({}));
                 return { ok: response.ok, data };
@@ -359,11 +352,10 @@
                     }
                 });
 
-                // La confirmación por WhatsApp ya no se dispara automáticamente
-                // al guardar la reserva; nuestro equipo la envía manualmente
-                // desde Admin. Esta llamada solo conserva el descuento de
-                // hoursBalance cuando corresponde.
-                const resultadoBalance = await ejecutarConfirmacionBackend({ descontarBalance: !!dniLs, omitirWhatsapp: true });
+                // La confirmación por WhatsApp ya no existe: se manda a mano
+                // desde el WhatsApp de la estética. Esta llamada solo conserva
+                // el descuento de hoursBalance cuando corresponde.
+                const resultadoBalance = await descontarHoraSesionBackend({ descontarBalance: !!dniLs });
                 if (!resultadoBalance.ok || (resultadoBalance.data?.warnings || []).some(w => w.includes("balance"))) {
                     console.warn("Revisar balance:", resultadoBalance.data?.warnings || resultadoBalance.error);
                 }

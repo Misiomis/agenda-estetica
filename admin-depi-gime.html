@@ -1463,20 +1463,8 @@
                     reservaId: reservaRef.id, updatedAt: serverTimestamp()
                 }).catch(() => {});
             }
-            // Notificar a Gimena en segundo plano
-            fetch('https://us-central1-estetica-8d067.cloudfunctions.net/notificarNuevaReservaDepi',{
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({
-                    nombre, fecha, hora,
-                    combo: servicio,
-                    precio: '',
-                    metodoPago: 'efectivo',
-                    telefono: tel||'',
-                    dni: dni||'',
-                    edad: ''
-                })
-            }).catch(()=>{});
+            // La notificación automática a Gimena por WhatsApp se eliminó:
+            // este turno ya se cargó desde Admin, no requiere aviso aparte.
             fb.className = 'feedback ok';
             fb.textContent = '✓ Turno registrado';
             await cargarCalendario();

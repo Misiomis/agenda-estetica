@@ -2451,9 +2451,10 @@
             });
         };
         
-        const CF_RESUMEN_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarResumenSesion";
-        const CF_CONFIRMACION_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarConfirmacionTurno";
-        const CF_BIENVENIDA_URL = "https://us-central1-estetica-8d067.cloudfunctions.net/enviarBienvenida";
+        // Los mensajes de WhatsApp ya no se envían por API: se preparan como
+        // links wa.me que abren WhatsApp en el teléfono de la persona que
+        // hace clic, con el texto precargado — el envío final siempre lo hace
+        // una persona a mano.
         let deferredInstallPromptAdmin = null;
         let installReminderTimerAdmin = null;
         const INSTALL_REMINDER_ADMIN_MS = 25000;
@@ -2712,56 +2713,6 @@
             return limpio;
         };
         
-        const extraerMensajeErrorWhatsApp = (payload = {}, fallback = "Error desconocido") => {
-            if (typeof payload?.detalles === "string" && payload.detalles.trim()) return payload.detalles.trim();
-            if (typeof payload?.error === "string" && payload.error.trim()) return payload.error.trim();
-            if (payload?.detalles?.error?.message) return String(payload.detalles.error.message).trim();
-            if (payload?.error?.message) return String(payload.error.message).trim();
-            return fallback;
-        };
-        
-        const enviarDetalleSesionWhatsApp = async (tel, nombre, fecha, hora, servicio, detalle) => {
-            const num = formatearTelefonoWhatsApp(tel);
-            if (!num || !detalle) return { ok: false, reason: "missing-data" };
-            try {
-                const horaPlantilla = (hora || "").toString().replace(/\s*hs\s*$/i, "").trim() || "Horario a confirmar";
-                const nombrePlantilla = (nombre || "Paciente").toString().trim().slice(0, 60);
-                const servicioPlantilla = (servicio || "Tratamiento").toString().trim().slice(0, 80);
-                const detallePlantilla = (detalle || "")
-                    .toString()
-                    .replace(/[\r\n]+/g, " ")
-                    .replace(/\s{2,}/g, " ")
-                    .trim()
-                    .slice(0, 900);
-                let resp = await fetch(CF_RESUMEN_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        tel: num,
-                        nombre: nombrePlantilla,
-                        fecha,
-                        sesiones: [{
-                            hora: horaPlantilla,
-                            servicio: servicioPlantilla,
-                            detalle: detallePlantilla || "Sin detalles"
-                        }]
-                    })
-                });
-                const data = await resp.json().catch(() => ({}));
-                if (!resp.ok) {
-                    console.error("WA resumen error:", data);
-                    return { ok: false, reason: extraerMensajeErrorWhatsApp(data, `HTTP ${resp.status}`) };
-                }
-                if (data?.whatsappSent === false) {
-                    return { ok: false, reason: extraerMensajeErrorWhatsApp(data, "WhatsApp no enviado") };
-                }
-                return { ok: true, data };
-            } catch (error) {
-                console.error("WA detalle exception:", error);
-                return { ok: false, reason: error?.message || "network-error" };
-            }
-        };
-        
         window.enviarDetalleManual = async function(id) {
             var r = todasLasReservas.find(function(x) { return x.id === id; });
             if (!r) return;
@@ -2770,26 +2721,11 @@
             if (!nota) { mostrarAviso("Escribi el detalle de la sesion primero"); return; }
             var telefonoDestino = r.phone || r.telefono || r.whatsapp || "";
             if (!telefonoDestino) { mostrarAviso("Sin telefono registrado para " + r.nombreLimpio); return; }
-            mostrarAviso("Enviando resumen a " + r.nombreLimpio + "...");
-            try {
-                var resp = await fetch('https://us-central1-estetica-8d067.cloudfunctions.net/enviarResumenSesion', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        tel: telefonoDestino,
-                        nombre: r.nombreLimpio,
-                        fecha: r.fecha,
-                        sesiones: [{ hora: r.hora || '', servicio: r.servicio || 'Tratamiento', detalle: nota }]
-                    })
-                });
-                var result = await resp.json().catch(function() { return {}; });
-                if (!resp.ok) throw new Error(result.error || 'Error del servidor');
-                try { await updateDoc(doc(db, 'reservas', id), { detalleSesion: nota }); } catch(_) {}
-                mostrarAviso('✅ Resumen enviado por WhatsApp a ' + r.nombreLimpio);
-            } catch(e) {
-                console.error(e);
-                mostrarAviso('❌ No se pudo enviar: ' + (e.message || 'intenta de nuevo'));
-            }
+            var num = formatearTelefonoWhatsApp(telefonoDestino);
+            var texto = 'Hola ' + r.nombreLimpio + ', este es el resumen de tu sesión de ' +
+                (r.servicio || 'Tratamiento') + ' del ' + (r.fecha || '') + ':\n\n' + nota + '\n\nEspacio MimarT';
+            try { await updateDoc(doc(db, 'reservas', id), { detalleSesion: nota }); } catch(_) {}
+            window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(texto), '_blank');
         };
         
         // Guarda nota del segundo paciente en sesion Duo
@@ -2838,25 +2774,10 @@
                 } catch(_) {}
             }
             if (!telefonoDest) { mostrarAviso("Sin telefono registrado para " + nombre2); return; }
-            mostrarAviso("Enviando resumen a " + nombre2 + "...");
-            try {
-                var resp = await fetch('https://us-central1-estetica-8d067.cloudfunctions.net/enviarResumenSesion', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        tel:     telefonoDest,
-                        nombre:  nombre2,
-                        fecha:   r.fecha,
-                        sesiones:[{ hora: r.hora || '', servicio: r.servicio || 'Tratamiento', detalle: nota }]
-                    })
-                });
-                var result = await resp.json().catch(function() { return {}; });
-                if (!resp.ok) throw new Error(result.error || 'Error del servidor');
-                mostrarAviso('Resumen enviado a ' + nombre2);
-            } catch(e) {
-                console.error(e);
-                mostrarAviso('No se pudo enviar: ' + (e.message || 'intenta de nuevo'));
-            }
+            var num = formatearTelefonoWhatsApp(telefonoDest);
+            var texto = 'Hola ' + nombre2 + ', este es el resumen de tu sesión de ' +
+                (r.servicio || 'Tratamiento') + ' del ' + (r.fecha || '') + ':\n\n' + nota + '\n\nEspacio MimarT';
+            window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(texto), '_blank');
         };
 
         const extraerHorariosDesdeFirebase = (snapHorarios) => {
@@ -3241,58 +3162,41 @@
             }
         }
         
-        // El backend exige un token de operadora admin valido para mandar
-        // cualquier WhatsApp que no sea el aviso automático a Gimena — este
-        // helper adjunta ese token a cada fetch de envío manual.
-        async function headersConAuthAdmin() {
-            const headers = { "Content-Type": "application/json" };
-            try {
-                const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
-                if (token) headers.Authorization = `Bearer ${token}`;
-            } catch (e) { console.warn("No se pudo obtener el token de admin:", e); }
-            return headers;
-        }
+        // Abre WhatsApp con el texto precargado en el teléfono de quien hace
+        // clic (la admin) — nunca manda nada por sí solo, requiere que la
+        // persona presione Enviar dentro de WhatsApp.
+        window.enviarW = (tel, nombre, fecha, hora, servicio, accion) => {
+            const num = formatearTelefonoWhatsApp(tel);
+            if (!num) { mostrarAviso("Sin teléfono registrado"); return; }
+            const nombrePila = (nombre || "").toString().split(" ")[0] || nombre || "";
+            const fechaFmt = (() => { try { return formatoFechaISO(fecha); } catch (_) { return fecha; } })();
+            let texto;
+            if (accion === "recordar") {
+                texto = `Hola ${nombrePila}, te recordamos tu turno en Espacio MimarT para el ${fechaFmt} a las ${hora} hs. ¡Te esperamos!`;
+            } else if (accion === "cancelar") {
+                texto = `Hola ${nombrePila}, queremos avisarte que tu turno en Espacio MimarT del ${fechaFmt} a las ${hora} hs no puede realizarse. Comunicáte con nosotros para reprogramar.`;
+            } else {
+                texto = `Hola ${nombrePila}, te confirmamos tu turno en Espacio MimarT para el ${fechaFmt} a las ${hora} hs (${servicio || "Tratamiento"}). ¡Te esperamos!`;
+            }
+            window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, "_blank");
+        };
 
-        let _enviarWBusy = false;
-        window.enviarW = async (tel, nombre, fecha, hora, servicio, accion) => {
-            if (_enviarWBusy) return;
-            _enviarWBusy = true;
-            const num = (tel || "").toString().trim();
-            if (!num) { _enviarWBusy = false; mostrarAviso("Sin teléfono registrado"); return; }
+        // "Confirmado" acá es un estado administrativo propio ("la paciente
+        // respondió y confirmó") — nunca dispara ningún mensaje ni depende
+        // de que se haya enviado uno. Es un campo separado de estado/status,
+        // que sigue reflejando solo si la reserva está cancelada o no.
+        window.marcarConfirmacionManual = async function(id, valor) {
             try {
-                const resp = await fetch(CF_CONFIRMACION_URL, {
-                    method: "POST",
-                    headers: await headersConAuthAdmin(),
-                    body: JSON.stringify({
-                        telefono: num,
-                        nombre,
-                        servicio: servicio || "Tratamiento",
-                        fecha,
-                        hora,
-                        descontarBalance: false,
-                        omitirWhatsapp: false
-                    })
+                await updateDoc(doc(db, 'reservas', id), {
+                    confirmacionManual: valor,
+                    confirmacionManualAt: valor ? serverTimestamp() : null
                 });
-                const data = await resp.json().catch(() => ({}));
-                if (resp.ok && data.whatsappSent) {
-                    const etiqueta = accion === 'recordar'
-                        ? 'Recordatorio'
-                        : accion === 'cancelar'
-                            ? 'Mensaje'
-                            : 'WhatsApp';
-                    mostrarAviso(`${etiqueta} enviado a ${nombre}`);
-                } else if (resp.ok) {
-                    console.warn("WA no enviado:", data);
-                    mostrarAviso("No se pudo confirmar tu sesión de admin para enviar el WhatsApp. Recargá la página e intentá de nuevo.");
-                } else {
-                    console.error("WA error:", data);
-                    mostrarAviso(`Error: ${extraerMensajeErrorWhatsApp(data, String(resp.status))}`);
-                }
+                mostrarAviso(valor ? 'Turno marcado como confirmado' : 'Se quitó la confirmación');
+                await cargarTodo();
+                if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
             } catch (e) {
-                console.error("WA exception:", e);
-                mostrarAviso("Error de conexión al enviar WhatsApp");
-            } finally {
-                _enviarWBusy = false;
+                console.error(e);
+                mostrarAviso('No se pudo actualizar la confirmación');
             }
         };
         
@@ -3337,6 +3241,12 @@
                 const _endMinBadge = _toMinBadge(normalizarHora(r.hora)) + _durBadge;
                 const _endHBadge = `${String(Math.floor(_endMinBadge/60)).padStart(2,'0')}:${String(_endMinBadge%60).padStart(2,'0')}`;
                 const extBadge = `<span style="display:inline-block;background:rgba(53,122,92,0.14);color:rgba(120,210,170,0.95);border:1px solid rgba(53,122,92,0.32);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">⏱ hasta las ${_endHBadge} hs</span>`;
+
+                // "Confirmado" acá es un estado administrativo aparte de estado/status
+                // (ver marcarConfirmacionManual) — nunca implica que se haya mandado un mensaje.
+                const confirmacionBadge = r.confirmacionManual
+                    ? `<span style="display:inline-block;background:rgba(74,222,128,0.14);color:#4ade80;border:1px solid rgba(74,222,128,0.32);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">✓ Confirmado</span>`
+                    : '';
 
                 // Nota para paciente 1 (o unico)
                 const notaDisplay1 = tieneNota ? `
@@ -3453,7 +3363,7 @@
                     : _boxBadgesHtml(_cardBoxes);
                 return `
                 <div class="detalle-dia-card">
-                    ${renderTagOrigen(r)}${duoBadge}${extBadge}<br>
+                    ${renderTagOrigen(r)}${duoBadge}${extBadge}${confirmacionBadge}<br>
                     ${pac1label}<b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(r.nombreLimpio || 'Sin nombre')}</b> - ${escapeHtml(r.hora || '--:--')} hs<br>
                     <small>${_boxBadge}${_boxAsig ? '&nbsp;' : ''}${escapeHtml(r.servicio || 'Servicio')}${_edadR ? ` · Edad: ${_edadR}` : ''}</small>
                     ${notaDisplay1}
@@ -3467,6 +3377,7 @@
                         <button onclick="window._adminToggleMas('r${r.id}')" class="ac-mas-btn" id="admas-btn-r${r.id}">··· Más</button>
                     </div>
                     <div id="admas-r${r.id}" class="ac-mas-panel" style="display:none;margin-top:8px;">
+                        <button class="btn-mini" style="width:100%;border-color:rgba(74,222,128,0.40);color:#4ade80;background:rgba(74,222,128,0.08)" onclick="marcarConfirmacionManual('${r.id}', ${r.confirmacionManual ? 'false' : 'true'})">${r.confirmacionManual ? '✓ Confirmado — quitar' : 'Marcar como confirmado'}</button>
                         ${btnEnviar1}${btnEnviar2}
                         ${btnRec}
                         <button class="btn-mini" style="width:100%;border-color:#b5cce8;color:#2e61b1;background:#f3f8ff" onclick="cambiarServicioReserva('${r.id}')">Cambiar servicio</button>
@@ -5468,22 +5379,13 @@
                 mostrarAviso(`Paciente "${fullName}" guardado ✓`);
                 limpiarFormularioCliente();
 
-                // La bienvenida por WhatsApp ya no es automática — requiere que
-                // la admin la autorice explícitamente para este envío puntual.
+                // La bienvenida por WhatsApp se prepara como link wa.me — solo
+                // abre WhatsApp con el texto precargado, la admin decide si la manda.
                 if (esPacienteNuevo && phone) {
-                    if (confirm(`¿Enviar mensaje de bienvenida por WhatsApp a ${fullName}?`)) {
-                        try {
-                            const resp = await fetch(CF_BIENVENIDA_URL, {
-                                method: "POST",
-                                headers: await headersConAuthAdmin(),
-                                body: JSON.stringify({ telefono: phone, nombre: fullName, dni })
-                            });
-                            const data = await resp.json().catch(() => ({}));
-                            mostrarAviso(resp.ok ? `Bienvenida enviada a ${fullName} ✓` : `No se pudo enviar la bienvenida: ${extraerMensajeErrorWhatsApp(data, String(resp.status))}`);
-                        } catch (waError) {
-                            console.error("No se pudo enviar la bienvenida por WhatsApp:", waError);
-                            mostrarAviso("No se pudo enviar la bienvenida por WhatsApp");
-                        }
+                    if (confirm(`¿Abrir WhatsApp para enviar un mensaje de bienvenida a ${fullName}?`)) {
+                        const numBienvenida = formatearTelefonoWhatsApp(phone);
+                        const textoBienvenida = `¡Hola ${fullName}! Bienvenida/o a Espacio MimarT 🤍. Cualquier consulta, escribinos por acá.`;
+                        window.open(`https://wa.me/${numBienvenida}?text=${encodeURIComponent(textoBienvenida)}`, "_blank");
                     }
                 }
             } catch (error) {

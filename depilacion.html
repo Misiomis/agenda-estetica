@@ -1363,22 +1363,8 @@ window.confirmarDepi=async function(){
             document.getElementById("mcWaComprobante").href=`https://wa.me/5493764291807?text=${msg}`;
             document.getElementById("mcSuccessTransfer").style.display="block";
         }
-        // Notificar a Gimena en segundo plano (Cloud Function, sin abrir nada al paciente)
-        fetch('https://us-central1-estetica-8d067.cloudfunctions.net/notificarNuevaReservaDepi',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({
-                nombre,
-                fecha:fStr,
-                hora:horaSeleccionada,
-                combo:comboSeleccionado.nombre,
-                precio:comboSeleccionado.precio,
-                metodoPago:_metodoPago,
-                telefono,
-                dni:dniRaw||'',
-                edad:String(edad||'')
-            })
-        }).catch(()=>{});
+        // La notificación automática a Gimena por WhatsApp se eliminó: las
+        // reservas nuevas se revisan desde Admin y se contactan a mano.
     }catch(e){
         console.error("Error guardando reserva de depilación:",e);
         btn.disabled=false;btn.textContent="Confirmar turno";
