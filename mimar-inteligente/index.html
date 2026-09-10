@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173e33">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Mimar T Inteligente — bandeja administrativa de Espacio Mimar T.">
+  <title>Mimar T Inteligente</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./mimar-inteligente.css">
+</head>
+<body>
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3 12h4l2 3h6l2-3h4"/><path d="M5 12 3 5h18l-2 7"/><path d="M3 12v6a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-6"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></symbol>
+      <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A8.5 8.5 0 1 1 8.4 20L3 21z"/><path d="M8.5 9.5c.3 2 3.7 5.2 5.7 5.5 1 .1 1.7-.9 1.3-1.7-.2-.5-.9-1-1.3-1.1-.3-.1-.6.1-.8.3-.3.3-.6.3-1 0-.9-.6-1.6-1.3-2.2-2.2-.3-.4-.3-.7 0-1 .2-.2.4-.5.3-.8-.1-.4-.6-1.1-1.1-1.3-.8-.4-1.8.3-1.7 1.3z"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="page-shell">
+    <header class="topbar">
+      <span class="brand" aria-hidden="false">
+        <span class="brand-mark">M</span>
+        <span class="brand-copy"><strong>Mimar T Inteligente</strong><span>ESPACIO DE BIENESTAR</span></span>
+      </span>
+      <div class="header-actions">
+        <span class="connection" id="connection" role="status"><span class="status-dot"></span><span id="connection-text">Iniciando</span></span>
+        <button class="icon-button" id="btn-salir" type="button" aria-label="Cerrar sesión" hidden><svg class="icon"><use href="#i-logout"/></svg></button>
+      </div>
+    </header>
+
+    <!-- ══ LOGIN ══ -->
+    <section id="access-panel" class="access-panel" aria-labelledby="access-title">
+      <div class="access-heading">
+        <span class="eyebrow">BANDEJA ADMINISTRATIVA</span>
+        <h1 id="access-title">Tu agenda,<br><em>lista de revisar.</em></h1>
+        <p id="access-message" role="status">Buscando tu sesión de la agenda…</p>
+      </div>
+      <form id="login-form" class="login-card" hidden>
+        <h2>Ingresá con tu cuenta de la agenda</h2>
+        <label for="login-email">Correo electrónico</label>
+        <input id="login-email" name="email" type="email" autocomplete="username" required>
+        <label for="login-password">Contraseña</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        <button class="button button-primary button-full" type="submit" id="login-submit">Ingresar <svg class="icon"><use href="#i-arrow"/></svg></button>
+        <p id="login-error" class="error-text" role="alert"></p>
+        <p id="login-hint" class="hint-text">Misma cuenta con la que administrás la agenda.</p>
+      </form>
+    </section>
+
+    <!-- ══ APP ══ -->
+    <main id="workspace" hidden>
+      <div class="workspace-heading">
+        <div><span class="eyebrow">TU JORNADA</span><h1 id="date-heading">Hoy</h1></div>
+      </div>
+
+      <div class="status-panel">
+        <div class="status-top">
+          <span class="eyebrow">HORA ACTUAL</span>
+          <svg class="icon" style="color:var(--accent)"><use href="#i-clock"/></svg>
+        </div>
+        <div class="live-clock" aria-label="Hora actual en Argentina"><span id="clock-main">--:--</span><span id="clock-seconds">--</span></div>
+        <div class="status-date" id="status-date">Misiones, Argentina · UTC−3</div>
+        <div class="status-rule"></div>
+        <div class="proximo-turno">
+          <span class="eyebrow">PRÓXIMO TURNO</span>
+          <div id="proximo-turno-body"><p class="proximo-turno-vacio">Cargando…</p></div>
+        </div>
+        <div class="countdown-row">
+          <span class="eyebrow">EN</span>
+          <strong id="countdown">--:--</strong>
+        </div>
+      </div>
+
+      <div class="quick-actions">
+        <button class="button button-light" type="button" data-scroll-to="bandeja-section">
+          <svg class="icon"><use href="#i-inbox"/></svg> Bandeja <span class="count-badge" id="quick-count-revisiones">0</span>
+        </button>
+        <button class="button button-light" type="button" data-scroll-to="agenda-section">
+          <svg class="icon"><use href="#i-calendar"/></svg> Hoy y mañana
+        </button>
+      </div>
+
+      <div class="notice warning-notice" id="fuentes-aviso" hidden style="border:1px solid #d7cfb8;background:#f9f2df;padding:11px 14px;border-radius:10px;font-size:.85rem;color:#705527;margin-bottom:18px;"></div>
+
+      <section class="section-block" id="bandeja-section">
+        <div class="section-heading">
+          <h2>Bandeja de revisiones</h2>
+          <span class="count-pill" id="count-revisiones">0</span>
+        </div>
+        <div class="list-panel" id="lista-revisiones"><div class="loading-state">Cargando…</div></div>
+      </section>
+
+      <section class="section-block" id="agenda-section">
+        <div class="section-heading">
+          <h2>Hoy y mañana</h2>
+          <span class="count-pill" id="count-agenda">0</span>
+        </div>
+        <p class="hint-text" style="margin-bottom:10px;">Fuentes incluidas: Reservas y Consultas iniciales. Depilación todavía no está integrada en esta versión.</p>
+        <div class="list-panel" id="lista-agenda"><div class="loading-state">Cargando…</div></div>
+      </section>
+
+      <footer class="page-footer">
+        <span>Mimar T Inteligente · v1 · lectura de Firestore, contacto manual</span>
+        <span id="last-sync">—</span>
+      </footer>
+    </main>
+  </div>
+
+  <!-- ══ MODAL DETALLE ══ -->
+  <dialog id="detalle-dialog" aria-labelledby="detalle-titulo">
+    <div class="dialog-heading">
+      <div><span class="eyebrow">DETALLE</span><h2 id="detalle-titulo">—</h2></div>
+      <button class="icon-button" type="button" id="btn-cerrar-detalle" aria-label="Cerrar"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="dialog-status" id="detalle-status"></div>
+    <div class="dialog-body" id="detalle-body"></div>
+    <div class="dialog-actions">
+      <button class="button button-primary button-full" id="btn-preparar-wa" type="button"><svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp</button>
+      <button class="button button-light button-full" id="btn-cerrar-detalle-2" type="button">Cerrar</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script type="module" src="./mimar-inteligente.js"></script>
+</body>
+</html>
