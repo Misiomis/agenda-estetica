@@ -210,3 +210,166 @@ export function construirTextoRecomendacionesDoctora(turno, contenido) {
     || "[Escribí acá las recomendaciones — este texto lo revisa la doctora antes de enviarlo]";
   return `Hola ${nombre},\n\n${cuerpo}\n\nAnte cualquier duda, escribinos.`;
 }
+
+// ── Dinero: importes, cobros y cierre de jornada (90% doctora / 10% Mimar T)
+// Todo se representa internamente en centavos ENTEROS (nunca floats en
+// pesos) para no arrastrar errores de redondeo — el ejemplo de aceptación
+// pedido ($100.000 → $90.000 + $10.000) y cualquier importe con centavos
+// tienen que sumar siempre exacto.
+
+export const MEDIOS_PAGO_DOCTORA = ["efectivo", "transferencia", "tarjeta", "otro"];
+export const ETIQUETA_MEDIO_PAGO = {
+  efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta", otro: "Otro",
+};
+
+// Acepta "1500", "1500.50", "1500,50", con o sin separador de miles ("."),
+// espacios sobrantes. Rechaza negativos, texto no numérico, o más de 2
+// decimales. Vacío/null → null (distinto de "$0", que es un importe real).
+export function pesosAcentavos(valor) {
+  if (valor === null || valor === undefined) return null;
+  let txt = valor.toString().trim();
+  if (!txt) return null;
+  // "1.500,50" (miles con punto, decimales con coma) → normalizar a "1500.50"
+  if (/^\d{1,3}(\.\d{3})*(,\d{1,2})?$/.test(txt)) {
+    txt = txt.replace(/\./g, "").replace(",", ".");
+  } else {
+    txt = txt.replace(/,/g, "."); // "1500,50" suelto → "1500.50"
+  }
+  if (!/^\d+(\.\d{1,2})?$/.test(txt)) return null;
+  const [enteroStr, decStr = ""] = txt.split(".");
+  const entero = Number(enteroStr);
+  if (!Number.isFinite(entero)) return null;
+  const decimales = (decStr + "00").slice(0, 2);
+  return entero * 100 + Number(decimales);
+}
+
+export function centavosApesos(centavos) {
+  if (centavos === null || centavos === undefined || !Number.isFinite(centavos)) return null;
+  return centavos / 100;
+}
+
+// Formato "$ 90.000,00" (es-AR). centavos null/undefined → null (el llamador
+// decide el texto — "Sin cargar" no es responsabilidad de esta función).
+export function formatoPesosAR(centavos) {
+  if (centavos === null || centavos === undefined || !Number.isFinite(centavos)) return null;
+  const pesos = centavos / 100;
+  return "$ " + new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(pesos);
+}
+
+export function medioPagoValido(tipo) {
+  return MEDIOS_PAGO_DOCTORA.includes(tipo);
+}
+
+// Un movimiento (cobro o devolución) puede pagarse con un solo medio o con
+// varios combinados — siempre se guarda como array [{tipo, montoCentavos}],
+// nunca un string suelto, para no tener dos formas distintas de lo mismo.
+// La suma de los medios tiene que calzar exacto con el monto total del
+// movimiento (ni un centavo de más ni de menos).
+export function validarMediosPago(medios, montoTotalCentavos) {
+  if (!Array.isArray(medios) || !medios.length) return { ok: false, motivo: "sin_medios" };
+  let suma = 0;
+  for (const m of medios) {
+    if (!medioPagoValido(m?.tipo)) return { ok: false, motivo: "medio_invalido" };
+    if (!Number.isInteger(m?.montoCentavos) || m.montoCentavos <= 0) return { ok: false, motivo: "monto_invalido" };
+    suma += m.montoCentavos;
+  }
+  if (suma !== montoTotalCentavos) return { ok: false, motivo: "no_coincide_total" };
+  return { ok: true };
+}
+
+export function etiquetaMediosPago(medios) {
+  if (!Array.isArray(medios) || !medios.length) return "—";
+  if (medios.length === 1) return ETIQUETA_MEDIO_PAGO[medios[0].tipo] || medios[0].tipo;
+  return "Combinado: " + medios.map((m) => `${ETIQUETA_MEDIO_PAGO[m.tipo] || m.tipo} ${formatoPesosAR(m.montoCentavos)}`).join(" + ");
+}
+
+// ── Reparto 90% doctora / 10% Mimar T ────────────────────────────────────
+// La parte de Mimar T se calcula SIEMPRE como el resto (neto - parteDoctora),
+// nunca redondeando las dos partes por separado — así la suma da exacto el
+// neto pase lo que pase con el redondeo del 90%. Redondeo: al entero de
+// centavo más cercano (Math.round, mitad hacia arriba), un único criterio,
+// documentado y probado.
+export function calcularRepartoDoctora(netoCentavos) {
+  const neto = Number.isInteger(netoCentavos) ? netoCentavos : 0;
+  if (neto <= 0) return { parteDoctoraCentavos: 0, parteMimarTCentavos: Math.max(neto, 0) };
+  const parteDoctoraCentavos = Math.round(neto * 0.9);
+  const parteMimarTCentavos = neto - parteDoctoraCentavos;
+  return { parteDoctoraCentavos, parteMimarTCentavos };
+}
+
+// ── Resumen de dinero de UN turno (precio acordado + su historial de
+// movimientos) — usado en la ficha del turno, no en el cierre. El precio
+// null (nunca 0) significa "todavía no se cargó", así que el saldo
+// pendiente tampoco se puede calcular sin inventar un precio.
+export function resumenDineroTurno(precioConsultaCentavos, movimientos) {
+  const lista = Array.isArray(movimientos) ? movimientos : [];
+  let totalCobradoCentavos = 0;
+  let totalDevueltoCentavos = 0;
+  for (const m of lista) {
+    if (m.tipo === "cobro") totalCobradoCentavos += m.montoCentavos || 0;
+    else if (m.tipo === "devolucion") totalDevueltoCentavos += m.montoCentavos || 0;
+  }
+  const netoCobradoCentavos = totalCobradoCentavos - totalDevueltoCentavos;
+  const saldoPendienteCentavos = (precioConsultaCentavos === null || precioConsultaCentavos === undefined)
+    ? null
+    : Math.max(precioConsultaCentavos - netoCobradoCentavos, 0);
+  return { precioConsultaCentavos: precioConsultaCentavos ?? null, totalCobradoCentavos, totalDevueltoCentavos, netoCobradoCentavos, saldoPendienteCentavos };
+}
+
+// ── Cierre de jornada: arma el resumen a partir de los movimientos de un
+// día puntual (ya filtrados por fechaMovimiento por el llamador — esta
+// función no sabe nada de Firestore). "Consultas atendidas" = turnos
+// distintos con al menos un movimiento ese día — el mismo criterio ya
+// usado en todo el módulo de no inventar "atendido" por otra vía.
+// Agrupa los movimientos del día por turno y arma cada fila del detalle
+// desplegable del cierre (paciente, fecha de atención, precio, cobrado ESE
+// día, devuelto ese día, medios de pago usados ese día, y el saldo
+// pendiente ACTUAL de la consulta — que puede incluir cobros/pendientes de
+// otros días, no solo el de hoy). turnosInfo es un Map turnoId → { pacienteNombre,
+// fechaAtencion, precioConsultaCentavos, saldoPendienteActualCentavos },
+// ya resuelto por el llamador (esta función no toca Firestore).
+export function armarDetalleCierre(movimientosDelDia, turnosInfo) {
+  const porTurno = new Map();
+  for (const m of (Array.isArray(movimientosDelDia) ? movimientosDelDia : [])) {
+    if (!porTurno.has(m.turnoId)) porTurno.set(m.turnoId, { cobradoEseDiaCentavos: 0, devueltoEseDiaCentavos: 0, medios: [] });
+    const acc = porTurno.get(m.turnoId);
+    if (m.tipo === "cobro") acc.cobradoEseDiaCentavos += m.montoCentavos || 0;
+    else if (m.tipo === "devolucion") acc.devueltoEseDiaCentavos += m.montoCentavos || 0;
+    if (Array.isArray(m.medios)) acc.medios.push(...m.medios);
+  }
+  const filas = [];
+  for (const [turnoId, acc] of porTurno.entries()) {
+    const info = (turnosInfo && turnosInfo.get) ? (turnosInfo.get(turnoId) || {}) : {};
+    filas.push({
+      turnoId,
+      pacienteNombre: info.pacienteNombre || "Paciente",
+      fechaAtencion: info.fechaAtencion || null,
+      precioConsultaCentavos: info.precioConsultaCentavos ?? null,
+      cobradoEseDiaCentavos: acc.cobradoEseDiaCentavos,
+      devueltoEseDiaCentavos: acc.devueltoEseDiaCentavos,
+      medios: acc.medios,
+      saldoPendienteActualCentavos: info.saldoPendienteActualCentavos ?? null,
+    });
+  }
+  filas.sort((a, b) => (a.pacienteNombre || "").localeCompare(b.pacienteNombre || ""));
+  return filas;
+}
+
+export function calcularCierreJornada(movimientosDelDia) {
+  const lista = Array.isArray(movimientosDelDia) ? movimientosDelDia : [];
+  let totalCobradoCentavos = 0;
+  let totalDevueltoCentavos = 0;
+  const turnosDistintos = new Set();
+  for (const m of lista) {
+    turnosDistintos.add(m.turnoId);
+    if (m.tipo === "cobro") totalCobradoCentavos += m.montoCentavos || 0;
+    else if (m.tipo === "devolucion") totalDevueltoCentavos += m.montoCentavos || 0;
+  }
+  const netoCentavos = totalCobradoCentavos - totalDevueltoCentavos;
+  const { parteDoctoraCentavos, parteMimarTCentavos } = calcularRepartoDoctora(netoCentavos);
+  return {
+    consultasAtendidas: turnosDistintos.size,
+    totalCobradoCentavos, totalDevueltoCentavos, netoCentavos,
+    parteDoctoraCentavos, parteMimarTCentavos,
+  };
+}

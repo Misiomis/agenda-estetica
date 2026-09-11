@@ -59,3 +59,58 @@
   .slot-row { flex-wrap: wrap; }
   .fecha-stepper-acciones { flex-direction: column; gap: 8px; }
 }
+
+/* ── Ficha de turno: una sola superficie de diálogo (punto 1) ──────────
+   #turno-dialog es un <dialog> nativo abierto con showModal(): vive en el
+   "top layer" del navegador, por encima de CUALQUIER elemento normal sin
+   importar su z-index — por eso "Más acciones"/"Reprogramar" ya no abren
+   un segundo panel superpuesto (#bottom-sheet), sino que reemplazan el
+   contenido del propio diálogo con un botón "Volver". */
+.dialog-heading { align-items: flex-start; }
+.dialog-heading-titulo { flex: 1; min-width: 0; }
+#btn-volver-turno-dialog { flex-shrink: 0; }
+
+/* ── Importe y cobro (punto 3) ── */
+.dinero-movimientos-lista { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.dinero-movimiento-row {
+  display: grid; grid-template-columns: auto auto 1fr auto; gap: 8px; align-items: baseline;
+  padding: 8px 10px; background: #f6f7f1; border-radius: 9px; font-size: .82rem;
+}
+.dinero-movimiento-fecha { color: var(--muted); font-variant-numeric: tabular-nums; }
+.dinero-movimiento-tipo { font-weight: 700; color: var(--emerald); }
+.dinero-movimiento-tipo.es-devolucion { color: var(--red); }
+.dinero-movimiento-monto { font-weight: 700; text-align: right; }
+.dinero-movimiento-medio { grid-column: 1 / -1; color: var(--muted); }
+.dinero-movimiento-nota { grid-column: 1 / -1; color: var(--muted); font-style: italic; overflow-wrap: anywhere; }
+
+.dinero-precio-form, .cobro-form { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
+.dinero-precio-form label, .cobro-form label { font-size: .85rem; color: var(--muted); margin-top: 8px; }
+.dinero-precio-form label:first-child, .cobro-form label:first-child { margin-top: 0; }
+.dinero-form-actions { display: flex; gap: 10px; margin-top: 10px; }
+.dinero-form-actions .button { flex: 1; }
+
+.cobro-medio-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+.cobro-medio-row select, .cobro-medio-row input { margin: 0; }
+.cobro-medio-quitar { width: 38px; height: 38px; flex-shrink: 0; }
+
+/* ── Cierre de jornada (puntos 5 y 6) ── */
+.cierre-fecha-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.cierre-fecha-wrap input[type="date"] { max-width: 190px; }
+#cierre-estado-pill-wrap { margin-bottom: 16px; min-height: 23px; }
+.resumen-tile-doctora { border-color: var(--emerald); background: var(--emerald-soft); }
+.resumen-tile-doctora .resumen-num { color: var(--forest); }
+.cierre-detalle-item { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; background: var(--surface); }
+.cierre-detalle-item summary { cursor: pointer; font-weight: 600; list-style: none; padding: 4px 0; }
+.cierre-detalle-item summary::-webkit-details-marker { display: none; }
+.cierre-detalle-item summary::before { content: "▸ "; color: var(--muted); }
+.cierre-detalle-item[open] summary::before { content: "▾ "; }
+.cierre-acciones { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+#reabrir-cierre-form { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+#reabrir-cierre-form label { font-size: .85rem; color: var(--muted); }
+
+@media (max-width: 380px) {
+  .cobro-medio-row { grid-template-columns: 1fr; }
+  .cobro-medio-quitar { justify-self: end; }
+  .dinero-movimiento-row { grid-template-columns: 1fr; }
+  .dinero-movimiento-monto { text-align: left; }
+}

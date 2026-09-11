@@ -73,8 +73,26 @@ export async function getDocFromServer(ref) {
   return next.snap;
 }
 
-export async function getDocs(_query) {
-  return { forEach() {}, docs: [], size: 0 };
+// Antes era un stub que siempre devolvía vacío (nada en doctora.js usaba
+// getDocs todavía). Ahora sí filtra de verdad el store en memoria por
+// colección + cláusulas where("campo","==",valor) — lo mínimo que necesitan
+// los movimientos de dinero (turnoId / fechaMovimiento) y el cierre.
+export async function getDocs(q) {
+  const path = q.path;
+  const clauses = (q.clauses || []).filter((c) => c.__type === "where");
+  const docs = [];
+  for (const [k, data] of calls.store.entries()) {
+    const idx = k.lastIndexOf("/");
+    const docPath = k.slice(0, idx);
+    const id = k.slice(idx + 1);
+    if (docPath !== path) continue;
+    const pasa = clauses.every((c) => {
+      if (c.op && c.op !== "==") return true; // solo se soporta "==" por ahora, suficiente para estas pruebas
+      return data?.[c.field] === c.value;
+    });
+    if (pasa) docs.push({ id, data: () => data, ref: { __type: "doc", path, id } });
+  }
+  return { forEach(fn) { docs.forEach(fn); }, docs, size: docs.length };
 }
 
 export async function runTransaction(_db, updateFunction) {
@@ -126,6 +144,7 @@ export async function signInWithEmailAndPassword(_auth, email, password) {
 
 export async function signOut(_auth) {
   calls.signOutCalls++;
+  auth.currentUser = null;
 }
 
 export function fakeSnap(docs) {
