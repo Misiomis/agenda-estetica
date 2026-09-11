@@ -78,14 +78,24 @@ service cloud.firestore {
       allow read, create, update, delete: if esAdminDepi();
     }
 
-    // Colección real del sistema de depilación (camelCase)
+    // Colección real del sistema de depilación (camelCase) — la paciente
+    // reserva sin login (read/create públicos, para ver horarios libres y
+    // crear su turno), pero modificar o borrar un turno ya creado requiere
+    // esAdminDepi() real (antes era "if true" también para update/delete:
+    // cualquiera en internet podía borrar o alterar cualquier turno).
     match /reservasDepi/{reservaId} {
-      allow read, write: if true;
+      allow read:   if true;
+      allow create: if true;
+      allow update, delete: if esAdminDepi();
     }
 
-    // Bloqueos automáticos del sistema de depilación
+    // Bloqueos automáticos del sistema de depilación — la paciente los crea
+    // al reservar (read/create públicos); tocarlos después de creados
+    // (liberar un bloqueo, desbloquear un día) requiere esAdminDepi().
     match /calendarExceptionsDepi/{excId} {
-      allow read, write: if true;
+      allow read:   if true;
+      allow create: if true;
+      allow update, delete: if esAdminDepi();
     }
 
     // Configuración de combos (duraciones, precios)
@@ -117,14 +127,15 @@ service cloud.firestore {
       allow write:  if esAdmin();
     }
 
-    // Cobros de sesión depilación — panel no usa Firebase Auth, acceso libre
+    // Cobros de sesión depilación — registros financieros internos, nunca
+    // leídos ni escritos por la paciente: solo esAdminDepi().
     match /cobrosSesionDepi/{cobroId} {
-      allow read, write: if true;
+      allow read, write: if esAdminDepi();
     }
 
-    // Cierres de jornada depilación — panel no usa Firebase Auth, acceso libre
+    // Cierres de jornada depilación — ídem, solo esAdminDepi().
     match /cierresJornadaDepi/{cierreId} {
-      allow read, write: if true;
+      allow read, write: if esAdminDepi();
     }
 
     // Control de consultas iniciales — solo admin Gimena
