@@ -239,13 +239,17 @@ async function run() {
     check('la conexión sigue "live" aunque pedidosKit recién esté cargando otra vez', $('connection').getAttribute('data-state') !== 'error');
   }
 
-  console.log('\n=== Bandeja de actividad: se lista y "Marcar atendido" no toca la reserva original ===');
+  console.log('\n=== Bandeja de actividad: se lista agrupada por día y "Marcar atendido" no toca la reserva original ===');
   {
+    const timestampHoy = { toDate: () => new Date() };
     emitirSnapshot('activityLog', [
-      ['ev1', { coleccion: 'reservas', docId: 'boxA', tipo: 'create', resumen: 'Nueva reserva: Persona A', atendido: false, leidoPor: {} }],
+      ['ev1', { coleccion: 'reservas', docId: 'boxA', tipo: 'create', resumen: 'Nueva reserva: Persona A', atendido: false, leidoPor: {}, timestamp: timestampHoy }],
     ]);
-    check('el evento aparece en Actividad', $('lista-actividad').innerHTML.includes('Nueva reserva: Persona A'));
-    check('muestra el botón "Marcar atendido" cuando no está atendido', $('lista-actividad').innerHTML.includes('data-atender="ev1"'));
+    check('el evento aparece en el grupo "Hoy" de Actividad', $('lista-actividad-hoy').innerHTML.includes('Nueva reserva: Persona A'));
+    check('el grupo "Ayer" queda oculto cuando no hay eventos de ayer', $('grupo-ayer-wrap').hidden === true);
+    check('el alcance cargado se indica explícitamente (no se presenta como "el total")', $('actividad-alcance').textContent.includes('cargado'));
+    check('muestra el botón "Marcar atendido" cuando no está atendido', $('lista-actividad-hoy').innerHTML.includes('data-atender="ev1"'));
+    check('muestra un botón "Ver detalle" que abre el registro relacionado (reservas::boxA)', $('lista-actividad-hoy').innerHTML.includes('data-abrir="reservas::boxA"'));
     document.querySelector('[data-atender="ev1"]').click();
     await new Promise((r) => setTimeout(r, 0));
     const upd = fakeFb.calls.updateDocCalls.find((c) => c.path === 'activityLog' && c.id === 'ev1');
@@ -294,6 +298,116 @@ async function run() {
     const conf = fakeFb.calls.setDocCalls.find((c) => c.path === 'contactosWhatsApp' && c.data.estado === 'enviado');
     check('"Sí, registrar envío" escribe estado "enviado"', !!conf);
     check('el banner se oculta después de responder', $('confirm-envio-banner').hidden === true);
+  }
+
+  console.log('\n=== Navegación por pestañas (Inicio / Actividad / Pendientes / Más) ===');
+  {
+    check('arranca en la pestaña Inicio', $('tab-inicio').hidden === false && $('tab-actividad').hidden === true);
+    document.querySelector('[data-tab-btn="actividad"]').click();
+    check('pasa a Actividad y oculta Inicio', $('tab-actividad').hidden === false && $('tab-inicio').hidden === true);
+    check('el botón de Actividad queda marcado como actual', document.querySelector('[data-tab-btn="actividad"]').getAttribute('aria-current') === 'page');
+    document.querySelector('[data-tab-btn="pendientes"]').click();
+    check('pasa a Pendientes', $('tab-pendientes').hidden === false && $('tab-actividad').hidden === true);
+    document.querySelector('[data-tab-btn="inicio"]').click();
+    check('vuelve a Inicio', $('tab-inicio').hidden === false);
+  }
+
+  console.log('\n=== Panel inferior de filtros: abre, aplica, restablece y cierra ===');
+  {
+    document.querySelector('[data-tab-btn="actividad"]').click();
+    check('el panel inferior arranca cerrado', $('bottom-sheet').hidden === true);
+    $('btn-abrir-filtros').click();
+    check('"Filtros" abre el panel inferior', $('bottom-sheet').hidden === false && $('sheet-backdrop').hidden === false);
+    $('filtro-categoria').value = 'pedidosKit';
+    $('btn-filtro-aplicar').click();
+    check('"Aplicar" cierra el panel', $('bottom-sheet').hidden === true);
+    check('el badge de filtros activos aparece cuando el filtro no es neutro', $('filtros-activos-badge').hidden === false);
+    check('la actividad filtrada por "Kits" ya no muestra el evento de reservas', !$('lista-actividad-hoy').innerHTML.includes('Nueva reserva: Persona A'));
+    $('btn-abrir-filtros').click();
+    $('btn-filtro-restablecer').click();
+    check('"Restablecer" también cierra el panel', $('bottom-sheet').hidden === true);
+    check('restablecer quita el badge de filtro activo', $('filtros-activos-badge').hidden === true);
+    check('restablecer devuelve el evento de reservas a la vista', $('lista-actividad-hoy').innerHTML.includes('Nueva reserva: Persona A'));
+    $('btn-cerrar-sheet').click(); // no-op si ya está cerrado, pero confirma que no explota
+    document.querySelector('[data-tab-btn="inicio"]').click();
+  }
+
+  console.log('\n=== WhatsApp: vista previa editable — el texto editado es el que se envía ===');
+  {
+    document.querySelector('[data-abrir="reservas::boxA"]').click();
+    check('el detalle muestra una vista previa editable del mensaje', $('wa-preview-wrap').hidden === false);
+    check('la vista previa viene prellenada con el texto real (incluye el servicio)', $('wa-preview-texto').value.includes('Facial'));
+    $('wa-preview-texto').value = 'Texto editado a mano por la operadora — turno confirmado.';
+    window.__ultimaUrlAbierta = null;
+    fakeFb.calls.getDocFromServerQueue.push({
+      snap: fakeFb.fakeDocSnap(true, 'boxA', { nombre: 'Persona A', fecha: HOY, hora: '23:57', box: 'b1', telefono: '3764111111', servicio: 'Facial', estado: 'confirmado' }),
+    });
+    await $('btn-preparar-wa').click();
+    await new Promise((r) => setTimeout(r, 0));
+    check('abre WhatsApp con el texto EDITADO, no el generado automáticamente', decodeURIComponent(window.__ultimaUrlAbierta || '').includes('Texto editado a mano'));
+    $('btn-cerrar-detalle').click();
+  }
+
+  console.log('\n=== Pedido de kit: detalle con productos, cantidades, total y aviso de discrepancia ===');
+  {
+    emitirSnapshot('pedidosKit', [
+      ['kitDetalle', {
+        nombrePaciente: 'Con Detalle', telefono: '3764999999',
+        productosDetalle: [{ nombre: 'Leche de limpieza', precio: 15000 }, { nombre: 'Tónico', precio: 15000 }],
+        totalPedido: 45000, // no coincide con la suma real (30000) — discrepancia a propósito
+        estado: 'pendiente',
+      }],
+    ]);
+    document.querySelector('[data-abrir="pedidosKit::kitDetalle"]').click();
+    check('el detalle muestra el producto con su subtotal', $('detalle-body').innerHTML.includes('Leche de limpieza') && $('detalle-body').innerHTML.includes('Tónico'));
+    check('el total se muestra en pesos argentinos', $('detalle-body').innerHTML.includes('45.000'));
+    check('se señala la discrepancia entre el total guardado y la suma de sus productos, sin corregirla sola', $('detalle-body').innerHTML.includes('no coincide con la suma'));
+    check('la vista previa de WhatsApp también está disponible para el kit (tiene teléfono)', $('wa-preview-wrap').hidden === false);
+    $('btn-cerrar-detalle').click();
+  }
+
+  console.log('\n=== Pedido de kit SIN importe registrado: nunca se muestra como $0 ===');
+  {
+    emitirSnapshot('pedidosKit', [
+      ['kitSinTotal', { nombrePaciente: 'Sin Total', productos: ['Crema hidratante'], telefono: '3764888888', estado: 'pendiente' }],
+    ]);
+    document.querySelector('[data-abrir="pedidosKit::kitSinTotal"]').click();
+    check('el total muestra "No registrado", nunca $0', $('detalle-body').innerHTML.includes('No registrado') && !$('detalle-body').innerHTML.includes('$0'));
+    $('btn-cerrar-detalle').click();
+  }
+
+  console.log('\n=== "Ver detalle" sobre un evento viejo (fuera del caché de hoy/mañana) ===');
+  {
+    // r_vieja no está en ninguna de las fuentes cargadas (reservas/consultas
+    // solo traen hoy+mañana) — antes de este fix, esto fallaba con "ya no
+    // se encuentra este registro" aunque el documento siguiera existiendo.
+    fakeFb.calls.getDocQueue.push({
+      snap: fakeFb.fakeDocSnap(true, 'r_vieja', { nombre: 'Persona Vieja', fecha: '2020-01-01', hora: '10:00', telefono: '3764000009', servicio: 'Facial', estado: 'confirmado' }),
+    });
+    const botonTemporal = document.createElement('button');
+    botonTemporal.setAttribute('data-abrir', 'reservas::r_vieja');
+    document.body.appendChild(botonTemporal);
+    botonTemporal.click();
+    botonTemporal.remove();
+    await new Promise((r) => setTimeout(r, 0));
+    check('resuelve el detalle vía getDoc aunque no esté en el caché de hoy/mañana', $('detalle-titulo').textContent === 'Persona Vieja');
+    check('muestra la fecha real del registro viejo, no una inventada', $('detalle-body').innerHTML.includes('2020-01-01'));
+    $('btn-cerrar-detalle').click();
+  }
+
+  console.log('\n=== "Ver detalle" sobre un registro YA ELIMINADO: conserva el historial ===');
+  {
+    fakeFb.calls.getDocQueue.push({ snap: fakeFb.fakeDocSnap(false, 'r_borrada', null) });
+    const botonTemporal2 = document.createElement('button');
+    botonTemporal2.setAttribute('data-abrir', 'reservas::r_borrada');
+    document.body.appendChild(botonTemporal2);
+    botonTemporal2.click();
+    botonTemporal2.remove();
+    await new Promise((r) => setTimeout(r, 0));
+    check('el título indica que el registro fue eliminado', $('detalle-titulo').textContent === 'Registro eliminado');
+    check('el cuerpo aclara que el documento ya no existe, sin inventar datos', $('detalle-body').innerHTML.toLowerCase().includes('ya no existe'));
+    check('no ofrece "Preparar WhatsApp" para un registro eliminado', $('btn-preparar-wa').hidden === true);
+    $('btn-cerrar-detalle').click();
   }
 
   console.log('\n' + '='.repeat(60));

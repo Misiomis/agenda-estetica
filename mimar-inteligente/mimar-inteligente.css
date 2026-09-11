@@ -41,6 +41,7 @@ h1, h2, h3, p { margin: 0; }
 .icon { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; pointer-events: none; }
 
 .page-shell { max-width: 720px; margin: auto; padding: 0 16px calc(28px + env(safe-area-inset-bottom, 0px)); min-height: 100%; }
+body.con-nav-inferior .page-shell { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
 
 /* ── Topbar ── */
 .topbar {
@@ -200,4 +201,100 @@ dialog::backdrop { background: #0c251ecc; }
 @media (max-width: 380px) {
   .brand-copy > span { display: none; }
   .quick-actions { flex-direction: column; }
+}
+
+/* ── Navegación inferior (punto 4) ── */
+.bottom-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: flex; background: var(--surface); border-top: 1px solid var(--line);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -6px 20px rgba(16,45,38,.06);
+}
+.nav-item {
+  flex: 1; min-height: 56px; background: transparent; border: 0; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .02em; position: relative;
+  padding: 4px 2px;
+}
+.nav-item .icon { width: 22px; height: 22px; }
+.nav-item[aria-current="page"] { color: var(--forest); background: var(--emerald-soft); }
+.nav-badge {
+  position: absolute; top: 2px; right: calc(50% - 22px); min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 999px; background: var(--red); color: #fff; font-size: .62rem; font-weight: 800;
+  display: inline-grid; place-items: center;
+}
+
+/* ── Pestañas ── */
+.tab-view { padding-top: 4px; }
+
+/* ── Resumen de hoy (tiles de Inicio) ── */
+.resumen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+.resumen-tile {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
+  min-height: 76px;
+}
+.resumen-tile:active { background: #eeeee5; }
+.resumen-num { font: 400 1.7rem/1 var(--serif); color: var(--forest); }
+.resumen-label { font-size: .78rem; color: var(--muted); line-height: 1.25; }
+
+/* ── Agrupado Hoy/Ayer/Anteriores en Actividad ── */
+.day-header-group { padding: 12px 4px 8px; background: transparent; color: var(--muted); }
+.day-header-expand { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+.day-header-expand::-webkit-details-marker { display: none; }
+.day-header-expand::before { content: "▸"; font-size: .7rem; transition: transform .15s ease; }
+details[open] > .day-header-expand::before { transform: rotate(90deg); }
+#actividad-alcance { color: var(--muted); }
+.count-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--emerald-soft); color: var(--forest); font-size: .7rem; font-weight: 800; margin-left: 4px;
+}
+
+/* ── "Más": lista de acciones ── */
+.mas-lista { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.mas-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 15px 16px; background: transparent; border: 0; border-bottom: 1px solid #e7e8df; text-align: left; font-size: .92rem;
+}
+.mas-item:last-child { border-bottom: 0; }
+.mas-item:active { background: #eeeee5; }
+.mas-item .icon { width: 16px; height: 16px; color: var(--muted); }
+
+/* ── Panel inferior genérico (filtros / menús) — punto 4 ── */
+.sheet-backdrop { position: fixed; inset: 0; background: #0c251ecc; z-index: 55; }
+.bottom-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 56; background: var(--surface);
+  border-radius: 18px 18px 0 0; max-height: 82dvh; display: flex; flex-direction: column;
+  box-shadow: 0 -8px 40px #102d2633; padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.sheet-handle { width: 40px; height: 4px; background: var(--line); border-radius: 999px; margin: 10px auto 0; flex: 0 0 auto; }
+.sheet-heading { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 12px; border-bottom: 1px solid var(--line); flex: 0 0 auto; }
+.sheet-heading h3 { font: 1.15rem var(--serif); }
+.sheet-body { padding: 16px; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+.sheet-field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+.sheet-field select, .sheet-field input { width: 100%; border: 1px solid #c9d0c3; border-radius: 9px; padding: 12px; background: #fffefb; color: var(--ink); font-size: 16px; }
+.sheet-actions { display: flex; gap: 10px; padding-top: 4px; }
+.sheet-actions .button { flex: 1; }
+.sheet-option-list { display: flex; flex-direction: column; gap: 2px; }
+.sheet-option {
+  display: flex; align-items: center; justify-content: space-between; padding: 14px 4px; background: transparent;
+  border: 0; border-bottom: 1px solid #eceee6; text-align: left; font-size: .95rem; width: 100%;
+}
+.sheet-option:last-child { border-bottom: 0; }
+.sheet-option:active { background: #eeeee5; }
+
+/* ── Historial "Qué ocurrió" vs "Estado actual" en el detalle ── */
+.detalle-subtitulo { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
+.detalle-subtitulo:first-child { margin-top: 0; }
+.historial-evento { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: .88rem; }
+.historial-evento:last-child { border-bottom: 0; }
+.historial-evento-cuando { color: var(--muted); font-size: .78rem; }
+.historial-evento-cambio { margin-top: 4px; font-size: .82rem; color: var(--muted); background: #f0f1e9; border-radius: 8px; padding: 6px 9px; }
+.aviso-discrepancia { background: #f3ebd8; color: var(--amber); border: 1px solid #e4d3a8; border-radius: 10px; padding: 10px 12px; font-size: .82rem; margin: 8px 0; }
+.wa-preview-textarea { width: 100%; border: 1px solid #c9d0c3; border-radius: 10px; padding: 11px; background: #fffefb; color: var(--ink); font: inherit; font-size: 15px; resize: vertical; margin-bottom: 12px; }
+
+@media (max-width: 380px) {
+  .resumen-grid { gap: 8px; }
+  .resumen-tile { padding: 12px; min-height: 68px; }
 }

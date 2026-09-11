@@ -10,6 +10,8 @@ export const calls = {
   signInCalls: [],
   signOutCalls: 0,
   getDocFromServerQueue: [],
+  getDocQueue: [], // { snap } | { throwError } — FIFO, un ítem por llamada a getDoc()
+  getDocsQueue: [], // { docs: [[id,data],...] } | { throwError } — FIFO, un ítem por llamada a getDocs()
   setDocCalls: [], // { path, id, data, options }
   updateDocCalls: [], // { path, id, data }
 };
@@ -19,6 +21,7 @@ export function query(colRefOrDoc, ...clauses) { return { __type: 'query', path:
 export function where(field, op, value) { return { __type: 'where', field, op, value }; }
 export function orderBy(field, direction) { return { __type: 'orderBy', field, direction }; }
 export function limit(n) { return { __type: 'limit', n }; }
+export function startAfter(cursorDoc) { return { __type: 'startAfter', cursorDoc }; }
 export function doc(_db, path, id) { return { __type: 'doc', path, id }; }
 export function serverTimestamp() { return { __type: 'serverTimestamp' }; }
 
@@ -39,8 +42,15 @@ export function onSnapshot(queryOrDoc, optionsOrNext, maybeNext, maybeError) {
   return () => { entry.unsubscribed = true; };
 }
 
+// getDoc SÍ se usa ahora para resolver, desde el detalle, un registro que
+// ya no está en el caché en memoria (ver abrirModal → resolverItemFueraDeCache).
+// getDocFromServer sigue siendo lo único válido para "Preparar WhatsApp"
+// (necesita forzar ida al servidor, no cualquier caché).
 export async function getDoc(_ref) {
-  throw new Error('getDoc no debería usarse en este módulo — usa getDocFromServer');
+  const next = calls.getDocQueue.shift();
+  if (!next) throw new Error('getDoc llamado sin respuesta encolada en el test');
+  if (next.throwError) throw next.throwError;
+  return next.snap;
 }
 
 export async function getDocFromServer(_ref) {
@@ -48,6 +58,13 @@ export async function getDocFromServer(_ref) {
   if (!next) throw new Error('getDocFromServer llamado sin respuesta encolada en el test');
   if (next.throwError) throw next.throwError;
   return next.snap;
+}
+
+export async function getDocs(_query) {
+  const next = calls.getDocsQueue.shift();
+  if (!next) return fakeSnap([]); // default seguro: vacío, no rompe llamadas no anticipadas por el test
+  if (next.throwError) throw next.throwError;
+  return fakeSnap(next.docs || []);
 }
 
 export function onAuthStateChanged(_auth, cb) {
@@ -65,9 +82,12 @@ export async function signOut(_auth) {
 }
 
 export function fakeSnap(docs) {
+  const wrapped = (docs || []).map(([id, data]) => ({ id, data: () => data }));
   return {
     metadata: { fromCache: !!docs.__fromCache },
-    forEach(fn) { (docs || []).forEach(([id, data]) => fn({ id, data: () => data })); },
+    forEach(fn) { wrapped.forEach(fn); },
+    docs: wrapped,
+    size: wrapped.length,
   };
 }
 

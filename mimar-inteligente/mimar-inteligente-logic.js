@@ -74,7 +74,13 @@ export function normalizarItemAgenda(coleccion, id, data) {
   const hora = d.hora || null;
   const estadoBruto = d.estado || d.status || (coleccion === "consultas" ? "pendiente" : null);
   const activa = esActiva(coleccion, estadoBruto);
-  const duracionRegistrada = Number(d.duracionMinutos) > 0 ? Number(d.duracionMinutos) : null;
+  // duracionMinutos es el campo vigente; duracion es el nombre que usaban
+  // reservas más viejas (auditoría: 155 documentos reales solo tienen
+  // "duracion") — sin este fallback esos turnos pierden su duración real
+  // registrada y caen al estimado de 60 min como si nunca se hubiera
+  // guardado nada.
+  const duracionCruda = d.duracionMinutos !== undefined ? d.duracionMinutos : d.duracion;
+  const duracionRegistrada = Number(duracionCruda) > 0 ? Number(duracionCruda) : null;
   const duracionEstimada = duracionRegistrada === null;
   const inicioMs = inicioTurnoMs(fecha, hora);
   const finMs = fecha && hora ? finTurnoMs(fecha, hora, duracionRegistrada) : null;
@@ -247,4 +253,157 @@ export function contactoVencido(item, contactoDoc, plazoMs, ahoraMs = Date.now()
   if (estado === "enviado") return false;
   if (item.inicioMs === null) return false; // sin fecha/hora utilizable, no se puede evaluar plazo
   return (item.inicioMs - ahoraMs) <= plazoMs;
+}
+
+// ── Pedidos de kit — transformación centralizada (punto 2) ───────────────
+// Este negocio solo opera en pesos argentinos — no hay ni un solo pedido con
+// otra moneda en la auditoría de datos reales, así que formatear en ARS no
+// es "inventar" un dato, es la única moneda que este comercio usa. Si algún
+// día aparece un campo `moneda` explícito, se respeta por sobre el default.
+export function formatearARS(valor) {
+  if (typeof valor !== "number" || !Number.isFinite(valor)) return null;
+  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(valor);
+}
+
+// Convierte productosDetalle (una entrada por unidad, sin campo de cantidad
+// propio — confirmado en la auditoría: sumar sus "precio" da exactamente
+// totalPedido) en líneas agrupadas por producto con cantidad y subtotal.
+function agruparItems(productosDetalle) {
+  if (!Array.isArray(productosDetalle) || !productosDetalle.length) return null;
+  const porNombre = new Map();
+  for (const p of productosDetalle) {
+    const nombre = (p?.nombre || "Producto sin nombre").trim();
+    const precio = Number(p?.precio);
+    const precioValido = Number.isFinite(precio);
+    const clave = `${nombre}::${precioValido ? precio : "?"}`;
+    if (!porNombre.has(clave)) porNombre.set(clave, { nombre, precioUnitario: precioValido ? precio : null, cantidad: 0, subtotal: 0, subtotalCompleto: precioValido });
+    const linea = porNombre.get(clave);
+    linea.cantidad += 1;
+    if (precioValido) linea.subtotal += precio;
+  }
+  return Array.from(porNombre.values());
+}
+
+// No inventa ningún dato: cada campo ausente en Firestore llega como null y
+// la interfaz decide cómo mostrarlo ("No registrado"), nunca un 0 ni un ""
+// que se puedan confundir con un valor real. El total y los precios son los
+// que se guardaron en el momento del pedido — nunca se recalculan contra el
+// catálogo actual, así que un cambio de precio después no altera un pedido
+// histórico.
+export function normalizarPedidoKit(id, data) {
+  const d = data || {};
+  const nombre = d.nombrePaciente || d.nombre || "Paciente";
+  const telefono = d.phone || d.telefono || null;
+  const items = agruparItems(d.productosDetalle);
+  const cantidadTotal = items ? items.reduce((acc, it) => acc + it.cantidad, 0) : null;
+
+  const totalRegistrado = typeof d.totalPedido === "number" && Number.isFinite(d.totalPedido) ? d.totalPedido : null;
+  const totalCalculado = items && items.every((it) => it.subtotalCompleto) ? items.reduce((acc, it) => acc + it.subtotal, 0) : null;
+  // Discrepancia real entre lo guardado y lo que suman sus propios
+  // componentes: se señala para revisión, nunca se corrige sola ni se
+  // esconde eligiendo un valor por sobre el otro.
+  const discrepanciaTotal = totalRegistrado !== null && totalCalculado !== null && totalRegistrado !== totalCalculado
+    ? { registrado: totalRegistrado, calculado: totalCalculado }
+    : null;
+  const total = totalRegistrado !== null ? totalRegistrado : totalCalculado;
+
+  // Ningún campo de pago existe hoy en pedidosKit (auditoría: 0 documentos
+  // con montoAbonado/saldoPendiente/estadoPago) — se lee igual por si algún
+  // día se agrega, pero nunca se lo infiere del estado de entrega. "Kit
+  // entregado" no equivale a "kit pagado".
+  const montoAbonado = typeof d.montoAbonado === "number" && Number.isFinite(d.montoAbonado) ? d.montoAbonado : null;
+  const saldoPendiente = montoAbonado !== null && total !== null ? total - montoAbonado : null;
+
+  return {
+    id,
+    nombre,
+    telefono,
+    dni: d.dni || null,
+    fechaPedido: typeof d.fecha === "string" ? d.fecha : null,
+    productosResumen: Array.isArray(d.productos) && d.productos.length ? d.productos : null,
+    items,
+    cantidadTotal,
+    moneda: d.moneda || "ARS",
+    total,
+    totalTexto: total !== null ? formatearARS(total) : "No registrado",
+    discrepanciaTotal,
+    descuento: typeof d.descuento === "number" ? d.descuento : null,
+    entrega: d.entrega || d.lugarEntrega || null,
+    observaciones: d.observaciones || d.notas || null,
+    estadoPedido: d.estado || null,
+    montoAbonado,
+    montoAbonadoTexto: montoAbonado !== null ? formatearARS(montoAbonado) : "No registrado",
+    saldoPendiente,
+    saldoPendienteTexto: saldoPendiente !== null ? formatearARS(saldoPendiente) : "No registrado",
+  };
+}
+
+// ── Estado temporal de un turno — nunca "realizada" solo por la fecha ────
+// admin.html clasifica reservas pasadas como "realizada" con solo comparar
+// fechas (ver su propio comentario "Clasificación única de estado"), pero
+// eso es justamente lo que este módulo no debe hacer: la única evidencia
+// real de que algo pasó en la consulta/sesión es que exista detalleSesion
+// (una nota escrita a mano por la profesional). Sin esa nota, un turno
+// pasado queda descrito como "pasado", nunca como "realizado".
+export function estadoTemporalTurno(item, ahoraMs = Date.now()) {
+  if (item.inicioMs === null) return "sin_fecha";
+  if (item.finMs !== null && item.finMs <= ahoraMs) return "pasado";
+  if (item.inicioMs <= ahoraMs) return "en_curso";
+  return "proximo";
+}
+
+export function etiquetaEstadoTemporal(estadoTemporal) {
+  switch (estadoTemporal) {
+    case "pasado": return "Turno pasado";
+    case "en_curso": return "En curso";
+    case "proximo": return "Próximo";
+    default: return "Sin fecha registrada";
+  }
+}
+
+// ── Agrupar eventos de actividad por Hoy / Ayer / Anteriores (punto 4) ───
+// Recibe eventos ya con timestampMs resuelto (la conversión de Timestamp de
+// Firestore a milisegundos es responsabilidad de quien llama, no de esta
+// función pura). El orden interno de cada grupo se conserva tal cual llega
+// — se asume ya vienen ordenados desc por el propio query.
+export function agruparPorDia(eventos, ahoraMs = Date.now()) {
+  const hoyISO = fechaISOEnZona(ahoraMs);
+  const ayerISO = sumarDiasISO(hoyISO, -1);
+  const grupos = { hoy: [], ayer: [], anteriores: [] };
+  for (const ev of eventos) {
+    if (ev.timestampMs == null) { grupos.anteriores.push(ev); continue; }
+    const fechaEv = fechaISOEnZona(ev.timestampMs);
+    if (fechaEv === hoyISO) grupos.hoy.push(ev);
+    else if (fechaEv === ayerISO) grupos.ayer.push(ev);
+    else grupos.anteriores.push(ev);
+  }
+  return grupos;
+}
+
+// ── Filtro de actividad (categoría / estado / fecha) ─────────────────────
+// filtro = { categoria: 'todas'|coleccion, estado: 'todos'|'pendiente'|'atendido', fechaDesde, fechaHasta }
+// Un filtro vacío/"todas" no descarta nada — nunca hace falta "resetear" en
+// el sentido de recargar, alcanza con volver a este mismo estado neutro.
+export const FILTRO_ACTIVIDAD_VACIO = { categoria: "todas", estado: "todos", fechaDesde: null, fechaHasta: null };
+
+export function eventoCoincideFiltro(evento, filtro) {
+  const f = filtro || FILTRO_ACTIVIDAD_VACIO;
+  if (f.categoria && f.categoria !== "todas" && evento.coleccion !== f.categoria) return false;
+  if (f.estado && f.estado !== "todos") {
+    const atendido = !!evento.atendido;
+    if (f.estado === "atendido" && !atendido) return false;
+    if (f.estado === "pendiente" && atendido) return false;
+  }
+  if (f.fechaDesde || f.fechaHasta) {
+    if (evento.timestampMs == null) return false; // sin fecha no se puede ubicar en un rango de fechas
+    const fechaEv = fechaISOEnZona(evento.timestampMs);
+    if (f.fechaDesde && fechaEv < f.fechaDesde) return false;
+    if (f.fechaHasta && fechaEv > f.fechaHasta) return false;
+  }
+  return true;
+}
+
+export function filtroEsNeutro(filtro) {
+  const f = filtro || FILTRO_ACTIVIDAD_VACIO;
+  return (!f.categoria || f.categoria === "todas") && (!f.estado || f.estado === "todos") && !f.fechaDesde && !f.fechaHasta;
 }

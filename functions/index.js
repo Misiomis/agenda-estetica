@@ -584,7 +584,15 @@ exports.onClienteEscrito = onDocumentWritten("clients/{docId}", async (event) =>
     if (after.exists) {
         const d = after.data();
         const match = /^\d{4}-(\d{2})-(\d{2})$/.exec(String(d.fechaNacimiento || "").trim());
-        const mesDiaCorrecto = match ? `${match[1]}-${match[2]}` : null;
+        // "01-01" es un valor de relleno heredado de un alta antigua sin
+        // fecha real (auditoría: 58 de 58 clientes con formato válido caen
+        // exactamente en "01-01" — estadísticamente imposible como
+        // distribución real de nacimientos). Tratarlo como fecha real
+        // generaría un cumpleaños falso masivo cada 1° de enero. Se trata
+        // como "sin fecha registrada", no como un cumpleaños real — nunca
+        // se inventa un dato a partir de un placeholder.
+        const mesDiaCandidato = match ? `${match[1]}-${match[2]}` : null;
+        const mesDiaCorrecto = mesDiaCandidato === "01-01" ? null : mesDiaCandidato;
         if (d.cumpleMesDia !== mesDiaCorrecto) {
             // Ojo: NO cortar acá con un return — este mismo evento (alta,
             // cambio de membresía, etc.) todavía tiene que loguearse más

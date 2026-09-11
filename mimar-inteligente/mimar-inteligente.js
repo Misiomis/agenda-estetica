@@ -1,10 +1,11 @@
 // Mimar T Inteligente — app/página. Misma lógica de negocio que la v1 web
-// (mimar-inteligente-logic.js, sin cambios), con una interfaz alineada a la
-// identidad del Reloj Mimar T y comportamiento correcto dentro de la app
-// Android (botón Atrás, retorno de segundo plano, sin listeners duplicados).
+// (mimar-inteligente-logic.js), con una interfaz organizada en pestañas
+// (Inicio / Actividad / Pendientes / Más) y comportamiento correcto dentro
+// de la app Android (botón Atrás, panel inferior, retorno de segundo plano,
+// sin listeners duplicados).
 import {
-  db, auth, collection, query, where, orderBy, limit, onSnapshot, doc, getDoc, getDocFromServer,
-  setDoc, updateDoc, serverTimestamp,
+  db, auth, collection, query, where, orderBy, limit, startAfter, onSnapshot, doc, getDoc, getDocs,
+  getDocFromServer, setDoc, updateDoc, serverTimestamp,
   onAuthStateChanged, signInWithEmailAndPassword, signOut,
 } from "./firebase-web.js";
 import {
@@ -12,6 +13,8 @@ import {
   obtenerProximaReserva, obtenerBandejaRevisiones, construirTextoConfirmacion, normalizarTelefonoWA,
   construirTextoRecordatorio, construirTextoCumpleanos, construirTextoConsulta, construirTextoKit,
   idContactoParaItem, estadoContacto, etiquetaEstadoContacto, contactoVencido,
+  normalizarPedidoKit, formatearARS, estadoTemporalTurno, etiquetaEstadoTemporal,
+  agruparPorDia, eventoCoincideFiltro, filtroEsNeutro, FILTRO_ACTIVIDAD_VACIO,
 } from "./mimar-inteligente-logic.js";
 import {
   registrarContactoPreparado, registrarContactoEstado, registrarContactoManual,
@@ -68,13 +71,135 @@ let ultimaSincronizacion = null;
 
 // contactosWhatsApp cargados, indexados por id (coleccion_docId_tipoMensaje)
 let contactosPorId = {};
-// activityLog cargado (ya ordenado desc por el propio query)
-let actividadItems = [];
+// activityLog: página reciente (viva, onSnapshot) + páginas más antiguas
+// (estáticas, cargadas a pedido con "Cargar más antiguos"). Combinar ambas
+// para tener la lista completa cargada — nunca se presenta como "el total"
+// sin aclarar el alcance (punto 3).
+const PAGINA_ACTIVIDAD = 40;
+let actividadRecientes = [];
+let actividadAntiguos = [];
+let actividadCursor = null; // último doc crudo de Firestore, para paginar
+let actividadHayMas = false;
+let actividadCargandoMas = false;
+let filtroActividad = { ...FILTRO_ACTIVIDAD_VACIO };
 // resumenesCumpleanos/{hoyISO} — null mientras no cargó, luego { estado, personas, generadoAt }
 let cumpleanosHoy = null;
 // { coleccion, id, tipoMensaje, nombre } — recién se abrió wa.me y se está
 // esperando la respuesta de "¿Enviaste el mensaje?" al volver a la app.
 let pendienteConfirmarEnvio = null;
+
+// ── Pestañas (Inicio / Actividad / Pendientes / Más) ─────────────────────
+let tabActual = "inicio";
+const scrollGuardadoPorTab = {};
+
+// jsdom (pruebas E2E) no implementa scrollTo — en el navegador/WebView real
+// siempre está disponible, pero esto evita que una prueba explote por algo
+// que no tiene que ver con lo que está probando.
+function scrollSeguro(y) { try { window.scrollTo(0, y || 0); } catch (_) {} }
+
+function mostrarTab(nombre) {
+  if (!$("tab-" + nombre)) return;
+  tabActual = nombre;
+  document.querySelectorAll(".tab-view").forEach((el) => { el.hidden = el.dataset.tab !== nombre; });
+  document.querySelectorAll("[data-tab-btn]").forEach((btn) => {
+    const activo = btn.getAttribute("data-tab-btn") === nombre;
+    if (activo) btn.setAttribute("aria-current", "page"); else btn.removeAttribute("aria-current");
+  });
+  scrollSeguro(scrollGuardadoPorTab[nombre]);
+}
+
+document.querySelectorAll("[data-tab-btn]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    scrollGuardadoPorTab[tabActual] = window.scrollY;
+    mostrarTab(btn.getAttribute("data-tab-btn"));
+  });
+});
+
+// Tiles de resumen (Inicio) → navegan a la pestaña correspondiente y, si
+// corresponde, dejan un filtro de categoría aplicado en Actividad.
+document.querySelectorAll("[data-ir-tab]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    scrollGuardadoPorTab[tabActual] = window.scrollY;
+    const destino = btn.getAttribute("data-ir-tab");
+    const categoria = btn.getAttribute("data-ir-categoria");
+    if (categoria) { filtroActividad = { ...FILTRO_ACTIVIDAD_VACIO, categoria }; renderActividad(); }
+    mostrarTab(destino);
+    const foco = btn.getAttribute("data-ir-foco");
+    if (foco) {
+      const el = $((foco === "revisiones" ? "bandeja-section" : foco === "kits" ? "kits-section" : "cumpleanos-section"));
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+});
+
+// ── Panel inferior genérico (filtros / menús) ─────────────────────────────
+let sheetAbierto = false;
+function abrirSheet(titulo, bodyHtml) {
+  $("sheet-titulo").textContent = titulo;
+  $("sheet-body").innerHTML = bodyHtml;
+  $("sheet-backdrop").hidden = false;
+  $("bottom-sheet").hidden = false;
+  sheetAbierto = true;
+}
+function cerrarSheet() {
+  $("sheet-backdrop").hidden = true;
+  $("bottom-sheet").hidden = true;
+  sheetAbierto = false;
+}
+$("btn-cerrar-sheet").addEventListener("click", cerrarSheet);
+$("sheet-backdrop").addEventListener("click", cerrarSheet);
+
+const CATEGORIAS_FILTRO = [
+  ["todas", "Todas"], ["reservas", "Reservas"], ["consultas", "Consultas"],
+  ["pedidosKit", "Kits"], ["clients", "Pacientes"], ["cursoMaquillaje", "Curso"], ["reservasDepi", "Depilación"],
+];
+
+function abrirSheetFiltros() {
+  const f = filtroActividad;
+  const opciones = CATEGORIAS_FILTRO.map(([v, l]) => `<option value="${v}" ${f.categoria === v ? "selected" : ""}>${l}</option>`).join("");
+  abrirSheet("Filtrar actividad", `
+    <div class="sheet-field">
+      <label for="filtro-categoria">Categoría</label>
+      <select id="filtro-categoria">${opciones}</select>
+    </div>
+    <div class="sheet-field">
+      <label for="filtro-estado">Estado</label>
+      <select id="filtro-estado">
+        <option value="todos" ${f.estado === "todos" ? "selected" : ""}>Todos</option>
+        <option value="pendiente" ${f.estado === "pendiente" ? "selected" : ""}>Pendientes de atender</option>
+        <option value="atendido" ${f.estado === "atendido" ? "selected" : ""}>Ya atendidos</option>
+      </select>
+    </div>
+    <div class="sheet-field">
+      <label for="filtro-desde">Desde (fecha)</label>
+      <input id="filtro-desde" type="date" value="${f.fechaDesde || ""}">
+    </div>
+    <div class="sheet-field">
+      <label for="filtro-hasta">Hasta (fecha)</label>
+      <input id="filtro-hasta" type="date" value="${f.fechaHasta || ""}">
+    </div>
+    <div class="sheet-actions">
+      <button class="button button-light" type="button" id="btn-filtro-restablecer">Restablecer</button>
+      <button class="button button-primary" type="button" id="btn-filtro-aplicar">Aplicar</button>
+    </div>
+  `);
+  $("btn-filtro-aplicar").addEventListener("click", () => {
+    filtroActividad = {
+      categoria: $("filtro-categoria").value,
+      estado: $("filtro-estado").value,
+      fechaDesde: $("filtro-desde").value || null,
+      fechaHasta: $("filtro-hasta").value || null,
+    };
+    cerrarSheet();
+    renderActividad();
+  });
+  $("btn-filtro-restablecer").addEventListener("click", () => {
+    filtroActividad = { ...FILTRO_ACTIVIDAD_VACIO };
+    cerrarSheet();
+    renderActividad();
+  });
+}
+$("btn-abrir-filtros").addEventListener("click", abrirSheetFiltros);
 
 // ── Login ────────────────────────────────────────────────────────────────
 $("login-form").addEventListener("submit", async (ev) => {
@@ -165,10 +290,25 @@ $("btn-update-instalar").addEventListener("click", async () => {
 function mostrarAcceso(mensaje) {
   $("access-panel").hidden = false;
   $("workspace").hidden = true;
+  $("bottom-nav").hidden = true;
+  document.body.classList.remove("con-nav-inferior");
   $("btn-salir").hidden = true;
   $("btn-ajustes-notif").hidden = true;
   $("login-form").hidden = true;
   $("access-message").textContent = mensaje;
+}
+
+async function mostrarInfoVersion() {
+  try {
+    const info = await AppPlugin?.getInfo?.();
+    if (info?.version) {
+      $("version-footer").textContent = `Mimar T Inteligente · v${info.version} (build ${info.build}) · lectura de Firestore, contacto manual`;
+      $("mas-info").textContent = `Versión instalada: ${info.version} (build ${info.build}). Contacto por WhatsApp siempre manual — abrir el chat no confirma un envío.`;
+      return;
+    }
+  } catch (_) { /* no estamos en la app nativa o el plugin no respondió */ }
+  $("version-footer").textContent = "Mimar T Inteligente · lectura de Firestore, contacto manual";
+  $("mas-info").textContent = "Ejecutando en navegador (sin información de versión nativa). Contacto por WhatsApp siempre manual.";
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -200,12 +340,16 @@ onAuthStateChanged(auth, async (user) => {
 
   $("access-panel").hidden = true;
   $("workspace").hidden = false;
+  $("bottom-nav").hidden = false;
+  document.body.classList.add("con-nav-inferior");
+  mostrarTab("inicio");
   $("btn-salir").hidden = false;
   if (nativeApp && window.Capacitor?.Plugins?.FcmPlugin) $("btn-ajustes-notif").hidden = false;
   if (nativeApp && window.Capacitor?.Plugins?.UpdatePlugin) {
     $("btn-buscar-update").hidden = false;
     buscarActualizacion(); // chequeo silencioso al abrir — no molesta si no hay nada nuevo
   }
+  mostrarInfoVersion();
 
   if (uidActual !== user.uid) {
     uidActual = user.uid;
@@ -215,10 +359,6 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // ── Token FCM (punto 6) ──────────────────────────────────────────────────
-// El token se pide y se sube a Firestore desde acá (WebView, ya autenticado
-// con Firebase Auth) — el proceso nativo (FCMService.kt) no tiene su propia
-// sesión de Firestore. Un id estable por instalación evita que un mismo
-// admin con dos dispositivos se pise el token del otro.
 function obtenerInstallId() {
   let id;
   try { id = localStorage.getItem("mimarInstallId"); } catch (_) {}
@@ -247,8 +387,6 @@ async function registrarTokenFcm() {
 }
 
 // ── Deep link desde una notificación tocada (punto 5) ────────────────────
-// Si el item todavía no llegó por onSnapshot (recién se abrió la app),
-// reintenta unas pocas veces en vez de fallar directo.
 window.addEventListener("mimarDeepLink", (ev) => {
   const { coleccion, docId } = ev.detail || {};
   if (!coleccion || !docId || coleccion === "clients") return; // cumpleaños no tiene modal de detalle propio en v1
@@ -301,10 +439,19 @@ function iniciarSuscripciones() {
     (snap) => manejarSnapshotKits(snap),
     (err) => manejarErrorFuente("pedidosKit", err));
 
-  // Bandeja de actividad (punto 2) — últimos eventos, más nuevo primero.
-  const qActividad = query(collection(db, "activityLog"), orderBy("timestamp", "desc"), limit(60));
+  // Bandeja de actividad (punto 2/4) — página más reciente, viva. El resto
+  // de la historia se pagina a pedido con "Cargar más antiguos" (más abajo).
+  actividadRecientes = []; actividadAntiguos = []; actividadCursor = null; actividadHayMas = false;
+  const qActividad = query(collection(db, "activityLog"), orderBy("timestamp", "desc"), limit(PAGINA_ACTIVIDAD));
   unsubActividad = onSnapshot(qActividad,
-    (snap) => { const items = []; snap.forEach((d) => items.push({ id: d.id, ...d.data() })); actividadItems = items; renderActividad(); },
+    (snap) => {
+      const items = [];
+      snap.forEach((d) => items.push(convertirEventoActividad(d)));
+      actividadRecientes = items;
+      if (!actividadCursor && snap.docs.length) actividadCursor = snap.docs[snap.docs.length - 1];
+      actividadHayMas = snap.docs.length === PAGINA_ACTIVIDAD; // puede haber más atrás de esta página
+      renderActividad();
+    },
     (err) => { console.warn("activityLog:", err?.message || err); });
 
   // Estado real de contacto por WhatsApp (punto 3) — para no mostrar nunca
@@ -321,6 +468,36 @@ function iniciarSuscripciones() {
   tickInterval = setInterval(renderTodo, 1000); // el reloj y la cuenta regresiva necesitan tick fino
 }
 
+function convertirEventoActividad(d) {
+  const data = d.data();
+  const cuando = data.timestamp?.toDate ? data.timestamp.toDate() : null;
+  return { id: d.id, ...data, timestampMs: cuando ? cuando.getTime() : null };
+}
+
+async function cargarMasActividad() {
+  if (actividadCargandoMas || !actividadHayMas || !actividadCursor) return;
+  actividadCargandoMas = true;
+  $("btn-cargar-mas").disabled = true;
+  $("btn-cargar-mas").textContent = "Cargando…";
+  try {
+    const q = query(collection(db, "activityLog"), orderBy("timestamp", "desc"), startAfter(actividadCursor), limit(PAGINA_ACTIVIDAD));
+    const snap = await getDocs(q);
+    const items = [];
+    snap.forEach((d) => items.push(convertirEventoActividad(d)));
+    actividadAntiguos = actividadAntiguos.concat(items);
+    if (snap.docs.length) actividadCursor = snap.docs[snap.docs.length - 1];
+    actividadHayMas = snap.docs.length === PAGINA_ACTIVIDAD;
+  } catch (e) {
+    toast("No se pudo cargar actividad más antigua: " + (e.message || e));
+  } finally {
+    actividadCargandoMas = false;
+    $("btn-cargar-mas").disabled = false;
+    $("btn-cargar-mas").textContent = "Cargar más antiguos";
+    renderActividad();
+  }
+}
+$("btn-cargar-mas").addEventListener("click", cargarMasActividad);
+
 function manejarSnapshot(fuenteId, snap) {
   const items = [];
   snap.forEach((d) => items.push(normalizarItemAgenda(fuenteId, d.id, d.data())));
@@ -331,17 +508,7 @@ function manejarSnapshot(fuenteId, snap) {
 
 function manejarSnapshotKits(snap) {
   const items = [];
-  snap.forEach((d) => {
-    const data = d.data() || {};
-    items.push({
-      id: d.id,
-      nombre: data.nombrePaciente || "Paciente",
-      productos: Array.isArray(data.productos) ? data.productos : [],
-      telefono: data.telefono || data.phone || null,
-      dni: data.dni || null,
-      fecha: data.fecha || null,
-    });
-  });
+  snap.forEach((d) => items.push(normalizarPedidoKit(d.id, d.data())));
   fuentes.pedidosKit = { estado: "ok", error: null, fromCache: snap.metadata.fromCache, items };
   renderKits();
 }
@@ -378,9 +545,6 @@ function renderReloj(ahoraMs) {
 
 // El badge de conexión refleja específicamente la agenda núcleo (reservas +
 // consultas, que alimentan el próximo turno y la bandeja de revisiones).
-// pedidosKit/activityLog/cumpleaños tienen su propio indicador de carga en
-// cada sección — no hace falta que una demora ahí tiña de "error" a toda la
-// pantalla.
 const FUENTES_CONEXION = ["reservas", "consultas"];
 
 function renderConexion() {
@@ -445,9 +609,7 @@ function renderProximoTurno(agenda, ahoraMs) {
   }
 }
 
-// Plazo por defecto para marcar un contacto como "vencido" en pantalla —
-// configurable a futuro desde configuracion/notificaciones; mientras tanto
-// un valor fijo razonable (1h) documentado acá, no oculto en el HTML.
+// Plazo por defecto para marcar un contacto como "vencido" en pantalla.
 const PLAZO_CONTACTO_VENCIDO_MS = 60 * 60000;
 
 function contactoDeItem(item, tipoMensaje = "confirmacion") {
@@ -495,7 +657,7 @@ function renderRevisiones(agenda, ahoraMs) {
   }
   const bandeja = obtenerBandejaRevisiones(agenda, ahoraMs);
   $("count-revisiones").textContent = String(bandeja.length);
-  $("quick-count-revisiones").textContent = String(bandeja.length);
+  $("resumen-pendientes").textContent = String(bandeja.length);
   if (!bandeja.length) {
     cont.innerHTML = `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Sin revisiones pendientes</h3><p>Nada requiere atención en este momento.</p></div>`;
     return;
@@ -524,6 +686,28 @@ function renderAgenda(agenda, hoyISO, mananaISO) {
     html += grupos[fecha].map((it) => tarjetaHtml(it, { conMotivos: false })).join("");
   });
   cont.innerHTML = html;
+
+  // "Consultas nuevas" en el resumen de Inicio: consultas activas de hoy/mañana.
+  $("resumen-consultas").textContent = String(activos.filter((it) => it.coleccion === "consultas").length);
+}
+
+function kitTarjetaHtml(k) {
+  // productosResumen (campo "productos") y items (derivado de
+  // "productosDetalle") pueden faltar por separado — se usa el que haya,
+  // nunca se descarta un dato disponible solo porque el otro campo falta.
+  const resumen = k.productosResumen
+    ? k.productosResumen.join(", ")
+    : k.items ? k.items.map((it) => it.nombre).join(", ") : "Sin detalle de productos";
+  return `
+    <div class="item-row" data-item="pedidosKit::${k.id}">
+      <div class="item-row-top"><span class="item-name">${escapeHtml(k.nombre)}</span><span class="pill pill-box">${escapeHtml(k.totalTexto)}</span></div>
+      <div class="item-service">${escapeHtml(resumen)}</div>
+      <div class="item-pills">
+        ${k.telefono ? `<span class="pill pill-muted">📞 ${escapeHtml(k.telefono)}</span>` : `<span class="pill pill-warn">Sin teléfono</span>`}
+        ${k.estadoPedido ? `<span class="pill pill-muted">${escapeHtml(k.estadoPedido)}</span>` : ""}
+      </div>
+      <div class="item-actions"><button class="button button-light" data-abrir="pedidosKit::${k.id}" type="button">Ver detalle</button></div>
+    </div>`;
 }
 
 function renderKits() {
@@ -535,19 +719,12 @@ function renderKits() {
   }
   const items = fuentes.pedidosKit.items;
   $("count-kits").textContent = String(items.length);
+  $("resumen-kits").textContent = String(items.length);
   if (!items.length) {
     cont.innerHTML = `<div class="empty-state"><h3>Sin pedidos pendientes</h3><p>No hay kits esperando entrega.</p></div>`;
     return;
   }
-  cont.innerHTML = items.map((k) => `
-    <div class="item-row" data-item="pedidosKit::${k.id}">
-      <div class="item-row-top"><span class="item-name">${escapeHtml(k.nombre)}</span></div>
-      <div class="item-service">${escapeHtml(k.productos.join(", ") || "Sin detalle de productos")}</div>
-      <div class="item-pills">
-        ${k.telefono ? `<span class="pill pill-muted">📞 ${escapeHtml(k.telefono)}</span>` : `<span class="pill pill-warn">Sin teléfono</span>`}
-      </div>
-      <div class="item-actions"><button class="button button-light" data-abrir="pedidosKit::${k.id}" type="button">Ver detalle</button></div>
-    </div>`).join("");
+  cont.innerHTML = items.map(kitTarjetaHtml).join("");
 }
 
 function renderCumpleanos() {
@@ -560,15 +737,18 @@ function renderCumpleanos() {
   if (cumpleanosHoy.estado === "error") {
     cont.innerHTML = `<div class="empty-state"><h3>No se pudo consultar</h3><p>${escapeHtml(cumpleanosHoy.detalle || "Error desconocido")}</p></div>`;
     $("count-cumpleanos").textContent = "?";
+    $("resumen-cumpleanos").textContent = "?";
     return;
   }
   if (cumpleanosHoy.estado === "no_generado") {
     cont.innerHTML = `<div class="empty-state"><h3>Todavía no se generó el resumen de hoy</h3><p>Se genera automáticamente a la hora configurada.</p></div>`;
     $("count-cumpleanos").textContent = "—";
+    $("resumen-cumpleanos").textContent = "—";
     return;
   }
   const personas = cumpleanosHoy.personas || [];
   $("count-cumpleanos").textContent = String(personas.length);
+  $("resumen-cumpleanos").textContent = String(personas.length);
   if (!personas.length) {
     cont.innerHTML = `<div class="empty-state"><h3>No hay cumpleaños hoy</h3></div>`;
     return;
@@ -593,45 +773,61 @@ const ETIQUETA_TIPO_EVENTO = {
   cursoMaquillaje: "Curso", reservasDepi: "Depilación",
 };
 
-function renderActividad() {
-  const cont = $("lista-actividad");
-  if (!cont) return;
-  if (!actividadItems.length) {
-    cont.innerHTML = `<div class="empty-state"><h3>Sin actividad todavía</h3><p>Acá van a aparecer las altas, bajas y cambios de Firestore a medida que ocurran.</p></div>`;
-    return;
-  }
-  cont.innerHTML = actividadItems.map((ev) => {
-    const leido = !!(ev.leidoPor && ev.leidoPor[uidActual]);
-    const cuando = ev.timestamp?.toDate ? ev.timestamp.toDate() : null;
-    const cuandoTxt = cuando ? new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: ZONA_HORARIA }).format(cuando) : "recién";
-    return `
-    <div class="item-row ${leido ? "" : "item-no-leido"}" data-evento="${escapeHtml(ev.id)}">
-      <div class="item-row-top">
-        <span class="pill pill-muted">${escapeHtml(ETIQUETA_TIPO_EVENTO[ev.coleccion] || ev.coleccion)}</span>
-        <span class="item-time">${cuandoTxt}</span>
-      </div>
-      <div class="item-service">${escapeHtml(ev.resumen || "")}</div>
-      <div class="item-actions">
-        ${!ev.atendido ? `<button class="button button-light" data-atender="${escapeHtml(ev.id)}" type="button">Marcar atendido</button>` : `<span class="pill pill-ok">✓ Atendido</span>`}
-      </div>
-    </div>`;
-  }).join("");
+function eventoTarjetaHtml(ev) {
+  const leido = !!(ev.leidoPor && ev.leidoPor[uidActual]);
+  const cuandoTxt = ev.timestampMs
+    ? new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: ZONA_HORARIA }).format(ev.timestampMs)
+    : "fecha no registrada";
+  const puedeAbrirDetalle = !!(ev.coleccion && ev.docId && ev.coleccion !== "clients");
+  return `
+  <div class="item-row ${leido ? "" : "item-no-leido"}" data-evento="${escapeHtml(ev.id)}">
+    <div class="item-row-top">
+      <span class="pill pill-muted">${escapeHtml(ETIQUETA_TIPO_EVENTO[ev.coleccion] || ev.coleccion)}</span>
+      <span class="item-time">${cuandoTxt}</span>
+    </div>
+    <div class="item-service">${escapeHtml(ev.resumen || "")}</div>
+    <div class="item-actions">
+      ${puedeAbrirDetalle ? `<button class="button button-light" data-abrir="${escapeHtml(ev.coleccion)}::${escapeHtml(ev.docId)}" type="button">Ver detalle</button>` : ""}
+      ${!ev.atendido ? `<button class="button button-light" data-atender="${escapeHtml(ev.id)}" type="button">Marcar atendido</button>` : `<span class="pill pill-ok">✓ Atendido</span>`}
+    </div>
+  </div>`;
 }
 
-function renderConsultas(agenda) {
-  const cont = $("lista-consultas");
-  if (!cont) return;
-  if (fuentes.consultas.estado === "cargando") {
-    cont.innerHTML = `<div class="loading-state">Cargando…</div>`;
+function renderActividad() {
+  const contHoy = $("lista-actividad-hoy");
+  if (!contHoy) return;
+  const combinados = actividadRecientes.concat(actividadAntiguos);
+  const filtrados = combinados.filter((ev) => eventoCoincideFiltro(ev, filtroActividad));
+
+  $("filtros-activos-badge").hidden = filtroEsNeutro(filtroActividad);
+
+  const alcanceEl = $("actividad-alcance");
+  const totalCargado = combinados.length;
+  let alcanceTxt = `${totalCargado} evento${totalCargado === 1 ? "" : "s"} cargado${totalCargado === 1 ? "" : "s"} de la actividad más reciente`;
+  if (!filtroEsNeutro(filtroActividad)) alcanceTxt += ` · ${filtrados.length} coincide${filtrados.length === 1 ? "" : "n"} con el filtro`;
+  if (actividadHayMas) alcanceTxt += " · hay actividad más antigua sin cargar";
+  alcanceEl.textContent = alcanceTxt;
+
+  if (!filtrados.length) {
+    contHoy.innerHTML = `<div class="empty-state"><h3>${combinados.length ? "Nada coincide con el filtro" : "Sin actividad todavía"}</h3><p>${combinados.length ? "Probá restablecer los filtros." : "Acá van a aparecer las altas, bajas y cambios de Firestore a medida que ocurran."}</p></div>`;
+    $("grupo-ayer-wrap").hidden = true;
+    $("grupo-anteriores-wrap").hidden = true;
+    $("btn-cargar-mas").hidden = !actividadHayMas;
     return;
   }
-  const items = agenda.filter((it) => it.coleccion === "consultas" && it.activa);
-  $("count-consultas").textContent = String(items.length);
-  if (!items.length) {
-    cont.innerHTML = `<div class="empty-state"><h3>Sin consultas iniciales</h3><p>No hay consultas activas para hoy ni mañana.</p></div>`;
-    return;
+
+  const grupos = agruparPorDia(filtrados);
+  contHoy.innerHTML = grupos.hoy.length ? grupos.hoy.map(eventoTarjetaHtml).join("") : `<div class="empty-state"><h3>Sin actividad hoy</h3></div>`;
+
+  $("grupo-ayer-wrap").hidden = !grupos.ayer.length;
+  if (grupos.ayer.length) $("lista-actividad-ayer").innerHTML = grupos.ayer.map(eventoTarjetaHtml).join("");
+
+  $("grupo-anteriores-wrap").hidden = !grupos.anteriores.length;
+  if (grupos.anteriores.length) {
+    $("lista-actividad-anteriores").innerHTML = grupos.anteriores.map(eventoTarjetaHtml).join("");
+    $("conteo-anteriores").textContent = `(${grupos.anteriores.length})`;
   }
-  cont.innerHTML = items.map((it) => tarjetaHtml(it, { conMotivos: false })).join("");
+  $("btn-cargar-mas").hidden = !actividadHayMas;
 }
 
 function renderTodo() {
@@ -644,15 +840,15 @@ function renderTodo() {
   renderProximoTurno(ultimaAgenda, ahoraMs);
   renderRevisiones(ultimaAgenda, ahoraMs);
   renderAgenda(ultimaAgenda, hoyISO, mananaISO);
-  renderConsultas(ultimaAgenda);
-}
 
-// ── Accesos rápidos (scroll dentro de la misma pantalla) ────────────────
-document.querySelectorAll("[data-scroll-to]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.getElementById(btn.getAttribute("data-scroll-to"))?.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-});
+  // Badge de la pestaña Pendientes: suma de todo lo que requiere acción.
+  const totalPendientes = Number($("resumen-pendientes").textContent || 0)
+    + Number($("resumen-kits").textContent || 0)
+    + (Number($("resumen-cumpleanos").textContent) || 0);
+  const badge = $("nav-badge-pendientes");
+  if (totalPendientes > 0) { badge.hidden = false; badge.textContent = String(totalPendientes); }
+  else badge.hidden = true;
+}
 
 // ── Delegación de clicks para abrir el detalle ───────────────────────────
 document.addEventListener("click", (ev) => {
@@ -663,31 +859,136 @@ document.addEventListener("click", (ev) => {
 // ── Modal de detalle + Preparar WhatsApp ────────────────────────────────
 const detalleDialog = $("detalle-dialog");
 
-function abrirModal(idAttr) {
+function historialEventoHtml(ev) {
+  const cuando = ev.timestampMs
+    ? new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: ZONA_HORARIA }).format(ev.timestampMs)
+    : "fecha no registrada";
+  let cambio = "";
+  if (ev.detalle?.fechaAnterior || ev.detalle?.horaAnterior) {
+    cambio = `<div class="historial-evento-cambio">Antes: ${escapeHtml(ev.detalle.fechaAnterior || "—")} ${escapeHtml(ev.detalle.horaAnterior || "")}</div>`;
+  } else if (ev.detalle?.motivo) {
+    cambio = `<div class="historial-evento-cambio">Motivo registrado: ${escapeHtml(ev.detalle.motivo)}</div>`;
+  }
+  return `<div class="historial-evento"><div class="historial-evento-cuando">${cuando}</div><div>${escapeHtml(ev.resumen || "")}</div>${cambio}</div>`;
+}
+
+async function cargarHistorialEnDetalle(coleccion, id) {
+  const cont = document.getElementById("historial-detalle-body");
+  if (!cont) return;
+  try {
+    const snap = await getDocs(query(collection(db, "activityLog"), where("coleccion", "==", coleccion), where("docId", "==", id)));
+    const eventos = [];
+    snap.forEach((d) => eventos.push(convertirEventoActividad(d)));
+    eventos.sort((a, b) => (b.timestampMs || 0) - (a.timestampMs || 0));
+    const contActual = document.getElementById("historial-detalle-body");
+    if (!contActual) return; // el modal se cerró mientras cargaba
+    contActual.innerHTML = eventos.length
+      ? eventos.map(historialEventoHtml).join("")
+      : `<p class="hint-text">Sin eventos registrados todavía para este registro.</p>`;
+  } catch (e) {
+    const contActual = document.getElementById("historial-detalle-body");
+    if (contActual) contActual.innerHTML = `<p class="hint-text">No se pudo cargar el historial (${escapeHtml(e.message || "error")}).</p>`;
+  }
+}
+
+function prepararWaPreview({ visible, texto }) {
+  $("wa-preview-wrap").hidden = !visible;
+  $("btn-preparar-wa").hidden = !visible;
+  if (visible) $("wa-preview-texto").value = texto || "";
+}
+
+// El caché en memoria (fuentes.pedidosKit, ultimaAgenda) solo cubre kits
+// pendientes y reservas/consultas de hoy/mañana. Un evento de Actividad
+// puede señalar un registro más viejo (o ya entregado/pasado) que no está
+// en ese caché — sin este fallback, "Ver detalle" fallaría ahí como si el
+// registro no existiera, aunque el documento siga en Firestore.
+async function resolverItemFueraDeCache(coleccion, id) {
+  try {
+    const snap = await getDoc(doc(db, coleccion, id));
+    if (!snap.exists()) return { existe: false };
+    const data = snap.data();
+    if (coleccion === "pedidosKit") return { existe: true, item: normalizarPedidoKit(id, data) };
+    return { existe: true, item: normalizarItemAgenda(coleccion, id, data) };
+  } catch (e) {
+    return { existe: false, error: e?.message || String(e) };
+  }
+}
+
+async function abrirModal(idAttr) {
   const [coleccion, id] = idAttr.split("::");
   const esKit = coleccion === "pedidosKit";
-  const item = esKit
+  let item = esKit
     ? fuentes.pedidosKit.items.find((it) => it.id === id)
     : ultimaAgenda.find((it) => it.coleccion === coleccion && it.id === id);
-  if (!item) { toast("Ya no se encuentra este registro."); return; }
+  let eliminado = false;
+  if (!item) {
+    const resuelto = await resolverItemFueraDeCache(coleccion, id);
+    if (resuelto.existe) item = resuelto.item;
+    else eliminado = true;
+  }
+  if (!item && !eliminado) { toast("No se pudo abrir este registro."); return; }
+  if (eliminado) {
+    // Se preserva el evento histórico (el historial se carga igual más
+    // abajo) — solo se aclara que el registro original ya no existe, en
+    // vez de fingir que nunca pasó nada o dejar la pantalla en blanco.
+    itemSeleccionado = null;
+    $("detalle-titulo").textContent = "Registro eliminado";
+    $("detalle-eyebrow").textContent = esKit ? "PEDIDO DE KIT" : coleccion === "consultas" ? "CONSULTA INICIAL" : "RESERVA";
+    $("detalle-status").className = "dialog-status";
+    $("detalle-status").textContent = "";
+    $("wa-preview-wrap").hidden = true;
+    $("btn-preparar-wa").hidden = true;
+    $("btn-registrar-manual").hidden = true;
+    $("detalle-body").innerHTML = `
+      <p class="hint-text">Este registro ya no existe en Firestore — puede haber sido eliminado. Se conserva su historial de actividad a continuación.</p>
+      <div class="detalle-subtitulo">Qué ocurrió (historial)</div>
+      <div id="historial-detalle-body"><p class="hint-text">Cargando historial…</p></div>
+    `;
+    cargarHistorialEnDetalle(coleccion, id);
+    if (typeof detalleDialog.showModal === "function") detalleDialog.showModal();
+    else detalleDialog.setAttribute("open", "");
+    return;
+  }
+  scrollGuardadoPorTab[tabActual] = window.scrollY;
   const tipoMensaje = esKit ? "kit" : coleccion === "consultas" ? "consulta" : "confirmacion";
-  itemSeleccionado = { coleccion, id, tipoMensaje };
+  itemSeleccionado = { coleccion, id, tipoMensaje, fechaOriginal: item.fecha || null, horaOriginal: item.hora || null };
   $("detalle-titulo").textContent = item.nombre || "Sin nombre registrado";
+  $("detalle-eyebrow").textContent = esKit ? "PEDIDO DE KIT" : coleccion === "consultas" ? "CONSULTA INICIAL" : "RESERVA";
   const statusEl = $("detalle-status");
   statusEl.className = "dialog-status";
   statusEl.textContent = "";
   $("btn-preparar-wa").disabled = false;
   $("btn-preparar-wa").innerHTML = `<svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp`;
+  $("btn-registrar-manual").hidden = true;
 
   if (esKit) {
+    const filasItems = item.items
+      ? item.items.map((it) => `<div class="detail-row"><span>${escapeHtml(it.nombre)} ${it.cantidad > 1 ? `×${it.cantidad}` : ""}</span><span>${it.subtotalCompleto ? escapeHtml(formatearARS(it.subtotal)) : "No registrado"}</span></div>`).join("")
+      : `<div class="detail-row"><span>Productos</span><span>${item.productosResumen ? escapeHtml(item.productosResumen.join(", ")) : "Sin detalle registrado"}</span></div>`;
+    const discrepanciaHtml = item.discrepanciaTotal
+      ? `<div class="aviso-discrepancia">⚠ El total guardado (${escapeHtml(formatearARS(item.discrepanciaTotal.registrado))}) no coincide con la suma de sus productos (${escapeHtml(formatearARS(item.discrepanciaTotal.calculado))}). Señalado para revisión — no se corrigió solo.</div>`
+      : "";
     $("detalle-body").innerHTML = `
-      <div class="detail-row"><span>Productos</span><span>${escapeHtml(item.productos.join(", ") || "sin detalle")}</span></div>
+      <div class="detalle-subtitulo">Productos pedidos</div>
+      ${filasItems}
+      ${discrepanciaHtml}
+      <div class="detail-row"><span>Total del pedido</span><span>${escapeHtml(item.totalTexto)}</span></div>
+      <div class="detail-row"><span>Monto abonado</span><span>${escapeHtml(item.montoAbonadoTexto)}</span></div>
+      <div class="detail-row"><span>Saldo pendiente</span><span>${escapeHtml(item.saldoPendienteTexto)}</span></div>
+      <div class="detail-row"><span>Fecha del pedido</span><span>${item.fechaPedido ? escapeHtml(item.fechaPedido) : "No registrada"}</span></div>
+      <div class="detail-row"><span>Estado del pedido</span><span>${item.estadoPedido ? escapeHtml(item.estadoPedido) : "No registrado"}</span></div>
+      ${item.entrega ? `<div class="detail-row"><span>Entrega</span><span>${escapeHtml(item.entrega)}</span></div>` : ""}
+      ${item.observaciones ? `<div class="detail-row"><span>Observaciones</span><span>${escapeHtml(item.observaciones)}</span></div>` : ""}
       <div class="detail-row"><span>Teléfono</span><span>${item.telefono ? escapeHtml(item.telefono) : "sin registrar"}</span></div>
-      <div class="detail-row"><span>Agenda</span><span>Pedido de kit</span></div>
+      <div class="detalle-subtitulo">Qué ocurrió (historial)</div>
+      <div id="historial-detalle-body"><p class="hint-text">Cargando historial…</p></div>
     `;
+    prepararWaPreview({ visible: !!item.telefono, texto: item.telefono ? construirTextoKit(item.nombre) : "" });
   } else {
     const box = boxLabel(item.box);
+    const estTemporal = estadoTemporalTurno(item);
     $("detalle-body").innerHTML = `
+      <div class="detalle-subtitulo">Estado actual</div>
       <div class="detail-row"><span>Fecha</span><span>${escapeHtml(item.fecha || "—")}</span></div>
       <div class="detail-row"><span>Hora</span><span>${escapeHtml(item.hora || "—")}</span></div>
       <div class="detail-row"><span>Servicio</span><span>${escapeHtml(item.servicio || "sin registrar")}</span></div>
@@ -695,11 +996,23 @@ function abrirModal(idAttr) {
       <div class="detail-row"><span>Box</span><span>${box ? escapeHtml(box) : "no asignado"}</span></div>
       <div class="detail-row"><span>Teléfono</span><span>${item.telefono ? escapeHtml(item.telefono) : "sin registrar"}</span></div>
       <div class="detail-row"><span>Estado registrado</span><span>${escapeHtml(item.estadoBruto || "sin estado")}</span></div>
+      <div class="detail-row"><span>Momento del turno</span><span>${escapeHtml(etiquetaEstadoTemporal(estTemporal))}</span></div>
       <div class="detail-row"><span>Agenda</span><span>${item.coleccion === "consultas" ? "Consultas iniciales" : "Reservas"}</span></div>
+      <div class="detail-row"><span>Contacto WhatsApp</span><span id="detalle-estado-contacto">Pendiente de contacto</span></div>
+      ${item.detalleSesion ? `<div class="detalle-subtitulo">Detalle registrado de la sesión</div><p class="hint-text" style="white-space:pre-line;">${escapeHtml(item.detalleSesion)}</p>` : (estTemporal === "pasado" ? `<p class="hint-text" style="margin-top:10px;">Turno pasado — sin detalle de sesión registrado. No se lo marca como realizado solo por la fecha.</p>` : "")}
+      <div class="detalle-subtitulo">Qué ocurrió (historial)</div>
+      <div id="historial-detalle-body"><p class="hint-text">Cargando historial…</p></div>
     `;
+    const contacto = contactoDeItem(item, tipoMensaje);
+    $("detalle-estado-contacto").textContent = etiquetaEstadoContacto(estadoContacto(contacto));
+    const esPreparable = item.activa && !!item.telefono;
+    prepararWaPreview({
+      visible: esPreparable,
+      texto: esPreparable ? (coleccion === "consultas" ? construirTextoConsulta(item) : construirTextoConfirmacion(item)) : "",
+    });
+    $("btn-registrar-manual").hidden = false;
   }
-  const contacto = esKit ? null : contactoDeItem(item, tipoMensaje);
-  $("detalle-estado-contacto").textContent = etiquetaEstadoContacto(estadoContacto(contacto));
+  cargarHistorialEnDetalle(coleccion, id);
   if (typeof detalleDialog.showModal === "function") detalleDialog.showModal();
   else detalleDialog.setAttribute("open", "");
 }
@@ -708,11 +1021,12 @@ function cerrarModal() {
   if (typeof detalleDialog.close === "function" && detalleDialog.open) detalleDialog.close();
   else detalleDialog.removeAttribute("open");
   itemSeleccionado = null;
+  scrollSeguro(scrollGuardadoPorTab[tabActual]);
 }
 $("btn-cerrar-detalle").addEventListener("click", cerrarModal);
 $("btn-cerrar-detalle-2").addEventListener("click", cerrarModal);
 detalleDialog.addEventListener("click", (ev) => { if (ev.target === detalleDialog) cerrarModal(); });
-detalleDialog.addEventListener("cancel", (ev) => { /* tecla Esc en desktop: dejar que <dialog> lo cierre solo */ itemSeleccionado = null; });
+detalleDialog.addEventListener("cancel", () => { itemSeleccionado = null; });
 
 function mostrarModalStatus(texto, tipo) {
   const el = $("detalle-status");
@@ -759,7 +1073,7 @@ $("btn-preparar-wa").addEventListener("click", async () => {
     }
     nombreDestino = data.nombrePaciente || "Paciente";
     numero = normalizarTelefonoWA(data.telefono || data.phone);
-    texto = construirTextoKit(nombreDestino);
+    texto = ($("wa-preview-texto").value || "").trim() || construirTextoKit(nombreDestino);
   } else {
     const fresco = normalizarItemAgenda(coleccion, id, snap.data());
     if (!fresco.activa) {
@@ -772,10 +1086,16 @@ $("btn-preparar-wa").addEventListener("click", async () => {
       btn.disabled = false; btn.innerHTML = `<svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp`;
       return;
     }
-    abrirModal(`${coleccion}::${id}`); // refleja cualquier cambio (reprogramación) antes de armar el texto
+    // Solo se refresca (y se pisa la vista previa editada) si el turno de
+    // verdad cambió de fecha/hora entre que se abrió el detalle y se tocó
+    // este botón — una reprogramación real invalida cualquier texto editado
+    // sobre la fecha vieja. Si nada cambió, se respeta lo que la operadora
+    // haya editado en la vista previa.
+    const reprogramada = fresco.fecha !== itemSeleccionado.fechaOriginal || fresco.hora !== itemSeleccionado.horaOriginal;
+    if (reprogramada) abrirModal(`${coleccion}::${id}`);
     nombreDestino = fresco.nombre;
     numero = normalizarTelefonoWA(fresco.telefono);
-    texto = coleccion === "consultas" ? construirTextoConsulta(fresco) : construirTextoConfirmacion(fresco);
+    texto = ($("wa-preview-texto").value || "").trim() || (coleccion === "consultas" ? construirTextoConsulta(fresco) : construirTextoConfirmacion(fresco));
   }
 
   const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
@@ -854,7 +1174,9 @@ document.addEventListener("click", async (ev) => {
 });
 
 // Preparar saludo de cumpleaños: registra el contacto igual que cualquier
-// otro wa.me (mismo criterio, mismo seguimiento de estado).
+// otro wa.me (mismo criterio, mismo seguimiento de estado). Es un saludo
+// genérico y fijo (no lleva montos ni fechas de turno), así que no necesita
+// el paso de vista previa editable que sí exigen los mensajes con datos.
 document.addEventListener("click", async (ev) => {
   const link = ev.target.closest("[data-preparar-cumple]");
   if (!link) return;
@@ -867,12 +1189,12 @@ document.addEventListener("click", async (ev) => {
 });
 
 // ── Botón Atrás (solo dentro de la app Android) ──────────────────────────
-// Prioridad: 1) cerrar el modal si está abierto  2) doble Atrás para salir
-// desde la pantalla principal. En el navegador de escritorio no se toca el
-// comportamiento nativo del botón Atrás.
+// Prioridad: 1) cerrar el panel inferior si está abierto  2) cerrar el modal
+// si está abierto  3) doble Atrás para salir desde la pantalla principal.
 if (nativeApp && AppPlugin?.addListener) {
   let ultimoAtras = 0;
   AppPlugin.addListener("backButton", () => {
+    if (sheetAbierto) { cerrarSheet(); return; }
     if (detalleDialog.open) { cerrarModal(); return; }
     const ahora = Date.now();
     if (ahora - ultimoAtras < 2200) { AppPlugin.exitApp(); return; }
@@ -880,9 +1202,6 @@ if (nativeApp && AppPlugin?.addListener) {
     toast("Tocá de nuevo Atrás para salir");
   });
 
-  // Al volver a primer plano, verificar de nuevo con el servidor antes de
-  // que cualquier acción (p.ej. Preparar WhatsApp) asuma datos vigentes, y
-  // preguntar si quedó un mensaje por confirmar (punto 3).
   AppPlugin.addListener("appStateChange", ({ isActive }) => {
     if (isActive) {
       reconciliar();
@@ -890,10 +1209,7 @@ if (nativeApp && AppPlugin?.addListener) {
     }
   });
 } else {
-  // En navegador de escritorio no hay appStateChange nativo — se usa
-  // visibilitychange, que ya dispara reconciliar() más arriba.
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") mostrarPromptEnvio();
   });
 }
-

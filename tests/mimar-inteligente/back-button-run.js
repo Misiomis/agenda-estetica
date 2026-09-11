@@ -82,6 +82,17 @@ async function run() {
     check('Atrás con el modal abierto NO salió de la app', exitAppLlamado === 0);
   }
 
+  console.log('\n=== Atrás con el panel inferior (filtros) abierto: lo cierra, NO cierra nada más ===');
+  {
+    document.querySelector('[data-tab-btn="actividad"]').click();
+    $('btn-abrir-filtros').click();
+    check('el panel inferior está abierto', $('bottom-sheet').hidden === false);
+    backButtonHandlers[0]();
+    check('Atrás cerró el panel inferior', $('bottom-sheet').hidden === true);
+    check('Atrás con el panel abierto NO salió de la app', exitAppLlamado === 0);
+    document.querySelector('[data-tab-btn="inicio"]').click();
+  }
+
   console.log('\n=== Atrás en la pantalla principal: primero avisa, segundo Atrás (rápido) sale ===');
   {
     backButtonHandlers[0](); // primer Atrás

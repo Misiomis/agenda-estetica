@@ -21,6 +21,7 @@ import {
   serverTimestamp,
   onSnapshot,
   limit,
+  startAfter,
   writeBatch,
   runTransaction,
   increment,
@@ -51,5 +52,5 @@ export {
   getApp, getAuth, getDoc, getDocFromServer, getDocs, getFirestore,
   increment, initializeApp, limit, onAuthStateChanged, orderBy,
   onSnapshot, query, serverTimestamp, setDoc, signInWithEmailAndPassword,
-  signOut, updateDoc, where, writeBatch, runTransaction,
+  signOut, startAfter, updateDoc, where, writeBatch, runTransaction,
 };
