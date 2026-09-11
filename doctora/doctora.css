@@ -1,0 +1,43 @@
+@charset "UTF-8";
+/* Pacientes de la Doctora — hereda la identidad de Mimar T Inteligente
+   (mimar-inteligente.css: marfil, verde bosque, esmeralda) en vez de sumar
+   una paleta nueva. Acá solo lo específico de este módulo. */
+
+.brand-mark { font-weight: 600; }
+
+/* ── Formularios dentro de un dialog (alta/edición de paciente) ── */
+.dialog-body form,
+#form-paciente { display: flex; flex-direction: column; gap: 4px; }
+.dialog-body label { margin-top: 10px; font-size: .85rem; color: var(--muted); }
+.dialog-body label:first-child { margin-top: 0; }
+
+/* ── Buscador de pacientes ── */
+.buscador-wrap {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 14px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+}
+.buscador-wrap .icon { color: var(--muted); flex-shrink: 0; }
+.buscador-wrap input { border: 0; background: transparent; width: 100%; font-size: 16px; color: var(--ink); padding: 4px 0; }
+.buscador-wrap input:focus { outline: none; }
+
+/* ── Selector de fecha (Agenda) ── */
+.fecha-stepper { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.fecha-stepper-actual { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.fecha-stepper-actual > span:first-child { font: 500 1.1rem/1.3 var(--serif); text-align: center; text-transform: capitalize; overflow-wrap: anywhere; }
+.fecha-stepper-acciones { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px; }
+.fecha-stepper-acciones input[type="date"] { max-width: 170px; padding: 9px 10px; font-size: .85rem; }
+
+/* ── Grilla de horarios ── */
+.slot-row { padding: 14px 16px; border-bottom: 1px solid #e7e8df; display: flex; align-items: center; gap: 12px; }
+.slot-row:last-child { border-bottom: 0; }
+.slot-hora { font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--forest); width: 56px; flex-shrink: 0; }
+.slot-contenido { flex: 1; min-width: 0; }
+.slot-libre { color: var(--muted); font-size: .9rem; }
+.slot-paciente-nombre { font-weight: 600; overflow-wrap: anywhere; }
+.slot-paciente-sub { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+.slot-row .button { flex-shrink: 0; }
+
+@media (max-width: 380px) {
+  .slot-row { flex-wrap: wrap; }
+  .fecha-stepper-acciones { flex-direction: column; gap: 8px; }
+}
