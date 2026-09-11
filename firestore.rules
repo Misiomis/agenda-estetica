@@ -225,5 +225,26 @@ service cloud.firestore {
       allow read, write: if esDoctora();
     }
 
+    // Movimientos de dinero (cobro/devolución) por consulta — es un
+    // registro contable append-only a propósito: nunca se edita ni se
+    // borra un movimiento ya creado (una corrección es SIEMPRE un
+    // movimiento nuevo que referencia al anterior), así se conserva la
+    // trazabilidad completa incluso a nivel de reglas, no solo por
+    // convención de la app.
+    match /movimientosDineroDoctora/{movimientoId} {
+      allow read:   if esDoctora();
+      allow create: if esDoctora();
+      allow update, delete: if false;
+    }
+
+    // Cierre de jornada — snapshot congelado por fecha (doc id = fecha
+    // ISO). "create"/"update" cubren guardar y también reabrir (que solo
+    // cambia estado + agrega al historial), pero nunca se borra un cierre.
+    match /cierresDoctora/{fecha} {
+      allow read:   if esDoctora();
+      allow create, update: if esDoctora();
+      allow delete: if false;
+    }
+
   }
 }

@@ -2,7 +2,7 @@
 // pestañas (Pacientes / Agenda). Página web normal (no es la app Capacitor),
 // así que importa el firebase-web.js canónico de la raíz del proyecto.
 import {
-  db, auth, collection, query, where, orderBy, limit, onSnapshot, doc, getDoc, getDocFromServer,
+  db, auth, collection, query, where, orderBy, limit, onSnapshot, doc, getDoc, getDocs, getDocFromServer,
   setDoc, updateDoc, serverTimestamp, runTransaction,
   onAuthStateChanged, signInWithEmailAndPassword, signOut,
 } from "../js/firebase-web.js";
@@ -14,11 +14,18 @@ import {
   etiquetaConfirmacionPaciente, estadoContacto, etiquetaEstadoContacto,
   construirTextoConfirmacionDoctora, construirTextoRecordatorioDoctora,
   construirTextoRecomendacionesDoctora, puedeEnviarRecordatorio,
+  pesosAcentavos, formatoPesosAR, medioPagoValido, validarMediosPago,
+  etiquetaMediosPago, calcularRepartoDoctora, resumenDineroTurno, calcularCierreJornada, armarDetalleCierre,
+  MEDIOS_PAGO_DOCTORA, ETIQUETA_MEDIO_PAGO,
 } from "./doctora-logic.js";
 import {
   registrarContactoDoctoraPreparado, registrarContactoDoctoraEstado,
   registrarContactoDoctoraManual, registrarConfirmacionPaciente, idContactoDoctora,
 } from "./doctora-contactos.js";
+import {
+  registrarPrecioConsulta, registrarMovimientoDinero, guardarCierreJornada,
+  reabrirCierreJornada, generarIdempotencyKey, COLECCION_MOVIMIENTOS, COLECCION_CIERRES,
+} from "./doctora-dinero.js";
 
 // ── Acceso: exclusivo de la doctora + admin general (punto 1) ───────────
 const EMAILS_AUTORIZADOS = ["espaciomimart36@gmail.com", "doctora.mimart@gmail.com"];
@@ -838,6 +845,19 @@ function abrirSheetAsignarHorarioPendiente(turnoId) {
 // ── Detalle de turno + acciones (WhatsApp, cancelar, reprogramar) ────
 const turnoDialog = $("turno-dialog");
 let turnoSeleccionado = null; // { id, tipoMensajeActivo }
+// UNA sola superficie de diálogo activa (punto 1): "acciones" y
+// "reprogramar" reemplazan el contenido de #turno-dialog-body con un
+// botón "Volver" en vez de abrir un segundo panel superpuesto encima del
+// <dialog> — un <dialog> abierto con showModal() vive en el "top layer"
+// del navegador, así que ningún elemento normal (por más z-index que
+// tenga) puede quedar visualmente por delante; el bottom-sheet genérico
+// (#bottom-sheet) sigue existiendo para los demás usos (habilitar fecha,
+// ubicación, etc.) que nunca se abren con el turno-dialog ya abierto.
+let turnoDialogVista = "ficha"; // "ficha" | "acciones" | "reprogramar" | "cobro"
+let turnoDialogFocoPrevio = null;
+let turnoDialogScrollPrevio = 0;
+let turnoDialogPopstateInterno = false;
+let cobroFormState = null; // { tipo, medios: [{tipo,monto}], fecha, nota, idempotencyKey }
 
 document.addEventListener("click", (ev) => {
   const btn = ev.target.closest("[data-abrir-turno]");
@@ -857,10 +877,87 @@ function historialReprogramacionHtml(turno) {
   return `<div class="historial-evento-cambio">Antes: ${escapeHtml(turno.fechaAnteriorTurno || "—")} ${escapeHtml(turno.horaAnteriorTurno || "")}</div>`;
 }
 
-function abrirTurnoDialog(turnoId) {
+// Alterna qué "superficie" se ve dentro del <dialog> ya abierto: en
+// "ficha" se ve el botón Volver oculto y la fila de acciones normal
+// (Más acciones / Cerrar); en cualquier otra vista se ve "‹ Volver" en el
+// encabezado y la fila de acciones de la ficha queda oculta (esa vista
+// trae sus propios botones dentro de #turno-dialog-body).
+function mostrarVistaTurno(vista) {
+  turnoDialogVista = vista;
+  const esFicha = vista === "ficha";
+  $("btn-volver-turno-dialog").hidden = esFicha;
+  $("turno-dialog-actions-ficha").hidden = !esFicha;
+  $("turno-dialog-body").scrollTop = 0;
+}
+
+async function abrirTurnoDialog(turnoId) {
   const turno = buscarTurnoPorId(turnoId);
   if (!turno) { toast("No se encuentra ese turno."); return; }
+  const yaAbierto = turnoDialog.open;
   turnoSeleccionado = { id: turnoId, tipoMensajeActivo: null };
+  // Abre YA (síncrono) y recién después completa el contenido — el resumen
+  // de dinero necesita una consulta a Firestore, y no tiene sentido hacer
+  // esperar a que se abra el diálogo por eso: la ficha se ve al toque, con
+  // "Cargando…" en la sección de Importe y cobro mientras resuelve.
+  if (!yaAbierto) {
+    turnoDialogFocoPrevio = document.activeElement;
+    turnoDialogScrollPrevio = window.scrollY;
+    try { history.pushState({ turnoDoctoraAbierto: true }, ""); } catch (_) {}
+    if (typeof turnoDialog.showModal === "function") turnoDialog.showModal();
+    else turnoDialog.setAttribute("open", "");
+  }
+  await renderVistaFicha(turno);
+}
+
+function cerrarTurnoDialog() {
+  if (typeof turnoDialog.close === "function" && turnoDialog.open) turnoDialog.close();
+  else turnoDialog.removeAttribute("open");
+}
+// Un solo lugar de limpieza para TODAS las formas de cerrar (cruz, botón
+// "Cerrar", Escape nativo del <dialog>, click en el backdrop, o "Atrás"):
+// el evento "close" nativo se dispara siempre, así que no hace falta
+// duplicar la limpieza en cada botón.
+turnoDialog.addEventListener("close", () => {
+  turnoSeleccionado = null;
+  cobroFormState = null;
+  mostrarVistaTurno("ficha");
+  if (turnoDialogFocoPrevio && typeof turnoDialogFocoPrevio.focus === "function") {
+    try { turnoDialogFocoPrevio.focus(); } catch (_) {}
+  }
+  turnoDialogFocoPrevio = null;
+  scrollSeguro(turnoDialogScrollPrevio);
+  // Si el cierre lo disparó el propio botón "Atrás" (popstate), la entrada
+  // de historial ya se consumió sola — no volver a popearla o el usuario
+  // terminaría navegando dos páginas atrás con un solo gesto.
+  if (!turnoDialogPopstateInterno) { try { history.back(); } catch (_) {} }
+});
+window.addEventListener("popstate", () => {
+  if (turnoDialog.open) {
+    turnoDialogPopstateInterno = true;
+    cerrarTurnoDialog();
+    turnoDialogPopstateInterno = false;
+  }
+});
+$("btn-cerrar-turno-dialog").addEventListener("click", cerrarTurnoDialog);
+$("btn-cerrar-turno-dialog-2").addEventListener("click", cerrarTurnoDialog);
+turnoDialog.addEventListener("click", (ev) => { if (ev.target === turnoDialog) cerrarTurnoDialog(); });
+$("btn-volver-turno-dialog").addEventListener("click", () => {
+  if (!turnoSeleccionado) { cerrarTurnoDialog(); return; }
+  const turno = buscarTurnoPorId(turnoSeleccionado.id);
+  if (!turno) { cerrarTurnoDialog(); return; }
+  cobroFormState = null;
+  renderVistaFicha(turno);
+});
+
+function mostrarTurnoDialogStatus(texto, tipo) {
+  const el = $("turno-dialog-status");
+  el.textContent = texto;
+  el.className = `dialog-status mostrar ${tipo}`;
+}
+
+// ── Vista "ficha": detalle del turno + Importe y cobro (punto 3) ────────
+async function renderVistaFicha(turno) {
+  mostrarVistaTurno("ficha");
   $("turno-dialog-titulo").textContent = turno.pacienteNombre || "Sin nombre registrado";
   $("turno-dialog-eyebrow").textContent = esPendienteDeHorario(turno) ? "PENDIENTE DE HORARIO" : "TURNO";
   $("turno-dialog-status").className = "dialog-status";
@@ -876,46 +973,121 @@ function abrirTurnoDialog(turnoId) {
     <div class="detail-row"><span>Confirmación de la paciente</span><span>${escapeHtml(etiquetaConfirmacionPaciente(turno))}</span></div>
     ${historialReprogramacionHtml(turno)}
     ${turno.motivoCancelacion ? `<div class="detail-row"><span>Motivo de cancelación</span><span>${escapeHtml(turno.motivoCancelacion)}</span></div>` : ""}
+    <div class="detalle-subtitulo">Importe y cobro</div>
+    <div id="dinero-seccion"><div class="loading-state">Cargando…</div></div>
   `;
   $("wa-doctora-preview-wrap").hidden = true;
   $("btn-abrir-whatsapp-doctora").hidden = true;
-  if (typeof turnoDialog.showModal === "function") turnoDialog.showModal();
-  else turnoDialog.setAttribute("open", "");
+  await cargarYRenderizarDinero(turno);
 }
 
-function cerrarTurnoDialog() {
-  if (typeof turnoDialog.close === "function" && turnoDialog.open) turnoDialog.close();
-  else turnoDialog.removeAttribute("open");
-  turnoSeleccionado = null;
+async function cargarYRenderizarDinero(turno) {
+  const cont = $("dinero-seccion");
+  if (!cont) return; // la persona ya navegó a otra vista antes de que esto resolviera
+  let movimientos = [];
+  try {
+    const snap = await getDocs(query(collection(db, COLECCION_MOVIMIENTOS), where("turnoId", "==", turno.id)));
+    snap.forEach((d) => movimientos.push({ id: d.id, ...d.data() }));
+    movimientos.sort((a, b) => (a.fechaMovimiento || "").localeCompare(b.fechaMovimiento || "") || (a.id || "").localeCompare(b.id || ""));
+  } catch (e) {
+    if ($("dinero-seccion")) $("dinero-seccion").innerHTML = `<div class="error-state">No se pudo cargar el historial de cobros: ${escapeHtml(e?.message || e)}</div>`;
+    return;
+  }
+  if (!$("dinero-seccion")) return; // se pudo haber cerrado el dialog mientras esperaba
+  const resumen = resumenDineroTurno(turno.precioConsultaCentavos ?? null, movimientos);
+  $("dinero-seccion").innerHTML = renderDineroSeccionHtml(resumen, movimientos);
+  $("btn-editar-precio")?.addEventListener("click", () => mostrarFormPrecio(turno, resumen));
+  $("btn-registrar-cobro")?.addEventListener("click", () => renderVistaCobro(turno, resumen));
 }
-$("btn-cerrar-turno-dialog").addEventListener("click", cerrarTurnoDialog);
-$("btn-cerrar-turno-dialog-2").addEventListener("click", cerrarTurnoDialog);
-turnoDialog.addEventListener("click", (ev) => { if (ev.target === turnoDialog) cerrarTurnoDialog(); });
 
-function mostrarTurnoDialogStatus(texto, tipo) {
-  const el = $("turno-dialog-status");
-  el.textContent = texto;
-  el.className = `dialog-status mostrar ${tipo}`;
+function renderDineroSeccionHtml(resumen, movimientos) {
+  const precioTexto = resumen.precioConsultaCentavos === null ? "Sin cargar" : formatoPesosAR(resumen.precioConsultaCentavos);
+  const pendienteTexto = resumen.saldoPendienteCentavos === null ? "Sin cargar precio" : formatoPesosAR(resumen.saldoPendienteCentavos);
+  const movimientosHtml = movimientos.length
+    ? `<div class="dinero-movimientos-lista">${movimientos.map((m) => `
+        <div class="dinero-movimiento-row">
+          <span class="dinero-movimiento-fecha">${escapeHtml(m.fechaMovimiento || "—")}</span>
+          <span class="dinero-movimiento-tipo ${m.tipo === "devolucion" ? "es-devolucion" : ""}">${m.tipo === "devolucion" ? "Devolución" : "Cobro"}</span>
+          <span class="dinero-movimiento-monto">${formatoPesosAR(m.montoCentavos)}</span>
+          <span class="dinero-movimiento-medio">${escapeHtml(etiquetaMediosPago(m.medios))}</span>
+          ${m.nota ? `<span class="dinero-movimiento-nota">${escapeHtml(m.nota)}</span>` : ""}
+        </div>`).join("")}</div>`
+    : `<p class="hint-text">Todavía no se registraron cobros para esta consulta.</p>`;
+  return `
+    <div class="detail-row"><span>Precio de la consulta</span><span>${escapeHtml(precioTexto)} <button class="text-button" type="button" id="btn-editar-precio">Editar</button></span></div>
+    <div class="detail-row"><span>Cobrado</span><span>${formatoPesosAR(resumen.netoCobradoCentavos)}</span></div>
+    <div class="detail-row"><span>Saldo pendiente</span><span>${escapeHtml(pendienteTexto)}</span></div>
+    ${movimientosHtml}
+    <button class="button button-light button-full" type="button" id="btn-registrar-cobro" style="margin-top:12px;">Registrar cobro / devolución</button>
+  `;
+}
+
+function mostrarFormPrecio(turno, resumen) {
+  const cont = $("dinero-seccion");
+  if (!cont) return;
+  const valorActual = resumen.precioConsultaCentavos === null ? "" : (resumen.precioConsultaCentavos / 100).toString().replace(".", ",");
+  cont.insertAdjacentHTML("beforeend", `
+    <div class="dinero-precio-form" id="dinero-precio-form">
+      <label for="input-precio-consulta">Precio acordado (ARS) — no afecta otras consultas ni el catálogo</label>
+      <input type="text" inputmode="decimal" id="input-precio-consulta" placeholder="Ej: 15000 o 15000,50" value="${escapeHtml(valorActual)}">
+      <p class="error-text" id="precio-consulta-error"></p>
+      <div class="dinero-form-actions">
+        <button class="button button-primary" type="button" id="btn-guardar-precio">Guardar precio</button>
+        <button class="button button-light" type="button" id="btn-cancelar-precio">Cancelar</button>
+      </div>
+    </div>
+  `);
+  $("input-precio-consulta").focus();
+  $("btn-cancelar-precio").addEventListener("click", () => $("dinero-precio-form")?.remove());
+  $("btn-guardar-precio").addEventListener("click", async () => {
+    const raw = $("input-precio-consulta").value.trim();
+    const errEl = $("precio-consulta-error");
+    errEl.textContent = "";
+    const centavos = raw === "" ? null : pesosAcentavos(raw);
+    if (raw !== "" && centavos === null) { errEl.textContent = "Importe inválido. Usá números, con hasta 2 decimales."; return; }
+    const btn = $("btn-guardar-precio");
+    btn.disabled = true;
+    try {
+      const operador = await operadorActual();
+      await registrarPrecioConsulta({ updateDoc, doc, serverTimestamp, db, turnoId: turno.id, precioConsultaCentavos: centavos, operador });
+      toast("Precio guardado.");
+      const turnoFresco = buscarTurnoPorId(turno.id) || turno;
+      turnoFresco.precioConsultaCentavos = centavos; // refleja el cambio ya mismo, sin esperar la próxima sincronización
+      await renderVistaFicha(turnoFresco);
+    } catch (e) {
+      errEl.textContent = "No se pudo guardar: " + (e?.message || e);
+      btn.disabled = false;
+    }
+  });
 }
 
 $("btn-turno-acciones").addEventListener("click", () => {
   if (!turnoSeleccionado) return;
   const turno = buscarTurnoPorId(turnoSeleccionado.id);
   if (!turno) return;
+  renderVistaAcciones(turno);
+});
+
+// ── Vista "acciones": mismo contenido que antes tenía el bottom-sheet
+// "Más acciones", ahora dentro del propio <dialog> (punto 1). ───────────
+function renderVistaAcciones(turno) {
+  mostrarVistaTurno("acciones");
+  $("turno-dialog-eyebrow").textContent = "MÁS ACCIONES";
+  $("turno-dialog-titulo").textContent = turno.pacienteNombre || "Sin nombre registrado";
   const opciones = [];
-  opciones.push(`<button class="sheet-option" type="button" data-accion-turno="confirmacion">Preparar confirmación</button>`);
-  opciones.push(`<button class="sheet-option" type="button" data-accion-turno="recordatorio">Preparar recordatorio</button>`);
-  opciones.push(`<button class="sheet-option" type="button" data-accion-turno="recomendaciones">Preparar recomendaciones</button>`);
-  opciones.push(`<button class="sheet-option" type="button" data-accion-turno="registrar-manual">Registrar envío manual</button>`);
-  opciones.push(`<button class="sheet-option" type="button" data-accion-turno="confirmo-si">La paciente confirmó asistencia</button>`);
-  opciones.push(`<button class="sheet-option" type="button" data-accion-turno="confirmo-no">La paciente avisó que no viene</button>`);
-  if (turno.hora) opciones.push(`<button class="sheet-option" type="button" data-accion-turno="reprogramar">Reprogramar horario</button>`);
-  if (turno.estado !== "cancelado") opciones.push(`<button class="sheet-option" type="button" data-accion-turno="cancelar">Cancelar turno</button>`);
-  abrirSheet("Más acciones", `<div class="sheet-option-list">${opciones.join("")}</div>`);
-  $("sheet-body").querySelectorAll("[data-accion-turno]").forEach((el) => {
+  opciones.push(`<button class="mas-item" type="button" data-accion-turno="confirmacion">Preparar confirmación</button>`);
+  opciones.push(`<button class="mas-item" type="button" data-accion-turno="recordatorio">Preparar recordatorio</button>`);
+  opciones.push(`<button class="mas-item" type="button" data-accion-turno="recomendaciones">Preparar recomendaciones</button>`);
+  opciones.push(`<button class="mas-item" type="button" data-accion-turno="registrar-manual">Registrar envío manual</button>`);
+  opciones.push(`<button class="mas-item" type="button" data-accion-turno="confirmo-si">La paciente confirmó asistencia</button>`);
+  opciones.push(`<button class="mas-item" type="button" data-accion-turno="confirmo-no">La paciente avisó que no viene</button>`);
+  if (turno.hora) opciones.push(`<button class="mas-item" type="button" data-accion-turno="reprogramar">Reprogramar horario</button>`);
+  if (turno.estado !== "cancelado") opciones.push(`<button class="mas-item" type="button" data-accion-turno="cancelar">Cancelar turno</button>`);
+  $("turno-dialog-body").innerHTML = `<div class="mas-lista">${opciones.join("")}</div>`;
+  $("turno-dialog-body").querySelectorAll("[data-accion-turno]").forEach((el) => {
     el.addEventListener("click", () => ejecutarAccionTurno(el.getAttribute("data-accion-turno")));
   });
-});
+}
 
 function prepararWaDoctoraPreview(texto) {
   $("wa-doctora-preview-wrap").hidden = false;
@@ -924,7 +1096,6 @@ function prepararWaDoctoraPreview(texto) {
 }
 
 async function ejecutarAccionTurno(accion) {
-  cerrarSheet();
   if (!turnoSeleccionado) return;
   const turno = buscarTurnoPorId(turnoSeleccionado.id);
   if (!turno) return;
@@ -934,6 +1105,7 @@ async function ejecutarAccionTurno(accion) {
     const texto = accion === "confirmacion" ? construirTextoConfirmacionDoctora(turno, ubicacionConfigurada)
       : accion === "recordatorio" ? construirTextoRecordatorioDoctora(turno)
       : construirTextoRecomendacionesDoctora(turno, "");
+    await renderVistaFicha(turno);
     prepararWaDoctoraPreview(texto);
     return;
   }
@@ -943,6 +1115,7 @@ async function ejecutarAccionTurno(accion) {
     try {
       const operador = await operadorActual();
       await registrarContactoDoctoraManual({ setDoc, doc, serverTimestamp, db, turnoId: turno.id, tipoMensaje: tipo, operador, nota: "Registrado manualmente desde Pacientes de la Doctora" });
+      await renderVistaFicha(turno);
       mostrarTurnoDialogStatus("Envío registrado manualmente.", "info");
       toast("Envío registrado.");
     } catch (e) { mostrarTurnoDialogStatus("No se pudo registrar: " + (e?.message || e), "error"); }
@@ -954,7 +1127,7 @@ async function ejecutarAccionTurno(accion) {
       const operador = await operadorActual();
       await registrarConfirmacionPaciente({ updateDoc, doc, serverTimestamp, db, turnoId: turno.id, confirmado: accion === "confirmo-si", operador });
       toast(accion === "confirmo-si" ? "Registrado: confirmó asistencia." : "Registrado: avisó que no viene.");
-      abrirTurnoDialog(turno.id); // refresca el detalle con el nuevo estado
+      await renderVistaFicha(buscarTurnoPorId(turno.id) || turno); // refresca el detalle con el nuevo estado
     } catch (e) { toast("No se pudo registrar: " + (e?.message || e)); }
     return;
   }
@@ -968,6 +1141,9 @@ async function ejecutarAccionTurno(accion) {
         const slotRef = doc(db, "slotsDoctora", `${turno.fecha}_${turno.hora.replace(":", "-")}`);
         await setDoc(slotRef, { ocupado: false, updatedAt: serverTimestamp() }, { merge: true });
       }
+      // Cancelar NUNCA toca movimientosDineroDoctora (punto 6): los cobros
+      // ya registrados sobreviven intactos, con su trazabilidad completa,
+      // pase lo que pase con el turno.
       await updateDoc(doc(db, "turnosDoctora", turno.id), {
         estado: "cancelado",
         canceladoPorUid: operador?.uid || null, canceladoPorEmail: operador?.email || null,
@@ -996,22 +1172,144 @@ async function ejecutarAccionTurno(accion) {
     const ocupados = new Set(turnosMismaFecha.filter((t) => t.hora && t.estado !== "cancelado" && t.id !== turno.id).map((t) => t.hora));
     const libres = generarHorariosDelDia(fechaDocDelTurno.horaInicio, fechaDocDelTurno.horaFin, fechaDocDelTurno.duracionTurnoMin).filter((h) => !ocupados.has(h));
     if (!libres.length) { toast("No quedan horarios libres ese día."); return; }
-    abrirSheet("Reprogramar a", `<div class="sheet-option-list">${libres.map((h) => `<button class="sheet-option" type="button" data-nuevo-horario="${escapeHtml(h)}">${escapeHtml(h)}</button>`).join("")}</div>`);
-    $("sheet-body").querySelectorAll("[data-nuevo-horario]").forEach((el) => {
-      el.addEventListener("click", async () => {
-        const horaNueva = el.getAttribute("data-nuevo-horario");
-        cerrarSheet();
-        try {
-          await asignarOReprogramarHorario({
-            turnoId: turno.id, fecha: turno.fecha, hora: horaNueva,
-            fechaAnterior: turno.fecha, horaAnterior: turno.hora,
-            datosTurno: { pacienteDni: turno.pacienteDni, pacienteNombre: turno.pacienteNombre, pacienteTelefono: turno.pacienteTelefono || "", estado: "confirmado", duracionMin: fechaDocDelTurno?.duracionTurnoMin || null },
-          });
-          toast(`Turno reprogramado a las ${horaNueva}.`);
-          abrirTurnoDialog(turno.id);
-        } catch (e) { toast(MOTIVOS_RESERVA[e?.message] || ("No se pudo reprogramar: " + (e?.message || e))); }
-      });
+    renderVistaReprogramar(turno, libres, fechaDocDelTurno);
+  }
+}
+
+// ── Vista "reprogramar": antes era un sheet abierto ENCIMA del sheet
+// "Más acciones" (dos superposiciones sobre el turno-dialog a la vez) —
+// ahora reemplaza el contenido del mismo <dialog>. ──────────────────────
+function renderVistaReprogramar(turno, libres, fechaDocDelTurno) {
+  mostrarVistaTurno("reprogramar");
+  $("turno-dialog-eyebrow").textContent = "REPROGRAMAR";
+  $("turno-dialog-titulo").textContent = "Elegí un horario";
+  $("turno-dialog-body").innerHTML = `<div class="mas-lista">${libres.map((h) => `<button class="mas-item" type="button" data-nuevo-horario="${escapeHtml(h)}">${escapeHtml(h)}</button>`).join("")}</div>`;
+  $("turno-dialog-body").querySelectorAll("[data-nuevo-horario]").forEach((el) => {
+    el.addEventListener("click", async () => {
+      const horaNueva = el.getAttribute("data-nuevo-horario");
+      try {
+        await asignarOReprogramarHorario({
+          turnoId: turno.id, fecha: turno.fecha, hora: horaNueva,
+          fechaAnterior: turno.fecha, horaAnterior: turno.hora,
+          datosTurno: { pacienteDni: turno.pacienteDni, pacienteNombre: turno.pacienteNombre, pacienteTelefono: turno.pacienteTelefono || "", estado: "confirmado", duracionMin: fechaDocDelTurno?.duracionTurnoMin || null },
+        });
+        toast(`Turno reprogramado a las ${horaNueva}.`);
+        await renderVistaFicha(buscarTurnoPorId(turno.id) || { ...turno, hora: horaNueva });
+      } catch (e) { toast(MOTIVOS_RESERVA[e?.message] || ("No se pudo reprogramar: " + (e?.message || e))); }
     });
+  });
+}
+
+// ── Vista "cobro": registrar un cobro o una devolución, con medios de
+// pago combinables y fecha del movimiento (para pagos de una consulta
+// anterior) — punto 3, 4 y 6. ───────────────────────────────────────────
+function renderVistaCobro(turno, resumenActual) {
+  mostrarVistaTurno("cobro");
+  $("turno-dialog-eyebrow").textContent = "IMPORTE Y COBRO";
+  $("turno-dialog-titulo").textContent = "Registrar movimiento";
+  cobroFormState = {
+    tipo: "cobro",
+    medios: [{ tipo: "efectivo", monto: "" }],
+    fecha: fechaISOEnZona(),
+    nota: "",
+    idempotencyKey: generarIdempotencyKey(),
+  };
+  $("turno-dialog-body").innerHTML = `
+    <div class="cobro-form">
+      <label for="cobro-tipo">Tipo de movimiento</label>
+      <select id="cobro-tipo">
+        <option value="cobro">Cobro</option>
+        <option value="devolucion">Devolución</option>
+      </select>
+      <label for="cobro-monto">Importe total (ARS)</label>
+      <input type="text" inputmode="decimal" id="cobro-monto" placeholder="Ej: 15000 o 15000,50">
+      <label for="cobro-fecha">Fecha del movimiento</label>
+      <input type="date" id="cobro-fecha" value="${escapeHtml(cobroFormState.fecha)}">
+      <p class="hint-text">Si es un pago de una consulta anterior, poné la fecha real en que se cobra — no queda contado en el cierre del día del turno, sino en el de esta fecha.</p>
+      <div class="detalle-subtitulo">Medio de pago</div>
+      <div id="cobro-medios-lista"></div>
+      <button class="text-button" type="button" id="btn-agregar-medio">+ Agregar otro medio (pago combinado)</button>
+      <label for="cobro-nota">Nota (opcional)</label>
+      <textarea id="cobro-nota" rows="2" placeholder="Contexto de la corrección o el movimiento…"></textarea>
+      <p class="error-text" id="cobro-form-error"></p>
+      <div class="dinero-form-actions">
+        <button class="button button-primary button-full" type="button" id="btn-guardar-cobro">Guardar movimiento</button>
+      </div>
+    </div>
+  `;
+  $("cobro-tipo").addEventListener("change", (ev) => { cobroFormState.tipo = ev.target.value; });
+  $("cobro-fecha").addEventListener("change", (ev) => { cobroFormState.fecha = ev.target.value; });
+  renderMediosPagoRows();
+  $("btn-agregar-medio").addEventListener("click", () => {
+    cobroFormState.medios.push({ tipo: "efectivo", monto: "" });
+    renderMediosPagoRows();
+  });
+  $("btn-guardar-cobro").addEventListener("click", () => guardarMovimientoDineroDesdeForm(turno));
+}
+
+function renderMediosPagoRows() {
+  const cont = $("cobro-medios-lista");
+  if (!cont || !cobroFormState) return;
+  cont.innerHTML = cobroFormState.medios.map((m, i) => `
+    <div class="cobro-medio-row" data-medio-idx="${i}">
+      <select class="cobro-medio-tipo" data-medio-idx="${i}">
+        ${MEDIOS_PAGO_DOCTORA.map((t) => `<option value="${t}" ${m.tipo === t ? "selected" : ""}>${ETIQUETA_MEDIO_PAGO[t]}</option>`).join("")}
+      </select>
+      <input type="text" inputmode="decimal" class="cobro-medio-monto" data-medio-idx="${i}" placeholder="Monto" value="${escapeHtml(m.monto)}">
+      ${cobroFormState.medios.length > 1 ? `<button type="button" class="icon-button cobro-medio-quitar" data-medio-idx="${i}" aria-label="Quitar medio">✕</button>` : ""}
+    </div>
+  `).join("");
+  cont.querySelectorAll(".cobro-medio-tipo").forEach((sel) => {
+    sel.addEventListener("change", (ev) => { cobroFormState.medios[Number(ev.target.dataset.medioIdx)].tipo = ev.target.value; });
+  });
+  cont.querySelectorAll(".cobro-medio-monto").forEach((inp) => {
+    inp.addEventListener("input", (ev) => { cobroFormState.medios[Number(ev.target.dataset.medioIdx)].monto = ev.target.value; });
+  });
+  cont.querySelectorAll(".cobro-medio-quitar").forEach((btn) => {
+    btn.addEventListener("click", (ev) => {
+      cobroFormState.medios.splice(Number(ev.currentTarget.dataset.medioIdx), 1);
+      renderMediosPagoRows();
+    });
+  });
+}
+
+async function guardarMovimientoDineroDesdeForm(turno) {
+  const errEl = $("cobro-form-error");
+  errEl.textContent = "";
+  const btn = $("btn-guardar-cobro");
+  if (btn.disabled) return; // guarda contra doble click mientras ya está guardando
+  const montoTotalCentavos = pesosAcentavos($("cobro-monto").value);
+  if (montoTotalCentavos === null || montoTotalCentavos <= 0) { errEl.textContent = "Ingresá un importe total válido, mayor a $0."; return; }
+  if (!cobroFormState.fecha) { errEl.textContent = "Elegí la fecha del movimiento."; return; }
+  const medios = cobroFormState.medios.map((m) => ({ tipo: m.tipo, montoCentavos: pesosAcentavos(m.monto) }));
+  if (medios.some((m) => m.montoCentavos === null)) { errEl.textContent = "Hay un importe de medio de pago inválido."; return; }
+  const validacion = validarMediosPago(medios, montoTotalCentavos);
+  if (!validacion.ok) {
+    errEl.textContent = validacion.motivo === "no_coincide_total"
+      ? "La suma de los medios de pago no coincide con el importe total."
+      : "Revisá los medios de pago cargados.";
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = "Guardando…";
+  try {
+    const operador = await operadorActual();
+    await registrarMovimientoDinero({
+      setDoc, doc, serverTimestamp, db,
+      idempotencyKey: cobroFormState.idempotencyKey,
+      turnoId: turno.id, pacienteNombre: turno.pacienteNombre || null, pacienteDni: turno.pacienteDni || null,
+      tipo: cobroFormState.tipo, montoCentavos: montoTotalCentavos, medios,
+      fechaMovimiento: cobroFormState.fecha, fechaAtencion: turno.fecha || null,
+      nota: $("cobro-nota").value.trim() || null,
+      operador,
+    });
+    toast(cobroFormState.tipo === "devolucion" ? "Devolución registrada." : "Cobro registrado.");
+    cobroFormState = null;
+    await renderVistaFicha(buscarTurnoPorId(turno.id) || turno);
+  } catch (e) {
+    errEl.textContent = "No se pudo guardar: " + (e?.message || e);
+    btn.disabled = false;
+    btn.textContent = "Guardar movimiento";
   }
 }
 
@@ -1077,6 +1375,190 @@ $("btn-confirmo-enviado").addEventListener("click", () => responderPromptEnvio("
 $("btn-confirmo-no-enviado").addEventListener("click", () => responderPromptEnvio("no_enviado"));
 $("btn-confirmo-mas-tarde").addEventListener("click", () => responderPromptEnvio("mas_tarde"));
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") mostrarPromptEnvio(); });
+
+// ── Cierre de jornada (puntos 5 y 6) ─────────────────────────────────────
+// Reparto 90% doctora / 10% Mimar T sobre el dinero EFECTIVAMENTE cobrado
+// ese día (fechaMovimiento, no fecha del turno), descontando devoluciones.
+// Un cierre ya guardado ("cerrado") muestra el snapshot congelado, nunca un
+// recálculo en vivo — así editar una consulta después no lo cambia en
+// silencio. Reabrir es una acción explícita y registrada.
+let cierreFechaActual = null;
+let cierreCargando = false;
+let cierreTabInicializada = false;
+
+function fechaHoyInputValue() { return fechaISOEnZona(); }
+
+$("cierre-fecha-picker").addEventListener("change", (ev) => { if (ev.target.value) cargarCierre(ev.target.value); });
+$("btn-cierre-hoy").addEventListener("click", () => {
+  const hoy = fechaHoyInputValue();
+  $("cierre-fecha-picker").value = hoy;
+  cargarCierre(hoy);
+});
+
+function inicializarTabCierreSiHaceFalta() {
+  if (cierreTabInicializada) return;
+  cierreTabInicializada = true;
+  const hoy = fechaHoyInputValue();
+  $("cierre-fecha-picker").value = hoy;
+  cargarCierre(hoy);
+}
+document.querySelectorAll('[data-tab-btn="cierre"]').forEach((btn) => {
+  btn.addEventListener("click", inicializarTabCierreSiHaceFalta);
+});
+
+async function cargarCierre(fecha) {
+  cierreFechaActual = fecha;
+  cierreCargando = true;
+  const cont = $("cierre-contenido");
+  cont.innerHTML = '<div class="loading-state">Cargando…</div>';
+  $("cierre-estado-pill").hidden = true;
+  try {
+    const [snapMov, snapCierre] = await Promise.all([
+      getDocs(query(collection(db, COLECCION_MOVIMIENTOS), where("fechaMovimiento", "==", fecha))),
+      getDoc(doc(db, COLECCION_CIERRES, fecha)),
+    ]);
+    if (cierreFechaActual !== fecha) return; // la persona ya cambió de fecha mientras esto cargaba
+    const movimientosDelDia = [];
+    snapMov.forEach((d) => movimientosDelDia.push({ id: d.id, ...d.data() }));
+
+    const cierreGuardado = snapCierre.exists() ? snapCierre.data() : null;
+    if (cierreGuardado && cierreGuardado.estado === "cerrado") {
+      renderCierreEstadoPill("cerrado");
+      renderCierreContenido(fecha, {
+        resumen: cierreGuardado, detalle: cierreGuardado.detalle || [],
+        estado: "cerrado", cierreGuardado,
+      });
+      return;
+    }
+
+    // Vista previa en vivo: hace falta la info de cada turno tocado ese día
+    // (nombre, fecha de atención, precio, y su saldo pendiente ACTUAL —
+    // que necesita TODOS sus movimientos, no solo los de este día).
+    const turnoIds = [...new Set(movimientosDelDia.map((m) => m.turnoId))];
+    const turnosInfo = new Map();
+    await Promise.all(turnoIds.map(async (turnoId) => {
+      try {
+        const [snapTurno, snapMovTurno] = await Promise.all([
+          getDoc(doc(db, "turnosDoctora", turnoId)),
+          getDocs(query(collection(db, COLECCION_MOVIMIENTOS), where("turnoId", "==", turnoId))),
+        ]);
+        const datosTurno = snapTurno.exists() ? snapTurno.data() : null;
+        const movsTurno = [];
+        snapMovTurno.forEach((d) => movsTurno.push(d.data()));
+        const resumenTurno = resumenDineroTurno(datosTurno?.precioConsultaCentavos ?? null, movsTurno);
+        turnosInfo.set(turnoId, {
+          pacienteNombre: datosTurno?.pacienteNombre || movimientosDelDia.find((m) => m.turnoId === turnoId)?.pacienteNombre || "Paciente",
+          fechaAtencion: datosTurno?.fecha || movimientosDelDia.find((m) => m.turnoId === turnoId)?.fechaAtencion || null,
+          precioConsultaCentavos: datosTurno?.precioConsultaCentavos ?? null,
+          saldoPendienteActualCentavos: resumenTurno.saldoPendienteCentavos,
+        });
+      } catch (_) { /* si un turno puntual falla, el resto del cierre igual se arma */ }
+    }));
+    if (cierreFechaActual !== fecha) return;
+
+    const resumen = calcularCierreJornada(movimientosDelDia);
+    const detalle = armarDetalleCierre(movimientosDelDia, turnosInfo);
+    const estado = cierreGuardado?.estado === "reabierto" ? "reabierto" : "sin_cerrar";
+    renderCierreEstadoPill(estado);
+    renderCierreContenido(fecha, { resumen, detalle, estado, cierreGuardado });
+  } catch (e) {
+    if (cierreFechaActual === fecha) cont.innerHTML = `<div class="error-state">No se pudo cargar el cierre: ${escapeHtml(e?.message || e)}</div>`;
+  } finally {
+    cierreCargando = false;
+  }
+}
+
+function renderCierreEstadoPill(estado) {
+  const el = $("cierre-estado-pill");
+  el.hidden = false;
+  if (estado === "cerrado") { el.className = "pill pill-ok"; el.textContent = "Cerrado"; }
+  else if (estado === "reabierto") { el.className = "pill pill-warn"; el.textContent = "Reabierto — pendiente de volver a cerrar"; }
+  else { el.className = "pill pill-muted"; el.textContent = "Sin cerrar"; }
+}
+
+function medioPagoCierreTexto(medios) {
+  return medios && medios.length ? escapeHtml(etiquetaMediosPago(medios)) : "—";
+}
+
+function renderCierreContenido(fecha, { resumen, detalle, estado, cierreGuardado }) {
+  if (cierreFechaActual !== fecha) return;
+  const detalleHtml = detalle.length
+    ? detalle.map((f) => `
+        <details class="cierre-detalle-item">
+          <summary>${escapeHtml(f.pacienteNombre)} — ${formatoPesosAR(f.cobradoEseDiaCentavos)}</summary>
+          <div class="detail-row"><span>Fecha de atención</span><span>${escapeHtml(f.fechaAtencion || "—")}</span></div>
+          <div class="detail-row"><span>Precio de la consulta</span><span>${f.precioConsultaCentavos === null ? "Sin cargar" : formatoPesosAR(f.precioConsultaCentavos)}</span></div>
+          <div class="detail-row"><span>Cobrado este día</span><span>${formatoPesosAR(f.cobradoEseDiaCentavos)}</span></div>
+          ${f.devueltoEseDiaCentavos ? `<div class="detail-row"><span>Devuelto este día</span><span>${formatoPesosAR(f.devueltoEseDiaCentavos)}</span></div>` : ""}
+          <div class="detail-row"><span>Saldo pendiente (a la fecha)</span><span>${f.saldoPendienteActualCentavos === null ? "Sin cargar precio" : formatoPesosAR(f.saldoPendienteActualCentavos)}</span></div>
+          <div class="detail-row"><span>Medio de pago</span><span>${medioPagoCierreTexto(f.medios)}</span></div>
+        </details>`).join("")
+    : `<p class="hint-text">Sin movimientos registrados este día.</p>`;
+
+  const accionesHtml = estado === "cerrado"
+    ? `<button class="button button-light button-full" type="button" id="btn-reabrir-cierre">Reabrir cierre</button>
+       <div id="reabrir-cierre-form" hidden>
+         <label for="reabrir-motivo">Motivo de la reapertura</label>
+         <textarea id="reabrir-motivo" rows="2" placeholder="Por qué hace falta corregir este cierre…"></textarea>
+         <div class="dinero-form-actions">
+           <button class="button button-primary" type="button" id="btn-confirmar-reapertura">Confirmar reapertura</button>
+           <button class="button button-light" type="button" id="btn-cancelar-reapertura">Cancelar</button>
+         </div>
+       </div>`
+    : `<button class="button button-primary button-full" type="button" id="btn-guardar-cierre">Guardar cierre de esta fecha</button>`;
+
+  $("cierre-contenido").innerHTML = `
+    <div class="resumen-grid">
+      <div class="resumen-tile"><span class="resumen-num">${resumen.consultasAtendidas}</span><span class="resumen-label">Consultas atendidas</span></div>
+      <div class="resumen-tile"><span class="resumen-num">${formatoPesosAR(resumen.totalCobradoCentavos)}</span><span class="resumen-label">Cobros del día</span></div>
+      <div class="resumen-tile"><span class="resumen-num">${formatoPesosAR(resumen.totalDevueltoCentavos)}</span><span class="resumen-label">Devoluciones</span></div>
+      <div class="resumen-tile"><span class="resumen-num">${formatoPesosAR(resumen.netoCentavos)}</span><span class="resumen-label">Neto a distribuir</span></div>
+      <div class="resumen-tile resumen-tile-doctora"><span class="resumen-num">${formatoPesosAR(resumen.parteDoctoraCentavos)}</span><span class="resumen-label">Parte de la doctora (90%)</span></div>
+      <div class="resumen-tile"><span class="resumen-num">${formatoPesosAR(resumen.parteMimarTCentavos)}</span><span class="resumen-label">Parte de Mimar T (10%)</span></div>
+    </div>
+    ${estado === "cerrado" ? `<p class="hint-text">Cerrado ${cierreGuardado?.cerradoPorEmail ? "por " + escapeHtml(cierreGuardado.cerradoPorEmail) : ""}. Calcular el reparto no significa que ya se haya entregado el dinero correspondiente a cada parte.</p>` : ""}
+    <div class="detalle-subtitulo">Detalle por consulta</div>
+    ${detalleHtml}
+    <div class="cierre-acciones">${accionesHtml}</div>
+  `;
+
+  if (estado === "cerrado") {
+    $("btn-reabrir-cierre").addEventListener("click", () => { $("reabrir-cierre-form").hidden = false; });
+    $("btn-cancelar-reapertura").addEventListener("click", () => { $("reabrir-cierre-form").hidden = true; });
+    $("btn-confirmar-reapertura").addEventListener("click", async () => {
+      const btn = $("btn-confirmar-reapertura");
+      btn.disabled = true;
+      try {
+        const operador = await operadorActual();
+        await reabrirCierreJornada({
+          updateDoc, doc, serverTimestamp, db, fecha,
+          motivo: $("reabrir-motivo").value.trim(), operador,
+          historialPrevio: cierreGuardado?.historialReapertura || [],
+        });
+        toast("Cierre reabierto.");
+        await cargarCierre(fecha);
+      } catch (e) { toast("No se pudo reabrir: " + (e?.message || e)); btn.disabled = false; }
+    });
+  } else {
+    $("btn-guardar-cierre").addEventListener("click", async () => {
+      const btn = $("btn-guardar-cierre");
+      btn.disabled = true;
+      btn.textContent = "Guardando…";
+      try {
+        const operador = await operadorActual();
+        const reaperturaPrevia = estado === "reabierto" && cierreGuardado?.historialReapertura?.length
+          ? cierreGuardado.historialReapertura[cierreGuardado.historialReapertura.length - 1]
+          : null;
+        await guardarCierreJornada({ setDoc, doc, serverTimestamp, db, fecha, resumen, detalle, operador, reaperturaPrevia });
+        toast("Cierre guardado.");
+        await cargarCierre(fecha);
+      } catch (e) {
+        toast("No se pudo guardar el cierre: " + (e?.message || e));
+        btn.disabled = false; btn.textContent = "Guardar cierre de esta fecha";
+      }
+    });
+  }
+}
 
 // ── Reconciliación / reconexión ───────────────────────────────────────
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { renderPacientes(); renderAgenda(); } });

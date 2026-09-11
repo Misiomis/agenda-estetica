@@ -151,6 +151,62 @@ async function run() {
     ).then(() => true).catch(() => false));
   }
 
+  console.log("\n=== Dinero: movimientosDineroDoctora es append-only incluso a nivel de reglas ===");
+  {
+    check("la doctora puede crear un movimiento de cobro", await assertSucceeds(
+      doctora.collection("movimientosDineroDoctora").doc("mov-prueba-1").set({
+        turnoId: "turno-prueba-1", tipo: "cobro", montoCentavos: 1500000,
+        medios: [{ tipo: "efectivo", montoCentavos: 1500000 }], fechaMovimiento: "2099-01-01",
+      })
+    ).then(() => true).catch(() => false));
+
+    check("el admin general también puede leer los movimientos", await assertSucceeds(
+      admin.collection("movimientosDineroDoctora").doc("mov-prueba-1").get()
+    ).then(() => true).catch(() => false));
+
+    check("otro profesional NO puede leer los movimientos de dinero de la doctora", await assertFails(
+      otroProfesional.collection("movimientosDineroDoctora").doc("mov-prueba-1").get()
+    ).then(() => true).catch(() => false));
+
+    check("un usuario sin autenticar NO puede crear un movimiento", await assertFails(
+      anonimo.collection("movimientosDineroDoctora").doc("mov-prueba-2").set({ turnoId: "x", tipo: "cobro", montoCentavos: 100 })
+    ).then(() => true).catch(() => false));
+
+    check("NI SIQUIERA la doctora puede modificar un movimiento ya creado (append-only, la corrección es un movimiento nuevo)", await assertFails(
+      doctora.collection("movimientosDineroDoctora").doc("mov-prueba-1").update({ montoCentavos: 999999999 })
+    ).then(() => true).catch(() => false));
+
+    check("NI SIQUIERA la doctora puede borrar un movimiento ya creado", await assertFails(
+      doctora.collection("movimientosDineroDoctora").doc("mov-prueba-1").delete()
+    ).then(() => true).catch(() => false));
+  }
+
+  console.log("\n=== Dinero: cierresDoctora — guardar y reabrir sí, borrar nunca ===");
+  {
+    check("la doctora puede guardar un cierre", await assertSucceeds(
+      doctora.collection("cierresDoctora").doc("2099-01-01").set({
+        fecha: "2099-01-01", estado: "cerrado", netoCentavos: 1500000,
+        parteDoctoraCentavos: 1350000, parteMimarTCentavos: 150000,
+      })
+    ).then(() => true).catch(() => false));
+
+    check("la doctora puede reabrirlo (update)", await assertSucceeds(
+      doctora.collection("cierresDoctora").doc("2099-01-01").update({ estado: "reabierto" })
+    ).then(() => true).catch(() => false));
+
+    check("otro profesional NO puede leer los cierres de la doctora", await assertFails(
+      otroProfesional.collection("cierresDoctora").doc("2099-01-01").get()
+    ).then(() => true).catch(() => false));
+
+    check("NI SIQUIERA la doctora puede borrar un cierre (se conserva el historial)", await assertFails(
+      doctora.collection("cierresDoctora").doc("2099-01-01").delete()
+    ).then(() => true).catch(() => false));
+
+    check("un usuario sin autenticar no puede leer cierres", await assertFails(
+      anonimo.collection("cierresDoctora").doc("2099-01-01").get()
+    ).then(() => true).catch(() => false));
+  }
+
   console.log("\n=== Regresión: las reglas nuevas NO abren de más otras colecciones existentes ===");
   {
     // Nota: "clients" ya tenía de antes una regla separada

@@ -9,6 +9,9 @@ import {
   construirTextoConfirmacionDoctora, construirTextoRecordatorioDoctora,
   construirTextoRecomendacionesDoctora, normalizarTelefonoWA, sumarDiasISO,
   fechaLindaCorta, puedeEnviarRecordatorio,
+  pesosAcentavos, centavosApesos, formatoPesosAR, medioPagoValido, validarMediosPago,
+  etiquetaMediosPago, calcularRepartoDoctora, resumenDineroTurno, calcularCierreJornada,
+  armarDetalleCierre,
 } from '../../doctora/doctora-logic.js';
 
 let fails = 0;
@@ -158,6 +161,141 @@ console.log('\n=== "Recordatorios de hoy": nunca para turnos eliminados, cancela
   check('turno todavía sin horario asignado → NO admite recordatorio (no se inventa un horario)', puedeEnviarRecordatorio(turnoSinHorario) === false);
 
   check('turno inexistente (null) → nunca admite recordatorio', puedeEnviarRecordatorio(null) === false);
+}
+
+console.log('\n=== Dinero: pesos ↔ centavos, sin floats, "Sin cargar" ≠ 0 ===');
+{
+  check('"1500" → 150000 centavos', pesosAcentavos('1500') === 150000);
+  check('"1500.50" → 150050 centavos', pesosAcentavos('1500.50') === 150050);
+  check('"1500,50" (coma decimal) → 150050 centavos', pesosAcentavos('1500,50') === 150050);
+  check('"1.500,50" (miles con punto) → 150050 centavos', pesosAcentavos('1.500,50') === 150050);
+  check('"100000" (ejemplo de aceptación) → 10000000 centavos', pesosAcentavos('100000') === 10000000);
+  check('vacío → null (no 0, "sin cargar" no es lo mismo que "cargado en $0")', pesosAcentavos('') === null);
+  check('null → null', pesosAcentavos(null) === null);
+  check('undefined → null', pesosAcentavos(undefined) === null);
+  check('negativo → inválido (null)', pesosAcentavos('-100') === null);
+  check('texto no numérico → inválido (null)', pesosAcentavos('abc') === null);
+  // "100.999" con punto es ambiguo con el separador de miles argentino
+  // (100.999 = cien mil novecientos noventa y nueve) y se interpreta así a
+  // propósito; con coma decimal no hay ambigüedad posible.
+  check('3 decimales con coma → inválido (null)', pesosAcentavos('100,999') === null);
+  check('"100.999" con punto se interpreta como miles (100999 pesos), no como 3 decimales', pesosAcentavos('100.999') === 10099900);
+  check('centavosApesos hace el camino inverso', centavosApesos(150050) === 1500.5);
+  check('formatoPesosAR de 10000000 centavos da "$ 100.000,00"', formatoPesosAR(10000000) === '$ 100.000,00');
+  check('formatoPesosAR de null → null (el "Sin cargar" lo decide quien llama)', formatoPesosAR(null) === null);
+}
+
+console.log('\n=== Dinero: medios de pago, incluidos combinados ===');
+{
+  check('efectivo es un medio válido', medioPagoValido('efectivo') === true);
+  check('"bitcoin" no es un medio válido', medioPagoValido('bitcoin') === false);
+
+  const unSoloMedio = [{ tipo: 'efectivo', montoCentavos: 150000 }];
+  check('un solo medio que suma exacto → válido', validarMediosPago(unSoloMedio, 150000).ok === true);
+  check('un solo medio que NO suma exacto → inválido', validarMediosPago(unSoloMedio, 150001).ok === false);
+
+  const combinado = [{ tipo: 'efectivo', montoCentavos: 100000 }, { tipo: 'tarjeta', montoCentavos: 50000 }];
+  check('pago combinado que suma exacto el total → válido', validarMediosPago(combinado, 150000).ok === true);
+  check('pago combinado que NO suma el total → inválido (no se inventa el resto)', validarMediosPago(combinado, 150001).ok === false);
+  check('sin medios → inválido', validarMediosPago([], 150000).ok === false);
+  check('medio inválido en la lista → inválido', validarMediosPago([{ tipo: 'bitcoin', montoCentavos: 150000 }], 150000).ok === false);
+  check('monto negativo en un medio → inválido', validarMediosPago([{ tipo: 'efectivo', montoCentavos: -100 }], -100).ok === false);
+
+  check('etiqueta de un solo medio', etiquetaMediosPago(unSoloMedio) === 'Efectivo');
+  check('etiqueta de pago combinado menciona ambos medios y sus montos', etiquetaMediosPago(combinado).includes('Efectivo') && etiquetaMediosPago(combinado).includes('Tarjeta'));
+}
+
+console.log('\n=== Reparto 90% doctora / 10% Mimar T: ejemplo de aceptación y redondeo ===');
+{
+  const r1 = calcularRepartoDoctora(10000000); // $100.000
+  check('neto $100.000 → doctora $90.000', r1.parteDoctoraCentavos === 9000000);
+  check('neto $100.000 → Mimar T $10.000', r1.parteMimarTCentavos === 1000000);
+  check('las dos partes suman exacto el neto', r1.parteDoctoraCentavos + r1.parteMimarTCentavos === 10000000);
+
+  // Centavos impares: la suma tiene que seguir dando exacto pase lo que
+  // pase con el redondeo del 90% — la parte de Mimar T es siempre el resto.
+  for (const neto of [1, 3, 7, 99, 101, 12345, 10001, 999999]) {
+    const r = calcularRepartoDoctora(neto);
+    check(`neto ${neto} centavos: doctora + Mimar T suman exacto el neto`, r.parteDoctoraCentavos + r.parteMimarTCentavos === neto);
+    check(`neto ${neto} centavos: ninguna parte es negativa`, r.parteDoctoraCentavos >= 0 && r.parteMimarTCentavos >= 0);
+  }
+
+  const rCero = calcularRepartoDoctora(0);
+  check('neto $0 → ambas partes en $0, no negativas', rCero.parteDoctoraCentavos === 0 && rCero.parteMimarTCentavos === 0);
+
+  const rNegativo = calcularRepartoDoctora(-5000);
+  check('neto negativo (no debería pasar, pero no reparte de más) → doctora $0', rNegativo.parteDoctoraCentavos === 0);
+}
+
+console.log('\n=== Resumen de dinero de un turno: precio, cobrado, devuelto, pendiente ===');
+{
+  const sinNada = resumenDineroTurno(null, []);
+  check('sin precio cargado → precioConsultaCentavos es null (no 0)', sinNada.precioConsultaCentavos === null);
+  check('sin precio cargado → saldoPendienteCentavos es null (no se puede calcular sin precio)', sinNada.saldoPendienteCentavos === null);
+  check('sin movimientos → cobrado y devuelto en 0', sinNada.totalCobradoCentavos === 0 && sinNada.totalDevueltoCentavos === 0);
+
+  const precio = pesosAcentavos('15000'); // $15.000
+  const pagoParcial = resumenDineroTurno(precio, [{ tipo: 'cobro', montoCentavos: pesosAcentavos('10000') }]);
+  check('precio $15.000, cobrado $10.000 → pendiente $5.000', pagoParcial.saldoPendienteCentavos === pesosAcentavos('5000'));
+
+  const pagoCompleto = resumenDineroTurno(precio, [{ tipo: 'cobro', montoCentavos: precio }]);
+  check('precio y cobrado iguales → pendiente $0', pagoCompleto.saldoPendienteCentavos === 0);
+
+  const conDevolucion = resumenDineroTurno(precio, [
+    { tipo: 'cobro', montoCentavos: precio },
+    { tipo: 'devolucion', montoCentavos: pesosAcentavos('3000') },
+  ]);
+  check('cobro completo con devolución parcial → neto cobrado descuenta la devolución', conDevolucion.netoCobradoCentavos === pesosAcentavos('12000'));
+  check('la devolución deja saldo pendiente otra vez (no queda "pagado" fantasma)', conDevolucion.saldoPendienteCentavos === pesosAcentavos('3000'));
+
+  const sobrepago = resumenDineroTurno(precio, [{ tipo: 'cobro', montoCentavos: pesosAcentavos('20000') }]);
+  check('cobrado de más → pendiente nunca da negativo', sobrepago.saldoPendienteCentavos === 0);
+}
+
+console.log('\n=== Cierre de jornada: neto, reparto y "consultas atendidas" a partir de los movimientos del día ===');
+{
+  const movimientosDelDia = [
+    { turnoId: 'turno-a', tipo: 'cobro', montoCentavos: pesosAcentavos('30000') },
+    { turnoId: 'turno-b', tipo: 'cobro', montoCentavos: pesosAcentavos('50000') },
+    { turnoId: 'turno-b', tipo: 'devolucion', montoCentavos: pesosAcentavos('5000') }, // corrección el mismo día
+    { turnoId: 'turno-c', tipo: 'cobro', montoCentavos: pesosAcentavos('25000') },
+  ];
+  const cierre = calcularCierreJornada(movimientosDelDia);
+  check('3 turnos distintos con movimiento → 3 consultas atendidas', cierre.consultasAtendidas === 3);
+  check('total cobrado suma los 3 cobros', cierre.totalCobradoCentavos === pesosAcentavos('105000'));
+  check('total devuelto refleja la devolución', cierre.totalDevueltoCentavos === pesosAcentavos('5000'));
+  check('neto descuenta la devolución', cierre.netoCentavos === pesosAcentavos('100000'));
+  check('neto de $100.000 reparte $90.000 para la doctora', cierre.parteDoctoraCentavos === pesosAcentavos('90000'));
+  check('neto de $100.000 reparte $10.000 para Mimar T', cierre.parteMimarTCentavos === pesosAcentavos('10000'));
+  check('doctora + Mimar T suman exacto el neto', cierre.parteDoctoraCentavos + cierre.parteMimarTCentavos === cierre.netoCentavos);
+
+  const sinMovimientos = calcularCierreJornada([]);
+  check('día sin movimientos → 0 consultas atendidas, neto $0', sinMovimientos.consultasAtendidas === 0 && sinMovimientos.netoCentavos === 0);
+}
+
+console.log('\n=== Detalle del cierre: agrupa por turno, muestra el pendiente ACTUAL (no solo el del día) ===');
+{
+  const movimientosDelDia = [
+    { turnoId: 'turno-a', tipo: 'cobro', montoCentavos: pesosAcentavos('30000'), medios: [{ tipo: 'efectivo', montoCentavos: pesosAcentavos('30000') }] },
+    { turnoId: 'turno-b', tipo: 'cobro', montoCentavos: pesosAcentavos('20000'), medios: [{ tipo: 'transferencia', montoCentavos: pesosAcentavos('20000') }] },
+  ];
+  const turnosInfo = new Map([
+    ['turno-a', { pacienteNombre: 'Zulema Prueba', fechaAtencion: '2026-09-10', precioConsultaCentavos: pesosAcentavos('30000'), saldoPendienteActualCentavos: 0 }],
+    // turno-b: pago PARCIAL de una consulta anterior — el precio es mayor
+    // al cobrado hoy, y todavía queda saldo pendiente a la fecha.
+    ['turno-b', { pacienteNombre: 'Araceli Prueba', fechaAtencion: '2026-09-08', precioConsultaCentavos: pesosAcentavos('50000'), saldoPendienteActualCentavos: pesosAcentavos('30000') }],
+  ]);
+  const detalle = armarDetalleCierre(movimientosDelDia, turnosInfo);
+  check('arma una fila por turno distinto', detalle.length === 2);
+  check('ordena por nombre de paciente', detalle[0].pacienteNombre === 'Araceli Prueba' && detalle[1].pacienteNombre === 'Zulema Prueba');
+  const filaB = detalle.find((f) => f.turnoId === 'turno-b');
+  check('la fila de un pago parcial de otro día muestra la fecha de ATENCIÓN real (no la del cobro)', filaB.fechaAtencion === '2026-09-08');
+  check('muestra el saldo pendiente ACTUAL de la consulta, no solo lo cobrado hoy', filaB.saldoPendienteActualCentavos === pesosAcentavos('30000'));
+  check('el medio de pago usado ese día queda en la fila', filaB.medios[0].tipo === 'transferencia');
+
+  const sinInfo = armarDetalleCierre([{ turnoId: 'turno-x', tipo: 'cobro', montoCentavos: 100 }], new Map());
+  check('un turno sin info resuelta no rompe: usa "Paciente" como respaldo', sinInfo[0].pacienteNombre === 'Paciente');
+  check('sin info, precio y pendiente quedan null (no se inventa un valor)', sinInfo[0].precioConsultaCentavos === null && sinInfo[0].saldoPendienteActualCentavos === null);
 }
 
 console.log('\n' + '='.repeat(60));
