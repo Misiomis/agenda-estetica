@@ -778,7 +778,7 @@
     import {
         auth, db,
         onAuthStateChanged, signOut, signInWithEmailAndPassword,
-        collection, getDocs, doc, setDoc, addDoc, updateDoc, deleteDoc, getDoc,
+        collection, getDocs, doc, setDoc, addDoc, updateDoc, deleteDoc, getDoc, getDocFromServer,
         serverTimestamp, query, where
     } from "/js/firebase-web.js";
 
@@ -1427,6 +1427,23 @@
         }
     };
 
+    // Traduce el error real de Firestore a algo que la persona pueda
+    // entender y accionar, en vez de un "Error al eliminar" genérico que
+    // no distingue "no tenés permiso" de "ya no existe" o "sin conexión".
+    const _mensajeErrorDepi = (e, accion) => {
+        const code = e?.code || '';
+        if (code === 'permission-denied') {
+            return `No tenés permiso para ${accion}. Si tu sesión quedó vieja, cerrá sesión (abajo a la izquierda) y volvé a entrar.`;
+        }
+        if (code === 'not-found') {
+            return 'Ese turno ya no existe (puede que ya lo hayan eliminado).';
+        }
+        if (code === 'unavailable' || code === 'deadline-exceeded' || !navigator.onLine) {
+            return 'Sin conexión — no se pudo guardar. Revisá tu internet e intentá de nuevo.';
+        }
+        return `No se pudo ${accion}: ${e?.message || 'error desconocido'}.`;
+    };
+
     window.eliminarTurno = (id, fecha) => {
         mostrarConfirmDepi({
             icono: '🗑',
@@ -1436,7 +1453,26 @@
             onSi: async () => {
                 try {
                     const ref = doc(db, COLECCION, id);
+                    // Confirma contra el servidor (no el caché local, que
+                    // puede mentir si hay una escritura offline encolada) que
+                    // el turno sigue existiendo y no fue borrado ya por otra
+                    // persona/pestaña antes de intentar actualizarlo.
+                    const snapActual = await getDocFromServer(ref);
+                    if (!snapActual.exists() || snapActual.data()?.eliminado) {
+                        mostrarAvisoDepi('Ese turno ya estaba eliminado.');
+                        await verDia(fecha);
+                        await cargarCalendario();
+                        return;
+                    }
                     await updateDoc(ref, { estado: 'cancelada', eliminado: true, updatedAt: serverTimestamp() });
+                    // Confirmación real contra el servidor de que quedó
+                    // guardado — no asumir éxito solo porque updateDoc no
+                    // tiró excepción (podría haber quedado en caché offline).
+                    const snapVerif = await getDocFromServer(ref);
+                    if (!snapVerif.data()?.eliminado) {
+                        mostrarAvisoDepi('No se pudo confirmar la eliminación contra el servidor. Revisá tu conexión e intentá de nuevo.');
+                        return;
+                    }
                     // Liberar bloqueos asociados
                     const snapBlq = await getDocs(query(collection(db, COLECCION_EX), where('reservaId', '==', id)));
                     snapBlq.forEach(d => deleteDoc(d.ref).catch(() => {}));
@@ -1445,7 +1481,7 @@
                     await cargarCalendario();
                 } catch(e) {
                     console.error(e);
-                    mostrarAvisoDepi('Error al eliminar');
+                    mostrarAvisoDepi(_mensajeErrorDepi(e, 'eliminar el turno'));
                 }
             }
         });
@@ -1713,12 +1749,16 @@
         document.getElementById('confirmIcon').textContent = icono;
         document.getElementById('confirmTitulo').textContent = titulo;
         document.getElementById('confirmTexto').textContent = texto;
-        document.getElementById('confirmSi').textContent = labelSi;
+        const btnSi = document.getElementById('confirmSi');
+        btnSi.textContent = labelSi;
+        btnSi.disabled = false;
         const modal = document.getElementById('modalConfirmDepi');
         modal.classList.add('visible');
         const cerrar = () => modal.classList.remove('visible');
         document.getElementById('confirmNo').onclick = cerrar;
-        document.getElementById('confirmSi').onclick = () => { cerrar(); onSi(); };
+        // disabled= evita que un doble click dispare onSi() dos veces antes
+        // de que el modal termine de cerrarse (podía duplicar la acción)
+        btnSi.onclick = () => { if (btnSi.disabled) return; btnSi.disabled = true; cerrar(); onSi(); };
     };
     window.mostrarConfirmDepi = mostrarConfirmDepi;
 
