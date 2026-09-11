@@ -64,6 +64,33 @@ async function run() {
     ).then(() => true).catch(() => false));
   }
 
+  console.log("\n=== Sesión anónima de Firebase: estar autenticado NO alcanza ===");
+  {
+    // Distinto de "sin sesión" (unauthenticatedContext, ya probado arriba):
+    // esto simula un signInAnonymously() real — request.auth SÍ existe,
+    // pero no tiene token.email. Prueba que la regla exige el email
+    // exacto, no solo "auth != null".
+    const anonimoFirebase = testEnv.authenticatedContext("uid-anonimo-firebase", {}).firestore();
+    check("una sesión anónima de Firebase (auth != null, sin email) NO puede leer pacientesDoctora", await assertFails(
+      anonimoFirebase.collection("pacientesDoctora").doc("99999001").get()
+    ).then(() => true).catch(() => false));
+    check("tampoco puede escribir", await assertFails(
+      anonimoFirebase.collection("pacientesDoctora").doc("99999003").set({ nombre: "Intruso Anónimo", telefono: "0" })
+    ).then(() => true).catch(() => false));
+  }
+
+  console.log("\n=== Nadie puede asignarse permisos escribiendo su propio documento ===");
+  {
+    // Las reglas de este módulo nunca leen un campo del propio documento
+    // (tipo "role" o "isAdmin") para decidir el acceso — solo el email fijo
+    // del token. Un usuario no autorizado que intente escribir un campo
+    // así, con la esperanza de que algo lo lea como permiso, sigue
+    // rechazado exactamente igual que cualquier otra escritura suya.
+    check('otro profesional no gana acceso escribiéndose un campo "role"/"isAdmin" en su propio documento simulado', await assertFails(
+      otroProfesional.collection("pacientesDoctora").doc("uid-otro").set({ nombre: "Intento", role: "admin", isAdmin: true, esDoctora: true })
+    ).then(() => true).catch(() => false));
+  }
+
   console.log("\n=== fechasHabilitadasDoctora / turnosDoctora: mismo criterio privado ===");
   {
     check("la doctora puede habilitar una fecha", await assertSucceeds(

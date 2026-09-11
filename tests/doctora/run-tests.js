@@ -8,6 +8,7 @@ import {
   esPendienteDeHorario, etiquetaConfirmacionPaciente,
   construirTextoConfirmacionDoctora, construirTextoRecordatorioDoctora,
   construirTextoRecomendacionesDoctora, normalizarTelefonoWA, sumarDiasISO,
+  fechaLindaCorta, puedeEnviarRecordatorio,
 } from '../../doctora/doctora-logic.js';
 
 let fails = 0;
@@ -128,8 +129,11 @@ console.log('\n=== Plantillas de mensaje: datos reales del turno, sin inventar c
   check('confirmación incluye fecha, hora y ubicación reales', confirmacion.includes(HOY) && confirmacion.includes('15:30') && confirmacion.includes('Consultorio 3'));
   check('sin ubicación configurada, no se inventa una', !construirTextoConfirmacionDoctora(turno, '').includes('Te esperamos en'));
 
-  const recordatorio = construirTextoRecordatorioDoctora(turno, 'Consultorio 3');
-  check('recordatorio también usa datos reales', recordatorio.includes(HOY) && recordatorio.includes('15:30'));
+  const recordatorio = construirTextoRecordatorioDoctora(turno);
+  check('recordatorio usa el nombre, la hora real y el saludo con emoji pedidos', recordatorio.includes('Hola, Paciente 💚') && recordatorio.includes('15:30'));
+  check('recordatorio menciona la fecha en formato legible, no el ISO crudo', recordatorio.includes(fechaLindaCorta(HOY)) && !recordatorio.includes(HOY));
+  check('recordatorio siempre menciona el lugar fijo pedido', recordatorio.includes('en Espacio Mimar T'));
+  check('recordatorio pide confirmar asistencia y ofrece reprogramar, como en el ejemplo dado', recordatorio.includes('¿Nos confirmás tu asistencia?') && recordatorio.includes('reprogramar'));
 
   const recomendacionesVacias = construirTextoRecomendacionesDoctora(turno, '');
   check('sin contenido escrito por la doctora, se deja un placeholder explícito (no se inventa contenido clínico)',
@@ -137,6 +141,23 @@ console.log('\n=== Plantillas de mensaje: datos reales del turno, sin inventar c
   const recomendacionesConTexto = construirTextoRecomendacionesDoctora(turno, 'Tomar la medicación indicada cada 8 horas.');
   check('con contenido de la doctora, se usa tal cual', recomendacionesConTexto.includes('Tomar la medicación indicada cada 8 horas.'));
   check('el contenido de la doctora no se reemplaza por el placeholder', !recomendacionesConTexto.includes('[Escribí acá'));
+}
+
+console.log('\n=== "Recordatorios de hoy": nunca para turnos eliminados, cancelados, pasados o sin horario ===');
+{
+  const turnoProximo = { fecha: sumarDiasISO(HOY, 1), hora: '10:00', duracionMin: 30, estado: 'confirmado' };
+  check('turno próximo con horario → sí admite recordatorio', puedeEnviarRecordatorio(turnoProximo, new Date(`${HOY}T09:00:00-03:00`).getTime()) === true);
+
+  const turnoCancelado = { fecha: HOY, hora: '15:00', duracionMin: 30, estado: 'cancelado' };
+  check('turno cancelado → NO admite el recordatorio estándar', puedeEnviarRecordatorio(turnoCancelado) === false);
+
+  const turnoPasado = { fecha: HOY, hora: '08:00', duracionMin: 30, estado: 'confirmado' };
+  check('turno cuyo horario ya pasó → NO admite el recordatorio estándar', puedeEnviarRecordatorio(turnoPasado, new Date(`${HOY}T20:00:00-03:00`).getTime()) === false);
+
+  const turnoSinHorario = { fecha: HOY, hora: null, estado: 'pendiente_horario' };
+  check('turno todavía sin horario asignado → NO admite recordatorio (no se inventa un horario)', puedeEnviarRecordatorio(turnoSinHorario) === false);
+
+  check('turno inexistente (null) → nunca admite recordatorio', puedeEnviarRecordatorio(null) === false);
 }
 
 console.log('\n' + '='.repeat(60));

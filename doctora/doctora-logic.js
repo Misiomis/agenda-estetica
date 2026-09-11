@@ -175,12 +175,33 @@ export function construirTextoConfirmacionDoctora(turno, ubicacion) {
   return `Hola ${nombre},\n\nLe escribimos del consultorio para confirmar tu turno el ${fecha} a las ${hora}.${lugar}\n\n¿Podés confirmarnos tu asistencia? ¡Gracias!`;
 }
 
-export function construirTextoRecordatorioDoctora(turno, ubicacion) {
+// Fecha corta y cálida ("11 de septiembre") para el recordatorio — mismo
+// criterio de zona horaria que el resto del módulo.
+export function fechaLindaCorta(fechaISO) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((fechaISO || "").toString());
+  if (!m) return null;
+  const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", timeZone: ZONA_HORARIA }).format(dt);
+}
+
+// Plantilla fija pedida explícitamente para el recordatorio del día — no es
+// configurable por ubicación como las otras (siempre "Espacio Mimar T").
+export function construirTextoRecordatorioDoctora(turno) {
   const nombre = _primerNombre(turno?.pacienteNombre);
-  const fecha = turno?.fecha || "fecha a confirmar";
+  const fecha = (turno?.fecha && fechaLindaCorta(turno.fecha)) || turno?.fecha || "fecha a confirmar";
   const hora = turno?.hora ? `${turno.hora} hs` : "horario a coordinar";
-  const lugar = ubicacion ? ` en ${ubicacion}` : "";
-  return `Hola ${nombre},\n\nTe recordamos tu turno el ${fecha} a las ${hora}${lugar}.\n\n¡Te esperamos!`;
+  return `Hola, ${nombre} 💚 Te recordamos que hoy, ${fecha}, tenés tu turno con la doctora a las ${hora} en Espacio Mimar T. ¿Nos confirmás tu asistencia? Si necesitás reprogramar, escribinos. ¡Te esperamos!`;
+}
+
+// No se ofrece el recordatorio estándar para un turno eliminado (ya no
+// llega acá si no existe), cancelado, sin horario todavía, o cuyo horario
+// ya pasó — mismo criterio en toda la app: nunca se asume "realizado" solo
+// por la fecha, pero tampoco tiene sentido "recordar" algo que ya pasó.
+export function puedeEnviarRecordatorio(turno, ahoraMs = Date.now()) {
+  if (!turno) return false;
+  if (turno.estado === "cancelado") return false;
+  if (!turno.hora) return false;
+  return estadoTemporalTurnoDoctora(turno, ahoraMs) !== "pasado";
 }
 
 export function construirTextoRecomendacionesDoctora(turno, contenido) {

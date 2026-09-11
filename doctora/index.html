@@ -22,6 +22,8 @@
       <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></symbol>
       <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 5c7 0 11 7 11 7a20.3 20.3 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></symbol>
     </defs>
   </svg>
 
@@ -33,6 +35,7 @@
       </span>
       <div class="header-actions">
         <span class="connection" id="connection" role="status"><span class="status-dot"></span><span id="connection-text">Iniciando</span></span>
+        <button class="icon-button" id="btn-cerrar-sesion" type="button" aria-label="Cerrar sesión" title="Cerrar sesión" hidden><svg class="icon"><use href="#i-logout"/></svg></button>
       </div>
     </header>
 
@@ -48,7 +51,10 @@
         <label for="login-email">Correo electrónico</label>
         <input id="login-email" name="email" type="email" autocomplete="username" required>
         <label for="login-password">Contraseña</label>
-        <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        <div class="password-field-wrap">
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+          <button class="icon-button password-toggle" type="button" id="btn-mostrar-password" aria-label="Mostrar contraseña" aria-pressed="false"><svg class="icon"><use href="#i-eye"/></svg></button>
+        </div>
         <button class="button button-primary button-full" type="submit" id="login-submit">Ingresar <svg class="icon"><use href="#i-arrow"/></svg></button>
         <p id="login-error" class="error-text" role="alert"></p>
         <p id="login-hint" class="hint-text">Acceso exclusivo — otros profesionales no pueden ver estos pacientes.</p>
@@ -80,6 +86,15 @@
           <button class="text-button" type="button" id="btn-config-ubicacion">📍 Ubicación</button>
         </div>
 
+        <section class="section-block" id="recordatorios-hoy-section">
+          <div class="section-heading">
+            <h2>Recordatorios de hoy</h2>
+            <span class="count-pill" id="count-recordatorios-hoy">0</span>
+          </div>
+          <div class="list-panel" id="lista-recordatorios-hoy"><div class="loading-state">Cargando…</div></div>
+        </section>
+
+        <div class="day-header">Explorar otras fechas</div>
         <div class="fecha-stepper">
           <button class="icon-button" type="button" id="btn-fecha-anterior" aria-label="Día anterior">‹</button>
           <div class="fecha-stepper-actual">

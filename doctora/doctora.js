@@ -13,11 +13,11 @@ import {
   estadoTemporalTurnoDoctora, etiquetaEstadoTemporalDoctora, esPendienteDeHorario,
   etiquetaConfirmacionPaciente, estadoContacto, etiquetaEstadoContacto,
   construirTextoConfirmacionDoctora, construirTextoRecordatorioDoctora,
-  construirTextoRecomendacionesDoctora,
+  construirTextoRecomendacionesDoctora, puedeEnviarRecordatorio,
 } from "./doctora-logic.js";
 import {
   registrarContactoDoctoraPreparado, registrarContactoDoctoraEstado,
-  registrarContactoDoctoraManual, registrarConfirmacionPaciente,
+  registrarContactoDoctoraManual, registrarConfirmacionPaciente, idContactoDoctora,
 } from "./doctora-contactos.js";
 
 // ── Acceso: exclusivo de la doctora + admin general (punto 1) ───────────
@@ -101,6 +101,16 @@ $("login-form").addEventListener("submit", async (ev) => {
   }
 });
 
+$("btn-mostrar-password").addEventListener("click", () => {
+  const input = $("login-password");
+  const btn = $("btn-mostrar-password");
+  const mostrando = input.type === "text";
+  input.type = mostrando ? "password" : "text";
+  btn.setAttribute("aria-pressed", String(!mostrando));
+  btn.setAttribute("aria-label", mostrando ? "Mostrar contraseña" : "Ocultar contraseña");
+  btn.innerHTML = mostrando ? `<svg class="icon"><use href="#i-eye"/></svg>` : `<svg class="icon"><use href="#i-eye-off"/></svg>`;
+});
+
 function mensajeErrorAuth(e) {
   switch (e?.code) {
     case "auth/invalid-credential":
@@ -112,14 +122,42 @@ function mensajeErrorAuth(e) {
   }
 }
 
+// Se llama en todo camino que deja a la persona SIN acceso (sin sesión,
+// cuenta no autorizada, o error de verificación) — no alcanza con ocultar
+// el workspace: también hay que soltar las suscripciones (ya lo hace
+// detenerSuscripciones) y borrar lo que quedó en memoria/DOM, para que un
+// "Atrás" del navegador, un recargado offline, o que otra persona use el
+// mismo dispositivo después, nunca puedan volver a mostrar datos de
+// pacientes sin haber vuelto a autenticarse de verdad.
+function limpiarEstadoModulo() {
+  pacientes = []; pacientesEstado = "cargando";
+  fechaDocActual = null; turnosDelDia = [];
+  historialFechas = [];
+  remindersHoy = []; contactosPorTurno = {};
+  ubicacionConfigurada = "";
+  ["lista-pacientes", "grilla-horarios", "lista-pendientes", "lista-historial", "lista-recordatorios-hoy"]
+    .forEach((id) => { const el = $(id); if (el) el.innerHTML = ""; });
+  $("count-turnos-dia").textContent = "0";
+  $("count-pendientes").textContent = "0";
+  $("count-recordatorios-hoy").textContent = "0";
+  $("nav-badge-pendientes").hidden = true;
+}
+
 function mostrarAcceso(mensaje) {
   $("access-panel").hidden = false;
   $("workspace").hidden = true;
   $("bottom-nav").hidden = true;
+  $("btn-cerrar-sesion").hidden = true;
   document.body.classList.remove("con-nav-inferior");
   $("login-form").hidden = true;
+  $("login-password").value = "";
   $("access-message").textContent = mensaje;
+  limpiarEstadoModulo();
 }
+
+$("btn-cerrar-sesion").addEventListener("click", async () => {
+  try { await signOut(auth); toast("Sesión cerrada."); } catch (_) {}
+});
 
 let uidActual = null;
 onAuthStateChanged(auth, async (user) => {
@@ -135,6 +173,7 @@ onAuthStateChanged(auth, async (user) => {
   try {
     const token = await user.getIdTokenResult(false);
     if (!esUsuarioAutorizado(token)) {
+      detenerSuscripciones();
       mostrarAcceso("Esta cuenta no tiene acceso a la sección de la doctora.");
       $("login-form").hidden = false;
       $("login-submit").disabled = false;
@@ -142,6 +181,7 @@ onAuthStateChanged(auth, async (user) => {
       return;
     }
   } catch (_) {
+    detenerSuscripciones();
     mostrarAcceso("No pudimos verificar la sesión. Revisá la conexión e ingresá nuevamente.");
     $("login-form").hidden = false;
     $("login-submit").disabled = false;
@@ -152,6 +192,7 @@ onAuthStateChanged(auth, async (user) => {
   $("access-panel").hidden = true;
   $("workspace").hidden = false;
   $("bottom-nav").hidden = false;
+  $("btn-cerrar-sesion").hidden = false;
   document.body.classList.add("con-nav-inferior");
   mostrarTab("pacientes");
 
@@ -175,12 +216,16 @@ let pacientesEstado = "cargando";
 let fechaDocActual = null; // doc de fechasHabilitadasDoctora/{fechaSeleccionada}
 let turnosDelDia = [];
 let ubicacionConfigurada = "";
+let remindersHoy = []; // turnos de HOY (fijo, no sigue al selector de fecha)
+let contactosPorTurno = {}; // contactosWhatsAppDoctora indexados por "{turnoId}_{tipoMensaje}"
 
 let unsubPacientes = null;
 let unsubFecha = null;
 let unsubTurnosDelDia = null;
 let unsubHistorial = null;
 let unsubUbicacion = null;
+let unsubRemindersHoy = null;
+let unsubContactos = null;
 let historialFechas = [];
 
 function detenerSuscripciones() {
@@ -189,6 +234,8 @@ function detenerSuscripciones() {
   if (unsubTurnosDelDia) { unsubTurnosDelDia(); unsubTurnosDelDia = null; }
   if (unsubHistorial) { unsubHistorial(); unsubHistorial = null; }
   if (unsubUbicacion) { unsubUbicacion(); unsubUbicacion = null; }
+  if (unsubRemindersHoy) { unsubRemindersHoy(); unsubRemindersHoy = null; }
+  if (unsubContactos) { unsubContactos(); unsubContactos = null; }
 }
 
 function iniciarSuscripciones() {
@@ -208,6 +255,17 @@ function iniciarSuscripciones() {
   unsubUbicacion = onSnapshot(doc(db, "configDoctora", "general"),
     (snap) => { ubicacionConfigurada = snap.exists() ? (snap.data().ubicacion || "") : ""; },
     () => {});
+
+  // "Recordatorios de hoy" queda SIEMPRE fijo en el día real de hoy — no
+  // sigue al selector de fecha de la grilla, que es para explorar otros días.
+  const qHoy = query(collection(db, "turnosDoctora"), where("fecha", "==", hoyISOInicial));
+  unsubRemindersHoy = onSnapshot(qHoy,
+    (snap) => { const items = []; snap.forEach((d) => items.push({ id: d.id, ...d.data() })); remindersHoy = items; renderRecordatoriosHoy(); },
+    (err) => { console.warn("turnosDoctora (hoy):", err?.message || err); });
+
+  unsubContactos = onSnapshot(collection(db, "contactosWhatsAppDoctora"),
+    (snap) => { contactosPorTurno = {}; snap.forEach((d) => { contactosPorTurno[d.id] = d.data(); }); renderRecordatoriosHoy(); },
+    (err) => { console.warn("contactosWhatsAppDoctora:", err?.message || err); });
 
   suscribirseAFecha(fechaSeleccionada);
   suscribirseAHistorial();
@@ -535,6 +593,75 @@ document.addEventListener("click", (ev) => {
   if (btn) irAFecha(btn.getAttribute("data-ver-fecha-historial"));
 });
 
+// ── Recordatorios de hoy (punto 5) ───────────────────────────────────
+// Siempre HOY de verdad (hoyISOInicial), nunca la fecha que esté mirando el
+// selector de la grilla — es una lista de trabajo del día, no de navegación.
+function estadoRecordatorioPillHtml(turno) {
+  const contacto = contactosPorTurno[idContactoDoctora(turno.id, "recordatorio")] || null;
+  const estado = estadoContacto(contacto);
+  const clase = estado === "enviado" ? "pill-ok" : estado === "preparado" ? "pill-warn" : "pill-muted";
+  return `<span class="pill ${clase}">${escapeHtml(etiquetaEstadoContacto(estado))}</span>`;
+}
+
+function confirmacionPillHtml(turno) {
+  const c = turno?.confirmacionPaciente;
+  const clase = c?.confirmado === true ? "pill-ok" : c?.confirmado === false ? "pill-warn" : "pill-muted";
+  return `<span class="pill ${clase}">${escapeHtml(etiquetaConfirmacionPaciente(turno))}</span>`;
+}
+
+function recordatorioRowHtml(turno) {
+  const puede = puedeEnviarRecordatorio(turno);
+  const estTemp = estadoTemporalTurnoDoctora(turno);
+  let motivoBloqueo = "";
+  if (!puede) {
+    motivoBloqueo = turno.estado === "cancelado" ? "Turno cancelado — no se prepara recordatorio."
+      : estTemp === "pasado" ? "El horario ya pasó — no se prepara recordatorio."
+      : "";
+  }
+  return `
+  <div class="recordatorio-row" data-item="turno::${escapeHtml(turno.id)}">
+    <div class="recordatorio-row-top">
+      <span class="recordatorio-hora">${escapeHtml(turno.hora)}</span>
+      <span class="recordatorio-nombre">${escapeHtml(turno.pacienteNombre || "Sin nombre registrado")}</span>
+    </div>
+    <div class="recordatorio-pills">
+      ${estadoRecordatorioPillHtml(turno)}
+      ${confirmacionPillHtml(turno)}
+      ${!puede ? `<span class="pill pill-muted">${escapeHtml(etiquetaEstadoTemporalDoctora(estTemp))}</span>` : ""}
+    </div>
+    ${motivoBloqueo ? `<p class="hint-text" style="margin-top:8px;">${escapeHtml(motivoBloqueo)}</p>` : ""}
+    <div class="item-actions">
+      ${puede ? `<button class="button button-primary" data-preparar-recordatorio="${escapeHtml(turno.id)}" type="button"><svg class="icon"><use href="#i-whatsapp"/></svg> Preparar recordatorio</button>` : ""}
+      <button class="button button-light" data-abrir-turno="${escapeHtml(turno.id)}" type="button">Ver</button>
+    </div>
+  </div>`;
+}
+
+function renderRecordatoriosHoy() {
+  const cont = $("lista-recordatorios-hoy");
+  // Nunca se inventa un horario: los pendientes de asignar simplemente no
+  // entran acá todavía (aparecen en "Pendientes de asignar horario").
+  const items = remindersHoy.filter((t) => !!t.hora).slice().sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
+  $("count-recordatorios-hoy").textContent = String(items.length);
+  if (!items.length) {
+    cont.innerHTML = `<div class="empty-state"><h3>Sin turnos con horario hoy</h3></div>`;
+    return;
+  }
+  cont.innerHTML = items.map(recordatorioRowHtml).join("");
+}
+
+document.addEventListener("click", (ev) => {
+  const btn = ev.target.closest("[data-preparar-recordatorio]");
+  if (!btn) return;
+  const turnoId = btn.getAttribute("data-preparar-recordatorio");
+  const turno = buscarTurnoPorId(turnoId);
+  if (!turno) { toast("No se encuentra ese turno."); return; }
+  if (!puedeEnviarRecordatorio(turno)) { toast("Este turno ya no admite el recordatorio estándar."); return; }
+  abrirTurnoDialog(turnoId);
+  turnoSeleccionado.tipoMensajeActivo = "recordatorio";
+  prepararWaDoctoraPreview(construirTextoRecordatorioDoctora(turno));
+});
+
 // ── Habilitar / deshabilitar fecha ────────────────────────────────────
 $("btn-habilitar-fecha").addEventListener("click", () => {
   abrirSheet(`Habilitar ${fechaLinda(fechaSeleccionada)}`, `
@@ -717,13 +844,21 @@ document.addEventListener("click", (ev) => {
   if (btn) abrirTurnoDialog(btn.getAttribute("data-abrir-turno"));
 });
 
+// Un turno abierto puede venir de la grilla de la fecha seleccionada
+// (turnosDelDia) o de "Recordatorios de hoy" (remindersHoy, que es siempre
+// HOY y puede ser una fecha distinta a la que esté mirando el selector) —
+// se busca en los dos para no perderlo según desde dónde se haya abierto.
+function buscarTurnoPorId(turnoId) {
+  return turnosDelDia.find((t) => t.id === turnoId) || remindersHoy.find((t) => t.id === turnoId);
+}
+
 function historialReprogramacionHtml(turno) {
   if (!turno.fechaAnteriorTurno && !turno.horaAnteriorTurno) return "";
   return `<div class="historial-evento-cambio">Antes: ${escapeHtml(turno.fechaAnteriorTurno || "—")} ${escapeHtml(turno.horaAnteriorTurno || "")}</div>`;
 }
 
 function abrirTurnoDialog(turnoId) {
-  const turno = turnosDelDia.find((t) => t.id === turnoId);
+  const turno = buscarTurnoPorId(turnoId);
   if (!turno) { toast("No se encuentra ese turno."); return; }
   turnoSeleccionado = { id: turnoId, tipoMensajeActivo: null };
   $("turno-dialog-titulo").textContent = turno.pacienteNombre || "Sin nombre registrado";
@@ -765,7 +900,7 @@ function mostrarTurnoDialogStatus(texto, tipo) {
 
 $("btn-turno-acciones").addEventListener("click", () => {
   if (!turnoSeleccionado) return;
-  const turno = turnosDelDia.find((t) => t.id === turnoSeleccionado.id);
+  const turno = buscarTurnoPorId(turnoSeleccionado.id);
   if (!turno) return;
   const opciones = [];
   opciones.push(`<button class="sheet-option" type="button" data-accion-turno="confirmacion">Preparar confirmación</button>`);
@@ -791,13 +926,13 @@ function prepararWaDoctoraPreview(texto) {
 async function ejecutarAccionTurno(accion) {
   cerrarSheet();
   if (!turnoSeleccionado) return;
-  const turno = turnosDelDia.find((t) => t.id === turnoSeleccionado.id);
+  const turno = buscarTurnoPorId(turnoSeleccionado.id);
   if (!turno) return;
 
   if (accion === "confirmacion" || accion === "recordatorio" || accion === "recomendaciones") {
     turnoSeleccionado.tipoMensajeActivo = accion;
     const texto = accion === "confirmacion" ? construirTextoConfirmacionDoctora(turno, ubicacionConfigurada)
-      : accion === "recordatorio" ? construirTextoRecordatorioDoctora(turno, ubicacionConfigurada)
+      : accion === "recordatorio" ? construirTextoRecordatorioDoctora(turno)
       : construirTextoRecomendacionesDoctora(turno, "");
     prepararWaDoctoraPreview(texto);
     return;
@@ -845,10 +980,22 @@ async function ejecutarAccionTurno(accion) {
   }
 
   if (accion === "reprogramar") {
-    if (!fechaAceptaTurnosNuevos(fechaDocActual)) { toast("Esta fecha no está habilitada para reprogramar."); return; }
-    const ocupados = new Set(turnosDelDia.filter((t) => t.hora && t.estado !== "cancelado" && t.id !== turno.id).map((t) => t.hora));
-    const libres = generarHorariosDelDia(fechaDocActual.horaInicio, fechaDocActual.horaFin, fechaDocActual.duracionTurnoMin).filter((h) => !ocupados.has(h));
-    if (!libres.length) { toast("No quedan horarios libres."); return; }
+    // Siempre se reprograma dentro de la propia fecha del turno (turno.fecha),
+    // NUNCA la fecha que esté mirando el selector de la grilla — pueden ser
+    // distintas si el turno se abrió desde "Recordatorios de hoy". Por eso
+    // se trae fresca la config de esa fecha en vez de asumir fechaDocActual.
+    let fechaDocDelTurno = fechaDocActual;
+    if (turno.fecha !== fechaSeleccionada) {
+      try {
+        const snap = await getDoc(doc(db, "fechasHabilitadasDoctora", turno.fecha));
+        fechaDocDelTurno = snap.exists() ? snap.data() : null;
+      } catch (e) { toast("No se pudo consultar la fecha del turno: " + (e?.message || e)); return; }
+    }
+    if (!fechaAceptaTurnosNuevos(fechaDocDelTurno)) { toast("La fecha de este turno no está habilitada para reprogramar."); return; }
+    const turnosMismaFecha = turno.fecha === fechaSeleccionada ? turnosDelDia : (turno.fecha === hoyISOInicial ? remindersHoy : [turno]);
+    const ocupados = new Set(turnosMismaFecha.filter((t) => t.hora && t.estado !== "cancelado" && t.id !== turno.id).map((t) => t.hora));
+    const libres = generarHorariosDelDia(fechaDocDelTurno.horaInicio, fechaDocDelTurno.horaFin, fechaDocDelTurno.duracionTurnoMin).filter((h) => !ocupados.has(h));
+    if (!libres.length) { toast("No quedan horarios libres ese día."); return; }
     abrirSheet("Reprogramar a", `<div class="sheet-option-list">${libres.map((h) => `<button class="sheet-option" type="button" data-nuevo-horario="${escapeHtml(h)}">${escapeHtml(h)}</button>`).join("")}</div>`);
     $("sheet-body").querySelectorAll("[data-nuevo-horario]").forEach((el) => {
       el.addEventListener("click", async () => {
@@ -856,9 +1003,9 @@ async function ejecutarAccionTurno(accion) {
         cerrarSheet();
         try {
           await asignarOReprogramarHorario({
-            turnoId: turno.id, fecha: fechaSeleccionada, hora: horaNueva,
+            turnoId: turno.id, fecha: turno.fecha, hora: horaNueva,
             fechaAnterior: turno.fecha, horaAnterior: turno.hora,
-            datosTurno: { pacienteDni: turno.pacienteDni, pacienteNombre: turno.pacienteNombre, pacienteTelefono: turno.pacienteTelefono || "", estado: "confirmado", duracionMin: fechaDocActual?.duracionTurnoMin || null },
+            datosTurno: { pacienteDni: turno.pacienteDni, pacienteNombre: turno.pacienteNombre, pacienteTelefono: turno.pacienteTelefono || "", estado: "confirmado", duracionMin: fechaDocDelTurno?.duracionTurnoMin || null },
           });
           toast(`Turno reprogramado a las ${horaNueva}.`);
           abrirTurnoDialog(turno.id);

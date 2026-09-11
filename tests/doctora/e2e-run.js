@@ -56,6 +56,19 @@ function emitirSnapshot(coleccionPath, docs, fromCache = false) {
   docs.__fromCache = fromCache;
   entrada.onNext(fakeFb.fakeSnap(docs));
 }
+// turnosDoctora tiene DOS suscripciones simultáneas que pueden coincidir en
+// su where("fecha","==",...) al principio (cuando el selector todavía está
+// en hoy): "Recordatorios de hoy" (se arma UNA sola vez, fija) y la grilla
+// de la fecha seleccionada (se rearma cada vez que se navega). Por eso no
+// se puede distinguir solo por el valor del where — se toma la PRIMERA
+// suscripción alguna vez registrada para ese path+kind como "hoy fija", y
+// se deja la última (la que ya usa emitirSnapshot) para la de la grilla.
+function emitirSnapshotFijaHoy(coleccionPath, docs, fromCache = false) {
+  const entrada = fakeFb.calls.onSnapshotCalls.find((e) => e.path === coleccionPath && e.kind !== "doc" && !e.unsubscribed);
+  if (!entrada) throw new Error(`No hay suscripción "fija" activa para ${coleccionPath}`);
+  docs.__fromCache = fromCache;
+  entrada.onNext(fakeFb.fakeSnap(docs));
+}
 function emitirDoc(path_, id, data) {
   const entradas = fakeFb.calls.onSnapshotCalls.filter((e) => e.path === path_ && e.kind === "doc" && !e.unsubscribed);
   const entrada = entradas[entradas.length - 1];
@@ -344,7 +357,80 @@ async function run() {
     check("no toca contactosWhatsAppDoctora al confirmar asistencia", !fakeFb.calls.updateDocCalls.some((c) => c.path === "contactosWhatsAppDoctora"));
   }
 
-  console.log("\n" + "=".repeat(60));
+  console.log('\n=== Login: mostrar/ocultar contraseña ===');
+  {
+    check('el campo arranca oculto (type=password)', $('login-password').type === 'password');
+    $('btn-mostrar-password').click();
+    check('un click lo muestra (type=text)', $('login-password').type === 'text');
+    check('aria-pressed refleja el estado', $('btn-mostrar-password').getAttribute('aria-pressed') === 'true');
+    $('btn-mostrar-password').click();
+    check('otro click lo vuelve a ocultar', $('login-password').type === 'password');
+  }
+
+  console.log('\n=== "Recordatorios de hoy": queda fijo en HOY aunque el selector mire otra fecha ===');
+  {
+    check('el botón de cerrar sesión está visible para una cuenta autorizada', $('btn-cerrar-sesion').hidden === false);
+
+    // Un turno de HOY con horario, para la lista de recordatorios.
+    emitirSnapshotFijaHoy('turnosDoctora', [
+      ['t-hoy-recordatorio', { pacienteDni: '99999999', pacienteNombre: 'Paciente De Hoy', pacienteTelefono: '3764000009', fecha: HOY, hora: '23:55', duracionMin: 30, estado: 'confirmado' }],
+    ]);
+    check('aparece en "Recordatorios de hoy" con su horario real', $('lista-recordatorios-hoy').innerHTML.includes('Paciente De Hoy') && $('lista-recordatorios-hoy').innerHTML.includes('23:55'));
+    check('el contador de recordatorios de hoy es 1', $('count-recordatorios-hoy').textContent === '1');
+
+    // Ahora el selector de la grilla se mueve a MAÑANA, con su propia
+    // fecha habilitada y SIN el turno de hoy — turnosDelDia queda vacío.
+    document.getElementById('btn-fecha-siguiente').click();
+    emitirDoc('fechasHabilitadasDoctora', 'fecha-otra', { habilitada: true, horaInicio: '09:00', horaFin: '12:00', duracionTurnoMin: 30 });
+    emitirSnapshot('turnosDoctora', []); // turnosDelDia de "mañana": vacío
+    check('la grilla ahora muestra la fecha siguiente, no hoy', $('fecha-estado-pill').textContent === 'Habilitada');
+    check('"Recordatorios de hoy" sigue mostrando a la paciente de HOY (no depende del selector)', $('lista-recordatorios-hoy').innerHTML.includes('Paciente De Hoy'));
+
+    // "Preparar recordatorio" desde esa lista tiene que poder abrir el
+    // turno de hoy aunque no esté en turnosDelDia (que ahora es "mañana").
+    document.querySelector('[data-preparar-recordatorio="t-hoy-recordatorio"]')?.click();
+    check('el detalle del turno de HOY se abrió igual (buscarTurnoPorId lo encuentra en remindersHoy)', $('turno-dialog').open === true && $('turno-dialog-titulo').textContent === 'Paciente De Hoy');
+    check('la vista previa del recordatorio quedó lista automáticamente (un solo click, sin pasar por "Más acciones")', $('wa-doctora-preview-wrap').hidden === false && $('wa-doctora-preview-texto').value.includes('Paciente'));
+    $('btn-cerrar-turno-dialog').click();
+
+    // Vuelve a hoy para no afectar el resto de las pruebas.
+    document.getElementById('btn-ir-hoy').click();
+    emitirDoc('fechasHabilitadasDoctora', HOY, { habilitada: true, horaInicio: '15:00', horaFin: '18:00', duracionTurnoMin: 30 });
+    emitirSnapshot('turnosDoctora', [
+      ['t-hoy-recordatorio', { pacienteDni: '99999999', pacienteNombre: 'Paciente De Hoy', pacienteTelefono: '3764000009', fecha: HOY, hora: '23:55', duracionMin: 30, estado: 'confirmado' }],
+    ]);
+  }
+
+  console.log('\n=== "Recordatorios de hoy": no se ofrece para un turno cancelado ===');
+  {
+    emitirSnapshotFijaHoy('turnosDoctora', [
+      ['t-hoy-cancelado', { pacienteDni: '88888888', pacienteNombre: 'Paciente Cancelada', pacienteTelefono: '3764000008', fecha: HOY, hora: '12:00', duracionMin: 30, estado: 'cancelado' }],
+    ]);
+    check('el turno cancelado sigue visible en "Recordatorios de hoy" (se conserva, no desaparece)', $('lista-recordatorios-hoy').innerHTML.includes('Paciente Cancelada'));
+    check('no ofrece el botón "Preparar recordatorio" para un turno cancelado', !document.querySelector('[data-preparar-recordatorio="t-hoy-cancelado"]'));
+    check('explica el motivo en vez de solo ocultar el botón', $('lista-recordatorios-hoy').innerHTML.includes('Turno cancelado'));
+  }
+
+  console.log('\n=== Cerrar sesión: limpia las suscripciones y el estado visible, no reaparece nada ===');
+  {
+    fakeFb.calls.signOutCalls = 0;
+    $('btn-cerrar-sesion').click();
+    await tick();
+    check('se llamó a signOut', fakeFb.calls.signOutCalls === 1);
+
+    // Simula lo que hace Firebase de verdad: dispara el callback de auth con null.
+    await fakeFb.calls.authCallback(null);
+    await tick();
+
+    check('vuelve a mostrar únicamente el panel de acceso', $('access-panel').hidden === false && $('workspace').hidden === true);
+    check('el botón de cerrar sesión se oculta de nuevo', $('btn-cerrar-sesion').hidden === true);
+    check('la lista de pacientes queda vacía en el DOM (no sigue mostrando a las pacientes ya cargadas)', $('lista-pacientes').innerHTML === '');
+    check('"Recordatorios de hoy" también se vació', $('lista-recordatorios-hoy').innerHTML === '' && $('count-recordatorios-hoy').textContent === '0');
+    check('el campo de contraseña se limpia (no queda escrita para la próxima persona)', $('login-password').value === '');
+    check('todas las suscripciones de Firestore quedaron cerradas', fakeFb.calls.onSnapshotCalls.filter((e) => !e.unsubscribed).length === 0);
+  }
+
+  console.log('\n' + "=".repeat(60));
   console.log(fails ? (fails + " prueba(s) fallaron") : "TODAS LAS PRUEBAS OK");
   process.exit(fails ? 1 : 0);
 }
