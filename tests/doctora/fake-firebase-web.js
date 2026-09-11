@@ -109,7 +109,7 @@ export function onSnapshot(queryOrDoc, optionsOrNext, maybeNext, maybeError) {
   // fechasHabilitadasDoctora se escucha por documento puntual Y por query de
   // historial) — se distinguen por __type para que emitirDoc/emitirSnapshot
   // no se crucen entre sí en las pruebas.
-  const entry = { path: queryOrDoc.path, kind: queryOrDoc.__type, docId: queryOrDoc.id, onNext, onError };
+  const entry = { path: queryOrDoc.path, kind: queryOrDoc.__type, docId: queryOrDoc.id, clauses: queryOrDoc.clauses || [], onNext, onError };
   calls.onSnapshotCalls.push(entry);
   return () => { entry.unsubscribed = true; };
 }
