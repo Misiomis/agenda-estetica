@@ -53,6 +53,14 @@
             transition: border-color 0.18s;
         }
         .login-input:focus { border-color: var(--acento); box-shadow: 0 0 0 3px rgba(30,122,78,0.18); }
+        .login-pass-wrap { position: relative; }
+        .login-pass-wrap .login-input { padding-right: 42px; }
+        .login-pass-toggle {
+            position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+            width: 34px; height: 34px; border: none; background: transparent;
+            color: var(--texto-suave); cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .login-pass-toggle svg { width: 18px; height: 18px; }
         .login-btn {
             width: 100%; padding: 13px; border-radius: 11px; border: none;
             background: var(--acento); color: #fff; font-weight: 700; font-size: 15px;
@@ -525,9 +533,16 @@
     <div class="login-card">
         <div class="login-title">Espacio Mimar T</div>
         <div class="login-sub">Panel · Depilación</div>
-        <input class="login-input" type="password" id="loginPassword" placeholder="Contraseña"
-            onkeydown="if(event.key==='Enter')iniciarSesion()" autocomplete="current-password">
-        <button class="login-btn" onclick="iniciarSesion()">Ingresar</button>
+        <input class="login-input" type="email" id="loginEmail" placeholder="Email"
+            onkeydown="if(event.key==='Enter')document.getElementById('loginPassword').focus()" autocomplete="username">
+        <div class="login-pass-wrap">
+            <input class="login-input" type="password" id="loginPassword" placeholder="Contraseña"
+                onkeydown="if(event.key==='Enter')iniciarSesion()" autocomplete="current-password">
+            <button type="button" class="login-pass-toggle" id="btnMostrarPassDepi" aria-label="Mostrar contraseña" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </div>
+        <button class="login-btn" id="btnIniciarSesionDepi" onclick="iniciarSesion()">Ingresar</button>
         <div id="loginError"></div>
     </div>
 </div>
@@ -804,13 +819,18 @@
 <script type="module">
     import {
         auth, db,
-        onAuthStateChanged, signOut,
+        onAuthStateChanged, signOut, signInWithEmailAndPassword,
         collection, getDocs, doc, setDoc, addDoc, updateDoc, deleteDoc, getDoc,
         serverTimestamp, query, where
     } from "/js/firebase-web.js";
 
-    const PASS_PANEL = 'Sesiones2026'; // contraseña de acceso a este panel
-    const OPERADOR_ACTUAL = 'becker'; // identifica las reservas de este panel
+    // Cuentas autorizadas para este panel — mismo criterio que esAdminDepi()
+    // en firestore.rules: si el email no está en esta lista, Firestore va a
+    // rechazar cualquier intento de modificar/borrar un turno aunque el
+    // login local lo deje pasar, así que las dos listas tienen que
+    // coincidir siempre.
+    const EMAILS_AUTORIZADOS = ['espaciomimart36@gmail.com', 'farmaciacentral36@gmail.com', 'depi.mimart@gmail.com', 'gimenadepi@gmail.com'];
+    const OPERADOR_ACTUAL = 'becker'; // identifica las reservas registradas desde este panel (solo para el cierre de caja, no filtra qué se puede ver o gestionar)
     const OPERADOR_NOMBRE_DISPLAY = 'Yeisy Cristina Becker'; // nombre para el resumen compartible
 
     const COLECCION    = "reservasDepi";
@@ -845,9 +865,24 @@
     let _dniTimer = null;
 
     // ════════════════════════════════
-    // LOGIN — contraseña simple
+    // LOGIN — Firebase Authentication real (antes: contraseña local fija
+    // compartida en el HTML, sin ningún vínculo con las reglas de
+    // Firestore). Firestore ahora exige esAdminDepi() para modificar o
+    // borrar un turno, así que sin esta sesión real esas acciones fallan.
     // ════════════════════════════════
-    const _STORAGE_KEY = 'depiPanelAuth_becker';
+    let _sesionValidada = false;
+
+    const _limpiarEstadoDepi = () => {
+        _reservasDia = {}; _excepcionesDia = {}; _cobrosCache = {};
+        _todosLosPacientes = []; _jornadaCerrada = false; _reservasCargadas = [];
+        ['diaDetalleContenido', 'pacientesLista', 'buscarResultados'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = '';
+        });
+        const dd = document.getElementById('diaDetalle');
+        if (dd) dd.style.display = 'none';
+    };
+
     const _mostrarApp = async () => {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appWrapper').classList.add('visible');
@@ -856,28 +891,65 @@
         cargarCombosDepi();
     };
 
-    window.iniciarSesion = () => {
-        const pass  = document.getElementById('loginPassword').value;
-        const errEl = document.getElementById('loginError');
-        errEl.textContent = '';
-        if (pass === PASS_PANEL) {
-            localStorage.setItem(_STORAGE_KEY, '1');
-            _mostrarApp();
-        } else {
-            errEl.textContent = 'Contraseña incorrecta.';
-        }
-    };
-
-    window.cerrarSesionDepi = () => {
-        localStorage.removeItem(_STORAGE_KEY);
+    const _mostrarLoginDepi = () => {
+        _limpiarEstadoDepi();
         document.getElementById('appWrapper').classList.remove('visible');
         document.getElementById('loginOverlay').style.display = 'flex';
-        document.getElementById('loginError').textContent = '';
         document.getElementById('loginPassword').value = '';
     };
 
-    // Auto-login si ya ingresó antes (diferido para que todos los const estén inicializados)
-    if (localStorage.getItem(_STORAGE_KEY) === '1') setTimeout(_mostrarApp, 0);
+    window.iniciarSesion = async () => {
+        const email = document.getElementById('loginEmail').value.trim();
+        const pass  = document.getElementById('loginPassword').value;
+        const errEl = document.getElementById('loginError');
+        const btn   = document.getElementById('btnIniciarSesionDepi');
+        errEl.textContent = '';
+        if (!email || !pass) { errEl.textContent = 'Completá email y contraseña.'; return; }
+        btn.disabled = true; btn.textContent = 'Ingresando...';
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            // onAuthStateChanged hace el resto (valida el email contra
+            // EMAILS_AUTORIZADOS y recién ahí muestra la app)
+        } catch (e) {
+            errEl.textContent = 'Email o contraseña incorrectos.';
+        } finally {
+            btn.disabled = false; btn.textContent = 'Ingresar';
+        }
+    };
+
+    window.cerrarSesionDepi = async () => {
+        try { await signOut(auth); } catch (_) {}
+    };
+
+    document.getElementById('btnMostrarPassDepi').addEventListener('click', () => {
+        const input = document.getElementById('loginPassword');
+        const btn = document.getElementById('btnMostrarPassDepi');
+        const oculto = input.type === 'password';
+        input.type = oculto ? 'text' : 'password';
+        btn.setAttribute('aria-pressed', String(oculto));
+        btn.setAttribute('aria-label', oculto ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+        const errEl = document.getElementById('loginError');
+        if (!user) {
+            _sesionValidada = false;
+            _mostrarLoginDepi();
+            return;
+        }
+        const email = (user.email || '').toLowerCase();
+        if (!EMAILS_AUTORIZADOS.includes(email)) {
+            // Sesión de Firebase real pero no autorizada para este panel —
+            // no mostrar nada del módulo, cerrar y volver al login.
+            _sesionValidada = false;
+            errEl.textContent = 'Esta cuenta no tiene acceso a este panel.';
+            try { await signOut(auth); } catch (_) {}
+            _mostrarLoginDepi();
+            return;
+        }
+        _sesionValidada = true;
+        await _mostrarApp();
+    });
 
     // ════════════════════════════════
     // NAVEGACIÓN
@@ -998,10 +1070,12 @@
                 getDocs(query(collection(db, COLECCION), where('fecha', '>=', fechaMin), where('fecha', '<=', fechaMax))),
                 getDocs(query(collection(db, COLECCION_EX), where('fecha', '>=', fechaMin), where('fecha', '<=', fechaMax)))
             ]);
+            // "operador" no filtra la vista: cualquier cuenta autorizada
+            // gestiona TODOS los turnos, sin importar quién los creó
+            // (panel, la otra profesional, o la paciente desde la web).
             snapR.forEach(d => {
                 const dat = d.data();
                 if (!dat.fecha) return;
-                if (dat.operador && dat.operador !== OPERADOR_ACTUAL) return;
                 diasConReservas.add(dat.fecha);
             });
             snapEx.forEach(d => { const dat = d.data(); if (dat.fecha && dat.tipo === 'dia') diasBloqueados.add(dat.fecha); });
@@ -1067,8 +1141,6 @@
             snapR.forEach(d => {
                 const dat = d.data();
                 if (dat.eliminado) return;
-                // Incluye docs sin operador (historial previo) como propios de este panel
-                if (dat.operador && dat.operador !== OPERADOR_ACTUAL) return;
                 reservas.push({ _id: d.id, ...dat });
             });
             reservas.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
@@ -1618,7 +1690,6 @@
             snap.forEach(d => {
                 const dat = d.data();
                 if (dat.eliminado) return;
-                if (dat.operador && dat.operador !== OPERADOR_ACTUAL) return;
                 const key = dat.dni || dat.telefono || dat.nombre || d.id;
                 if (!mapa.has(key)) mapa.set(key, { nombre: dat.nombre || '—', dni: dat.dni || '', telefono: dat.telefono || '', sesiones: [] });
                 mapa.get(key).sesiones.push({ _id: d.id, ...dat });
@@ -1910,7 +1981,6 @@
             snap.forEach(d => {
                 const data = d.data();
                 if (data.eliminado) return;
-                if (data.operador && data.operador !== OPERADOR_ACTUAL) return;
                 const nombre = (data.nombre || '').toLowerCase();
                 const dni    = (data.dni || '').toLowerCase();
                 if (nombre.includes(q) || dni.includes(q)) {
