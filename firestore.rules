@@ -20,6 +20,16 @@ service cloud.firestore {
                .hasAny(['membershipActive', 'membresia', 'hoursBalance', 'role']));
     }
 
+    // Acceso privado a "Pacientes de la Doctora" — mismo estilo que
+    // esAdminDepi(): lista de emails literal, nunca abierto a request.auth
+    // != null solo. Ningún otro profesional ni el resto de las reglas
+    // generales (clients, reservas, etc.) puede acceder a estas colecciones.
+    function esDoctora() {
+      return request.auth != null
+        && (request.auth.token.email == "espaciomimart36@gmail.com"
+         || request.auth.token.email == "doctora.mimart@gmail.com");
+    }
+
     match /clients/{clientId} {
       allow read:   if true;
       allow write:  if esAdmin();
@@ -156,6 +166,52 @@ service cloud.firestore {
     // control_consultas_iniciales: solo admin, sin acceso público.
     match /contactosWhatsApp/{contactoId} {
       allow read, write: if esAdmin();
+    }
+
+    // ── Pacientes de la Doctora — módulo privado, aislado de "clients" ─────
+    // Nunca se guardan estos pacientes en la colección "clients" (esa tiene
+    // "allow read: if true" — exponerlos ahí violaría la privacidad pedida).
+    // Doc id = DNI normalizado (solo dígitos), mismo criterio que "clients".
+    match /pacientesDoctora/{dni} {
+      allow read, write: if esDoctora();
+    }
+
+    // Qué fechas aceptan turnos nuevos, y con qué horario/duración. Doc id =
+    // fecha ISO ("YYYY-MM-DD"). Deshabilitar (habilitada:false) nunca borra
+    // el documento ni los turnos ya creados para esa fecha — solo bloquea
+    // reservas nuevas.
+    match /fechasHabilitadasDoctora/{fecha} {
+      allow read, write: if esDoctora();
+    }
+
+    match /turnosDoctora/{turnoId} {
+      allow read, write: if esDoctora();
+    }
+
+    // Reserva atómica de horario (equivalente privado de reservas_slots).
+    // Una vez ocupado por un turno, solo se puede liberar (ocupado:false) o
+    // reafirmar el mismo turno — nunca pisar el horario de otro turno,
+    // incluso si dos operaciones intentan guardar al mismo tiempo.
+    match /slotsDoctora/{slotId} {
+      allow read:   if esDoctora();
+      allow create: if esDoctora();
+      allow update: if esDoctora()
+        && (resource.data.ocupado == false || resource.data.turnoId == request.resource.data.turnoId);
+      allow delete: if esDoctora();
+    }
+
+    // Seguimiento de WhatsApp de la doctora — aislado de contactosWhatsApp
+    // (otro alcance, otros profesionales) por la misma razón que
+    // pacientesDoctora está aislado de clients.
+    match /contactosWhatsAppDoctora/{contactoId} {
+      allow read, write: if esDoctora();
+    }
+
+    // Configuración propia del módulo (por ahora, solo la ubicación del
+    // consultorio para los mensajes de WhatsApp) — aislada de
+    // "configuracion", que ya tiene otro alcance y otro dueño.
+    match /configDoctora/{docId} {
+      allow read, write: if esDoctora();
     }
 
   }

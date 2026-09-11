@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173e33">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Pacientes de la Doctora — sección privada de Espacio Mimar T.">
+  <title>Pacientes de la Doctora</title>
+  <link rel="stylesheet" href="../mimar-inteligente/mimar-inteligente.css">
+  <link rel="stylesheet" href="./doctora.css">
+</head>
+<body>
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></symbol>
+      <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A8.5 8.5 0 1 1 8.4 20L3 21z"/><path d="M8.5 9.5c.3 2 3.7 5.2 5.7 5.5 1 .1 1.7-.9 1.3-1.7-.2-.5-.9-1-1.3-1.1-.3-.1-.6.1-.8.3-.3.3-.6.3-1 0-.9-.6-1.6-1.3-2.2-2.2-.3-.4-.3-.7 0-1 .2-.2.4-.5.3-.8-.1-.4-.6-1.1-1.1-1.3-.8-.4-1.8.3-1.7 1.3z"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c2.4.4 4.5 2.4 4.5 5.8"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="page-shell">
+    <header class="topbar">
+      <span class="brand" aria-hidden="false">
+        <span class="brand-mark">D</span>
+        <span class="brand-copy"><strong>Pacientes de la Doctora</strong><span>SECCIÓN PRIVADA</span></span>
+      </span>
+      <div class="header-actions">
+        <span class="connection" id="connection" role="status"><span class="status-dot"></span><span id="connection-text">Iniciando</span></span>
+      </div>
+    </header>
+
+    <!-- ══ LOGIN ══ -->
+    <section id="access-panel" class="access-panel" aria-labelledby="access-title">
+      <div class="access-heading">
+        <span class="eyebrow">ACCESO PRIVADO</span>
+        <h1 id="access-title">Solo para<br><em>la doctora.</em></h1>
+        <p id="access-message" role="status">Buscando tu sesión…</p>
+      </div>
+      <form id="login-form" class="login-card" hidden>
+        <h2>Ingresá con tu cuenta</h2>
+        <label for="login-email">Correo electrónico</label>
+        <input id="login-email" name="email" type="email" autocomplete="username" required>
+        <label for="login-password">Contraseña</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        <button class="button button-primary button-full" type="submit" id="login-submit">Ingresar <svg class="icon"><use href="#i-arrow"/></svg></button>
+        <p id="login-error" class="error-text" role="alert"></p>
+        <p id="login-hint" class="hint-text">Acceso exclusivo — otros profesionales no pueden ver estos pacientes.</p>
+      </form>
+    </section>
+
+    <!-- ══ APP ══ -->
+    <main id="workspace" hidden>
+
+      <!-- ══ TAB: PACIENTES ══ -->
+      <section class="tab-view" id="tab-pacientes" data-tab="pacientes">
+        <div class="workspace-heading">
+          <div><span class="eyebrow">BASE DE PACIENTES</span><h1>Pacientes</h1></div>
+          <button class="button button-primary" type="button" id="btn-nuevo-paciente"><svg class="icon"><use href="#i-plus"/></svg> Nuevo</button>
+        </div>
+
+        <div class="buscador-wrap">
+          <svg class="icon"><use href="#i-search"/></svg>
+          <input type="search" id="buscador-pacientes" placeholder="Buscar por nombre o DNI…" autocomplete="off">
+        </div>
+
+        <div class="list-panel" id="lista-pacientes"><div class="loading-state">Cargando…</div></div>
+      </section>
+
+      <!-- ══ TAB: AGENDA ══ -->
+      <section class="tab-view" id="tab-agenda" data-tab="agenda" hidden>
+        <div class="workspace-heading">
+          <div><span class="eyebrow">TURNOS</span><h1>Agenda</h1></div>
+          <button class="text-button" type="button" id="btn-config-ubicacion">📍 Ubicación</button>
+        </div>
+
+        <div class="fecha-stepper">
+          <button class="icon-button" type="button" id="btn-fecha-anterior" aria-label="Día anterior">‹</button>
+          <div class="fecha-stepper-actual">
+            <span id="fecha-actual-linda">—</span>
+            <span class="pill" id="fecha-estado-pill">—</span>
+          </div>
+          <button class="icon-button" type="button" id="btn-fecha-siguiente" aria-label="Día siguiente">›</button>
+        </div>
+        <div class="fecha-stepper-acciones">
+          <input type="date" id="fecha-picker" aria-label="Ir a una fecha">
+          <button class="text-button" type="button" id="btn-ir-hoy">Ir a hoy</button>
+        </div>
+
+        <div id="fecha-no-habilitada-aviso" class="notice warning-notice" hidden>
+          <p>Esta fecha todavía no está habilitada para turnos nuevos.</p>
+          <button class="button button-primary" type="button" id="btn-habilitar-fecha">Habilitar fecha</button>
+        </div>
+        <div id="fecha-habilitada-info" class="hint-text" hidden></div>
+        <button class="text-button" type="button" id="btn-deshabilitar-fecha" hidden>Deshabilitar esta fecha</button>
+
+        <section class="section-block" id="grilla-section">
+          <div class="section-heading">
+            <h2>Horarios</h2>
+            <span class="count-pill" id="count-turnos-dia">0</span>
+          </div>
+          <div class="list-panel" id="grilla-horarios"><div class="loading-state">Cargando…</div></div>
+        </section>
+
+        <section class="section-block" id="pendientes-section">
+          <div class="section-heading">
+            <h2>Pendientes de asignar horario</h2>
+            <span class="count-pill" id="count-pendientes">0</span>
+          </div>
+          <div class="list-panel" id="lista-pendientes"><div class="loading-state">Cargando…</div></div>
+        </section>
+
+        <details id="historial-wrap">
+          <summary class="day-header day-header-group day-header-expand">Historial de fechas anteriores</summary>
+          <div class="list-panel" id="lista-historial"><div class="loading-state">Cargando…</div></div>
+        </details>
+      </section>
+
+    </main>
+
+    <!-- ══ NAVEGACIÓN INFERIOR ══ -->
+    <nav class="bottom-nav" id="bottom-nav" hidden aria-label="Navegación principal">
+      <button class="nav-item" type="button" data-tab-btn="pacientes" aria-current="page">
+        <svg class="icon"><use href="#i-users"/></svg><span>Pacientes</span>
+      </button>
+      <button class="nav-item" type="button" data-tab-btn="agenda">
+        <svg class="icon"><use href="#i-calendar"/></svg><span>Agenda</span><span class="nav-badge" id="nav-badge-pendientes" hidden></span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ══ MODAL: alta/edición de paciente ══ -->
+  <dialog id="paciente-dialog" aria-labelledby="paciente-dialog-titulo">
+    <div class="dialog-heading">
+      <div><span class="eyebrow">PACIENTE</span><h2 id="paciente-dialog-titulo">Nuevo paciente</h2></div>
+      <button class="icon-button" type="button" id="btn-cerrar-paciente-dialog" aria-label="Cerrar"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="dialog-status" id="paciente-dialog-status"></div>
+    <form class="dialog-body" id="form-paciente">
+      <label for="pf-nombre">Nombre y apellido</label>
+      <input id="pf-nombre" name="nombre" type="text" required>
+      <label for="pf-dni">DNI</label>
+      <input id="pf-dni" name="dni" type="text" inputmode="numeric" required>
+      <label for="pf-telefono">Teléfono</label>
+      <input id="pf-telefono" name="telefono" type="tel" inputmode="tel" required>
+      <div id="paciente-conflictos" class="aviso-discrepancia" hidden></div>
+    </form>
+    <div class="dialog-actions">
+      <button class="button button-primary button-full" type="submit" form="form-paciente" id="btn-guardar-paciente">Guardar</button>
+      <button class="button button-light button-full" type="button" id="btn-cancelar-paciente">Cancelar</button>
+    </div>
+  </dialog>
+
+  <!-- ══ MODAL: detalle de turno / ficha ══ -->
+  <dialog id="turno-dialog" aria-labelledby="turno-dialog-titulo">
+    <div class="dialog-heading">
+      <div><span class="eyebrow" id="turno-dialog-eyebrow">TURNO</span><h2 id="turno-dialog-titulo">—</h2></div>
+      <button class="icon-button" type="button" id="btn-cerrar-turno-dialog" aria-label="Cerrar"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="dialog-status" id="turno-dialog-status"></div>
+    <div class="dialog-body" id="turno-dialog-body"></div>
+    <div class="dialog-actions">
+      <button class="button button-light button-full" type="button" id="btn-turno-acciones">
+        <svg class="icon"><use href="#i-more"/></svg> Más acciones
+      </button>
+      <div id="wa-doctora-preview-wrap" hidden>
+        <label for="wa-doctora-preview-texto" class="hint-text" style="display:block;margin-bottom:6px;">Mensaje (podés editarlo antes de abrir WhatsApp)</label>
+        <textarea id="wa-doctora-preview-texto" class="wa-preview-textarea" rows="6"></textarea>
+      </div>
+      <button class="button button-primary button-full" id="btn-abrir-whatsapp-doctora" type="button" hidden><svg class="icon"><use href="#i-whatsapp"/></svg> Abrir WhatsApp</button>
+      <button class="button button-light button-full" type="button" id="btn-cerrar-turno-dialog-2">Cerrar</button>
+    </div>
+  </dialog>
+
+  <!-- ══ Panel inferior genérico (menús / formularios) ══ -->
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+  <div class="bottom-sheet" id="bottom-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheet-titulo">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-heading">
+      <h3 id="sheet-titulo">—</h3>
+      <button class="icon-button" type="button" id="btn-cerrar-sheet" aria-label="Cerrar"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
+
+  <!-- ══ "¿Enviaste el mensaje?" — no bloqueante ══ -->
+  <div id="confirm-envio-banner" class="confirm-envio-banner" hidden>
+    <p id="confirm-envio-texto">¿Enviaste el mensaje?</p>
+    <div class="confirm-envio-actions">
+      <button class="button button-primary" id="btn-confirmo-enviado" type="button">Sí, registrar envío</button>
+      <button class="button button-light" id="btn-confirmo-no-enviado" type="button">No lo envié</button>
+      <button class="button button-light" id="btn-confirmo-mas-tarde" type="button">Más tarde</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script type="module" src="./doctora.js"></script>
+</body>
+</html>
