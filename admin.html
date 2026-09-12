@@ -7703,7 +7703,7 @@
         // al re-renderizar (una actualización de datos no debe borrar texto sin
         // guardar ni cerrar un bloque que la admin esté usando).
         function _capturarEstadoSesiones() {
-            const estado = { notas: {}, editoresAbiertos: [], masAbiertos: [], historialAbierto: false };
+            const estado = { notas: {}, editoresAbiertos: [], cuposAbiertos: [], cuposValor: {}, masAbiertos: [], historialAbierto: false };
             document.querySelectorAll('#sesiones-lista textarea[id^="nota-sesion-"]').forEach(ta => {
                 const id = ta.id.slice('nota-sesion-'.length);
                 const s = _cursoSesiones.find(x => x.id === id);
@@ -7711,6 +7711,14 @@
             });
             document.querySelectorAll('#sesiones-lista [id^="nota-editor-"]').forEach(div => {
                 if (div.style.display === 'block') estado.editoresAbiertos.push(div.id.slice('nota-editor-'.length));
+            });
+            document.querySelectorAll('#sesiones-lista [id^="cupo-editor-"]').forEach(div => {
+                if (div.style.display === 'block') estado.cuposAbiertos.push(div.id.slice('cupo-editor-'.length));
+            });
+            document.querySelectorAll('#sesiones-lista input[id^="cupo-sesion-"]').forEach(input => {
+                const id = input.id.slice('cupo-sesion-'.length);
+                const s = _cursoSesiones.find(x => x.id === id);
+                if (!s || String(input.value) !== String(s.capacidad || 10)) estado.cuposValor[id] = input.value;
             });
             document.querySelectorAll('#sesiones-lista details.cm-more').forEach(det => {
                 if (det.open && det.id) estado.masAbiertos.push(det.id.slice('mas-sesion-'.length));
@@ -7730,6 +7738,14 @@
                 const preview = document.getElementById('nota-view-' + id);
                 if (preview) preview.style.display = 'none';
             });
+            (estado.cuposAbiertos || []).forEach(id => {
+                const div = document.getElementById('cupo-editor-' + id);
+                if (div) div.style.display = 'block';
+            });
+            Object.entries(estado.cuposValor || {}).forEach(([id, val]) => {
+                const input = document.getElementById('cupo-sesion-' + id);
+                if (input) input.value = val;
+            });
             (estado.masAbiertos || []).forEach(id => {
                 const det = document.getElementById('mas-sesion-' + id);
                 if (det) det.open = true;
@@ -7747,6 +7763,36 @@
                 const s = _cursoSesiones.find(x => x.id === id);
                 preview.style.display = (!abrir && s && s.nota) ? 'block' : 'none';
             }
+        };
+
+        window.toggleCupoSesion = function(id, forzarCerrar) {
+            const editor = document.getElementById('cupo-editor-' + id);
+            if (!editor) return;
+            const abrir = forzarCerrar ? false : editor.style.display !== 'block';
+            editor.style.display = abrir ? 'block' : 'none';
+            if (abrir) {
+                const s = _cursoSesiones.find(x => x.id === id);
+                const input = document.getElementById('cupo-sesion-' + id);
+                if (input && s) input.value = s.capacidad || 10;
+            }
+        };
+
+        window.guardarCupoSesion = async function(id) {
+            const input = document.getElementById(`cupo-sesion-${id}`);
+            if (!input) return;
+            const nuevoCupo = parseInt(input.value, 10);
+            const idx = _cursoSesiones.findIndex(s => s.id === id);
+            if (idx < 0) return;
+            const inscCount = _cursosCache.filter(c => c.sesionId === id && (c.estado||'inscripta') !== 'cancelada').length;
+            if (!Number.isInteger(nuevoCupo) || nuevoCupo < 1) { mostrarAviso('Ingresá un número de lugares válido.'); return; }
+            if (nuevoCupo < inscCount) { mostrarAviso(`No se puede bajar de ${inscCount} — ya hay esa cantidad de inscriptas.`); return; }
+            try {
+                await updateDoc(doc(db, 'cursoSesiones', id), { capacidad: nuevoCupo });
+                _cursoSesiones[idx].capacidad = nuevoCupo;
+                mostrarAviso('Cupo actualizado ✓');
+                window.toggleCupoSesion(id, true);
+                window.renderSesionesCurso();
+            } catch(e) { mostrarAviso('Error al actualizar el cupo'); }
         };
         function _capturarEstadoInscriptas() {
             const estado = { notas: {}, editAbiertas: [], masAbiertos: [], waAbiertos: [], historialAbierto: false };
@@ -7884,6 +7930,7 @@
                                     : `<button class="cm-btn cm-btn-sm" onclick="marcarSesionConcluida('${s.id}',true)">✓ Marcar Concluída</button>`
                                 }
                                 <button class="cm-btn cm-btn-sm" onclick="toggleSesionCurso('${s.id}')">${s.activa ? '🔒 Bloquear' : '🔓 Activar'}</button>
+                                <button class="cm-btn cm-btn-sm" onclick="toggleCupoSesion('${s.id}')">✏️ Modificar cupo</button>
                                 <button class="cm-btn cm-btn-sm" onclick="mostrarTabCurso('inscriptas')">👥 Ver inscriptas</button>
                                 <button class="cm-btn cm-btn-sm cm-btn-danger" onclick="eliminarSesionCurso('${s.id}')">🗑 Eliminar</button>
                             </div>
@@ -7891,6 +7938,16 @@
                     </div>
                     <div class="cm-ocupacion-texto">${inscCount} de ${cap} lugares ocupados${lleno ? ' · ¡Completo!' : casi ? ' · Casi lleno' : ''}</div>
                     <div class="cm-barra"><div class="cm-barra-fill" style="width:${pct}%;background:${colorBar};"></div></div>
+
+                    <div id="cupo-editor-${s.id}" style="display:none;margin-top:10px;">
+                        <label class="cm-label">Cupo total de esta sesión</label>
+                        <input type="number" id="cupo-sesion-${s.id}" class="cm-field" min="${inscCount}" step="1" value="${cap}">
+                        <p class="cm-muted" style="font-size:12px;margin:4px 0 0;">Ya hay ${inscCount} inscripta(s) anotada(s) — el cupo no se puede bajar de ese número. Al guardar, la persona interesada ya puede anotarse en el lugar nuevo sin ningún paso extra.</p>
+                        <div style="display:flex;gap:8px;margin-top:8px;">
+                            <button class="cm-btn cm-btn-sm cm-btn-primary" onclick="guardarCupoSesion('${s.id}')">💾 Guardar cupo</button>
+                            <button class="cm-btn cm-btn-sm" onclick="toggleCupoSesion('${s.id}', true)">Cancelar</button>
+                        </div>
+                    </div>
 
                     <div id="nota-view-${s.id}" class="cm-nota-preview" onclick="toggleNotaSesion('${s.id}')" style="${s.nota ? '' : 'display:none'}">📝 ${notaCorta}</div>
                     ${!s.nota ? `<button class="cm-btn cm-btn-sm" style="margin-top:10px;" onclick="toggleNotaSesion('${s.id}')">+ Agregar nota</button>` : ''}
