@@ -525,7 +525,7 @@
         <button class="nav-btn" id="navCombos" onclick="irA('combos')">⏱ Duración</button>
         <button class="nav-btn" id="navPrecios" onclick="irA('precios')">💲 Precios</button>
         <button class="nav-btn" id="navExportar" onclick="irA('exportar')">🖨 Exportar</button>
-        <button class="nav-btn" id="navCierre" onclick="irA('cierre');window._renderCierre()">💰 Cierre</button>
+        <button class="nav-btn" id="navCierre" onclick="irA('cierre');window._renderCierre();window._renderJornadasRecientes()">💰 Cierre</button>
         <div class="nav-divider"></div>
         <a class="nav-btn" href="/admin-depi.html" style="text-decoration:none;color:var(--texto-suave);font-size:12px;">← Panel Becker</a>
         <button class="nav-exit" onclick="cerrarSesionDepi()">Cerrar sesión</button>
@@ -723,9 +723,17 @@
 
         <!-- ══ CIERRE DE JORNADA ══ -->
         <div id="secCierre" class="section">
+            <div class="card" style="margin-bottom:14px;">
+                <label style="display:block;margin-bottom:6px;font-size:12px;color:var(--texto-suave);">Consultar el cierre de una fecha puntual</label>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <input class="form-input" type="date" id="cierreFechaPicker" style="flex:1;min-width:150px;" onchange="window._verCierreFecha(this.value)">
+                    <button class="btn-outline" style="font-size:12px;padding:8px 14px;" onclick="window._verCierreHoy()">Hoy</button>
+                </div>
+                <div id="cierreJornadasRecientes" style="margin-top:10px;"></div>
+            </div>
             <div id="cierreContenido">
                 <div class="card">
-                    <p style="font-size:13px;color:var(--texto-suave);">Seleccioná un día en la agenda y luego volvé aquí para ver el cierre.</p>
+                    <p style="font-size:13px;color:var(--texto-suave);">Elegí una fecha arriba (o seleccioná un día en la agenda) para ver su cierre.</p>
                 </div>
             </div>
         </div>
@@ -2630,12 +2638,62 @@ Motivo: ${motivo}`);
     };
 
     /* ── CIERRE DE JORNADA ── */
+    // _cierreFechaMostrada: una vez que se usa el selector de fecha propio
+    // de esta sección, manda por sobre el día que esté abierto en la
+    // Agenda — antes la única forma de ver el cierre de un día pasado era
+    // ir a buscarlo en el calendario de la Agenda y volver acá.
+    let _cierreFechaMostrada = null;
+    window._verCierreFecha = (fecha) => {
+        if (!fecha) return;
+        _cierreFechaMostrada = fecha;
+        window._renderCierre();
+    };
+    window._verCierreHoy = () => {
+        const hoy = fmtFecha(new Date());
+        const picker = document.getElementById('cierreFechaPicker');
+        if (picker) picker.value = hoy;
+        window._verCierreFecha(hoy);
+    };
+    // Lista corta de las últimas jornadas con cobros cargados, para no
+    // tener que adivinar/escribir cada fecha a mano.
+    window._renderJornadasRecientes = async () => {
+        const cont = document.getElementById('cierreJornadasRecientes');
+        if (!cont) return;
+        cont.innerHTML = '<p style="font-size:12px;color:var(--texto-suave);">Cargando jornadas recientes…</p>';
+        try {
+            const snap = await getDocs(collection(db, COLECCION_COBROS));
+            const totalesPorFecha = new Map();
+            snap.forEach(d => {
+                const c = d.data();
+                if (c.operador !== OPERADOR_ACTUAL || !c.jornada) return;
+                const prev = totalesPorFecha.get(c.jornada) || { total: 0, cantidad: 0 };
+                prev.total += (c.importe || 0);
+                prev.cantidad += 1;
+                totalesPorFecha.set(c.jornada, prev);
+            });
+            const fechas = [...totalesPorFecha.keys()].sort((a, b) => b.localeCompare(a)).slice(0, 12);
+            if (!fechas.length) { cont.innerHTML = '<p style="font-size:12px;color:var(--texto-suave);">Todavía no hay cobros cargados en ninguna jornada.</p>'; return; }
+            cont.innerHTML = `
+                <div style="font-size:11px;color:var(--texto-suave);margin-bottom:6px;">Jornadas con cobros cargados:</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    ${fechas.map(f => {
+                        const info = totalesPorFecha.get(f);
+                        const leg = _fmtFechaLeg(f);
+                        return `<button class="btn-outline" style="font-size:11px;padding:6px 10px;" onclick="window._verCierreFecha('${f}')">${leg} · ${_fmtMonto(info.total)} (${info.cantidad})</button>`;
+                    }).join('')}
+                </div>`;
+        } catch (e) {
+            cont.innerHTML = '<p style="font-size:12px;color:rgba(248,113,113,0.8);">No se pudo cargar la lista de jornadas.</p>';
+        }
+    };
     window._renderCierre = async () => {
-        const fecha = _diaSeleccionado;
+        const fecha = _cierreFechaMostrada || _diaSeleccionado;
+        const picker = document.getElementById('cierreFechaPicker');
+        if (picker && fecha) picker.value = fecha;
         const cont  = document.getElementById('cierreContenido');
         if (!cont) return;
         if (!fecha) {
-            cont.innerHTML = '<div class="card"><p style="font-size:13px;color:var(--texto-suave);">Seleccioná un día en la agenda primero.</p></div>';
+            cont.innerHTML = '<div class="card"><p style="font-size:13px;color:var(--texto-suave);">Elegí una fecha arriba (o seleccioná un día en la agenda).</p></div>';
             return;
         }
         cont.innerHTML = '<div class="card"><p style="font-size:13px;color:var(--texto-suave);">Cargando…</p></div>';
