@@ -13,7 +13,19 @@
 
 export const ZONA_HORARIA = "America/Argentina/Buenos_Aires";
 export const OFFSET_AR = "-03:00";
-export const VENTANA_REVISION_MS = 4 * 60 * 60 * 1000; // 4 horas
+// GlowUp de corrección (14/9): esta ventana empezó en 4h ("v1"), pero con
+// datos reales de producción se comprobó que dejaba SIN NINGÚN pendiente de
+// confirmación/recordatorio durante casi todo el día (ej.: 00:36 hs con 19
+// reservas activas hoy/mañana → 0 pendientes de turno, solo kits) — y la
+// propia plantilla de recordatorio (construirTextoRecordatorio) ya asume que
+// el mensaje se manda "mañana", no 4 horas antes. 24h alinea la ventana con
+// cómo realmente se usa el recordatorio.
+export const VENTANA_REVISION_MS = 24 * 60 * 60 * 1000; // 24 horas
+// Cuánto atrás se buscan turnos ya pasados sin revisar (punto 3: "los
+// pendientes de días anteriores no deben desaparecer"). Acotado para no
+// escanear el historial completo — 14 días cubre con margen cualquier
+// descuido real de revisión sin convertirse en una consulta sin límite.
+export const VENTANA_REVISAR_TURNO_DIAS = 14;
 export const DURACION_DEFECTO_MIN = 60; // mismo fallback que _finSesionMs en admin.html
 
 // ── Fecha/hora ───────────────────────────────────────────────────────────
@@ -63,13 +75,39 @@ export function esActiva(coleccion, estadoBruto) {
   return !cancelados.includes(v);
 }
 
+// ── Resolución de teléfono con reubicación por DNI ───────────────────────
+// Causa real encontrada en producción (auditoría 14/9, Arenhardt Yamila):
+// varias reservas/consultas se crearon con phone/telefono en blanco ("",
+// no ausente), mientras que la ficha canónica en `clients/{dni}` sí tiene
+// el número correcto. normalizarItemAgenda nunca cruzaba con `clients`, así
+// que esas reservas quedaban "sin teléfono" aunque la persona ya lo tenía
+// cargado. Precedencia explícita y única (usada por app Y panel admin):
+//   1) el teléfono propio del documento (reserva/consulta), si no está vacío
+//   2) el teléfono de clients/{dni} (telefono, y si no, phone), si hay dni
+//   3) null — nunca se inventa un número ni se agrega prefijo por suposición
+export function resolverTelefonoConFallback(telefonoPropio, dni, clientesPorDni) {
+  const propio = (telefonoPropio || "").toString().trim();
+  if (propio) return propio;
+  const dniLimpio = (dni || "").toString().trim();
+  if (!dniLimpio || !clientesPorDni) return null;
+  const cliente = clientesPorDni[dniLimpio];
+  if (!cliente) return null;
+  const deCliente = (cliente.telefono || cliente.phone || "").toString().trim();
+  return deCliente || null;
+}
+
 // ── Normalización de un documento crudo a una forma común de agenda ─────
 // No inventa campos: si algo no está, queda null y la interfaz debe
 // mostrarlo como faltante, no completarlo con un valor inventado.
-export function normalizarItemAgenda(coleccion, id, data) {
+// clientesPorDni (opcional): mapa dni -> datos de clients, para el fallback
+// de teléfono documentado arriba. Sin ese mapa, se comporta como antes.
+export function normalizarItemAgenda(coleccion, id, data, clientesPorDni) {
   const d = data || {};
   const nombre = d.nombreLimpio || d.nombre || d.paciente || d.clienteNombre || null;
-  const telefono = d.phone || d.telefono || d.whatsapp || null;
+  const dni = d.dni || d.clienteDni || d.documento || null;
+  const telefonoPropio = d.phone || d.telefono || d.whatsapp || null;
+  const telefono = resolverTelefonoConFallback(telefonoPropio, dni, clientesPorDni);
+  const telefonoDeFallback = !((telefonoPropio || "").toString().trim()) && !!telefono;
   const fecha = d.fecha || null;
   const hora = d.hora || null;
   const estadoBruto = d.estado || d.status || (coleccion === "consultas" ? "pendiente" : null);
@@ -89,8 +127,9 @@ export function normalizarItemAgenda(coleccion, id, data) {
     coleccion,               // 'reservas' | 'consultas'
     id,                      // doc id real — la identidad de la tarjeta
     nombre,
-    dni: d.dni || null,
+    dni,
     telefono,
+    telefonoDeFallback, // true si el número vino de clients/{dni}, no del propio documento
     servicio: d.servicio || (coleccion === "consultas" ? "Consulta Inicial" : null),
     box: d.box || null,      // solo si el documento lo trae explícito — sin inferencia por palabras clave
     fecha,
@@ -125,29 +164,32 @@ export function obtenerProximaReserva(agenda, ahoraMs = Date.now()) {
 }
 
 // ── Bandeja de revisiones ────────────────────────────────────────────────
-// Regla única y determinística para esta v1: toda reserva/consulta ACTIVA
-// cuyo inicio cae dentro de las 4 horas previas (ventana [inicio-4h, fin))
-// entra a la bandeja como "revisar confirmación", porque ninguna colección
-// de este proyecto tiene hoy un campo que registre que la paciente
-// confirmó que va a venir (ver auditoría: 'estado: confirmado' solo
-// significa "no cancelada"). No hay estado persistido de la revisión en
-// Firestore: se recalcula siempre desde los datos vivos, así que una
-// reprogramación, cancelación o borrado se reflejan solos en la próxima
-// pasada — no hace falta "descartar" nada a mano.
+// Toda reserva/consulta ACTIVA cuyo inicio cae dentro de la ventana previa
+// (VENTANA_REVISION_MS) entra a la bandeja como "revisar confirmación",
+// porque ninguna colección de este proyecto tiene hoy un campo que registre
+// que la paciente confirmó que va a venir (ver auditoría: 'estado:
+// confirmado' solo significa "no cancelada"). No hay estado persistido de
+// la revisión en Firestore: se recalcula siempre desde los datos vivos, así
+// que una reprogramación, cancelación o borrado se reflejan solos en la
+// próxima pasada — no hace falta "descartar" nada a mano.
 export function calcularRevision(item, ahoraMs = Date.now()) {
   if (!item.activa) return null;
   if (item.inicioMs === null) return null; // sin fecha/hora utilizable — no se puede ubicar en el tiempo
   if (item.finMs !== null && item.finMs <= ahoraMs) return null; // ya pasó
   const ventanaDesde = item.inicioMs - VENTANA_REVISION_MS;
-  if (ahoraMs < ventanaDesde) return null; // todavía no entra a la ventana de 4 horas
+  if (ahoraMs < ventanaDesde) return null; // todavía no entra a la ventana de revisión
 
   const motivos = [];
   motivos.push({
     tipo: "sin_confirmacion",
     texto: "Sin registro de confirmación de la paciente — revisar antes del turno.",
   });
+  // "Sin teléfono" es real solo si NI el documento NI clients/{dni} lo
+  // tienen — normalizarItemAgenda ya aplicó ese fallback antes de llegar
+  // acá, así que este motivo ahora sí bloquea de verdad la acción (punto 3:
+  // "un dato faltante debe bloquear la acción que lo necesita").
   if (!item.telefono) {
-    motivos.push({ tipo: "sin_telefono", texto: "Sin teléfono registrado — no se puede preparar WhatsApp." });
+    motivos.push({ tipo: "sin_telefono", texto: "Sin teléfono registrado (ni en el turno ni en la ficha) — no se puede preparar WhatsApp." });
   }
   if (item.duracionEstimada) {
     motivos.push({ tipo: "duracion_estimada", texto: `Duración no registrada — se estima ${DURACION_DEFECTO_MIN} min.` });
@@ -156,7 +198,26 @@ export function calcularRevision(item, ahoraMs = Date.now()) {
   return {
     item,
     motivos,
+    bloqueado: !item.telefono,
     venceEnMs: item.inicioMs, // referencia: al llegar la hora del turno, deja de tener sentido "revisar antes"
+  };
+}
+
+// ── Turno pasado sin revisar ──────────────────────────────────────────────
+// Distinto de calcularRevision: acá el turno YA terminó y sigue sin ninguna
+// nota de atención (detalleSesion) — punto 3: "turno cuyo estado operativo
+// requiere revisión" → "Revisar/actualizar estado", nunca "asumir asistencia
+// ni realización por haber pasado la hora". Se cierra únicamente cuando
+// alguien carga detalleSesion por la vía admin ya existente — esta función
+// nunca lo asume ni lo completa sola.
+export function calcularRevisarTurnoPasado(item, ahoraMs = Date.now()) {
+  if (!item.activa) return null; // una cancelación no "requiere revisión de asistencia"
+  if (item.inicioMs === null) return null;
+  if (item.finMs === null || item.finMs > ahoraMs) return null; // todavía no pasó
+  if (item.detalleSesion) return null; // ya tiene nota registrada — ya se revisó
+  return {
+    item,
+    texto: "El turno ya pasó y no tiene nota de atención registrada — revisar/actualizar su estado.",
   };
 }
 
@@ -446,10 +507,15 @@ export function filtroEsNeutro(filtro) {
 // conjunto de reglas, verificado con pruebas paralelas en ambos lados).
 //
 // Tabla de reglas por tipo (fuente · activación · vencimiento · cierre):
-//   confirmacion_turno — reservas/consultas activas · ventana de 4 h antes
+//   confirmacion_turno — reservas/consultas activas · ventana de 24 h antes
 //     del turno (calcularRevision) · vence al empezar el turno · se cierra
 //     cuando el contacto de ESA ocurrencia (id versionado por fecha/hora)
-//     queda en estado "enviado".
+//     queda en estado "enviado". Si no hay teléfono resoluble (ni propio ni
+//     por clients/{dni}), queda bloqueado=true y NUNCA se cierra solo.
+//   revisar_turno — reservas/consultas activas cuyo horario YA PASÓ y no
+//     tienen detalleSesion · habilitado al terminar el turno · sin
+//     vencimiento propio · se cierra cuando alguien carga detalleSesion por
+//     la vía admin existente (no es una escritura nueva de esta app).
 //   kit_pendiente — pedidosKit con estado "pendiente" · habilitado apenas
 //     se crea · sin vencimiento propio (antigüedad = prioridad) · se
 //     cierra cuando estado pasa a "entregado" (ya lo maneja el negocio,
@@ -464,20 +530,21 @@ export function filtroEsNeutro(filtro) {
 //     cuando su propio estado pasa a "enviada" o "descartada" (campo
 //     propio del documento, no depende de contactosWhatsApp).
 //
-// Ninguna de estas cuatro reglas cuenta un turno pasado como "atendido":
-// eso lo decide solo un contacto realmente registrado o, en el caso del
-// kit, el propio cambio de estado del pedido — nunca la fecha.
-export const TIPOS_PENDIENTE = ["recomendacion", "confirmacion_turno", "kit_pendiente", "cumpleanos"];
+// Ninguna de estas reglas cuenta un turno pasado como "atendido": eso lo
+// decide solo un contacto realmente registrado, una nota de sesión cargada
+// por la vía admin o, en el caso del kit, el propio cambio de estado del
+// pedido — nunca la fecha.
+export const TIPOS_PENDIENTE = ["recomendacion", "confirmacion_turno", "revisar_turno", "kit_pendiente", "cumpleanos"];
 
 export const ETIQUETA_TIPO_PENDIENTE = {
   recomendacion: "Recomendación", confirmacion_turno: "Confirmación de turno",
-  kit_pendiente: "Pedido de kit", cumpleanos: "Cumpleaños",
+  revisar_turno: "Revisar turno", kit_pendiente: "Pedido de kit", cumpleanos: "Cumpleaños",
 };
 
 // Orden de prioridad cuando dos pendientes vencen al mismo tiempo (o
 // ninguno tiene vencimiento) — las recomendaciones primero porque es el
 // pedido explícito de esta vuelta ("especialmente enviar recomendaciones").
-const ORDEN_TIPO = { recomendacion: 0, confirmacion_turno: 1, kit_pendiente: 2, cumpleanos: 3 };
+const ORDEN_TIPO = { recomendacion: 0, confirmacion_turno: 1, revisar_turno: 2, kit_pendiente: 3, cumpleanos: 4 };
 
 function estadoContactoResuelto(contactosPorId, idContacto) {
   return estadoContacto(contactosPorId?.[idContacto]) === "enviado";
@@ -504,6 +571,19 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
       motivo: revision.motivos.map((m) => m.texto).join(" "),
       habilitadoDesdeMs: item.inicioMs - VENTANA_REVISION_MS, venceMs: revision.venceEnMs,
       ocurrencia: { fecha: item.fecha, hora: item.hora },
+      bloqueado: revision.bloqueado, campoFaltante: revision.bloqueado ? "telefono" : null,
+    });
+  }
+
+  for (const rt of agenda.map((it) => calcularRevisarTurnoPasado(it, ahoraMs)).filter(Boolean)) {
+    const item = rt.item;
+    pendientes.push({
+      id: `pend_${item.coleccion}_${item.id}_revisar_${item.fecha}_${item.hora}`,
+      tipo: "revisar_turno", coleccion: item.coleccion, docId: item.id,
+      nombre: item.nombre || "Paciente",
+      motivo: rt.texto,
+      habilitadoDesdeMs: item.finMs, venceMs: null, ocurrencia: { fecha: item.fecha, hora: item.hora },
+      bloqueado: false, campoFaltante: null,
     });
   }
 
@@ -515,7 +595,7 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
       tipo: "kit_pendiente", coleccion: "pedidosKit", docId: kit.id,
       nombre: kit.nombre || "Paciente",
       motivo: productos ? `Pedido sin entregar: ${productos}.` : "Pedido de kit todavía sin entregar.",
-      habilitadoDesdeMs: null, venceMs: null, ocurrencia: null,
+      habilitadoDesdeMs: null, venceMs: null, ocurrencia: null, bloqueado: false, campoFaltante: null,
     });
   }
 
@@ -529,6 +609,7 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
         nombre: persona.nombre || "Paciente",
         motivo: "Hoy cumple años — falta preparar el saludo.",
         habilitadoDesdeMs: null, venceMs: null, ocurrencia: { fecha: cumpleanosHoy.fecha },
+        bloqueado: false, campoFaltante: null,
       });
     }
   }
@@ -542,6 +623,7 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
       nombre: rec.pacienteNombre || "Paciente",
       motivo: rec.motivo || "Recomendación programada por la administradora.",
       habilitadoDesdeMs: rec.programadoParaMs, venceMs: null, ocurrencia: null,
+      bloqueado: false, campoFaltante: null,
     });
   }
 
@@ -559,6 +641,7 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
 const PLURAL_TIPO = {
   recomendacion: ["recomendación", "recomendaciones"],
   confirmacion_turno: ["turno por confirmar", "turnos por confirmar"],
+  revisar_turno: ["turno a revisar", "turnos a revisar"],
   kit_pendiente: ["kit", "kits"],
   cumpleanos: ["cumpleaños", "cumpleaños"],
 };

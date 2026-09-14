@@ -25,7 +25,7 @@ async function run() {
   {
     const reservasRaw = [{ id: "t1", data: { nombre: "Ana Pendiente", fecha: HOY, hora: "14:00", telefono: "3760000001", estado: "confirmado" } }];
     const pend1 = derivarPendientes({ reservasRaw, consultasRaw: [], pedidosKitPendientesRaw: [], cumpleanosHoy: null, recomendacionesRaw: [], contactosPorId: {} }, ahoraDentroVentana);
-    check("un turno sin confirmar dentro de la ventana de 4h es pendiente", pend1.some((p) => p.docId === "t1" && p.tipo === "confirmacion_turno"));
+    check("un turno sin confirmar dentro de la ventana de 24h es pendiente", pend1.some((p) => p.docId === "t1" && p.tipo === "confirmacion_turno"));
 
     const idContactoT1 = idContactoParaItem({ coleccion: "reservas", id: "t1", fecha: HOY, hora: "14:00" }, "confirmacion");
     const pend2 = derivarPendientes({ reservasRaw, consultasRaw: [], pedidosKitPendientesRaw: [], cumpleanosHoy: null, recomendacionesRaw: [], contactosPorId: { [idContactoT1]: { estado: "enviado" } } }, ahoraDentroVentana);
@@ -47,6 +47,33 @@ async function run() {
     const recomendacionesRaw = [{ id: "r1", data: { pacienteNombre: "Dana Reco", estado: "pendiente", programadoParaMs: Date.now() - 1000 } }];
     const pendRec = derivarPendientes({ reservasRaw: [], consultasRaw: [], pedidosKitPendientesRaw: [], cumpleanosHoy: null, recomendacionesRaw, contactosPorId: {} }, Date.now());
     check("una recomendación con la hora ya cumplida es un pendiente", pendRec.some((p) => p.docId === "r1" && p.tipo === "recomendacion"));
+  }
+
+  console.log("\n=== Espejo CJS: turno pasado sin revisar, y fallback de teléfono por DNI (caso Yamila) ===");
+  {
+    const ayer = new Date(ahoraTurno); ayer.setUTCDate(ayer.getUTCDate() - 1);
+    const fechaAyer = ayer.toISOString().slice(0, 10);
+    const reservaPasadaSinNota = [{ id: "p1", data: { nombre: "Turno Viejo", fecha: fechaAyer, hora: "14:00", telefono: "3760000002", estado: "confirmado" } }];
+    const pendPasado = derivarPendientes({ reservasRaw: reservaPasadaSinNota, consultasRaw: [], pedidosKitPendientesRaw: [], cumpleanosHoy: null, recomendacionesRaw: [], contactosPorId: {} }, Date.now());
+    check("un turno de ayer sin detalleSesion es 'revisar_turno'", pendPasado.some((p) => p.docId === "p1" && p.tipo === "revisar_turno"));
+
+    const reservaPasadaConNota = [{ id: "p2", data: { nombre: "Turno Viejo Atendido", fecha: fechaAyer, hora: "14:00", telefono: "3760000003", estado: "confirmado", detalleSesion: "Sesión realizada sin novedades." } }];
+    const pendPasadoConNota = derivarPendientes({ reservasRaw: reservaPasadaConNota, consultasRaw: [], pedidosKitPendientesRaw: [], cumpleanosHoy: null, recomendacionesRaw: [], contactosPorId: {} }, Date.now());
+    check("un turno de ayer CON detalleSesion ya cargado no genera 'revisar_turno'", !pendPasadoConNota.some((p) => p.docId === "p2"));
+
+    // Caso real (Arenhardt Yamila, dni 32899820): la reserva se guardó con
+    // telefono/phone en "" pero clients/{dni} sí tiene el número.
+    const clientesPorDni = { "32899820": { telefono: "3757670046" } };
+    const reservaSinTelefonoPropio = [{ id: "y1", data: { nombre: "Arenhardt Yamila", dni: "32899820", fecha: HOY, hora: "14:00", telefono: "", phone: "", estado: "confirmado" } }];
+    const pendYamila = derivarPendientes({ reservasRaw: reservaSinTelefonoPropio, consultasRaw: [], pedidosKitPendientesRaw: [], cumpleanosHoy: null, recomendacionesRaw: [], contactosPorId: {}, clientesPorDni }, ahoraDentroVentana);
+    const pyamila = pendYamila.find((p) => p.docId === "y1");
+    check("con fallback por DNI, el pendiente de Yamila NO queda bloqueado", pyamila && pyamila.bloqueado === false);
+
+    // Un homónimo (otro dni) sin teléfono propio y sin ficha con teléfono sí queda bloqueado.
+    const reservaHomonimoSinDatos = [{ id: "y2", data: { nombre: "Yamila De Olivera", dni: "99999999", fecha: HOY, hora: "14:00", telefono: "", estado: "confirmado" } }];
+    const pendHomonimo = derivarPendientes({ reservasRaw: reservaHomonimoSinDatos, consultasRaw: [], pedidosKitPendientesRaw: [], cumpleanosHoy: null, recomendacionesRaw: [], contactosPorId: {}, clientesPorDni }, ahoraDentroVentana);
+    const phomonimo = pendHomonimo.find((p) => p.docId === "y2");
+    check("un homónimo con dni distinto y sin ficha con teléfono SÍ queda bloqueado (nunca usa el de Yamila)", phomonimo && phomonimo.bloqueado === true);
   }
 
   console.log("\n=== Espejo CJS: resumen agrupado y elegibilidad para el aviso ===");

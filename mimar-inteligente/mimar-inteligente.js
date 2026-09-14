@@ -19,6 +19,7 @@ import {
   derivarPendientes, resumenTextoPendientes, contarPendientesPorTipo,
   ETIQUETA_TIPO_PENDIENTE, TIPOS_PENDIENTE, normalizarRecomendacion, recomendacionValida,
   PREFS_AVISOS_DEFECTO, pendientesElegiblesParaAviso, pendientesVigentes,
+  VENTANA_REVISAR_TURNO_DIAS,
 } from "./mimar-inteligente-logic.js";
 import {
   registrarContactoPreparado, registrarContactoEstado, registrarContactoManual,
@@ -78,6 +79,14 @@ let ultimaSincronizacion = null;
 
 // contactosWhatsApp cargados, indexados por id (coleccion_docId_tipoMensaje)
 let contactosPorId = {};
+// clients indexados por dni (id del doc) — fallback de teléfono cuando la
+// reserva/consulta se guardó con el campo vacío pero la ficha del cliente
+// ya lo tiene (causa real encontrada en producción, caso Arenhardt Yamila:
+// varias reservas con phone/telefono en "" mientras clients/{dni} sí tenía
+// el número correcto). Se recarga en cada iniciarSuscripciones (login,
+// reconexión) — no es un listener en vivo porque un cambio de teléfono no
+// es algo que necesite reflejarse segundo a segundo.
+let clientesPorDni = {};
 // activityLog: página reciente (viva, onSnapshot) + páginas más antiguas
 // (estáticas, cargadas a pedido con "Cargar más antiguos"). Combinar ambas
 // para tener la lista completa cargada — nunca se presenta como "el total"
@@ -324,7 +333,7 @@ function mostrarAcceso(mensaje) {
   $("access-message").textContent = mensaje;
   // Limpia el estado del GlowUp al cerrar sesión — nada de esto debe
   // reaparecer para la próxima persona que entre en este mismo dispositivo.
-  recomendaciones = []; pendienteEstados = {}; ultimosPendientes = [];
+  recomendaciones = []; pendienteEstados = {}; ultimosPendientes = []; clientesPorDni = {};
   prefsAvisos = { ...PREFS_AVISOS_DEFECTO };
   const bandeja = $("lista-pendientes-bandeja");
   if (bandeja) bandeja.innerHTML = "";
@@ -484,19 +493,37 @@ function detenerSuscripciones() {
   if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
 }
 
-function iniciarSuscripciones() {
+async function iniciarSuscripciones() {
   detenerSuscripciones(); // nunca dejar listeners duplicados, aunque se reintente
 
   const hoyISO = fechaISOEnZona();
   const mananaISO = sumarDiasISO(hoyISO, 1);
   $("date-heading").textContent = fechaLindaHoy(hoyISO);
+  // Rango ampliado hacia atrás (punto 3: "los pendientes de días anteriores
+  // no deben desaparecer") — acotado a VENTANA_REVISAR_TURNO_DIAS, no a
+  // "todo el historial". Mismo campo en las dos puntas (fecha >= / <=): no
+  // requiere índice compuesto nuevo ni usa != / not-in.
+  const desdeISO = sumarDiasISO(hoyISO, -VENTANA_REVISAR_TURNO_DIAS);
 
-  const qReservas = query(collection(db, "reservas"), where("fecha", "in", [hoyISO, mananaISO]));
+  // Fallback de teléfono por DNI (caso Arenhardt Yamila) — se recarga acá
+  // porque esta función ya se llama en cada login/reconexión ("revalidación
+  // al iniciar sesión, reabrir o recuperar conexión"). Colección acotada
+  // (una ficha por cliente real, no crece con cada mensaje) — mismo criterio
+  // que ya usa admin.html para el mismo cruce.
+  try {
+    const snapClientes = await getDocs(collection(db, "clients"));
+    clientesPorDni = {};
+    snapClientes.forEach((d) => { clientesPorDni[d.id] = d.data(); });
+  } catch (e) {
+    console.warn("clients (fallback de teléfono):", e?.message || e);
+  }
+
+  const qReservas = query(collection(db, "reservas"), where("fecha", ">=", desdeISO), where("fecha", "<=", mananaISO));
   unsubReservas = onSnapshot(qReservas, { includeMetadataChanges: true },
     (snap) => manejarSnapshot("reservas", snap),
     (err) => manejarErrorFuente("reservas", err));
 
-  const qConsultas = query(collection(db, "consultas"), where("fecha", "in", [hoyISO, mananaISO]));
+  const qConsultas = query(collection(db, "consultas"), where("fecha", ">=", desdeISO), where("fecha", "<=", mananaISO));
   unsubConsultas = onSnapshot(qConsultas, { includeMetadataChanges: true },
     (snap) => manejarSnapshot("consultas", snap),
     (err) => manejarErrorFuente("consultas", err));
@@ -584,7 +611,7 @@ $("btn-cargar-mas").addEventListener("click", cargarMasActividad);
 
 function manejarSnapshot(fuenteId, snap) {
   const items = [];
-  snap.forEach((d) => items.push(normalizarItemAgenda(fuenteId, d.id, d.data())));
+  snap.forEach((d) => items.push(normalizarItemAgenda(fuenteId, d.id, d.data(), clientesPorDni)));
   fuentes[fuenteId] = { estado: "ok", error: null, fromCache: snap.metadata.fromCache, items };
   if (!snap.metadata.fromCache) ultimaSincronizacion = Date.now();
   renderTodo();
@@ -755,13 +782,19 @@ function pendienteTarjetaHtml(p) {
     : p.habilitadoDesdeMs != null
       ? `Habilitada desde ${formatoMomento(p.habilitadoDesdeMs)}`
       : "Sin vencimiento propio";
+  // Punto 3 + 6: un dato obligatorio faltante bloquea la acción y se marca
+  // en rojo, con el campo exacto — nunca se oculta ni se completa solo.
+  const bloqueoHtml = p.bloqueado
+    ? `<div class="pendiente-bloqueado">Pendiente: falta ${escapeHtml(p.campoFaltante === "telefono" ? "teléfono" : (p.campoFaltante || "un dato obligatorio"))} — no se puede continuar hasta corregirlo.</div>`
+    : "";
   return `
-  <div class="item-row pend-row" data-pendiente="${escapeHtml(p.id)}">
+  <div class="item-row pend-row${p.bloqueado ? " pend-row-bloqueado" : ""}" data-pendiente="${escapeHtml(p.id)}">
     <div class="item-row-top">
       <span class="pill pill-box">${escapeHtml(ETIQUETA_TIPO_PENDIENTE[p.tipo] || p.tipo)}</span>
       <span class="item-name">${escapeHtml(p.nombre)}</span>
     </div>
     <div class="item-service">${escapeHtml(p.motivo)}</div>
+    ${bloqueoHtml}
     <div class="item-pills"><span class="pill pill-muted">${escapeHtml(momento)}</span></div>
     <div class="item-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
       ${pendienteAccionPrincipalHtml(p)}
@@ -791,6 +824,7 @@ function renderPendientesBandeja() {
 
   const conteo = contarPendientesPorTipo(vigentes);
   $("resumen-pendientes").textContent = String(conteo.confirmacion_turno);
+  if ($("resumen-revisar-turno")) $("resumen-revisar-turno").textContent = String(conteo.revisar_turno);
   // "?" en vez de "0" cuando la fuente falló — un error de lectura nunca
   // debe leerse como "no hay pendientes de ese tipo".
   $("resumen-kits").textContent = fuentes.pedidosKit.estado === "error" ? "?" : String(conteo.kit_pendiente);
@@ -824,7 +858,11 @@ function renderAgenda(agenda, hoyISO, mananaISO) {
     cont.innerHTML = `<div class="loading-state">Cargando…</div>`;
     return;
   }
-  const activos = agenda.filter((it) => it.activa);
+  // La agenda de Inicio muestra solo hoy/mañana — `agenda` ahora trae un
+  // rango más amplio (VENTANA_REVISAR_TURNO_DIAS hacia atrás) para que
+  // Pendientes pueda detectar turnos pasados sin revisar, pero esta tarjeta
+  // específica sigue acotada a lo inmediato.
+  const activos = agenda.filter((it) => it.activa && (it.fecha === hoyISO || it.fecha === mananaISO));
   $("count-agenda").textContent = String(activos.length);
   if (!activos.length) {
     cont.innerHTML = `<div class="empty-state"><svg class="icon"><use href="#i-calendar"/></svg><h3>Una pausa en la agenda</h3><p>No hay reservas activas para hoy ni mañana.</p></div>`;
@@ -1015,7 +1053,7 @@ async function resolverItemFueraDeCache(coleccion, id) {
     if (!snap.exists()) return { existe: false };
     const data = snap.data();
     if (coleccion === "pedidosKit") return { existe: true, item: normalizarPedidoKit(id, data) };
-    return { existe: true, item: normalizarItemAgenda(coleccion, id, data) };
+    return { existe: true, item: normalizarItemAgenda(coleccion, id, data, clientesPorDni) };
   } catch (e) {
     return { existe: false, error: e?.message || String(e) };
   }
@@ -1183,7 +1221,7 @@ $("btn-preparar-wa").addEventListener("click", async () => {
     texto = ($("wa-preview-texto").value || "").trim() || construirTextoKit(nombreDestino);
     docIdContacto = id;
   } else {
-    const fresco = normalizarItemAgenda(coleccion, id, snap.data());
+    const fresco = normalizarItemAgenda(coleccion, id, snap.data(), clientesPorDni);
     if (!fresco.activa) {
       mostrarModalStatus("Este registro fue cancelado. No se preparó ningún mensaje.", "error");
       btn.disabled = true; btn.textContent = "Cancelado";

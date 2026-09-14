@@ -14,8 +14,26 @@
 // cierra) tiene que aplicarse a los DOS archivos.
 
 const ZONA_HORARIA = "America/Argentina/Buenos_Aires";
-const VENTANA_REVISION_MS = 4 * 60 * 60 * 1000;
+// Ver mimar-inteligente-logic.js: bumpeado de 4h a 24h el 14/9 tras
+// comprobar con datos reales que dejaba la bandeja de turnos vacía casi
+// todo el día (construirTextoRecordatorio ya asume aviso "mañana", no 4h
+// antes).
+const VENTANA_REVISION_MS = 24 * 60 * 60 * 1000;
+const VENTANA_REVISAR_TURNO_DIAS = 14;
 const DURACION_DEFECTO_MIN = 60;
+
+// Misma precedencia documentada que el lado cliente: teléfono propio del
+// documento primero, clients/{dni} después, null si ninguno lo tiene.
+function resolverTelefonoConFallback(telefonoPropio, dni, clientesPorDni) {
+  const propio = (telefonoPropio || "").toString().trim();
+  if (propio) return propio;
+  const dniLimpio = (dni || "").toString().trim();
+  if (!dniLimpio || !clientesPorDni) return null;
+  const cliente = clientesPorDni[dniLimpio];
+  if (!cliente) return null;
+  const deCliente = (cliente.telefono || cliente.phone || "").toString().trim();
+  return deCliente || null;
+}
 
 function inicioTurnoMs(fecha, hora) {
   const f = (fecha || "").toString().trim();
@@ -43,10 +61,12 @@ function esActiva(coleccion, estadoBruto) {
   return !cancelados.includes(v);
 }
 
-function normalizarItemAgenda(coleccion, id, data) {
+function normalizarItemAgenda(coleccion, id, data, clientesPorDni) {
   const d = data || {};
   const nombre = d.nombreLimpio || d.nombre || d.paciente || d.clienteNombre || null;
-  const telefono = d.phone || d.telefono || d.whatsapp || null;
+  const dni = d.dni || d.clienteDni || d.documento || null;
+  const telefonoPropio = d.phone || d.telefono || d.whatsapp || null;
+  const telefono = resolverTelefonoConFallback(telefonoPropio, dni, clientesPorDni);
   const fecha = d.fecha || null;
   const hora = d.hora || null;
   const estadoBruto = d.estado || d.status || (coleccion === "consultas" ? "pendiente" : null);
@@ -55,7 +75,7 @@ function normalizarItemAgenda(coleccion, id, data) {
   const duracionRegistrada = Number(duracionCruda) > 0 ? Number(duracionCruda) : null;
   const inicioMs = inicioTurnoMs(fecha, hora);
   const finMs = fecha && hora ? finTurnoMs(fecha, hora, duracionRegistrada) : null;
-  return { coleccion, id, nombre, telefono, fecha, hora, estadoBruto, activa, inicioMs, finMs };
+  return { coleccion, id, nombre, dni, telefono, fecha, hora, estadoBruto, activa, inicioMs, finMs, detalleSesion: d.detalleSesion || null };
 }
 
 function calcularRevision(item, ahoraMs) {
@@ -64,7 +84,16 @@ function calcularRevision(item, ahoraMs) {
   if (item.finMs !== null && item.finMs <= ahoraMs) return null;
   const ventanaDesde = item.inicioMs - VENTANA_REVISION_MS;
   if (ahoraMs < ventanaDesde) return null;
-  return { item, venceEnMs: item.inicioMs };
+  return { item, venceEnMs: item.inicioMs, bloqueado: !item.telefono };
+}
+
+// Turno pasado sin nota de atención — ver mimar-inteligente-logic.js.
+function calcularRevisarTurnoPasado(item, ahoraMs) {
+  if (!item.activa) return null;
+  if (item.inicioMs === null) return null;
+  if (item.finMs === null || item.finMs > ahoraMs) return null;
+  if (item.detalleSesion) return null;
+  return { item };
 }
 
 // Mismo criterio de versionado por ocurrencia que el lado cliente —
@@ -84,8 +113,8 @@ function idContactoParaItem(item, tipoMensaje) {
   return `${item.coleccion}_${docId}_${tipoMensaje}`;
 }
 
-const TIPOS_PENDIENTE = ["recomendacion", "confirmacion_turno", "kit_pendiente", "cumpleanos"];
-const ORDEN_TIPO = { recomendacion: 0, confirmacion_turno: 1, kit_pendiente: 2, cumpleanos: 3 };
+const TIPOS_PENDIENTE = ["recomendacion", "confirmacion_turno", "revisar_turno", "kit_pendiente", "cumpleanos"];
+const ORDEN_TIPO = { recomendacion: 0, confirmacion_turno: 1, revisar_turno: 2, kit_pendiente: 3, cumpleanos: 4 };
 
 function estadoContactoResuelto(contactosPorId, id) {
   return (contactosPorId?.[id]?.estado || "pendiente") === "enviado";
@@ -93,12 +122,13 @@ function estadoContactoResuelto(contactosPorId, id) {
 
 // Misma firma y mismo resultado que el lado cliente, pero recibe datos ya
 // crudos de Firestore (Admin SDK) en vez de los tipos normalizados del
-// cliente — el propio job los arma antes de llamar acá.
-function derivarPendientes({ reservasRaw, consultasRaw, pedidosKitPendientesRaw, cumpleanosHoy, recomendacionesRaw, contactosPorId }, ahoraMs) {
+// cliente — el propio job los arma antes de llamar acá. clientesPorDni:
+// mapa dni -> datos de clients, para el fallback de teléfono.
+function derivarPendientes({ reservasRaw, consultasRaw, pedidosKitPendientesRaw, cumpleanosHoy, recomendacionesRaw, contactosPorId, clientesPorDni }, ahoraMs) {
   const pendientes = [];
   const agendaItems = [
-    ...reservasRaw.map((r) => normalizarItemAgenda("reservas", r.id, r.data)),
-    ...consultasRaw.map((c) => normalizarItemAgenda("consultas", c.id, c.data)),
+    ...reservasRaw.map((r) => normalizarItemAgenda("reservas", r.id, r.data, clientesPorDni)),
+    ...consultasRaw.map((c) => normalizarItemAgenda("consultas", c.id, c.data, clientesPorDni)),
   ];
 
   for (const item of agendaItems) {
@@ -111,6 +141,17 @@ function derivarPendientes({ reservasRaw, consultasRaw, pedidosKitPendientesRaw,
       id: `pend_${item.coleccion}_${item.id}_confirmacion_${item.fecha}_${item.hora}`,
       tipo: "confirmacion_turno", coleccion: item.coleccion, docId: item.id,
       nombre: item.nombre || "Paciente", venceMs: revision.venceEnMs,
+      bloqueado: revision.bloqueado,
+    });
+  }
+
+  for (const item of agendaItems) {
+    const rt = calcularRevisarTurnoPasado(item, ahoraMs);
+    if (!rt) continue;
+    pendientes.push({
+      id: `pend_${item.coleccion}_${item.id}_revisar_${item.fecha}_${item.hora}`,
+      tipo: "revisar_turno", coleccion: item.coleccion, docId: item.id,
+      nombre: item.nombre || "Paciente", venceMs: null, bloqueado: false,
     });
   }
 
@@ -144,6 +185,7 @@ function derivarPendientes({ reservasRaw, consultasRaw, pedidosKitPendientesRaw,
 const PLURAL_TIPO = {
   recomendacion: ["recomendación", "recomendaciones"],
   confirmacion_turno: ["turno por confirmar", "turnos por confirmar"],
+  revisar_turno: ["turno a revisar", "turnos a revisar"],
   kit_pendiente: ["kit", "kits"],
   cumpleanos: ["cumpleaños", "cumpleaños"],
 };
@@ -196,8 +238,9 @@ function pendientesElegiblesParaAviso(pendientes, prefs, estadosPend, ahoraMs) {
 }
 
 module.exports = {
-  ZONA_HORARIA, VENTANA_REVISION_MS, TIPOS_PENDIENTE, PREFS_AVISOS_DEFECTO,
+  ZONA_HORARIA, VENTANA_REVISION_MS, VENTANA_REVISAR_TURNO_DIAS, TIPOS_PENDIENTE, PREFS_AVISOS_DEFECTO,
   inicioTurnoMs, finTurnoMs, esActiva, normalizarItemAgenda, calcularRevision,
+  calcularRevisarTurnoPasado, resolverTelefonoConFallback,
   docIdVersionadoContacto, docIdVersionadoCumpleanos, idContactoParaItem,
   derivarPendientes, contarPendientesPorTipo, resumenTextoPendientes,
   enDescansoNocturno, pendientesElegiblesParaAviso,

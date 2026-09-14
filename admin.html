@@ -3089,11 +3089,6 @@
 
                 if (resultados2[0].status === 'rejected') console.warn("Error reservas F2:", resultados2[0].reason);
 
-                // ── Consultas ────────────────────────────────────────────────────
-                todasLasConsultas = (snapConsultas.docs || [])
-                    .map(d => ({ id: d.id, ...d.data() }))
-                    .filter(c => !['cancelada','cancelado'].includes((c.estado||'').toLowerCase()));
-
                 // ── Pacientes: lookups de teléfono por DNI y nombre ──────────────
                 const phonePorDNI    = new Map();
                 const phonePorNombre = new Map();
@@ -3139,6 +3134,24 @@
                         || "";
                     return { id: d.id, ...data, phone, nombreLimpio };
                 });
+
+                // ── Consultas: mismo cross-ref de teléfono por DNI que las reservas ──
+                // (antes solo se leía el campo propio de la consulta — una consulta
+                // creada sin teléfono a mano nunca lo encontraba aunque la ficha del
+                // cliente ya lo tuviera).
+                todasLasConsultas = (snapConsultas.docs || [])
+                    .map(d => {
+                        const data = d.data() || {};
+                        const nombreLimpio = toTitleCase(borrarEtiquetaDNI(data.nombre || data.cliente || ""));
+                        const phoneDirecto = normalizarTelefono(data.phone ?? data.telefono ?? "");
+                        const dniConsulta  = normalizarDNI(data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "");
+                        const phone        = phoneDirecto
+                            || phonePorDNI.get(dniConsulta)
+                            || phonePorNombre.get(normalizarNombreKey(nombreLimpio))
+                            || "";
+                        return { id: d.id, ...data, phone, telefono: phone || data.telefono };
+                    })
+                    .filter(c => !['cancelada','cancelado'].includes((c.estado||'').toLowerCase()));
 
                 // Deduplicar y limpiar — en background, no bloquea nada
                 limpiarReservasDuplicadas(reservasFull).then(limpias => {

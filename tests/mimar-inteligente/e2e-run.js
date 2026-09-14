@@ -487,7 +487,7 @@ async function run() {
   console.log('\n=== GlowUp — Preferencias de aviso horario (Más): activo, categorías, pausa ===');
   {
     document.querySelector('[data-tab-btn="mas"]').click();
-    check('el checkbox de categorías muestra las 4 categorías', document.querySelectorAll('[data-avisos-categoria]').length === 4);
+    check('el checkbox de categorías muestra las 5 categorías (incluye "revisar_turno")', document.querySelectorAll('[data-avisos-categoria]').length === 5);
     $('avisos-activo').checked = false;
     $('avisos-activo').dispatchEvent(new window.Event('change'));
     await new Promise((r) => setTimeout(r, 0));

@@ -12,7 +12,8 @@ import {
   docIdVersionadoContacto, docIdVersionadoCumpleanos, derivarPendientes,
   contarPendientesPorTipo, resumenTextoPendientes, normalizarRecomendacion,
   recomendacionValida, enDescansoNocturno, pendientesElegiblesParaAviso,
-  PREFS_AVISOS_DEFECTO, TIPOS_PENDIENTE,
+  PREFS_AVISOS_DEFECTO, TIPOS_PENDIENTE, calcularRevisarTurnoPasado,
+  resolverTelefonoConFallback, VENTANA_REVISAR_TURNO_DIAS,
 } from '../../mimar-inteligente/mimar-inteligente-logic.js';
 
 let fails = 0;
@@ -83,13 +84,17 @@ console.log('\n=== Próxima reserva ===');
   check('ignora turnos ya terminados y cancelados; toma el próximo activo real', prox && prox.id === 'r2');
 }
 
-console.log('\n=== Bandeja de revisiones — ventana de 4 horas ===');
+console.log('\n=== Bandeja de revisiones — ventana de 24 horas ===');
 {
   const inicioTurno = new Date(`${HOY}T14:00:00-03:00`).getTime();
   const item = normalizarItemAgenda('reservas', 'rX', { nombre: 'Z', fecha: HOY, hora: '14:00', telefono: '3764111111', duracionMinutos: 60 });
 
-  check('a 5 horas del turno: todavía NO debe aparecer', calcularRevision(item, inicioTurno - 5 * 3600000) === null);
-  check('a exactamente 4 horas del turno: SI debe aparecer', calcularRevision(item, inicioTurno - VENTANA_REVISION_MS) !== null);
+  // Ampliado de 4h a 24h (GlowUp de corrección, 14/9): con datos reales de
+  // producción, la ventana de 4h dejaba la bandeja vacía casi todo el día
+  // (19 reservas activas hoy/mañana, 0 pendientes de turno a las 00:36).
+  check('a 25 horas del turno: todavía NO debe aparecer', calcularRevision(item, inicioTurno - 25 * 3600000) === null);
+  check('a 5 horas del turno: SI debe aparecer (antes de la corrección no aparecía)', calcularRevision(item, inicioTurno - 5 * 3600000) !== null);
+  check('a exactamente 24 horas del turno: SI debe aparecer', calcularRevision(item, inicioTurno - VENTANA_REVISION_MS) !== null);
   check('a 1 hora del turno: sigue vigente', calcularRevision(item, inicioTurno - 3600000) !== null);
   check('justo cuando termina el turno: ya no debe aparecer', calcularRevision(item, inicioTurno + 60 * 60000) === null);
 
@@ -128,11 +133,15 @@ console.log('\n=== Reprogramación: recalcula sola, sin "revisión vieja" colgad
   const ahora = new Date(`${HOY}T13:00:00-03:00`).getTime();
   check('antes de reprogramar, el horario viejo genera revisión', calcularRevision(original, ahora) !== null);
 
-  // Se reprograma a mañana a las 10:00 — mismo ID de documento, nuevos fecha/hora.
-  const reprogramada = normalizarItemAgenda('reservas', 'rP', { nombre: 'R', fecha: MAÑANA, hora: '10:00', telefono: '3764111111' });
-  check('con el nuevo horario (mañana), a esta misma hora de hoy YA NO corresponde revisión', calcularRevision(reprogramada, ahora) === null);
-  const ahoraMañana = new Date(`${MAÑANA}T09:00:00-03:00`).getTime(); // 1h antes del nuevo horario
-  check('en la ventana del NUEVO horario, sí aparece la revisión (recalculada, no duplicada)', calcularRevision(reprogramada, ahoraMañana) !== null);
+  // Se reprograma a dentro de 3 días (no "mañana": con la ventana de 24h,
+  // un turno de mañana ya estaría en su propia ventana casi todo hoy, lo
+  // que no serviría para distinguir "vieja revisión colgada" de "ventana
+  // recalculada del nuevo horario") — mismo ID de documento, nuevos fecha/hora.
+  const fechaLejana = sumarDiasISO(HOY, 3);
+  const reprogramada = normalizarItemAgenda('reservas', 'rP', { nombre: 'R', fecha: fechaLejana, hora: '10:00', telefono: '3764111111' });
+  check('con el nuevo horario (en 3 días), a esta misma hora de hoy YA NO corresponde revisión', calcularRevision(reprogramada, ahora) === null);
+  const ahoraCercaDelNuevo = new Date(`${fechaLejana}T09:00:00-03:00`).getTime(); // 1h antes del nuevo horario
+  check('en la ventana del NUEVO horario, sí aparece la revisión (recalculada, no duplicada)', calcularRevision(reprogramada, ahoraCercaDelNuevo) !== null);
 }
 
 console.log('\n=== Turnos simultáneos en distintos boxes se conservan por separado ===');
@@ -411,6 +420,71 @@ console.log('\n=== GlowUp — elegibilidad para el aviso horario: pausa, categor
   check('14:00 NO cae dentro del descanso 22→8', enDescansoNocturno(prefsDescanso, dosPM) === false);
   check('sin descanso configurado, nunca se considera "en descanso"', enDescansoNocturno(PREFS_AVISOS_DEFECTO, unaAM) === false);
   check('en descanso nocturno, ningún pendiente es elegible para el aviso', pendientesElegiblesParaAviso(pendientes, prefsDescanso, {}, unaAM).length === 0);
+}
+
+console.log('\n=== Corrección "solo aparecen kits": turno pasado sin revisar ===');
+{
+  const ayerISO = sumarDiasISO(HOY, -1);
+  const sinNota = normalizarItemAgenda('reservas', 'pv1', { nombre: 'Paciente Viejo', fecha: ayerISO, hora: '14:00', telefono: '3760000009', estado: 'confirmado' });
+  const rt = calcularRevisarTurnoPasado(sinNota, new Date(`${HOY}T00:00:00-03:00`).getTime());
+  check('un turno de ayer sin detalleSesion genera "revisar_turno"', rt !== null);
+
+  const conNota = normalizarItemAgenda('reservas', 'pv2', { nombre: 'Paciente Atendido', fecha: ayerISO, hora: '14:00', telefono: '3760000008', estado: 'confirmado', detalleSesion: 'Todo bien.' });
+  check('un turno de ayer CON detalleSesion no genera "revisar_turno"', calcularRevisarTurnoPasado(conNota, new Date(`${HOY}T00:00:00-03:00`).getTime()) === null);
+
+  const cancelado = normalizarItemAgenda('reservas', 'pv3', { nombre: 'Cancelado', fecha: ayerISO, hora: '14:00', estado: 'cancelado' });
+  check('un turno cancelado nunca requiere "revisar_turno"', calcularRevisarTurnoPasado(cancelado, new Date(`${HOY}T00:00:00-03:00`).getTime()) === null);
+
+  const agenda = construirAgenda([
+    normalizarItemAgenda('reservas', 'pv1', { nombre: 'Paciente Viejo', fecha: ayerISO, hora: '14:00', telefono: '3760000009', estado: 'confirmado' }),
+  ], []);
+  const ahoraHoy = new Date(`${HOY}T00:00:00-03:00`).getTime();
+  const pends = derivarPendientes({ agenda, pedidosKitPendientes: [], cumpleanosHoy: null, recomendaciones: [], contactosPorId: {} }, ahoraHoy);
+  check('derivarPendientes incluye el turno viejo como tipo "revisar_turno"', pends.some((p) => p.docId === 'pv1' && p.tipo === 'revisar_turno'));
+}
+
+console.log('\n=== Corrección de teléfono: fallback por DNI (caso Arenhardt Yamila) ===');
+{
+  check('con teléfono propio, se usa ese — nunca se consulta el fallback', resolverTelefonoConFallback('3757670046', '32899820', { '32899820': { telefono: '000' } }) === '3757670046');
+  check('con teléfono propio vacío ("") y dni con ficha, usa el de la ficha', resolverTelefonoConFallback('', '32899820', { '32899820': { telefono: '3757670046' } }) === '3757670046');
+  check('sin teléfono propio, sin dni, no inventa nada: null', resolverTelefonoConFallback('', null, { '32899820': { telefono: '3757670046' } }) === null);
+  check('sin teléfono propio, con dni que no está en el mapa: null (nunca el de otra persona)', resolverTelefonoConFallback('', '00000000', { '32899820': { telefono: '3757670046' } }) === null);
+  check('el fallback también acepta el campo "phone" de la ficha', resolverTelefonoConFallback('', '1', { '1': { phone: '3760001111' } }) === '3760001111');
+
+  // Reproduce el caso real: reserva con phone/telefono en "" (no ausente),
+  // dni "32899820" — igual que en producción.
+  const clientesPorDni = { '32899820': { telefono: '3757670046', dni: '32899820' } };
+  const itemYamila = normalizarItemAgenda('reservas', 'y1', { nombre: 'Arenhardt Yamila', dni: '32899820', fecha: HOY, hora: '14:00', telefono: '', phone: '', estado: 'confirmado' }, clientesPorDni);
+  check('normalizarItemAgenda resuelve el teléfono de Yamila vía clients/{dni}', itemYamila.telefono === '3757670046');
+  check('queda marcado que el teléfono vino del fallback, no del propio documento', itemYamila.telefonoDeFallback === true);
+
+  // Sin el mapa de clientes (comportamiento anterior a esta corrección) sigue sin teléfono.
+  const itemSinMapa = normalizarItemAgenda('reservas', 'y1', { nombre: 'Arenhardt Yamila', dni: '32899820', fecha: HOY, hora: '14:00', telefono: '', phone: '' });
+  check('sin el mapa de clientes, el comportamiento previo se mantiene (sin teléfono)', itemSinMapa.telefono === null);
+
+  // Un homónimo con OTRO dni nunca puede terminar usando el teléfono de Yamila.
+  const itemHomonimo = normalizarItemAgenda('consultas', 'y2', { nombre: 'Yamila De Olivera', dni: '45777375', fecha: HOY, hora: '20:00', telefono: '3757585519' }, clientesPorDni);
+  check('un homónimo con teléfono propio conserva EL SUYO, nunca el de Yamila', itemHomonimo.telefono === '3757585519');
+  const itemHomonimoSinTel = normalizarItemAgenda('consultas', 'y3', { nombre: 'Otra Yamila', dni: '11111111', fecha: HOY, hora: '20:00' }, clientesPorDni);
+  check('un homónimo SIN teléfono y sin ficha propia en el mapa queda sin teléfono (nunca hereda el de Yamila)', itemHomonimoSinTel.telefono === null);
+}
+
+console.log('\n=== Pendiente bloqueado por dato obligatorio faltante (teléfono) ===');
+{
+  const agendaBloqueada = construirAgenda([
+    normalizarItemAgenda('reservas', 'b1', { nombre: 'Sin Teléfono Real', fecha: HOY, hora: '14:00', estado: 'confirmado' }),
+  ], []);
+  const ahoraCerca = new Date(`${HOY}T13:00:00-03:00`).getTime();
+  const pendsBloq = derivarPendientes({ agenda: agendaBloqueada, pedidosKitPendientes: [], cumpleanosHoy: null, recomendaciones: [], contactosPorId: {} }, ahoraCerca);
+  const pb = pendsBloq.find((p) => p.docId === 'b1');
+  check('sin teléfono resoluble, el pendiente de confirmación queda bloqueado=true', pb && pb.bloqueado === true && pb.campoFaltante === 'telefono');
+
+  const agendaConFallback = construirAgenda([
+    normalizarItemAgenda('reservas', 'b2', { nombre: 'Arenhardt Yamila', dni: '32899820', fecha: HOY, hora: '14:00', telefono: '', estado: 'confirmado' }, { '32899820': { telefono: '3757670046' } }),
+  ], []);
+  const pendsConFallback = derivarPendientes({ agenda: agendaConFallback, pedidosKitPendientes: [], cumpleanosHoy: null, recomendaciones: [], contactosPorId: {} }, ahoraCerca);
+  const pcf = pendsConFallback.find((p) => p.docId === 'b2');
+  check('con teléfono resuelto vía DNI, el pendiente NO queda bloqueado', pcf && pcf.bloqueado === false);
 }
 
 console.log('\n' + '='.repeat(60));

@@ -813,13 +813,21 @@ async function construirPendientesGlobales(ahoraMs) {
     const hoyISO = hoyISOEnZonaAR(new Date(ahoraMs));
     const mananaDate = new Date(ahoraMs); mananaDate.setUTCDate(mananaDate.getUTCDate() + 1);
     const mananaISO = hoyISOEnZonaAR(mananaDate);
+    // "Los pendientes de días anteriores no deben desaparecer porque la
+    // agenda solo consulte hoy y mañana" — se amplía hacia atrás de forma
+    // ACOTADA (VENTANA_REVISAR_TURNO_DIAS) e indexada: rango simple sobre
+    // un solo campo (fecha >= X y <= mañana), no requiere índice compuesto
+    // nuevo y no usa != / not-in (que excluirían documentos sin el campo).
+    const desdeDate = new Date(ahoraMs - pendientesLogic.VENTANA_REVISAR_TURNO_DIAS * 24 * 60 * 60 * 1000);
+    const desdeISO = hoyISOEnZonaAR(desdeDate);
 
-    const [reservasSnap, consultasSnap, kitsSnap, cumpleSnap, recSnap] = await Promise.all([
-        db.collection("reservas").where("fecha", "in", [hoyISO, mananaISO]).get(),
-        db.collection("consultas").where("fecha", "in", [hoyISO, mananaISO]).get(),
+    const [reservasSnap, consultasSnap, kitsSnap, cumpleSnap, recSnap, clientesSnap] = await Promise.all([
+        db.collection("reservas").where("fecha", ">=", desdeISO).where("fecha", "<=", mananaISO).get(),
+        db.collection("consultas").where("fecha", ">=", desdeISO).where("fecha", "<=", mananaISO).get(),
         db.collection("pedidosKit").where("estado", "==", "pendiente").get(),
         db.collection("resumenesCumpleanos").doc(hoyISO).get(),
         db.collection("recomendacionesInteligente").where("estado", "==", "pendiente").where("programadoParaMs", "<=", ahoraMs).get(),
+        db.collection("clients").get(),
     ]);
 
     const reservasRaw = reservasSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
@@ -827,20 +835,21 @@ async function construirPendientesGlobales(ahoraMs) {
     const pedidosKitPendientesRaw = kitsSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
     const recomendacionesRaw = recSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
     const cumpleanosHoy = cumpleSnap.exists ? cumpleSnap.data() : null;
+    const clientesPorDni = {};
+    clientesSnap.docs.forEach((d) => { clientesPorDni[d.id] = d.data(); });
 
-    // Candidatos a "confirmación pendiente" (dentro de la ventana de 4h) y
+    // Candidatos a "confirmación pendiente" (dentro de la ventana vigente) y
     // a "cumpleaños hoy" son, como mucho, un puñado por hora — se resuelve
     // su contacto con un multi-get ACOTADO a esos ids puntuales, nunca
     // leyendo toda la colección contactosWhatsApp (que crece sin límite
     // con los años).
     const idsContactoCandidatos = new Set();
-    const ahoraDate = new Date(ahoraMs);
     for (const r of reservasRaw) {
-        const item = pendientesLogic.normalizarItemAgenda("reservas", r.id, r.data);
+        const item = pendientesLogic.normalizarItemAgenda("reservas", r.id, r.data, clientesPorDni);
         if (pendientesLogic.calcularRevision(item, ahoraMs)) idsContactoCandidatos.add(pendientesLogic.idContactoParaItem(item, "confirmacion"));
     }
     for (const c of consultasRaw) {
-        const item = pendientesLogic.normalizarItemAgenda("consultas", c.id, c.data);
+        const item = pendientesLogic.normalizarItemAgenda("consultas", c.id, c.data, clientesPorDni);
         if (pendientesLogic.calcularRevision(item, ahoraMs)) idsContactoCandidatos.add(pendientesLogic.idContactoParaItem(item, "consulta"));
     }
     if (cumpleanosHoy?.estado === "ok") {
@@ -857,7 +866,7 @@ async function construirPendientesGlobales(ahoraMs) {
     }
 
     return pendientesLogic.derivarPendientes(
-        { reservasRaw, consultasRaw, pedidosKitPendientesRaw, cumpleanosHoy, recomendacionesRaw, contactosPorId },
+        { reservasRaw, consultasRaw, pedidosKitPendientesRaw, cumpleanosHoy, recomendacionesRaw, contactosPorId, clientesPorDni },
         ahoraMs
     );
 }
