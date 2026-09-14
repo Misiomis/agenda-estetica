@@ -311,13 +311,24 @@ details[open] > .day-header-expand::before { transform: rotate(90deg); }
 .pend-row .item-actions { margin-top: 10px; }
 /* Punto 6: "cada acción que todavía requiere mi intervención debe mostrar
    una etiqueta textual 'Pendiente' en rojo con contraste suficiente" —
-   #b91c1c sobre #fdecea da >5:1 de contraste, no depende solo del color
-   (el texto ya dice "Pendiente: falta ..."). */
-.pend-row-bloqueado { border-left: 3px solid #b91c1c; }
+   reutiliza --red (el mismo tono del badge de navegación: ~6.1:1 de
+   contraste sobre blanco), no depende solo del color (el texto ya dice
+   "Pendiente: falta ..."). */
+.pill-pendiente-rojo { background: #fdecea; color: var(--red); border: 1px solid #f1b6ae; font-weight: 800; }
+.pend-row-bloqueado { border-left: 3px solid var(--red); }
 .pendiente-bloqueado {
   margin-top: 6px; padding: 8px 10px; border-radius: 8px;
-  background: #fdecea; color: #b91c1c; font-size: .82rem; font-weight: 700;
+  background: #fdecea; color: var(--red); font-size: .82rem; font-weight: 700;
 }
+.entrada-aviso-texto { font-size: 1rem; font-weight: 600; margin: 0 0 12px; }
+.entrada-aviso-categorias { display: flex; flex-direction: column; gap: 8px; }
+.entrada-aviso-categoria-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; border-radius: 10px; background: var(--surface, #f4f4ef); border: 1px solid var(--line, #e3e3da);
+}
+.entrada-aviso-categoria-row .num { font-weight: 800; color: var(--forest, #1f3d2b); }
+.entrada-aviso-categoria-row.bloqueado { border-color: #f1b6ae; background: #fdecea; }
+.entrada-aviso-categoria-row.bloqueado .num { color: var(--red); }
 .avisos-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: .9rem; }
 .avisos-toggle-row input[type="checkbox"] { width: 20px; height: 20px; flex-shrink: 0; }
 .avisos-categorias { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }

@@ -264,6 +264,25 @@
     </div>
   </dialog>
 
+  <!-- ══ Aviso emergente de entrada (punto 6): resumen al abrir la app
+       con pendientes sin resolver. La cruz SOLO cierra este aviso — nunca
+       resuelve tareas, no cambia categorías, no silencia los avisos
+       horarios. Reaparece la próxima vez que haya pendientes. ══ -->
+  <dialog id="entrada-aviso-dialog" aria-labelledby="entrada-aviso-titulo">
+    <div class="dialog-heading">
+      <div><span class="eyebrow">REQUIERE ACCIÓN</span><h2 id="entrada-aviso-titulo">Tenés pendientes</h2></div>
+      <button class="icon-button" type="button" id="btn-cerrar-entrada-aviso" aria-label="Cerrar aviso"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <p id="entrada-aviso-texto" class="entrada-aviso-texto"></p>
+      <div id="entrada-aviso-categorias" class="entrada-aviso-categorias"></div>
+      <p id="entrada-aviso-cache-nota" class="hint-text" hidden>Estos datos pueden estar desactualizados — todavía no se confirmaron contra el servidor.</p>
+    </div>
+    <div class="dialog-actions">
+      <button class="button button-primary button-full" type="button" id="btn-entrada-aviso-atender">Atender ahora</button>
+    </div>
+  </dialog>
+
   <!-- ══ MODAL: nueva/editar recomendación ══ -->
   <dialog id="recomendacion-dialog" aria-labelledby="recomendacion-dialog-titulo">
     <div class="dialog-heading">

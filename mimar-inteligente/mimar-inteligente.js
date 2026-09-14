@@ -113,6 +113,23 @@ let pendienteEstados = {}; // pendienteEstadoInteligente indexado por pendienteI
 let prefsAvisos = { ...PREFS_AVISOS_DEFECTO };
 let ultimosPendientes = []; // último cálculo de derivarPendientes(), para no recalcular en cada click
 
+// ── Entrada automática y anuncio emergente (punto 6) ─────────────────────
+// entradaAvisoMostrado: ya se decidió (mostrar o no) para esta "entrada
+// lógica" — evita que sucesivos snapshots/ticks reabran el aviso. Se
+// resetea en un login nuevo y al volver de un segundo plano real (no un
+// paso breve por WhatsApp, ver appStateChange más abajo).
+let entradaAvisoMostrado = false;
+let entradaAvisoAbierto = false;
+let ultimoBackgroundMs = null;
+// Qué fuentes ya entregaron al menos una respuesta real (éxito o error) en
+// esta sesión de suscripciones — evaluarEntradaLogica no decide nada hasta
+// que TODAS respondieron, para no anunciar un resumen incompleto (bug real
+// encontrado en el teléfono: el aviso salió con "8 turnos... y 2 turnos a
+// revisar" sin mencionar el kit pendiente, porque pedidosKit todavía no
+// había llegado cuando reservas/consultas sí).
+const FUENTES_ENTRADA_REQUERIDAS = ["reservas", "consultas", "pedidosKit", "contactos", "cumpleanos", "recomendaciones", "pendienteEstados"];
+let fuentesEntradaListas = new Set();
+
 // ── Pestañas (Inicio / Actividad / Pendientes / Más) ─────────────────────
 let tabActual = "inicio";
 const scrollGuardadoPorTab = {};
@@ -337,6 +354,8 @@ function mostrarAcceso(mensaje) {
   prefsAvisos = { ...PREFS_AVISOS_DEFECTO };
   const bandeja = $("lista-pendientes-bandeja");
   if (bandeja) bandeja.innerHTML = "";
+  entradaAvisoMostrado = false;
+  if (entradaAvisoAbierto) cerrarEntradaAviso();
 }
 
 async function mostrarInfoVersion() {
@@ -401,6 +420,7 @@ onAuthStateChanged(auth, async (user) => {
     uidActual = user.uid;
     iniciarSuscripciones();
     registrarTokenFcm();
+    entradaAvisoMostrado = false; // login nuevo = nueva entrada lógica
   }
   consumirDeepLinkPendiente();
 });
@@ -495,6 +515,7 @@ function detenerSuscripciones() {
 
 async function iniciarSuscripciones() {
   detenerSuscripciones(); // nunca dejar listeners duplicados, aunque se reintente
+  fuentesEntradaListas = new Set(); // nueva tanda de suscripciones = a esperar de nuevo
 
   const hoyISO = fechaISOEnZona();
   const mananaISO = sumarDiasISO(hoyISO, 1);
@@ -552,24 +573,24 @@ async function iniciarSuscripciones() {
   // Estado real de contacto por WhatsApp (punto 3) — para no mostrar nunca
   // un turno como "confirmado" solo porque alguien abrió WhatsApp.
   unsubContactos = onSnapshot(collection(db, "contactosWhatsApp"),
-    (snap) => { contactosPorId = {}; snap.forEach((d) => { contactosPorId[d.id] = d.data(); }); renderTodo(); },
-    (err) => { console.warn("contactosWhatsApp:", err?.message || err); });
+    (snap) => { contactosPorId = {}; snap.forEach((d) => { contactosPorId[d.id] = d.data(); }); fuentesEntradaListas.add("contactos"); renderTodo(); },
+    (err) => { console.warn("contactosWhatsApp:", err?.message || err); fuentesEntradaListas.add("contactos"); renderTodo(); });
 
   // Cumpleaños de hoy (punto 4) — documento generado por la función programada.
   unsubCumpleanos = onSnapshot(doc(db, "resumenesCumpleanos", hoyISO),
-    (snap) => { cumpleanosHoy = snap.exists() ? snap.data() : { estado: "no_generado" }; renderCumpleanos(); },
-    (err) => { cumpleanosHoy = { estado: "error", detalle: err?.message || String(err) }; renderCumpleanos(); });
+    (snap) => { cumpleanosHoy = snap.exists() ? snap.data() : { estado: "no_generado" }; fuentesEntradaListas.add("cumpleanos"); renderTodo(); },
+    (err) => { cumpleanosHoy = { estado: "error", detalle: err?.message || String(err) }; fuentesEntradaListas.add("cumpleanos"); renderTodo(); });
 
   // Recomendaciones (GlowUp, punto 3) — tarea manual, texto editable y
   // programación explícita de la administradora.
   unsubRecomendaciones = onSnapshot(collection(db, "recomendacionesInteligente"),
-    (snap) => { recomendaciones = []; snap.forEach((d) => recomendaciones.push(normalizarRecomendacion(d.id, d.data()))); renderTodo(); },
-    (err) => { console.warn("recomendacionesInteligente:", err?.message || err); });
+    (snap) => { recomendaciones = []; snap.forEach((d) => recomendaciones.push(normalizarRecomendacion(d.id, d.data()))); fuentesEntradaListas.add("recomendaciones"); renderTodo(); },
+    (err) => { console.warn("recomendacionesInteligente:", err?.message || err); fuentesEntradaListas.add("recomendaciones"); renderTodo(); });
 
   // Overrides de pendientes derivados (postergar/resolver a mano).
   unsubPendienteEstados = onSnapshot(collection(db, "pendienteEstadoInteligente"),
-    (snap) => { pendienteEstados = {}; snap.forEach((d) => { pendienteEstados[d.id] = d.data(); }); renderTodo(); },
-    (err) => { console.warn("pendienteEstadoInteligente:", err?.message || err); });
+    (snap) => { pendienteEstados = {}; snap.forEach((d) => { pendienteEstados[d.id] = d.data(); }); fuentesEntradaListas.add("pendienteEstados"); renderTodo(); },
+    (err) => { console.warn("pendienteEstadoInteligente:", err?.message || err); fuentesEntradaListas.add("pendienteEstados"); renderTodo(); });
 
   // Preferencias del aviso horario — un doc por cuenta admin (id = uid).
   unsubPrefsAvisos = onSnapshot(doc(db, "configNotificacionesInteligente", uidActual || "_"),
@@ -614,6 +635,7 @@ function manejarSnapshot(fuenteId, snap) {
   snap.forEach((d) => items.push(normalizarItemAgenda(fuenteId, d.id, d.data(), clientesPorDni)));
   fuentes[fuenteId] = { estado: "ok", error: null, fromCache: snap.metadata.fromCache, items };
   if (!snap.metadata.fromCache) ultimaSincronizacion = Date.now();
+  fuentesEntradaListas.add(fuenteId);
   renderTodo();
 }
 
@@ -621,7 +643,8 @@ function manejarSnapshotKits(snap) {
   const items = [];
   snap.forEach((d) => items.push(normalizarPedidoKit(d.id, d.data())));
   fuentes.pedidosKit = { estado: "ok", error: null, fromCache: snap.metadata.fromCache, items };
-  renderKits();
+  fuentesEntradaListas.add("pedidosKit");
+  renderTodo();
 }
 
 function manejarErrorFuente(fuenteId, err) {
@@ -629,6 +652,7 @@ function manejarErrorFuente(fuenteId, err) {
     estado: "error", error: err?.code || err?.message || "error desconocido",
     fromCache: true, items: fuentes[fuenteId]?.items || [],
   };
+  fuentesEntradaListas.add(fuenteId);
   renderTodo();
 }
 
@@ -790,6 +814,7 @@ function pendienteTarjetaHtml(p) {
   return `
   <div class="item-row pend-row${p.bloqueado ? " pend-row-bloqueado" : ""}" data-pendiente="${escapeHtml(p.id)}">
     <div class="item-row-top">
+      <span class="pill pill-pendiente-rojo">Pendiente</span>
       <span class="pill pill-box">${escapeHtml(ETIQUETA_TIPO_PENDIENTE[p.tipo] || p.tipo)}</span>
       <span class="item-name">${escapeHtml(p.nombre)}</span>
     </div>
@@ -802,6 +827,16 @@ function pendienteTarjetaHtml(p) {
       <button class="button button-light" type="button" data-resolver-pendiente="${escapeHtml(p.id)}">${p.tipo === "recomendacion" ? "Descartar" : "Marcar resuelto"}</button>
     </div>
   </div>`;
+}
+
+// Un error de lectura NUNCA debe parecer "no hay pendientes" — compartido
+// entre la bandeja y el aviso de entrada para no anunciar "todo resuelto"
+// cuando en realidad una fuente no se pudo comprobar.
+function erroresFuentePendientes() {
+  const errores = [];
+  if (cumpleanosHoy?.estado === "error") errores.push(`Cumpleaños: no se pudo consultar (${cumpleanosHoy.detalle || "error desconocido"}).`);
+  if (fuentes.pedidosKit.estado === "error") errores.push(`Pedidos de kit: no se pudo consultar (${fuentes.pedidosKit.error || "error desconocido"}).`);
+  return errores;
 }
 
 function renderPendientesBandeja() {
@@ -834,11 +869,8 @@ function renderPendientesBandeja() {
   const visibles = filtroPendientesTipo === "todas" ? vigentes : vigentes.filter((p) => p.tipo === filtroPendientesTipo);
   $("count-pendientes-bandeja").textContent = String(visibles.length);
 
-  // Un error de lectura NUNCA debe parecer "no hay pendientes" — se avisa
-  // aparte, arriba de la lista (que igual muestra lo que sí pudo cargar).
-  const erroresFuente = [];
-  if (cumpleanosHoy?.estado === "error") erroresFuente.push(`Cumpleaños: no se pudo consultar (${cumpleanosHoy.detalle || "error desconocido"}).`);
-  if (fuentes.pedidosKit.estado === "error") erroresFuente.push(`Pedidos de kit: no se pudo consultar (${fuentes.pedidosKit.error || "error desconocido"}).`);
+  // Se avisa aparte, arriba de la lista (que igual muestra lo que sí pudo cargar).
+  const erroresFuente = erroresFuentePendientes();
   const avisoErrorHtml = erroresFuente.length ? `<div class="error-state">${erroresFuente.map(escapeHtml).join(" · ")}</div>` : "";
 
   if (!visibles.length) {
@@ -881,12 +913,6 @@ function renderAgenda(agenda, hoyISO, mananaISO) {
   // "Consultas nuevas" en el resumen de Inicio: consultas activas de hoy/mañana.
   $("resumen-consultas").textContent = String(activos.filter((it) => it.coleccion === "consultas").length);
 }
-
-// La bandeja unificada de Pendientes (renderPendientesBandeja) reemplazó
-// las listas separadas de kits/cumpleaños — estas dos funciones quedan
-// solo como el punto de entrada que ya usan los listeners existentes.
-function renderKits() { renderPendientesBandeja(); }
-function renderCumpleanos() { renderPendientesBandeja(); }
 
 // Preparar el saludo de cumpleaños de verdad necesita el teléfono REAL del
 // cliente — resumenesCumpleanos nunca lo guarda (solo un booleano
@@ -993,7 +1019,80 @@ function renderTodo() {
   renderProximoTurno(ultimaAgenda, ahoraMs);
   renderPendientesBandeja(); // misma regla canónica que Inicio/Pendientes/el job horario — arma ultimosPendientes y el badge
   renderAgenda(ultimaAgenda, hoyISO, mananaISO);
+  evaluarEntradaLogica();
 }
+
+// ── Entrada automática y anuncio emergente (punto 6) ─────────────────────
+// "En cada apertura o nueva entrada de la app, después de autenticar y
+// comprobar los datos, si quedan pendientes actuales o bloqueados, llevame
+// a Pendientes y mostrame un resumen emergente." Se evalúa desde el mismo
+// tick de renderTodo (cada 1s) hasta que haya datos reales Y ninguna UI
+// bloqueante — así no hace falta orquestar un montón de callbacks async,
+// y de paso se evita el problema que describe el pedido ("varios eventos
+// de focus/resume/snapshots reabriéndolo"): una vez decidido, no se vuelve
+// a evaluar hasta la próxima entrada lógica.
+function hayUiBloqueante() {
+  return !!sheetAbierto
+    || !!(detalleDialog && detalleDialog.open)
+    || !!($("recomendacion-dialog")?.open)
+    || !($("confirm-envio-banner")?.hidden ?? true);
+}
+
+function evaluarEntradaLogica() {
+  if (entradaAvisoMostrado) return;
+  // Ninguna fuente aislada alcanza: hay que esperar a que las 7 hayan
+  // respondido al menos una vez (éxito o error) para no anunciar un resumen
+  // incompleto que subcuente categorías que todavía no llegaron.
+  if (!FUENTES_ENTRADA_REQUERIDAS.every((f) => fuentesEntradaListas.has(f))) return;
+  if (hayUiBloqueante()) return; // no interrumpir mientras se edita/confirma algo — se reintenta en el próximo tick
+  entradaAvisoMostrado = true; // se decide UNA vez por entrada, se muestre o no
+
+  const ahoraMs = Date.now();
+  const vigentes = pendientesVigentes(ultimosPendientes, pendienteEstados, ahoraMs);
+  const errores = erroresFuentePendientes();
+  if (!vigentes.length && !errores.length) return; // nada que avisar — se respeta el inicio habitual
+
+  mostrarTab("pendientes");
+  mostrarEntradaAviso(vigentes, errores);
+}
+
+function mostrarEntradaAviso(vigentes, errores) {
+  const conteo = contarPendientesPorTipo(vigentes);
+  const texto = resumenTextoPendientes(vigentes)
+    || (errores.length ? "No se pudo comprobar si hay pendientes en todas las categorías." : "Tenés pendientes.");
+  $("entrada-aviso-texto").textContent = texto;
+  const catsHtml = TIPOS_PENDIENTE.filter((t) => conteo[t] > 0).map((t) => {
+    const bloqueados = vigentes.filter((p) => p.tipo === t && p.bloqueado).length;
+    const etiquetaBloqueo = bloqueados ? ` — ${bloqueados} bloqueado${bloqueados === 1 ? "" : "s"}` : "";
+    return `<div class="entrada-aviso-categoria-row${bloqueados ? " bloqueado" : ""}"><span>${escapeHtml(ETIQUETA_TIPO_PENDIENTE[t])}${escapeHtml(etiquetaBloqueo)}</span><span class="num">${conteo[t]}</span></div>`;
+  }).join("");
+  $("entrada-aviso-categorias").innerHTML = catsHtml
+    || (errores.length ? "" : `<p class="hint-text">Sin categorías con pendientes — revisá el detalle en Pendientes.</p>`);
+  // "Si la lectura está incompleta, mostrala como pendiente de comprobación;
+  // no anuncies que está todo resuelto." — mismo texto de error que ya usa
+  // la bandeja, no uno nuevo inventado acá.
+  const notaEl = $("entrada-aviso-cache-nota");
+  const desactualizado = fuentes.reservas.fromCache || fuentes.consultas.fromCache;
+  if (errores.length) { notaEl.hidden = false; notaEl.textContent = errores.join(" · "); }
+  else if (desactualizado) { notaEl.hidden = false; notaEl.textContent = "Estos datos pueden estar desactualizados — todavía no se confirmaron contra el servidor."; }
+  else { notaEl.hidden = true; }
+
+  const dlg = $("entrada-aviso-dialog");
+  entradaAvisoAbierto = true;
+  if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
+}
+
+function cerrarEntradaAviso() {
+  const dlg = $("entrada-aviso-dialog");
+  if (typeof dlg.close === "function" && dlg.open) dlg.close();
+  else dlg.removeAttribute("open");
+  entradaAvisoAbierto = false;
+}
+$("btn-cerrar-entrada-aviso").addEventListener("click", cerrarEntradaAviso);
+// "Atender ahora" no resuelve nada por sí solo — la pestaña Pendientes ya
+// está al fondo (evaluarEntradaLogica ya hizo mostrarTab); solo cierra el
+// aviso para dejarla ver, igual que la cruz.
+$("btn-entrada-aviso-atender").addEventListener("click", cerrarEntradaAviso);
 
 // ── Delegación de clicks para abrir el detalle ───────────────────────────
 document.addEventListener("click", (ev) => {
@@ -1531,11 +1630,12 @@ $("btn-avisos-descanso-quitar")?.addEventListener("click", () => {
 });
 
 // ── Botón Atrás (solo dentro de la app Android) ──────────────────────────
-// Prioridad: 1) cerrar el panel inferior si está abierto  2) cerrar el modal
-// si está abierto  3) doble Atrás para salir desde la pantalla principal.
+// Prioridad: 1) cerrar el aviso de entrada si está abierto  2) cerrar el
+// panel inferior  3) cerrar el modal  4) doble Atrás para salir.
 if (nativeApp && AppPlugin?.addListener) {
   let ultimoAtras = 0;
   AppPlugin.addListener("backButton", () => {
+    if (entradaAvisoAbierto) { cerrarEntradaAviso(); return; }
     if (sheetAbierto) { cerrarSheet(); return; }
     if (detalleDialog.open) { cerrarModal(); return; }
     const ahora = Date.now();
@@ -1544,10 +1644,19 @@ if (nativeApp && AppPlugin?.addListener) {
     toast("Tocá de nuevo Atrás para salir");
   });
 
+  // Un paso breve por WhatsApp (o por la bandeja de notificaciones) no debe
+  // reabrir el aviso de entrada — solo una vuelta real después de haber
+  // estado un rato afuera (>30s) cuenta como "nueva entrada" (punto 6:
+  // "evitando que varios eventos de focus, resume o snapshots lo reabran
+  // continuamente" vs. "al volver a abrir la app, reaparece si siguen
+  // pendientes").
   AppPlugin.addListener("appStateChange", ({ isActive }) => {
     if (isActive) {
+      if (ultimoBackgroundMs && (Date.now() - ultimoBackgroundMs > 30000)) entradaAvisoMostrado = false;
       reconciliar();
       mostrarPromptEnvio();
+    } else {
+      ultimoBackgroundMs = Date.now();
     }
   });
 } else {

@@ -509,6 +509,95 @@ async function run() {
     check('el deep-link del resumen horario abre la pestaña Pendientes (no un detalle puntual)', $('tab-pendientes').hidden === false);
   }
 
+  console.log('\n=== GlowUp — Entrada automática y anuncio emergente (punto 6) ===');
+  {
+    // Nueva "entrada lógica": logout + login para que entradaAvisoMostrado
+    // se resetee (igual que pasaría con un login real).
+    await fakeFb.calls.authCallback(null);
+    await new Promise((r) => setTimeout(r, 0));
+    check('logout vuelve al panel de acceso', $('access-panel').hidden === false);
+
+    await login('espaciomimart36@gmail.com');
+    document.querySelector('[data-tab-btn="inicio"]').click();
+
+    // Con un modal abierto (editando algo), el aviso NO debe interrumpir.
+    document.getElementById('detalle-dialog').setAttribute('open', '');
+    emitirSnapshot('reservas', [
+      reservaDoc('rEntrada', { nombre: 'Entrada Test', fecha: HOY, hora: '23:00', telefono: '3764222222', estado: 'confirmado' }),
+    ]);
+    emitirSnapshot('consultas', []);
+    emitirSnapshot('pedidosKit', []);
+    emitirSnapshot('contactosWhatsApp', []);
+    emitirSnapshot('recomendacionesInteligente', []);
+    emitirSnapshot('pendienteEstadoInteligente', []);
+    emitirDoc('resumenesCumpleanos', { estado: 'ok', personas: [], fecha: HOY });
+    check('con un modal abierto, el aviso de entrada NO se muestra todavía', $('entrada-aviso-dialog').hasAttribute('open') === false);
+    check('tampoco fuerza el cambio de pestaña mientras hay un modal abierto', $('tab-pendientes').hidden === true);
+
+    // Se cierra el modal (como haría cerrarModal) y llega una novedad más —
+    // recién ahí, sin nada bloqueando, corresponde mostrar el aviso.
+    document.getElementById('detalle-dialog').removeAttribute('open');
+    emitirSnapshot('reservas', [
+      reservaDoc('rEntrada', { nombre: 'Entrada Test', fecha: HOY, hora: '23:00', telefono: '3764222222', estado: 'confirmado' }),
+    ]);
+    check('con el modal cerrado, el aviso de entrada SÍ se muestra', $('entrada-aviso-dialog').hasAttribute('open') === true);
+    check('y lleva a la pestaña Pendientes', $('tab-pendientes').hidden === false);
+    check('el texto incluye el resumen agrupado ("Tenés 1 pendiente...")', $('entrada-aviso-texto').textContent.includes('Tenés 1 pendiente'));
+
+    // La cruz SOLO cierra el aviso — no escribe nada en Firestore.
+    const escriturasAntes = fakeFb.calls.setDocCalls.length + fakeFb.calls.updateDocCalls.length;
+    $('btn-cerrar-entrada-aviso').click();
+    check('la cruz cierra el aviso', $('entrada-aviso-dialog').hasAttribute('open') === false);
+    check('la cruz NO generó ninguna escritura (no resuelve nada)', fakeFb.calls.setDocCalls.length + fakeFb.calls.updateDocCalls.length === escriturasAntes);
+    check('la pestaña sigue en Pendientes después de cerrar la cruz (no navega para atrás)', $('tab-pendientes').hidden === false);
+
+    // Otra novedad en la MISMA entrada no debe reabrirlo — ya se decidió una vez.
+    emitirSnapshot('reservas', [
+      reservaDoc('rEntrada', { nombre: 'Entrada Test', fecha: HOY, hora: '23:00', telefono: '3764222222', estado: 'confirmado' }),
+      reservaDoc('rEntrada2', { nombre: 'Otra Persona', fecha: HOY, hora: '23:30', telefono: '3764222223', estado: 'confirmado' }),
+    ]);
+    check('un snapshot nuevo en la misma entrada NO reabre el aviso ya cerrado', $('entrada-aviso-dialog').hasAttribute('open') === false);
+
+    // Nueva entrada (logout + login) sin pendientes: no debe mostrarse ni
+    // forzar la pestaña — se respeta el inicio habitual en Inicio.
+    await fakeFb.calls.authCallback(null);
+    await new Promise((r) => setTimeout(r, 0));
+    await login('espaciomimart36@gmail.com');
+    // cumpleanosHoy quedó en estado "error" desde una prueba anterior (la
+    // del aviso rojo "no se pudo consultar") — se limpia acá para que esta
+    // prueba verifique el caso "sin pendientes", no el de "fuente con error"
+    // (que correctamente SÍ debe mostrar el aviso; eso ya se corrobora con
+    // erroresFuentePendientes en la lógica, no hace falta repetirlo acá).
+    emitirDoc('resumenesCumpleanos', { estado: 'ok', personas: [], fecha: HOY });
+    emitirSnapshot('reservas', []);
+    emitirSnapshot('consultas', []);
+    emitirSnapshot('pedidosKit', []);
+    emitirSnapshot('contactosWhatsApp', []);
+    emitirSnapshot('recomendacionesInteligente', []);
+    emitirSnapshot('pendienteEstadoInteligente', []);
+    check('sin pendientes, el aviso de entrada no se muestra', $('entrada-aviso-dialog').hasAttribute('open') === false);
+    check('y se respeta el inicio habitual en Inicio (no fuerza Pendientes)', $('tab-inicio').hidden === false);
+
+    // Regresión: en el teléfono real, reservas/consultas llegaban "vacías" de
+    // pendientes ANTES que pedidosKit, y el aviso se mostraba (o se decidía)
+    // sin contar el kit todavía. Reproduce esa carrera a propósito.
+    await fakeFb.calls.authCallback(null);
+    await new Promise((r) => setTimeout(r, 0));
+    await login('espaciomimart36@gmail.com');
+    emitirSnapshot('reservas', []); // reservas y consultas responden primero, sin nada
+    emitirSnapshot('consultas', []);
+    check('con solo reservas/consultas respondidas (kits todavía sin llegar), el aviso NO se muestra todavía', $('entrada-aviso-dialog').hasAttribute('open') === false);
+    emitirDoc('resumenesCumpleanos', { estado: 'ok', personas: [], fecha: HOY });
+    emitirSnapshot('contactosWhatsApp', []);
+    emitirSnapshot('recomendacionesInteligente', []);
+    emitirSnapshot('pendienteEstadoInteligente', []);
+    // Recién ahora llega pedidosKit, la última fuente que faltaba, con un pendiente real.
+    emitirSnapshot('pedidosKit', [['kEntrada', { nombrePaciente: 'Kit Tardío', productosDetalle: [{ nombre: 'Crema', precio: 1000 }], estado: 'pendiente' }]]);
+    check('recién cuando TODAS las fuentes respondieron, el aviso se muestra', $('entrada-aviso-dialog').hasAttribute('open') === true);
+    check('y el resumen SÍ incluye el kit que llegó tarde (no lo subcuenta)', $('entrada-aviso-texto').textContent.includes('1 kit'));
+    $('btn-cerrar-entrada-aviso').click();
+  }
+
   console.log('\n' + '='.repeat(60));
   console.log(fails ? (fails + ' prueba(s) fallaron') : 'TODAS LAS PRUEBAS OK');
   process.exit(fails ? 1 : 0);

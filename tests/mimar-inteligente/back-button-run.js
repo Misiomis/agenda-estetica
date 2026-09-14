@@ -62,6 +62,10 @@ function emitirSnapshot(coleccionPath, docs) {
   const entrada = fakeFb.calls.onSnapshotCalls.filter((e) => e.path === coleccionPath && !e.unsubscribed).pop();
   entrada.onNext(fakeFb.fakeSnap(docs));
 }
+function emitirDoc(path, data) {
+  const entrada = fakeFb.calls.onSnapshotCalls.filter((e) => e.path === path && !e.unsubscribed).pop();
+  entrada.onNext(fakeFb.fakeDocSnap(true, 'doc', data));
+}
 
 async function run() {
   console.log('\n=== Botón Atrás nativo: se registra el listener de Capacitor ===');
@@ -72,6 +76,18 @@ async function run() {
   const HOY = new Date().toISOString().slice(0, 10);
   emitirSnapshot('reservas', [reservaDoc('r1', { nombre: 'Ana', fecha: HOY, hora: '23:59', box: 'b1', telefono: '3764111111', estado: 'confirmado' })]);
   emitirSnapshot('consultas', []);
+  emitirSnapshot('pedidosKit', []);
+  emitirSnapshot('contactosWhatsApp', []);
+  emitirSnapshot('recomendacionesInteligente', []);
+  emitirSnapshot('pendienteEstadoInteligente', []);
+  emitirDoc('resumenesCumpleanos', { estado: 'ok', personas: [], fecha: HOY });
+
+  console.log('\n=== Con un pendiente real (turno de Ana), el aviso de entrada aparece y Atrás lo cierra primero ===');
+  {
+    check('el aviso de entrada quedó abierto (hay un pendiente real: el turno de Ana)', $('entrada-aviso-dialog').hasAttribute('open') === true);
+    backButtonHandlers[0]();
+    check('Atrás cerró el aviso de entrada (prioridad más alta) y no salió de la app', $('entrada-aviso-dialog').hasAttribute('open') === false && exitAppLlamado === 0);
+  }
 
   console.log('\n=== Atrás con el modal abierto: cierra el modal, NO sale de la app ===');
   {
