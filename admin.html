@@ -526,12 +526,12 @@
         .day.has-reserva::after { content: ''; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }
         /* Día cerrado por admin: patrón sutil, ícono textual, color ámbar (no rojo) */
         .day.day-closed { background: var(--warning-soft); border-color: #E0C989; color: var(--warning); }
-        /* Día completo: estado real, útil (no un error). Casi todos los días
-           de un mes suelen llegar a este estado en la práctica, así que un
-           relleno sólido convertía el calendario entero en un bloque de
-           color y además tapaba el anillo de "Hoy" cuando coincidían.
-           Se usa un tinte liviano del verde de marca, nunca rojo de alarma. */
-        .day.day-full { background: var(--forest-soft) !important; border-color: var(--forest) !important; color: var(--forest) !important; font-weight: 800; }
+        /* Día completo (>=25 hs reservadas, sin cierre): decisión explícita
+           del negocio — se marca en rojo lleno porque casi todo el mes
+           llega a este estado y necesita destacar como "ocupado" a simple
+           vista. El anillo de "Hoy" (var(--forest)) contrasta bien contra
+           este rojo, así que no se tapan entre sí. */
+        .day.day-full { background: var(--danger) !important; border-color: var(--danger) !important; color: #fff !important; font-weight: 800; }
         .day.day-full::after { display: none; }
         .day.selected { background: var(--gold) !important; border-color: var(--gold) !important; color: #fff !important; }
         /* "Hoy" se distingue con un anillo (outline), independiente de
@@ -544,7 +544,7 @@
         .agenda-legend-swatch.leg-hoy { outline: 2px solid var(--forest); outline-offset: -2px; }
         .agenda-legend-swatch.leg-reserva::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--gold); }
         .agenda-legend-swatch.leg-cerrado { background: var(--warning-soft); border-color: #E0C989; }
-        .agenda-legend-swatch.leg-completo { background: var(--forest-soft); border-color: var(--forest); }
+        .agenda-legend-swatch.leg-completo { background: var(--danger); border-color: var(--danger); }
         .agenda-legend-swatch.leg-seleccionado { background: var(--gold); border-color: var(--gold); }
         .agenda-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 2px 0; font-size: 11.5px; color: var(--ink-soft); }
         .agenda-legend-item { display: flex; align-items: center; gap: 6px; }
@@ -6204,7 +6204,14 @@
                         return a.sortKey<b.sortKey?-1:a.sortKey>b.sortKey?1:0;
                     });
 
-                    patientData.push({ nombre: nombre, key: k, phone: phone, edad: _buscarEdad(nombre, phone, allR), sesiones: allSes });
+                    // Las canceladas no se imprimen en este PDF (ocupan
+                    // espacio sin aportar nada útil a la jornada del día);
+                    // si a una paciente no le queda ninguna sesión real o
+                    // pendiente, directamente no se le genera página.
+                    var sesionesImprimibles = allSes.filter(function(s){ return s.status !== 'canc'; });
+                    if (!sesionesImprimibles.length) return;
+
+                    patientData.push({ nombre: nombre, key: k, phone: phone, edad: _buscarEdad(nombre, phone, allR), sesiones: sesionesImprimibles });
                 });
 
                 if (!patientData.length) { mostrarAviso('Sin datos para generar.'); return; }
