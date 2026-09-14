@@ -1051,7 +1051,7 @@
             <input type="text" id="userAdmin" placeholder="Email admin">
             <input type="password" id="passAdmin" placeholder="Contraseña">
             <button class="btn-entrar" id="btnEntrarSeguro">Ingresar →</button>
-            <p id="error-login" style="color:#f0c060; font-size:12px; margin-top:12px; display:none; font-weight:600; letter-spacing:0.04em;">Acceso no autorizado</p>
+            <p id="error-login" style="color:#A5433A; font-size:12px; margin-top:12px; display:none; font-weight:600; letter-spacing:0.04em;">Acceso no autorizado</p>
         </div>
     </div>
     <div id="admin-content">
@@ -1072,7 +1072,7 @@
             <div class="modal-card">
                 <h3>Desbloquear día</h3>
                 <p id="confirm-unblock-day-text-1"></p>
-                <p id="confirm-unblock-day-text-2" style="color:#D4AF37; font-weight:600;"></p>
+                <p id="confirm-unblock-day-text-2" style="color:#8A6A22; font-weight:600;"></p>
                 <p>¿Querés quitar el bloqueo y habilitar este día?</p>
                 <div class="modal-actions">
                     <button class="btn-mini" onclick="cerrarModalDesbloqueo()">Cancelar</button>
@@ -1932,7 +1932,7 @@
                             <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif;font-size:1.3em;color:rgba(22,61,50,0.95);">Consultas Iniciales</h3>
                             <p style="margin:0;font-size:12.5px;color:rgba(22,61,50,0.52);">Turnos agendados desde la web — sin login de paciente</p>
                         </div>
-                        <button class="btn-mini" onclick="abrirNuevaConsulta()" style="padding:9px 16px;background:rgba(74,222,128,0.12);border-color:rgba(74,222,128,0.35);color:#4ade80;">+ Nueva Consulta</button>
+                        <button class="btn-mini" onclick="abrirNuevaConsulta()" style="padding:9px 16px;background:rgba(74,222,128,0.12);border-color:rgba(74,222,128,0.35);color:#2F6B4F;">+ Nueva Consulta</button>
                         <button class="btn-mini" onclick="navegar('control-consultas')" style="padding:9px 16px;background:rgba(96,165,250,0.10);border-color:rgba(96,165,250,0.28);color:rgba(61,92,134,0.88);">📋 Ver control</button>
                         <button class="btn-mini" onclick="cargarConsultas()" style="padding:9px 16px;">↻ Actualizar</button>
                     </div>
@@ -2513,10 +2513,10 @@
 
         // ── Sistema de Boxes ──
         const _BOX_INFO = {
-            1: { label: 'Consultorio', color: '#4ade80', bg: 'rgba(74,222,128,0.13)',  bd: 'rgba(74,222,128,0.33)' },
-            2: { label: 'Corporal',    color: '#60a5fa', bg: 'rgba(96,165,250,0.13)',  bd: 'rgba(96,165,250,0.33)' },
-            3: { label: 'Facial',      color: '#f472b6', bg: 'rgba(244,114,182,0.13)', bd: 'rgba(244,114,182,0.33)' },
-            4: { label: 'Relax',       color: '#a78bfa', bg: 'rgba(167,139,250,0.13)', bd: 'rgba(167,139,250,0.33)' },
+            1: { label: 'Consultorio', color: '#166534', bg: 'rgba(74,222,128,0.16)',  bd: 'rgba(74,222,128,0.45)' },
+            2: { label: 'Corporal',    color: '#1E4E8C', bg: 'rgba(96,165,250,0.16)',  bd: 'rgba(96,165,250,0.45)' },
+            3: { label: 'Facial',      color: '#9D2A63', bg: 'rgba(244,114,182,0.16)', bd: 'rgba(244,114,182,0.45)' },
+            4: { label: 'Relax',       color: '#5B3FA0', bg: 'rgba(167,139,250,0.16)', bd: 'rgba(167,139,250,0.45)' },
         };
         // Devuelve qué boxes ocupa/bloquea cada servicio
         const _inferirBoxes = (servicio, tipo) => {
@@ -2540,7 +2540,7 @@
         };
         const _boxBadgesHtml = (boxes) => {
             if (!boxes || boxes.length === 0) return '';
-            if (boxes.length === 4) return `<span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.05em;background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.30);margin-left:5px;vertical-align:middle;">🔒 Exclusivo</span>`;
+            if (boxes.length === 4) return `<span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.05em;background:rgba(248,113,113,0.12);color:#A5433A;border:1px solid rgba(248,113,113,0.30);margin-left:5px;vertical-align:middle;">🔒 Exclusivo</span>`;
             return boxes.map(b => { const i = _BOX_INFO[b]||{}; return `<span style="display:inline-block;padding:1px 7px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.04em;background:${i.bg};color:${i.color};border:1px solid ${i.bd};margin-left:4px;vertical-align:middle;">B${b}</span>`; }).join('');
         };
         let todasLasHistorias = [];
@@ -3206,7 +3206,7 @@
                 // "Confirmado" acá es un estado administrativo aparte de estado/status
                 // (ver marcarConfirmacionManual) — nunca implica que se haya mandado un mensaje.
                 const confirmacionBadge = r.confirmacionManual
-                    ? `<span style="display:inline-block;background:rgba(74,222,128,0.14);color:#4ade80;border:1px solid rgba(74,222,128,0.32);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">✓ Confirmado</span>`
+                    ? `<span style="display:inline-block;background:rgba(74,222,128,0.14);color:#2F6B4F;border:1px solid rgba(74,222,128,0.32);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">✓ Confirmado</span>`
                     : '';
 
                 // Nota para paciente 1 (o unico)
@@ -3338,7 +3338,7 @@
                         <button onclick="window._adminToggleMas('r${r.id}')" class="ac-mas-btn" id="admas-btn-r${r.id}">··· Más</button>
                     </div>
                     <div id="admas-r${r.id}" class="ac-mas-panel" style="display:none;margin-top:8px;">
-                        <button class="btn-mini" style="width:100%;border-color:rgba(74,222,128,0.40);color:#4ade80;background:rgba(74,222,128,0.08)" onclick="marcarConfirmacionManual('${r.id}', ${r.confirmacionManual ? 'false' : 'true'})">${r.confirmacionManual ? '✓ Confirmado — quitar' : 'Marcar como confirmado'}</button>
+                        <button class="btn-mini" style="width:100%;border-color:rgba(74,222,128,0.40);color:#2F6B4F;background:rgba(74,222,128,0.08)" onclick="marcarConfirmacionManual('${r.id}', ${r.confirmacionManual ? 'false' : 'true'})">${r.confirmacionManual ? '✓ Confirmado — quitar' : 'Marcar como confirmado'}</button>
                         ${btnEnviar1}${btnEnviar2}
                         ${btnRec}
                         <button class="btn-mini" style="width:100%;border-color:#b5cce8;color:#2e61b1;background:#f3f8ff" onclick="cambiarServicioReserva('${r.id}')">Cambiar servicio</button>
@@ -3406,7 +3406,7 @@
                     </div>
                     <div id="admas-cv${c.id}" class="ac-mas-panel" style="display:none;margin-top:8px;">
                         ${_cWa?`<a href="https://wa.me/${_cWa}?text=${_MSG_PRE_CONSULTA}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(138,106,34,0.92);font-weight:700;font-size:13px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
-                        ${_cEst!=='confirmada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:9px 12px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;width:100%;">✓ Marcar como confirmada</button>`:''}
+                        ${_cEst!=='confirmada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:9px 12px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#2F6B4F;width:100%;">✓ Marcar como confirmada</button>`:''}
                         ${_cEst!=='cancelada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','cancelada')" style="padding:9px 12px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(165,67,58,0.85);width:100%;">✕ Cancelar consulta</button>`:''}
                         ${_cWa?`
                         <button onclick="(function(){var m=document.getElementById('${_cRecId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(61,92,134,0.90);font-weight:700;cursor:pointer;font-size:12px;">📋 Enviar Recomendaciones post-sesión</button>
@@ -3539,7 +3539,7 @@
                         </div>
                         <div id="admas-ag${consulta.id}" class="ac-mas-panel" style="display:none;margin-top:6px;">
                             ${_cpWa?`<a href="https://wa.me/${_cpWa}?text=${_cpMsg('Hola 🤍 ¡Es un gusto poder recibirte en nuestro nuevo Espacio MimarT!\n\nNos pone muy felices comenzar esta nueva etapa y poder acompañarte, tanto si ya venís siendo parte de nuestro espacio como si recién te estás sumando.\n\nEsta consulta es un momento pensado para vos: para conocerte mejor, escuchar qué te gustaría mejorar, revisar tus objetivos y comenzar a organizar juntos los tratamientos que mejor se adapten a tus necesidades, tus tiempos y también a tu presupuesto.\n\n✨ Antes de tu consulta, una pequeña aclaración:\nEste mensaje es general para quienes realizan una consulta facial, corporal o ambas, por eso algunas recomendaciones pueden no corresponder específicamente a lo que elegiste evaluar.\n\nSi tu consulta es sólo facial, podés omitir las indicaciones destinadas a la evaluación corporal.\nSi tu consulta es sólo corporal, podés omitir las recomendaciones específicas para la evaluación facial.\nY si elegiste una evaluación facial y corporal, tené en cuenta todas las indicaciones.\n\nAsí cada persona puede prepararse únicamente de acuerdo con el tipo de evaluación que va a realizar, sin preocuparse por aquellas recomendaciones que no correspondan a su turno. 🤍\n\nPara poder realizar una evaluación cómoda y completa, te pedimos que el día de tu consulta:\n\n• Asistas con ropa cómoda, preferentemente deportiva y no ajustada.\n• Si tu evaluación es corporal: en lo posible, utilizá ropa interior sin metales, idealmente de color negro.\n• Si tu evaluación es facial: vení sin maquillaje.\n• Evitá llevar joyas, cadenas, pulseras u otros accesorios metálicos.\n• Sé puntual con el horario pactado, ya que reservamos ese momento especialmente para vos.\n\nDurante la consulta vamos a evaluar los aspectos relacionados con aquello que querés tratar y conversar sobre las alternativas más adecuadas para vos, pudiendo planificar tus próximos tratamientos de una manera personalizada y realista.\n\n🤍 Queremos que esta nueva etapa en Espacio MimarT también sea una nueva forma de acompañarte: más personalizada, más cercana y pensada especialmente para vos.\n\nEspacio MimarT\nUn lugar pensado para vos.')}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:9px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(138,106,34,0.92);font-weight:700;font-size:12px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
-                            ${_cpEst!=='confirmada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${consulta.id}','confirmada')" style="padding:8px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;width:100%;">✓ Marcar como confirmada</button>`:''}
+                            ${_cpEst!=='confirmada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${consulta.id}','confirmada')" style="padding:8px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#2F6B4F;width:100%;">✓ Marcar como confirmada</button>`:''}
                             ${_cpEst!=='cancelada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${consulta.id}','cancelada')" style="padding:8px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(165,67,58,0.85);width:100%;">✕ Cancelar consulta</button>`:''}
                             <button onclick="(function(){var m=document.getElementById('${_cpRecId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:8px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(61,92,134,0.90);font-weight:700;cursor:pointer;font-size:12px;">📋 Enviar Recomendaciones post-sesión</button>
                             <div id="${_cpRecId}" style="display:none;flex-direction:column;gap:6px;background:rgba(60,100,200,0.06);border:1px solid rgba(60,100,200,0.15);border-radius:10px;padding:10px;">
@@ -4159,11 +4159,11 @@
                 <div style="width:100%;max-width:520px;max-height:82vh;display:flex;flex-direction:column;background:linear-gradient(165deg,#fff 0%,#f6fbf8 60%,#eef7f3 100%);border-radius:24px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:24px 22px 20px">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
                         <p style="font-family:'Playfair Display',serif;font-size:19px;color:#2f5a47;margin:0">Últimos movimientos</p>
-                        <button id="_mov-cerrar" style="border:none;background:transparent;font-size:22px;line-height:1;color:#6a8e7f;cursor:pointer;padding:4px 8px">×</button>
+                        <button id="_mov-cerrar" style="border:none;background:transparent;font-size:22px;line-height:1;color:#4C6759;cursor:pointer;padding:4px 8px">×</button>
                     </div>
-                    <p style="margin:0 0 14px;font-size:12px;color:#6a8e7f">Acciones recientes del admin: bloqueos, desbloqueos, borrados y cancelaciones de turnos.</p>
+                    <p style="margin:0 0 14px;font-size:12px;color:#4C6759">Acciones recientes del admin: bloqueos, desbloqueos, borrados y cancelaciones de turnos.</p>
                     <div id="_mov-lista" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;padding-right:4px">
-                        <p style="text-align:center;color:#6a8e7f;font-size:13px">Cargando...</p>
+                        <p style="text-align:center;color:#4C6759;font-size:13px">Cargando...</p>
                     </div>
                 </div>`;
             document.body.appendChild(overlay);
@@ -4181,7 +4181,7 @@
                     .slice(0, 40);
 
                 if (!movimientos.length) {
-                    lista.innerHTML = '<p style="text-align:center;color:#6a8e7f;font-size:13px">Todavía no hay movimientos registrados.</p>';
+                    lista.innerHTML = '<p style="text-align:center;color:#4C6759;font-size:13px">Todavía no hay movimientos registrados.</p>';
                     return;
                 }
 
@@ -4212,15 +4212,15 @@
                         <div style="border:1px solid #d5eadf;border-radius:14px;padding:12px 14px;background:#fff">
                             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">
                                 <span style="font-weight:800;font-size:13px;color:${tag.color}">${tag.icono} ${tag.texto}</span>
-                                <span style="font-size:10.5px;color:#8aa79a;white-space:nowrap;text-align:right">${escapeHtml(cuandoFmt)}</span>
+                                <span style="font-size:10.5px;color:#55645A;white-space:nowrap;text-align:right">${escapeHtml(cuandoFmt)}</span>
                             </div>
                             <p style="margin:0;font-size:12.5px;color:#4a7060">📅 Turno afectado: <strong>${escapeHtml(horarioFmt)}</strong></p>
-                            ${m.detalle ? `<p style="margin:4px 0 0;font-size:12px;color:#5d8473">${escapeHtml(m.detalle)}</p>` : ''}
+                            ${m.detalle ? `<p style="margin:4px 0 0;font-size:12px;color:#4C6759">${escapeHtml(m.detalle)}</p>` : ''}
                         </div>`;
                 }).join('');
             } catch (e) {
                 console.error('mostrarUltimosMovimientos:', e);
-                lista.innerHTML = '<p style="text-align:center;color:#c94040;font-size:13px">No se pudieron cargar los movimientos.</p>';
+                lista.innerHTML = '<p style="text-align:center;color:#A5433A;font-size:13px">No se pudieron cargar los movimientos.</p>';
             }
         };
 
@@ -4295,7 +4295,7 @@
             modal.innerHTML = `
                 <div style="background:#fff;border-radius:18px;padding:24px;width:100%;max-width:360px;box-shadow:0 16px 40px rgba(0,0,0,.18)">
                     <div style="font-family:'Playfair Display',serif;font-size:1.2rem;color:#2f5a47;margin-bottom:6px">Sesion Duo — 2do Paciente</div>
-                    <div style="font-size:13px;color:#557b6b;margin-bottom:16px">${fecha} · ${hora} hs</div>
+                    <div style="font-size:13px;color:#4C6759;margin-bottom:16px">${fecha} · ${hora} hs</div>
                     <label style="font-size:12px;font-weight:700;color:#2f5a47;text-transform:uppercase;letter-spacing:.05em">Nombre *</label>
                     <input id="duo-nombre2-input" type="text" placeholder="Nombre completo" style="width:100%;box-sizing:border-box;padding:11px 12px;border:2px solid #d5eadf;border-radius:10px;font-size:15px;margin:6px 0 14px;outline:none">
                     <label style="font-size:12px;font-weight:700;color:#2f5a47;text-transform:uppercase;letter-spacing:.05em">DNI *</label>
@@ -4306,7 +4306,7 @@
                             Guardar
                         </button>
                         <button onclick="cerrarModalDuo()"
-                            style="padding:13px 18px;background:#f5f5f5;color:#557b6b;border:none;border-radius:12px;font-weight:600;font-size:14px;cursor:pointer">
+                            style="padding:13px 18px;background:#f5f5f5;color:#4C6759;border:none;border-radius:12px;font-weight:600;font-size:14px;cursor:pointer">
                             Cancelar
                         </button>
                     </div>
@@ -4358,7 +4358,7 @@
                         <img src="img/logo.png" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid rgba(178,222,200,0.7)" onerror="this.style.display='none'">
                     </div>
                     <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 4px">Cancelar turno</p>
-                    <p style="font-size:12px;color:#6a8e7f;font-weight:700;text-align:center;margin:0 0 18px;letter-spacing:.04em">${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(formatoFechaISO(reserva.fecha))} · ${escapeHtml(reserva.hora)} hs</p>
+                    <p style="font-size:12px;color:#4C6759;font-weight:700;text-align:center;margin:0 0 18px;letter-spacing:.04em">${escapeHtml(reserva.nombreLimpio || 'Paciente')} · ${escapeHtml(formatoFechaISO(reserva.fecha))} · ${escapeHtml(reserva.hora)} hs</p>
                     <label style="font-size:11px;font-weight:800;color:#4a7060;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Motivo de cancelación *</label>
                     <textarea id="_cancel-motivo" placeholder="Escribí el motivo (ej: Gimena no puede ese día, se reprogramó...)" style="width:100%;box-sizing:border-box;padding:12px 14px;border:2px solid #d5eadf;border-radius:12px;font-family:inherit;font-size:14px;color:#2f5a47;background:#f8fefb;outline:none;resize:vertical;min-height:90px;margin-bottom:16px"></textarea>
                     <p style="font-size:11px;font-weight:800;color:#4a7060;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px">¿Quién pidió la cancelación?</p>
@@ -4594,7 +4594,7 @@
                 document.getElementById('mreg-resultados').innerHTML = '';
                 return;
             }
-            document.getElementById('mreg-resultados').innerHTML = '<div style="font-size:12px;color:#6a8e7f;padding:6px 0">Buscando…</div>';
+            document.getElementById('mreg-resultados').innerHTML = '<div style="font-size:12px;color:#4C6759;padding:6px 0">Buscando…</div>';
             _mreg_debounce = setTimeout(() => buscarPacientesPorNombre(q), 350);
         });
 
@@ -4611,7 +4611,7 @@
                     }
                 });
                 if (matches.length === 0) {
-                    resultadosEl.innerHTML = '<div style="font-size:12px;color:#6a8e7f;padding:6px 0">Sin resultados</div>';
+                    resultadosEl.innerHTML = '<div style="font-size:12px;color:#4C6759;padding:6px 0">Sin resultados</div>';
                     return;
                 }
                 resultadosEl.innerHTML = matches.slice(0, 5).map(p => `
@@ -4626,7 +4626,7 @@
                 `).join('');
             } catch(err) {
                 console.error(err);
-                resultadosEl.innerHTML = '<div style="font-size:12px;color:#c94040;padding:6px 0">Error al buscar</div>';
+                resultadosEl.innerHTML = '<div style="font-size:12px;color:#A5433A;padding:6px 0">Error al buscar</div>';
             }
         };
 
@@ -4681,7 +4681,7 @@
                         <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:28px 24px 22px">
                             <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 8px">${_mreg_boxPresel.icon} Box ocupado</p>
                             <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 6px"><b>${_mreg_boxPresel.label}</b> tiene un turno en curso.</p>
-                            <p style="font-size:13px;color:#5a7a6e;text-align:center;margin:0 0 16px">El tratamiento de <b>${escapeHtml(_nom)}</b> ocupa el box hasta las <b>${_endH} hs</b>.<br><span style="font-size:12px;color:#8aaa9a">Los tratamientos duran 1 hora — no se puede agendar dentro de ese rango.</span></p>
+                            <p style="font-size:13px;color:#4C6759;text-align:center;margin:0 0 16px">El tratamiento de <b>${escapeHtml(_nom)}</b> ocupa el box hasta las <b>${_endH} hs</b>.<br><span style="font-size:12px;color:#55645A">Los tratamientos duran 1 hora — no se puede agendar dentro de ese rango.</span></p>
                             <button onclick="document.getElementById('_mreg_cub_overlay').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.28)">Entendido</button>
                         </div>`;
                     document.body.appendChild(_ovC);
@@ -5173,7 +5173,7 @@
                     </div>
                     <div style="margin-top:8px;">
                         <button onclick="toggleMembresiaCliente('${escapeHtml(p.dni || '')}', ${!p.membershipActive})"
-                            style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid ${p.membershipActive ? 'rgba(255,255,255,0.12)' : 'rgba(114,189,153,0.35)'};background:${p.membershipActive ? 'rgba(255,255,255,0.07)' : 'rgba(53,122,92,0.14)'};cursor:pointer;color:rgba(22,61,50,0.90);font-weight:700;">
+                            style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid ${p.membershipActive ? 'var(--border)' : 'rgba(114,189,153,0.35)'};background:${p.membershipActive ? 'var(--surface-2)' : 'rgba(53,122,92,0.14)'};cursor:pointer;color:rgba(22,61,50,0.90);font-weight:700;">
                             ${p.membershipActive ? 'Cambiar a Ocasional' : 'Cambiar a Membresía'}
                         </button>
                     </div>
@@ -5229,7 +5229,7 @@
             const coincidencias = todasLosPacientes.filter(p => (p.fullName || "").toLowerCase().includes(txt)).slice(0, 8);
             if (!coincidencias.length) { cont.style.display = "none"; return; }
             cont.innerHTML = coincidencias.map(p =>
-                `<div onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni)}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.07); font-size:13px; color:rgba(76,103,89,0.90);" onmouseover="this.style.background='rgba(53,122,92,0.14)'" onmouseout="this.style.background=''">
+                `<div onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni)}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px; color:rgba(76,103,89,0.90);" onmouseover="this.style.background='rgba(53,122,92,0.14)'" onmouseout="this.style.background=''">
                     <strong>${escapeHtml(p.fullName)}</strong>&nbsp;·&nbsp;DNI ${escapeHtml(p.dni)}&nbsp;·&nbsp;Tel. ${escapeHtml(p.phone || 'Sin tel')}&nbsp;·&nbsp;${p.membershipActive ? 'Membresía' : 'Ocasional'}
                 </div>`
             ).join("");
@@ -5607,7 +5607,7 @@
                 'body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;background:#fff;line-height:1.5;}',
                 '.hdr{border-bottom:2.5px solid #111;padding-bottom:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}',
                 '.hdr-left h1{font-size:15pt;font-weight:800;margin-bottom:2px;}',
-                '.hdr-left .pac{font-size:14pt;font-weight:800;color:#dc2626;margin-top:6px;}',
+                '.hdr-left .pac{font-size:14pt;font-weight:800;color:#A5433A;margin-top:6px;}',
                 '.hdr-left .pac-info{font-size:9pt;color:#555;margin-top:3px;}',
                 '.hdr-right{text-align:right;font-size:8.5pt;color:#777;line-height:1.8;min-width:120px;}',
                 '.resumen{background:#f3f3f3;border:1px solid #ddd;border-radius:5px;padding:9px 14px;margin-bottom:18px;font-size:10pt;line-height:1.7;page-break-inside:avoid;break-inside:avoid;}',
@@ -5615,7 +5615,7 @@
                 '.card.pend{border-left:4px solid #c8a000;background:#fffdf0;}',
                 '.card.real{border-left:4px solid #1e5c3f;background:#f4faf7;}',
                 '.card.canc{border-left:4px solid #aaa;background:#f8f8f8;opacity:.75;}',
-                '.card-pac{font-size:8pt;font-weight:800;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}',
+                '.card-pac{font-size:8pt;font-weight:800;color:#A5433A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}',
                 '.card-n{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#555;margin-bottom:4px;}',
                 '.card-fecha{font-size:12pt;font-weight:700;margin-bottom:1px;}',
                 '.card-hora{font-size:10pt;color:#555;margin-bottom:3px;}',
@@ -6652,7 +6652,7 @@
                     var filasMes = '';
                     mes.sort(function(a,b){return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1;}).forEach(function(r) {
                         var detalle = r.detalleSesion || '';
-                        filasMes += "<div style='padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);'>" +
+                        filasMes += "<div style='padding:8px 0;border-bottom:1px solid var(--border);'>" +
                             "<div style='font-size:12px;font-weight:600;color:rgba(76,103,89,0.85);'>" + escapeHtml(_fechaDisplay(r,false)) + " · " + escapeHtml(r.hora||'—') + " hs</div>" +
                             "<div style='font-size:12px;color:rgba(22,61,50,0.70);margin-top:2px;'>" + escapeHtml(r.servicio||'—') + _boxBadgeHtml(r) + "</div>" +
                             (detalle ? "<div style='font-size:11px;margin-top:4px;color:rgba(22,61,50,0.55);'>" + escapeHtml(detalle) + "</div>" : "") +
@@ -6726,7 +6726,7 @@
             try {
                 const snap = await getDocs(collection(db, 'pedidosKit'));
                 if (snap.empty) {
-                    cont.innerHTML = '<p style="color:#88948f;">No hay pedidos registrados todavía.</p>';
+                    cont.innerHTML = '<p style="color:#55645A;">No hay pedidos registrados todavía.</p>';
                     return;
                 }
                 const pedidos = [];
@@ -6763,7 +6763,7 @@
                                 precio = key ? KIT_PRECIOS[key] : null;
                             }
                             const safePrice = (precio !== null && !isNaN(precio)) ? precio : 0;
-                            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.07);">' +
+                            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">' +
                                 '<span>' + escapeHtml(prod) + '</span>' +
                                 '<span style="display:flex;align-items:center;gap:5px;">' +
                                     (precio !== null
@@ -6828,7 +6828,7 @@
             if (!matches.length) { sug.style.display = 'none'; return; }
             sug.style.display = 'block';
             sug.innerHTML = matches.map(p => `
-                <div onclick="seleccionarPacienteKitAdmin('${escapeHtml(p.dni)}')" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.07);font-size:13px;" onmouseover="this.style.background='rgba(53,122,92,0.20)'" onmouseout="this.style.background=''">
+                <div onclick="seleccionarPacienteKitAdmin('${escapeHtml(p.dni)}')" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;" onmouseover="this.style.background='rgba(53,122,92,0.20)'" onmouseout="this.style.background=''">
                     <span style="color:rgba(36,51,43,0.92);font-weight:600;">${escapeHtml(p.fullName || p.username || p.dni)}</span>
                     ${p.username ? `<span style="color:rgba(22,61,50,0.55);font-size:11px;margin-left:6px;">@${escapeHtml(p.username)}</span>` : ''}
                     <span style="color:rgba(22,61,50,0.40);font-size:11px;float:right;">DNI ${escapeHtml(p.dni)}</span>
@@ -6887,7 +6887,7 @@
             const el = document.getElementById('kitAdminProductosList');
             if (!el) return;
             el.innerHTML = _kitAdminProds.map((p, i) => `
-                <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--surface);cursor:pointer;border:1px solid ${p.sel ? 'rgba(53,122,92,0.45)' : 'rgba(255,255,255,0.09)'};">
+                <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--surface);cursor:pointer;border:1px solid ${p.sel ? 'rgba(53,122,92,0.45)' : 'var(--border)'};">
                     <input type="checkbox" ${p.sel ? 'checked' : ''} onchange="toggleKitAdminProd(${i}, this.checked)" style="accent-color:#3f8f6f;width:15px;height:15px;cursor:pointer;">
                     <span style="flex:1;font-size:13px;">${escapeHtml(p.nombre)}</span>
                     <span style="font-size:12px;font-weight:700;color:rgba(22,61,50,0.90);">$${Number(p.precio).toLocaleString('es-AR')}</span>
@@ -7266,7 +7266,7 @@
                         <button onclick="window._adminToggleMas('rc${c.id}')" class="ac-mas-btn${!waAvisoCanc?' ac-mas-btn-full':''}" id="admas-btn-rc${c.id}">··· Más</button>
                     </div>
                     <div id="admas-rc${c.id}" class="ac-mas-panel" style="display:none;margin-top:6px;">
-                        ${estado !== 'confirmada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:9px 12px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#4ade80;width:100%;">✓ Marcar como confirmada</button>` : ''}
+                        ${estado !== 'confirmada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:9px 12px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#2F6B4F;width:100%;">✓ Marcar como confirmada</button>` : ''}
                         ${estado !== 'cancelada' ? `<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','cancelada')" style="padding:9px 12px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(165,67,58,0.85);width:100%;">✕ Cancelar consulta</button>` : ''}
                         ${waPhone?`<a href="https://wa.me/${waPhone}?text=${encodeURIComponent('Hola 🤍 ¡Es un gusto poder recibirte en nuestro nuevo Espacio MimarT!\n\nNos pone muy felices comenzar esta nueva etapa y poder acompañarte, tanto si ya venís siendo parte de nuestro espacio como si recién te estás sumando.\n\nEsta consulta es un momento pensado para vos: para conocerte mejor, escuchar qué te gustaría mejorar, revisar tus objetivos y comenzar a organizar juntos los tratamientos que mejor se adapten a tus necesidades, tus tiempos y también a tu presupuesto.\n\n✨ Antes de tu consulta, una pequeña aclaración:\nEste mensaje es general para quienes realizan una consulta facial, corporal o ambas, por eso algunas recomendaciones pueden no corresponder específicamente a lo que elegiste evaluar.\n\nSi tu consulta es sólo facial, podés omitir las indicaciones destinadas a la evaluación corporal.\nSi tu consulta es sólo corporal, podés omitir las recomendaciones específicas para la evaluación facial.\nY si elegiste una evaluación facial y corporal, tené en cuenta todas las indicaciones.\n\nAsí cada persona puede prepararse únicamente de acuerdo con el tipo de evaluación que va a realizar, sin preocuparse por aquellas recomendaciones que no correspondan a su turno. 🤍\n\nPara poder realizar una evaluación cómoda y completa, te pedimos que el día de tu consulta:\n\n• Asistas con ropa cómoda, preferentemente deportiva y no ajustada.\n• Si tu evaluación es corporal: en lo posible, utilizá ropa interior sin metales, idealmente de color negro.\n• Si tu evaluación es facial: vení sin maquillaje.\n• Evitá llevar joyas, cadenas, pulseras u otros accesorios metálicos.\n• Sé puntual con el horario pactado, ya que reservamos ese momento especialmente para vos.\n\nDurante la consulta vamos a evaluar los aspectos relacionados con aquello que querés tratar y conversar sobre las alternativas más adecuadas para vos, pudiendo planificar tus próximos tratamientos de una manera personalizada y realista.\n\n🤍 Queremos que esta nueva etapa en Espacio MimarT también sea una nueva forma de acompañarte: más personalizada, más cercana y pensada especialmente para vos.\n\nEspacio MimarT\nUn lugar pensado para vos.')}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(138,106,34,0.92);font-weight:700;font-size:13px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
                         <button onclick="(function(){var m=document.getElementById('${recId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(61,92,134,0.90);font-weight:700;cursor:pointer;font-size:12px">📋 Enviar Recomendaciones post-sesión</button>
@@ -8306,7 +8306,7 @@
                     setFlowModeButtons("normal");
                     const selH0 = document.getElementById("jornadaTypeSelectorHeader");
                     if (selH0) selH0.style.display = "none";
-                    flowStatusText.innerHTML = "MODO NORMAL<br><small style=\"color:#8a6e3e;\">Ingreso principal por index.html</small>";
+                    flowStatusText.innerHTML = "MODO NORMAL<br><small style=\"color:#55645A;\">Ingreso principal por index.html</small>";
                     configView.textContent = "{}";
                     return;
                 }
@@ -8328,10 +8328,10 @@
                     ? config.allowedDates.map((date) => formatoFechaVisible(date)).join(", ")
                     : "No configuradas";
                 const service = config.serviceName || "(no configurado)";
-                statusText.innerHTML = `${status}<br><small style="color:#7a9d93;">Servicio: ${escapeHtml(service)}<br>Fechas: ${escapeHtml(dates)}</small>`;
+                statusText.innerHTML = `${status}<br><small style="color:#55645A;">Servicio: ${escapeHtml(service)}<br>Fechas: ${escapeHtml(dates)}</small>`;
                 flowStatusText.innerHTML = flowMode === "jornada"
-                    ? "MODO JORNADA<br><small style=\"color:#8a6e3e;\">El sitio dirige a jornada.html y al flujo especial</small>"
-                    : "MODO NORMAL<br><small style=\"color:#8a6e3e;\">El sitio dirige a index.html y al flujo habitual</small>";
+                    ? "MODO JORNADA<br><small style=\"color:#55645A;\">El sitio dirige a jornada.html y al flujo especial</small>"
+                    : "MODO NORMAL<br><small style=\"color:#55645A;\">El sitio dirige a index.html y al flujo habitual</small>";
                 
                 configView.textContent = JSON.stringify(config, null, 2);
             } catch (err) {
@@ -8533,7 +8533,7 @@
                     <th style="padding:6px 8px;"></th>
                 </tr></thead>
                 <tbody>${activos.map(s => `
-                    <tr id="gs-row-${s.id}" style="border-top:1px solid rgba(255,255,255,0.05);">
+                    <tr id="gs-row-${s.id}" style="border-top:1px solid var(--border);">
                         <td style="padding:7px 8px;min-width:130px;">
                             <input id="gs-nom-${s.id}" value="${escapeHtml(s.nombre||'')}"
                                 style="background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;color:rgba(36,51,43,0.92);font-size:13px;font-family:inherit;width:100%;box-sizing:border-box;outline:none;">
@@ -8963,7 +8963,7 @@
             const ultimoDia = new Date(anio, mes + 1, 0);
             const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2,'0')}-${String(ultimoDia.getDate()).padStart(2,'0')}`;
             const nombreMes = d.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
-            if (!await _confirmarModal('Bloquear mes', `¿Bloquear todos los horarios libres de <strong>${nombreMes}</strong>?<br><small style="color:#a0b8af">Los turnos ya reservados no se tocan.</small>`, 'Sí, bloquear mes')) return;
+            if (!await _confirmarModal('Bloquear mes', `¿Bloquear todos los horarios libres de <strong>${nombreMes}</strong>?<br><small style="color:#55645A">Los turnos ya reservados no se tocan.</small>`, 'Sí, bloquear mes')) return;
             try {
                 mostrarLoader(true);
                 const cur = new Date(primerDia + 'T00:00:00');
@@ -8987,7 +8987,7 @@
             const ultimoDia = new Date(anio, mes + 1, 0);
             const ultimoDiaStr = `${anio}-${String(mes + 1).padStart(2,'0')}-${String(ultimoDia.getDate()).padStart(2,'0')}`;
             const nombreMes = d.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
-            if (!await _confirmarModal('Desbloquear mes', `¿Desbloquear todos los horarios de <strong>${nombreMes}</strong>?<br><small style="color:#a0b8af">Solo se eliminan bloqueos manuales — las reservas no se tocan.</small>`, 'Sí, desbloquear mes')) return;
+            if (!await _confirmarModal('Desbloquear mes', `¿Desbloquear todos los horarios de <strong>${nombreMes}</strong>?<br><small style="color:#55645A">Solo se eliminan bloqueos manuales — las reservas no se tocan.</small>`, 'Sí, desbloquear mes')) return;
             try {
                 mostrarLoader(true);
                 const cur = new Date(primerDia + 'T00:00:00');
@@ -9008,7 +9008,7 @@
             const el = document.getElementById("listaBloqueos");
             if (!el) return;
             if (!_bloqueosMeses.length && !_bloqueosDias.length) {
-                el.innerHTML = '<span style="color:#8a9e94;font-size:12px;">No hay bloqueos activos.</span>';
+                el.innerHTML = '<span style="color:#55645A;font-size:12px;">No hay bloqueos activos.</span>';
                 return;
             }
             let html = "";
@@ -9155,7 +9155,7 @@
             const cont = document.getElementById('tratamientosAdmin');
             if (!cont) return;
             if (!_tratamientos.length) {
-                cont.innerHTML = '<p style="font-size:13px;color:#88948f;margin:0;">No hay tratamientos cargados todavía.</p>';
+                cont.innerHTML = '<p style="font-size:13px;color:#55645A;margin:0;">No hay tratamientos cargados todavía.</p>';
                 return;
             }
             cont.innerHTML = _tratamientos.map((t, i) => `
@@ -9241,7 +9241,7 @@
         const cargarTratamientosAdmin = async () => {
             const cont = document.getElementById('tratamientosAdmin');
             if (!cont) return;
-            cont.innerHTML = '<p style="font-size:13px;color:#88948f;">Cargando...</p>';
+            cont.innerHTML = '<p style="font-size:13px;color:#55645A;">Cargando...</p>';
             try {
                 const snap = await getDocs(collection(db, 'services'));
                 _tratamientos = [];
@@ -9455,7 +9455,7 @@
                 _renderCalcMatriz();
             } catch (err) {
                 console.error("cargarCalculadora:", err);
-                document.getElementById('calc-tabla-servicios').innerHTML = '<div style="color:#f87171;font-size:13px;padding:8px 0;">Error al cargar servicios.</div>';
+                document.getElementById('calc-tabla-servicios').innerHTML = '<div style="color:#A5433A;font-size:13px;padding:8px 0;">Error al cargar servicios.</div>';
             }
         };
 
@@ -9481,9 +9481,9 @@
             }).join('');
             cont.innerHTML = `<table style="width:100%;border-collapse:collapse;">
                 <thead><tr>
-                    <th style="text-align:left;padding:6px 10px 10px;color:rgba(22,61,50,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(255,255,255,0.07);">Servicio</th>
-                    <th style="text-align:center;padding:6px 10px 10px;color:rgba(22,61,50,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(255,255,255,0.07);">Minutos</th>
-                    <th style="text-align:center;padding:6px 10px 10px;color:rgba(22,61,50,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(255,255,255,0.07);">= Tiempo</th>
+                    <th style="text-align:left;padding:6px 10px 10px;color:rgba(22,61,50,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);">Servicio</th>
+                    <th style="text-align:center;padding:6px 10px 10px;color:rgba(22,61,50,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);">Minutos</th>
+                    <th style="text-align:center;padding:6px 10px 10px;color:rgba(22,61,50,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);">= Tiempo</th>
                 </tr></thead>
                 <tbody>${rows}</tbody>
             </table>`;
@@ -9546,21 +9546,21 @@
         window.guardarDuracionesCalc = async () => {
             const fb = document.getElementById('calc-duraciones-feedback');
             fb.style.display = 'block';
-            fb.style.background = 'rgba(255,255,255,0.05)';
-            fb.style.color = 'rgba(165,205,188,0.8)';
+            fb.style.background = 'var(--surface-2)';
+            fb.style.color = 'var(--ink-soft)';
             fb.textContent = 'Guardando...';
             try {
                 await Promise.all(_calcServicios.map(s =>
                     setDoc(doc(db, 'services', s._id), { duracion: s.duracion }, { merge: true })
                 ));
-                fb.style.background = 'rgba(74,222,128,0.10)';
-                fb.style.color = '#4ade80';
+                fb.style.background = 'var(--success-soft)';
+                fb.style.color = 'var(--success)';
                 fb.textContent = '✓ Duraciones guardadas correctamente';
                 _renderCalcTabla();
             } catch (err) {
                 console.error("guardarDuracionesCalc:", err);
-                fb.style.background = 'rgba(248,113,113,0.10)';
-                fb.style.color = '#f87171';
+                fb.style.background = 'var(--danger-soft)';
+                fb.style.color = 'var(--danger)';
                 fb.textContent = 'Error al guardar. Intentá de nuevo.';
             }
             setTimeout(() => { fb.style.display = 'none'; }, 3500);
@@ -9569,20 +9569,20 @@
         window.guardarCombinacionesCalc = async () => {
             const fb = document.getElementById('calc-combinaciones-feedback');
             fb.style.display = 'block';
-            fb.style.background = 'rgba(255,255,255,0.05)';
-            fb.style.color = 'rgba(165,205,188,0.8)';
+            fb.style.background = 'var(--surface-2)';
+            fb.style.color = 'var(--ink-soft)';
             fb.textContent = 'Guardando...';
             try {
                 await Promise.all(_calcServicios.map(s =>
                     setDoc(doc(db, 'services', s._id), { combinaciones: s.combinaciones }, { merge: true })
                 ));
-                fb.style.background = 'rgba(74,222,128,0.10)';
-                fb.style.color = '#4ade80';
+                fb.style.background = 'var(--success-soft)';
+                fb.style.color = 'var(--success)';
                 fb.textContent = '✓ Combinaciones guardadas';
             } catch (err) {
                 console.error("guardarCombinacionesCalc:", err);
-                fb.style.background = 'rgba(248,113,113,0.10)';
-                fb.style.color = '#f87171';
+                fb.style.background = 'var(--danger-soft)';
+                fb.style.color = 'var(--danger)';
                 fb.textContent = 'Error al guardar. Intentá de nuevo.';
             }
             setTimeout(() => { fb.style.display = 'none'; }, 3500);
@@ -9598,7 +9598,7 @@
             const [fh, fm] = fin.split(':').map(Number);
             const totalMin = (fh * 60 + fm) - (ih * 60 + im);
             if (totalMin <= 0) {
-                cont.innerHTML = '<div style="color:#f87171;font-size:13px;padding:10px 0;">El horario de fin debe ser posterior al de inicio.</div>';
+                cont.innerHTML = '<div style="color:#A5433A;font-size:13px;padding:10px 0;">El horario de fin debe ser posterior al de inicio.</div>';
                 return;
             }
             if (!_calcServicios.length) {
@@ -9610,7 +9610,7 @@
                 const n = Math.floor(totalMin / (s.duracion + pausa));
                 return `<div style="${rowStyle}background:rgba(78,163,127,0.10);">
                     <span style="font-size:13px;font-weight:600;color:rgba(22,61,50,0.9);">${escapeHtml(s.nombre)}</span>
-                    <span style="font-size:12px;color:rgba(22,61,50,0.7);">${s.duracion}min → <strong style="color:#4ade80;font-size:14px;">${n}</strong> <span style="color:rgba(22,61,50,0.6);">pacientes/día</span></span>
+                    <span style="font-size:12px;color:rgba(22,61,50,0.7);">${s.duracion}min → <strong style="color:#2F6B4F;font-size:14px;">${n}</strong> <span style="color:rgba(22,61,50,0.6);">pacientes/día</span></span>
                 </div>`;
             }).join('');
             const combosVistas = new Set();
@@ -9626,7 +9626,7 @@
                     const n = Math.floor(totalMin / (dur + pausa));
                     combosRows.push(`<div style="${rowStyle}background:rgba(139,92,246,0.10);">
                         <span style="font-size:13px;font-weight:600;color:rgba(61,92,134,0.9);">${escapeHtml(a.nombre)} <span style="color:rgba(61,92,134,0.5);">+</span> ${escapeHtml(b.nombre)}</span>
-                        <span style="font-size:12px;color:rgba(61,92,134,0.7);">${dur}min → <strong style="color:#a78bfa;font-size:14px;">${n}</strong> <span style="color:rgba(61,92,134,0.6);">pacientes/día</span></span>
+                        <span style="font-size:12px;color:rgba(61,92,134,0.7);">${dur}min → <strong style="color:#5B3FA0;font-size:14px;">${n}</strong> <span style="color:rgba(61,92,134,0.6);">pacientes/día</span></span>
                     </div>`);
                 });
             });
@@ -10179,13 +10179,13 @@
                 const dt = new Date(yy,mm-1,dd);
                 const tit = `${_DIAS_ES[dt.getDay()]} ${dd} de ${_MESES_LARG[mm-1]} de ${yy}`;
                 html += `<div style="margin-bottom:12px;">
-                    <div style="font-weight:700;font-size:12px;letter-spacing:.05em;color:rgba(61,92,134,0.90);text-transform:uppercase;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:6px;">${tit}</div>
+                    <div style="font-weight:700;font-size:12px;letter-spacing:.05em;color:rgba(61,92,134,0.90);text-transform:uppercase;padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:6px;">${tit}</div>
                     <table style="width:100%;border-collapse:collapse;">
                         <thead><tr style="font-size:10px;color:rgba(22,61,50,0.5);text-align:left;">
                             <th style="padding:3px 6px;">Hora</th><th style="padding:3px 6px;">Paciente</th>
                             <th style="padding:3px 6px;">Servicio</th><th style="padding:3px 6px;">Teléfono</th><th style="padding:3px 6px;">Estado</th>
                         </tr></thead>
-                        <tbody>${porFecha.get(f).map(r => `<tr style="border-top:1px solid rgba(255,255,255,0.05);">
+                        <tbody>${porFecha.get(f).map(r => `<tr style="border-top:1px solid var(--border);">
                             <td style="padding:4px 6px;font-weight:700;">${r.hora||'—'}</td>
                             <td style="padding:4px 6px;">${escapeHtml(r.nombreLimpio||r.nombre||'—')}</td>
                             <td style="padding:4px 6px;">${escapeHtml(r.servicio||'—')}</td>
@@ -10276,7 +10276,7 @@
             if (!isHabilitado) {
                 infoEl.innerHTML = `<div style="display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;">
                     <span style="color:rgba(165,67,58,0.75);font-size:13px;font-weight:600;">Día cerrado</span>
-                    <button class="btn-mini" onclick="habilitarDiaConsI('${fecha}')" style="padding:8px 16px;background:rgba(74,222,128,0.12);border-color:rgba(74,222,128,0.35);color:#4ade80;">✓ Habilitar día</button>
+                    <button class="btn-mini" onclick="habilitarDiaConsI('${fecha}')" style="padding:8px 16px;background:rgba(74,222,128,0.12);border-color:rgba(74,222,128,0.35);color:#2F6B4F;">✓ Habilitar día</button>
                 </div>`;
                 slotsEl.innerHTML = '';
                 return;
