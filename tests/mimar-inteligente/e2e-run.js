@@ -229,13 +229,13 @@ async function run() {
     check('volver a la pantalla no crea una suscripción nueva', reservasSubsAntes === reservasSubsDespues && reservasSubsDespues === 1);
   }
 
-  console.log('\n=== Pedidos de kits: se listan, no afectan el badge de conexión ===');
+  console.log('\n=== Pedidos de kits: aparecen en la bandeja de pendientes, no afectan el badge de conexión ===');
   {
     emitirSnapshot('pedidosKit', [
       ['kit1', { nombrePaciente: 'Pide Kit', productos: ['Limpiador', 'Tónico'], estado: 'pendiente', telefono: '3764777777' }],
     ]);
-    check('el pedido aparece en la lista de kits', $('lista-kits').innerHTML.includes('Pide Kit') && $('lista-kits').innerHTML.includes('Limpiador'));
-    check('el contador de kits es 1', $('count-kits').textContent === '1');
+    check('el pedido aparece en la bandeja de pendientes', $('lista-pendientes-bandeja').innerHTML.includes('Pide Kit') && $('lista-pendientes-bandeja').innerHTML.includes('Limpiador'));
+    check('el resumen de Inicio (resumen-kits) cuenta 1', $('resumen-kits').textContent === '1');
     check('la conexión sigue "live" aunque pedidosKit recién esté cargando otra vez', $('connection').getAttribute('data-state') !== 'error');
   }
 
@@ -257,15 +257,15 @@ async function run() {
     check('ninguna reserva se tocó por marcar el evento como atendido', !fakeFb.calls.updateDocCalls.some((c) => c.path === 'reservas'));
   }
 
-  console.log('\n=== Cumpleaños: distingue "no hay" de "no se pudo consultar" ===');
+  console.log('\n=== Cumpleaños: sin cumpleaños hoy no aparece nadie en la bandeja de pendientes ===');
   {
     emitirDoc('resumenesCumpleanos', { estado: 'ok', personas: [] });
-    check('"no hay cumpleaños" se muestra distinto de un error', $('lista-cumpleanos').innerHTML.includes('No hay cumpleaños') && !$('lista-cumpleanos').innerHTML.toLowerCase().includes('no se pudo'));
-    emitirDoc('resumenesCumpleanos', { estado: 'ok', personas: [{ clientId: 'c1', nombre: 'Marta Sosa', telefonoDisponible: true, telefono: '3764888888' }] });
-    check('con cumpleaños hoy, aparece el nombre', $('lista-cumpleanos').innerHTML.includes('Marta Sosa'));
-    check('el contador de cumpleaños es 1', $('count-cumpleanos').textContent === '1');
+    check('sin cumpleaños hoy, el resumen de Inicio da 0', $('resumen-cumpleanos').textContent === '0');
+    emitirDoc('resumenesCumpleanos', { estado: 'ok', fecha: HOY, personas: [{ clientId: 'c1', nombre: 'Marta Sosa', telefonoDisponible: true }] });
+    check('con cumpleaños hoy, aparece el nombre en la bandeja de pendientes', $('lista-pendientes-bandeja').innerHTML.includes('Marta Sosa'));
+    check('el resumen de Inicio (resumen-cumpleanos) cuenta 1', $('resumen-cumpleanos').textContent === '1');
     emitirDocError('resumenesCumpleanos', { message: 'permission-denied' });
-    check('un error de lectura se distingue como "no se pudo consultar", no como "no hay"', $('lista-cumpleanos').innerHTML.toLowerCase().includes('no se pudo consultar'));
+    check('un error de lectura se distingue como "no se pudo consultar", no como "no hay" ni como 0', $('lista-pendientes-bandeja').innerHTML.toLowerCase().includes('no se pudo consultar') && $('resumen-cumpleanos').textContent === '?');
   }
 
   console.log('\n=== Preparar WhatsApp registra el contacto como "preparado" (punto 3) ===');
@@ -408,6 +408,105 @@ async function run() {
     check('el cuerpo aclara que el documento ya no existe, sin inventar datos', $('detalle-body').innerHTML.toLowerCase().includes('ya no existe'));
     check('no ofrece "Preparar WhatsApp" para un registro eliminado', $('btn-preparar-wa').hidden === true);
     $('btn-cerrar-detalle').click();
+  }
+
+  console.log('\n=== GlowUp — Recomendaciones: crear, aparece en la bandeja, filtro por tipo ===');
+  {
+    document.querySelector('[data-tab-btn="pendientes"]').click();
+    $('btn-nueva-recomendacion').click();
+    check('se abre el diálogo de nueva recomendación', $('recomendacion-dialog').open === true);
+    $('rec-paciente').value = 'Gala Recomendada';
+    $('rec-telefono').value = '3764999999';
+    $('rec-texto').value = 'Ofrecerle el combo de hidratación';
+    $('btn-guardar-recomendacion').click();
+    await new Promise((r) => setTimeout(r, 0));
+    const guardado = fakeFb.calls.setDocCalls.find((c) => c.path === 'recomendacionesInteligente');
+    check('guarda la recomendación con texto editable, sin inventar contenido', !!guardado && guardado.data.texto === 'Ofrecerle el combo de hidratación' && guardado.data.estado === 'pendiente');
+    check('el diálogo se cierra después de guardar', $('recomendacion-dialog').open === false);
+
+    emitirSnapshot('recomendacionesInteligente', [
+      ['rec1', { pacienteNombre: 'Gala Recomendada', telefono: '3764999999', texto: 'Ofrecerle el combo de hidratación', estado: 'pendiente', programadoParaMs: null }],
+    ]);
+    check('la recomendación aparece en la bandeja de pendientes', $('lista-pendientes-bandeja').innerHTML.includes('Gala Recomendada'));
+    check('el resumen de Inicio (resumen-recomendaciones) cuenta 1', $('resumen-recomendaciones').textContent === '1');
+
+    document.querySelector('[data-pend-filtro="kit_pendiente"]').click();
+    check('el filtro por tipo oculta la recomendación cuando se filtra por otro tipo', !$('lista-pendientes-bandeja').innerHTML.includes('Gala Recomendada'));
+    document.querySelector('[data-pend-filtro="todas"]').click();
+    check('volver a "Todas" la vuelve a mostrar', $('lista-pendientes-bandeja').innerHTML.includes('Gala Recomendada'));
+  }
+
+  console.log('\n=== GlowUp — Preparar WhatsApp de una recomendación: editable, registra "preparado", nunca "enviado" solo por abrir ===');
+  {
+    document.querySelector('[data-abrir-recomendacion="rec1"]').click();
+    check('se abre el diálogo con los datos de la recomendación', $('recomendacion-dialog-titulo').textContent === 'Recomendación' && $('rec-texto').value === 'Ofrecerle el combo de hidratación');
+    check('"Abrir WhatsApp" está visible (ya es una recomendación guardada, no una nueva)', $('btn-whatsapp-recomendacion').hidden === false);
+    $('rec-texto').value = 'Ofrecerle el combo de hidratación — editado a mano';
+    $('btn-whatsapp-recomendacion').click();
+    await new Promise((r) => setTimeout(r, 0));
+    const prep = fakeFb.calls.setDocCalls.find((c) => c.path === 'contactosWhatsApp' && c.id.includes('recomendacionesInteligente_rec1'));
+    check('registra el contacto de la recomendación como "preparado", con su propio tipoMensaje', !!prep && prep.data.estado === 'preparado' && prep.data.tipoMensaje === 'recomendacion');
+    $('btn-cerrar-recomendacion').click();
+  }
+
+  console.log('\n=== GlowUp — confirmar el envío de una recomendación cierra SU pendiente, no otro ===');
+  {
+    document.querySelector('[data-abrir-recomendacion="rec1"]').click();
+    $('btn-whatsapp-recomendacion').click();
+    await new Promise((r) => setTimeout(r, 0));
+    $('btn-cerrar-recomendacion').click();
+    document.getElementById('btn-confirmo-enviado').click();
+    await new Promise((r) => setTimeout(r, 0));
+    const upd = fakeFb.calls.updateDocCalls.find((c) => c.path === 'recomendacionesInteligente' && c.id === 'rec1');
+    check('confirmar el envío marca ESA recomendación como "enviada" (campo propio, no un flag genérico)', !!upd && upd.data.estado === 'enviada');
+  }
+
+  console.log('\n=== GlowUp — Postergar y resolver un pendiente a mano ===');
+  {
+    emitirSnapshot('recomendacionesInteligente', [
+      ['rec1', { pacienteNombre: 'Gala Recomendada', telefono: '3764999999', texto: 'Ofrecerle el combo de hidratación', estado: 'pendiente', programadoParaMs: null }],
+    ]);
+    const originalPrompt = window.prompt;
+    window.prompt = () => '2099-01-01 10:00';
+    document.querySelector('[data-postergar-pendiente="pend_recomendacion_rec1"]')?.click();
+    await new Promise((r) => setTimeout(r, 0));
+    window.prompt = originalPrompt;
+    const postergado = fakeFb.calls.setDocCalls.find((c) => c.path === 'pendienteEstadoInteligente' && c.id === 'pend_recomendacion_rec1');
+    check('postergar escribe postergadoHastaMs en pendienteEstadoInteligente, identificado por el pendienteId', !!postergado && typeof postergado.data.postergadoHastaMs === 'number');
+
+    emitirSnapshot('pendienteEstadoInteligente', [['pend_recomendacion_rec1', { postergadoHastaMs: new Date('2099-01-01T10:00:00-03:00').getTime() }]]);
+    check('con la postergación activa, deja de verse en la bandeja', !$('lista-pendientes-bandeja').innerHTML.includes('Gala Recomendada'));
+
+    emitirSnapshot('pendienteEstadoInteligente', []);
+    document.querySelector('[data-resolver-pendiente="pend_recomendacion_rec1"]')?.click();
+    await new Promise((r) => setTimeout(r, 0));
+    const descartado = fakeFb.calls.updateDocCalls.find((c) => c.path === 'recomendacionesInteligente' && c.id === 'rec1' && c.data.estado === 'descartada');
+    check('"Descartar" en una recomendación usa su propio campo de estado, no un pendienteEstadoInteligente genérico', !!descartado);
+  }
+
+  console.log('\n=== GlowUp — Preferencias de aviso horario (Más): activo, categorías, pausa ===');
+  {
+    document.querySelector('[data-tab-btn="mas"]').click();
+    check('el checkbox de categorías muestra las 4 categorías', document.querySelectorAll('[data-avisos-categoria]').length === 4);
+    $('avisos-activo').checked = false;
+    $('avisos-activo').dispatchEvent(new window.Event('change'));
+    await new Promise((r) => setTimeout(r, 0));
+    const prefGuardada = fakeFb.calls.setDocCalls.find((c) => c.path === 'configNotificacionesInteligente');
+    check('desactivar el aviso escribe activo:false en configNotificacionesInteligente/{uid}', !!prefGuardada && prefGuardada.data.activo === false);
+
+    const chkKit = document.querySelector('[data-avisos-categoria="kit_pendiente"]');
+    chkKit.checked = false;
+    chkKit.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 0));
+    const prefCategorias = fakeFb.calls.setDocCalls.filter((c) => c.path === 'configNotificacionesInteligente').pop();
+    check('desmarcar una categoría la saca del array de categorías guardado', !!prefCategorias && !prefCategorias.data.categorias.includes('kit_pendiente'));
+  }
+
+  console.log('\n=== GlowUp — deep link del aviso horario ("pendientes_resumen") abre la pestaña Pendientes ===');
+  {
+    document.querySelector('[data-tab-btn="inicio"]').click();
+    window.dispatchEvent(new window.CustomEvent('mimarDeepLink', { detail: { coleccion: 'pendientes_resumen', docId: '2026-09-14T15' } }));
+    check('el deep-link del resumen horario abre la pestaña Pendientes (no un detalle puntual)', $('tab-pendientes').hidden === false);
   }
 
   console.log('\n' + '='.repeat(60));

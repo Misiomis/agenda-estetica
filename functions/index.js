@@ -3,6 +3,7 @@ const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const pendientesLogic = require("./pendientes-logic");
 // admin.firestore.FieldValue (API con namespace) devuelve undefined en
 // ciertos runtimes (confirmado con el emulador: TypeError real al llamar
 // FieldValue.serverTimestamp()) — se usa la API modular,
@@ -772,6 +773,200 @@ exports.resumenCumpleanosDiario = onSchedule(
                 generadoAt: FieldValue.serverTimestamp(),
                 detalle: error.message || String(error)
             }, { merge: true });
+        }
+    }
+);
+
+// ── GlowUp: aviso horario de pendientes (punto 4 del pedido) ────────────
+//
+// Corre cada hora en punto (mismo mecanismo que el resumen de cumpleaños:
+// Cloud Scheduler vía onSchedule Gen2 — la evaluación NO depende de que la
+// app/WebView esté abierta). Reglas de "qué es un pendiente" en
+// functions/pendientes-logic.js, espejo documentado de
+// mimar-inteligente-logic.js (mismo archivo no es posible: ESM vs
+// CommonJS — ver comentario en ese módulo).
+//
+// Fiabilidad: onSchedule puede reintentar o solaparse. Se identifica cada
+// ejecución por (uid, franja horaria lógica) usando event.scheduleTime —
+// NUNCA Date.now() — para que un reintento de la MISMA franja calcule la
+// MISMA clave. Un "reclamo" transaccional en avisosEnviadosInteligente
+// decide si esta franja ya se avisó para ese uid; el envío de FCM se hace
+// SIEMPRE fuera de la transacción (Firestore y FCM no son una transacción
+// conjunta). Ventana de incertidumbre documentada: si el proceso muere
+// después de confirmar el reclamo pero antes de que FCM devuelva una
+// respuesta, esa franja puede quedar sin aviso visible — se acepta esa
+// pérdida acotada a como mucho 1 hora (la próxima franja vuelve a evaluar
+// los mismos pendientes si siguen sin resolverse) en vez de arriesgar un
+// doble aviso. Mitigación adicional del lado Android: notificationId
+// estable por (uid, franja) en FCMService, así un reintento de FCM que sí
+// llegue a entregarse dos veces solo actualiza la misma notificación
+// visible, nunca la duplica.
+const ZONA_HORARIA_INTELIGENTE = pendientesLogic.ZONA_HORARIA;
+
+function franjaHorariaAR(ms) {
+    const p = partesFechaEnZona(new Date(ms), ZONA_HORARIA_INTELIGENTE, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false });
+    const hora = p.hour === "24" ? "00" : p.hour;
+    return `${p.year}-${p.month}-${p.day}T${hora}`;
+}
+
+async function construirPendientesGlobales(ahoraMs) {
+    const hoyISO = hoyISOEnZonaAR(new Date(ahoraMs));
+    const mananaDate = new Date(ahoraMs); mananaDate.setUTCDate(mananaDate.getUTCDate() + 1);
+    const mananaISO = hoyISOEnZonaAR(mananaDate);
+
+    const [reservasSnap, consultasSnap, kitsSnap, cumpleSnap, recSnap] = await Promise.all([
+        db.collection("reservas").where("fecha", "in", [hoyISO, mananaISO]).get(),
+        db.collection("consultas").where("fecha", "in", [hoyISO, mananaISO]).get(),
+        db.collection("pedidosKit").where("estado", "==", "pendiente").get(),
+        db.collection("resumenesCumpleanos").doc(hoyISO).get(),
+        db.collection("recomendacionesInteligente").where("estado", "==", "pendiente").where("programadoParaMs", "<=", ahoraMs).get(),
+    ]);
+
+    const reservasRaw = reservasSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    const consultasRaw = consultasSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    const pedidosKitPendientesRaw = kitsSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    const recomendacionesRaw = recSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    const cumpleanosHoy = cumpleSnap.exists ? cumpleSnap.data() : null;
+
+    // Candidatos a "confirmación pendiente" (dentro de la ventana de 4h) y
+    // a "cumpleaños hoy" son, como mucho, un puñado por hora — se resuelve
+    // su contacto con un multi-get ACOTADO a esos ids puntuales, nunca
+    // leyendo toda la colección contactosWhatsApp (que crece sin límite
+    // con los años).
+    const idsContactoCandidatos = new Set();
+    const ahoraDate = new Date(ahoraMs);
+    for (const r of reservasRaw) {
+        const item = pendientesLogic.normalizarItemAgenda("reservas", r.id, r.data);
+        if (pendientesLogic.calcularRevision(item, ahoraMs)) idsContactoCandidatos.add(pendientesLogic.idContactoParaItem(item, "confirmacion"));
+    }
+    for (const c of consultasRaw) {
+        const item = pendientesLogic.normalizarItemAgenda("consultas", c.id, c.data);
+        if (pendientesLogic.calcularRevision(item, ahoraMs)) idsContactoCandidatos.add(pendientesLogic.idContactoParaItem(item, "consulta"));
+    }
+    if (cumpleanosHoy?.estado === "ok") {
+        for (const persona of (cumpleanosHoy.personas || [])) {
+            idsContactoCandidatos.add(`clients_${pendientesLogic.docIdVersionadoCumpleanos(persona.clientId, cumpleanosHoy.fecha)}_cumpleanos`);
+        }
+    }
+
+    const contactosPorId = {};
+    if (idsContactoCandidatos.size) {
+        const refs = [...idsContactoCandidatos].map((id) => db.collection("contactosWhatsApp").doc(id));
+        const docs = await db.getAll(...refs);
+        docs.forEach((snap) => { if (snap.exists) contactosPorId[snap.id] = snap.data(); });
+    }
+
+    return pendientesLogic.derivarPendientes(
+        { reservasRaw, consultasRaw, pedidosKitPendientesRaw, cumpleanosHoy, recomendacionesRaw, contactosPorId },
+        ahoraMs
+    );
+}
+
+exports.recordatorioPendientesHoraria = onSchedule(
+    { schedule: "0 * * * *", timeZone: ZONA_HORARIA_INTELIGENTE, region: "us-central1" },
+    async (event) => {
+        const scheduleTimeMs = event?.scheduleTime ? new Date(event.scheduleTime).getTime() : Date.now();
+        // Reintentos disparados mucho después de su hora lógica no tienen
+        // sentido como "aviso de esta franja" — se descartan en vez de
+        // alertar tarde con datos posiblemente ya resueltos.
+        if (Date.now() - scheduleTimeMs > 30 * 60 * 1000) {
+            logger.warn("recordatorioPendientesHoraria: ejecución demasiado vieja, se descarta", { scheduleTimeMs });
+            return;
+        }
+        const franja = franjaHorariaAR(scheduleTimeMs);
+
+        const tokensSnap = await db.collection("deviceTokens").where("appId", "==", "inteligente").get();
+        if (tokensSnap.empty) return; // nadie tiene la app instalada con push activo
+
+        const porUid = new Map();
+        tokensSnap.forEach((d) => {
+            const t = d.data();
+            if (!t.uid || !t.token) return;
+            if (!porUid.has(t.uid)) porUid.set(t.uid, []);
+            porUid.get(t.uid).push({ ref: d.ref, token: t.token });
+        });
+
+        const pendientesGlobales = await construirPendientesGlobales(scheduleTimeMs);
+        if (!pendientesGlobales.length) return; // nada habilitado para nadie — nunca se avisa vacío
+
+        // Overrides (postergado/resuelto) SOLO de los pendientes que
+        // realmente existen esta hora — multi-get acotado, no toda la
+        // colección.
+        const overrideRefs = pendientesGlobales.map((p) => db.collection("pendienteEstadoInteligente").doc(p.id));
+        const overrideDocs = overrideRefs.length ? await db.getAll(...overrideRefs) : [];
+        const overridesPorId = {};
+        overrideDocs.forEach((snap) => { if (snap.exists) overridesPorId[snap.id] = snap.data(); });
+
+        for (const [uid, dispositivos] of porUid.entries()) {
+            let prefs = pendientesLogic.PREFS_AVISOS_DEFECTO;
+            try {
+                const prefsSnap = await db.collection("configNotificacionesInteligente").doc(uid).get();
+                if (prefsSnap.exists) prefs = { ...pendientesLogic.PREFS_AVISOS_DEFECTO, ...prefsSnap.data() };
+            } catch (_) { /* usa el default */ }
+
+            const elegibles = pendientesLogic.pendientesElegiblesParaAviso(pendientesGlobales, prefs, overridesPorId, scheduleTimeMs);
+            if (!elegibles.length) continue; // esta persona no tiene nada elegible esta hora (pausada, categorías, descanso, etc.)
+
+            const claveDedup = `${uid}_inteligente_${franja}`;
+            const claimRef = db.collection("avisosEnviadosInteligente").doc(claveDedup);
+            let yaReclamado = false;
+            await db.runTransaction(async (tx) => {
+                const snap = await tx.get(claimRef);
+                if (snap.exists) { yaReclamado = true; return; }
+                tx.set(claimRef, {
+                    uid, appId: "inteligente", franja, scheduleTimeMs,
+                    estado: "reclamado",
+                    cantidadPendientes: elegibles.length,
+                    conteoPorTipo: pendientesLogic.contarPendientesPorTipo(elegibles),
+                    creadoAt: FieldValue.serverTimestamp(),
+                });
+            });
+            if (yaReclamado) {
+                logger.info("recordatorioPendientesHoraria: franja ya reclamada, no se reenvía", { uid, franja });
+                continue;
+            }
+
+            const texto = pendientesLogic.resumenTextoPendientes(elegibles);
+            const tokens = dispositivos.map((d) => d.token);
+            try {
+                // FCM siempre fuera de la transacción de Firestore.
+                const resultado = await admin.messaging().sendEachForMulticast({
+                    tokens,
+                    data: {
+                        tipoAviso: "pendientes_resumen",
+                        titulo: "Pendientes de Mimar T Inteligente",
+                        texto,
+                        franja,
+                    },
+                    android: {
+                        priority: "high",
+                        // TTL corto: si el dispositivo estuvo offline más de
+                        // ~55 min, mejor que la próxima franja (que va a
+                        // recalcular con datos frescos) sea la que avise, no
+                        // una ráfaga de resúmenes viejos al reconectar.
+                        ttl: 55 * 60 * 1000,
+                        collapseKey: `pendientes_${uid}`,
+                    },
+                });
+                // Tokens inválidos se dan de baja según el ERROR REAL de
+                // cada respuesta individual — un fallo de payload/red no
+                // borra tokens que en realidad siguen sirviendo.
+                resultado.responses.forEach((r, i) => {
+                    if (r.success) return;
+                    const code = r.error?.code || "";
+                    if (code === "messaging/registration-token-not-registered" || code === "messaging/invalid-registration-token") {
+                        dispositivos[i].ref.delete().catch(() => {});
+                    }
+                });
+                await claimRef.set({
+                    estado: "enviado", exitos: resultado.successCount, fallos: resultado.failureCount,
+                    enviadoAt: FieldValue.serverTimestamp(),
+                }, { merge: true });
+                logger.info("recordatorioPendientesHoraria: enviado", { uid, franja, cantidad: elegibles.length, exitos: resultado.successCount, fallos: resultado.failureCount });
+            } catch (err) {
+                await claimRef.set({ estado: "error", detalle: err.message || String(err) }, { merge: true }).catch(() => {});
+                logger.error("recordatorioPendientesHoraria: fallo al enviar FCM", { uid, franja, error: err.message || String(err) });
+            }
         }
     }
 );

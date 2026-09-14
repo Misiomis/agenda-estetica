@@ -228,8 +228,34 @@ export function construirTextoKit(nombre) {
 // Combina un item de agenda con su doc de contactosWhatsApp (si existe) en
 // un estado para mostrar en pantalla. Nunca inventa "enviado" — si no hay
 // doc de contacto, el estado es "pendiente" explícito, no vacío ni null.
+//
+// Identidad versionada por ocurrencia (GlowUp): un turno reprogramado
+// (misma reserva, nueva fecha/hora) NO hereda el "enviado" de la fecha
+// vieja — la confirmación que se mandó fue para OTRA cita. Se agrega un
+// sufijo de ocurrencia solo para "confirmacion"/"consulta" (los únicos
+// tipos ligados a una fecha/hora puntual de un turno); "kit" no tiene
+// fecha propia y sigue igual que siempre. Los contactos YA registrados
+// con el id viejo (sin sufijo) NUNCA se borran ni se migran — quedan como
+// historial de esa ocurrencia anterior; un pendiente de la ocurrencia
+// NUEVA simplemente usa un id nuevo, por diseño (mismo principio que
+// activityLog: nunca se pierde una novedad, solo se deja de consultar).
+export function docIdVersionadoContacto(id, tipoMensaje, fecha, hora) {
+  if ((tipoMensaje === "confirmacion" || tipoMensaje === "consulta") && fecha && hora) {
+    return `${id}__${fecha}_${hora}`;
+  }
+  return id;
+}
+
+// Cumpleaños: mismo principio pero por AÑO, no por fecha/hora — un saludo
+// ya enviado el año pasado no cuenta como "ya contactado" este año.
+export function docIdVersionadoCumpleanos(clientId, fechaISO) {
+  const anio = (fechaISO || "").slice(0, 4);
+  return anio ? `${clientId}__${anio}` : clientId;
+}
+
 export function idContactoParaItem(item, tipoMensaje) {
-  return `${item.coleccion}_${item.id}_${tipoMensaje}`;
+  const docId = docIdVersionadoContacto(item.id, tipoMensaje, item.fecha, item.hora);
+  return `${item.coleccion}_${docId}_${tipoMensaje}`;
 }
 
 export function estadoContacto(contactoDoc) {
@@ -406,4 +432,242 @@ export function eventoCoincideFiltro(evento, filtro) {
 export function filtroEsNeutro(filtro) {
   const f = filtro || FILTRO_ACTIVIDAD_VACIO;
   return (!f.categoria || f.categoria === "todas") && (!f.estado || f.estado === "todos") && !f.fechaDesde && !f.fechaHasta;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// GlowUp — regla canónica de "pendientes" (punto 3 del pedido)
+// ══════════════════════════════════════════════════════════════════════
+// Un "pendiente" es una ACCIÓN real que alguien tiene que hacer, no un
+// evento del feed de Actividad. Esta es la ÚNICA función que decide qué
+// es un pendiente, desde cuándo y por qué — Inicio, Pendientes y el job
+// horario de avisos la usan igual (ver espejo en
+// functions/pendientes-logic.js, en CommonJS porque functions/index.js no
+// puede importar ESM sin migrar todo el proyecto de Functions — mismo
+// conjunto de reglas, verificado con pruebas paralelas en ambos lados).
+//
+// Tabla de reglas por tipo (fuente · activación · vencimiento · cierre):
+//   confirmacion_turno — reservas/consultas activas · ventana de 4 h antes
+//     del turno (calcularRevision) · vence al empezar el turno · se cierra
+//     cuando el contacto de ESA ocurrencia (id versionado por fecha/hora)
+//     queda en estado "enviado".
+//   kit_pendiente — pedidosKit con estado "pendiente" · habilitado apenas
+//     se crea · sin vencimiento propio (antigüedad = prioridad) · se
+//     cierra cuando estado pasa a "entregado" (ya lo maneja el negocio,
+//     fuera de esta app).
+//   cumpleanos — resumenesCumpleanos/{hoy}.personas · habilitado desde que
+//     se genera el resumen del día · vence al terminar el día · se cierra
+//     cuando el contacto de ESE año (id versionado por año) queda
+//     "enviado".
+//   recomendacion — recomendacionesInteligente, creada a mano por la
+//     administradora · habilitada desde programadoParaMs · sin
+//     vencimiento propio (la prioridad la fija la antigüedad) · se cierra
+//     cuando su propio estado pasa a "enviada" o "descartada" (campo
+//     propio del documento, no depende de contactosWhatsApp).
+//
+// Ninguna de estas cuatro reglas cuenta un turno pasado como "atendido":
+// eso lo decide solo un contacto realmente registrado o, en el caso del
+// kit, el propio cambio de estado del pedido — nunca la fecha.
+export const TIPOS_PENDIENTE = ["recomendacion", "confirmacion_turno", "kit_pendiente", "cumpleanos"];
+
+export const ETIQUETA_TIPO_PENDIENTE = {
+  recomendacion: "Recomendación", confirmacion_turno: "Confirmación de turno",
+  kit_pendiente: "Pedido de kit", cumpleanos: "Cumpleaños",
+};
+
+// Orden de prioridad cuando dos pendientes vencen al mismo tiempo (o
+// ninguno tiene vencimiento) — las recomendaciones primero porque es el
+// pedido explícito de esta vuelta ("especialmente enviar recomendaciones").
+const ORDEN_TIPO = { recomendacion: 0, confirmacion_turno: 1, kit_pendiente: 2, cumpleanos: 3 };
+
+function estadoContactoResuelto(contactosPorId, idContacto) {
+  return estadoContacto(contactosPorId?.[idContacto]) === "enviado";
+}
+
+// agenda: salida de construirAgenda(). pedidosKitPendientes: fuentes.pedidosKit.items
+// (ya filtrados por estado "pendiente" en la propia query). cumpleanosHoy:
+// el doc resumenesCumpleanos/{hoy} tal cual llega (o null si no cargó
+// todavía). recomendaciones: lista de recomendacionesInteligente ya
+// normalizadas (ver normalizarRecomendacion). contactosPorId: mismo mapa
+// que ya arma mimar-inteligente.js desde contactosWhatsApp.
+export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy, recomendaciones, contactosPorId }, ahoraMs = Date.now()) {
+  const pendientes = [];
+
+  for (const revision of obtenerBandejaRevisiones(agenda, ahoraMs)) {
+    const item = revision.item;
+    const tipoMensaje = item.coleccion === "consultas" ? "consulta" : "confirmacion";
+    const idContactoRef = idContactoParaItem(item, tipoMensaje);
+    if (estadoContactoResuelto(contactosPorId, idContactoRef)) continue;
+    pendientes.push({
+      id: `pend_${item.coleccion}_${item.id}_confirmacion_${item.fecha}_${item.hora}`,
+      tipo: "confirmacion_turno", coleccion: item.coleccion, docId: item.id,
+      nombre: item.nombre || "Paciente",
+      motivo: revision.motivos.map((m) => m.texto).join(" "),
+      habilitadoDesdeMs: item.inicioMs - VENTANA_REVISION_MS, venceMs: revision.venceEnMs,
+      ocurrencia: { fecha: item.fecha, hora: item.hora },
+    });
+  }
+
+  for (const kit of (pedidosKitPendientes || [])) {
+    const productos = kit.productosResumen ? kit.productosResumen.join(", ")
+      : (kit.items ? kit.items.map((it) => it.nombre).join(", ") : null);
+    pendientes.push({
+      id: `pend_pedidosKit_${kit.id}_kit`,
+      tipo: "kit_pendiente", coleccion: "pedidosKit", docId: kit.id,
+      nombre: kit.nombre || "Paciente",
+      motivo: productos ? `Pedido sin entregar: ${productos}.` : "Pedido de kit todavía sin entregar.",
+      habilitadoDesdeMs: null, venceMs: null, ocurrencia: null,
+    });
+  }
+
+  if (cumpleanosHoy?.estado === "ok") {
+    for (const persona of (cumpleanosHoy.personas || [])) {
+      const idContactoRef = `clients_${docIdVersionadoCumpleanos(persona.clientId, cumpleanosHoy.fecha)}_cumpleanos`;
+      if (estadoContactoResuelto(contactosPorId, idContactoRef)) continue;
+      pendientes.push({
+        id: `pend_clients_${persona.clientId}_cumpleanos_${cumpleanosHoy.fecha}`,
+        tipo: "cumpleanos", coleccion: "clients", docId: persona.clientId,
+        nombre: persona.nombre || "Paciente",
+        motivo: "Hoy cumple años — falta preparar el saludo.",
+        habilitadoDesdeMs: null, venceMs: null, ocurrencia: { fecha: cumpleanosHoy.fecha },
+      });
+    }
+  }
+
+  for (const rec of (recomendaciones || [])) {
+    if (rec.estado !== "pendiente") continue; // "enviada"/"descartada" ya está resuelta por su propio estado
+    if (rec.programadoParaMs != null && rec.programadoParaMs > ahoraMs) continue; // todavía no habilitada
+    pendientes.push({
+      id: `pend_recomendacion_${rec.id}`,
+      tipo: "recomendacion", coleccion: "recomendacionesInteligente", docId: rec.id,
+      nombre: rec.pacienteNombre || "Paciente",
+      motivo: rec.motivo || "Recomendación programada por la administradora.",
+      habilitadoDesdeMs: rec.programadoParaMs, venceMs: null, ocurrencia: null,
+    });
+  }
+
+  return pendientes.sort((a, b) => {
+    const va = a.venceMs ?? Infinity, vb = b.venceMs ?? Infinity;
+    if (va !== vb) return va - vb;
+    return (ORDEN_TIPO[a.tipo] ?? 9) - (ORDEN_TIPO[b.tipo] ?? 9);
+  });
+}
+
+// Agrupa por tipo con las cantidades — texto pedido explícitamente:
+// "Tenés 4 pendientes: 2 recomendaciones, 1 consulta y 1 kit". Se arma acá
+// (función pura, testeable) para que el job horario y la UI usen
+// exactamente el mismo texto.
+const PLURAL_TIPO = {
+  recomendacion: ["recomendación", "recomendaciones"],
+  confirmacion_turno: ["turno por confirmar", "turnos por confirmar"],
+  kit_pendiente: ["kit", "kits"],
+  cumpleanos: ["cumpleaños", "cumpleaños"],
+};
+
+export function contarPendientesPorTipo(pendientes) {
+  const conteo = {};
+  for (const t of TIPOS_PENDIENTE) conteo[t] = 0;
+  for (const p of pendientes) conteo[p.tipo] = (conteo[p.tipo] || 0) + 1;
+  return conteo;
+}
+
+export function resumenTextoPendientes(pendientes) {
+  const total = pendientes.length;
+  if (!total) return null;
+  const conteo = contarPendientesPorTipo(pendientes);
+  const partes = TIPOS_PENDIENTE
+    .filter((t) => conteo[t] > 0)
+    .map((t) => {
+      const [singular, plural] = PLURAL_TIPO[t];
+      return `${conteo[t]} ${conteo[t] === 1 ? singular : plural}`;
+    });
+  const listado = partes.length > 1
+    ? partes.slice(0, -1).join(", ") + " y " + partes[partes.length - 1]
+    : partes[0];
+  return `Tenés ${total} pendiente${total === 1 ? "" : "s"}: ${listado}.`;
+}
+
+// ── Recomendaciones (punto 3 — no existía ninguna regla previa en el
+// repo, así que esta es una tarea manual explícita: texto editable y
+// programación explícita por la administradora, nunca generada sola por
+// turno. No inventa indicaciones de tratamiento. ──────────────────────
+export function normalizarRecomendacion(id, data) {
+  const d = data || {};
+  const programadoParaMs = d.programadoPara?.toMillis ? d.programadoPara.toMillis()
+    : (typeof d.programadoParaMs === "number" ? d.programadoParaMs : null);
+  return {
+    id,
+    pacienteNombre: d.pacienteNombre || "Paciente",
+    telefono: d.telefono || null,
+    texto: d.texto || "",
+    turnoRef: d.turnoColeccion && d.turnoDocId ? { coleccion: d.turnoColeccion, docId: d.turnoDocId } : null,
+    estado: d.estado || "pendiente", // 'pendiente' | 'enviada' | 'descartada'
+    programadoParaMs,
+    motivo: d.motivo || null,
+    creadoPorEmail: d.creadoPorEmail || null,
+  };
+}
+
+export function recomendacionValida({ pacienteNombre, texto, programadoParaMs }) {
+  if (!texto || !texto.trim()) return { ok: false, motivo: "texto_vacio" };
+  if (!pacienteNombre || !pacienteNombre.trim()) return { ok: false, motivo: "sin_paciente" };
+  if (programadoParaMs != null && !Number.isFinite(programadoParaMs)) return { ok: false, motivo: "fecha_invalida" };
+  return { ok: true };
+}
+
+// ── Preferencias de avisos horarios (punto 4) ────────────────────────────
+// prefs = { activo, categorias:[tipos habilitados], pausadoHastaMs,
+//           descansoInicioHora, descansoFinHora } — todo con default
+// explícito (activo=true, categorías=todas, sin pausa, sin descanso
+// nocturno) para no inventar un horario comercial que nadie configuró.
+export const PREFS_AVISOS_DEFECTO = {
+  activo: true, categorias: [...TIPOS_PENDIENTE], pausadoHastaMs: null,
+  descansoInicioHora: null, descansoFinHora: null,
+};
+
+function horaEnZona(ms, timeZone) {
+  return Number(new Intl.DateTimeFormat("en-US", { timeZone, hour: "2-digit", hour12: false }).format(ms).replace(/\D/g, "")) % 24;
+}
+
+// true si, a esta hora, el aviso debería estar mudo por descanso nocturno
+// configurado (ej. 22 a 8 hs). Rango que "cruza medianoche" (inicio > fin)
+// se interpreta correctamente (22→8 significa 22,23,0..7).
+export function enDescansoNocturno(prefs, ahoraMs = Date.now(), timeZone = ZONA_HORARIA) {
+  const { descansoInicioHora: ini, descansoFinHora: fin } = prefs || {};
+  if (ini == null || fin == null) return false;
+  const h = horaEnZona(ahoraMs, timeZone);
+  if (ini === fin) return false; // rango vacío, no es un descanso real
+  return ini < fin ? (h >= ini && h < fin) : (h >= ini || h < fin);
+}
+
+// Filtra qué pendientes cuentan para EL AVISO (no para la pantalla, que
+// siempre muestra todo lo pendiente): categoría habilitada, sin postergar
+// más allá de ahora. estadosPend = Map/objeto pendienteId -> { postergadoHastaMs }.
+// Filtro de PANTALLA (Inicio/Pendientes): solo postergado/resuelto — nunca
+// las preferencias de aviso (categorías desactivadas, pausa, descanso
+// nocturno), que son exclusivamente para el PUSH. Ocultar del ojo de la
+// administradora un pendiente real solo porque desactivó esa categoría de
+// AVISOS sería confundir "no me avises" con "no existe" — dos cosas
+// distintas a propósito.
+export function pendientesVigentes(pendientes, estadosPend, ahoraMs = Date.now()) {
+  return pendientes.filter((p) => {
+    const override = estadosPend?.[p.id];
+    if (override?.postergadoHastaMs != null && override.postergadoHastaMs > ahoraMs) return false;
+    if (override?.resuelto) return false;
+    return true;
+  });
+}
+
+export function pendientesElegiblesParaAviso(pendientes, prefs, estadosPend, ahoraMs = Date.now()) {
+  const p = prefs || PREFS_AVISOS_DEFECTO;
+  if (!p.activo) return [];
+  if (p.pausadoHastaMs != null && p.pausadoHastaMs > ahoraMs) return [];
+  if (enDescansoNocturno(p, ahoraMs)) return [];
+  const categorias = new Set(p.categorias && p.categorias.length ? p.categorias : TIPOS_PENDIENTE);
+  return pendientes.filter((pend) => {
+    if (!categorias.has(pend.tipo)) return false;
+    const override = estadosPend?.[pend.id];
+    if (override?.postergadoHastaMs != null && override.postergadoHastaMs > ahoraMs) return false;
+    if (override?.resuelto) return false;
+    return true;
+  });
 }

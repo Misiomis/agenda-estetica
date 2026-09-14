@@ -90,7 +90,11 @@
         <div class="notice warning-notice" id="fuentes-aviso" hidden></div>
 
         <div class="resumen-grid" role="group" aria-label="Resumen del día">
-          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-foco="revisiones">
+          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="recomendacion">
+            <span class="resumen-num" id="resumen-recomendaciones">0</span>
+            <span class="resumen-label">Recomendaciones</span>
+          </button>
+          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="confirmacion_turno">
             <span class="resumen-num" id="resumen-pendientes">0</span>
             <span class="resumen-label">Pendientes de contacto</span>
           </button>
@@ -98,11 +102,11 @@
             <span class="resumen-num" id="resumen-consultas">0</span>
             <span class="resumen-label">Consultas nuevas</span>
           </button>
-          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-foco="kits">
+          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="kit_pendiente">
             <span class="resumen-num" id="resumen-kits">0</span>
             <span class="resumen-label">Pedidos de kits</span>
           </button>
-          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-foco="cumpleanos">
+          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="cumpleanos">
             <span class="resumen-num" id="resumen-cumpleanos">0</span>
             <span class="resumen-label">Cumpleaños hoy</span>
           </button>
@@ -148,30 +152,23 @@
       <section class="tab-view" id="tab-pendientes" data-tab="pendientes" hidden>
         <div class="workspace-heading">
           <div><span class="eyebrow">REQUIERE ACCIÓN</span><h1>Pendientes</h1></div>
+          <button class="button button-primary" type="button" id="btn-nueva-recomendacion"><svg class="icon"><use href="#i-flag"/></svg> Recomendación</button>
+        </div>
+
+        <div class="pend-filtros" id="pend-filtros" role="group" aria-label="Filtrar por tipo">
+          <button class="pend-filtro-chip activo" type="button" data-pend-filtro="todas">Todas</button>
+          <button class="pend-filtro-chip" type="button" data-pend-filtro="recomendacion">Recomendaciones</button>
+          <button class="pend-filtro-chip" type="button" data-pend-filtro="confirmacion_turno">Confirmaciones</button>
+          <button class="pend-filtro-chip" type="button" data-pend-filtro="kit_pendiente">Kits</button>
+          <button class="pend-filtro-chip" type="button" data-pend-filtro="cumpleanos">Cumpleaños</button>
         </div>
 
         <section class="section-block" id="bandeja-section">
           <div class="section-heading">
-            <h2>Turnos sin confirmación registrada</h2>
-            <span class="count-pill" id="count-revisiones">0</span>
+            <h2>Bandeja de pendientes</h2>
+            <span class="count-pill" id="count-pendientes-bandeja">0</span>
           </div>
-          <div class="list-panel" id="lista-revisiones"><div class="loading-state">Cargando…</div></div>
-        </section>
-
-        <section class="section-block" id="kits-section">
-          <div class="section-heading">
-            <h2>Pedidos de kits pendientes</h2>
-            <span class="count-pill" id="count-kits">0</span>
-          </div>
-          <div class="list-panel" id="lista-kits"><div class="loading-state">Cargando…</div></div>
-        </section>
-
-        <section class="section-block" id="cumpleanos-section">
-          <div class="section-heading">
-            <h2>Cumpleaños de hoy</h2>
-            <span class="count-pill" id="count-cumpleanos">0</span>
-          </div>
-          <div class="list-panel" id="lista-cumpleanos"><div class="loading-state">Cargando…</div></div>
+          <div class="list-panel" id="lista-pendientes-bandeja"><div class="loading-state">Cargando…</div></div>
         </section>
       </section>
 
@@ -180,6 +177,36 @@
         <div class="workspace-heading">
           <div><span class="eyebrow">CUENTA Y APP</span><h1>Más</h1></div>
         </div>
+
+        <section class="section-block" id="avisos-config-section">
+          <div class="section-heading"><h2>Recordatorio horario de pendientes</h2></div>
+          <div class="list-panel" style="padding:16px;display:flex;flex-direction:column;gap:14px;">
+            <label class="avisos-toggle-row">
+              <span>Avisar cada hora si hay pendientes</span>
+              <input type="checkbox" id="avisos-activo">
+            </label>
+            <div class="avisos-categorias" id="avisos-categorias"></div>
+            <div>
+              <label for="avisos-pausa" class="hint-text" style="display:block;margin-bottom:6px;">Pausar avisos hasta</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="datetime-local" id="avisos-pausa">
+                <button class="button button-light" type="button" id="btn-avisos-pausar">Pausar</button>
+                <button class="button button-light" type="button" id="btn-avisos-quitar-pausa" hidden>Quitar pausa</button>
+              </div>
+              <p class="hint-text" id="avisos-pausa-estado"></p>
+            </div>
+            <div>
+              <span class="hint-text" style="display:block;margin-bottom:6px;">Descanso nocturno (no avisar en este rango horario)</span>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <label class="hint-text">Desde <input type="number" id="avisos-descanso-inicio" min="0" max="23" style="width:56px;"></label>
+                <label class="hint-text">Hasta <input type="number" id="avisos-descanso-fin" min="0" max="23" style="width:56px;"></label>
+                <button class="button button-light" type="button" id="btn-avisos-descanso-guardar">Guardar</button>
+                <button class="button button-light" type="button" id="btn-avisos-descanso-quitar">Quitar descanso</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <div class="mas-lista">
           <button class="mas-item" type="button" id="btn-ajustes-notif" hidden>
             <span>🔔 Sonido y vibración por categoría</span><svg class="icon"><use href="#i-arrow"/></svg>
@@ -229,6 +256,30 @@
       <button class="button button-primary button-full" id="btn-preparar-wa" type="button" hidden><svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp</button>
       <button class="button button-light button-full" id="btn-registrar-manual" type="button" hidden>Registrar envío manual (hecho por fuera del sistema)</button>
       <button class="button button-light button-full" id="btn-cerrar-detalle-2" type="button">Cerrar</button>
+    </div>
+  </dialog>
+
+  <!-- ══ MODAL: nueva/editar recomendación ══ -->
+  <dialog id="recomendacion-dialog" aria-labelledby="recomendacion-dialog-titulo">
+    <div class="dialog-heading">
+      <div><span class="eyebrow">RECOMENDACIÓN</span><h2 id="recomendacion-dialog-titulo">Nueva recomendación</h2></div>
+      <button class="icon-button" type="button" id="btn-cerrar-recomendacion" aria-label="Cerrar"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="dialog-status" id="recomendacion-dialog-status"></div>
+    <div class="dialog-body">
+      <label for="rec-paciente">Paciente</label>
+      <input id="rec-paciente" type="text" placeholder="Nombre de la paciente">
+      <label for="rec-telefono">Teléfono (opcional, para WhatsApp)</label>
+      <input id="rec-telefono" type="tel" placeholder="Ej: 3764000000">
+      <label for="rec-texto">Texto de la recomendación (editable, vos lo escribís)</label>
+      <textarea id="rec-texto" class="wa-preview-textarea" rows="5" placeholder="Ej: Recomendar el sérum de vitamina C para después de la sesión…"></textarea>
+      <label for="rec-programado">Programar para (opcional — si no elegís nada, queda habilitada ya)</label>
+      <input id="rec-programado" type="datetime-local">
+    </div>
+    <div class="dialog-actions">
+      <button class="button button-primary button-full" type="button" id="btn-guardar-recomendacion">Guardar recomendación</button>
+      <button class="button button-primary button-full" type="button" id="btn-whatsapp-recomendacion" hidden><svg class="icon"><use href="#i-whatsapp"/></svg> Abrir WhatsApp</button>
+      <button class="button button-light button-full" type="button" id="btn-cancelar-recomendacion">Cancelar</button>
     </div>
   </dialog>
 

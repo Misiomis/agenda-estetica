@@ -26,6 +26,11 @@ import com.google.firebase.messaging.FirebaseMessaging
  *   getPermissionStatus()          → { notifications }
  *   requestNotificationPermission() → { notifications }
  *   openNotificationSettings()     → void (abre Ajustes > Notificaciones)
+ *   consumePendingDeepLink()       → { coleccion, docId } | { coleccion: null }
+ *     Se llama una vez confirmada la sesión (mismo punto donde ya se pide
+ *     el token FCM) para "tirar" de un deep-link que haya llegado antes de
+ *     que la página estuviera lista — resuelve la carrera de arranque en
+ *     frío sin asumir que el WebView ya tenía el listener enganchado.
  */
 @CapacitorPlugin(
     name = "FcmPlugin",
@@ -68,6 +73,23 @@ class FcmPlugin : Plugin() {
     private fun notificationsCallback(call: PluginCall) {
         val granted = getPermissionState("notifications") == PermissionState.GRANTED
         call.resolve(JSObject().put("notifications", if (granted) "granted" else "denied"))
+    }
+
+    @PluginMethod
+    fun consumePendingDeepLink(call: PluginCall) {
+        val mainActivity = activity as? MainActivity
+        val coleccion = mainActivity?.pendingDeepLinkColeccion
+        val docId = mainActivity?.pendingDeepLinkDocId
+        // Consumo de un solo uso: una vez entregado, se limpia — si la
+        // persona vuelve a preguntar (otro login, otra pestaña) no hay que
+        // reabrir el mismo deep-link viejo de nuevo.
+        mainActivity?.pendingDeepLinkColeccion = null
+        mainActivity?.pendingDeepLinkDocId = null
+        if (coleccion.isNullOrEmpty() || docId.isNullOrEmpty()) {
+            call.resolve(JSObject().put("coleccion", null))
+        } else {
+            call.resolve(JSObject().put("coleccion", coleccion).put("docId", docId))
+        }
     }
 
     // Acceso directo a los ajustes nativos de notificaciones — ahí es donde

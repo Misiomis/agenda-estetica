@@ -9,6 +9,10 @@ import {
   etiquetaEstadoContacto, contactoVencido, normalizarPedidoKit, formatearARS,
   estadoTemporalTurno, etiquetaEstadoTemporal, agruparPorDia, eventoCoincideFiltro,
   filtroEsNeutro, FILTRO_ACTIVIDAD_VACIO, sumarDiasISO,
+  docIdVersionadoContacto, docIdVersionadoCumpleanos, derivarPendientes,
+  contarPendientesPorTipo, resumenTextoPendientes, normalizarRecomendacion,
+  recomendacionValida, enDescansoNocturno, pendientesElegiblesParaAviso,
+  PREFS_AVISOS_DEFECTO, TIPOS_PENDIENTE,
 } from '../../mimar-inteligente/mimar-inteligente-logic.js';
 
 let fails = 0;
@@ -186,7 +190,11 @@ console.log('\n=== Plantillas de mensaje (texto plano, sin HTML) ===');
 console.log('\n=== Estado de contacto por WhatsApp (punto 3) ===');
 {
   const it = normalizarItemAgenda('reservas', 'rK', { nombre: 'Contacto Test', fecha: HOY, hora: '14:00', telefono: '3764555555' });
-  check('id de contacto compone coleccion_id_tipo', idContactoParaItem(it, 'confirmacion') === 'reservas_rK_confirmacion');
+  check('id de contacto de un turno incluye fecha+hora (identidad por ocurrencia)', idContactoParaItem(it, 'confirmacion') === `reservas_rK__${HOY}_14:00_confirmacion`);
+  const itReprogramado = normalizarItemAgenda('reservas', 'rK', { nombre: 'Contacto Test', fecha: sumarDiasISO(HOY, 3), hora: '16:00', telefono: '3764555555' });
+  check('reprogramar el MISMO turno (mismo id) a otra fecha/hora da un id de contacto DISTINTO — no hereda el "enviado" viejo', idContactoParaItem(it, 'confirmacion') !== idContactoParaItem(itReprogramado, 'confirmacion'));
+  const itSinFechaHora = { coleccion: 'pedidosKit', id: 'kX' };
+  check('un item sin fecha/hora (kit) sigue con el id simple, sin sufijo de ocurrencia', idContactoParaItem(itSinFechaHora, 'kit') === 'pedidosKit_kX_kit');
   check('sin doc de contacto → "pendiente" explícito, no vacío', estadoContacto(null) === 'pendiente' && estadoContacto(undefined) === 'pendiente');
   check('con doc de contacto → toma su estado real', estadoContacto({ estado: 'enviado' }) === 'enviado');
   check('etiqueta legible por cada estado (frase completa, no el código crudo)', etiquetaEstadoContacto('preparado').startsWith('Texto preparado'));
@@ -303,6 +311,106 @@ console.log('\n=== Filtros de actividad: categoría, estado, fecha y "restablece
   check('FILTRO_ACTIVIDAD_VACIO es neutro', filtroEsNeutro(FILTRO_ACTIVIDAD_VACIO) === true);
   check('un filtro con categoría específica no es neutro', filtroEsNeutro({ ...FILTRO_ACTIVIDAD_VACIO, categoria: 'reservas' }) === false);
   check('"restablecer filtros" es simplemente volver al filtro vacío', filtroEsNeutro({ categoria: 'todas', estado: 'todos', fechaDesde: null, fechaHasta: null }) === true);
+}
+
+console.log('\n=== GlowUp — regla canónica de pendientes: deriva de las fuentes, no del feed ===');
+{
+  const ahoraTurno = new Date(`${HOY}T14:00:00-03:00`).getTime();
+  const ahoraDentroVentana = ahoraTurno - 2 * 3600000; // 2 h antes, dentro de la ventana de 4 h
+
+  const turnoSinConfirmar = normalizarItemAgenda('reservas', 't1', { nombre: 'Ana Pendiente', fecha: HOY, hora: '14:00', telefono: '3760000001', estado: 'confirmado' });
+  const agenda1 = construirAgenda([turnoSinConfirmar], []);
+  const pend1 = derivarPendientes({ agenda: agenda1, pedidosKitPendientes: [], cumpleanosHoy: null, recomendaciones: [], contactosPorId: {} }, ahoraDentroVentana);
+  check('un turno sin confirmación dentro de la ventana de 4h SÍ es un pendiente', pend1.some((p) => p.tipo === 'confirmacion_turno' && p.docId === 't1'));
+
+  // El mismo turno, pero con un contacto YA "enviado" para esa ocurrencia
+  // exacta (mismo id versionado que produciría la app real) → deja de ser
+  // un pendiente, sin necesidad de ninguna marca genérica de "atendido".
+  const idContactoTurno = idContactoParaItem(turnoSinConfirmar, 'confirmacion');
+  const pend2 = derivarPendientes({ agenda: agenda1, pedidosKitPendientes: [], cumpleanosHoy: null, recomendaciones: [], contactosPorId: { [idContactoTurno]: { estado: 'enviado' } } }, ahoraDentroVentana);
+  check('con la confirmación real enviada para ESA ocurrencia, deja de ser pendiente', !pend2.some((p) => p.docId === 't1'));
+
+  // Reprogramado a otra fecha/hora: el "enviado" viejo (otra ocurrencia)
+  // NO alcanza para cerrar el pendiente de la ocurrencia nueva.
+  const turnoReprogramado = normalizarItemAgenda('reservas', 't1', { nombre: 'Ana Pendiente', fecha: sumarDiasISO(HOY, 2), hora: '15:00', telefono: '3760000001', estado: 'confirmado' });
+  const ahoraNuevaVentana = new Date(`${sumarDiasISO(HOY, 2)}T15:00:00-03:00`).getTime() - 3600000;
+  const agenda2 = construirAgenda([turnoReprogramado], []);
+  const pend3 = derivarPendientes({ agenda: agenda2, pedidosKitPendientes: [], cumpleanosHoy: null, recomendaciones: [], contactosPorId: { [idContactoTurno]: { estado: 'enviado' } } }, ahoraNuevaVentana);
+  check('reprogramado: el "enviado" de la fecha vieja NO cierra el pendiente de la fecha nueva (no se pierde la acción real)', pend3.some((p) => p.docId === 't1'));
+
+  // Cancelado: calcularRevision ya lo excluye — el pendiente desaparece
+  // solo, sin duplicarse ni dejar rastro falso.
+  const turnoCancelado = normalizarItemAgenda('reservas', 't1', { nombre: 'Ana Pendiente', fecha: HOY, hora: '14:00', telefono: '3760000001', estado: 'cancelado' });
+  const pend4 = derivarPendientes({ agenda: construirAgenda([turnoCancelado], []), pedidosKitPendientes: [], cumpleanosHoy: null, recomendaciones: [], contactosPorId: {} }, ahoraDentroVentana);
+  check('un turno cancelado nunca genera un pendiente de confirmación', !pend4.some((p) => p.docId === 't1'));
+
+  // Kit pendiente: siempre que la fuente ya lo entregue como "pendiente"
+  // (la query real ya filtra por estado), es una acción.
+  const pend5 = derivarPendientes({ agenda: [], pedidosKitPendientes: [{ id: 'k1', nombre: 'Beto Kit' }], cumpleanosHoy: null, recomendaciones: [], contactosPorId: {} });
+  check('un pedido de kit pendiente es un pendiente propio, tipo "kit_pendiente"', pend5.length === 1 && pend5[0].tipo === 'kit_pendiente');
+
+  // Cumpleaños: versionado por año — un saludo ya enviado el año pasado
+  // no cierra el de este año.
+  const cumple2026 = { estado: 'ok', fecha: '2026-09-10', personas: [{ clientId: 'c1', nombre: 'Cami Cumple', telefonoDisponible: true }] };
+  const idContactoCumple2025 = `clients_${docIdVersionadoCumpleanos('c1', '2025-09-10')}_cumpleanos`;
+  const pend6 = derivarPendientes({ agenda: [], pedidosKitPendientes: [], cumpleanosHoy: cumple2026, recomendaciones: [], contactosPorId: { [idContactoCumple2025]: { estado: 'enviado' } } });
+  check('cumpleaños: un saludo enviado el año pasado NO cierra el de este año', pend6.some((p) => p.tipo === 'cumpleanos' && p.docId === 'c1'));
+  const idContactoCumple2026 = `clients_${docIdVersionadoCumpleanos('c1', '2026-09-10')}_cumpleanos`;
+  const pend7 = derivarPendientes({ agenda: [], pedidosKitPendientes: [], cumpleanosHoy: cumple2026, recomendaciones: [], contactosPorId: { [idContactoCumple2026]: { estado: 'enviado' } } });
+  check('cumpleaños: el saludo de ESTE año sí lo cierra', !pend7.some((p) => p.docId === 'c1'));
+  check('sin resumen de cumpleaños todavía generado, no se inventa ninguno', derivarPendientes({ agenda: [], pedidosKitPendientes: [], cumpleanosHoy: { estado: 'no_generado' }, recomendaciones: [], contactosPorId: {} }).length === 0);
+
+  // Recomendación: manual, con programación explícita — nunca se
+  // autogenera, y no se habilita antes de su hora programada.
+  const recFutura = normalizarRecomendacion('r1', { pacienteNombre: 'Dana Reco', texto: 'Recordale hidratarse', programadoParaMs: Date.now() + 3600000 });
+  const recVigente = normalizarRecomendacion('r2', { pacienteNombre: 'Eli Reco', texto: 'Ofrecele el combo nuevo', programadoParaMs: Date.now() - 60000 });
+  const recEnviada = normalizarRecomendacion('r3', { pacienteNombre: 'Fer Reco', texto: 'Ya se mandó', programadoParaMs: Date.now() - 60000, estado: 'enviada' });
+  const pend8 = derivarPendientes({ agenda: [], pedidosKitPendientes: [], cumpleanosHoy: null, recomendaciones: [recFutura, recVigente, recEnviada], contactosPorId: {} });
+  check('una recomendación programada para el futuro todavía NO es un pendiente', !pend8.some((p) => p.docId === 'r1'));
+  check('una recomendación cuya hora ya llegó SÍ es un pendiente', pend8.some((p) => p.docId === 'r2'));
+  check('una recomendación ya "enviada" no vuelve a aparecer como pendiente', !pend8.some((p) => p.docId === 'r3'));
+
+  check('normalizarRecomendacion nunca inventa texto: si no hay texto cargado, queda vacío, no una indicación inventada', normalizarRecomendacion('r4', {}).texto === '');
+  check('validación: sin texto es inválida', recomendacionValida({ pacienteNombre: 'X', texto: '' }).ok === false);
+  check('validación: sin paciente es inválida', recomendacionValida({ pacienteNombre: '', texto: 'hola' }).ok === false);
+  check('validación: con texto y paciente es válida', recomendacionValida({ pacienteNombre: 'X', texto: 'hola' }).ok === true);
+}
+
+console.log('\n=== GlowUp — resumen agrupado para el aviso horario ("2 recomendaciones, 1 consulta y 1 kit") ===');
+{
+  check('sin pendientes, no hay texto de resumen (nunca se avisa vacío)', resumenTextoPendientes([]) === null);
+  const lista = [
+    { tipo: 'recomendacion' }, { tipo: 'recomendacion' },
+    { tipo: 'confirmacion_turno' }, { tipo: 'kit_pendiente' },
+  ];
+  const txt = resumenTextoPendientes(lista);
+  check('agrupa por tipo con cantidades, un solo resumen (no un aviso por registro)', txt === 'Tenés 4 pendientes: 2 recomendaciones, 1 turno por confirmar y 1 kit.');
+  check('un solo pendiente usa singular correctamente', resumenTextoPendientes([{ tipo: 'kit_pendiente' }]) === 'Tenés 1 pendiente: 1 kit.');
+  const conteo = contarPendientesPorTipo(lista);
+  check('contarPendientesPorTipo desglosa exacto', conteo.recomendacion === 2 && conteo.confirmacion_turno === 1 && conteo.kit_pendiente === 1 && conteo.cumpleanos === 0);
+}
+
+console.log('\n=== GlowUp — elegibilidad para el aviso horario: pausa, categorías, postergado, descanso nocturno ===');
+{
+  const pendientes = [{ id: 'p1', tipo: 'recomendacion' }, { id: 'p2', tipo: 'kit_pendiente' }];
+  check('por defecto (sin config) todo es elegible', pendientesElegiblesParaAviso(pendientes, PREFS_AVISOS_DEFECTO, {}).length === 2);
+  check('avisos desactivados → nada es elegible', pendientesElegiblesParaAviso(pendientes, { ...PREFS_AVISOS_DEFECTO, activo: false }, {}).length === 0);
+  check('pausado hasta un momento futuro → nada es elegible todavía', pendientesElegiblesParaAviso(pendientes, { ...PREFS_AVISOS_DEFECTO, pausadoHastaMs: Date.now() + 3600000 }, {}).length === 0);
+  check('pausa ya vencida → vuelve a ser elegible', pendientesElegiblesParaAviso(pendientes, { ...PREFS_AVISOS_DEFECTO, pausadoHastaMs: Date.now() - 1000 }, {}).length === 2);
+  check('categoría no habilitada → se excluye solo esa', pendientesElegiblesParaAviso(pendientes, { ...PREFS_AVISOS_DEFECTO, categorias: ['recomendacion'] }, {}).length === 1);
+  const ahoraPost = Date.now();
+  check('postergado hasta más adelante → no elegible por ahora', pendientesElegiblesParaAviso(pendientes, PREFS_AVISOS_DEFECTO, { p1: { postergadoHastaMs: ahoraPost + 3600000 } }, ahoraPost).length === 1);
+  check('la postergación ya venció → vuelve a ser elegible', pendientesElegiblesParaAviso(pendientes, PREFS_AVISOS_DEFECTO, { p1: { postergadoHastaMs: ahoraPost - 1000 } }, ahoraPost).length === 2);
+  check('marcado resuelto explícitamente → nunca vuelve a avisar por esa vía', pendientesElegiblesParaAviso(pendientes, PREFS_AVISOS_DEFECTO, { p1: { resuelto: true } }, ahoraPost).length === 1);
+
+  // Descanso nocturno: rango que cruza medianoche (22 a 8).
+  const prefsDescanso = { ...PREFS_AVISOS_DEFECTO, descansoInicioHora: 22, descansoFinHora: 8 };
+  const unaAM = new Date(`${HOY}T01:00:00-03:00`).getTime();
+  const dosPM = new Date(`${HOY}T14:00:00-03:00`).getTime();
+  check('01:00 cae dentro del descanso 22→8 (cruza medianoche)', enDescansoNocturno(prefsDescanso, unaAM) === true);
+  check('14:00 NO cae dentro del descanso 22→8', enDescansoNocturno(prefsDescanso, dosPM) === false);
+  check('sin descanso configurado, nunca se considera "en descanso"', enDescansoNocturno(PREFS_AVISOS_DEFECTO, unaAM) === false);
+  check('en descanso nocturno, ningún pendiente es elegible para el aviso', pendientesElegiblesParaAviso(pendientes, prefsDescanso, {}, unaAM).length === 0);
 }
 
 console.log('\n' + '='.repeat(60));

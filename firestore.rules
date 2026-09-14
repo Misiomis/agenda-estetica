@@ -179,6 +179,38 @@ service cloud.firestore {
       allow read, write: if esAdmin();
     }
 
+    // ── GlowUp Mimar T Inteligente: pendientes y avisos horarios ──────────
+
+    // Recomendaciones: tarea manual creada por la administradora (texto
+    // editable, programación explícita) — ella la crea, edita y descarta.
+    match /recomendacionesInteligente/{id} {
+      allow read, write: if esAdmin();
+    }
+
+    // Overrides de un pendiente DERIVADO (no tiene doc propio): postergar
+    // hasta un momento, o marcarlo resuelto a mano. Se identifica por el
+    // mismo id canónico que ya usa la app (pend_...).
+    match /pendienteEstadoInteligente/{pendienteId} {
+      allow read, write: if esAdmin();
+    }
+
+    // Preferencias de aviso horario — un doc por cuenta admin (hoy solo
+    // existe una, pero el id es el propio uid por si mañana hay más de
+    // una persona con acceso). Igual que deviceTokens: solo su propio doc.
+    match /configNotificacionesInteligente/{uid} {
+      allow read, write: if esAdmin() && request.auth.uid == uid;
+    }
+
+    // Reclamo/dedup del job horario — lo escribe únicamente la Cloud
+    // Function (Admin SDK, sin pasar por estas reglas). Lectura solo para
+    // que la administradora pueda auditar envíos/omisiones si hace falta;
+    // nunca contiene tokens ni datos de pacientes, solo cantidades y
+    // resultados.
+    match /avisosEnviadosInteligente/{claveDedup} {
+      allow read: if esAdmin();
+      allow write: if false;
+    }
+
     // ── Pacientes de la Doctora — módulo privado, aislado de "clients" ─────
     // Nunca se guardan estos pacientes en la colección "clients" (esa tiene
     // "allow read: if true" — exponerlos ahí violaría la privacidad pedida).

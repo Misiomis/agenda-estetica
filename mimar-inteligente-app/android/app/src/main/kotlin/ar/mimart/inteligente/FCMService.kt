@@ -29,6 +29,7 @@ class FCMService : FirebaseMessagingService() {
     companion object {
         const val CANAL_NOVEDADES = "novedades"
         const val CANAL_CUMPLEANOS = "cumpleanos"
+        const val CANAL_PENDIENTES = "pendientes"
         private const val GRUPO_PREFIX = "ar.mimart.inteligente.grupo."
     }
 
@@ -40,8 +41,9 @@ class FCMService : FirebaseMessagingService() {
     // Canales por categoría — el usuario configura sonido/vibración por
     // canal desde los Ajustes nativos de Android (no se reinventa una
     // pantalla de preferencias propia para algo que el sistema ya resuelve
-    // bien). "Pendientes de contacto" no tiene canal propio todavía porque
-    // hoy no se empuja como push nativo (vive en la bandeja de la app).
+    // bien). "pendientes" es el canal del aviso horario del GlowUp —
+    // identificable y separado de "novedades" para que se pueda silenciar
+    // uno sin afectar al otro desde los Ajustes del sistema.
     private fun crearCanales() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = getSystemService(NotificationManager::class.java) ?: return
@@ -51,8 +53,12 @@ class FCMService : FirebaseMessagingService() {
         val cumpleanos = NotificationChannel(
             CANAL_CUMPLEANOS, "Cumpleaños", NotificationManager.IMPORTANCE_DEFAULT
         ).apply { description = "Resumen diario de cumpleaños de pacientes" }
+        val pendientes = NotificationChannel(
+            CANAL_PENDIENTES, "Recordatorio de pendientes", NotificationManager.IMPORTANCE_HIGH
+        ).apply { description = "Aviso horario de acciones pendientes (recomendaciones, confirmaciones, kits, cumpleaños)" }
         nm.createNotificationChannel(novedades)
         nm.createNotificationChannel(cumpleanos)
+        nm.createNotificationChannel(pendientes)
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
@@ -63,10 +69,18 @@ class FCMService : FirebaseMessagingService() {
         val tipoAviso = data["tipoAviso"] ?: return
         val titulo = data["titulo"] ?: "Espacio Mimar T"
         val texto = data["texto"] ?: ""
-        val coleccion = data["collection"] ?: ""
-        val docId = data["docId"] ?: ""
+        // El aviso horario de pendientes no apunta a un registro puntual
+        // (collection/docId) sino a la pestaña Pendientes en general — se
+        // usa un valor sentinela que el WebView interpreta distinto de un
+        // deep-link a un detalle real (ver mimarDeepLink en mimar-inteligente.js).
+        val coleccion = if (tipoAviso == "pendientes_resumen") "pendientes_resumen" else (data["collection"] ?: "")
+        val docId = if (tipoAviso == "pendientes_resumen") (data["franja"] ?: "") else (data["docId"] ?: "")
 
-        val canal = if (tipoAviso == "cumpleanos") CANAL_CUMPLEANOS else CANAL_NOVEDADES
+        val canal = when (tipoAviso) {
+            "cumpleanos" -> CANAL_CUMPLEANOS
+            "pendientes_resumen" -> CANAL_PENDIENTES
+            else -> CANAL_NOVEDADES
+        }
         // ID estable por documento (o por tipo+fecha en el resumen de
         // cumpleaños, que no tiene un docId de paciente propio) — así un
         // reintento o un segundo push del mismo evento ACTUALIZA la misma
@@ -97,20 +111,26 @@ class FCMService : FirebaseMessagingService() {
 
         // Resumen de grupo — Android exige uno para que varias novedades del
         // mismo tipo se agrupen en la barra en vez de apilarse una por una.
-        val resumenId = grupo.hashCode()
-        val resumen = NotificationCompat.Builder(this, canal)
-            .setSmallIcon(R.drawable.ic_stat_notify)
-            .setContentTitle("Espacio Mimar T")
-            .setContentText("Tenés novedades nuevas")
-            .setGroup(grupo)
-            .setGroupSummary(true)
-            .setAutoCancel(true)
-            .build()
+        // El aviso horario de pendientes ya es UN solo resumen agrupado por
+        // sí mismo (nunca uno por registro) — no le hace falta un segundo
+        // "resumen del resumen".
+        val necesitaResumenDeGrupo = tipoAviso != "pendientes_resumen"
 
         try {
             val nm = NotificationManagerCompat.from(this)
             nm.notify(notifId, notif)
-            nm.notify(resumenId, resumen)
+            if (necesitaResumenDeGrupo) {
+                val resumenId = grupo.hashCode()
+                val resumen = NotificationCompat.Builder(this, canal)
+                    .setSmallIcon(R.drawable.ic_stat_notify)
+                    .setContentTitle("Espacio Mimar T")
+                    .setContentText("Tenés novedades nuevas")
+                    .setGroup(grupo)
+                    .setGroupSummary(true)
+                    .setAutoCancel(true)
+                    .build()
+                nm.notify(resumenId, resumen)
+            }
         } catch (e: SecurityException) {
             // Permiso de notificaciones no concedido (Android 13+ sin
             // POST_NOTIFICATIONS otorgado) — la novedad igual queda
