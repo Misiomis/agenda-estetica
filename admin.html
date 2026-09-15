@@ -4574,7 +4574,7 @@
                 const chipsC = document.getElementById('mreg-box-chips');
                 if (chipsC) chipsC.innerHTML = GRILLA_BOXES.map(b =>
                     `<button type="button" id="mreg-box-chip-${b.id}" onclick="seleccionarBoxMreg('${b.id}')"
-                        style="padding:7px 12px;border-radius:10px;border:1.5px solid ${b.border};background:transparent;color:rgba(22,61,50,0.65);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;"
+                        style="padding:7px 12px;min-height:36px;border-radius:10px;border:1.5px solid ${b.accent};background:transparent;color:#526358;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;"
                     >${b.icon} ${b.title}</button>`
                 ).join('');
             }
@@ -4601,12 +4601,12 @@
                 if (!chip) return;
                 if (b.id === boxId) {
                     chip.style.background = b.bg;
-                    chip.style.color = 'rgba(220,242,232,0.95)';
-                    chip.style.boxShadow = `0 0 0 2px ${b.border}`;
+                    chip.style.color = b.accent;
+                    chip.style.boxShadow = `0 0 0 2px ${b.accent}`;
                     chip.style.fontWeight = '800';
                 } else {
                     chip.style.background = 'transparent';
-                    chip.style.color = 'rgba(200,240,220,0.50)';
+                    chip.style.color = '#526358';
                     chip.style.boxShadow = 'none';
                     chip.style.fontWeight = '700';
                 }
@@ -9880,7 +9880,7 @@
             if (chipsC) {
                 chipsC.innerHTML = GRILLA_BOXES.map(b =>
                     `<button type="button" id="mreg-box-chip-${b.id}" onclick="seleccionarBoxMreg('${b.id}')"
-                        style="padding:7px 12px;border-radius:10px;border:1.5px solid ${b.border};background:transparent;color:rgba(22,61,50,0.65);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;"
+                        style="padding:7px 12px;min-height:36px;border-radius:10px;border:1.5px solid ${b.accent};background:transparent;color:#526358;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;"
                     >${b.icon} ${b.title}</button>`
                 ).join('');
                 if (box) seleccionarBoxMreg(box.id);
