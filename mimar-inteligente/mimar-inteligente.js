@@ -20,6 +20,11 @@ import {
   ETIQUETA_TIPO_PENDIENTE, TIPOS_PENDIENTE, normalizarRecomendacion, recomendacionValida,
   PREFS_AVISOS_DEFECTO, pendientesElegiblesParaAviso, pendientesVigentes,
   VENTANA_REVISAR_TURNO_DIAS,
+  TIPO_MENSAJE_AVISO_DUENA, idAvisoDuena, docIdVersionadoParaAviso, construirTextoAvisoDuenaKit,
+  construirTextoAvisoDuenaCumpleanosIndividual, construirTextoAvisoDuenaCumpleanosDia,
+  construirTextoAvisoDuenaConsulta, construirTextoAvisoDuenaGenerico,
+  estadoConsultaInicial, etiquetaEstadoConsultaInicial, ESTADO_CONSULTA_CANCELADA,
+  construirTextoResumenDia, cumpleanosProximos,
 } from "./mimar-inteligente-logic.js";
 import {
   registrarContactoPreparado, registrarContactoEstado, registrarContactoManual,
@@ -100,6 +105,14 @@ let actividadCargandoMas = false;
 let filtroActividad = { ...FILTRO_ACTIVIDAD_VACIO };
 // resumenesCumpleanos/{hoyISO} — null mientras no cargó, luego { estado, personas, generadoAt }
 let cumpleanosHoy = null;
+// configuracion/mimarInteligente.duenaTelefono — compartido entre operadoras
+// (misma colección/reglas que ya usa el resto del panel: lectura abierta,
+// escritura solo admin). null mientras no cargó o no está configurado.
+let duenaTelefono = null;
+let unsubConfigInteligente = null;
+// Contexto del diálogo "Avisar a la dueña" actualmente abierto:
+// { coleccion, docId, ocurrencia, idAviso, nombreEvento }
+let avisoDuenaActual = null;
 // { coleccion, id, docIdContacto, tipoMensaje, nombre } — recién se abrió
 // wa.me y se está esperando la respuesta de "¿Enviaste el mensaje?" al
 // volver a la app. docIdContacto es el id YA versionado por ocurrencia —
@@ -510,6 +523,7 @@ function detenerSuscripciones() {
   if (unsubRecomendaciones) { unsubRecomendaciones(); unsubRecomendaciones = null; }
   if (unsubPendienteEstados) { unsubPendienteEstados(); unsubPendienteEstados = null; }
   if (unsubPrefsAvisos) { unsubPrefsAvisos(); unsubPrefsAvisos = null; }
+  if (unsubConfigInteligente) { unsubConfigInteligente(); unsubConfigInteligente = null; }
   if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
 }
 
@@ -580,6 +594,13 @@ async function iniciarSuscripciones() {
   unsubCumpleanos = onSnapshot(doc(db, "resumenesCumpleanos", hoyISO),
     (snap) => { cumpleanosHoy = snap.exists() ? snap.data() : { estado: "no_generado" }; fuentesEntradaListas.add("cumpleanos"); renderTodo(); },
     (err) => { cumpleanosHoy = { estado: "error", detalle: err?.message || String(err) }; fuentesEntradaListas.add("cumpleanos"); renderTodo(); });
+
+  // Teléfono de la dueña para "Avisar a la dueña" — colección/reglas ya
+  // existentes (lectura abierta, escritura solo admin), sin cambios de
+  // seguridad. Compartido entre quien sea que use la app con la cuenta admin.
+  unsubConfigInteligente = onSnapshot(doc(db, "configuracion", "mimarInteligente"),
+    (snap) => { duenaTelefono = snap.exists() ? (snap.data().duenaTelefono || null) : null; renderMas(); },
+    (err) => { console.warn("configuracion/mimarInteligente:", err?.message || err); });
 
   // Recomendaciones (GlowUp, punto 3) — tarea manual, texto editable y
   // programación explícita de la administradora.
@@ -800,6 +821,52 @@ function pendienteAccionPrincipalHtml(p) {
   return `<button class="button button-primary" type="button" data-abrir="${escapeHtml(p.coleccion)}::${escapeHtml(p.docId)}">Ver detalle</button>`;
 }
 
+// ── "Avisar a la dueña" (nuevo pedido, punto 3) ──────────────────────────
+// Independiente de la tarea con la paciente (punto 2): un registro propio
+// en contactosWhatsApp, tipoMensaje "aviso_dueña", que nunca toca ni lee el
+// estado de contacto con la paciente. avisoDuenaRegistro guarda, por clave
+// de render, los datos ya resueltos (coleccion/docId/ocurrencia/texto) para
+// que el click solo tenga que leerlos — se repuebla en cada render.
+let avisoDuenaRegistro = new Map();
+
+function avisoDuenaPillHtml(coleccion, docId, ocurrencia) {
+  const idAviso = idAvisoDuena(coleccion, docId, ocurrencia);
+  const contacto = contactosPorId[idAviso];
+  if (estadoContacto(contacto) === "enviado") {
+    const ms = contacto?.enviadoAt?.toMillis ? contacto.enviadoAt.toMillis() : null;
+    return `<span class="pill pill-ok">✓ Avisado a la dueña${ms ? " · " + escapeHtml(formatoMomento(ms)) : ""}</span>`;
+  }
+  return `<span class="pill pill-muted">Sin avisar a la dueña</span>`;
+}
+
+function avisarDuenaBtnHtml(key, coleccion, docId, ocurrencia, texto, nombreEvento) {
+  avisoDuenaRegistro.set(key, { coleccion, docId, ocurrencia, texto, nombreEvento });
+  return `<button class="button button-light" type="button" data-avisar-duena="${escapeHtml(key)}"><svg class="icon"><use href="#i-whatsapp"/></svg> Avisar a la dueña</button>`;
+}
+
+// Arma el texto correcto según el tipo de pendiente, buscando el detalle
+// completo en las fuentes ya cargadas en memoria (nunca inventa datos que
+// no estén ahí — si el kit/turno ya no está en caché, usa lo que trae el
+// propio pendiente, que siempre tiene al menos nombre y motivo).
+function avisarDuenaDesdePendiente(p) {
+  const key = `pend_${p.id}`;
+  let texto, ocurrencia = p.ocurrencia || null;
+  if (p.tipo === "kit_pendiente") {
+    const kit = fuentes.pedidosKit.items.find((k) => k.id === p.docId);
+    texto = kit ? construirTextoAvisoDuenaKit(kit) : construirTextoAvisoDuenaGenerico(p);
+  } else if (p.tipo === "cumpleanos") {
+    texto = construirTextoAvisoDuenaCumpleanosIndividual(p.nombre, false);
+  } else if (p.tipo === "confirmacion_turno" && p.coleccion === "consultas") {
+    const item = ultimaAgenda.find((it) => it.coleccion === "consultas" && it.id === p.docId);
+    const contactoConsulta = item ? contactosPorId[idContactoParaItem(item, "consulta")] : null;
+    const estConsulta = item ? etiquetaEstadoConsultaInicial(estadoConsultaInicial(item, contactoConsulta)) : "pendiente de enviar confirmación";
+    texto = item ? construirTextoAvisoDuenaConsulta(item, estConsulta) : construirTextoAvisoDuenaGenerico(p);
+  } else {
+    texto = construirTextoAvisoDuenaGenerico(p);
+  }
+  return avisarDuenaBtnHtml(key, p.coleccion, p.docId, ocurrencia, texto, p.nombre);
+}
+
 function pendienteTarjetaHtml(p) {
   const momento = p.venceMs != null
     ? `Vence a las ${formatoMomento(p.venceMs)}`
@@ -820,9 +887,10 @@ function pendienteTarjetaHtml(p) {
     </div>
     <div class="item-service">${escapeHtml(p.motivo)}</div>
     ${bloqueoHtml}
-    <div class="item-pills"><span class="pill pill-muted">${escapeHtml(momento)}</span></div>
+    <div class="item-pills"><span class="pill pill-muted">${escapeHtml(momento)}</span>${p.tipo !== "recomendacion" ? avisoDuenaPillHtml(p.coleccion, p.docId, p.ocurrencia) : ""}</div>
     <div class="item-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
       ${pendienteAccionPrincipalHtml(p)}
+      ${p.tipo !== "recomendacion" ? avisarDuenaDesdePendiente(p) : ""}
       <button class="button button-light" type="button" data-postergar-pendiente="${escapeHtml(p.id)}">Postergar</button>
       <button class="button button-light" type="button" data-resolver-pendiente="${escapeHtml(p.id)}">${p.tipo === "recomendacion" ? "Descartar" : "Marcar resuelto"}</button>
     </div>
@@ -866,7 +934,13 @@ function renderPendientesBandeja() {
   $("resumen-cumpleanos").textContent = cumpleanosHoy?.estado === "error" ? "?" : String(conteo.cumpleanos);
   $("resumen-recomendaciones").textContent = String(conteo.recomendacion);
 
-  const visibles = filtroPendientesTipo === "todas" ? vigentes : vigentes.filter((p) => p.tipo === filtroPendientesTipo);
+  // Cumpleaños, kits y consultas iniciales ya tienen su propia sección
+  // dedicada (Cumpleaños/Kits/Consultas) — esta bandeja general queda para
+  // lo que no tiene sección propia todavía: turnos comunes (reservas) por
+  // confirmar, turnos a revisar y recomendaciones. Evita mostrar lo mismo
+  // duplicado en dos lugares distintos.
+  const bandejaVisible = vigentes.filter((p) => p.tipo !== "kit_pendiente" && p.tipo !== "cumpleanos" && !(p.tipo === "confirmacion_turno" && p.coleccion === "consultas"));
+  const visibles = filtroPendientesTipo === "todas" ? bandejaVisible : bandejaVisible.filter((p) => p.tipo === filtroPendientesTipo);
   $("count-pendientes-bandeja").textContent = String(visibles.length);
 
   // Se avisa aparte, arriba de la lista (que igual muestra lo que sí pudo cargar).
@@ -880,9 +954,259 @@ function renderPendientesBandeja() {
   }
 
   const badge = $("nav-badge-pendientes");
-  if (vigentes.length > 0) { badge.hidden = false; badge.textContent = String(vigentes.length); }
-  else badge.hidden = true;
+  if (badge) { if (bandejaVisible.length > 0) { badge.hidden = false; badge.textContent = String(bandejaVisible.length); } else badge.hidden = true; }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// Secciones nuevas: Cumpleaños / Consultas iniciales / Pedidos de kits
+// ══════════════════════════════════════════════════════════════════════
+
+function cumpleAccionHtml(clientId, saludado) {
+  return saludado
+    ? `<span class="pill pill-ok">✓ Saludado</span>`
+    : `<button class="button button-primary" type="button" data-preparar-cumple="${escapeHtml(clientId)}"><svg class="icon"><use href="#i-whatsapp"/></svg> Preparar saludo</button>`;
+}
+
+function renderCumpleanosTab() {
+  const contHoy = $("lista-cumple-hoy");
+  const contProx = $("lista-cumple-proximos");
+  if (!contHoy || !contProx) return;
+
+  if (cumpleanosHoy?.estado === "error") {
+    contHoy.innerHTML = `<div class="error-state">No se pudo consultar los cumpleaños de hoy (${escapeHtml(cumpleanosHoy.detalle || "error desconocido")}).</div>`;
+  } else if (cumpleanosHoy == null || cumpleanosHoy.estado === undefined) {
+    contHoy.innerHTML = `<div class="loading-state">Cargando…</div>`;
+  } else {
+    const personas = cumpleanosHoy.estado === "ok" ? (cumpleanosHoy.personas || []) : [];
+    if (!personas.length) {
+      contHoy.innerHTML = `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Hoy no hay cumpleaños</h3></div>`;
+    } else {
+      contHoy.innerHTML = personas.map((p) => {
+        const contactoSaludo = contactosPorId[`clients_${docIdVersionadoCumpleanos(p.clientId, cumpleanosHoy.fecha)}_cumpleanos`];
+        const saludado = estadoContacto(contactoSaludo) === "enviado";
+        const key = `cumple_${p.clientId}`;
+        return `
+        <div class="item-row">
+          <div class="item-row-top"><span class="pill pill-box">Cumpleaños</span><span class="item-name">${escapeHtml(p.nombre || "Paciente")}</span></div>
+          <div class="item-service">Hoy, ${escapeHtml(cumpleanosHoy.fecha)}</div>
+          <div class="item-pills"><span class="pill ${saludado ? "pill-ok" : "pill-muted"}">${saludado ? "✓ Saludo realizado" : "Saludo pendiente"}</span>${avisoDuenaPillHtml("clients", p.clientId, { fecha: cumpleanosHoy.fecha })}</div>
+          <div class="item-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+            ${cumpleAccionHtml(p.clientId, saludado)}
+            ${avisarDuenaBtnHtml(key, "clients", p.clientId, { fecha: cumpleanosHoy.fecha }, construirTextoAvisoDuenaCumpleanosIndividual(p.nombre, saludado), p.nombre)}
+          </div>
+        </div>`;
+      }).join("");
+    }
+  }
+
+  const hoyISO = fechaISOEnZona();
+  const proximos = cumpleanosProximos(clientesPorDni, hoyISO, 7);
+  contProx.innerHTML = !proximos.length
+    ? `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Sin cumpleaños en los próximos 7 días</h3></div>`
+    : proximos.map((p) => `
+      <div class="item-row">
+        <div class="item-row-top"><span class="pill pill-box">Cumpleaños</span><span class="item-name">${escapeHtml(p.nombre)}</span></div>
+        <div class="item-service">${escapeHtml(p.fecha)}</div>
+      </div>`).join("");
+
+  const badge = $("nav-badge-cumpleanos");
+  const conteoHoy = cumpleanosHoy?.estado === "ok" ? (cumpleanosHoy.personas || []).length : 0;
+  if (badge) { if (conteoHoy > 0) { badge.hidden = false; badge.textContent = String(conteoHoy); } else badge.hidden = true; }
+}
+
+function consultaTarjetaHtml(item) {
+  const contacto = contactosPorId[idContactoParaItem(item, "consulta")];
+  const estado = estadoConsultaInicial(item, contacto);
+  const etiqueta = etiquetaEstadoConsultaInicial(estado);
+  const claseEstado = estado === ESTADO_CONSULTA_CANCELADA ? "pill-warn" : estado === "confirmada" ? "pill-ok" : "pill-muted";
+  const key = `consulta_${item.id}`;
+  const puedeAvisar = estado !== ESTADO_CONSULTA_CANCELADA;
+  return `
+  <div class="item-row">
+    <div class="item-row-top"><span class="pill ${claseEstado}">${escapeHtml(etiqueta)}</span><span class="item-name">${escapeHtml(item.nombre || "Sin nombre registrado")}</span></div>
+    <div class="item-service">${escapeHtml(item.fecha || "—")} · ${escapeHtml(item.hora ? item.hora + " hs" : "—")}${item.servicio ? " · " + escapeHtml(item.servicio) : ""}</div>
+    <div class="item-pills">${item.telefono ? `<span class="pill pill-muted">📞 ${escapeHtml(item.telefono)}</span>` : `<span class="pill pill-warn">Sin teléfono</span>`}${puedeAvisar ? avisoDuenaPillHtml("consultas", item.id, { fecha: item.fecha, hora: item.hora }) : ""}</div>
+    <div class="item-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="button button-primary" type="button" data-abrir="consultas::${escapeHtml(item.id)}">Ver registro</button>
+      ${puedeAvisar ? avisarDuenaBtnHtml(key, "consultas", item.id, { fecha: item.fecha, hora: item.hora }, construirTextoAvisoDuenaConsulta(item, etiqueta), item.nombre) : ""}
+    </div>
+  </div>`;
+}
+
+function renderConsultasTab() {
+  const cont = $("lista-consultas");
+  if (!cont) return;
+  if (fuentes.consultas.estado === "cargando") { cont.innerHTML = `<div class="loading-state">Cargando…</div>`; return; }
+  // Todas las consultas en el rango cargado (hoy/mañana + ventana hacia
+  // atrás), activas o no — el pedido explícito es "contemplar
+  // reprogramaciones y cancelaciones", no solo las pendientes de acción.
+  const items = ultimaAgenda.filter((it) => it.coleccion === "consultas");
+  $("count-consultas").textContent = String(items.length);
+  cont.innerHTML = !items.length
+    ? `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Sin consultas iniciales en este rango</h3></div>`
+    : items.map(consultaTarjetaHtml).join("");
+  const pendientesEnvio = items.filter((it) => it.activa && estadoConsultaInicial(it, contactosPorId[idContactoParaItem(it, "consulta")]) === "pendiente_enviar_confirmacion").length;
+  if ($("resumen-consultas-pend")) $("resumen-consultas-pend").textContent = String(pendientesEnvio);
+  const badge = $("nav-badge-consultas");
+  if (badge) { if (pendientesEnvio > 0) { badge.hidden = false; badge.textContent = String(pendientesEnvio); } else badge.hidden = true; }
+}
+
+function kitTarjetaHtml(kit) {
+  const key = `kit_${kit.id}`;
+  const estado = kit.estadoPedido || "pendiente";
+  const claseEstado = estado === "entregado" ? "pill-ok" : estado === "listo" ? "pill-ok" : "pill-muted";
+  return `
+  <div class="item-row">
+    <div class="item-row-top"><span class="pill ${claseEstado}">${escapeHtml(estado)}</span><span class="item-name">${escapeHtml(kit.nombre)}</span></div>
+    <div class="item-service">${escapeHtml(kit.items ? kit.items.map((it) => `${it.cantidad}× ${it.nombre}`).join(", ") : (kit.productosResumen || []).join(", ") || "Sin detalle")}</div>
+    <div class="item-pills"><span class="pill pill-muted">${escapeHtml(kit.totalTexto)}</span>${kit.fechaPedido ? `<span class="pill pill-muted">${escapeHtml(kit.fechaPedido)}</span>` : ""}${avisoDuenaPillHtml("pedidosKit", kit.id, null)}</div>
+    <div class="item-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="button button-primary" type="button" data-abrir="pedidosKit::${escapeHtml(kit.id)}">Ver pedido</button>
+      ${avisarDuenaBtnHtml(key, "pedidosKit", kit.id, null, construirTextoAvisoDuenaKit(kit), kit.nombre)}
+    </div>
+  </div>`;
+}
+
+function renderKitsTab() {
+  const cont = $("lista-kits");
+  if (!cont) return;
+  if (fuentes.pedidosKit.estado === "cargando") { cont.innerHTML = `<div class="loading-state">Cargando…</div>`; return; }
+  if (fuentes.pedidosKit.estado === "error") { cont.innerHTML = `<div class="error-state">No se pudo consultar los pedidos de kit (${escapeHtml(fuentes.pedidosKit.error || "error desconocido")}).</div>`; return; }
+  const items = fuentes.pedidosKit.items;
+  $("count-kits").textContent = String(items.length);
+  cont.innerHTML = !items.length
+    ? `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Sin pedidos de kit por atender</h3></div>`
+    : items.map(kitTarjetaHtml).join("");
+  const badge = $("nav-badge-kits");
+  if (badge) { if (items.length > 0) { badge.hidden = false; badge.textContent = String(items.length); } else badge.hidden = true; }
+}
+
+// ── Diálogo "Avisar a la dueña" ──────────────────────────────────────────
+const avisoDuenaDialog = $("aviso-duena-dialog");
+
+function abrirAvisoDuena(key) {
+  const ctx = avisoDuenaRegistro.get(key);
+  if (!ctx) { toast("No se pudo preparar el aviso."); return; }
+  avisoDuenaActual = ctx;
+  $("aviso-duena-titulo").textContent = ctx.nombreEvento || "Aviso a la dueña";
+  $("aviso-duena-texto").value = ctx.texto || "";
+  $("aviso-duena-status").textContent = "";
+  $("aviso-duena-status").className = "dialog-status";
+  const idAviso = idAvisoDuena(ctx.coleccion, ctx.docId, ctx.ocurrencia);
+  const yaAvisado = estadoContacto(contactosPorId[idAviso]) === "enviado";
+  $("aviso-duena-ya-avisado").hidden = !yaAvisado;
+  $("btn-aviso-duena-whatsapp").hidden = !duenaTelefono;
+  if (typeof avisoDuenaDialog.showModal === "function") avisoDuenaDialog.showModal();
+  else avisoDuenaDialog.setAttribute("open", "");
+}
+
+function cerrarAvisoDuena() {
+  if (typeof avisoDuenaDialog.close === "function" && avisoDuenaDialog.open) avisoDuenaDialog.close();
+  else avisoDuenaDialog.removeAttribute("open");
+  avisoDuenaActual = null;
+}
+$("btn-cerrar-aviso-duena")?.addEventListener("click", cerrarAvisoDuena);
+$("btn-aviso-duena-cerrar-2")?.addEventListener("click", cerrarAvisoDuena);
+avisoDuenaDialog?.addEventListener("click", (ev) => { if (ev.target === avisoDuenaDialog) cerrarAvisoDuena(); });
+
+async function registrarAvisoPreparado() {
+  if (!avisoDuenaActual) return;
+  const { coleccion, docId, ocurrencia } = avisoDuenaActual;
+  const docIdAviso = docIdVersionadoParaAviso(docId, ocurrencia);
+  try {
+    const operador = await operadorActual();
+    await registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion, docId: docIdAviso, tipoMensaje: TIPO_MENSAJE_AVISO_DUENA, operador });
+  } catch (e) { console.warn("No se pudo registrar el aviso a la dueña como preparado:", e); }
+}
+
+// Compartir/copiar: preferí Web Share (deja elegir cualquier chat, incluido
+// un grupo) cuando está disponible; si no, copiar al portapapeles como
+// respaldo universal (punto 3: "no supongas que un grupo permite mandar un
+// mensaje precompletado" — nunca se arma un link de grupo).
+async function compartirOCopiar(texto) {
+  if (navigator.share) {
+    try { await navigator.share({ text: texto }); return "compartido"; }
+    catch (e) { if (e?.name === "AbortError") return "cancelado"; }
+  }
+  try { await navigator.clipboard.writeText(texto); return "copiado"; }
+  catch (e) { return null; }
+}
+
+$("btn-aviso-duena-whatsapp")?.addEventListener("click", async () => {
+  if (!avisoDuenaActual || !duenaTelefono) return;
+  const texto = $("aviso-duena-texto").value || avisoDuenaActual.texto || "";
+  await registrarAvisoPreparado();
+  window.open(`https://wa.me/${normalizarTelefonoWA(duenaTelefono)}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+});
+
+$("btn-aviso-duena-compartir")?.addEventListener("click", async () => {
+  if (!avisoDuenaActual) return;
+  const texto = $("aviso-duena-texto").value || avisoDuenaActual.texto || "";
+  await registrarAvisoPreparado();
+  const resultado = await compartirOCopiar(texto);
+  const el = $("aviso-duena-status");
+  if (resultado === "compartido") { el.textContent = "Se abrió el selector para elegir el chat."; el.className = "dialog-status mostrar info"; }
+  else if (resultado === "copiado") { el.textContent = "Mensaje copiado — pegalo en el chat de WhatsApp que corresponda."; el.className = "dialog-status mostrar info"; toast("Mensaje copiado"); }
+  else if (resultado === "cancelado") { /* el usuario cerró el selector, no es un error */ }
+  else { el.textContent = "No se pudo compartir ni copiar automáticamente — seleccioná el texto a mano."; el.className = "dialog-status mostrar error"; }
+});
+
+$("btn-aviso-duena-copiar")?.addEventListener("click", async () => {
+  const texto = $("aviso-duena-texto").value || "";
+  try {
+    await navigator.clipboard.writeText(texto);
+    toast("Mensaje copiado");
+  } catch (e) {
+    $("aviso-duena-texto").select();
+    $("aviso-duena-status").textContent = "No se pudo copiar automáticamente — el texto ya quedó seleccionado para copiar a mano.";
+    $("aviso-duena-status").className = "dialog-status mostrar error";
+  }
+});
+
+// "Ya avisé a la dueña" — registro independiente del estado de la tarea
+// (punto 5): nunca marca la consulta como confirmada, el kit como
+// entregado ni el saludo como hecho — solo dice que la dueña ya lo sabe.
+$("btn-aviso-duena-confirmar")?.addEventListener("click", async () => {
+  if (!avisoDuenaActual) return;
+  const { coleccion, docId, ocurrencia } = avisoDuenaActual;
+  const docIdAviso = docIdVersionadoParaAviso(docId, ocurrencia);
+  try {
+    const operador = await operadorActual();
+    await registrarContactoManual({ setDoc, doc, serverTimestamp, db, coleccion, docId: docIdAviso, tipoMensaje: TIPO_MENSAJE_AVISO_DUENA, operador, nota: "Avisado a la dueña desde Mimar T Inteligente" });
+    toast("Registrado: ya avisaste a la dueña");
+    cerrarAvisoDuena();
+  } catch (e) {
+    $("aviso-duena-status").textContent = "No se pudo registrar el aviso.";
+    $("aviso-duena-status").className = "dialog-status mostrar error";
+  }
+});
+
+document.addEventListener("click", (ev) => {
+  const btn = ev.target.closest("[data-avisar-duena]");
+  if (!btn) return;
+  abrirAvisoDuena(btn.getAttribute("data-avisar-duena"));
+});
+
+// ── Compartir resumen del día / cumpleaños de hoy (punto 4) ─────────────
+$("btn-compartir-resumen")?.addEventListener("click", async () => {
+  const ahoraMs = Date.now();
+  const vigentes = pendientesVigentes(ultimosPendientes, pendienteEstados, ahoraMs);
+  const conteo = contarPendientesPorTipo(vigentes);
+  const hoyISO = fechaISOEnZona(ahoraMs);
+  const texto = construirTextoResumenDia(conteo, fechaLindaHoy(hoyISO));
+  const resultado = await compartirOCopiar(texto);
+  if (resultado === "copiado") toast("Resumen copiado");
+  else if (!resultado) toast("No se pudo compartir ni copiar — reintentá.");
+});
+
+$("btn-compartir-cumpleanos")?.addEventListener("click", async () => {
+  const personas = cumpleanosHoy?.estado === "ok" ? (cumpleanosHoy.personas || []) : [];
+  const pendientes = personas.filter((p) => estadoContacto(contactosPorId[`clients_${docIdVersionadoCumpleanos(p.clientId, cumpleanosHoy.fecha)}_cumpleanos`]) !== "enviado").map((p) => p.nombre || "Paciente");
+  const texto = construirTextoAvisoDuenaCumpleanosDia(personas, pendientes);
+  const resultado = await compartirOCopiar(texto);
+  if (resultado === "copiado") toast("Cumpleaños de hoy copiados");
+  else if (!resultado) toast("No se pudo compartir ni copiar — reintentá.");
+});
 
 function renderAgenda(agenda, hoyISO, mananaISO) {
   const cont = $("lista-agenda");
@@ -909,9 +1233,6 @@ function renderAgenda(agenda, hoyISO, mananaISO) {
     html += grupos[fecha].map((it) => tarjetaHtml(it, { conMotivos: false })).join("");
   });
   cont.innerHTML = html;
-
-  // "Consultas nuevas" en el resumen de Inicio: consultas activas de hoy/mañana.
-  $("resumen-consultas").textContent = String(activos.filter((it) => it.coleccion === "consultas").length);
 }
 
 // Preparar el saludo de cumpleaños de verdad necesita el teléfono REAL del
@@ -1019,6 +1340,9 @@ function renderTodo() {
   renderProximoTurno(ultimaAgenda, ahoraMs);
   renderPendientesBandeja(); // misma regla canónica que Inicio/Pendientes/el job horario — arma ultimosPendientes y el badge
   renderAgenda(ultimaAgenda, hoyISO, mananaISO);
+  renderCumpleanosTab();
+  renderConsultasTab();
+  renderKitsTab();
   evaluarEntradaLogica();
 }
 
@@ -1052,7 +1376,7 @@ function evaluarEntradaLogica() {
   const errores = erroresFuentePendientes();
   if (!vigentes.length && !errores.length) return; // nada que avisar — se respeta el inicio habitual
 
-  mostrarTab("pendientes");
+  mostrarTab("inicio"); // Resumen — punto 1: "al entrar debo entender qué pasó, a quién corresponde y qué falta"
   mostrarEntradaAviso(vigentes, errores);
 }
 
@@ -1591,7 +1915,22 @@ function renderMas() {
 
   if ($("avisos-descanso-inicio")) $("avisos-descanso-inicio").value = prefsAvisos.descansoInicioHora ?? "";
   if ($("avisos-descanso-fin")) $("avisos-descanso-fin").value = prefsAvisos.descansoFinHora ?? "";
+
+  const telInput = $("duena-telefono-input");
+  if (telInput && document.activeElement !== telInput) telInput.value = duenaTelefono || "";
+  const telEstado = $("duena-telefono-estado");
+  if (telEstado) telEstado.textContent = duenaTelefono
+    ? `Configurado: ${duenaTelefono} — "Avisar a la dueña" abre WhatsApp directo con este número.`
+    : `Sin configurar — "Avisar a la dueña" va a ofrecer compartir/copiar el mensaje para que elijas el chat vos misma.`;
 }
+
+$("btn-duena-telefono-guardar")?.addEventListener("click", async () => {
+  const valor = ($("duena-telefono-input")?.value || "").trim();
+  try {
+    await setDoc(doc(db, "configuracion", "mimarInteligente"), { duenaTelefono: valor || null, updatedAt: serverTimestamp() }, { merge: true });
+    toast(valor ? "Teléfono de la dueña guardado" : "Teléfono de la dueña quitado");
+  } catch (e) { toast("No se pudo guardar: " + (e?.message || e)); }
+});
 
 async function guardarPrefsAvisos(parcial) {
   if (!uidActual) return;

@@ -66,7 +66,8 @@
       <!-- ══ TAB: INICIO ══ -->
       <section class="tab-view" id="tab-inicio" data-tab="inicio">
         <div class="workspace-heading">
-          <div><span class="eyebrow">TU JORNADA</span><h1 id="date-heading">Hoy</h1></div>
+          <div><span class="eyebrow">RESUMEN</span><h1 id="date-heading">Hoy</h1></div>
+          <button class="button button-light" type="button" id="btn-compartir-resumen">Compartir resumen del día</button>
         </div>
 
         <div class="status-panel">
@@ -90,29 +91,29 @@
         <div class="notice warning-notice" id="fuentes-aviso" hidden></div>
 
         <div class="resumen-grid" role="group" aria-label="Resumen del día">
-          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="recomendacion">
-            <span class="resumen-num" id="resumen-recomendaciones">0</span>
-            <span class="resumen-label">Recomendaciones</span>
+          <button class="resumen-tile" type="button" data-ir-tab="cumpleanos">
+            <span class="resumen-num" id="resumen-cumpleanos">0</span>
+            <span class="resumen-label">Cumpleaños por saludar</span>
+          </button>
+          <button class="resumen-tile" type="button" data-ir-tab="consultas">
+            <span class="resumen-num" id="resumen-consultas-pend">0</span>
+            <span class="resumen-label">Consultas pendientes de enviar confirmación</span>
+          </button>
+          <button class="resumen-tile" type="button" data-ir-tab="kits">
+            <span class="resumen-num" id="resumen-kits">0</span>
+            <span class="resumen-label">Pedidos de kits por atender</span>
           </button>
           <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="confirmacion_turno">
             <span class="resumen-num" id="resumen-pendientes">0</span>
-            <span class="resumen-label">Pendientes de contacto</span>
-          </button>
-          <button class="resumen-tile" type="button" data-ir-tab="actividad" data-ir-categoria="consultas">
-            <span class="resumen-num" id="resumen-consultas">0</span>
-            <span class="resumen-label">Consultas nuevas</span>
+            <span class="resumen-label">Turnos por confirmar</span>
           </button>
           <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="revisar_turno">
             <span class="resumen-num" id="resumen-revisar-turno">0</span>
             <span class="resumen-label">Turnos a revisar</span>
           </button>
-          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="kit_pendiente">
-            <span class="resumen-num" id="resumen-kits">0</span>
-            <span class="resumen-label">Pedidos de kits</span>
-          </button>
-          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="cumpleanos">
-            <span class="resumen-num" id="resumen-cumpleanos">0</span>
-            <span class="resumen-label">Cumpleaños hoy</span>
+          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="recomendacion">
+            <span class="resumen-num" id="resumen-recomendaciones">0</span>
+            <span class="resumen-label">Recomendaciones</span>
           </button>
         </div>
 
@@ -155,17 +156,16 @@
       <!-- ══ TAB: PENDIENTES ══ -->
       <section class="tab-view" id="tab-pendientes" data-tab="pendientes" hidden>
         <div class="workspace-heading">
-          <div><span class="eyebrow">REQUIERE ACCIÓN</span><h1>Pendientes</h1></div>
+          <div><span class="eyebrow">REQUIERE ACCIÓN</span><h1>Turnos y recomendaciones</h1></div>
           <button class="button button-primary" type="button" id="btn-nueva-recomendacion"><svg class="icon"><use href="#i-flag"/></svg> Recomendación</button>
         </div>
+        <p class="hint-text" style="margin-bottom:10px;">Cumpleaños, Consultas iniciales y Pedidos de kits ya tienen su propia sección — acá quedan turnos comunes por confirmar, turnos a revisar y recomendaciones.</p>
 
         <div class="pend-filtros" id="pend-filtros" role="group" aria-label="Filtrar por tipo">
           <button class="pend-filtro-chip activo" type="button" data-pend-filtro="todas">Todas</button>
           <button class="pend-filtro-chip" type="button" data-pend-filtro="recomendacion">Recomendaciones</button>
           <button class="pend-filtro-chip" type="button" data-pend-filtro="confirmacion_turno">Confirmaciones</button>
           <button class="pend-filtro-chip" type="button" data-pend-filtro="revisar_turno">Revisar turno</button>
-          <button class="pend-filtro-chip" type="button" data-pend-filtro="kit_pendiente">Kits</button>
-          <button class="pend-filtro-chip" type="button" data-pend-filtro="cumpleanos">Cumpleaños</button>
         </div>
 
         <section class="section-block" id="bandeja-section">
@@ -174,6 +174,44 @@
             <span class="count-pill" id="count-pendientes-bandeja">0</span>
           </div>
           <div class="list-panel" id="lista-pendientes-bandeja"><div class="loading-state">Cargando…</div></div>
+        </section>
+      </section>
+
+      <!-- ══ TAB: CUMPLEAÑOS ══ -->
+      <section class="tab-view" id="tab-cumpleanos" data-tab="cumpleanos" hidden>
+        <div class="workspace-heading">
+          <div><span class="eyebrow">SALUDOS</span><h1>Cumpleaños</h1></div>
+          <button class="button button-light" type="button" id="btn-compartir-cumpleanos">Compartir cumpleaños de hoy</button>
+        </div>
+        <section class="section-block">
+          <div class="section-heading"><h2>Hoy</h2></div>
+          <div class="list-panel" id="lista-cumple-hoy"><div class="loading-state">Cargando…</div></div>
+        </section>
+        <section class="section-block">
+          <div class="section-heading"><h2>Próximos 7 días</h2></div>
+          <div class="list-panel" id="lista-cumple-proximos"><div class="loading-state">Cargando…</div></div>
+        </section>
+      </section>
+
+      <!-- ══ TAB: CONSULTAS INICIALES ══ -->
+      <section class="tab-view" id="tab-consultas" data-tab="consultas" hidden>
+        <div class="workspace-heading">
+          <div><span class="eyebrow">ATENCIÓN</span><h1>Consultas iniciales</h1></div>
+        </div>
+        <section class="section-block">
+          <div class="section-heading"><h2>Pendientes de enviar confirmación / esperando respuesta / confirmadas</h2><span class="count-pill" id="count-consultas">0</span></div>
+          <div class="list-panel" id="lista-consultas"><div class="loading-state">Cargando…</div></div>
+        </section>
+      </section>
+
+      <!-- ══ TAB: PEDIDOS DE KITS ══ -->
+      <section class="tab-view" id="tab-kits" data-tab="kits" hidden>
+        <div class="workspace-heading">
+          <div><span class="eyebrow">SEGUIMIENTO</span><h1>Pedidos de kits</h1></div>
+        </div>
+        <section class="section-block">
+          <div class="section-heading"><h2>Por atender</h2><span class="count-pill" id="count-kits">0</span></div>
+          <div class="list-panel" id="lista-kits"><div class="loading-state">Cargando…</div></div>
         </section>
       </section>
 
@@ -212,7 +250,23 @@
           </div>
         </section>
 
+        <section class="section-block" id="duena-telefono-section">
+          <div class="section-heading"><h2>Teléfono de la dueña (WhatsApp)</h2></div>
+          <div class="list-panel" style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <label for="duena-telefono-input" class="hint-text">Formato internacional, ej: 549376XXXXXXX</label>
+            <input id="duena-telefono-input" type="tel" placeholder="549376XXXXXXX">
+            <button class="button button-light" type="button" id="btn-duena-telefono-guardar">Guardar</button>
+            <p class="hint-text" id="duena-telefono-estado">—</p>
+          </div>
+        </section>
+
         <div class="mas-lista">
+          <button class="mas-item" type="button" data-tab-btn="pendientes">
+            <span><svg class="icon" style="margin-right:4px;vertical-align:-3px;"><use href="#i-flag"/></svg> Turnos y recomendaciones <span class="nav-badge" id="nav-badge-pendientes" hidden></span></span><svg class="icon"><use href="#i-arrow"/></svg>
+          </button>
+          <button class="mas-item" type="button" data-tab-btn="actividad">
+            <span><svg class="icon" style="margin-right:4px;vertical-align:-3px;"><use href="#i-activity"/></svg> Actividad (historial completo)</span><svg class="icon"><use href="#i-arrow"/></svg>
+          </button>
           <button class="mas-item" type="button" id="btn-ajustes-notif" hidden>
             <span>🔔 Sonido y vibración por categoría</span><svg class="icon"><use href="#i-arrow"/></svg>
           </button>
@@ -231,13 +285,16 @@
     <!-- ══ NAVEGACIÓN INFERIOR ══ -->
     <nav class="bottom-nav" id="bottom-nav" hidden aria-label="Navegación principal">
       <button class="nav-item" type="button" data-tab-btn="inicio" aria-current="page">
-        <svg class="icon"><use href="#i-home"/></svg><span>Inicio</span>
+        <svg class="icon"><use href="#i-home"/></svg><span>Resumen</span>
       </button>
-      <button class="nav-item" type="button" data-tab-btn="actividad">
-        <svg class="icon"><use href="#i-activity"/></svg><span>Actividad</span>
+      <button class="nav-item" type="button" data-tab-btn="cumpleanos">
+        <svg class="icon"><use href="#i-flag"/></svg><span>Cumpleaños</span><span class="nav-badge" id="nav-badge-cumpleanos" hidden></span>
       </button>
-      <button class="nav-item" type="button" data-tab-btn="pendientes">
-        <svg class="icon"><use href="#i-flag"/></svg><span>Pendientes</span><span class="nav-badge" id="nav-badge-pendientes" hidden></span>
+      <button class="nav-item" type="button" data-tab-btn="consultas">
+        <svg class="icon"><use href="#i-calendar"/></svg><span>Consultas</span><span class="nav-badge" id="nav-badge-consultas" hidden></span>
+      </button>
+      <button class="nav-item" type="button" data-tab-btn="kits">
+        <svg class="icon"><use href="#i-inbox"/></svg><span>Kits</span><span class="nav-badge" id="nav-badge-kits" hidden></span>
       </button>
       <button class="nav-item" type="button" data-tab-btn="mas">
         <svg class="icon"><use href="#i-more"/></svg><span>Más</span>
@@ -261,6 +318,27 @@
       <button class="button button-primary button-full" id="btn-preparar-wa" type="button" hidden><svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp</button>
       <button class="button button-light button-full" id="btn-registrar-manual" type="button" hidden>Registrar envío manual (hecho por fuera del sistema)</button>
       <button class="button button-light button-full" id="btn-cerrar-detalle-2" type="button">Cerrar</button>
+    </div>
+  </dialog>
+
+  <!-- ══ MODAL: Avisar a la dueña (punto 3/5 del pedido nuevo) ══ -->
+  <dialog id="aviso-duena-dialog" aria-labelledby="aviso-duena-titulo">
+    <div class="dialog-heading">
+      <div><span class="eyebrow">AVISO A LA DUEÑA</span><h2 id="aviso-duena-titulo">—</h2></div>
+      <button class="icon-button" type="button" id="btn-cerrar-aviso-duena" aria-label="Cerrar"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="dialog-status" id="aviso-duena-status"></div>
+    <div class="dialog-body">
+      <p class="hint-text" id="aviso-duena-ya-avisado" hidden>Ya le avisaste a la dueña por este movimiento — podés volver a avisarle si hace falta.</p>
+      <label for="aviso-duena-texto" class="hint-text" style="display:block;margin-bottom:6px;">Mensaje (podés editarlo)</label>
+      <textarea id="aviso-duena-texto" class="wa-preview-textarea" rows="6"></textarea>
+    </div>
+    <div class="dialog-actions">
+      <button class="button button-primary button-full" type="button" id="btn-aviso-duena-whatsapp" hidden><svg class="icon"><use href="#i-whatsapp"/></svg> Abrir WhatsApp</button>
+      <button class="button button-primary button-full" type="button" id="btn-aviso-duena-compartir"><svg class="icon"><use href="#i-whatsapp"/></svg> Compartir</button>
+      <button class="button button-light button-full" type="button" id="btn-aviso-duena-copiar">Copiar mensaje</button>
+      <button class="button button-light button-full" type="button" id="btn-aviso-duena-confirmar">Ya avisé a la dueña</button>
+      <button class="button button-light button-full" type="button" id="btn-aviso-duena-cerrar-2">Cerrar</button>
     </div>
   </dialog>
 
