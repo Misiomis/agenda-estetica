@@ -754,3 +754,156 @@ export function pendientesElegiblesParaAviso(pendientes, prefs, estadosPend, aho
     return true;
   });
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// Reorganización por secciones + "Avisar a la dueña" (pedido nuevo)
+// ══════════════════════════════════════════════════════════════════════
+// Estas plantillas son un DESTINATARIO distinto de las de arriba: las de
+// arriba (construirTextoConfirmacion/Recordatorio/Cumpleanos/Consulta/Kit)
+// se le mandan a LA PACIENTE. Estas se le mandan A LA DUEÑA, para avisarle
+// que pasó algo — son mensajes de aviso interno, no de atención al público.
+// Es un aviso independiente de la tarea con la paciente (punto 2 del
+// pedido): preparar/enviar la confirmación de una consulta y avisarle a la
+// dueña que hay una consulta nueva son dos acciones separadas, con su
+// propio registro de "ya avisé" (ver idAvisoDueña).
+
+// tipoMensaje fijo, distinto de "confirmacion"/"consulta"/"cumpleanos"/
+// "kit" — así el registro de "avisé a la dueña" en contactosWhatsApp NUNCA
+// se confunde ni se pisa con el de la tarea con la paciente, aunque sea el
+// mismo documento de origen (misma coleccion/docId, tipoMensaje distinto).
+export const TIPO_MENSAJE_AVISO_DUENA = "aviso_dueña";
+
+// Igual que idContactoParaItem pero para el aviso a la dueña: usa la misma
+// versión por ocurrencia (fecha/hora de turno, año de cumpleaños) que ya
+// usa el contacto con la paciente, para que una reprogramación o un cambio
+// de año tampoco arrastren un "ya avisé" viejo.
+export function docIdVersionadoParaAviso(docId, ocurrencia) {
+  if (ocurrencia?.fecha && ocurrencia?.hora) return docIdVersionadoContacto(docId, "confirmacion", ocurrencia.fecha, ocurrencia.hora);
+  if (ocurrencia?.fecha && !ocurrencia?.hora) return docIdVersionadoCumpleanos(docId, ocurrencia.fecha);
+  return docId;
+}
+
+export function idAvisoDuena(coleccion, docId, ocurrencia) {
+  return `${coleccion}_${docIdVersionadoParaAviso(docId, ocurrencia)}_${TIPO_MENSAJE_AVISO_DUENA}`;
+}
+
+function listaConY(partes) {
+  if (!partes.length) return "";
+  if (partes.length === 1) return partes[0];
+  return partes.slice(0, -1).join(", ") + " y " + partes[partes.length - 1];
+}
+
+// kit: salida de normalizarPedidoKit(). Omite campos vacíos (total,
+// entrega) en vez de mostrar "No registrado" — un aviso a la dueña no
+// necesita remarcar huecos de datos, solo contar lo que sí se sabe.
+export function construirTextoAvisoDuenaKit(kit) {
+  const lineas = kit.items && kit.items.length
+    ? kit.items.map((it) => `• ${it.cantidad} × ${it.nombre}`).join("\n")
+    : (kit.productosResumen && kit.productosResumen.length ? kit.productosResumen.map((p) => `• ${p}`).join("\n") : "• (sin detalle de productos)");
+  const partes = [`🛍️ Tenés un nuevo pedido de kit de ${kit.nombre}.`, "Pidió:", lineas];
+  if (kit.total != null) partes.push(`Total: ${kit.totalTexto}`);
+  if (kit.entrega) partes.push(kit.entrega);
+  partes.push(`Estado: ${kit.estadoPedido || "pendiente"}.`);
+  return partes.join("\n");
+}
+
+export function construirTextoAvisoDuenaCumpleanosIndividual(nombre, saludoRealizado) {
+  return `🎂 Hoy es el cumpleaños de ${nombre || "una paciente"}.\nSaludo: ${saludoRealizado ? "realizado" : "pendiente"}.`;
+}
+
+// personas: cumpleanosHoy.personas (cada una con nombre, clientId).
+// pendientesDeSaludar: subconjunto de nombres sin saludo registrado —
+// se calcula afuera (con contactosPorId) porque esta función es pura.
+export function construirTextoAvisoDuenaCumpleanosDia(personas, nombresPendientes) {
+  if (!personas || !personas.length) return "🎂 Hoy no hay cumpleaños.";
+  const lista = personas.map((p) => `• ${p.nombre || "Paciente"}`).join("\n");
+  const pend = nombresPendientes && nombresPendientes.length ? nombresPendientes.join(", ") : "ninguno";
+  return `🎂 Hoy cumplen años:\n${lista}\nPendientes de saludar: ${pend}.`;
+}
+
+// item: normalizarItemAgenda() de una consulta. estadoConsulta: salida de
+// estadoConsultaInicial() de más abajo, en español, tal cual va al mensaje.
+export function construirTextoAvisoDuenaConsulta(item, estadoConsultaTexto) {
+  const fecha = item.fecha || "fecha a confirmar";
+  const hora = item.hora ? `${item.hora} hs` : "horario a confirmar";
+  return `📅 Consulta inicial de ${item.nombre || "Paciente"}.\nFecha: ${fecha}, ${hora}.\nEstado: ${estadoConsultaTexto}.`;
+}
+
+// Los otros tipos de movimiento (confirmación de turno común, turno a
+// revisar, recomendación) no tienen plantilla propia en el pedido — se
+// arma un aviso genérico breve con los mismos datos que ya muestra la
+// tarjeta, para no dejar esas categorías sin la acción "Avisar a la dueña".
+export function construirTextoAvisoDuenaGenerico(p) {
+  const etiqueta = ETIQUETA_TIPO_PENDIENTE[p.tipo] || "Movimiento";
+  return `🔔 ${etiqueta}: ${p.nombre || "Paciente"}.\n${p.motivo || ""}`.trim();
+}
+
+// Estados de Consultas iniciales (punto 1 del pedido): tres pasos propios,
+// distintos del estado de contacto genérico — nunca infiere "confirmada"
+// por el paso del tiempo, solo por el campo estadoBruto real del documento
+// (mismo criterio que estadoTemporalTurno: no inventar realización).
+export const ESTADO_CONSULTA_CANCELADA = "cancelada";
+export const ESTADO_CONSULTA_CONFIRMADA = "confirmada";
+export const ESTADO_CONSULTA_ESPERANDO = "esperando_respuesta";
+export const ESTADO_CONSULTA_PENDIENTE_ENVIO = "pendiente_enviar_confirmacion";
+
+export function estadoConsultaInicial(item, contactoDoc) {
+  const bruto = (item.estadoBruto || "").toLowerCase();
+  if (bruto === "cancelada" || bruto === "cancelado") return ESTADO_CONSULTA_CANCELADA;
+  if (bruto === "confirmada") return ESTADO_CONSULTA_CONFIRMADA;
+  const estContacto = estadoContacto(contactoDoc);
+  if (estContacto === "preparado" || estContacto === "enviado") return ESTADO_CONSULTA_ESPERANDO;
+  return ESTADO_CONSULTA_PENDIENTE_ENVIO;
+}
+
+export function etiquetaEstadoConsultaInicial(estado) {
+  switch (estado) {
+    case ESTADO_CONSULTA_CANCELADA: return "Cancelada";
+    case ESTADO_CONSULTA_CONFIRMADA: return "Consulta confirmada";
+    case ESTADO_CONSULTA_ESPERANDO: return "Confirmación enviada, esperando respuesta";
+    default: return "Pendiente de enviar confirmación";
+  }
+}
+
+// Cumpleaños de los próximos N días (sección Cumpleaños, "Próximos 7
+// días") — se calcula del lado del cliente sobre clientesPorDni, que ya se
+// carga completo al iniciar sesión (mismo mapa que usa el fallback de
+// teléfono), sin ninguna consulta nueva a Firestore. Compara solo mes/día
+// de fechaNacimiento ("YYYY-MM-DD", siempre string en este proyecto — ver
+// nota en admin.html) contra cada uno de los próximos `dias` días — nunca
+// incluye HOY (eso ya lo cubre resumenesCumpleanos/{hoy}, que además sabe
+// distinguir "no se pudo calcular" de "no hay"). 29/02 en año no bisiesto
+// simplemente no matchea ningún MM-DD real de ese año — comportamiento
+// esperado, no un bug a corregir acá.
+export function cumpleanosProximos(clientesPorDni, hoyISO, dias = 7) {
+  const objetivo = new Map(); // "MM-DD" -> fechaISO del próximo match
+  for (let i = 1; i <= dias; i++) {
+    const iso = sumarDiasISO(hoyISO, i);
+    objetivo.set(iso.slice(5), iso);
+  }
+  const resultado = [];
+  for (const [clientId, data] of Object.entries(clientesPorDni || {})) {
+    const fn = (data?.fechaNacimiento || "").toString().trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fn)) continue;
+    const mmdd = fn.slice(5);
+    if (!objetivo.has(mmdd)) continue;
+    const nombre = data.fullName || data.fullLname || data.nombre || data.name || "Paciente";
+    resultado.push({ clientId, nombre, fecha: objetivo.get(mmdd) });
+  }
+  return resultado.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.nombre.localeCompare(b.nombre));
+}
+
+// "Compartir resumen del día" (punto 4): separa categorías, cuenta solo lo
+// vigente (ya filtrado afuera por pendientesVigentes). No repite el listado
+// completo de cumpleaños/kits/consultas — para eso están sus propias
+// secciones; el resumen es un conteo accionable, como pide el punto 1.
+export function construirTextoResumenDia(conteo, fechaLegible) {
+  const partes = [];
+  if (conteo.cumpleanos) partes.push(`🎂 ${conteo.cumpleanos} cumpleaños por saludar`);
+  if (conteo.confirmacion_turno) partes.push(`📅 ${conteo.confirmacion_turno} turnos/consultas por confirmar`);
+  if (conteo.kit_pendiente) partes.push(`🛍️ ${conteo.kit_pendiente} pedidos de kit por atender`);
+  if (conteo.revisar_turno) partes.push(`🔎 ${conteo.revisar_turno} turnos a revisar`);
+  if (conteo.recomendacion) partes.push(`💡 ${conteo.recomendacion} recomendaciones pendientes`);
+  const cuerpo = partes.length ? partes.map((p) => `• ${p}`).join("\n") : "Sin pendientes accionables en este momento.";
+  return `📋 Resumen del día — ${fechaLegible}\n\n${cuerpo}\n\n*Espacio Mimar T*`;
+}
