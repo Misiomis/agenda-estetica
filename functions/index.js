@@ -1,4 +1,4 @@
-const { onRequest } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
@@ -979,3 +979,194 @@ exports.recordatorioPendientesHoraria = onSchedule(
         }
     }
 );
+
+// ══════════════════════════════════════════════════════════════════════
+// TEMPORAL — exportarContactosAdmin (solo lectura)
+// ══════════════════════════════════════════════════════════════════════
+// Se agrega a pedido puntual para exportar nombres y teléfonos reales a un
+// archivo que la administradora pueda importar a su agenda/WhatsApp. Se
+// ejecuta del lado del servidor (Admin SDK, sin las restricciones de
+// lectura masiva de un cliente) y SOLO puede dispararla la cuenta admin
+// (mismo criterio que esAdmin() en firestore.rules). No escribe, actualiza
+// ni borra ningún documento — únicamente lee y arma la respuesta.
+// Se retira de este archivo (y de Cloud Functions, con
+// `firebase functions:delete exportarContactosAdmin`) apenas se usa.
+const ADMIN_EMAIL_EXPORT = "espaciomimart36@gmail.com";
+const COLECCIONES_EXPORT = [
+    "reservas", "consultas", "pedidosKit", "historias", "reservasDepi",
+    "control_consultas_iniciales", "cursoMaquillaje", "pacientesDoctora",
+    "turnosDoctora", "recomendacionesInteligente",
+];
+const CAMPOS_TELEFONO_EXPORT = new Set([
+    "telefono", "telefonos", "phone", "phones", "phonewa", "whatsapp",
+    "celular", "cel", "tel", "telefonocontacto", "telefonoalternativo",
+    "telefonofamiliar", "telefonoemergencia",
+]);
+const CAMPOS_NOMBRE_EXPORT = ["fullname", "fulllname", "nombre", "nombrelimpio", "nombrepaciente", "paciente", "clientenombre", "name"];
+const CAMPOS_DNI_EXPORT = ["dni", "clientedni", "documento"];
+
+function normClaveExport(k) { return k.toLowerCase().replace(/[^a-z]/g, ""); }
+
+function extraerTelefonosExport(obj, rutaBase = "") {
+    const hallazgos = [];
+    function recorrer(nodo, ruta) {
+        if (nodo == null) return;
+        if (Array.isArray(nodo)) { nodo.forEach((it, i) => recorrer(it, `${ruta}[${i}]`)); return; }
+        if (typeof nodo === "object") {
+            if (typeof nodo.toDate === "function" || typeof nodo._seconds === "number") return;
+            for (const [clave, valor] of Object.entries(nodo)) {
+                const rutaHija = ruta ? `${ruta}.${clave}` : clave;
+                if (CAMPOS_TELEFONO_EXPORT.has(normClaveExport(clave)) && (typeof valor === "string" || typeof valor === "number")) {
+                    const texto = String(valor).trim();
+                    if (texto) hallazgos.push({ valor: texto, campoOrigen: rutaHija });
+                } else if (typeof valor === "object") {
+                    recorrer(valor, rutaHija);
+                }
+            }
+        }
+    }
+    recorrer(obj, rutaBase);
+    return hallazgos;
+}
+
+function buscarCampoExport(data, listaCampos) {
+    for (const campo of listaCampos) {
+        const real = Object.keys(data).find((k) => normClaveExport(k) === campo);
+        if (real && data[real] && String(data[real]).trim()) return String(data[real]).trim();
+    }
+    return null;
+}
+
+function normalizarTelefonoARExport(crudo) {
+    let d = String(crudo || "").replace(/[^\d]/g, "");
+    if (!d) return { normalizado: null, motivo: "sin_digitos" };
+    if (d.startsWith("549") && d.length === 13) return { normalizado: "+" + d, motivo: null };
+    if (d.startsWith("54") && !d.startsWith("549") && d.length === 12) return { normalizado: "+549" + d.slice(2), motivo: null };
+    let limpio = d;
+    if (limpio.startsWith("0")) limpio = limpio.slice(1);
+    const sin15 = limpio.replace(/15(?=\d{6,7}$)/, "");
+    if (sin15.length === 10) limpio = sin15;
+    if (limpio.length === 10 && /^\d{10}$/.test(limpio)) return { normalizado: "+549" + limpio, motivo: null };
+    if (limpio.length === 11 && limpio.startsWith("9")) return { normalizado: "+54" + limpio, motivo: null };
+    return { normalizado: null, motivo: `longitud_ambigua(${d.length}_digitos)` };
+}
+
+function esDniOImporteExport(valor) {
+    const d = String(valor).replace(/[^\d]/g, "");
+    return d.length >= 7 && d.length <= 8 && !/^0|^15|^9/.test(d);
+}
+
+async function leerColeccionCompletaExport(nombreColeccion, errores) {
+    const docs = [];
+    let ultimoCursor = null;
+    try {
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            let q = db.collection(nombreColeccion).orderBy(admin.firestore.FieldPath.documentId()).limit(500);
+            if (ultimoCursor) q = q.startAfter(ultimoCursor);
+            const snap = await q.get();
+            if (snap.empty) break;
+            snap.docs.forEach((d) => docs.push(d));
+            ultimoCursor = snap.docs[snap.docs.length - 1].id;
+            if (snap.docs.length < 500) break;
+        }
+    } catch (e) {
+        errores.push({ coleccion: nombreColeccion, error: e.message || String(e) });
+    }
+    return docs;
+}
+
+exports.exportarContactosAdmin = onCall({ timeoutSeconds: 300, memory: "512MiB" }, async (request) => {
+    const email = request.auth?.token?.email || "";
+    if (email !== ADMIN_EMAIL_EXPORT) {
+        throw new HttpsError("permission-denied", "Solo la cuenta admin puede exportar contactos.");
+    }
+
+    const errores = [];
+    const registros = [];
+    const porRevisar = [];
+    let docsRevisados = 0;
+    const coleccionesRecorridas = [];
+
+    const clientDocs = await leerColeccionCompletaExport("clients", errores);
+    const clientesPorDni = {};
+    clientDocs.forEach((d) => { clientesPorDni[d.id] = d.data(); });
+    coleccionesRecorridas.push({ coleccion: "clients", documentos: clientDocs.length });
+    docsRevisados += clientDocs.length;
+
+    for (const coleccion of COLECCIONES_EXPORT) {
+        const docs = await leerColeccionCompletaExport(coleccion, errores);
+        coleccionesRecorridas.push({ coleccion, documentos: docs.length });
+        docsRevisados += docs.length;
+
+        for (const docSnap of docs) {
+            const data = docSnap.data() || {};
+            const ruta = `${coleccion}/${docSnap.id}`;
+            const telefonos = extraerTelefonosExport(data);
+            if (!telefonos.length) continue;
+
+            let nombre = buscarCampoExport(data, CAMPOS_NOMBRE_EXPORT);
+            let nombreOrigen = nombre ? "documento_propio" : null;
+            const dni = buscarCampoExport(data, CAMPOS_DNI_EXPORT);
+            if (!nombre && dni && clientesPorDni[dni]) {
+                const cliente = clientesPorDni[dni];
+                nombre = cliente.fullName || cliente.fullLname || cliente.nombre || cliente.name || null;
+                if (nombre) nombreOrigen = `resuelto_por_dni(clients/${dni})`;
+            }
+
+            for (const { valor, campoOrigen } of telefonos) {
+                const ambiguo = esDniOImporteExport(valor);
+                const { normalizado, motivo } = normalizarTelefonoARExport(valor);
+                const registro = {
+                    nombre_registrado: nombre, nombre_origen: nombreOrigen,
+                    telefono_original: valor, telefono_normalizado: ambiguo ? null : normalizado,
+                    titular_dni: dni || null, documento: ruta, campo_origen: campoOrigen,
+                    observaciones: [],
+                };
+                if (!nombre) registro.observaciones.push("Sin nombre registrado ni resoluble por DNI.");
+                if (ambiguo) registro.observaciones.push("Longitud típica de DNI (7-8 dígitos) sin prefijo — ambiguo.");
+                else if (motivo) registro.observaciones.push(`No se pudo normalizar con certeza: ${motivo}.`);
+                registros.push(registro);
+                if (!nombre || !registro.telefono_normalizado) porRevisar.push({ ...registro });
+            }
+        }
+    }
+
+    const telefonosUnicos = new Set(registros.filter((r) => r.telefono_normalizado).map((r) => r.telefono_normalizado));
+
+    const porPersona = new Map();
+    for (const r of registros) {
+        if (!r.telefono_normalizado) continue;
+        const nombre = r.nombre_registrado || `Sin nombre registrado - ${r.telefono_normalizado}`;
+        const clave = r.nombre_registrado ? `${r.nombre_registrado}|${r.titular_dni || ""}` : `sinnombre|${r.telefono_normalizado}`;
+        if (!porPersona.has(clave)) porPersona.set(clave, { nombre, telefonos: new Set() });
+        porPersona.get(clave).telefonos.add(r.telefono_normalizado);
+    }
+    const escaparVcf = (s) => String(s).replace(/\\/g, "\\\\").replace(/,/g, "\\,").replace(/;/g, "\\;").replace(/\n/g, "\\n");
+    let vcf = "";
+    for (const { nombre, telefonos } of porPersona.values()) {
+        vcf += "BEGIN:VCARD\r\nVERSION:3.0\r\n";
+        vcf += `FN:${escaparVcf(nombre)}\r\n`;
+        vcf += `N:${escaparVcf(nombre)};;;;\r\n`;
+        for (const tel of telefonos) vcf += `TEL;TYPE=CELL:${tel}\r\n`;
+        vcf += "END:VCARD\r\n";
+    }
+
+    logger.info("exportarContactosAdmin: ejecutada", { por: email, docsRevisados, telefonos: registros.length, errores: errores.length });
+
+    return {
+        fecha_exportacion: new Date().toISOString(),
+        proyecto_firebase: "estetica-8d067",
+        base: "Cloud Firestore (default)",
+        colecciones_recorridas: coleccionesRecorridas,
+        total_documentos_revisados: docsRevisados,
+        total_telefonos_encontrados: registros.length,
+        total_telefonos_unicos_normalizados: telefonosUnicos.size,
+        errores,
+        exportacion_completa: errores.length === 0,
+        registros,
+        por_revisar: porRevisar,
+        vcf,
+        contactos_vcf: porPersona.size,
+    };
+});
