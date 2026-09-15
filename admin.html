@@ -21,23 +21,23 @@
                se conservan como alias porque cientos de reglas ya los usan —
                cambiarles el nombre habría forzado a tocar cada una sin
                necesidad. Ver contraste verificado en los comentarios. */
-            --bg: #F6F3EC;              /* fondo marfil cálido */
-            --surface: #FFFDFC;         /* superficie: tarjetas, inputs, modales */
-            --surface-2: #F1EDE3;       /* superficie secundaria (hover, franjas) */
-            --ink: #24332B;             /* texto principal — 12.3:1 sobre --bg */
-            --ink-soft: #55645A;        /* texto secundario — 5.1:1 sobre --bg */
-            --forest: #163D32;          /* verde bosque — identidad, botones primarios */
-            --forest-deep: #0E2822;
-            --forest-soft: #E7EEE9;     /* fondo tenue con tinte bosque */
+            --bg: #F6F4ED;              /* fondo general (marfil) */
+            --surface: #FFFFFF;         /* paneles, modales y campos */
+            --surface-2: #F1EEE6;       /* superficie secundaria (hover, franjas) */
+            --ink: #20382B;             /* texto principal y títulos — 11.5:1 sobre --bg */
+            --ink-soft: #526358;        /* texto secundario, etiquetas, placeholders — 5.8:1 sobre --bg */
+            --forest: #2D4A32;          /* botón principal y navegación activa — 8.9:1 sobre --bg, 9.8:1 con texto blanco */
+            --forest-deep: #223B28;     /* hover del botón principal */
+            --forest-soft: #E6EBE4;     /* fondo tenue con tinte bosque */
             --sage: #759981;            /* verde salvia — SOLO bordes/acentos/iconos, NO texto pequeño (2.9:1) */
             --sage-ink: #4C6759;        /* versión de salvia apta para texto — 5.3:1 sobre --bg */
             --sage-soft: #E9EFEA;
-            --border: #DADFD6;          /* bordes suaves */
-            --border-strong: #C3CBBE;
+            --border: #D8DFD7;          /* separadores decorativos (bajo contraste, no llevan función) */
+            --border-strong: #7C8D81;   /* bordes necesarios para reconocer controles (inputs, selects) — 3.2–3.5:1 */
             --gold: #8A6A22;            /* dorado terroso, con contraste real sobre marfil (5.2:1) */
             --gold-soft: #F3ECD9;
-            --danger: #A5433A;
-            --danger-soft: #F7E9E6;
+            --danger: #AD2E2E;          /* errores sobre fondo claro — 6.0:1 sobre --bg, 6.6:1 sobre blanco */
+            --danger-soft: #F8E7E6;
             --warning: #8A6614;
             --warning-soft: #F5EEDA;
             --info: #3D5C86;
@@ -68,6 +68,14 @@
             --shadow-lg: 0 14px 34px rgba(22,61,50,0.14);
             --sidebar-w: 232px;
             --topbar-h: 60px;
+
+            /* El panel nunca tuvo tema oscuro real, pero al no declarar
+               color-scheme el navegador aplica su propio dark-mode nativo
+               a los controles de formulario (selects, inputs de fecha/hora,
+               spinners) cuando el SO/navegador está en modo oscuro — quedan
+               oscuros por fuera aunque el resto de la página sea clara.
+               Se fija en claro explícitamente en todo el documento. */
+            color-scheme: light;
         }
         /* Selector de tema (Configuración) — se conserva la función y el guardado
            persistido; las 3 opciones ahora son variaciones claras dentro de la
@@ -195,7 +203,6 @@
                 color: #8B968A; padding: 0 var(--sp-2); margin-bottom: 6px; display: block;
             }
             .sidebar nav.hdr-primary-nav, .sidebar-group-items { display: flex; flex-direction: column; gap: 2px; }
-            main.container, .container { margin-left: var(--sidebar-w); }
         }
         .sidebar .btn-nav, .sidebar-search.btn-nav {
             display: flex; align-items: center; gap: 10px;
@@ -255,6 +262,13 @@
         .mode-toggle:hover { background: var(--surface-2); }
 
         .container { max-width: 1180px; margin: 0 auto; padding: var(--sp-5) var(--sp-4) 60px; }
+        /* Va DESPUÉS de la regla base de arriba a propósito: misma especificidad
+           (0,1,0) que ".container", así que si quedara antes, "margin: 0 auto"
+           pisaría este margin-left en la cascada y el sidebar fijo taparía el
+           comienzo del contenido (Grilla, columna de horarios) en escritorio. */
+        @media (min-width: 769px) {
+            .container { margin-left: var(--sidebar-w); }
+        }
         .section { display: none; }
         .section.active { display: block; }
 
@@ -270,20 +284,21 @@
         .kpi-value { font-size: clamp(1.4rem, 2.2vw, 1.9rem); font-weight: 800; color: var(--forest); margin-top: 6px; line-height: 1; }
         .quick-actions { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
         .btn-mini {
-            border: 1px solid var(--border); background: var(--surface); color: var(--forest);
-            border-radius: 999px; padding: 9px 16px; min-height: 40px; cursor: pointer;
+            border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--forest);
+            border-radius: 999px; padding: 9px 16px; min-height: 44px; cursor: pointer;
             font-weight: 700; font-size: 12.5px; transition: background 0.15s, border-color 0.15s;
         }
         .btn-mini:hover { background: var(--sage-soft); border-color: var(--sage); }
         .btn-mini:active { filter: brightness(0.97); }
+        .btn-mini:disabled, .btn-mini-primary:disabled { opacity: 0.55; cursor: not-allowed; filter: none; }
         .btn-mini.alerta { border-color: #DEB9B5; color: var(--danger); background: var(--danger-soft); }
         .btn-mini.alerta:hover { background: #F3D9D5; border-color: var(--danger); }
         .cliente-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); margin-top: var(--sp-2); }
         .cliente-form-grid .full { grid-column: span 2; }
-        .field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--sage-ink); margin-bottom: 5px; letter-spacing: 0.02em; }
+        .field label { display: block; font-size: 14px; font-weight: 700; color: var(--ink-soft); margin-bottom: 5px; letter-spacing: 0.02em; }
         .field-opcional { font-weight: 500; color: var(--ink-soft); text-transform: none; letter-spacing: 0; }
         .btn-mini-primary { background: var(--forest); border-color: var(--forest); color: #fff; }
-        .btn-mini-primary:hover { filter: brightness(1.1); background: var(--forest); }
+        .btn-mini-primary:hover { background: var(--forest-deep); border-color: var(--forest-deep); }
         .cliente-form-details { margin-top: 8px; }
         .cliente-form-summary {
             display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none;
@@ -355,31 +370,33 @@
         .mreg-subtitle { text-align: center; font-size: 12px; color: var(--ink-soft); font-weight: 700; letter-spacing: 0.04em; margin: 0 0 20px; }
         .mreg-field-label { font-size: 11px; font-weight: 800; color: var(--sage-ink); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; display: block; }
         .mreg-input {
-            width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--r-md);
-            font-family: inherit; font-size: 14px; font-weight: 600; color: var(--ink); background: var(--bg);
+            width: 100%; padding: 12px 14px; border: 1.5px solid var(--border-strong); border-radius: var(--r-md);
+            font-family: inherit; font-size: 16px; font-weight: 600; color: var(--ink); background: var(--surface);
             outline: none; box-sizing: border-box; transition: border-color 0.15s, box-shadow 0.15s; margin-bottom: 14px;
+            min-height: 44px;
         }
         .mreg-input:focus { border-color: var(--forest); box-shadow: 0 0 0 3px var(--forest-soft); }
         .mreg-select {
-            width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--r-md);
-            font-family: inherit; font-size: 14px; font-weight: 600; color: var(--ink); background: var(--bg);
+            width: 100%; padding: 12px 14px; border: 1.5px solid var(--border-strong); border-radius: var(--r-md);
+            font-family: inherit; font-size: 16px; font-weight: 600; color: var(--ink); background: var(--surface);
             outline: none; box-sizing: border-box; cursor: pointer; margin-bottom: 14px; appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23163D32' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%232D4A32' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
             background-repeat: no-repeat; background-position: right 14px center;
+            min-height: 44px;
         }
         .mreg-select:focus { border-color: var(--forest); box-shadow: 0 0 0 3px var(--forest-soft); }
         .mreg-chips-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px; max-height: 148px; overflow-y: auto; padding: 2px 1px; }
         .mreg-chip {
-            padding: 7px 13px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--bg);
+            padding: 7px 13px; border-radius: 999px; border: 1.5px solid var(--border-strong); background: var(--surface);
             color: var(--ink-soft); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s;
-            white-space: nowrap; user-select: none; font-family: inherit;
+            white-space: nowrap; user-select: none; font-family: inherit; min-height: 32px;
         }
         .mreg-chip:hover { border-color: var(--sage); background: var(--sage-soft); color: var(--forest); }
         .mreg-chip.activo { border-color: var(--forest); background: var(--forest); color: #fff; }
         .mreg-resultados { min-height: 0; margin-bottom: 14px; }
         .mreg-paciente-item {
             display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: var(--r-md);
-            border: 1.5px solid var(--border); background: var(--bg); cursor: pointer;
+            border: 1.5px solid var(--border-strong); background: var(--surface); cursor: pointer;
             transition: border-color 0.15s, background 0.15s; margin-bottom: 8px;
         }
         .mreg-paciente-item:hover { border-color: var(--sage); background: var(--sage-soft); }
@@ -435,8 +452,15 @@
         #modal-precio-kit-card .mpk-btn-save:hover { filter: brightness(1.1); }
 
         .filtros-advanced { display: grid; grid-template-columns: minmax(190px, 1.2fr) repeat(3, minmax(110px, 1fr)) auto; gap: 8px; margin-bottom: 10px; align-items: center; }
-        .select-input { width: 100%; min-height: 42px; padding: 10px 12px; border-radius: var(--r-md); border: 1px solid var(--border); box-sizing: border-box; outline: none; background: var(--surface); color: var(--ink); transition: border-color 0.15s, box-shadow 0.15s; }
+        .select-input { width: 100%; min-height: 44px; padding: 10px 12px; border-radius: var(--r-md); border: 1.5px solid var(--border-strong); box-sizing: border-box; outline: none; background: var(--surface); color: var(--ink); font-size: 16px; transition: border-color 0.15s, box-shadow 0.15s; }
         .select-input:focus { border-color: var(--forest); box-shadow: 0 0 0 3px var(--forest-soft); }
+        .select-input:disabled { background: var(--surface-2); color: var(--ink-soft); border-color: var(--border); cursor: not-allowed; opacity: 0.8; }
+        /* Error: no depende solo del color — también engrosa el borde, para
+           quien no distingue bien el rojo del resto de los bordes. */
+        .select-input.input-error { border-color: var(--danger); border-width: 2px; }
+        .select-input.input-error:focus { box-shadow: 0 0 0 3px var(--danger-soft); }
+        .field-error-msg { display: none; font-size: 12px; color: var(--danger); font-weight: 700; margin-top: 4px; }
+        .field.has-error .field-error-msg { display: block; }
         .result-summary { font-size: 12px; color: var(--ink-soft); font-weight: 700; margin: 6px 0 10px; }
         .empty-state { text-align: center; background: var(--surface); border: 1px dashed var(--border-strong); color: var(--ink-soft); border-radius: var(--r-lg); padding: 22px 14px; margin-top: 10px; }
         .loader-overlay { position: fixed; inset: 0; background: rgba(246,243,236,0.85); z-index: 99998; display: flex; align-items: center; justify-content: center; }
@@ -721,12 +745,18 @@
         .grilla-row-15 .grilla-td-hora { color: #A9B3A6; font-size: 9.5px; }
         .grilla-row-15 .grilla-td-box { height: 32px; }
         .grilla-celda-libre { display: flex; align-items: center; height: 100%; border-radius: 7px; overflow: hidden; }
-        .gcl-reg { flex: 1; display: flex; align-items: center; justify-content: center; height: 100%; cursor: pointer; font-size: 19px; font-weight: 300; color: #B9C2B5; transition: background .15s, color .15s; }
-        .gcl-reg:hover { background: var(--sage-soft); color: var(--forest); }
+        .gcl-reg { flex: 1; display: flex; align-items: center; justify-content: center; height: 100%; cursor: pointer; font-size: 19px; font-weight: 600; color: var(--ink-soft); transition: background .15s, color .15s; }
+        .gcl-reg:hover, .gcl-reg:focus-visible { background: var(--sage-soft); color: var(--forest); }
+        .gcl-reg:focus-visible { outline: 2px solid var(--forest); outline-offset: -2px; }
         .gcl-blk { display: flex; align-items: center; justify-content: center; width: 20px; height: 100%; cursor: pointer; font-size: 10px; color: transparent; transition: background .15s, color .15s; }
-        .gcl-blk:hover { background: var(--warning-soft); color: var(--warning); }
-        .grilla-celda-ocupada { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 3px 7px; height: 100%; border-radius: 7px; background: var(--sage-soft); border: 1px solid var(--sage); cursor: pointer; overflow: hidden; }
-        .grilla-celda-ocupada:hover { background: #DCE7DF; }
+        .gcl-blk:hover, .gcl-blk:focus-visible { background: var(--warning-soft); color: var(--warning); }
+        .gcl-blk:focus-visible { outline: 2px solid var(--warning); outline-offset: -2px; }
+        /* Turno: tarjeta blanca + franja de color del box (var(--box-accent),
+           inyectada inline por celda) — se distingue de una celda vacía a
+           simple vista, y el color de acento queda concentrado en esa franja,
+           no repetido en cada celda libre. */
+        .grilla-celda-ocupada { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 3px 7px 3px 9px; height: 100%; border-radius: 7px; background: var(--surface); border: 1px solid var(--border-strong); border-left: 3px solid var(--box-accent, var(--sage)); cursor: pointer; overflow: hidden; }
+        .grilla-celda-ocupada:hover { background: var(--sage-soft); }
         .grilla-paciente-nombre { font-size: 11px; font-weight: 700; color: var(--forest); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .grilla-paciente-servicio { font-size: 9px; color: var(--sage-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .gc-sigue, .gc-ya-sede { display: block; margin-top: 3px; font-size: 8px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--gold); line-height: 1.2; }
@@ -1355,10 +1385,10 @@
                         <thead>
                             <tr>
                                 <th class="grilla-th-hora">Hora</th>
-                                <th class="grilla-th-box" style="background:rgba(200,140,220,0.12)"><span class="gth-full">⬜ Box 1<span class="grilla-box-sub">General</span></span><span class="gth-short">⬜ B1</span></th>
-                                <th class="grilla-th-box" style="background:rgba(59,130,246,0.14)"><span class="gth-full">💎 Box 2<span class="grilla-box-sub">Corporal</span></span><span class="gth-short">💎 B2</span></th>
-                                <th class="grilla-th-box" style="background:rgba(167,139,250,0.14)"><span class="gth-full">✨ Box 3<span class="grilla-box-sub">Facial</span></span><span class="gth-short">✨ B3</span></th>
-                                <th class="grilla-th-box" style="background:rgba(52,211,153,0.12)"><span class="gth-full">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></span><span class="gth-short">🌿 B4</span></th>
+                                <th class="grilla-th-box" style="background:#F7EDF6;border-bottom:3px solid #844578"><span class="gth-full">⬜ Box 1<span class="grilla-box-sub">General</span></span><span class="gth-short">⬜ B1</span></th>
+                                <th class="grilla-th-box" style="background:#EAF2FC;border-bottom:3px solid #315E95"><span class="gth-full">💎 Box 2<span class="grilla-box-sub">Corporal</span></span><span class="gth-short">💎 B2</span></th>
+                                <th class="grilla-th-box" style="background:#F0ECFA;border-bottom:3px solid #665096"><span class="gth-full">✨ Box 3<span class="grilla-box-sub">Facial</span></span><span class="gth-short">✨ B3</span></th>
+                                <th class="grilla-th-box" style="background:#E8F5EE;border-bottom:3px solid #2F7050"><span class="gth-full">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></span><span class="gth-short">🌿 B4</span></th>
                             </tr>
                         </thead>
                         <tbody id="grilla-tbody">
@@ -1535,7 +1565,7 @@
                         <div style="margin-bottom:10px;">
                             <label style="display:block;font-size:12px;font-weight:700;color:rgba(22,61,50,0.88);margin-bottom:5px;">Nombre de usuario</label>
                             <div style="position:relative;">
-                                <input type="text" id="kitAdminBusqueda" placeholder="Escribí el nombre del paciente..." autocomplete="off" oninput="buscarPacienteKitAdmin(this.value)" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;">
+                                <input type="text" id="kitAdminBusqueda" placeholder="Escribí el nombre del paciente..." autocomplete="off" oninput="buscarPacienteKitAdmin(this.value)" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;">
                                 <div id="kitAdminSugerencias" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:#132018;border:1px solid rgba(114,189,153,0.30);border-top:none;border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,0.35);"></div>
                             </div>
                         </div>
@@ -1598,11 +1628,11 @@
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
                         <div>
                             <label style="display:block;font-size:11px;font-weight:700;color:rgba(22,61,50,0.88);margin-bottom:5px;letter-spacing:.06em;">DESDE</label>
-                            <input type="date" id="expDepiDesde" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;">
+                            <input type="date" id="expDepiDesde" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;">
                         </div>
                         <div>
                             <label style="display:block;font-size:11px;font-weight:700;color:rgba(22,61,50,0.88);margin-bottom:5px;letter-spacing:.06em;">HASTA</label>
-                            <input type="date" id="expDepiHasta" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;">
+                            <input type="date" id="expDepiHasta" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;">
                         </div>
                     </div>
                     <div style="margin-bottom:14px;">
@@ -1624,11 +1654,11 @@
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
                         <div>
                             <label style="display:block;font-size:12px;font-weight:700;color:rgba(22,61,50,0.88);margin-bottom:5px;">Desde</label>
-                            <input type="month" id="exportDesde" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;">
+                            <input type="month" id="exportDesde" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;">
                         </div>
                         <div>
                             <label style="display:block;font-size:12px;font-weight:700;color:rgba(22,61,50,0.88);margin-bottom:5px;">Hasta</label>
-                            <input type="month" id="exportHasta" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;">
+                            <input type="month" id="exportHasta" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;">
                         </div>
                     </div>
                     <button class="btn-export-main" id="btnExportReservasPdf" onclick="exportarReservasPDF()">Descargar reservas (.pdf)</button>
@@ -1690,7 +1720,7 @@
                 <div class="detalle-dia-card">
                     <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.25em;">📢 Anuncio para pacientes</h3>
                     <p style="font-size:13px;margin:0 0 12px;">Aparece como banner en la parte superior de la página de turnos. Ideal para promos, avisos o fechas especiales.</p>
-                    <textarea id="anuncioTexto" placeholder="Ej: ¡Junio con 20% de descuento en sesiones corporales! Reservá ahora." style="width:100%;box-sizing:border-box;min-height:72px;padding:12px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);resize:vertical;background:var(--surface-2);outline:none;margin-bottom:12px;"></textarea>
+                    <textarea id="anuncioTexto" placeholder="Ej: ¡Junio con 20% de descuento en sesiones corporales! Reservá ahora." style="width:100%;box-sizing:border-box;min-height:72px;padding:12px;border:1.5px solid var(--border-strong);border-radius:12px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);resize:vertical;background:var(--surface-2);outline:none;margin-bottom:12px;"></textarea>
                     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                         <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;cursor:pointer;">
                             <input type="checkbox" id="anuncioActivo" style="width:18px;height:18px;accent-color:#4ea37f;cursor:pointer;">
@@ -1708,7 +1738,7 @@
                     <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
                         <div style="flex:1;min-width:180px;">
                             <label style="font-size:11px;font-weight:800;color:rgba(22,61,50,0.88);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;">Fecha a marcar</label>
-                            <input type="date" id="jornadaDiaInput" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;">
+                            <input type="date" id="jornadaDiaInput" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;">
                         </div>
                         <button class="btn-mini" onclick="marcarDiaJornada()" style="padding:9px 16px;white-space:nowrap;">✦ Marcar como Jornada</button>
                     </div>
@@ -1725,7 +1755,7 @@
                     <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
                         <p style="margin:0 0 10px;font-size:12px;font-weight:800;color:rgba(22,61,50,0.88);text-transform:uppercase;letter-spacing:.06em;">Mes completo</p>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="month" id="bloqueoMesInput" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;" min="2026-05">
+                            <input type="month" id="bloqueoMesInput" style="padding:9px 12px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;" min="2026-05">
                             <button class="btn-mini" onclick="bloquearMes()" style="padding:9px 16px;">Bloquear mes</button>
                         </div>
                     </div>
@@ -1736,14 +1766,14 @@
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
                             <div>
                                 <label style="font-size:11px;font-weight:700;color:rgba(22,61,50,0.72);display:block;margin-bottom:4px;">Desde</label>
-                                <input type="date" id="bloqueoDesdeDia" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;">
+                                <input type="date" id="bloqueoDesdeDia" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;">
                             </div>
                             <div>
                                 <label style="font-size:11px;font-weight:700;color:rgba(22,61,50,0.72);display:block;margin-bottom:4px;">Hasta</label>
-                                <input type="date" id="bloqueoHastaDia" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;">
+                                <input type="date" id="bloqueoHastaDia" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;">
                             </div>
                         </div>
-                        <input type="text" id="bloqueoRazonDia" placeholder="Motivo del bloqueo (ej: Vacaciones, Curso, Feria...)" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;margin-bottom:8px;">
+                        <input type="text" id="bloqueoRazonDia" placeholder="Motivo del bloqueo (ej: Vacaciones, Curso, Feria...)" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;margin-bottom:8px;">
                         <button class="btn-mini" onclick="bloquearRangoDias()" style="padding:9px 18px;">Bloquear días seleccionados</button>
                     </div>
 
@@ -1767,7 +1797,7 @@
                         </div>
                         <div>
                             <label style="font-size:11px;font-weight:800;color:rgba(22,61,50,0.88);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Mensaje de bienvenida (aparece al ingresar)</label>
-                            <textarea id="confBienvenida" placeholder="Bienvenida a Espacio Mimar T..." style="width:100%;box-sizing:border-box;min-height:60px;padding:12px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);resize:vertical;background:var(--surface-2);outline:none;"></textarea>
+                            <textarea id="confBienvenida" placeholder="Bienvenida a Espacio Mimar T..." style="width:100%;box-sizing:border-box;min-height:60px;padding:12px;border:1.5px solid var(--border-strong);border-radius:12px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);resize:vertical;background:var(--surface-2);outline:none;"></textarea>
                         </div>
                         <div>
                             <label style="font-size:11px;font-weight:800;color:rgba(22,61,50,0.88);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Número de WhatsApp (con código de país)</label>
@@ -1905,15 +1935,15 @@
                     <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:16px;">
                         <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(22,61,50,0.85);">
                             <span style="font-weight:600;">Desde:</span>
-                            <input type="time" id="calc-inicio" value="08:00" style="background:var(--surface-2);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.9);font-size:13px;outline:none;">
+                            <input type="time" id="calc-inicio" value="08:00" style="background:var(--surface-2);border:1.5px solid var(--border-strong);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.9);font-size:13px;outline:none;">
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(22,61,50,0.85);">
                             <span style="font-weight:600;">Hasta:</span>
-                            <input type="time" id="calc-fin" value="20:00" style="background:var(--surface-2);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.9);font-size:13px;outline:none;">
+                            <input type="time" id="calc-fin" value="20:00" style="background:var(--surface-2);border:1.5px solid var(--border-strong);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.9);font-size:13px;outline:none;">
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(22,61,50,0.85);">
                             <span style="font-weight:600;">Pausa entre turnos:</span>
-                            <input type="number" id="calc-pausa" value="15" min="0" step="5" style="width:64px;background:var(--surface-2);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.9);font-size:13px;outline:none;text-align:center;">
+                            <input type="number" id="calc-pausa" value="15" min="0" step="5" style="width:64px;background:var(--surface-2);border:1.5px solid var(--border-strong);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.9);font-size:13px;outline:none;text-align:center;">
                             <span style="font-size:12px;color:rgba(22,61,50,0.55);">min</span>
                         </div>
                         <button class="btn-mini" onclick="calcularCapacidadDia()" style="padding:9px 20px;">Calcular</button>
@@ -2006,27 +2036,32 @@
                 </div>
             </div><!-- /sec-control-consultas -->
 
-            <!-- Modal: Nueva Consulta Inicial -->
-            <div id="modal-nueva-consulta" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(6,22,15,0.75);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;">
-                <div style="width:100%;max-width:440px;background:linear-gradient(165deg,#0d1f14,#0a1a10);border:1px solid rgba(114,189,153,0.22);border-radius:22px;padding:28px 24px 24px;max-height:90vh;overflow-y:auto;">
+            <!-- Modal: Nueva Consulta Inicial — reutiliza .modal-overlay/.modal-card
+                 (backdrop separado del panel, panel blanco opaco) y .field/.select-input
+                 (mismo criterio que el resto de los formularios: borde visible,
+                 etiqueta >=14px, texto de campo 16px, foco visible). -->
+            <div id="modal-nueva-consulta" class="modal-overlay" style="display:none;">
+                <div class="modal-card" style="max-width:440px;max-height:90vh;overflow-y:auto;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
-                        <h3 style="margin:0;font-family:'Playfair Display',serif;font-size:1.15em;color:rgba(22,61,50,0.95);">Nueva Consulta Inicial</h3>
-                        <button onclick="cerrarNuevaConsulta()" style="background:none;border:none;color:rgba(22,61,50,0.50);cursor:pointer;font-size:20px;line-height:1;">✕</button>
+                        <h3 style="margin:0;font-family:'Playfair Display',serif;font-size:1.2em;color:var(--ink);">Nueva Consulta Inicial</h3>
+                        <button onclick="cerrarNuevaConsulta()" aria-label="Cerrar" style="background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:22px;line-height:1;width:44px;height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;border-radius:var(--r-md);flex-shrink:0;">✕</button>
                     </div>
-                    <div style="background:rgba(200,140,220,0.08);border:1px solid rgba(200,140,220,0.22);border-radius:10px;padding:8px 12px;margin-bottom:18px;font-size:12px;color:rgba(61,92,134,0.85);font-weight:700;">⬜ Box 1 · General — siempre</div>
-                    <div style="display:flex;flex-direction:column;gap:13px;">
-                        <div>
-                            <label style="display:block;font-size:11px;font-weight:700;color:rgba(22,61,50,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Nombre completo *</label>
-                            <input id="nc-nombre" type="text" placeholder="Nombre y apellido" style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(36,51,43,0.92);font-size:14px;outline:none;">
+                    <div style="background:var(--sage-soft);border:1px solid var(--border-strong);border-radius:10px;padding:10px 12px;margin-bottom:18px;font-size:13px;color:var(--ink);font-weight:700;">Box 1 · General — siempre</div>
+                    <div style="display:flex;flex-direction:column;gap:14px;">
+                        <div class="field" id="nc-nombre-field">
+                            <label for="nc-nombre">Nombre completo *</label>
+                            <input id="nc-nombre" class="select-input" type="text" placeholder="Nombre y apellido" oninput="this.classList.remove('input-error');document.getElementById('nc-nombre-field').classList.remove('has-error')">
+                            <div class="field-error-msg">El nombre es obligatorio</div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                            <div>
-                                <label style="display:block;font-size:11px;font-weight:700;color:rgba(22,61,50,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Fecha *</label>
-                                <input id="nc-fecha" type="date" style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(36,51,43,0.92);font-size:13px;outline:none;">
+                            <div class="field" id="nc-fecha-field">
+                                <label for="nc-fecha">Fecha *</label>
+                                <input id="nc-fecha" class="select-input" type="date" oninput="this.classList.remove('input-error');document.getElementById('nc-fecha-field').classList.remove('has-error')">
+                                <div class="field-error-msg">La fecha es obligatoria</div>
                             </div>
-                            <div>
-                                <label style="display:block;font-size:11px;font-weight:700;color:rgba(22,61,50,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Hora *</label>
-                                <select id="nc-hora" style="width:100%;box-sizing:border-box;background:rgba(18,35,22,0.95);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(36,51,43,0.92);font-size:13px;outline:none;">
+                            <div class="field">
+                                <label for="nc-hora">Hora *</label>
+                                <select id="nc-hora" class="select-input">
                                     <option>08:00</option><option>08:30</option><option>09:00</option><option>09:30</option>
                                     <option>10:00</option><option>10:30</option><option>11:00</option><option>11:30</option>
                                     <option>16:00</option><option>16:30</option><option>17:00</option><option>17:30</option>
@@ -2034,28 +2069,28 @@
                                 </select>
                             </div>
                         </div>
-                        <div>
-                            <label style="display:block;font-size:11px;font-weight:700;color:rgba(22,61,50,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Teléfono</label>
-                            <input id="nc-telefono" type="tel" placeholder="3757..." style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(36,51,43,0.92);font-size:14px;outline:none;">
+                        <div class="field">
+                            <label for="nc-telefono">Teléfono</label>
+                            <input id="nc-telefono" class="select-input" type="tel" placeholder="3757...">
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                            <div>
-                                <label style="display:block;font-size:11px;font-weight:700;color:rgba(22,61,50,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Edad</label>
-                                <input id="nc-edad" type="number" min="1" max="110" placeholder="35" style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(36,51,43,0.92);font-size:14px;outline:none;">
+                            <div class="field">
+                                <label for="nc-edad">Edad</label>
+                                <input id="nc-edad" class="select-input" type="number" min="1" max="110" placeholder="35">
                             </div>
-                            <div>
-                                <label style="display:block;font-size:11px;font-weight:700;color:rgba(22,61,50,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">DNI</label>
-                                <input id="nc-dni" type="text" placeholder="12345678" oninput="buscarClienteNuevaConsulta()" style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(36,51,43,0.92);font-size:14px;outline:none;">
-                                <div id="nc-dni-status" style="font-size:10.5px;margin-top:4px;color:rgba(22,61,50,0.40);min-height:14px;"></div>
+                            <div class="field">
+                                <label for="nc-dni">DNI</label>
+                                <input id="nc-dni" class="select-input" type="text" placeholder="12345678" oninput="buscarClienteNuevaConsulta()">
+                                <div id="nc-dni-status" style="font-size:12px;margin-top:4px;color:var(--ink-soft);min-height:15px;font-weight:600;"></div>
                             </div>
                         </div>
-                        <div>
-                            <label style="display:block;font-size:11px;font-weight:700;color:rgba(22,61,50,0.55);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">Barrio / Domicilio</label>
-                            <input id="nc-domicilio" type="text" placeholder="Barrio o localidad" style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid rgba(114,189,153,0.22);border-radius:10px;padding:10px 12px;color:rgba(36,51,43,0.92);font-size:14px;outline:none;">
+                        <div class="field">
+                            <label for="nc-domicilio">Barrio / Domicilio</label>
+                            <input id="nc-domicilio" class="select-input" type="text" placeholder="Barrio o localidad">
                         </div>
                         <div style="display:flex;gap:8px;margin-top:4px;">
-                            <button onclick="cerrarNuevaConsulta()" style="flex:1;padding:11px;border-radius:12px;border:1px solid rgba(114,189,153,0.20);background:var(--surface);color:rgba(22,61,50,0.70);font-weight:700;cursor:pointer;font-size:13px;">Cancelar</button>
-                            <button onclick="guardarNuevaConsulta()" style="flex:2;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,rgba(74,222,128,0.85),rgba(34,197,94,0.85));color:#0a1a0f;font-weight:800;cursor:pointer;font-size:13px;">Guardar consulta</button>
+                            <button onclick="cerrarNuevaConsulta()" class="btn-mini" style="flex:1;min-height:44px;font-size:14px;color:var(--ink);">Cancelar</button>
+                            <button onclick="guardarNuevaConsulta()" class="btn-mini btn-mini-primary" style="flex:2;min-height:44px;font-size:14px;border-radius:999px;">Guardar consulta</button>
                         </div>
                     </div>
                 </div>
@@ -2513,10 +2548,10 @@
 
         // ── Sistema de Boxes ──
         const _BOX_INFO = {
-            1: { label: 'Consultorio', color: '#166534', bg: 'rgba(74,222,128,0.16)',  bd: 'rgba(74,222,128,0.45)' },
-            2: { label: 'Corporal',    color: '#1E4E8C', bg: 'rgba(96,165,250,0.16)',  bd: 'rgba(96,165,250,0.45)' },
-            3: { label: 'Facial',      color: '#9D2A63', bg: 'rgba(244,114,182,0.16)', bd: 'rgba(244,114,182,0.45)' },
-            4: { label: 'Relax',       color: '#5B3FA0', bg: 'rgba(167,139,250,0.16)', bd: 'rgba(167,139,250,0.45)' },
+            1: { label: 'General',   color: '#844578', bg: '#F7EDF6', bd: 'rgba(132,69,120,0.45)' },
+            2: { label: 'Corporal',  color: '#315E95', bg: '#EAF2FC', bd: 'rgba(49,94,149,0.45)' },
+            3: { label: 'Facial',    color: '#665096', bg: '#F0ECFA', bd: 'rgba(102,80,150,0.45)' },
+            4: { label: 'Relax',     color: '#2F7050', bg: '#E8F5EE', bd: 'rgba(47,112,80,0.45)' },
         };
         // Devuelve qué boxes ocupa/bloquea cada servicio
         const _inferirBoxes = (servicio, tipo) => {
@@ -3358,7 +3393,7 @@
                 const _fmtF2 = (iso) => { const [y,m,d] = String(iso||'').split('-').map(Number); return d&&m&&y?`${d} de ${_MESES2[m-1]} de ${y}`:iso; };
                 const _cFecha = _fmtF2(c.fecha || f);
                 const _cEst = c.estado || 'pendiente';
-                const _cEstColor = _cEst==='confirmada'?'#4ade80':_cEst==='cancelada'?'rgba(255,100,100,0.75)':'#fbbf24';
+                const _cEstColor = _cEst==='confirmada'?'#2F6B4F':_cEst==='cancelada'?'#AD2E2E':'#8A6A22';
                 const _cEstLabel = _cEst==='confirmada'?'Confirmada':_cEst==='cancelada'?'Cancelada':'Pendiente';
                 const _cPago = c.metodoPago==='transferencia'?'Transferencia':c.metodoPago==='efectivo'?'Efectivo':(c.metodoPago||'-');
                 const _cRecId = `rec-cv-${c.id}`;
@@ -3392,7 +3427,7 @@
                     <button class="btn-save" onclick="guardarNotaConsulta('${c.id}')">Guardar nota</button>`;
                 const _html = `
                 <div class="detalle-dia-card" style="border-left:3px solid rgba(251,191,36,0.50);">
-                    <span style="display:inline-block;background:rgba(251,191,36,0.14);color:${_cEstColor};border:1px solid rgba(251,191,36,0.30);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;letter-spacing:.06em;">Consulta Inicial · ${_cEstLabel}</span><span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:rgba(200,140,220,0.12);border:1px solid rgba(200,140,220,0.28);margin-left:5px;vertical-align:middle;color:rgba(76,103,89,0.90);">⬜ Box 1 · General</span><br>
+                    <span style="display:inline-block;background:rgba(251,191,36,0.14);color:${_cEstColor};border:1px solid rgba(251,191,36,0.30);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:800;letter-spacing:.06em;">Consulta Inicial · ${_cEstLabel}</span><span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:#F7EDF6;border:1px solid rgba(132,69,120,0.35);margin-left:5px;vertical-align:middle;color:#844578;">⬜ Box 1 · General</span><br>
                     <b class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(c.nombre||'Sin nombre')}</b> - ${escapeHtml(c.hora||'--:--')} hs<br>
                     <small>Tel: ${escapeHtml(c.telefono||c.phone||'-')} · Edad: ${c.edad||'-'} · ${escapeHtml(c.domicilio||'-')}</small>
                     ${_notaDisplayC}
@@ -3570,7 +3605,7 @@
                 <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:12px;border-radius:12px;background:rgba(53,122,92,0.12);border:1px solid rgba(53,122,92,0.28);">
                     <span style="font-size:20px;">🗓️</span>
                     <div style="flex:1;font-size:12px;font-weight:700;color:rgba(22,61,50,0.95);">
-                        Sábado — Horarios :30 tarde: <span id="sab30InlineStatus" style="color:${_sabado30Activo ? '#4ade80' : '#D4AF37'}">${_sabado30Activo ? 'ACTIVADO' : 'DESACTIVADO'}</span>
+                        Sábado — Horarios :30 tarde: <span id="sab30InlineStatus" style="color:${_sabado30Activo ? '#2F6B4F' : '#8A6A22'}">${_sabado30Activo ? 'ACTIVADO' : 'DESACTIVADO'}</span>
                     </div>
                     <button class="btn-mini" onclick="toggleSabado30().then(()=>{verTurnos('${f}',document.querySelector('.day.selected'))})" style="white-space:nowrap;font-size:11px;padding:6px 12px;">${_sabado30Activo ? 'Desactivar' : 'Activar :30'}</button>
                 </div>` : '';
@@ -4193,16 +4228,16 @@
                     let tag;
                     switch (m.tipo_accion) {
                         case 'bloqueo':
-                            tag = { texto: `Bloqueó el horario de las ${escapeHtml((m.horario_afectado || '').split(/\s+/)[1] || '')}`, color: '#c98a2e', icono: '🔒' };
+                            tag = { texto: `Bloqueó el horario de las ${escapeHtml((m.horario_afectado || '').split(/\s+/)[1] || '')}`, color: '#8A6614', icono: '🔒' };
                             break;
                         case 'desbloqueo':
-                            tag = { texto: `Desbloqueó el horario de las ${escapeHtml((m.horario_afectado || '').split(/\s+/)[1] || '')}`, color: '#3f8f6f', icono: '🔓' };
+                            tag = { texto: `Desbloqueó el horario de las ${escapeHtml((m.horario_afectado || '').split(/\s+/)[1] || '')}`, color: '#2F6B4F', icono: '🔓' };
                             break;
                         case 'borrado_reserva':
-                            tag = { texto: nombrePaciente ? `Borró la reserva de ${escapeHtml(nombrePaciente)}` : 'Borró una reserva', color: '#c94040', icono: '🗑️' };
+                            tag = { texto: nombrePaciente ? `Borró la reserva de ${escapeHtml(nombrePaciente)}` : 'Borró una reserva', color: '#AD2E2E', icono: '🗑️' };
                             break;
                         case 'cancelacion_turno':
-                            tag = { texto: nombrePaciente ? `Canceló el turno de ${escapeHtml(nombrePaciente)}` : 'Canceló un turno', color: '#c94040', icono: '✖️' };
+                            tag = { texto: nombrePaciente ? `Canceló el turno de ${escapeHtml(nombrePaciente)}` : 'Canceló un turno', color: '#AD2E2E', icono: '✖️' };
                             break;
                         default:
                             tag = { texto: escapeHtml(m.tipo_accion || ''), color: '#4a7060', icono: '•' };
@@ -4504,7 +4539,7 @@
             if (!lista.length) {
                 grid.innerHTML = `<div style="font-size:12px;color:rgba(22,61,50,0.50);padding:6px 0">No hay servicios cargados. Escribí uno:<br>
                     <input type="text" placeholder="Nombre del servicio" id="${hiddenId}_txt"
-                        style="margin-top:8px;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;"
+                        style="margin-top:8px;width:100%;border:1.5px solid var(--border-strong);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;"
                         oninput="document.getElementById('${hiddenId}').value=this.value.trim()">
                 </div>`;
                 if (preseleccion) document.getElementById(hiddenId).value = preseleccion;
@@ -5159,7 +5194,7 @@
                 return;
             }
             cont.innerHTML = filtrados.map((p) => `
-                <div class="detalle-dia-card" style="margin-top:0; border-left-width:4px; border-left-color:${p.membershipActive ? '#3f8f6f' : '#8fa99d'}">
+                <div class="detalle-dia-card" style="margin-top:0; border-left-width:4px; border-left-color:${p.membershipActive ? '#2F6B4F' : '#526358'}">
                     <div class="dato-sensible-wrap">
                         <b class="dato-sensible" onclick="revelarDato(this)">${escapeHtml(p.fullName || 'Sin nombre')}</b>
                         <span class="dato-sensible-hint">👁 clic para ver</span>
@@ -7094,7 +7129,7 @@
                     if (prevConsulta.edad)      document.getElementById('nc-edad').value      = prevConsulta.edad;
                     if (prevConsulta.domicilio)  document.getElementById('nc-domicilio').value = prevConsulta.domicilio;
                 }
-                if (statusEl) statusEl.style.color = 'rgba(74,222,128,0.80)';
+                if (statusEl) statusEl.style.color = '#2F6B4F';
                 if (statusEl) statusEl.textContent = '✓ Datos autocargados';
             } catch(e) {
                 console.error(e);
@@ -7109,9 +7144,14 @@
             document.getElementById('nc-dni').value = '';
             document.getElementById('nc-domicilio').value = '';
             const st = document.getElementById('nc-dni-status');
-            if (st) { st.textContent = ''; st.style.color = 'rgba(165,205,188,0.40)'; }
+            if (st) { st.textContent = ''; st.style.color = '#526358'; }
             document.getElementById('nc-fecha').value = fechaHoyISO();
             document.getElementById('nc-hora').value = '09:00';
+            // Limpia cualquier estado de error que haya quedado de un intento anterior
+            ['nc-nombre', 'nc-fecha'].forEach(id => {
+                document.getElementById(id).classList.remove('input-error');
+                document.getElementById(id + '-field').classList.remove('has-error');
+            });
             const m = document.getElementById('modal-nueva-consulta');
             m.style.display = 'flex';
         };
@@ -7121,11 +7161,25 @@
         };
 
         window.guardarNuevaConsulta = async () => {
-            const nombre = document.getElementById('nc-nombre').value.trim();
-            const fecha  = document.getElementById('nc-fecha').value;
+            const nombreEl = document.getElementById('nc-nombre');
+            const fechaEl  = document.getElementById('nc-fecha');
+            const nombre = nombreEl.value.trim();
+            const fecha  = fechaEl.value;
             const hora   = document.getElementById('nc-hora').value;
-            if (!nombre) { mostrarAviso('El nombre es obligatorio'); return; }
-            if (!fecha)  { mostrarAviso('La fecha es obligatoria');  return; }
+            if (!nombre) {
+                nombreEl.classList.add('input-error');
+                document.getElementById('nc-nombre-field').classList.add('has-error');
+                nombreEl.focus();
+                mostrarAviso('El nombre es obligatorio');
+                return;
+            }
+            if (!fecha) {
+                fechaEl.classList.add('input-error');
+                document.getElementById('nc-fecha-field').classList.add('has-error');
+                fechaEl.focus();
+                mostrarAviso('La fecha es obligatoria');
+                return;
+            }
             const datos = {
                 nombre, fecha, hora,
                 telefono:  document.getElementById('nc-telefono').value.trim(),
@@ -7224,7 +7278,7 @@
 
             cont.innerHTML = lista.map(c => {
                 const estado = c.estado || 'pendiente';
-                const estadoColor = estado === 'confirmada' ? '#4ade80' : estado === 'cancelada' ? 'rgba(255,100,100,0.75)' : '#fbbf24';
+                const estadoColor = estado === 'confirmada' ? '#2F6B4F' : estado === 'cancelada' ? '#AD2E2E' : '#8A6A22';
                 const estadoLabel = estado === 'confirmada' ? 'Confirmada' : estado === 'cancelada' ? 'Cancelada' : 'Pendiente';
                 const pago = c.metodoPago === 'transferencia' ? 'Transferencia' : c.metodoPago === 'efectivo' ? 'Efectivo' : (c.metodoPago||'-');
                 const waPhone = normalizarWA(c.telefono||c.phone||'');
@@ -7247,7 +7301,7 @@
                 <div style="background:var(--surface);border:1px solid rgba(60,179,113,0.14);border-radius:18px;padding:18px 20px;position:relative;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
                         <span style="background:rgba(${estado==='confirmada'?'74,222,128':estado==='cancelada'?'255,100,100':'251,191,36'},0.15);border:1px solid rgba(${estado==='confirmada'?'74,222,128':estado==='cancelada'?'255,100,100':'251,191,36'},0.35);color:${estadoColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.06em;">${estadoLabel}</span>
-                        <span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:rgba(200,140,220,0.12);border:1px solid rgba(200,140,220,0.28);color:rgba(76,103,89,0.90);">⬜ Box 1</span>
+                        <span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:#F7EDF6;border:1px solid rgba(132,69,120,0.35);color:#844578;">⬜ Box 1</span>
                         <strong style="font-size:15px;color:rgba(36,51,43,0.92);flex:1;">${escapeHtml(c.nombre||'Sin nombre')}</strong>
                         <span style="font-size:12px;color:rgba(22,61,50,0.50);">DNI: ${c.dni||'-'}</span>
                     </div>
@@ -8288,7 +8342,7 @@
                 if (!btn) return;
                 const active = isJornada && t === jornadaType;
                 btn.style.background = active ? "rgba(20,184,166,0.35)" : "rgba(20,184,166,0.12)";
-                btn.style.borderColor = active ? "#14b8a6" : "rgba(20,184,166,0.4)";
+                btn.style.borderColor = active ? "#0F6D63" : "rgba(20,184,166,0.4)";
                 btn.style.boxShadow = active ? "0 0 0 2px rgba(20,184,166,0.4)" : "none";
             });
             // Actualizar barra de jornada móvil
@@ -8442,7 +8496,7 @@
 
             document.querySelectorAll('.jornada-type-btn').forEach(b => {
                 b.style.background = b.dataset.type === type ? 'rgba(20,184,166,0.25)' : 'rgba(20,184,166,0.08)';
-                b.style.borderColor = b.dataset.type === type ? '#14b8a6' : 'rgba(20,184,166,0.3)';
+                b.style.borderColor = b.dataset.type === type ? '#0F6D63' : 'rgba(20,184,166,0.3)';
             });
 
             try {
@@ -8507,7 +8561,7 @@
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
                     <span style="width:60px;font-size:12px;font-weight:700;color:rgba(22,61,50,0.70);">${b.title}</span>
                     <input id="bl-sub-${b.id}" value="${escapeHtml(b.sub)}"
-                        style="flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.92);font-size:13px;font-family:inherit;outline:none;">
+                        style="flex:1;background:var(--surface);border:1.5px solid var(--border-strong);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.92);font-size:13px;font-family:inherit;outline:none;">
                 </div>`).join('');
         };
         window.blGuardar = async () => {
@@ -8543,7 +8597,7 @@
                     <tr id="gs-row-${s.id}" style="border-top:1px solid var(--border);">
                         <td style="padding:7px 8px;min-width:130px;">
                             <input id="gs-nom-${s.id}" value="${escapeHtml(s.nombre||'')}"
-                                style="background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;color:rgba(36,51,43,0.92);font-size:13px;font-family:inherit;width:100%;box-sizing:border-box;outline:none;">
+                                style="background:var(--surface);border:1.5px solid var(--border-strong);border-radius:8px;padding:6px 10px;color:rgba(36,51,43,0.92);font-size:13px;font-family:inherit;width:100%;box-sizing:border-box;outline:none;">
                         </td>
                         <td style="padding:7px 8px;">
                             <div style="display:flex;flex-wrap:wrap;gap:6px;">
@@ -9083,12 +9137,12 @@
             cont.innerHTML = _kitProductos.map((p, i) => `
                 <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;">
                     <input type="text" value="${escapeHtml(p.nombre)}" placeholder="Nombre del producto"
-                        style="border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;"
+                        style="border:1.5px solid var(--border-strong);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;"
                         onchange="_kitProductos[${i}].nombre=this.value">
                     <div style="display:flex;align-items:center;gap:4px;">
                         <span style="font-size:12px;font-weight:700;color:rgba(22,61,50,0.88);">$</span>
                         <input type="number" value="${p.precio}" min="0" step="500" placeholder="Precio"
-                            style="width:90px;border:1.5px solid var(--border);border-radius:8px;padding:8px 8px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;"
+                            style="width:90px;border:1.5px solid var(--border-strong);border-radius:8px;padding:8px 8px;font-family:inherit;font-size:14px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;"
                             onchange="_kitProductos[${i}].precio=Number(this.value)">
                     </div>
                     <button onclick="eliminarProductoKit(${i})"
@@ -9169,24 +9223,24 @@
                 <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;">
                     <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;margin-bottom:10px;">
                         <input type="text" value="${escapeHtml(t.nombre || '')}" placeholder="Nombre del tratamiento"
-                            style="border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:14px;font-weight:700;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;width:100%;box-sizing:border-box;"
+                            style="border:1.5px solid var(--border-strong);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:14px;font-weight:700;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;width:100%;box-sizing:border-box;"
                             oninput="_tratamientos[${i}].nombre=this.value">
                         <button onclick="guardarTratamiento(${i})"
                             style="background:linear-gradient(135deg,#3f8f6f,#2f6f52);color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">💾 Guardar</button>
                     </div>
                     <div style="display:grid;grid-template-columns:80px 60px 1fr;gap:8px;margin-bottom:8px;align-items:center;">
                         <input type="text" value="${escapeHtml(t.icono || '🌿')}" placeholder="Icono"
-                            style="border:1.5px solid var(--border);border-radius:8px;padding:8px;font-family:inherit;font-size:18px;text-align:center;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;"
+                            style="border:1.5px solid var(--border-strong);border-radius:8px;padding:8px;font-family:inherit;font-size:18px;text-align:center;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;"
                             oninput="_tratamientos[${i}].icono=this.value">
                         <div style="position:relative;">
                             <input type="number" value="${t.duracion || 60}" min="5" step="5" placeholder="Min"
-                                style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;"
+                                style="width:100%;border:1.5px solid var(--border-strong);border-radius:8px;padding:8px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;"
                                 oninput="_tratamientos[${i}].duracion=Number(this.value)">
                         </div>
                         <span style="font-size:11px;opacity:0.60;">minutos</span>
                     </div>
                     <textarea placeholder="Descripción del tratamiento" rows="2"
-                        style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;resize:vertical;margin-bottom:8px;"
+                        style="width:100%;box-sizing:border-box;border:1.5px solid var(--border-strong);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;resize:vertical;margin-bottom:8px;"
                         oninput="_tratamientos[${i}].descripcion=this.value">${escapeHtml(t.descripcion || '')}</textarea>
                     <button onclick="eliminarTratamiento(${i}, '${escapeHtml(t._id || '')}')"
                         style="background:rgba(165,50,50,0.12);border:1px solid rgba(200,80,80,0.25);color:rgba(165,67,58,0.92);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700;">✕ Eliminar tratamiento</button>
@@ -9480,7 +9534,7 @@
                     <td style="padding:9px 10px;font-weight:600;color:rgba(22,61,50,0.9);font-size:13px;">${escapeHtml(s.nombre)}</td>
                     <td style="padding:9px 10px;text-align:center;">
                         <input type="number" min="5" step="5" value="${s.duracion}"
-                            style="width:78px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface-2);color:rgba(36,51,43,0.9);padding:6px 8px;font-size:13px;text-align:center;outline:none;"
+                            style="width:78px;border-radius:8px;border:1.5px solid var(--border-strong);background:var(--surface-2);color:rgba(36,51,43,0.9);padding:6px 8px;font-size:13px;text-align:center;outline:none;"
                             oninput="_calcServicios[${i}].duracion=Math.max(5,Number(this.value)||5);document.getElementById('calc-lbl-${i}').textContent=_calcFmtMin(_calcServicios[${i}].duracion)">
                     </td>
                     <td id="calc-lbl-${i}" style="padding:9px 10px;text-align:center;color:rgba(22,61,50,0.65);font-size:12px;min-width:70px;">${label}</td>
@@ -9656,11 +9710,15 @@
         // ════════════════════════════════════════════════════════════════════
         // GRILLA DE BOXES — vista principal de agenda
         // ════════════════════════════════════════════════════════════════════
+        // bg = fondo suave del box (columnas/celdas vacías) · accent = color de
+        // identificación fuerte, reservado a encabezados, franja de turnos e
+        // indicadores — no se repite como borde en cada celda vacía, para no
+        // saturar la grilla de color donde no aporta información.
         const GRILLA_BOXES = [
-            { id:'b1', num:1, label:'Box 1', title:'Box 1', sub:'General Corporal', icon:'⬜', bg:'rgba(200,140,220,0.12)', border:'rgba(200,140,220,0.28)' },
-            { id:'b2', num:2, label:'Box 2', title:'Box 2', sub:'Corporal',          icon:'💎', bg:'rgba(59,130,246,0.14)',  border:'rgba(59,130,246,0.28)' },
-            { id:'b3', num:3, label:'Box 3', title:'Box 3', sub:'Facial',            icon:'✨', bg:'rgba(167,139,250,0.16)', border:'rgba(167,139,250,0.32)' },
-            { id:'b4', num:4, label:'Box 4', title:'Box 4', sub:'Relax Corporal',    icon:'🌿', bg:'rgba(52,211,153,0.13)',  border:'rgba(52,211,153,0.26)' },
+            { id:'b1', num:1, label:'Box 1', title:'Box 1', sub:'General Corporal', icon:'⬜', bg:'#F7EDF6', border:'var(--border)', accent:'#844578' },
+            { id:'b2', num:2, label:'Box 2', title:'Box 2', sub:'Corporal',          icon:'💎', bg:'#EAF2FC', border:'var(--border)', accent:'#315E95' },
+            { id:'b3', num:3, label:'Box 3', title:'Box 3', sub:'Facial',            icon:'✨', bg:'#F0ECFA', border:'var(--border)', accent:'#665096' },
+            { id:'b4', num:4, label:'Box 4', title:'Box 4', sub:'Relax Corporal',    icon:'🌿', bg:'#E8F5EE', border:'var(--border)', accent:'#2F7050' },
         ];
         // Aplica overrides de labels guardados en Firestore (se parchean después de cargar)
         const _aplicarBoxLabels = (overrides) => {
@@ -10041,7 +10099,7 @@
                 if (lastHora && lastHora <= '13:00' && hora >= '14:00') {
                     rows.push(`<tr class="grilla-sep-row"><td colspan="${COLS}" class="grilla-sep-cell">· · ·</td></tr>`);
                     const miniCols = GRILLA_BOXES.map(b =>
-                        `<td style="background:${b.bg};border-color:${b.border}">
+                        `<td style="background:${b.bg};border-color:${b.border};border-bottom:3px solid ${b.accent}">
                             <div class="grilla-mini-th">${b.icon} ${b.title}<span class="grilla-box-sub">${b.sub}</span></div>
                         </td>`
                     ).join('');
@@ -10089,14 +10147,14 @@
                                 const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
                                 circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                             }
-                            inner = `<div class="grilla-celda-ocupada${circCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv} (arrastrá para cambiar de box)" style="${divRad}">
+                            inner = `<div class="grilla-celda-ocupada${circCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv} (arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
                                 <span class="grilla-paciente-nombre">${nom}</span>
                                 <span class="grilla-paciente-servicio">${srv}</span>
                                 ${circHtml}
                             </div>`;
                         } else {
                             // Continuación: bloque sólido sin texto, clicable
-                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — continúa" style="${divRad}"></div>`;
+                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — continúa" style="--box-accent:${box.accent};${divRad}"></div>`;
                         }
                     } else if (adminBloq) {
                         inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
