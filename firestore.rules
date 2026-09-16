@@ -143,6 +143,29 @@ service cloud.firestore {
       allow read, write: if esAdmin();
     }
 
+    // Precio y pagos por sesión/prestación (punto 2). Un documento de
+    // "prestaciones" por reserva (id = reservaId, 1 a 1: evita duplicados por
+    // construcción). No se borra: una prestación se anula con un campo
+    // (anulada/motivoAnulacion), nunca desaparece, para preservar trazabilidad
+    // aunque se cancele la sesión asociada.
+    match /prestaciones/{reservaId} {
+      allow read, create, update: if esAdmin();
+      allow delete: if false;
+    }
+
+    // Movimientos de dinero (cobros/devoluciones/ajustes) ligados a una
+    // prestación (o sueltos, como adelanto/saldo a favor, con
+    // prestacionId == null). Inmutables una vez creados: una corrección se
+    // registra como un movimiento nuevo con su propio motivo, nunca
+    // reescribiendo uno existente — así el historial siempre es verificable.
+    // El id del documento es un operationId generado por el cliente, para que
+    // un reintento/doble toque reescriba el mismo movimiento en vez de
+    // duplicarlo.
+    match /pagos/{pagoId} {
+      allow read, create: if esAdmin();
+      allow update, delete: if false;
+    }
+
     // Aviso de PDF de jornada duplicado en la misma semana — registro de
     // generaciones exitosas (nunca de vistas previas/cancelaciones/fallos).
     // Es un registro de auditoría: se puede crear y leer, pero no editar ni
