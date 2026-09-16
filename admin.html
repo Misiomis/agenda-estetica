@@ -415,13 +415,18 @@
         .mreg-btn-confirm:disabled { background: var(--border); cursor: not-allowed; color: #fff; }
 
         /* ── Modal cambio de servicio / precio kit (mismo estilo de modal claro) ── */
-        #modal-cambio-servicio-overlay, #modal-precio-kit-overlay {
+        #modal-cambio-servicio-overlay, #modal-precio-kit-overlay, #modal-precio-pagos-overlay {
             position: fixed; inset: 0; background: rgba(22,32,27,0.45);
             display: none; align-items: center; justify-content: center; padding: 16px;
         }
-        #modal-cambio-servicio-overlay.open, #modal-precio-kit-overlay.open { display: flex; }
+        #modal-cambio-servicio-overlay.open, #modal-precio-kit-overlay.open, #modal-precio-pagos-overlay.open { display: flex; }
         #modal-cambio-servicio-overlay { z-index: 100001; }
         #modal-precio-kit-overlay { z-index: 100002; }
+        #modal-precio-pagos-overlay { z-index: 100003; }
+        #modal-precio-pagos-card {
+            width: 100%; max-width: 460px; max-height: 88vh; overflow-y: auto; background: var(--surface); border-radius: var(--r-xl);
+            border: 1px solid var(--border); box-shadow: var(--shadow-lg); padding: 22px 20px 18px; animation: popInSoft 0.18s ease-out;
+        }
         #modal-cambio-servicio-card {
             width: 100%; max-width: 440px; background: var(--surface); border-radius: var(--r-xl);
             border: 1px solid var(--border); box-shadow: var(--shadow-lg); padding: 24px 22px 20px; animation: popInSoft 0.18s ease-out;
@@ -1294,6 +1299,10 @@
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.3v8.6M5.6 7.5 9 10.9l3.4-3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.8 12.5v2a1.4 1.4 0 0 0 1.4 1.4h9.6a1.4 1.4 0 0 0 1.4-1.4v-2" stroke-linecap="round"/></svg>
                         Exportar
                     </button>
+                    <button class="btn-nav" id="btn-resumen-mensual" onclick="navegar('resumen-mensual')">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2.2" width="14" height="13.6" rx="1.8"/><path d="M5.5 11.2v2M9 8.6v4.6M12.5 6v7.2" stroke-linecap="round"/></svg>
+                        Resumen mensual
+                    </button>
                 </div>
             </div>
         </aside>
@@ -2002,6 +2011,9 @@
             <!-- ══ PREPARAR JORNADA ══ -->
             <div id="sec-preparar-jornada" class="section"></div>
 
+            <!-- ══ RESUMEN MENSUAL (precio/pagos/gastos) ══ -->
+            <div id="sec-resumen-mensual" class="section"></div>
+
             <!-- ══ CONTROL DE CONSULTAS ══ -->
             <div id="sec-control-consultas" class="section">
                 <div class="detalle-dia-card" style="margin-bottom:18px;">
@@ -2102,7 +2114,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
     <script type="module">
-        import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where } from "/js/firebase-web.js";
+        import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit, runTransaction, writeBatch } from "/js/firebase-web.js";
         import { registrarContactoPreparado, registrarContactoEstado } from "/js/contact-tracking.js";
 
         // Seguimiento centralizado de contactos por WhatsApp (punto 3 del
@@ -2592,11 +2604,24 @@
         let resolverModalBorrado = null;
         let membresiaNormalizadaSesion = false;
         
+        // Regla de elegibilidad centralizada: una reserva/sesión está
+        // cancelada si su estado (en cualquiera de los dos campos que usa
+        // este proyecto, "estado"/"status") coincide con cualquiera de las
+        // variantes reales encontradas en los datos. "cancelado" es lo que
+        // escribe hoy el flujo de cancelación (ver ejecutarCancelacion),
+        // pero "cancelada" también existe en reservas históricas y es la
+        // que usan las consultas iniciales (cambiarEstadoConsulta) — mismo
+        // hallazgo ya documentado en mimar-inteligente-logic.js
+        // (ESTADOS_CANCELADOS). Cualquier lugar del código que necesite
+        // saber si algo está cancelado debe llamar a esta función, nunca
+        // comparar un string suelto contra 'cancelado'.
+        const ESTADOS_CANCELADO_VARIANTES = ['cancelado', 'cancelada'];
+        const esEstadoCancelado = (estadoBruto) => ESTADOS_CANCELADO_VARIANTES.includes((estadoBruto || '').toString().trim().toLowerCase());
         const esReservaActiva = (r) => {
             const estados = [r?.estado, r?.status]
                 .map((valor) => (valor || '').toString().trim().toLowerCase())
                 .filter(Boolean);
-            return !estados.includes('cancelado');
+            return !estados.some((e) => ESTADOS_CANCELADO_VARIANTES.includes(e));
         };
         
         const resolverMembresiaActiva = (c = {}) => c.membershipActive === true || c.membresia === true;
@@ -2905,6 +2930,38 @@
             return 'nom:' + nombre.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
         };
         const _pacienteNombreDisplay = (r) => (r.nombreLimpio || r.nombre || r.paciente || r.clienteNombre || '—').toString().trim();
+
+        // ─── Huso horario del negocio (centralizado) ───────────────────────────
+        // No hay configuración propia en Firestore para esto todavía, así que
+        // se adopta America/Argentina/Buenos_Aires como default documentado
+        // (mismo valor ya usado en mimar-inteligente-logic.js). Se usa para
+        // semanas (aviso de PDF duplicado) y, si hace falta, meses.
+        const ZONA_HORARIA_NEGOCIO = 'America/Argentina/Buenos_Aires';
+        const _fechaEnZona = (d, tz) => {
+            const partes = new Intl.DateTimeFormat('en-CA', { timeZone: tz || ZONA_HORARIA_NEGOCIO, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
+            const o = {};
+            partes.forEach((p) => { if (p.type !== 'literal') o[p.type] = p.value; });
+            return { y: +o.year, m: +o.month, dia: +o.day };
+        };
+        // Id de semana = fecha ISO (YYYY-MM-DD) del lunes de esa semana, en la
+        // zona horaria del negocio. Se usa una fecha real en vez de un número
+        // de semana ISO para no arrastrar sus casos borde de fin/inicio de año.
+        const _semanaIdISO = (d, tz) => {
+            const f = _fechaEnZona(d, tz);
+            const base = new Date(Date.UTC(f.y, f.m - 1, f.dia, 12, 0, 0)); // mediodía UTC: evita corrimientos de día por huso
+            const dow = base.getUTCDay(); // 0=domingo..6=sábado
+            base.setUTCDate(base.getUTCDate() - ((dow + 6) % 7)); // retrocede hasta el lunes
+            const y = base.getUTCFullYear(), m = base.getUTCMonth() + 1, dia = base.getUTCDate();
+            return `${y}-${String(m).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+        };
+        const _hoyISOZona = (tz) => { const f = _fechaEnZona(new Date(), tz); return `${f.y}-${String(f.m).padStart(2,'0')}-${String(f.dia).padStart(2,'0')}`; };
+
+        // ─── Dinero: representación exacta y formato local ─────────────────────
+        // El negocio siempre maneja pesos enteros (nunca centavos/decimales en
+        // ningún ejemplo ni pantalla existente), así que se usa el peso entero
+        // redondeado como unidad exacta — evita error de punto flotante sin
+        // sumarle precisión de centavos que el negocio no usa.
+        const _fmtMoneyARS = (n) => (n === null || n === undefined || isNaN(n)) ? 'Sin registro' : ('$' + Math.round(n).toLocaleString('es-AR'));
 
         // ─── Clasificación única de estado (realizada/pendiente/cancelada) ───────
         // El buscador, "Preparar jornada" y "Exportar historial PDF" tenían CADA
@@ -3218,7 +3275,8 @@
                 return true;
             }).sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
 
-            const _MSG_PRE_CONSULTA = encodeURIComponent('Hola 🤍 ¡Es un gusto poder recibirte en nuestro nuevo Espacio MimarT!\n\nNos pone muy felices comenzar esta nueva etapa y poder acompañarte, tanto si ya venís siendo parte de nuestro espacio como si recién te estás sumando.\n\nEsta consulta es un momento pensado para vos: para conocerte mejor, escuchar qué te gustaría mejorar, revisar tus objetivos y comenzar a organizar juntos los tratamientos que mejor se adapten a tus necesidades, tus tiempos y también a tu presupuesto.\n\n✨ Antes de tu consulta, una pequeña aclaración:\nEste mensaje es general para quienes realizan una consulta facial, corporal o ambas, por eso algunas recomendaciones pueden no corresponder específicamente a lo que elegiste evaluar.\n\nSi tu consulta es sólo facial, podés omitir las indicaciones destinadas a la evaluación corporal.\nSi tu consulta es sólo corporal, podés omitir las recomendaciones específicas para la evaluación facial.\nY si elegiste una evaluación facial y corporal, tené en cuenta todas las indicaciones.\n\nAsí cada persona puede prepararse únicamente de acuerdo con el tipo de evaluación que va a realizar, sin preocuparse por aquellas recomendaciones que no correspondan a su turno. 🤍\n\nPara poder realizar una evaluación cómoda y completa, te pedimos que el día de tu consulta:\n\n• Asistas con ropa cómoda, preferentemente deportiva y no ajustada.\n• Si tu evaluación es corporal: en lo posible, utilizá ropa interior sin metales, idealmente de color negro.\n• Si tu evaluación es facial: vení sin maquillaje.\n• Evitá llevar joyas, cadenas, pulseras u otros accesorios metálicos.\n• Sé puntual con el horario pactado, ya que reservamos ese momento especialmente para vos.\n\nDurante la consulta vamos a evaluar los aspectos relacionados con aquello que querés tratar y conversar sobre las alternativas más adecuadas para vos, pudiendo planificar tus próximos tratamientos de una manera personalizada y realista.\n\n🤍 Queremos que esta nueva etapa en Espacio MimarT también sea una nueva forma de acompañarte: más personalizada, más cercana y pensada especialmente para vos.\n\nEspacio MimarT\nUn lugar pensado para vos.');
+            // Función (no constante fija) para poder anteponer el título personalizado con el nombre real de cada consulta
+            const _MSG_PRE_CONSULTA = (nombre) => { const _t = nombre ? `Recomendaciones para ${nombre}` : 'Recomendaciones antes de tu consulta'; return encodeURIComponent(`${_t}\n\nEsta consulta es un momento pensado para vos: para conocerte mejor, escuchar qué te gustaría mejorar, revisar tus objetivos y comenzar a organizar juntos los tratamientos que mejor se adapten a tus necesidades, tus tiempos y también a tu presupuesto.\n\n✨ Antes de tu consulta, una pequeña aclaración:\nEste mensaje es general para quienes realizan una consulta facial, corporal o ambas, por eso algunas recomendaciones pueden no corresponder específicamente a lo que elegiste evaluar.\n\nSi tu consulta es sólo facial, podés omitir las indicaciones destinadas a la evaluación corporal.\nSi tu consulta es sólo corporal, podés omitir las recomendaciones específicas para la evaluación facial.\nY si elegiste una evaluación facial y corporal, tené en cuenta todas las indicaciones.\n\nAsí cada persona puede prepararse únicamente de acuerdo con el tipo de evaluación que va a realizar, sin preocuparse por aquellas recomendaciones que no correspondan a su turno. 🤍\n\nPara poder realizar una evaluación cómoda y completa, te pedimos que el día de tu consulta:\n\n• Asistas con ropa cómoda, preferentemente deportiva y no ajustada.\n• Si tu evaluación es corporal: en lo posible, utilizá ropa interior sin metales, idealmente de color negro.\n• Si tu evaluación es facial: vení sin maquillaje.\n• Evitá llevar joyas, cadenas, pulseras u otros accesorios metálicos.\n• Sé puntual con el horario pactado, ya que reservamos ese momento especialmente para vos.\n\nDurante la consulta vamos a evaluar los aspectos relacionados con aquello que querés tratar y conversar sobre las alternativas más adecuadas para vos, pudiendo planificar tus próximos tratamientos de una manera personalizada y realista.\n\nEspacio MimarT\nUn lugar pensado para vos.`); };
 
             // Cards de reservas → {hora, html}
             const itemsReservas = filtrados.map(r => { const _rHtml = (() => {
@@ -3287,23 +3345,28 @@
                 const _digRec = _rawPhoneRec.replace(/\D/g,'');
                 const phone = _digRec.length >= 8 ? (_digRec.startsWith('54') ? _digRec : `549${_digRec.replace(/^0+/,'').replace(/^54/,'')}`) : '';
                 const recId = `recMenu-${r.id}`;
-                const msg1 = encodeURIComponent('Recordá que el consumo de agua es el complemento indispensable de tu sesión y un pilar fundamental para tu salud. Para maximizar los resultados y permitir que tu cuerpo procese el tratamiento de forma óptima, mantenete hidratada/o durante todo el día✨💧');
-                const msg2 = encodeURIComponent('Recordá que el uso de tu faja es fundamental para consolidar los resultados. El esquema recomendado es de 3 horas diarias durante 5 días a la semana, o bien 5 horas diarias durante 3 días. ¡Tu constancia hace la diferencia!✨');
-                const msgMioUp = encodeURIComponent('✨ Recomendaciones después de tu sesión de MIO UP ✨\nPara lograr mejores resultados y cuidar correctamente tu cuerpo, te recomendamos:\n• Tomar abundante agua 💧\n• Mantener una alimentación equilibrada 🍎\n• Evitar el sedentarismo y acompañar con movimiento físico cuando sea posible 🚶\n• Respetar la frecuencia sugerida de las sesiones ⏳\n• Descansar correctamente 😴\n\n⚠️ Importante:\nMIO UP trabaja estimulando intensamente la musculatura y mejorando tonicidad y firmeza, pero los resultados NO se observan con una sola sesión.\n👉 Se necesitan varias sesiones en la misma zona para notar cambios progresivos y sostenidos.\nLa constancia es clave para lograr mejores resultados.\nCada cuerpo responde de manera diferente, por eso el tratamiento se adapta de forma personalizada según tus objetivos ❤️');
-                const msgFraxisFacial = encodeURIComponent('✨ Recomendaciones después de tu sesión de FRAXIS – Radiofrecuencia Fraccionada FACIAL ✨\n\nLuego de la sesión es normal sentir la piel sensible, caliente o levemente enrojecida 🔥\n\nPara acompañar correctamente la recuperación te recomendamos:\n\n💧 Mantener buena hidratación\n☀️ Usar protector solar y reaplicarlo durante el día\n🚫 Evitar exposición solar directa\n🚫 No utilizar ácidos, exfoliantes ni productos irritantes por algunos días\n🚫 Evitar calor excesivo, sauna o agua muy caliente durante 24/48 hs\n🤍 No frotar ni raspar la piel\n\n✨ Importante:\nLos resultados son progresivos y la piel continúa regenerándose en los días posteriores.\n\n👉 Dependiendo del objetivo y del estado de la piel, suelen requerirse varias sesiones para lograr resultados más notorios y sostenidos.\n\n📍Espacio MimarT\n"Un lugar pensado para vos"');
-                const msgFraxisCorp = encodeURIComponent('✨ Recomendaciones después de tu sesión de FRAXIS – Radiofrecuencia Fraccionada CORPORAL ✨\n\nDespués de la sesión puede aparecer leve sensibilidad, calor o enrojecimiento en la zona tratada 🔥\n\nPara favorecer los resultados te recomendamos:\n\n💧 Tomar abundante agua\n🥗 Mantener una alimentación equilibrada\n🚶 Acompañar con actividad física cuando sea posible\n🚫 Evitar calor excesivo durante 24/48 hs\n🤍 No frotar intensamente la zona tratada\n✨ Respetar la frecuencia indicada de las sesiones\n\n⚠️ Importante:\nLos resultados son progresivos y requieren constancia.\n\n👉 Para observar cambios visibles y sostenidos generalmente se necesitan varias sesiones en la misma zona.\n\nCada protocolo se adapta de forma personalizada según las necesidades y objetivos de cada paciente 💚\n\n📍Espacio MimarT\n"Un lugar pensado para vos"');
-                const msgDrenapress = encodeURIComponent('✨ ¡Gracias por elegir Espacio Mimar\u2011T!\n\nHoy realizaste una sesión de presoterapia de cuerpo completo con Drenapress, que trabaja mediante botas, faja abdominal y mangas.\n\nEntre sus beneficios, ayuda a:\n\n💚 Favorecer la circulación y el drenaje linfático.\n💚 Disminuir la retención de líquidos y la sensación de pesadez.\n💚 Mejorar el aspecto de la celulitis y las estrías.\n💚 Acompañar tratamientos de adiposidad localizada y modelación corporal.\n💚 Brindar una agradable sensación de bienestar y liviandad.\n\nTrabajamos con un equipo de fabricación nacional, desarrollado bajo un sistema de calidad certificado. Su fabricante está habilitado por ANMAT, cumple con Buenas Prácticas de Fabricación y con la norma IEC 60601-1 de seguridad eléctrica para equipos médicos.\n\n💧 Después de la sesión, recordá beber abundante agua para acompañar el proceso.\n\n¡Esperamos que disfrutes todos sus beneficios! 💚');
+                // Título de personalización, sin saludo: nombre real desde Firestore (r.nombreLimpio) o encabezado neutro si falta
+                const _recNombre = (r.nombreLimpio || '').toString().trim();
+                const _recTitulo = _recNombre ? `Recomendaciones para ${_recNombre}` : 'Recomendaciones posteriores a tu sesión';
+                const msg1 = encodeURIComponent(`${_recTitulo}\n\nRecordá que el consumo de agua es el complemento indispensable de tu sesión y un pilar fundamental para tu salud. Para maximizar los resultados y permitir que tu cuerpo procese el tratamiento de forma óptima, mantenete hidratada/o durante todo el día✨💧`);
+                const msg2 = encodeURIComponent(`${_recTitulo}\n\nRecordá que el uso de tu faja es fundamental para consolidar los resultados. El esquema recomendado es de 3 horas diarias durante 5 días a la semana, o bien 5 horas diarias durante 3 días. ¡Tu constancia hace la diferencia!✨`);
+                const msgMioUp = encodeURIComponent(`${_recTitulo}\n\n✨ Recomendaciones después de tu sesión de MIO UP ✨\nPara lograr mejores resultados y cuidar correctamente tu cuerpo, te recomendamos:\n• Tomar abundante agua 💧\n• Mantener una alimentación equilibrada 🍎\n• Evitar el sedentarismo y acompañar con movimiento físico cuando sea posible 🚶\n• Respetar la frecuencia sugerida de las sesiones ⏳\n• Descansar correctamente 😴\n\n⚠️ Importante:\nMIO UP trabaja estimulando intensamente la musculatura y mejorando tonicidad y firmeza, pero los resultados NO se observan con una sola sesión.\n👉 Se necesitan varias sesiones en la misma zona para notar cambios progresivos y sostenidos.\nLa constancia es clave para lograr mejores resultados.\nCada cuerpo responde de manera diferente, por eso el tratamiento se adapta de forma personalizada según tus objetivos ❤️`);
+                const msgFraxisFacial = encodeURIComponent(`${_recTitulo}\n\n✨ Recomendaciones después de tu sesión de FRAXIS – Radiofrecuencia Fraccionada FACIAL ✨\n\nLuego de la sesión es normal sentir la piel sensible, caliente o levemente enrojecida 🔥\n\nPara acompañar correctamente la recuperación te recomendamos:\n\n💧 Mantener buena hidratación\n☀️ Usar protector solar y reaplicarlo durante el día\n🚫 Evitar exposición solar directa\n🚫 No utilizar ácidos, exfoliantes ni productos irritantes por algunos días\n🚫 Evitar calor excesivo, sauna o agua muy caliente durante 24/48 hs\n🤍 No frotar ni raspar la piel\n\n✨ Importante:\nLos resultados son progresivos y la piel continúa regenerándose en los días posteriores.\n\n👉 Dependiendo del objetivo y del estado de la piel, suelen requerirse varias sesiones para lograr resultados más notorios y sostenidos.\n\n📍Espacio MimarT\n"Un lugar pensado para vos"`);
+                const msgFraxisCorp = encodeURIComponent(`${_recTitulo}\n\n✨ Recomendaciones después de tu sesión de FRAXIS – Radiofrecuencia Fraccionada CORPORAL ✨\n\nDespués de la sesión puede aparecer leve sensibilidad, calor o enrojecimiento en la zona tratada 🔥\n\nPara favorecer los resultados te recomendamos:\n\n💧 Tomar abundante agua\n🥗 Mantener una alimentación equilibrada\n🚶 Acompañar con actividad física cuando sea posible\n🚫 Evitar calor excesivo durante 24/48 hs\n🤍 No frotar intensamente la zona tratada\n✨ Respetar la frecuencia indicada de las sesiones\n\n⚠️ Importante:\nLos resultados son progresivos y requieren constancia.\n\n👉 Para observar cambios visibles y sostenidos generalmente se necesitan varias sesiones en la misma zona.\n\nCada protocolo se adapta de forma personalizada según las necesidades y objetivos de cada paciente 💚\n\n📍Espacio MimarT\n"Un lugar pensado para vos"`);
+                const msgDrenapress = encodeURIComponent(`${_recTitulo}\n\nCuidados posteriores a tu sesión de presoterapia de cuerpo completo con Drenapress, que trabaja mediante botas, faja abdominal y mangas.\n\nEntre sus beneficios, ayuda a:\n\n💚 Favorecer la circulación y el drenaje linfático.\n💚 Disminuir la retención de líquidos y la sensación de pesadez.\n💚 Mejorar el aspecto de la celulitis y las estrías.\n💚 Acompañar tratamientos de adiposidad localizada y modelación corporal.\n💚 Brindar una agradable sensación de bienestar y liviandad.\n\nTrabajamos con un equipo de fabricación nacional, desarrollado bajo un sistema de calidad certificado. Su fabricante está habilitado por ANMAT, cumple con Buenas Prácticas de Fabricación y con la norma IEC 60601-1 de seguridad eléctrica para equipos médicos.\n\n💧 Después de la sesión, recordá beber abundante agua para acompañar el proceso.`);
                 const drenaId = `drena-${r.id}`;
-                const msgVibratoria = encodeURIComponent('✨ Plataforma Vibratoria Profesional – Beneficios ✨\n\nLa plataforma vibratoria es un excelente complemento dentro de un plan integral de salud, estética y entrenamiento.\n\n¿Cuáles son sus beneficios?\n\n🌿 Activa la circulación sanguínea y linfática.\n🌿 Favorece el drenaje de líquidos retenidos.\n🌿 Ayuda a mejorar el aspecto de la celulitis cuando se combina con otros tratamientos.\n🌿 Estimula la musculatura mediante contracciones involuntarias.\n🌿 Contribuye a tonificar y fortalecer los músculos.\n🌿 Puede ayudar a mejorar el equilibrio, la coordinación y la estabilidad.\n🌿 Favorece la movilidad y la flexibilidad.\n🌿 Ayuda a aliviar la sensación de piernas cansadas.\n🌿 Puede colaborar en la salud ósea cuando se utiliza de forma adecuada y acompañada por actividad física.\n🌿 Es un excelente complemento para programas de descenso de peso y remodelación corporal.\n🌿 Brinda una agradable sensación de bienestar y relajación.\n\n💚 Importante: La plataforma vibratoria no reemplaza el ejercicio físico ni quema grasa por sí sola. Los mejores resultados se logran al combinarla con actividad física, una alimentación equilibrada, buena hidratación y tratamientos personalizados.\n\nIdeal para hombres y mujeres que buscan mejorar su salud, su bienestar y potenciar sus resultados estéticos.');
+                const msgVibratoria = encodeURIComponent(`${_recTitulo}\n\n✨ Plataforma Vibratoria Profesional – Beneficios ✨\n\nLa plataforma vibratoria es un excelente complemento dentro de un plan integral de salud, estética y entrenamiento.\n\n¿Cuáles son sus beneficios?\n\n🌿 Activa la circulación sanguínea y linfática.\n🌿 Favorece el drenaje de líquidos retenidos.\n🌿 Ayuda a mejorar el aspecto de la celulitis cuando se combina con otros tratamientos.\n🌿 Estimula la musculatura mediante contracciones involuntarias.\n🌿 Contribuye a tonificar y fortalecer los músculos.\n🌿 Puede ayudar a mejorar el equilibrio, la coordinación y la estabilidad.\n🌿 Favorece la movilidad y la flexibilidad.\n🌿 Ayuda a aliviar la sensación de piernas cansadas.\n🌿 Puede colaborar en la salud ósea cuando se utiliza de forma adecuada y acompañada por actividad física.\n🌿 Es un excelente complemento para programas de descenso de peso y remodelación corporal.\n🌿 Brinda una agradable sensación de bienestar y relajación.\n\n💚 Importante: La plataforma vibratoria no reemplaza el ejercicio físico ni quema grasa por sí sola. Los mejores resultados se logran al combinarla con actividad física, una alimentación equilibrada, buena hidratación y tratamientos personalizados.\n\nIdeal para hombres y mujeres que buscan mejorar su salud, su bienestar y potenciar sus resultados estéticos.`);
                 const vibraId = `vibra-${r.id}`;
-                const msgPostCryo = encodeURIComponent('✨🤍 Gracias por confiar en este proceso 🤍✨\nHoy diste un paso hermoso hacia el cambio que estás buscando 💚\nY quiero contarte qué va a pasar en tu cuerpo en los próximos días para que estés tranquila y segura.\n\n❄️ En las primeras horas\nEs normal que notes:\n• Enrojecimiento\n• Leve inflamación\n• Sensación de adormecimiento u hormigueo\n• Algún pequeño hematoma por la succión\nTodo esto es parte del proceso y suele desaparecer en pocas horas o días ✨\n\n💫 Durante la primera semana\nPodés sentir la zona un poco más sensible o más "compacta".\nEso significa que el tejido adiposo comenzó a responder al frío ❄️🔥\n\n🌿 ¿Qué está pasando por dentro?\nEl tratamiento genera un estímulo controlado sobre las células grasas.\nTu cuerpo, de forma natural y progresiva, comienza a eliminarlas.\nNo es magia instantánea… es biología trabajando a tu favor 🤍\n\n⏳ ¿Cuándo vas a notar cambios?\n✨ Desde la semana 3–4 pueden empezar a verse resultados.\n✨ El cambio más visible suele apreciarse entre la semana 6 y 8.\n✨ La mejora continúa progresivamente.\nLo importante es entender que tu cuerpo ya activó el proceso 💚\nAhora necesitamos acompañarlo con constancia.\n\n🌸 Para potenciar los resultados:\n💧 Tomar mucha agua\n🥗 Alimentación equilibrada\n🚶 Actividad física\n🚫 Evitar alcohol\n💆 Podemos complementar con drenaje o presoterapia si lo indicamos\n\nQuiero que sepas algo muy importante:\nLa inversión que hiciste no es solo económica.\nEs una decisión de priorizarte.\nY eso ya es un cambio enorme 🤍✨\nEstoy para acompañarte en cada etapa de este proceso.\nConfío en tu compromiso y en lo que vamos a lograr juntas 💚🌿');
+                const msgPostCryo = encodeURIComponent(`${_recTitulo}\n\nCuidados y qué va a pasar en tu cuerpo en los próximos días luego de tu sesión de Criolipólisis.\n\n❄️ En las primeras horas\nEs normal que notes:\n• Enrojecimiento\n• Leve inflamación\n• Sensación de adormecimiento u hormigueo\n• Algún pequeño hematoma por la succión\nTodo esto es parte del proceso y suele desaparecer en pocas horas o días ✨\n\n💫 Durante la primera semana\nPodés sentir la zona un poco más sensible o más "compacta".\nEso significa que el tejido adiposo comenzó a responder al frío ❄️🔥\n\n🌿 ¿Qué está pasando por dentro?\nEl tratamiento genera un estímulo controlado sobre las células grasas.\nTu cuerpo, de forma natural y progresiva, comienza a eliminarlas.\nEs un proceso biológico gradual, no inmediato 🤍\n\n⏳ ¿Cuándo se notan cambios?\n✨ Desde la semana 3–4 pueden empezar a verse resultados.\n✨ El cambio más visible suele apreciarse entre la semana 6 y 8.\n✨ La mejora continúa progresivamente.\n\n🌸 Para potenciar los resultados:\n💧 Tomar mucha agua\n🥗 Alimentación equilibrada\n🚶 Actividad física\n🚫 Evitar alcohol\n💆 Se puede complementar con drenaje o presoterapia si se indica.`);
                 const postCryoId = `postCryo-${r.id}`;
                 const postDepiId = `postDepi-${r.id}`;
                 const facialId   = `facial-${r.id}`;
-                const msgPreFacial = encodeURIComponent('ANTES DE TU SESIÓN · TRATAMIENTO FACIAL\nMimar T · de Gimena Knack\n\nPara que podamos trabajar tu piel en las mejores condiciones, tené en cuenta estas recomendaciones:\n\n48–72 HS ANTES\n• Evitá la exposición solar directa o intensa.\n• No realices exfoliaciones ni manipules la piel.\n• Evitá procedimientos que puedan dejar la zona sensibilizada.\n\nEL DÍA DE TU TURNO\n• Si es posible, vení con la piel limpia y sin maquillaje.\n• Evitá probar productos nuevos antes de la sesión.\n\nIMPORTANTE\nSi estás utilizando medicación, tratamientos dermatológicos o tenés la piel irritada o sensibilizada, comentanos antes de comenzar.\n\nEstas indicaciones nos ayudan a adaptar el tratamiento y cuidar mejor tu piel.\n\nMimar T · de Gimena Knack\nFarmacéutica y Dermatocosmiatra');
-                const msgPostFacial = encodeURIComponent('CUIDADOS POST TRATAMIENTO FACIAL\nMimar T · de Gimena Knack\n\nDurante los próximos días es importante cuidar la piel y acompañar su recuperación.\n\nDURANTE LAS PRIMERAS 48–72 HS EVITÁ:\n• Exposición solar directa.\n• Maquillaje y productos con alcohol o perfume.\n• Exfoliaciones o manipulación de la piel.\n• Calor excesivo: sauna, gimnasio o pileta.\n\nTENÉ EN CUENTA\nPuede ser normal sentir un leve enrojecimiento, tirantez o descamación.\n\nSiguiendo estas indicaciones, en pocos días la piel podrá verse más luminosa, confortable y saludable.\n\nDurante los próximos 7 a 10 días, continuá con el kit post tratamiento indicado.\n\nMimar T · de Gimena Knack\nFarmacéutica y Dermatocosmiatra');
-                const msgKitFacial = encodeURIComponent('CÓMO USAR TU KIT POST TRATAMIENTO\nMimar T · de Gimena Knack\n\nUsalo durante 7 a 10 días. Luego, continuá con una rutina adecuada para mantener los resultados.\n\n1 · LECHE O GEL DE LIMPIEZA\nMañana, tarde y noche.\nAplicar, masajear suavemente y retirar con agua.\n\n2 · TÓNICO CALMANTE\nUsar después de la limpieza.\nPodés aplicarlo varias veces al día, incluso sobre el protector solar, si sentís ardor, picazón o necesidad de calmar la piel.\n\n3 · CREMA / GEL REGENERADORA E HIDRATANTE\nUsar por la noche, después del tónico calmante.\n\n4 · PROTECTOR SOLAR FPS 50\nUsar durante el día.\nReeaplicar cada 3 horas en caso de exposición continua al sol.\n\nIMPORTANTE\nAl finalizar, devolvé los envases y la bolsita y solicitá el tuyo para continuar con la rutina domiciliaria en casa.\n\nLos esterilizamos y reciclamos para cuidar el medio ambiente.\n\nMimar T · de Gimena Knack\nFarmacéutica y Dermatocosmiatra');
-                const msgPostDepi = encodeURIComponent('✨ Cuidados después de tu sesión de depilación láser\n\nLa piel puede presentar enrojecimiento, calor o leve inflamación alrededor del folículo durante las primeras horas. Es completamente normal y suele resolverse rápido 🤍\n\n🚫 PRIMERAS 24-48 hs — por favor evitá:\n• Gimnasio, running, bicicleta u actividad física intensa\n• Sudoración excesiva\n• Duchas muy calientes, sauna, jacuzzi o pileta\n• Contacto con cloro o fuentes de calor intenso\n\n☀️ SOL: usá protector solar FPS 50+ en todas las zonas expuestas. Sin exposición solar directa.\n\n✋ No frotar, rascar ni exfoliar la zona durante 3 a 5 días.\n\n🚫 Evitá aplicar sobre la zona durante las primeras 48 hs: alcohol, perfume, desodorante irritante, ácidos ni retinoides.\n\nSi sentís calor o inflamación: compresas frías suaves (nunca hielo directo sobre la piel). Si la piel quedó muy sensible, podés aplicar una crema reparadora/calmante durante los primeros 2-3 días.\n\n✂️ ENTRE SESIONES: solo rasuradora cuando sea necesario. Sin cera, pinza ni depiladora eléctrica.\n\n⚠️ Escribinos si notás dolor intenso, ardor que no disminuye, ampollas, inflamación importante o cualquier signo de infección. Ante cualquier reacción, comunicate con nosotros antes de aplicar productos por tu cuenta.\n\nEspacio MimarT 🤍\nUn lugar pensado para vos.');
+                const plisaggeVelaId = `plisaggeVela-${r.id}`;
+                const msgPlisaggeVela = encodeURIComponent(`${_recTitulo}\n\nCuidados posteriores a tu sesión de modelación corporal y tratamiento de adiposidad localizada con Plisagge Vela.\n\nEste tratamiento ayuda a acompañar la reducción de adiposidad localizada, mejorar el aspecto de la celulitis, favorecer la circulación y el drenaje, y contribuir a una piel con mejor apariencia y vitalidad.\n\n💧 Después de tu sesión, recordá tomar abundante agua y mantener una buena hidratación.\n\n☀️ Durante las 24 horas posteriores a la sesión, evitá depilación láser, IPL o cualquier procedimiento que pueda irritar la zona tratada.\n\n🩱 Utilizá la faja si te fue indicada para este tratamiento y seguí las pautas de uso del profesional que te atendió.\n\nPodés continuar con tus actividades habituales con normalidad.`);
+                const msgPreFacial = encodeURIComponent(`${_recTitulo}\n\nANTES DE TU SESIÓN · TRATAMIENTO FACIAL\nMimar T · de Gimena Knack\n\nPara que podamos trabajar tu piel en las mejores condiciones, tené en cuenta estas recomendaciones:\n\n48–72 HS ANTES\n• Evitá la exposición solar directa o intensa.\n• No realices exfoliaciones ni manipules la piel.\n• Evitá procedimientos que puedan dejar la zona sensibilizada.\n\nEL DÍA DE TU TURNO\n• Si es posible, vení con la piel limpia y sin maquillaje.\n• Evitá probar productos nuevos antes de la sesión.\n\nIMPORTANTE\nSi estás utilizando medicación, tratamientos dermatológicos o tenés la piel irritada o sensibilizada, comentanos antes de comenzar.\n\nEstas indicaciones nos ayudan a adaptar el tratamiento y cuidar mejor tu piel.\n\nMimar T · de Gimena Knack\nFarmacéutica y Dermatocosmiatra`);
+                const msgPostFacial = encodeURIComponent(`${_recTitulo}\n\nCUIDADOS POST TRATAMIENTO FACIAL\nMimar T · de Gimena Knack\n\nDurante los próximos días es importante cuidar la piel y acompañar su recuperación.\n\nDURANTE LAS PRIMERAS 48–72 HS EVITÁ:\n• Exposición solar directa.\n• Maquillaje y productos con alcohol o perfume.\n• Exfoliaciones o manipulación de la piel.\n• Calor excesivo: sauna, gimnasio o pileta.\n\nTENÉ EN CUENTA\nPuede ser normal sentir un leve enrojecimiento, tirantez o descamación.\n\nSiguiendo estas indicaciones, en pocos días la piel podrá verse más luminosa, confortable y saludable.\n\nDurante los próximos 7 a 10 días, continuá con el kit post tratamiento indicado.\n\nMimar T · de Gimena Knack\nFarmacéutica y Dermatocosmiatra`);
+                const msgKitFacial = encodeURIComponent(`${_recTitulo}\n\nCÓMO USAR TU KIT POST TRATAMIENTO\nMimar T · de Gimena Knack\n\nUsalo durante 7 a 10 días. Luego, continuá con una rutina adecuada para mantener los resultados.\n\n1 · LECHE O GEL DE LIMPIEZA\nMañana, tarde y noche.\nAplicar, masajear suavemente y retirar con agua.\n\n2 · TÓNICO CALMANTE\nUsar después de la limpieza.\nPodés aplicarlo varias veces al día, incluso sobre el protector solar, si sentís ardor, picazón o necesidad de calmar la piel.\n\n3 · CREMA / GEL REGENERADORA E HIDRATANTE\nUsar por la noche, después del tónico calmante.\n\n4 · PROTECTOR SOLAR FPS 50\nUsar durante el día.\nReeaplicar cada 3 horas en caso de exposición continua al sol.\n\nIMPORTANTE\nAl finalizar, devolvé los envases y la bolsita y solicitá el tuyo para continuar con la rutina domiciliaria en casa.\n\nLos esterilizamos y reciclamos para cuidar el medio ambiente.\n\nMimar T · de Gimena Knack\nFarmacéutica y Dermatocosmiatra`);
+                const msgPostDepi = encodeURIComponent(`${_recTitulo}\n\nCuidados después de tu sesión de depilación láser\n\nLa piel puede presentar enrojecimiento, calor o leve inflamación alrededor del folículo durante las primeras horas. Es completamente normal y suele resolverse rápido 🤍\n\n🚫 PRIMERAS 24-48 hs — por favor evitá:\n• Gimnasio, running, bicicleta u actividad física intensa\n• Sudoración excesiva\n• Duchas muy calientes, sauna, jacuzzi o pileta\n• Contacto con cloro o fuentes de calor intenso\n\n☀️ SOL: usá protector solar FPS 50+ en todas las zonas expuestas. Sin exposición solar directa.\n\n✋ No frotar, rascar ni exfoliar la zona durante 3 a 5 días.\n\n🚫 Evitá aplicar sobre la zona durante las primeras 48 hs: alcohol, perfume, desodorante irritante, ácidos ni retinoides.\n\nSi sentís calor o inflamación: compresas frías suaves (nunca hielo directo sobre la piel). Si la piel quedó muy sensible, podés aplicar una crema reparadora/calmante durante los primeros 2-3 días.\n\n✂️ ENTRE SESIONES: solo rasuradora cuando sea necesario. Sin cera, pinza ni depiladora eléctrica.\n\n⚠️ Escribinos si notás dolor intenso, ardor que no disminuye, ampollas, inflamación importante o cualquier signo de infección. Ante cualquier reacción, comunicate con nosotros antes de aplicar productos por tu cuenta.\n\nEspacio MimarT 🤍\nUn lugar pensado para vos.`);
                 const btnRec = phone ? `
                     <button onclick="(function(){var m=document.getElementById('${recId}');m.style.display=m.style.display==='flex'?'none':'flex';})()" style="width:100%; margin-top:6px; padding:10px; border-radius:10px; border:1.5px solid rgba(60,100,200,0.35); background:rgba(60,100,200,0.10); color:rgba(61,92,134,0.95); font-weight:700; cursor:pointer; font-size:13px">📋 Enviar Recomendaciones</button>
                     <div id="${recId}" style="display:none; flex-direction:column; gap:6px; margin-top:4px; background:rgba(60,100,200,0.07); border:1px solid rgba(60,100,200,0.18); border-radius:10px; padding:10px;">
@@ -3327,6 +3390,10 @@
                         <button onclick="(function(){var m=document.getElementById('${postDepiId}');m.style.display=m.style.display==='flex'?'none':'flex';})()" style="width:100%; padding:10px; border-radius:10px; border:1.5px solid rgba(130,70,200,0.35); background:rgba(130,70,200,0.10); color:rgba(61,92,134,0.92); font-weight:700; cursor:pointer; font-size:13px">💜 Post-Depilación Láser</button>
                         <div id="${postDepiId}" style="display:none; flex-direction:column; gap:6px; background:rgba(130,70,200,0.07); border:1px solid rgba(130,70,200,0.20); border-radius:10px; padding:10px;">
                             <a href="https://wa.me/${phone}?text=${msgPostDepi}" target="_blank" rel="noopener noreferrer" style="display:block; padding:10px 12px; border-radius:8px; background:linear-gradient(135deg,#a855f7,#7c3aed); color:#fff; font-weight:700; font-size:12px; text-decoration:none; text-align:center">💜 Enviar cuidados post-depilación</a>
+                        </div>
+                        <button onclick="(function(){var m=document.getElementById('${plisaggeVelaId}');m.style.display=m.style.display==='flex'?'none':'flex';})()" style="width:100%; padding:10px; border-radius:10px; border:1.5px solid rgba(30,150,140,0.35); background:rgba(30,150,140,0.10); color:rgba(22,61,50,0.92); font-weight:700; cursor:pointer; font-size:13px">🫧 Plisagge Vela</button>
+                        <div id="${plisaggeVelaId}" style="display:none; flex-direction:column; gap:6px; background:rgba(30,150,140,0.07); border:1px solid rgba(30,150,140,0.20); border-radius:10px; padding:10px;">
+                            <a href="https://wa.me/${phone}?text=${msgPlisaggeVela}" target="_blank" rel="noopener noreferrer" style="display:block; padding:10px 12px; border-radius:8px; background:linear-gradient(135deg,#1e9688,#12655c); color:#fff; font-weight:700; font-size:12px; text-decoration:none; text-align:center">🫧 Enviar recomendaciones Plisagge Vela</a>
                         </div>
                         <button onclick="(function(){var m=document.getElementById('${facialId}');m.style.display=m.style.display==='flex'?'none':'flex';})()" style="width:100%; padding:10px; border-radius:10px; border:1.5px solid rgba(230,150,170,0.35); background:rgba(230,150,170,0.08); color:rgba(76,103,89,0.92); font-weight:700; cursor:pointer; font-size:13px">🌸 Tratamientos Faciales</button>
                         <div id="${facialId}" style="display:none; flex-direction:column; gap:6px; background:rgba(230,150,170,0.06); border:1px solid rgba(230,150,170,0.18); border-radius:10px; padding:10px;">
@@ -3377,6 +3444,7 @@
                         ${btnEnviar1}${btnEnviar2}
                         ${btnRec}
                         <button class="btn-mini" style="width:100%;border-color:#b5cce8;color:#2e61b1;background:#f3f8ff" onclick="cambiarServicioReserva('${r.id}')">Cambiar servicio</button>
+                        <button class="btn-mini" style="width:100%;border-color:rgba(45,74,50,0.35);color:#2D4A32;background:rgba(45,74,50,0.06)" onclick="abrirPrecioPagos('${r.id}','${_pacienteMatchKey(r)}','${(r.nombreLimpio||'').replace(/'/g,"\\'")}')">💳 Precio y pagos</button>
                         ${_btnOtroBox}
                         <div class="ac-destructive">
                             <button class="btn-mini" style="width:100%;border-color:#e0b0b0;color:#a02828;background:#fff5f5" onclick="cancelarTurnoYNotificar('${r.id}')">Cancelar turno y notificar</button>
@@ -3409,10 +3477,11 @@
                 const _recCuando2 = c.fecha===_recManISO ? `mañana, ${_cFecha},` : c.fecha===_recHoyISO ? `hoy (${_cFecha})` : `el ${_cFecha}`;
                 const _waRec2  = _cWa ? `https://wa.me/${_cWa}?text=${_encMsg(`Hola ${_cN1}, te recordamos tu consulta inicial en Espacio Mimar T ${_recCuando2} a las ${c.hora} hs. ¡Te esperamos! Ante cualquier duda, escribinos.`)}` : '';
                 const _waCanc2 = _cWa ? `https://wa.me/${_cWa}?text=${_encMsg(`Hola ${_cN1}, queremos avisarte que tu consulta inicial en Espacio Mimar T del ${_cFecha} a las ${c.hora} hs no puede realizarse. Comunicáte con nosotros para reprogramar.`)}` : '';
-                const _m1c = _encMsg(`Hola ${_cN1}, acordate de tomar agua durante el día de hoy. Espacio Mimar T.`);
-                const _m2c = _encMsg(`Hola ${_cN1}, recordá el uso de faja o ropa de compresión según las indicaciones recibidas. Espacio Mimar T.`);
-                const _mMioC = _encMsg(`Hola ${_cN1}, te recomendamos potenciar tu tratamiento con MIO UP. Escribinos si querés más información. Espacio Mimar T.`);
-                const _mFraxC = _encMsg(`Hola ${_cN1}, te recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información. Espacio Mimar T.`);
+                const _recTituloC = _cN1 ? `Recomendaciones para ${_cN1}` : 'Recomendaciones posteriores a tu sesión';
+                const _m1c = _encMsg(`${_recTituloC}\n\nAcordate de tomar agua durante el día de hoy.`);
+                const _m2c = _encMsg(`${_recTituloC}\n\nRecordá el uso de faja o ropa de compresión según las indicaciones recibidas.`);
+                const _mMioC = _encMsg(`${_recTituloC}\n\nTe recomendamos potenciar tu tratamiento con MIO UP. Escribinos si querés más información.`);
+                const _mFraxC = _encMsg(`${_recTituloC}\n\nTe recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información.`);
                 const _tieneNotaC = !!(c.detalleSesion && c.detalleSesion.trim());
                 const _notaDisplayC = _tieneNotaC ? `
                     <div id="ndnc-${c.id}" style="margin-top:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.22);border-radius:10px;padding:10px 34px 10px 10px;font-size:13px;color:rgba(138,106,34,0.90);white-space:pre-wrap;position:relative">${escapeHtml(c.detalleSesion)}<button title="Editar" onclick="activarEdicionNotaConsulta('${c.id}')" style="position:absolute;top:6px;right:8px;background:none;border:none;cursor:pointer;font-size:12px;color:rgba(138,106,34,0.80)">Editar</button></div>
@@ -3440,7 +3509,7 @@
                         <button onclick="window._adminToggleMas('cv${c.id}')" class="ac-mas-btn" id="admas-btn-cv${c.id}">··· Más</button>
                     </div>
                     <div id="admas-cv${c.id}" class="ac-mas-panel" style="display:none;margin-top:8px;">
-                        ${_cWa?`<a href="https://wa.me/${_cWa}?text=${_MSG_PRE_CONSULTA}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(138,106,34,0.92);font-weight:700;font-size:13px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
+                        ${_cWa?`<a href="https://wa.me/${_cWa}?text=${_MSG_PRE_CONSULTA(_cN1)}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(138,106,34,0.92);font-weight:700;font-size:13px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
                         ${_cEst!=='confirmada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:9px 12px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#2F6B4F;width:100%;">✓ Marcar como confirmada</button>`:''}
                         ${_cEst!=='cancelada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','cancelada')" style="padding:9px 12px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(165,67,58,0.85);width:100%;">✕ Cancelar consulta</button>`:''}
                         ${_cWa?`
@@ -3558,10 +3627,11 @@
                     const _recCuandoCP = consulta.fecha===_recManISOCP ? `mañana, ${_cpFecha},` : consulta.fecha===_recHoyISOCP ? `hoy (${_cpFecha})` : `el ${_cpFecha}`;
                     const _waRec  = _cpWa ? `https://wa.me/${_cpWa}?text=${_cpMsg(`Hola ${_cpN1}, te recordamos tu consulta inicial en Espacio Mimar T ${_recCuandoCP} a las ${_cpHora} hs. ¡Te esperamos! Ante cualquier duda, escribinos.`)}` : '';
                     const _waCanc = _cpWa ? `https://wa.me/${_cpWa}?text=${_cpMsg(`Hola ${_cpN1}, queremos avisarte que tu consulta inicial en Espacio Mimar T del ${_cpFecha} a las ${_cpHora} hs no puede realizarse. Comunicáte con nosotros para reprogramar.`)}` : '';
-                    const _m1 = _cpMsg(`Hola ${_cpN1}, acordate de tomar agua durante el día de hoy. Es fundamental para maximizar los resultados del tratamiento. Espacio Mimar T.`);
-                    const _m2 = _cpMsg(`Hola ${_cpN1}, recordá el uso de faja o ropa de compresión según las indicaciones recibidas. Espacio Mimar T.`);
-                    const _mMioUp = _cpMsg(`Hola ${_cpN1}, te recomendamos potenciar tu tratamiento con MIO UP. Escribinos si querés más información. Espacio Mimar T.`);
-                    const _mFraxis = _cpMsg(`Hola ${_cpN1}, te recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información. Espacio Mimar T.`);
+                    const _recTituloCP = _cpN1 ? `Recomendaciones para ${_cpN1}` : 'Recomendaciones posteriores a tu sesión';
+                    const _m1 = _cpMsg(`${_recTituloCP}\n\nAcordate de tomar agua durante el día de hoy. Es fundamental para maximizar los resultados del tratamiento.`);
+                    const _m2 = _cpMsg(`${_recTituloCP}\n\nRecordá el uso de faja o ropa de compresión según las indicaciones recibidas.`);
+                    const _mMioUp = _cpMsg(`${_recTituloCP}\n\nTe recomendamos potenciar tu tratamiento con MIO UP. Escribinos si querés más información.`);
+                    const _mFraxis = _cpMsg(`${_recTituloCP}\n\nTe recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información.`);
                     consultaPanelHTML = `
                     <div style="margin:-6px 0 10px;padding:12px 14px 10px;background:rgba(60,179,113,0.04);border:1px solid rgba(60,179,113,0.12);border-top:none;border-radius:0 0 14px 14px;">
                         <div class="ac-row-primary" style="margin-top:0;">
@@ -5600,10 +5670,9 @@
             var now = Date.now();
             var allSessions = [];
             (d.sesiones||[]).forEach(function(r) {
-                var st = (r.estado||r.status||'').toLowerCase();
                 var xDate = r.fecha || '';
                 var xTime = r.hora || '';
-                var isCancelled = st === 'cancelado';
+                var isCancelled = esEstadoCancelado(r.estado || r.status);
                 var isPending = !isCancelled && _esSesionPendiente(r, now);
                 allSessions.push({
                     r: r,
@@ -5762,6 +5831,79 @@
             // podían no coincidir con las sesiones realmente cargadas.
             function _pjNombreKey(r) { return _pacienteMatchKey(r); }
             function _pjNombreDisplay(r) { return _pacienteNombreDisplay(r); }
+
+            // ── Aviso de PDF de jornada duplicado en la misma semana ──────────
+            // Se identifica al paciente por su clave estable (_pacienteMatchKey:
+            // DNI si hay, si no nombre normalizado) y nunca por comparación de
+            // nombre "tal cual" — dos pacientes homónimos sin DNI cargado son la
+            // única situación real donde esta clave no alcanza a distinguirlos;
+            // es una limitación heredada del modelo de datos existente (no hay
+            // un id de paciente propio en `reservas`), no algo que este punto
+            // pueda resolver sin una migración más amplia.
+            var _fsDocFn = doc; // referencia al doc() de Firestore, antes de que generarPDFJornada la tape con su variable local "doc" (instancia jsPDF)
+
+            function _pjLockId(pacienteKey, semanaId) { return pacienteKey.replace(/[\/]/g,'_') + '__' + semanaId; }
+
+            async function _pjAdquirirLock(pacienteKey, semanaId) {
+                var lockRef = _fsDocFn(db, 'jornadaPdfLocks', _pjLockId(pacienteKey, semanaId));
+                var ahora = Date.now();
+                var expiraEnMs = ahora + 3 * 60000; // 3 minutos: alcanza para generar y se libera sola si algo cuelga
+                var adquirido = false;
+                await runTransaction(db, async function(tx) {
+                    var snap = await tx.get(lockRef);
+                    if (snap.exists() && (snap.data().expiraEnMs || 0) > ahora) { adquirido = false; return; }
+                    tx.set(lockRef, { expiraEnMs: expiraEnMs, iniciadoPor: (auth.currentUser && auth.currentUser.email) || null, iniciadoEnMs: ahora });
+                    adquirido = true;
+                });
+                return adquirido;
+            }
+            async function _pjLiberarLock(pacienteKey, semanaId) {
+                try { await deleteDoc(_fsDocFn(db, 'jornadaPdfLocks', _pjLockId(pacienteKey, semanaId))); } catch (e) { /* expira sola por expiraEnMs si esto falla */ }
+            }
+
+            // Devuelve, por cada pacienteKey, la generación exitosa más reciente
+            // de esta semana (o undefined si no hay). Si la consulta falla, tira
+            // el error — el llamador debe tratarlo como "no se pudo verificar",
+            // nunca como "no hay duplicados".
+            async function _pjBuscarGeneracionesDeLaSemana(semanaId, pacienteKeys) {
+                var qs = await getDocs(query(collection(db, 'jornadaPdfGeneraciones'), where('semanaId', '==', semanaId)));
+                var porClave = new Map();
+                qs.forEach(function(d){
+                    var data = d.data();
+                    if (!pacienteKeys.has(data.pacienteKey)) return;
+                    var prev = porClave.get(data.pacienteKey);
+                    var ts = (data.generadoEnMs || 0);
+                    if (!prev || ts > prev.generadoEnMs) porClave.set(data.pacienteKey, { generadoEnMs: ts, pacienteNombre: data.pacienteNombre || '' });
+                });
+                return porClave;
+            }
+
+            function _pjRegistrarConfirmDialog(mensaje) {
+                return new Promise(function(resolve){
+                    var overlay = document.createElement('div');
+                    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,25,0.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+                    var box = document.createElement('div');
+                    box.style.cssText = 'background:#FFFFFF;border-radius:16px;max-width:440px;width:100%;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,0.28);';
+                    var msgDiv = document.createElement('div');
+                    msgDiv.style.cssText = 'font-size:14px;line-height:1.55;color:#20382B;white-space:pre-wrap;margin-bottom:18px;';
+                    msgDiv.textContent = mensaje;
+                    var fila = document.createElement('div');
+                    fila.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;';
+                    var btnNo = document.createElement('button');
+                    btnNo.textContent = 'No, volver';
+                    btnNo.style.cssText = 'padding:10px 16px;border-radius:10px;border:1.5px solid #7C8D81;background:#fff;color:#2D4A32;font-weight:700;cursor:pointer;font-size:13px;';
+                    var btnSi = document.createElement('button');
+                    btnSi.textContent = 'Sí, generar igualmente';
+                    btnSi.style.cssText = 'padding:10px 16px;border-radius:10px;border:none;background:#2D4A32;color:#fff;font-weight:700;cursor:pointer;font-size:13px;';
+                    fila.appendChild(btnNo); fila.appendChild(btnSi);
+                    box.appendChild(msgDiv); box.appendChild(fila);
+                    overlay.appendChild(box);
+                    document.body.appendChild(overlay);
+                    function cerrar(v){ document.body.removeChild(overlay); resolve(v); }
+                    btnNo.addEventListener('click', function(){ cerrar(false); });
+                    btnSi.addEventListener('click', function(){ cerrar(true); });
+                });
+            }
             function _pjFechaFull(f) {
                 if (!f) return '—';
                 var DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -6206,6 +6348,14 @@
                     .filter(function(r){ return r.fecha === f && esReservaActiva(r); })
                     .sort(function(a,b){ return (a.hora||'')<(b.hora||'') ? -1 : 1; });
 
+                // Se vuelve a verificar la selección contra la fecha fresca
+                // recién traída: si un paciente estaba tildado pero su turno
+                // de ese día ya no figura activo (se canceló después de
+                // tildarlo, quizás desde otra pestaña/dispositivo), no debe
+                // generarle nada ni contar como si siguiera seleccionado.
+                var clavesActivasHoy = new Set(reservasDia.map(function(r){ return _pjNombreKey(r); }).filter(Boolean));
+                var seleccionadosQueYaNoAplican = [...selected].filter(function(k){ return !clavesActivasHoy.has(k); });
+
                 var now = Date.now();
                 var patientData = [];
                 var seen = new Set();
@@ -6221,10 +6371,9 @@
                     // Secuencia cronológica unificada (realizadas/pendientes/canceladas mezcladas por fecha)
                     var allSes = [];
                     allR.forEach(function(x) {
-                        var st = (x.estado||x.status||'').toLowerCase();
                         var xDate = x.fecha || '';
                         var xTime = x.hora || '';
-                        var isCancelled = st === 'cancelado';
+                        var isCancelled = esEstadoCancelado(x.estado || x.status);
                         var isPending = !isCancelled && _esSesionPendiente(x, now);
                         allSes.push({
                             r: x,
@@ -6249,9 +6398,80 @@
                     patientData.push({ nombre: nombre, key: k, phone: phone, edad: _buscarEdad(nombre, phone, allR), sesiones: sesionesImprimibles });
                 });
 
+                if (seleccionadosQueYaNoAplican.length) {
+                    // Se quitan de la selección en pantalla y se refresca la
+                    // lista/cantidades antes de seguir — nunca se genera con
+                    // una cuenta que ya no coincide con lo que hay tildado.
+                    seleccionadosQueYaNoAplican.forEach(function(k){ selected.delete(k); });
+                    _pjRender();
+                    mostrarAviso('Se canceló el turno de ' + seleccionadosQueYaNoAplican.length + ' paciente(s) seleccionado(s) — se excluyeron de esta generación. Revisá la selección actualizada y volvé a generar si hace falta.');
+                    if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                    return;
+                }
+
                 if (!patientData.length) { mostrarAviso('Sin datos para generar.'); return; }
                 var totalEsperado = patientData.reduce(function(s,p){ return s + p.sesiones.length; }, 0);
                 if (!totalEsperado) { mostrarAviso('Los pacientes seleccionados no tienen sesiones registradas.'); return; }
+
+                // ── Aviso de PDF de jornada duplicado en la misma semana ──────
+                var _pjSemanaId = _semanaIdISO(new Date(), ZONA_HORARIA_NEGOCIO);
+                var _pjLocksAdquiridos = [];
+                try {
+                    for (var li = 0; li < patientData.length; li++) {
+                        var _lockOk = await _pjAdquirirLock(patientData[li].key, _pjSemanaId);
+                        if (!_lockOk) {
+                            // Se libera lo que sí se alcanzó a tomar y se aborta entero:
+                            // hay una generación en curso para algún paciente seleccionado
+                            // (doble toque, otra pestaña u otro dispositivo).
+                            for (var lj = 0; lj < _pjLocksAdquiridos.length; lj++) { await _pjLiberarLock(_pjLocksAdquiridos[lj], _pjSemanaId); }
+                            mostrarAviso('Ya hay una generación en curso para ' + patientData[li].nombre + ' (otra pestaña o dispositivo). Esperá un momento y volvé a intentar.');
+                            if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                            return;
+                        }
+                        _pjLocksAdquiridos.push(patientData[li].key);
+                    }
+
+                    var _pjClaves = new Set(patientData.map(function(p){ return p.key; }));
+                    var _pjGeneracionesPrevias;
+                    try {
+                        _pjGeneracionesPrevias = await _pjBuscarGeneracionesDeLaSemana(_pjSemanaId, _pjClaves);
+                    } catch (errVerif) {
+                        console.error(errVerif);
+                        mostrarAviso('No se pudo verificar si ya se generó un PDF esta semana para estos pacientes. No se generó nada — reintentá en un momento.');
+                        if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                        return;
+                    }
+
+                    var _pjDuplicados = patientData.filter(function(p){ return _pjGeneracionesPrevias.has(p.key); });
+                    if (_pjDuplicados.length) {
+                        var _pjMsgDup;
+                        var _fmtPrevGen = function(ms){
+                            if (!ms) return '';
+                            var dt = new Date(ms);
+                            return ' (generado el ' + dt.toLocaleDateString('es-AR', { timeZone: ZONA_HORARIA_NEGOCIO }) + ' a las ' + dt.toLocaleTimeString('es-AR', { timeZone: ZONA_HORARIA_NEGOCIO, hour: '2-digit', minute: '2-digit' }) + ')';
+                        };
+                        if (_pjDuplicados.length === 1) {
+                            var _prevInfo = _pjGeneracionesPrevias.get(_pjDuplicados[0].key);
+                            _pjMsgDup = 'Esta semana ya se generó un PDF de sesiones para ' + _pjDuplicados[0].nombre + '.' + _fmtPrevGen(_prevInfo && _prevInfo.generadoEnMs) + ' ¿Deseás continuar?';
+                        } else {
+                            var _nombresDup = _pjDuplicados.map(function(p){ return p.nombre; }).join(', ');
+                            _pjMsgDup = 'Esta semana ya se generó un PDF de sesiones para: ' + _nombresDup + '. Si continuás, se va a generar el PDF completo para los ' + patientData.length + ' paciente(s) seleccionado(s), incluyendo a quienes ya lo tienen esta semana. ¿Deseás continuar?';
+                        }
+                        var _pjContinuar = await _pjRegistrarConfirmDialog(_pjMsgDup);
+                        if (!_pjContinuar) {
+                            for (var lk = 0; lk < _pjLocksAdquiridos.length; lk++) { await _pjLiberarLock(_pjLocksAdquiridos[lk], _pjSemanaId); }
+                            mostrarAviso('Generación cancelada. No se generó ni registró nada.');
+                            if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                            return;
+                        }
+                    }
+                } catch (errLock) {
+                    for (var lm = 0; lm < _pjLocksAdquiridos.length; lm++) { await _pjLiberarLock(_pjLocksAdquiridos[lm], _pjSemanaId); }
+                    console.error(errLock);
+                    mostrarAviso('No se pudo preparar la generación del PDF: ' + (errLock && errLock.message ? errLock.message : 'error desconocido'));
+                    if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                    return;
+                }
 
                 var duplex = document.getElementById('pj-duplex') && document.getElementById('pj-duplex').checked;
 
@@ -6496,16 +6716,626 @@
                 doc.save('jornada-' + f + '.pdf');
                 _pjLastGenTs = Date.now();
                 _pjLastGenFecha = f;
+
+                // Registro de la generación exitosa — recién acá, después de que
+                // el PDF realmente se generó (nunca en una vista previa, una
+                // cancelación o si algo anterior tiró error).
+                try {
+                    var _pjBatch = writeBatch(db);
+                    var _pjEmailActual = (auth.currentUser && auth.currentUser.email) || null;
+                    var _pjNowMs = Date.now();
+                    patientData.forEach(function(pd){
+                        var _pjRef = _fsDocFn(collection(db, 'jornadaPdfGeneraciones'));
+                        _pjBatch.set(_pjRef, {
+                            pacienteKey: pd.key,
+                            pacienteNombre: pd.nombre,
+                            semanaId: _pjSemanaId,
+                            fechaJornada: f,
+                            generadoEnMs: _pjNowMs,
+                            generadoEn: serverTimestamp(),
+                            generadoPor: _pjEmailActual,
+                            tipoDocumento: 'pdf_jornada_historiales',
+                            reservaIds: pd.sesiones.map(function(s){ return s.r.id; })
+                        });
+                    });
+                    await _pjBatch.commit();
+                } catch (errReg) {
+                    // El PDF ya se descargó — no se revierte ni se finge que no
+                    // pasó. Se avisa para que quede claro que, si se repite la
+                    // generación, el aviso de "ya generado esta semana" podría
+                    // no reflejar esta corrida puntual.
+                    console.error(errReg);
+                    mostrarAviso('El PDF se generó, pero no se pudo registrar la generación para el aviso de duplicados de la próxima vez.');
+                }
                 } catch (err) {
                     console.error(err);
                     mostrarAviso('No se pudo generar el PDF: ' + (err && err.message ? err.message : 'error desconocido'));
                 } finally {
+                    if (_pjLocksAdquiridos) { for (var lr = 0; lr < _pjLocksAdquiridos.length; lr++) { await _pjLiberarLock(_pjLocksAdquiridos[lr], _pjSemanaId); } }
                     if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
                     _pjRender();
                 }
             };
         })();
         /* ══ FIN PREPARAR JORNADA ══════════════════════════════════════════════ */
+
+        /* ══ PRECIO Y PAGOS (punto 2) ═══════════════════════════════════════════
+           Alcance de esta implementación: cubre las sesiones de la colección
+           "reservas" (el flujo principal de "atender a un paciente" en este
+           panel). Las consultas iniciales (`consultas`), la depilación
+           (`reservasDepi`, panel aparte) y el curso de automaquillaje tienen
+           cada una su propio modelo de datos y NO quedan cubiertas por este
+           pase — se documenta como límite explícito en vez de simular que
+           "todos los servicios" ya tienen precio y pagos.
+           Un documento de "prestaciones" por reserva (id = reservaId). Los
+           movimientos de dinero van en "pagos", con id = operationId generado
+           por el cliente (mismo id en un reintento/doble toque = mismo
+           documento, nunca un cobro duplicado). Un pago con prestacionId nulo
+           es un adelanto/saldo a favor del paciente, todavía sin aplicar. */
+        (function(){
+            function _ppCobradoDe(pagos, reservaId) {
+                return pagos.filter(function(p){ return p.prestacionId === reservaId; })
+                    .reduce(function(s,p){ return s + (p.tipo === 'devolucion' ? -p.monto : p.monto); }, 0);
+            }
+
+            var _ppReservaId = null, _ppPacienteKey = null, _ppPacienteNombre = '';
+            var _ppPrestacion = null, _ppPagos = [], _ppSaldoAFavor = 0;
+
+            function _ppEstado() {
+                if (!_ppPrestacion) return { label: 'Sin registro', color: '#7C8D81' };
+                if (_ppPrestacion.anulada) return { label: 'Anulada', color: '#AD2E2E' };
+                if (_ppPrestacion.sinCargo) return { label: 'Sin cargo', color: '#526358' };
+                var precio = _ppPrestacion.precioAcordado;
+                if (precio === null || precio === undefined) return { label: 'Precio no definido', color: '#8A6A22' };
+                var cobrado = _ppCobradoDe(_ppPagos, _ppReservaId);
+                if (cobrado <= 0) return { label: 'Pendiente', color: '#AD2E2E' };
+                if (cobrado < precio) return { label: 'Parcial', color: '#8A6A22' };
+                return { label: 'Pagado', color: '#2F6B4F' };
+            }
+
+            async function _ppCargar(reservaId, pacienteKey, pacienteNombre) {
+                _ppReservaId = reservaId; _ppPacienteKey = pacienteKey; _ppPacienteNombre = pacienteNombre;
+                var body = document.getElementById('mpp-body');
+                document.getElementById('mpp-paciente-label').textContent = pacienteNombre || '—';
+                body.innerHTML = 'Cargando…';
+                document.getElementById('modal-precio-pagos-overlay').classList.add('open');
+                try {
+                    var prestSnap = await getDoc(doc(db, 'prestaciones', reservaId));
+                    var pagosSnap = await getDocs(query(collection(db, 'pagos'), where('prestacionId', '==', reservaId)));
+                    _ppPrestacion = prestSnap.exists() ? prestSnap.data() : null;
+                    _ppPagos = [];
+                    pagosSnap.forEach(function(d){ _ppPagos.push(Object.assign({ id: d.id }, d.data())); });
+                    _ppPagos.sort(function(a,b){ return (a.fechaEfectiva||'').localeCompare(b.fechaEfectiva||''); });
+                    _ppSaldoAFavor = 0;
+                    if (pacienteKey) {
+                        var sueltosSnap = await getDocs(query(collection(db, 'pagos'), where('pacienteKey', '==', pacienteKey), where('prestacionId', '==', null)));
+                        sueltosSnap.forEach(function(d){ var p = d.data(); _ppSaldoAFavor += (p.tipo === 'devolucion' ? -p.monto : p.monto); });
+                    }
+                    _ppRender();
+                } catch (e) {
+                    console.error(e);
+                    body.innerHTML = '<p style="color:#AD2E2E;font-size:13px;">No se pudo cargar el precio y los pagos (' + (e && e.message ? e.message : 'sin conexión') + '). Cerrá y volvé a intentar.</p><button class="btn-mini" style="width:100%;margin-top:10px;" onclick="window._ppCerrar()">Cerrar</button>';
+                }
+            }
+
+            function _ppRender() {
+                var body = document.getElementById('mpp-body');
+                var est = _ppEstado();
+                var precio = _ppPrestacion ? _ppPrestacion.precioAcordado : null;
+                var tienePrecio = precio !== null && precio !== undefined;
+                var cobrado = _ppCobradoDe(_ppPagos, _ppReservaId);
+                var saldoPend = tienePrecio ? (precio - cobrado) : null;
+
+                var html = '';
+                html += '<div style="margin-bottom:12px;"><span style="font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 10px;border-radius:999px;background:' + est.color + '1A;color:' + est.color + ';border:1px solid ' + est.color + '55;">' + est.label + '</span></div>';
+
+                html += '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;">';
+                html += '<label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Precio acordado</label>';
+                html += '<div style="display:flex;gap:8px;align-items:center;">';
+                html += '<input type="number" id="mpp-precio-input" min="0" step="100" value="' + (tienePrecio ? precio : '') + '" placeholder="Sin definir" style="flex:1;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:14px;" ' + (_ppPrestacion && _ppPrestacion.sinCargo ? 'disabled' : '') + '>';
+                html += '<label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;"><input type="checkbox" id="mpp-sincargo-input" ' + (_ppPrestacion && _ppPrestacion.sinCargo ? 'checked' : '') + ' onchange="document.getElementById(\'mpp-precio-input\').disabled=this.checked;"> Sin cargo</label>';
+                html += '</div>';
+                html += '<button class="btn-mini" style="width:100%;margin-top:8px;" onclick="window._ppGuardarPrecio(this)">Guardar precio</button>';
+                html += '</div>';
+
+                if (_ppPrestacion && !_ppPrestacion.sinCargo && tienePrecio) {
+                    html += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Cobrado</span><strong>' + _fmtMoneyARS(cobrado) + '</strong></div>';
+                    html += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:12px;"><span>Saldo pendiente</span><strong style="color:' + (saldoPend > 0 ? '#AD2E2E' : '#2F6B4F') + '">' + _fmtMoneyARS(saldoPend) + '</strong></div>';
+                }
+
+                if (_ppSaldoAFavor > 0) {
+                    html += '<div style="background:rgba(47,107,79,0.10);border:1px solid rgba(47,107,79,0.25);border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:12.5px;color:#2F6B4F;">💚 Saldo a favor del paciente (adelantos sin aplicar a una sesión): <strong>' + _fmtMoneyARS(_ppSaldoAFavor) + '</strong></div>';
+                }
+
+                html += '<div style="font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;letter-spacing:.03em;margin:10px 0 6px;">Movimientos</div>';
+                if (!_ppPagos.length) {
+                    html += '<p style="font-size:12.5px;color:#7C8D81;margin:0 0 10px;">Todavía no hay pagos registrados.</p>';
+                } else {
+                    html += '<div style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;">';
+                    _ppPagos.forEach(function(p){
+                        var signo = p.tipo === 'devolucion' ? '−' : '+';
+                        var color = p.tipo === 'devolucion' ? '#AD2E2E' : '#2F6B4F';
+                        html += '<div style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:12.5px;">' +
+                            '<div style="display:flex;justify-content:space-between;gap:8px;"><span>' + escapeHtml(p.fechaEfectiva || '—') + ' · ' + escapeHtml(p.metodoPago || '—') + '</span><strong style="color:' + color + ';white-space:nowrap;">' + signo + _fmtMoneyARS(p.monto) + '</strong></div>' +
+                            (p.nota ? '<div style="color:#7C8D81;margin-top:2px;">' + escapeHtml(p.nota) + '</div>' : '') +
+                            (p.motivo ? '<div style="color:#7C8D81;margin-top:2px;">Motivo: ' + escapeHtml(p.motivo) + '</div>' : '') +
+                            '</div>';
+                    });
+                    html += '</div>';
+                }
+
+                if (_ppPrestacion && !_ppPrestacion.sinCargo && tienePrecio && !_ppPrestacion.anulada) {
+                    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">';
+                    html += '<input type="number" id="mpp-monto-input" min="1" step="100" placeholder="Monto $" style="padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;">';
+                    html += '<input type="date" id="mpp-fecha-input" value="' + _hoyISOZona(ZONA_HORARIA_NEGOCIO) + '" style="padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;">';
+                    html += '</div>';
+                    html += '<select id="mpp-metodo-input" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;margin-bottom:6px;"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="tarjeta">Tarjeta</option><option value="otro">Otro</option></select>';
+                    html += '<input type="text" id="mpp-nota-input" placeholder="Nota (opcional)" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;margin-bottom:8px;">';
+                    html += '<button class="btn-mini" style="width:100%;border-color:rgba(74,222,128,0.40);color:#2F6B4F;background:rgba(74,222,128,0.08);margin-bottom:6px;" id="mpp-btn-registrar" onclick="window._ppRegistrarPago(this)">Registrar pago</button>';
+                    if (saldoPend > 0) {
+                        html += '<button class="btn-mini" style="width:100%;border-color:#b5cce8;color:#2e61b1;background:#f3f8ff;margin-bottom:6px;" id="mpp-btn-marcarpagado" onclick="window._ppMarcarComoPagado(this)">Marcar como pagado (' + _fmtMoneyARS(saldoPend) + ')</button>';
+                    }
+                    html += '<button class="btn-mini" style="width:100%;border-color:#e0b0b0;color:#a02828;background:#fff5f5;" onclick="window._ppAbrirDevolucion()">Registrar devolución / ajuste</button>';
+                }
+
+                html += '<button class="btn-mini" style="width:100%;margin-top:10px;" onclick="window._ppCerrar()">Cerrar</button>';
+                body.innerHTML = html;
+                var btnReg = document.getElementById('mpp-btn-registrar'); if (btnReg && !btnReg.dataset.opId) btnReg.dataset.opId = _ppReservaId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+                var btnMarc = document.getElementById('mpp-btn-marcarpagado'); if (btnMarc && !btnMarc.dataset.opId) btnMarc.dataset.opId = _ppReservaId + '_marcar_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+            }
+
+            window._ppCerrar = function() {
+                document.getElementById('modal-precio-pagos-overlay').classList.remove('open');
+                _ppReservaId = null; _ppPrestacion = null; _ppPagos = []; _ppSaldoAFavor = 0;
+            };
+
+            window.abrirPrecioPagos = function(reservaId, pacienteKey, pacienteNombre) {
+                _ppCargar(reservaId, pacienteKey, pacienteNombre);
+            };
+
+            window._ppGuardarPrecio = async function(btn) {
+                var input = document.getElementById('mpp-precio-input');
+                var sinCargo = document.getElementById('mpp-sincargo-input').checked;
+                var valor = input.value.trim();
+                var precio = sinCargo ? null : (valor === '' ? null : Math.round(Number(valor)));
+                if (!sinCargo && valor !== '' && (isNaN(precio) || precio < 0)) { mostrarAviso('Precio inválido.'); return; }
+                btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Guardando…';
+                try {
+                    await setDoc(doc(db, 'prestaciones', _ppReservaId), {
+                        reservaId: _ppReservaId,
+                        pacienteKey: _ppPacienteKey,
+                        pacienteNombre: _ppPacienteNombre,
+                        precioAcordado: precio,
+                        sinCargo: sinCargo,
+                        actualizadoEn: serverTimestamp(),
+                        actualizadoPor: (auth.currentUser && auth.currentUser.email) || null,
+                        creadoEn: (_ppPrestacion && _ppPrestacion.creadoEn) || serverTimestamp(),
+                        creadoPor: (_ppPrestacion && _ppPrestacion.creadoPor) || (auth.currentUser && auth.currentUser.email) || null
+                    }, { merge: true });
+                    mostrarAviso('Precio guardado.');
+                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre);
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo guardar el precio: ' + (e && e.message ? e.message : 'error desconocido'));
+                    btn.disabled = false; btn.textContent = orig;
+                }
+            };
+
+            window._ppRegistrarPago = async function(btn) {
+                var monto = Math.round(Number(document.getElementById('mpp-monto-input').value));
+                if (!monto || monto <= 0) { mostrarAviso('Ingresá un monto válido.'); return; }
+                var fecha = document.getElementById('mpp-fecha-input').value || _hoyISOZona(ZONA_HORARIA_NEGOCIO);
+                var metodo = document.getElementById('mpp-metodo-input').value;
+                var nota = document.getElementById('mpp-nota-input').value.trim();
+                var opId = btn.dataset.opId;
+                btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Registrando…';
+                try {
+                    await setDoc(doc(db, 'pagos', opId), {
+                        operacionId: opId, prestacionId: _ppReservaId, pacienteKey: _ppPacienteKey, pacienteNombre: _ppPacienteNombre,
+                        monto: monto, fechaEfectiva: fecha, metodoPago: metodo, nota: nota, tipo: 'cobro',
+                        creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
+                    });
+                    mostrarAviso('Pago registrado.');
+                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre);
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo registrar el pago: ' + (e && e.message ? e.message : 'error desconocido'));
+                    btn.disabled = false; btn.textContent = orig;
+                }
+            };
+
+            window._ppMarcarComoPagado = async function(btn) {
+                var precio = _ppPrestacion.precioAcordado;
+                var saldoPend = precio - _ppCobradoDe(_ppPagos, _ppReservaId);
+                if (saldoPend <= 0) { mostrarAviso('Ya está pagado.'); await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre); return; }
+                var opId = btn.dataset.opId;
+                btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Registrando…';
+                try {
+                    await setDoc(doc(db, 'pagos', opId), {
+                        operacionId: opId, prestacionId: _ppReservaId, pacienteKey: _ppPacienteKey, pacienteNombre: _ppPacienteNombre,
+                        monto: saldoPend, fechaEfectiva: _hoyISOZona(ZONA_HORARIA_NEGOCIO), metodoPago: 'efectivo', nota: 'Marcado como pagado (saldo restante)', tipo: 'cobro',
+                        creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
+                    });
+                    mostrarAviso('Registrado el cobro del saldo restante.');
+                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre);
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo registrar: ' + (e && e.message ? e.message : 'error desconocido'));
+                    btn.disabled = false; btn.textContent = orig;
+                }
+            };
+
+            window._ppAbrirDevolucion = async function() {
+                var montoTxt = prompt('Monto a devolver/ajustar (número, sin signo):');
+                if (montoTxt === null) return;
+                var monto = Math.round(Number(montoTxt));
+                if (!monto || monto <= 0) { mostrarAviso('Monto inválido.'); return; }
+                var motivo = prompt('Motivo de la devolución/ajuste (obligatorio):');
+                if (!motivo || !motivo.trim()) { mostrarAviso('La devolución/ajuste necesita un motivo.'); return; }
+                var opId = _ppReservaId + '_dev_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+                try {
+                    await setDoc(doc(db, 'pagos', opId), {
+                        operacionId: opId, prestacionId: _ppReservaId, pacienteKey: _ppPacienteKey, pacienteNombre: _ppPacienteNombre,
+                        monto: monto, fechaEfectiva: _hoyISOZona(ZONA_HORARIA_NEGOCIO), metodoPago: null, nota: '', motivo: motivo.trim(), tipo: 'devolucion',
+                        creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
+                    });
+                    mostrarAviso('Devolución/ajuste registrado.');
+                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre);
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo registrar la devolución: ' + (e && e.message ? e.message : 'error desconocido'));
+                }
+            };
+        })();
+        /* ══ FIN PRECIO Y PAGOS ═════════════════════════════════════════════════ */
+
+        /* ══ RESUMEN MENSUAL + GASTOS (puntos 3 y 4) ════════════════════════════
+           Los importes de cabecera (cobros netos, gastos, neto de caja, neto
+           estimado) son siempre del negocio completo: acotarlos por servicio
+           o paciente daría un "estado de caja parcial" sin sentido contable.
+           Los filtros sólo acotan "valor de prestaciones", "saldo pendiente"
+           y el detalle por paciente. */
+        (function(){
+            var _rmAnio, _rmMes; // mes: 1-12
+            var _rmFiltroServicio = '';
+            var _rmFiltroPacienteKey = '';
+            var _rmData = null;
+
+            var MESES_RM = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+            function _rmPad(n){ return String(n).padStart(2,'0'); }
+            function _rmUltimoDia(anio, mes){ return new Date(anio, mes, 0).getDate(); }
+            function _rmEsMesActual(anio, mes){ var h = _fechaEnZona(new Date(), ZONA_HORARIA_NEGOCIO); return h.y === anio && h.m === mes; }
+            function _rmCutoffFecha(anio, mes){ return _rmEsMesActual(anio, mes) ? _hoyISOZona(ZONA_HORARIA_NEGOCIO) : (anio + '-' + _rmPad(mes) + '-' + _rmPad(_rmUltimoDia(anio, mes))); }
+            function _rmPrefijoMes(anio, mes){ return anio + '-' + _rmPad(mes); }
+
+            window.cargarResumenMensual = async function() {
+                var cont = document.getElementById('sec-resumen-mensual');
+                if (!_rmAnio) { var h = _fechaEnZona(new Date(), ZONA_HORARIA_NEGOCIO); _rmAnio = h.y; _rmMes = h.m; }
+                cont.innerHTML = '<div style="padding:20px 20px 4px;"><h2 style="margin:0;font-size:20px;color:#20382B;">Resumen mensual</h2></div><p style="padding:20px;color:#7C8D81;">Cargando…</p>';
+                try {
+                    var reservas = await _fetchReservasCompletasParaExport();
+                    var prestSnap = await getDocs(collection(db, 'prestaciones'));
+                    var pagosSnap = await getDocs(collection(db, 'pagos'));
+                    var gastosSnap = await getDocs(collection(db, 'gastos'));
+                    var prestaciones = []; prestSnap.forEach(function(d){ prestaciones.push(Object.assign({ id: d.id }, d.data())); });
+                    var pagos = []; pagosSnap.forEach(function(d){ pagos.push(Object.assign({ id: d.id }, d.data())); });
+                    var gastos = []; gastosSnap.forEach(function(d){ gastos.push(Object.assign({ id: d.id }, d.data())); });
+                    _rmData = { reservas: reservas, prestaciones: prestaciones, pagos: pagos, gastos: gastos };
+                    _rmRender();
+                } catch (e) {
+                    console.error(e);
+                    cont.innerHTML = '<div style="padding:20px 20px 4px;"><h2 style="margin:0;font-size:20px;color:#20382B;">Resumen mensual</h2></div><p style="padding:20px;color:#AD2E2E;">No se pudo cargar el resumen (' + (e && e.message ? e.message : 'sin conexión') + '). <button class="btn-mini" onclick="window.cargarResumenMensual()">Reintentar</button></p>';
+                }
+            };
+
+            function _rmRender() {
+                var d = _rmData;
+                var cont = document.getElementById('sec-resumen-mensual');
+                var anio = _rmAnio, mes = _rmMes;
+                var prefijoMes = _rmPrefijoMes(anio, mes);
+                var cutoff = _rmCutoffFecha(anio, mes);
+                var reservasPorId = new Map(d.reservas.map(function(r){ return [r.id, r]; }));
+
+                var serviciosSet = new Set();
+                d.reservas.forEach(function(r){ if (r.servicio) serviciosSet.add(r.servicio); });
+                var servicios = Array.from(serviciosSet).sort();
+
+                var pacientesMap = new Map();
+                d.prestaciones.forEach(function(p){ if (p.pacienteKey) pacientesMap.set(p.pacienteKey, p.pacienteNombre || p.pacienteKey); });
+                d.pagos.forEach(function(p){ if (p.pacienteKey && !pacientesMap.has(p.pacienteKey)) pacientesMap.set(p.pacienteKey, p.pacienteNombre || p.pacienteKey); });
+
+                function servicioDePrestacion(prest) { var r = reservasPorId.get(prest.reservaId); return r ? (r.servicio || '') : ''; }
+                function servicioDePago(pago) {
+                    if (!pago.prestacionId) return '';
+                    var prest = d.prestaciones.find(function(p){ return p.id === pago.prestacionId; });
+                    return prest ? servicioDePrestacion(prest) : '';
+                }
+
+                var prestacionesDelMes = d.prestaciones.filter(function(p){
+                    if (p.anulada) return false;
+                    var r = reservasPorId.get(p.reservaId);
+                    if (!r || !r.fecha || !r.fecha.startsWith(prefijoMes)) return false;
+                    if (_rmFiltroServicio && (r.servicio||'') !== _rmFiltroServicio) return false;
+                    if (_rmFiltroPacienteKey && p.pacienteKey !== _rmFiltroPacienteKey) return false;
+                    return true;
+                });
+                var valorPrestaciones = 0, prestacionesIncompletas = 0;
+                prestacionesDelMes.forEach(function(p){
+                    if (p.sinCargo) return;
+                    if (p.precioAcordado === null || p.precioAcordado === undefined) { prestacionesIncompletas++; return; }
+                    valorPrestaciones += p.precioAcordado;
+                });
+                var reservasDelMes = d.reservas.filter(function(r){
+                    if (!esReservaActiva(r)) return false;
+                    if (!r.fecha || !r.fecha.startsWith(prefijoMes)) return false;
+                    if (_rmFiltroServicio && (r.servicio||'') !== _rmFiltroServicio) return false;
+                    return true;
+                });
+                var idsConPrestacion = new Set(d.prestaciones.map(function(p){ return p.reservaId; }));
+                var sesionesSinRegistro = reservasDelMes.filter(function(r){ return !idsConPrestacion.has(r.id); }).length;
+
+                var pagosDelMes = d.pagos.filter(function(p){ return (p.fechaEfectiva||'').startsWith(prefijoMes); });
+                var cobrosDelMes = 0, devolucionesDelMes = 0;
+                var cobrosNetosPorServicio = new Map();
+                pagosDelMes.forEach(function(p){
+                    var signo = p.tipo === 'devolucion' ? -1 : 1;
+                    if (p.tipo === 'devolucion') devolucionesDelMes += p.monto; else cobrosDelMes += p.monto;
+                    var serv = servicioDePago(p);
+                    if (serv) cobrosNetosPorServicio.set(serv, (cobrosNetosPorServicio.get(serv) || 0) + signo * p.monto);
+                });
+                var cobrosNetosDelMes = cobrosDelMes - devolucionesDelMes;
+
+                function cobradoHasta(reservaId, fechaCorte) {
+                    return d.pagos.filter(function(p){ return p.prestacionId === reservaId && (p.fechaEfectiva||'') <= fechaCorte; })
+                        .reduce(function(s,p){ return s + (p.tipo === 'devolucion' ? -p.monto : p.monto); }, 0);
+                }
+                var prestacionesParaSaldo = d.prestaciones.filter(function(p){
+                    if (p.anulada || p.sinCargo) return false;
+                    if (p.precioAcordado === null || p.precioAcordado === undefined) return false;
+                    var r = reservasPorId.get(p.reservaId);
+                    if (!r || !r.fecha || r.fecha > cutoff) return false;
+                    if (_rmFiltroServicio && (r.servicio||'') !== _rmFiltroServicio) return false;
+                    if (_rmFiltroPacienteKey && p.pacienteKey !== _rmFiltroPacienteKey) return false;
+                    return true;
+                });
+                var saldoPendienteCierre = 0;
+                prestacionesParaSaldo.forEach(function(p){ saldoPendienteCierre += Math.max(0, p.precioAcordado - cobradoHasta(p.reservaId, cutoff)); });
+
+                var gastosActivos = d.gastos.filter(function(g){ return !g.anulado; });
+                var gastosPagadosDelMes = gastosActivos.filter(function(g){ return g.modalidad === 'importe_fijo' && g.estado === 'pagado' && (g.fechaPagoEfectiva||'').startsWith(prefijoMes); })
+                    .reduce(function(s,g){ return s + (g.montoFijo || 0); }, 0);
+                var estimadosVigentes = gastosActivos.filter(function(g){ return g.modalidad === 'porcentaje_estimado' && !g.reemplazadoPorGastoId; });
+                var gastosPrevistosAdicionales = 0;
+                estimadosVigentes.forEach(function(g){
+                    var base = (g.alcance === 'servicio' && g.servicioVinculado) ? (cobrosNetosPorServicio.get(g.servicioVinculado) || 0) : cobrosNetosDelMes;
+                    var baseFloor = Math.max(0, base);
+                    gastosPrevistosAdicionales += Math.round(baseFloor * (g.porcentaje||0) / 100);
+                });
+                var netoCaja = cobrosNetosDelMes - gastosPagadosDelMes;
+                var netoEstimado = netoCaja - gastosPrevistosAdicionales;
+
+                var pacKeys = new Set();
+                prestacionesDelMes.forEach(function(p){ if (p.pacienteKey) pacKeys.add(p.pacienteKey); });
+                pagosDelMes.forEach(function(p){ if (p.pacienteKey) pacKeys.add(p.pacienteKey); });
+                if (_rmFiltroPacienteKey) pacKeys = new Set([_rmFiltroPacienteKey]);
+                var filasPaciente = Array.from(pacKeys).map(function(key){
+                    var nombre = pacientesMap.get(key) || key;
+                    var cobradoMes = pagosDelMes.filter(function(p){ return p.pacienteKey === key; })
+                        .reduce(function(s,p){ return s + (p.tipo === 'devolucion' ? -p.monto : p.monto); }, 0);
+                    var prestPac = d.prestaciones.filter(function(p){ return p.pacienteKey === key && !p.anulada && !p.sinCargo && p.precioAcordado !== null && p.precioAcordado !== undefined; });
+                    var pendienteCierre = 0, pendienteDeAntes = 0;
+                    prestPac.forEach(function(p){
+                        var r = reservasPorId.get(p.reservaId);
+                        if (!r || !r.fecha || r.fecha > cutoff) return;
+                        var pend = Math.max(0, p.precioAcordado - cobradoHasta(p.reservaId, cutoff));
+                        pendienteCierre += pend;
+                        if (!r.fecha.startsWith(prefijoMes)) pendienteDeAntes += pend;
+                    });
+                    return { key: key, nombre: nombre, cobradoMes: cobradoMes, pendienteCierre: pendienteCierre, pendienteDeAntes: pendienteDeAntes };
+                }).sort(function(a,b){ return a.nombre.localeCompare(b.nombre); });
+
+                var mesLabelCap = MESES_RM[mes-1];
+                var html = '';
+                html += '<div style="padding:20px 20px 4px;"><h2 style="margin:0;font-size:20px;color:#20382B;">Resumen mensual</h2></div>';
+                html += '<div style="padding:0 20px 24px;">';
+
+                html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:16px;">';
+                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Mes</label><select id="rm-mes-input" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">' + MESES_RM.map(function(m,i){ return '<option value="' + (i+1) + '"' + (i+1===mes?' selected':'') + '>' + m.charAt(0).toUpperCase()+m.slice(1) + '</option>'; }).join('') + '</select></div>';
+                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Año</label><input type="number" id="rm-anio-input" value="' + anio + '" style="width:90px;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;"></div>';
+                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Servicio</label><select id="rm-servicio-input" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;"><option value="">Todos</option>' + servicios.map(function(s){ return '<option value="' + escapeHtml(s) + '"' + (s===_rmFiltroServicio?' selected':'') + '>' + escapeHtml(s) + '</option>'; }).join('') + '</select></div>';
+                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Paciente</label><select id="rm-paciente-input" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;max-width:200px;"><option value="">Todos</option>' + Array.from(pacientesMap.entries()).sort(function(a,b){return a[1].localeCompare(b[1]);}).map(function(e){ return '<option value="' + escapeHtml(e[0]) + '"' + (e[0]===_rmFiltroPacienteKey?' selected':'') + '>' + escapeHtml(e[1]) + '</option>'; }).join('') + '</select></div>';
+                html += '<button class="btn-mini" onclick="window._rmAplicarFiltros()">Aplicar</button>';
+                html += '</div>';
+
+                if (_rmFiltroServicio || _rmFiltroPacienteKey) {
+                    html += '<div style="background:rgba(173,46,46,0.08);border:1px solid rgba(173,46,46,0.25);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:12.5px;color:#8A3030;">Filtro activo: ' + (_rmFiltroServicio ? 'servicio "' + escapeHtml(_rmFiltroServicio) + '"' : '') + (_rmFiltroServicio && _rmFiltroPacienteKey ? ' · ' : '') + (_rmFiltroPacienteKey ? 'paciente "' + escapeHtml(pacientesMap.get(_rmFiltroPacienteKey) || _rmFiltroPacienteKey) + '"' : '') + ' — afecta "valor de prestaciones", "saldo pendiente" y el detalle por paciente. Cobros netos, gastos y netos de caja/estimado son siempre del negocio completo.</div>';
+                }
+
+                if (prestacionesIncompletas > 0 || sesionesSinRegistro > 0) {
+                    html += '<div style="background:rgba(138,106,34,0.10);border:1px solid rgba(138,106,34,0.30);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:#8A6A22;">⚠️ Este resumen está incompleto: ' +
+                        (sesionesSinRegistro > 0 ? sesionesSinRegistro + ' sesión(es) de ' + mesLabelCap + ' sin ningún registro de precio' : '') +
+                        (prestacionesIncompletas > 0 ? (sesionesSinRegistro > 0 ? ' y ' : '') + prestacionesIncompletas + ' con precio marcado como no definido' : '') +
+                        '. No están incluidas en "Valor de las prestaciones registradas".</div>';
+                }
+
+                function tarjeta(label, valor, color) {
+                    return '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;"><div style="font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">' + label + '</div><div style="font-size:19px;font-weight:800;color:' + (color||'#20382B') + ';">' + _fmtMoneyARS(valor) + '</div></div>';
+                }
+                html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:8px;">';
+                html += tarjeta('Valor prestaciones registradas', valorPrestaciones);
+                html += tarjeta('Cobros del mes', cobrosDelMes, '#2F6B4F');
+                html += tarjeta('Devoluciones del mes', devolucionesDelMes, '#AD2E2E');
+                html += tarjeta('Cobros netos', cobrosNetosDelMes, cobrosNetosDelMes >= 0 ? '#2F6B4F' : '#AD2E2E');
+                html += tarjeta('Saldo pendiente al cierre', saldoPendienteCierre, saldoPendienteCierre > 0 ? '#AD2E2E' : '#2F6B4F');
+                html += tarjeta('Gastos pagados', gastosPagadosDelMes, '#AD2E2E');
+                html += tarjeta('Neto de caja', netoCaja, netoCaja >= 0 ? '#2F6B4F' : '#AD2E2E');
+                html += tarjeta('Gastos estimados (previstos)', gastosPrevistosAdicionales, '#8A6A22');
+                html += tarjeta('Neto estimado', netoEstimado, netoEstimado >= 0 ? '#2F6B4F' : '#AD2E2E');
+                html += '</div>';
+                html += '<p style="font-size:11.5px;color:#7C8D81;margin:0 0 18px;">Corte al ' + cutoff + (_rmEsMesActual(anio,mes) ? ' (mes en curso: corte al momento de la consulta).' : ' (mes cerrado: corte al último día del mes).') + ' Neto estimado = Cobros netos − Gastos pagados − Gastos previstos todavía no incluidos.</p>';
+
+                html += '<h3 style="font-size:15px;margin:0 0 10px;">Detalle por paciente</h3>';
+                if (!filasPaciente.length) {
+                    html += '<p style="font-size:13px;color:#7C8D81;">Sin movimientos para este mes' + (_rmFiltroServicio||_rmFiltroPacienteKey?' con el filtro activo':'') + '.</p>';
+                } else {
+                    html += '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:22px;">';
+                    filasPaciente.forEach(function(f, idx){
+                        html += '<div style="padding:10px 14px;' + (idx ? 'border-top:1px solid var(--border);' : '') + '">';
+                        html += '<strong style="font-size:13.5px;">' + escapeHtml(f.nombre) + '</strong><br>';
+                        html += '<span style="font-size:12px;color:#526358;">Cobrado en ' + mesLabelCap + ': ' + _fmtMoneyARS(f.cobradoMes) + ' — Pendiente al cierre de ' + mesLabelCap + ': ' + _fmtMoneyARS(f.pendienteCierre) + (f.pendienteDeAntes > 0 ? ' (de las cuales ' + _fmtMoneyARS(f.pendienteDeAntes) + ' son deuda de antes de este mes)' : '') + '</span>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+
+                html += '<h3 style="font-size:15px;margin:20px 0 10px;">Gastos</h3>';
+                html += '<button class="btn-mini" style="margin-bottom:12px;" onclick="window._rmToggleFormGasto()">➕ Agregar gasto</button>';
+                html += '<div id="rm-form-gasto" style="display:none;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;"></div>';
+
+                var gastosParaListar = gastosActivos.filter(function(g){
+                    if (g.modalidad === 'importe_fijo') return (g.fecha||'').startsWith(prefijoMes) || (g.fechaPagoEfectiva||'').startsWith(prefijoMes);
+                    return true;
+                });
+                if (!gastosParaListar.length) {
+                    html += '<p style="font-size:13px;color:#7C8D81;">No hay gastos cargados.</p>';
+                } else {
+                    html += '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">';
+                    gastosParaListar.forEach(function(g, idx){
+                        var esFijo = g.modalidad === 'importe_fijo';
+                        var det = esFijo
+                            ? _fmtMoneyARS(g.montoFijo) + (g.estado === 'pagado' ? ' · pagado el ' + (g.fechaPagoEfectiva||'—') : ' · pendiente de pago')
+                            : g.porcentaje + '% ' + (g.alcance === 'servicio' ? 'sobre "' + escapeHtml(g.servicioVinculado||'') + '"' : 'sobre cobros netos generales') + (g.reemplazadoPorGastoId ? ' · ya reemplazado por un gasto real (no se descuenta como estimado)' : '');
+                        html += '<div style="padding:10px 14px;' + (idx?'border-top:1px solid var(--border);':'') + '">';
+                        html += '<div style="display:flex;justify-content:space-between;gap:8px;"><strong style="font-size:13px;">' + escapeHtml(g.concepto||'—') + '</strong><span style="font-size:11px;color:#7C8D81;">' + escapeHtml(g.categoria||'') + '</span></div>';
+                        html += '<div style="font-size:12.5px;color:#526358;margin-top:2px;">' + det + '</div>';
+                        if (esFijo && g.estado !== 'pagado') html += '<button class="btn-mini" style="margin-top:6px;" onclick="window._rmMarcarGastoPagado(\'' + g.id + '\')">Marcar como pagado</button>';
+                        if (!esFijo && !g.reemplazadoPorGastoId) html += '<button class="btn-mini" style="margin-top:6px;" onclick="window._rmVincularGastoReal(\'' + g.id + '\')">Vincular con el gasto real (reemplazar estimado)</button>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+
+                html += '</div>';
+                cont.innerHTML = html;
+            }
+
+            window._rmAplicarFiltros = function() {
+                _rmMes = Number(document.getElementById('rm-mes-input').value);
+                _rmAnio = Number(document.getElementById('rm-anio-input').value) || _rmAnio;
+                _rmFiltroServicio = document.getElementById('rm-servicio-input').value;
+                _rmFiltroPacienteKey = document.getElementById('rm-paciente-input').value;
+                _rmRender();
+            };
+
+            window._rmToggleFormGasto = function() {
+                var box = document.getElementById('rm-form-gasto');
+                var abrir = box.style.display === 'none';
+                box.style.display = abrir ? 'block' : 'none';
+                if (!abrir) return;
+                var servicios = Array.from(new Set(_rmData.reservas.map(function(r){ return r.servicio; }).filter(Boolean))).sort();
+                var h = '';
+                h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
+                h += '<input type="text" id="rmg-concepto" placeholder="Concepto" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
+                h += '<input type="text" id="rmg-categoria" placeholder="Categoría" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
+                h += '</div>';
+                h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
+                h += '<select id="rmg-alcance" onchange="document.getElementById(\'rmg-servicio-wrap\').style.display=this.value===\'servicio\'?\'block\':\'none\';"><option value="general">Gasto general</option><option value="servicio">Ligado a un servicio</option></select>';
+                h += '<select id="rmg-modalidad" onchange="window._rmToggleModalidadGasto()"><option value="importe_fijo">Importe fijo</option><option value="porcentaje_estimado">Porcentaje estimado</option></select>';
+                h += '</div>';
+                h += '<div id="rmg-servicio-wrap" style="display:none;margin-bottom:8px;"><select id="rmg-servicio" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">' + servicios.map(function(s){ return '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>'; }).join('') + '</select></div>';
+                h += '<div id="rmg-campo-fijo" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">';
+                h += '<input type="number" id="rmg-monto" min="0" step="100" placeholder="Monto $" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
+                h += '<select id="rmg-estado"><option value="pagado">Pagado</option><option value="pendiente">Pendiente</option></select>';
+                h += '<input type="date" id="rmg-fecha-pago" value="' + _hoyISOZona(ZONA_HORARIA_NEGOCIO) + '" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
+                h += '</div>';
+                h += '<div id="rmg-campo-pct" style="display:none;margin-bottom:8px;"><input type="number" id="rmg-porcentaje" min="0" max="100" step="0.1" placeholder="Porcentaje (0-100)" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;width:100%;"></div>';
+                h += '<input type="text" id="rmg-nota" placeholder="Nota (opcional)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;margin-bottom:10px;">';
+                h += '<button class="btn-mini" onclick="window._rmGuardarGasto(this)">Guardar gasto</button>';
+                box.innerHTML = h;
+            };
+
+            window._rmToggleModalidadGasto = function() {
+                var esFijo = document.getElementById('rmg-modalidad').value === 'importe_fijo';
+                document.getElementById('rmg-campo-fijo').style.display = esFijo ? 'grid' : 'none';
+                document.getElementById('rmg-campo-pct').style.display = esFijo ? 'none' : 'block';
+            };
+
+            window._rmGuardarGasto = async function(btn) {
+                var concepto = document.getElementById('rmg-concepto').value.trim();
+                if (!concepto) { mostrarAviso('El concepto es obligatorio.'); return; }
+                var categoria = document.getElementById('rmg-categoria').value.trim();
+                var alcance = document.getElementById('rmg-alcance').value;
+                var servicioVinculado = alcance === 'servicio' ? document.getElementById('rmg-servicio').value : null;
+                var modalidad = document.getElementById('rmg-modalidad').value;
+                var nota = document.getElementById('rmg-nota').value.trim();
+                var data = {
+                    concepto: concepto, categoria: categoria, alcance: alcance, servicioVinculado: servicioVinculado,
+                    modalidad: modalidad, nota: nota, anulado: false,
+                    fecha: _hoyISOZona(ZONA_HORARIA_NEGOCIO),
+                    creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
+                };
+                if (modalidad === 'importe_fijo') {
+                    var monto = Math.round(Number(document.getElementById('rmg-monto').value));
+                    if (!monto || monto <= 0) { mostrarAviso('Ingresá un monto válido.'); return; }
+                    data.montoFijo = monto;
+                    data.estado = document.getElementById('rmg-estado').value;
+                    data.fechaPagoEfectiva = data.estado === 'pagado' ? (document.getElementById('rmg-fecha-pago').value || _hoyISOZona(ZONA_HORARIA_NEGOCIO)) : null;
+                } else {
+                    var pct = Number(document.getElementById('rmg-porcentaje').value);
+                    if (isNaN(pct) || pct < 0 || pct > 100) { mostrarAviso('El porcentaje debe estar entre 0 y 100.'); return; }
+                    data.porcentaje = pct;
+                }
+                btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Guardando…';
+                try {
+                    var opId = 'gasto_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+                    await setDoc(doc(db, 'gastos', opId), data);
+                    mostrarAviso('Gasto guardado.');
+                    await window.cargarResumenMensual();
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo guardar el gasto: ' + (e && e.message ? e.message : 'error desconocido'));
+                    btn.disabled = false; btn.textContent = orig;
+                }
+            };
+
+            window._rmMarcarGastoPagado = async function(gastoId) {
+                try {
+                    await updateDoc(doc(db, 'gastos', gastoId), { estado: 'pagado', fechaPagoEfectiva: _hoyISOZona(ZONA_HORARIA_NEGOCIO), actualizadoEn: serverTimestamp(), actualizadoPor: (auth.currentUser && auth.currentUser.email) || null });
+                    mostrarAviso('Gasto marcado como pagado.');
+                    await window.cargarResumenMensual();
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo actualizar el gasto: ' + (e && e.message ? e.message : 'error desconocido'));
+                }
+            };
+
+            window._rmVincularGastoReal = async function(estimadoId) {
+                var montoTxt = prompt('Monto real pagado que reemplaza a este estimado:');
+                if (montoTxt === null) return;
+                var monto = Math.round(Number(montoTxt));
+                if (!monto || monto <= 0) { mostrarAviso('Monto inválido.'); return; }
+                var concepto = prompt('Concepto del gasto real (podés dejar el mismo):') || 'Gasto real (reemplaza estimado)';
+                try {
+                    var nuevoId = 'gasto_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+                    var estimado = _rmData.gastos.find(function(g){ return g.id === estimadoId; });
+                    await setDoc(doc(db, 'gastos', nuevoId), {
+                        concepto: concepto, categoria: (estimado && estimado.categoria) || '', alcance: (estimado && estimado.alcance) || 'general',
+                        servicioVinculado: (estimado && estimado.servicioVinculado) || null, modalidad: 'importe_fijo', montoFijo: monto,
+                        estado: 'pagado', fechaPagoEfectiva: _hoyISOZona(ZONA_HORARIA_NEGOCIO), nota: 'Reemplaza al estimado ' + estimadoId,
+                        reemplazaEstimadoId: estimadoId, anulado: false,
+                        creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
+                    });
+                    await updateDoc(doc(db, 'gastos', estimadoId), { reemplazadoPorGastoId: nuevoId, actualizadoEn: serverTimestamp(), actualizadoPor: (auth.currentUser && auth.currentUser.email) || null });
+                    mostrarAviso('Gasto real registrado; el estimado ya no se descuenta como previsto.');
+                    await window.cargarResumenMensual();
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo vincular el gasto real: ' + (e && e.message ? e.message : 'error desconocido'));
+                }
+            };
+        })();
+        /* ══ FIN RESUMEN MENSUAL + GASTOS ═══════════════════════════════════════ */
 
         window.buscarSesionesPorNombreInput = debounce(function() {
             var raw = ((document.getElementById("inpBuscadorSesiones") || {}).value || "").trim();
@@ -6576,7 +7406,7 @@
                 // ── Construcción WA ──
                 var pendientes = [], completadas = [], canceladas = [];
                 sesiones.forEach(function(r) {
-                    var isCan = (r.estado||r.status||'').toLowerCase() === 'cancelado';
+                    var isCan = esEstadoCancelado(r.estado || r.status);
                     if (isCan) canceladas.push(r);
                     else if (_esSesionPendiente(r)) pendientes.push(r);
                     else completadas.push(r);
@@ -7293,10 +8123,11 @@
                 const waRecordar = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}, te recordamos tu consulta inicial en Espacio Mimar T ${_recCuandoRC} a las ${c.hora} hs. ¡Te esperamos! Ante cualquier duda, escribinos.`)}` : '';
                 const waAvisoCanc = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}, queremos avisarte que tu consulta inicial en Espacio Mimar T del ${fechaVis} a las ${c.hora} hs no puede realizarse. Comunicáte con nosotros para reprogramar.`)}` : '';
                 const recId = `rec-c-${c.id}`;
-                const msg1 = encodeURIComponent(`Hola ${primerNombre}, acordate de tomar agua durante el día de hoy. Es fundamental para maximizar los resultados del tratamiento. Espacio Mimar T.`);
-                const msg2 = encodeURIComponent(`Hola ${primerNombre}, recordá el uso de faja o ropa de compresión según las indicaciones recibidas. Espacio Mimar T.`);
-                const msgMioUp = encodeURIComponent(`Hola ${primerNombre}, te recomendamos potenciar tu tratamiento con MIO UP. Escribinos si querés más información. Espacio Mimar T.`);
-                const msgFraxis = encodeURIComponent(`Hola ${primerNombre}, te recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información. Espacio Mimar T.`);
+                const _recTituloPN = primerNombre ? `Recomendaciones para ${primerNombre}` : 'Recomendaciones posteriores a tu sesión';
+                const msg1 = encodeURIComponent(`${_recTituloPN}\n\nAcordate de tomar agua durante el día de hoy. Es fundamental para maximizar los resultados del tratamiento.`);
+                const msg2 = encodeURIComponent(`${_recTituloPN}\n\nRecordá el uso de faja o ropa de compresión según las indicaciones recibidas.`);
+                const msgMioUp = encodeURIComponent(`${_recTituloPN}\n\nTe recomendamos potenciar tu tratamiento con MIO UP. Escribinos si querés más información.`);
+                const msgFraxis = encodeURIComponent(`${_recTituloPN}\n\nTe recomendamos complementar tu tratamiento con FRAXIS Facial. Escribinos si querés más información.`);
                 return `
                 <div style="background:var(--surface);border:1px solid rgba(60,179,113,0.14);border-radius:18px;padding:18px 20px;position:relative;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
@@ -7595,6 +8426,7 @@
             if (s === 'control-consultas') window.cargarControlConsultas();
             if (s === 'cursos') window.cargarCursos();
             if (s === 'preparar-jornada') window.cargarPreparaJornada();
+            if (s === 'resumen-mensual') window.cargarResumenMensual();
         };
 
         // ═══ DROPDOWNS DE HEADER ═══
@@ -8172,7 +9004,7 @@
                     <div id="${recMenuId}" style="display:none;flex-direction:column;gap:6px;margin-top:10px;background:rgba(56,217,169,0.05);border:1px solid rgba(56,217,169,0.18);border-radius:12px;padding:12px;">
                         ${waConfirm ? `<a href="${waConfirm}" target="_blank" rel="noopener" style="display:block;min-height:44px;box-sizing:border-box;padding:12px;border-radius:8px;background:#25d366;color:#fff;font-weight:700;font-size:14px;text-decoration:none;text-align:center;">✅ Confirmar inscripción</a>` : ''}
                         ${waRecordatorio ? `<a href="${waRecordatorio}" target="_blank" rel="noopener" style="display:block;min-height:44px;box-sizing:border-box;padding:12px;border-radius:8px;background:#128c7e;color:#fff;font-weight:700;font-size:14px;text-decoration:none;text-align:center;">🔔 Recordatorio del curso</a>` : ''}
-                        <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${primerNombre}! En el Curso de Automaquillaje que te esperamos, te recomendamos venir sin maquillaje o con el mínimo posible. Traé toda tu energía y ganas de aprender 💄✨ — Espacio Mimar T`)}" target="_blank" rel="noopener" style="display:block;min-height:44px;box-sizing:border-box;padding:12px;border-radius:8px;background:var(--cm-acento);color:var(--cm-on-acento);font-weight:700;font-size:14px;text-decoration:none;text-align:center;">💄 Recomendaciones pre-clase</a>
+                        <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`${primerNombre ? `Recomendaciones para ${primerNombre}` : 'Recomendaciones antes del curso'}\n\nPara el Curso de Automaquillaje, te recomendamos venir sin maquillaje o con el mínimo posible. Traé toda tu energía y ganas de aprender 💄✨`)}" target="_blank" rel="noopener" style="display:block;min-height:44px;box-sizing:border-box;padding:12px;border-radius:8px;background:var(--cm-acento);color:var(--cm-on-acento);font-weight:700;font-size:14px;text-decoration:none;text-align:center;">💄 Recomendaciones pre-clase</a>
                     </div>` : ''}
                 </div>`;
             };
@@ -10490,6 +11322,15 @@
                 <button class="mreg-btn-cancel" onclick="cerrarModalCambioServicio()">Cancelar</button>
                 <button class="mreg-btn-confirm" onclick="confirmarCambioServicio()">Guardar cambio</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal: Precio y pagos de una sesión/prestación -->
+    <div id="modal-precio-pagos-overlay" role="dialog" aria-modal="true" aria-labelledby="mpp-title">
+        <div id="modal-precio-pagos-card">
+            <p class="mreg-title" id="mpp-title" style="margin-bottom:2px;">💳 Precio y pagos</p>
+            <p class="mreg-subtitle" id="mpp-paciente-label" style="margin-bottom:14px;">—</p>
+            <div id="mpp-body">Cargando…</div>
         </div>
     </div>
 

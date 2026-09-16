@@ -143,6 +143,58 @@ service cloud.firestore {
       allow read, write: if esAdmin();
     }
 
+    // Precio y pagos por sesión/prestación (punto 2). Un documento de
+    // "prestaciones" por reserva (id = reservaId, 1 a 1: evita duplicados por
+    // construcción). No se borra: una prestación se anula con un campo
+    // (anulada/motivoAnulacion), nunca desaparece, para preservar trazabilidad
+    // aunque se cancele la sesión asociada.
+    match /prestaciones/{reservaId} {
+      allow read, create, update: if esAdmin();
+      allow delete: if false;
+    }
+
+    // Movimientos de dinero (cobros/devoluciones/ajustes) ligados a una
+    // prestación (o sueltos, como adelanto/saldo a favor, con
+    // prestacionId == null). Inmutables una vez creados: una corrección se
+    // registra como un movimiento nuevo con su propio motivo, nunca
+    // reescribiendo uno existente — así el historial siempre es verificable.
+    // El id del documento es un operationId generado por el cliente, para que
+    // un reintento/doble toque reescriba el mismo movimiento en vez de
+    // duplicarlo.
+    match /pagos/{pagoId} {
+      allow read, create: if esAdmin();
+      allow update, delete: if false;
+    }
+
+    // Gastos del negocio (punto 4) — importe fijo o porcentaje estimado sobre
+    // cobros netos, ligados o no a un servicio. Se permite update (para pasar
+    // de pendiente a pagado, o para vincular un estimado con el gasto real
+    // que lo reemplaza) pero no delete: un gasto se anula con un campo
+    // (anulado/motivoAnulacion), nunca desaparece.
+    match /gastos/{gastoId} {
+      allow read, create, update: if esAdmin();
+      allow delete: if false;
+    }
+
+    // Aviso de PDF de jornada duplicado en la misma semana — registro de
+    // generaciones exitosas (nunca de vistas previas/cancelaciones/fallos).
+    // Es un registro de auditoría: se puede crear y leer, pero no editar ni
+    // borrar desde el cliente.
+    match /jornadaPdfGeneraciones/{id} {
+      allow read, create: if esAdmin();
+      allow update, delete: if false;
+    }
+
+    // Reserva de exclusión mutua de corta duración (expira sola por
+    // expiraEnMs) para que dos toques/dispositivos no generen el mismo PDF
+    // de jornada dos veces en simultáneo.
+    match /jornadaPdfLocks/{id} {
+      // allow update también: al reintentar tomar una reserva ya vencida se
+      // usa tx.set() sobre un documento que todavía existe (no se borró a
+      // tiempo), y Firestore lo trata como "update", no como "create".
+      allow read, create, update, delete: if esAdmin();
+    }
+
     // Tokens FCM para las apps Android — un documento por dispositivo+app
     // (id: {uid}_{appId}_{installId}). Solo el admin autenticado puede
     // leer/escribir, y únicamente sus propios tokens (uid del documento debe
