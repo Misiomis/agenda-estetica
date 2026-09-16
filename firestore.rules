@@ -143,6 +143,25 @@ service cloud.firestore {
       allow read, write: if esAdmin();
     }
 
+    // Aviso de PDF de jornada duplicado en la misma semana — registro de
+    // generaciones exitosas (nunca de vistas previas/cancelaciones/fallos).
+    // Es un registro de auditoría: se puede crear y leer, pero no editar ni
+    // borrar desde el cliente.
+    match /jornadaPdfGeneraciones/{id} {
+      allow read, create: if esAdmin();
+      allow update, delete: if false;
+    }
+
+    // Reserva de exclusión mutua de corta duración (expira sola por
+    // expiraEnMs) para que dos toques/dispositivos no generen el mismo PDF
+    // de jornada dos veces en simultáneo.
+    match /jornadaPdfLocks/{id} {
+      // allow update también: al reintentar tomar una reserva ya vencida se
+      // usa tx.set() sobre un documento que todavía existe (no se borró a
+      // tiempo), y Firestore lo trata como "update", no como "create".
+      allow read, create, update, delete: if esAdmin();
+    }
+
     // Tokens FCM para las apps Android — un documento por dispositivo+app
     // (id: {uid}_{appId}_{installId}). Solo el admin autenticado puede
     // leer/escribir, y únicamente sus propios tokens (uid del documento debe

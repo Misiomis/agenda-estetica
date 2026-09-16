@@ -2102,7 +2102,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
     <script type="module">
-        import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where } from "/js/firebase-web.js";
+        import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit, runTransaction, writeBatch } from "/js/firebase-web.js";
         import { registrarContactoPreparado, registrarContactoEstado } from "/js/contact-tracking.js";
 
         // Seguimiento centralizado de contactos por WhatsApp (punto 3 del
@@ -2918,6 +2918,30 @@
             return 'nom:' + nombre.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
         };
         const _pacienteNombreDisplay = (r) => (r.nombreLimpio || r.nombre || r.paciente || r.clienteNombre || '—').toString().trim();
+
+        // ─── Huso horario del negocio (centralizado) ───────────────────────────
+        // No hay configuración propia en Firestore para esto todavía, así que
+        // se adopta America/Argentina/Buenos_Aires como default documentado
+        // (mismo valor ya usado en mimar-inteligente-logic.js). Se usa para
+        // semanas (aviso de PDF duplicado) y, si hace falta, meses.
+        const ZONA_HORARIA_NEGOCIO = 'America/Argentina/Buenos_Aires';
+        const _fechaEnZona = (d, tz) => {
+            const partes = new Intl.DateTimeFormat('en-CA', { timeZone: tz || ZONA_HORARIA_NEGOCIO, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
+            const o = {};
+            partes.forEach((p) => { if (p.type !== 'literal') o[p.type] = p.value; });
+            return { y: +o.year, m: +o.month, dia: +o.day };
+        };
+        // Id de semana = fecha ISO (YYYY-MM-DD) del lunes de esa semana, en la
+        // zona horaria del negocio. Se usa una fecha real en vez de un número
+        // de semana ISO para no arrastrar sus casos borde de fin/inicio de año.
+        const _semanaIdISO = (d, tz) => {
+            const f = _fechaEnZona(d, tz);
+            const base = new Date(Date.UTC(f.y, f.m - 1, f.dia, 12, 0, 0)); // mediodía UTC: evita corrimientos de día por huso
+            const dow = base.getUTCDay(); // 0=domingo..6=sábado
+            base.setUTCDate(base.getUTCDate() - ((dow + 6) % 7)); // retrocede hasta el lunes
+            const y = base.getUTCFullYear(), m = base.getUTCMonth() + 1, dia = base.getUTCDate();
+            return `${y}-${String(m).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+        };
 
         // ─── Clasificación única de estado (realizada/pendiente/cancelada) ───────
         // El buscador, "Preparar jornada" y "Exportar historial PDF" tenían CADA
@@ -5786,6 +5810,79 @@
             // podían no coincidir con las sesiones realmente cargadas.
             function _pjNombreKey(r) { return _pacienteMatchKey(r); }
             function _pjNombreDisplay(r) { return _pacienteNombreDisplay(r); }
+
+            // ── Aviso de PDF de jornada duplicado en la misma semana ──────────
+            // Se identifica al paciente por su clave estable (_pacienteMatchKey:
+            // DNI si hay, si no nombre normalizado) y nunca por comparación de
+            // nombre "tal cual" — dos pacientes homónimos sin DNI cargado son la
+            // única situación real donde esta clave no alcanza a distinguirlos;
+            // es una limitación heredada del modelo de datos existente (no hay
+            // un id de paciente propio en `reservas`), no algo que este punto
+            // pueda resolver sin una migración más amplia.
+            var _fsDocFn = doc; // referencia al doc() de Firestore, antes de que generarPDFJornada la tape con su variable local "doc" (instancia jsPDF)
+
+            function _pjLockId(pacienteKey, semanaId) { return pacienteKey.replace(/[\/]/g,'_') + '__' + semanaId; }
+
+            async function _pjAdquirirLock(pacienteKey, semanaId) {
+                var lockRef = _fsDocFn(db, 'jornadaPdfLocks', _pjLockId(pacienteKey, semanaId));
+                var ahora = Date.now();
+                var expiraEnMs = ahora + 3 * 60000; // 3 minutos: alcanza para generar y se libera sola si algo cuelga
+                var adquirido = false;
+                await runTransaction(db, async function(tx) {
+                    var snap = await tx.get(lockRef);
+                    if (snap.exists() && (snap.data().expiraEnMs || 0) > ahora) { adquirido = false; return; }
+                    tx.set(lockRef, { expiraEnMs: expiraEnMs, iniciadoPor: (auth.currentUser && auth.currentUser.email) || null, iniciadoEnMs: ahora });
+                    adquirido = true;
+                });
+                return adquirido;
+            }
+            async function _pjLiberarLock(pacienteKey, semanaId) {
+                try { await deleteDoc(_fsDocFn(db, 'jornadaPdfLocks', _pjLockId(pacienteKey, semanaId))); } catch (e) { /* expira sola por expiraEnMs si esto falla */ }
+            }
+
+            // Devuelve, por cada pacienteKey, la generación exitosa más reciente
+            // de esta semana (o undefined si no hay). Si la consulta falla, tira
+            // el error — el llamador debe tratarlo como "no se pudo verificar",
+            // nunca como "no hay duplicados".
+            async function _pjBuscarGeneracionesDeLaSemana(semanaId, pacienteKeys) {
+                var qs = await getDocs(query(collection(db, 'jornadaPdfGeneraciones'), where('semanaId', '==', semanaId)));
+                var porClave = new Map();
+                qs.forEach(function(d){
+                    var data = d.data();
+                    if (!pacienteKeys.has(data.pacienteKey)) return;
+                    var prev = porClave.get(data.pacienteKey);
+                    var ts = (data.generadoEnMs || 0);
+                    if (!prev || ts > prev.generadoEnMs) porClave.set(data.pacienteKey, { generadoEnMs: ts, pacienteNombre: data.pacienteNombre || '' });
+                });
+                return porClave;
+            }
+
+            function _pjRegistrarConfirmDialog(mensaje) {
+                return new Promise(function(resolve){
+                    var overlay = document.createElement('div');
+                    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,25,0.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+                    var box = document.createElement('div');
+                    box.style.cssText = 'background:#FFFFFF;border-radius:16px;max-width:440px;width:100%;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,0.28);';
+                    var msgDiv = document.createElement('div');
+                    msgDiv.style.cssText = 'font-size:14px;line-height:1.55;color:#20382B;white-space:pre-wrap;margin-bottom:18px;';
+                    msgDiv.textContent = mensaje;
+                    var fila = document.createElement('div');
+                    fila.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;';
+                    var btnNo = document.createElement('button');
+                    btnNo.textContent = 'No, volver';
+                    btnNo.style.cssText = 'padding:10px 16px;border-radius:10px;border:1.5px solid #7C8D81;background:#fff;color:#2D4A32;font-weight:700;cursor:pointer;font-size:13px;';
+                    var btnSi = document.createElement('button');
+                    btnSi.textContent = 'Sí, generar igualmente';
+                    btnSi.style.cssText = 'padding:10px 16px;border-radius:10px;border:none;background:#2D4A32;color:#fff;font-weight:700;cursor:pointer;font-size:13px;';
+                    fila.appendChild(btnNo); fila.appendChild(btnSi);
+                    box.appendChild(msgDiv); box.appendChild(fila);
+                    overlay.appendChild(box);
+                    document.body.appendChild(overlay);
+                    function cerrar(v){ document.body.removeChild(overlay); resolve(v); }
+                    btnNo.addEventListener('click', function(){ cerrar(false); });
+                    btnSi.addEventListener('click', function(){ cerrar(true); });
+                });
+            }
             function _pjFechaFull(f) {
                 if (!f) return '—';
                 var DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -6295,6 +6392,66 @@
                 var totalEsperado = patientData.reduce(function(s,p){ return s + p.sesiones.length; }, 0);
                 if (!totalEsperado) { mostrarAviso('Los pacientes seleccionados no tienen sesiones registradas.'); return; }
 
+                // ── Aviso de PDF de jornada duplicado en la misma semana ──────
+                var _pjSemanaId = _semanaIdISO(new Date(), ZONA_HORARIA_NEGOCIO);
+                var _pjLocksAdquiridos = [];
+                try {
+                    for (var li = 0; li < patientData.length; li++) {
+                        var _lockOk = await _pjAdquirirLock(patientData[li].key, _pjSemanaId);
+                        if (!_lockOk) {
+                            // Se libera lo que sí se alcanzó a tomar y se aborta entero:
+                            // hay una generación en curso para algún paciente seleccionado
+                            // (doble toque, otra pestaña u otro dispositivo).
+                            for (var lj = 0; lj < _pjLocksAdquiridos.length; lj++) { await _pjLiberarLock(_pjLocksAdquiridos[lj], _pjSemanaId); }
+                            mostrarAviso('Ya hay una generación en curso para ' + patientData[li].nombre + ' (otra pestaña o dispositivo). Esperá un momento y volvé a intentar.');
+                            if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                            return;
+                        }
+                        _pjLocksAdquiridos.push(patientData[li].key);
+                    }
+
+                    var _pjClaves = new Set(patientData.map(function(p){ return p.key; }));
+                    var _pjGeneracionesPrevias;
+                    try {
+                        _pjGeneracionesPrevias = await _pjBuscarGeneracionesDeLaSemana(_pjSemanaId, _pjClaves);
+                    } catch (errVerif) {
+                        console.error(errVerif);
+                        mostrarAviso('No se pudo verificar si ya se generó un PDF esta semana para estos pacientes. No se generó nada — reintentá en un momento.');
+                        if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                        return;
+                    }
+
+                    var _pjDuplicados = patientData.filter(function(p){ return _pjGeneracionesPrevias.has(p.key); });
+                    if (_pjDuplicados.length) {
+                        var _pjMsgDup;
+                        var _fmtPrevGen = function(ms){
+                            if (!ms) return '';
+                            var dt = new Date(ms);
+                            return ' (generado el ' + dt.toLocaleDateString('es-AR', { timeZone: ZONA_HORARIA_NEGOCIO }) + ' a las ' + dt.toLocaleTimeString('es-AR', { timeZone: ZONA_HORARIA_NEGOCIO, hour: '2-digit', minute: '2-digit' }) + ')';
+                        };
+                        if (_pjDuplicados.length === 1) {
+                            var _prevInfo = _pjGeneracionesPrevias.get(_pjDuplicados[0].key);
+                            _pjMsgDup = 'Esta semana ya se generó un PDF de sesiones para ' + _pjDuplicados[0].nombre + '.' + _fmtPrevGen(_prevInfo && _prevInfo.generadoEnMs) + ' ¿Deseás continuar?';
+                        } else {
+                            var _nombresDup = _pjDuplicados.map(function(p){ return p.nombre; }).join(', ');
+                            _pjMsgDup = 'Esta semana ya se generó un PDF de sesiones para: ' + _nombresDup + '. Si continuás, se va a generar el PDF completo para los ' + patientData.length + ' paciente(s) seleccionado(s), incluyendo a quienes ya lo tienen esta semana. ¿Deseás continuar?';
+                        }
+                        var _pjContinuar = await _pjRegistrarConfirmDialog(_pjMsgDup);
+                        if (!_pjContinuar) {
+                            for (var lk = 0; lk < _pjLocksAdquiridos.length; lk++) { await _pjLiberarLock(_pjLocksAdquiridos[lk], _pjSemanaId); }
+                            mostrarAviso('Generación cancelada. No se generó ni registró nada.');
+                            if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                            return;
+                        }
+                    }
+                } catch (errLock) {
+                    for (var lm = 0; lm < _pjLocksAdquiridos.length; lm++) { await _pjLiberarLock(_pjLocksAdquiridos[lm], _pjSemanaId); }
+                    console.error(errLock);
+                    mostrarAviso('No se pudo preparar la generación del PDF: ' + (errLock && errLock.message ? errLock.message : 'error desconocido'));
+                    if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                    return;
+                }
+
                 var duplex = document.getElementById('pj-duplex') && document.getElementById('pj-duplex').checked;
 
                 var MESES_PDF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -6538,10 +6695,42 @@
                 doc.save('jornada-' + f + '.pdf');
                 _pjLastGenTs = Date.now();
                 _pjLastGenFecha = f;
+
+                // Registro de la generación exitosa — recién acá, después de que
+                // el PDF realmente se generó (nunca en una vista previa, una
+                // cancelación o si algo anterior tiró error).
+                try {
+                    var _pjBatch = writeBatch(db);
+                    var _pjEmailActual = (auth.currentUser && auth.currentUser.email) || null;
+                    var _pjNowMs = Date.now();
+                    patientData.forEach(function(pd){
+                        var _pjRef = _fsDocFn(collection(db, 'jornadaPdfGeneraciones'));
+                        _pjBatch.set(_pjRef, {
+                            pacienteKey: pd.key,
+                            pacienteNombre: pd.nombre,
+                            semanaId: _pjSemanaId,
+                            fechaJornada: f,
+                            generadoEnMs: _pjNowMs,
+                            generadoEn: serverTimestamp(),
+                            generadoPor: _pjEmailActual,
+                            tipoDocumento: 'pdf_jornada_historiales',
+                            reservaIds: pd.sesiones.map(function(s){ return s.r.id; })
+                        });
+                    });
+                    await _pjBatch.commit();
+                } catch (errReg) {
+                    // El PDF ya se descargó — no se revierte ni se finge que no
+                    // pasó. Se avisa para que quede claro que, si se repite la
+                    // generación, el aviso de "ya generado esta semana" podría
+                    // no reflejar esta corrida puntual.
+                    console.error(errReg);
+                    mostrarAviso('El PDF se generó, pero no se pudo registrar la generación para el aviso de duplicados de la próxima vez.');
+                }
                 } catch (err) {
                     console.error(err);
                     mostrarAviso('No se pudo generar el PDF: ' + (err && err.message ? err.message : 'error desconocido'));
                 } finally {
+                    if (_pjLocksAdquiridos) { for (var lr = 0; lr < _pjLocksAdquiridos.length; lr++) { await _pjLiberarLock(_pjLocksAdquiridos[lr], _pjSemanaId); } }
                     if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
                     _pjRender();
                 }
