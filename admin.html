@@ -2592,11 +2592,24 @@
         let resolverModalBorrado = null;
         let membresiaNormalizadaSesion = false;
         
+        // Regla de elegibilidad centralizada: una reserva/sesión está
+        // cancelada si su estado (en cualquiera de los dos campos que usa
+        // este proyecto, "estado"/"status") coincide con cualquiera de las
+        // variantes reales encontradas en los datos. "cancelado" es lo que
+        // escribe hoy el flujo de cancelación (ver ejecutarCancelacion),
+        // pero "cancelada" también existe en reservas históricas y es la
+        // que usan las consultas iniciales (cambiarEstadoConsulta) — mismo
+        // hallazgo ya documentado en mimar-inteligente-logic.js
+        // (ESTADOS_CANCELADOS). Cualquier lugar del código que necesite
+        // saber si algo está cancelado debe llamar a esta función, nunca
+        // comparar un string suelto contra 'cancelado'.
+        const ESTADOS_CANCELADO_VARIANTES = ['cancelado', 'cancelada'];
+        const esEstadoCancelado = (estadoBruto) => ESTADOS_CANCELADO_VARIANTES.includes((estadoBruto || '').toString().trim().toLowerCase());
         const esReservaActiva = (r) => {
             const estados = [r?.estado, r?.status]
                 .map((valor) => (valor || '').toString().trim().toLowerCase())
                 .filter(Boolean);
-            return !estados.includes('cancelado');
+            return !estados.some((e) => ESTADOS_CANCELADO_VARIANTES.includes(e));
         };
         
         const resolverMembresiaActiva = (c = {}) => c.membershipActive === true || c.membresia === true;
@@ -5600,10 +5613,9 @@
             var now = Date.now();
             var allSessions = [];
             (d.sesiones||[]).forEach(function(r) {
-                var st = (r.estado||r.status||'').toLowerCase();
                 var xDate = r.fecha || '';
                 var xTime = r.hora || '';
-                var isCancelled = st === 'cancelado';
+                var isCancelled = esEstadoCancelado(r.estado || r.status);
                 var isPending = !isCancelled && _esSesionPendiente(r, now);
                 allSessions.push({
                     r: r,
@@ -6206,6 +6218,14 @@
                     .filter(function(r){ return r.fecha === f && esReservaActiva(r); })
                     .sort(function(a,b){ return (a.hora||'')<(b.hora||'') ? -1 : 1; });
 
+                // Se vuelve a verificar la selección contra la fecha fresca
+                // recién traída: si un paciente estaba tildado pero su turno
+                // de ese día ya no figura activo (se canceló después de
+                // tildarlo, quizás desde otra pestaña/dispositivo), no debe
+                // generarle nada ni contar como si siguiera seleccionado.
+                var clavesActivasHoy = new Set(reservasDia.map(function(r){ return _pjNombreKey(r); }).filter(Boolean));
+                var seleccionadosQueYaNoAplican = [...selected].filter(function(k){ return !clavesActivasHoy.has(k); });
+
                 var now = Date.now();
                 var patientData = [];
                 var seen = new Set();
@@ -6221,10 +6241,9 @@
                     // Secuencia cronológica unificada (realizadas/pendientes/canceladas mezcladas por fecha)
                     var allSes = [];
                     allR.forEach(function(x) {
-                        var st = (x.estado||x.status||'').toLowerCase();
                         var xDate = x.fecha || '';
                         var xTime = x.hora || '';
-                        var isCancelled = st === 'cancelado';
+                        var isCancelled = esEstadoCancelado(x.estado || x.status);
                         var isPending = !isCancelled && _esSesionPendiente(x, now);
                         allSes.push({
                             r: x,
@@ -6248,6 +6267,17 @@
 
                     patientData.push({ nombre: nombre, key: k, phone: phone, edad: _buscarEdad(nombre, phone, allR), sesiones: sesionesImprimibles });
                 });
+
+                if (seleccionadosQueYaNoAplican.length) {
+                    // Se quitan de la selección en pantalla y se refresca la
+                    // lista/cantidades antes de seguir — nunca se genera con
+                    // una cuenta que ya no coincide con lo que hay tildado.
+                    seleccionadosQueYaNoAplican.forEach(function(k){ selected.delete(k); });
+                    _pjRender();
+                    mostrarAviso('Se canceló el turno de ' + seleccionadosQueYaNoAplican.length + ' paciente(s) seleccionado(s) — se excluyeron de esta generación. Revisá la selección actualizada y volvé a generar si hace falta.');
+                    if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                    return;
+                }
 
                 if (!patientData.length) { mostrarAviso('Sin datos para generar.'); return; }
                 var totalEsperado = patientData.reduce(function(s,p){ return s + p.sesiones.length; }, 0);
@@ -6576,7 +6606,7 @@
                 // ── Construcción WA ──
                 var pendientes = [], completadas = [], canceladas = [];
                 sesiones.forEach(function(r) {
-                    var isCan = (r.estado||r.status||'').toLowerCase() === 'cancelado';
+                    var isCan = esEstadoCancelado(r.estado || r.status);
                     if (isCan) canceladas.push(r);
                     else if (_esSesionPendiente(r)) pendientes.push(r);
                     else completadas.push(r);
