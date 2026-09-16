@@ -166,6 +166,16 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Gastos del negocio (punto 4) — importe fijo o porcentaje estimado sobre
+    // cobros netos, ligados o no a un servicio. Se permite update (para pasar
+    // de pendiente a pagado, o para vincular un estimado con el gasto real
+    // que lo reemplaza) pero no delete: un gasto se anula con un campo
+    // (anulado/motivoAnulacion), nunca desaparece.
+    match /gastos/{gastoId} {
+      allow read, create, update: if esAdmin();
+      allow delete: if false;
+    }
+
     // Aviso de PDF de jornada duplicado en la misma semana — registro de
     // generaciones exitosas (nunca de vistas previas/cancelaciones/fallos).
     // Es un registro de auditoría: se puede crear y leer, pero no editar ni

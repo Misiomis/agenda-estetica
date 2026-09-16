@@ -1299,6 +1299,10 @@
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.3v8.6M5.6 7.5 9 10.9l3.4-3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.8 12.5v2a1.4 1.4 0 0 0 1.4 1.4h9.6a1.4 1.4 0 0 0 1.4-1.4v-2" stroke-linecap="round"/></svg>
                         Exportar
                     </button>
+                    <button class="btn-nav" id="btn-resumen-mensual" onclick="navegar('resumen-mensual')">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2.2" width="14" height="13.6" rx="1.8"/><path d="M5.5 11.2v2M9 8.6v4.6M12.5 6v7.2" stroke-linecap="round"/></svg>
+                        Resumen mensual
+                    </button>
                 </div>
             </div>
         </aside>
@@ -2006,6 +2010,9 @@
 
             <!-- ══ PREPARAR JORNADA ══ -->
             <div id="sec-preparar-jornada" class="section"></div>
+
+            <!-- ══ RESUMEN MENSUAL (precio/pagos/gastos) ══ -->
+            <div id="sec-resumen-mensual" class="section"></div>
 
             <!-- ══ CONTROL DE CONSULTAS ══ -->
             <div id="sec-control-consultas" class="section">
@@ -6982,6 +6989,354 @@
         })();
         /* ══ FIN PRECIO Y PAGOS ═════════════════════════════════════════════════ */
 
+        /* ══ RESUMEN MENSUAL + GASTOS (puntos 3 y 4) ════════════════════════════
+           Los importes de cabecera (cobros netos, gastos, neto de caja, neto
+           estimado) son siempre del negocio completo: acotarlos por servicio
+           o paciente daría un "estado de caja parcial" sin sentido contable.
+           Los filtros sólo acotan "valor de prestaciones", "saldo pendiente"
+           y el detalle por paciente. */
+        (function(){
+            var _rmAnio, _rmMes; // mes: 1-12
+            var _rmFiltroServicio = '';
+            var _rmFiltroPacienteKey = '';
+            var _rmData = null;
+
+            var MESES_RM = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+            function _rmPad(n){ return String(n).padStart(2,'0'); }
+            function _rmUltimoDia(anio, mes){ return new Date(anio, mes, 0).getDate(); }
+            function _rmEsMesActual(anio, mes){ var h = _fechaEnZona(new Date(), ZONA_HORARIA_NEGOCIO); return h.y === anio && h.m === mes; }
+            function _rmCutoffFecha(anio, mes){ return _rmEsMesActual(anio, mes) ? _hoyISOZona(ZONA_HORARIA_NEGOCIO) : (anio + '-' + _rmPad(mes) + '-' + _rmPad(_rmUltimoDia(anio, mes))); }
+            function _rmPrefijoMes(anio, mes){ return anio + '-' + _rmPad(mes); }
+
+            window.cargarResumenMensual = async function() {
+                var cont = document.getElementById('sec-resumen-mensual');
+                if (!_rmAnio) { var h = _fechaEnZona(new Date(), ZONA_HORARIA_NEGOCIO); _rmAnio = h.y; _rmMes = h.m; }
+                cont.innerHTML = '<div style="padding:20px 20px 4px;"><h2 style="margin:0;font-size:20px;color:#20382B;">Resumen mensual</h2></div><p style="padding:20px;color:#7C8D81;">Cargando…</p>';
+                try {
+                    var reservas = await _fetchReservasCompletasParaExport();
+                    var prestSnap = await getDocs(collection(db, 'prestaciones'));
+                    var pagosSnap = await getDocs(collection(db, 'pagos'));
+                    var gastosSnap = await getDocs(collection(db, 'gastos'));
+                    var prestaciones = []; prestSnap.forEach(function(d){ prestaciones.push(Object.assign({ id: d.id }, d.data())); });
+                    var pagos = []; pagosSnap.forEach(function(d){ pagos.push(Object.assign({ id: d.id }, d.data())); });
+                    var gastos = []; gastosSnap.forEach(function(d){ gastos.push(Object.assign({ id: d.id }, d.data())); });
+                    _rmData = { reservas: reservas, prestaciones: prestaciones, pagos: pagos, gastos: gastos };
+                    _rmRender();
+                } catch (e) {
+                    console.error(e);
+                    cont.innerHTML = '<div style="padding:20px 20px 4px;"><h2 style="margin:0;font-size:20px;color:#20382B;">Resumen mensual</h2></div><p style="padding:20px;color:#AD2E2E;">No se pudo cargar el resumen (' + (e && e.message ? e.message : 'sin conexión') + '). <button class="btn-mini" onclick="window.cargarResumenMensual()">Reintentar</button></p>';
+                }
+            };
+
+            function _rmRender() {
+                var d = _rmData;
+                var cont = document.getElementById('sec-resumen-mensual');
+                var anio = _rmAnio, mes = _rmMes;
+                var prefijoMes = _rmPrefijoMes(anio, mes);
+                var cutoff = _rmCutoffFecha(anio, mes);
+                var reservasPorId = new Map(d.reservas.map(function(r){ return [r.id, r]; }));
+
+                var serviciosSet = new Set();
+                d.reservas.forEach(function(r){ if (r.servicio) serviciosSet.add(r.servicio); });
+                var servicios = Array.from(serviciosSet).sort();
+
+                var pacientesMap = new Map();
+                d.prestaciones.forEach(function(p){ if (p.pacienteKey) pacientesMap.set(p.pacienteKey, p.pacienteNombre || p.pacienteKey); });
+                d.pagos.forEach(function(p){ if (p.pacienteKey && !pacientesMap.has(p.pacienteKey)) pacientesMap.set(p.pacienteKey, p.pacienteNombre || p.pacienteKey); });
+
+                function servicioDePrestacion(prest) { var r = reservasPorId.get(prest.reservaId); return r ? (r.servicio || '') : ''; }
+                function servicioDePago(pago) {
+                    if (!pago.prestacionId) return '';
+                    var prest = d.prestaciones.find(function(p){ return p.id === pago.prestacionId; });
+                    return prest ? servicioDePrestacion(prest) : '';
+                }
+
+                var prestacionesDelMes = d.prestaciones.filter(function(p){
+                    if (p.anulada) return false;
+                    var r = reservasPorId.get(p.reservaId);
+                    if (!r || !r.fecha || !r.fecha.startsWith(prefijoMes)) return false;
+                    if (_rmFiltroServicio && (r.servicio||'') !== _rmFiltroServicio) return false;
+                    if (_rmFiltroPacienteKey && p.pacienteKey !== _rmFiltroPacienteKey) return false;
+                    return true;
+                });
+                var valorPrestaciones = 0, prestacionesIncompletas = 0;
+                prestacionesDelMes.forEach(function(p){
+                    if (p.sinCargo) return;
+                    if (p.precioAcordado === null || p.precioAcordado === undefined) { prestacionesIncompletas++; return; }
+                    valorPrestaciones += p.precioAcordado;
+                });
+                var reservasDelMes = d.reservas.filter(function(r){
+                    if (!esReservaActiva(r)) return false;
+                    if (!r.fecha || !r.fecha.startsWith(prefijoMes)) return false;
+                    if (_rmFiltroServicio && (r.servicio||'') !== _rmFiltroServicio) return false;
+                    return true;
+                });
+                var idsConPrestacion = new Set(d.prestaciones.map(function(p){ return p.reservaId; }));
+                var sesionesSinRegistro = reservasDelMes.filter(function(r){ return !idsConPrestacion.has(r.id); }).length;
+
+                var pagosDelMes = d.pagos.filter(function(p){ return (p.fechaEfectiva||'').startsWith(prefijoMes); });
+                var cobrosDelMes = 0, devolucionesDelMes = 0;
+                var cobrosNetosPorServicio = new Map();
+                pagosDelMes.forEach(function(p){
+                    var signo = p.tipo === 'devolucion' ? -1 : 1;
+                    if (p.tipo === 'devolucion') devolucionesDelMes += p.monto; else cobrosDelMes += p.monto;
+                    var serv = servicioDePago(p);
+                    if (serv) cobrosNetosPorServicio.set(serv, (cobrosNetosPorServicio.get(serv) || 0) + signo * p.monto);
+                });
+                var cobrosNetosDelMes = cobrosDelMes - devolucionesDelMes;
+
+                function cobradoHasta(reservaId, fechaCorte) {
+                    return d.pagos.filter(function(p){ return p.prestacionId === reservaId && (p.fechaEfectiva||'') <= fechaCorte; })
+                        .reduce(function(s,p){ return s + (p.tipo === 'devolucion' ? -p.monto : p.monto); }, 0);
+                }
+                var prestacionesParaSaldo = d.prestaciones.filter(function(p){
+                    if (p.anulada || p.sinCargo) return false;
+                    if (p.precioAcordado === null || p.precioAcordado === undefined) return false;
+                    var r = reservasPorId.get(p.reservaId);
+                    if (!r || !r.fecha || r.fecha > cutoff) return false;
+                    if (_rmFiltroServicio && (r.servicio||'') !== _rmFiltroServicio) return false;
+                    if (_rmFiltroPacienteKey && p.pacienteKey !== _rmFiltroPacienteKey) return false;
+                    return true;
+                });
+                var saldoPendienteCierre = 0;
+                prestacionesParaSaldo.forEach(function(p){ saldoPendienteCierre += Math.max(0, p.precioAcordado - cobradoHasta(p.reservaId, cutoff)); });
+
+                var gastosActivos = d.gastos.filter(function(g){ return !g.anulado; });
+                var gastosPagadosDelMes = gastosActivos.filter(function(g){ return g.modalidad === 'importe_fijo' && g.estado === 'pagado' && (g.fechaPagoEfectiva||'').startsWith(prefijoMes); })
+                    .reduce(function(s,g){ return s + (g.montoFijo || 0); }, 0);
+                var estimadosVigentes = gastosActivos.filter(function(g){ return g.modalidad === 'porcentaje_estimado' && !g.reemplazadoPorGastoId; });
+                var gastosPrevistosAdicionales = 0;
+                estimadosVigentes.forEach(function(g){
+                    var base = (g.alcance === 'servicio' && g.servicioVinculado) ? (cobrosNetosPorServicio.get(g.servicioVinculado) || 0) : cobrosNetosDelMes;
+                    var baseFloor = Math.max(0, base);
+                    gastosPrevistosAdicionales += Math.round(baseFloor * (g.porcentaje||0) / 100);
+                });
+                var netoCaja = cobrosNetosDelMes - gastosPagadosDelMes;
+                var netoEstimado = netoCaja - gastosPrevistosAdicionales;
+
+                var pacKeys = new Set();
+                prestacionesDelMes.forEach(function(p){ if (p.pacienteKey) pacKeys.add(p.pacienteKey); });
+                pagosDelMes.forEach(function(p){ if (p.pacienteKey) pacKeys.add(p.pacienteKey); });
+                if (_rmFiltroPacienteKey) pacKeys = new Set([_rmFiltroPacienteKey]);
+                var filasPaciente = Array.from(pacKeys).map(function(key){
+                    var nombre = pacientesMap.get(key) || key;
+                    var cobradoMes = pagosDelMes.filter(function(p){ return p.pacienteKey === key; })
+                        .reduce(function(s,p){ return s + (p.tipo === 'devolucion' ? -p.monto : p.monto); }, 0);
+                    var prestPac = d.prestaciones.filter(function(p){ return p.pacienteKey === key && !p.anulada && !p.sinCargo && p.precioAcordado !== null && p.precioAcordado !== undefined; });
+                    var pendienteCierre = 0, pendienteDeAntes = 0;
+                    prestPac.forEach(function(p){
+                        var r = reservasPorId.get(p.reservaId);
+                        if (!r || !r.fecha || r.fecha > cutoff) return;
+                        var pend = Math.max(0, p.precioAcordado - cobradoHasta(p.reservaId, cutoff));
+                        pendienteCierre += pend;
+                        if (!r.fecha.startsWith(prefijoMes)) pendienteDeAntes += pend;
+                    });
+                    return { key: key, nombre: nombre, cobradoMes: cobradoMes, pendienteCierre: pendienteCierre, pendienteDeAntes: pendienteDeAntes };
+                }).sort(function(a,b){ return a.nombre.localeCompare(b.nombre); });
+
+                var mesLabelCap = MESES_RM[mes-1];
+                var html = '';
+                html += '<div style="padding:20px 20px 4px;"><h2 style="margin:0;font-size:20px;color:#20382B;">Resumen mensual</h2></div>';
+                html += '<div style="padding:0 20px 24px;">';
+
+                html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:16px;">';
+                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Mes</label><select id="rm-mes-input" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">' + MESES_RM.map(function(m,i){ return '<option value="' + (i+1) + '"' + (i+1===mes?' selected':'') + '>' + m.charAt(0).toUpperCase()+m.slice(1) + '</option>'; }).join('') + '</select></div>';
+                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Año</label><input type="number" id="rm-anio-input" value="' + anio + '" style="width:90px;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;"></div>';
+                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Servicio</label><select id="rm-servicio-input" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;"><option value="">Todos</option>' + servicios.map(function(s){ return '<option value="' + escapeHtml(s) + '"' + (s===_rmFiltroServicio?' selected':'') + '>' + escapeHtml(s) + '</option>'; }).join('') + '</select></div>';
+                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Paciente</label><select id="rm-paciente-input" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;max-width:200px;"><option value="">Todos</option>' + Array.from(pacientesMap.entries()).sort(function(a,b){return a[1].localeCompare(b[1]);}).map(function(e){ return '<option value="' + escapeHtml(e[0]) + '"' + (e[0]===_rmFiltroPacienteKey?' selected':'') + '>' + escapeHtml(e[1]) + '</option>'; }).join('') + '</select></div>';
+                html += '<button class="btn-mini" onclick="window._rmAplicarFiltros()">Aplicar</button>';
+                html += '</div>';
+
+                if (_rmFiltroServicio || _rmFiltroPacienteKey) {
+                    html += '<div style="background:rgba(173,46,46,0.08);border:1px solid rgba(173,46,46,0.25);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:12.5px;color:#8A3030;">Filtro activo: ' + (_rmFiltroServicio ? 'servicio "' + escapeHtml(_rmFiltroServicio) + '"' : '') + (_rmFiltroServicio && _rmFiltroPacienteKey ? ' · ' : '') + (_rmFiltroPacienteKey ? 'paciente "' + escapeHtml(pacientesMap.get(_rmFiltroPacienteKey) || _rmFiltroPacienteKey) + '"' : '') + ' — afecta "valor de prestaciones", "saldo pendiente" y el detalle por paciente. Cobros netos, gastos y netos de caja/estimado son siempre del negocio completo.</div>';
+                }
+
+                if (prestacionesIncompletas > 0 || sesionesSinRegistro > 0) {
+                    html += '<div style="background:rgba(138,106,34,0.10);border:1px solid rgba(138,106,34,0.30);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:#8A6A22;">⚠️ Este resumen está incompleto: ' +
+                        (sesionesSinRegistro > 0 ? sesionesSinRegistro + ' sesión(es) de ' + mesLabelCap + ' sin ningún registro de precio' : '') +
+                        (prestacionesIncompletas > 0 ? (sesionesSinRegistro > 0 ? ' y ' : '') + prestacionesIncompletas + ' con precio marcado como no definido' : '') +
+                        '. No están incluidas en "Valor de las prestaciones registradas".</div>';
+                }
+
+                function tarjeta(label, valor, color) {
+                    return '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;"><div style="font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">' + label + '</div><div style="font-size:19px;font-weight:800;color:' + (color||'#20382B') + ';">' + _fmtMoneyARS(valor) + '</div></div>';
+                }
+                html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:8px;">';
+                html += tarjeta('Valor prestaciones registradas', valorPrestaciones);
+                html += tarjeta('Cobros del mes', cobrosDelMes, '#2F6B4F');
+                html += tarjeta('Devoluciones del mes', devolucionesDelMes, '#AD2E2E');
+                html += tarjeta('Cobros netos', cobrosNetosDelMes, cobrosNetosDelMes >= 0 ? '#2F6B4F' : '#AD2E2E');
+                html += tarjeta('Saldo pendiente al cierre', saldoPendienteCierre, saldoPendienteCierre > 0 ? '#AD2E2E' : '#2F6B4F');
+                html += tarjeta('Gastos pagados', gastosPagadosDelMes, '#AD2E2E');
+                html += tarjeta('Neto de caja', netoCaja, netoCaja >= 0 ? '#2F6B4F' : '#AD2E2E');
+                html += tarjeta('Gastos estimados (previstos)', gastosPrevistosAdicionales, '#8A6A22');
+                html += tarjeta('Neto estimado', netoEstimado, netoEstimado >= 0 ? '#2F6B4F' : '#AD2E2E');
+                html += '</div>';
+                html += '<p style="font-size:11.5px;color:#7C8D81;margin:0 0 18px;">Corte al ' + cutoff + (_rmEsMesActual(anio,mes) ? ' (mes en curso: corte al momento de la consulta).' : ' (mes cerrado: corte al último día del mes).') + ' Neto estimado = Cobros netos − Gastos pagados − Gastos previstos todavía no incluidos.</p>';
+
+                html += '<h3 style="font-size:15px;margin:0 0 10px;">Detalle por paciente</h3>';
+                if (!filasPaciente.length) {
+                    html += '<p style="font-size:13px;color:#7C8D81;">Sin movimientos para este mes' + (_rmFiltroServicio||_rmFiltroPacienteKey?' con el filtro activo':'') + '.</p>';
+                } else {
+                    html += '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:22px;">';
+                    filasPaciente.forEach(function(f, idx){
+                        html += '<div style="padding:10px 14px;' + (idx ? 'border-top:1px solid var(--border);' : '') + '">';
+                        html += '<strong style="font-size:13.5px;">' + escapeHtml(f.nombre) + '</strong><br>';
+                        html += '<span style="font-size:12px;color:#526358;">Cobrado en ' + mesLabelCap + ': ' + _fmtMoneyARS(f.cobradoMes) + ' — Pendiente al cierre de ' + mesLabelCap + ': ' + _fmtMoneyARS(f.pendienteCierre) + (f.pendienteDeAntes > 0 ? ' (de las cuales ' + _fmtMoneyARS(f.pendienteDeAntes) + ' son deuda de antes de este mes)' : '') + '</span>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+
+                html += '<h3 style="font-size:15px;margin:20px 0 10px;">Gastos</h3>';
+                html += '<button class="btn-mini" style="margin-bottom:12px;" onclick="window._rmToggleFormGasto()">➕ Agregar gasto</button>';
+                html += '<div id="rm-form-gasto" style="display:none;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;"></div>';
+
+                var gastosParaListar = gastosActivos.filter(function(g){
+                    if (g.modalidad === 'importe_fijo') return (g.fecha||'').startsWith(prefijoMes) || (g.fechaPagoEfectiva||'').startsWith(prefijoMes);
+                    return true;
+                });
+                if (!gastosParaListar.length) {
+                    html += '<p style="font-size:13px;color:#7C8D81;">No hay gastos cargados.</p>';
+                } else {
+                    html += '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">';
+                    gastosParaListar.forEach(function(g, idx){
+                        var esFijo = g.modalidad === 'importe_fijo';
+                        var det = esFijo
+                            ? _fmtMoneyARS(g.montoFijo) + (g.estado === 'pagado' ? ' · pagado el ' + (g.fechaPagoEfectiva||'—') : ' · pendiente de pago')
+                            : g.porcentaje + '% ' + (g.alcance === 'servicio' ? 'sobre "' + escapeHtml(g.servicioVinculado||'') + '"' : 'sobre cobros netos generales') + (g.reemplazadoPorGastoId ? ' · ya reemplazado por un gasto real (no se descuenta como estimado)' : '');
+                        html += '<div style="padding:10px 14px;' + (idx?'border-top:1px solid var(--border);':'') + '">';
+                        html += '<div style="display:flex;justify-content:space-between;gap:8px;"><strong style="font-size:13px;">' + escapeHtml(g.concepto||'—') + '</strong><span style="font-size:11px;color:#7C8D81;">' + escapeHtml(g.categoria||'') + '</span></div>';
+                        html += '<div style="font-size:12.5px;color:#526358;margin-top:2px;">' + det + '</div>';
+                        if (esFijo && g.estado !== 'pagado') html += '<button class="btn-mini" style="margin-top:6px;" onclick="window._rmMarcarGastoPagado(\'' + g.id + '\')">Marcar como pagado</button>';
+                        if (!esFijo && !g.reemplazadoPorGastoId) html += '<button class="btn-mini" style="margin-top:6px;" onclick="window._rmVincularGastoReal(\'' + g.id + '\')">Vincular con el gasto real (reemplazar estimado)</button>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+
+                html += '</div>';
+                cont.innerHTML = html;
+            }
+
+            window._rmAplicarFiltros = function() {
+                _rmMes = Number(document.getElementById('rm-mes-input').value);
+                _rmAnio = Number(document.getElementById('rm-anio-input').value) || _rmAnio;
+                _rmFiltroServicio = document.getElementById('rm-servicio-input').value;
+                _rmFiltroPacienteKey = document.getElementById('rm-paciente-input').value;
+                _rmRender();
+            };
+
+            window._rmToggleFormGasto = function() {
+                var box = document.getElementById('rm-form-gasto');
+                var abrir = box.style.display === 'none';
+                box.style.display = abrir ? 'block' : 'none';
+                if (!abrir) return;
+                var servicios = Array.from(new Set(_rmData.reservas.map(function(r){ return r.servicio; }).filter(Boolean))).sort();
+                var h = '';
+                h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
+                h += '<input type="text" id="rmg-concepto" placeholder="Concepto" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
+                h += '<input type="text" id="rmg-categoria" placeholder="Categoría" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
+                h += '</div>';
+                h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
+                h += '<select id="rmg-alcance" onchange="document.getElementById(\'rmg-servicio-wrap\').style.display=this.value===\'servicio\'?\'block\':\'none\';"><option value="general">Gasto general</option><option value="servicio">Ligado a un servicio</option></select>';
+                h += '<select id="rmg-modalidad" onchange="window._rmToggleModalidadGasto()"><option value="importe_fijo">Importe fijo</option><option value="porcentaje_estimado">Porcentaje estimado</option></select>';
+                h += '</div>';
+                h += '<div id="rmg-servicio-wrap" style="display:none;margin-bottom:8px;"><select id="rmg-servicio" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">' + servicios.map(function(s){ return '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>'; }).join('') + '</select></div>';
+                h += '<div id="rmg-campo-fijo" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">';
+                h += '<input type="number" id="rmg-monto" min="0" step="100" placeholder="Monto $" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
+                h += '<select id="rmg-estado"><option value="pagado">Pagado</option><option value="pendiente">Pendiente</option></select>';
+                h += '<input type="date" id="rmg-fecha-pago" value="' + _hoyISOZona(ZONA_HORARIA_NEGOCIO) + '" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
+                h += '</div>';
+                h += '<div id="rmg-campo-pct" style="display:none;margin-bottom:8px;"><input type="number" id="rmg-porcentaje" min="0" max="100" step="0.1" placeholder="Porcentaje (0-100)" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;width:100%;"></div>';
+                h += '<input type="text" id="rmg-nota" placeholder="Nota (opcional)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;margin-bottom:10px;">';
+                h += '<button class="btn-mini" onclick="window._rmGuardarGasto(this)">Guardar gasto</button>';
+                box.innerHTML = h;
+            };
+
+            window._rmToggleModalidadGasto = function() {
+                var esFijo = document.getElementById('rmg-modalidad').value === 'importe_fijo';
+                document.getElementById('rmg-campo-fijo').style.display = esFijo ? 'grid' : 'none';
+                document.getElementById('rmg-campo-pct').style.display = esFijo ? 'none' : 'block';
+            };
+
+            window._rmGuardarGasto = async function(btn) {
+                var concepto = document.getElementById('rmg-concepto').value.trim();
+                if (!concepto) { mostrarAviso('El concepto es obligatorio.'); return; }
+                var categoria = document.getElementById('rmg-categoria').value.trim();
+                var alcance = document.getElementById('rmg-alcance').value;
+                var servicioVinculado = alcance === 'servicio' ? document.getElementById('rmg-servicio').value : null;
+                var modalidad = document.getElementById('rmg-modalidad').value;
+                var nota = document.getElementById('rmg-nota').value.trim();
+                var data = {
+                    concepto: concepto, categoria: categoria, alcance: alcance, servicioVinculado: servicioVinculado,
+                    modalidad: modalidad, nota: nota, anulado: false,
+                    fecha: _hoyISOZona(ZONA_HORARIA_NEGOCIO),
+                    creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
+                };
+                if (modalidad === 'importe_fijo') {
+                    var monto = Math.round(Number(document.getElementById('rmg-monto').value));
+                    if (!monto || monto <= 0) { mostrarAviso('Ingresá un monto válido.'); return; }
+                    data.montoFijo = monto;
+                    data.estado = document.getElementById('rmg-estado').value;
+                    data.fechaPagoEfectiva = data.estado === 'pagado' ? (document.getElementById('rmg-fecha-pago').value || _hoyISOZona(ZONA_HORARIA_NEGOCIO)) : null;
+                } else {
+                    var pct = Number(document.getElementById('rmg-porcentaje').value);
+                    if (isNaN(pct) || pct < 0 || pct > 100) { mostrarAviso('El porcentaje debe estar entre 0 y 100.'); return; }
+                    data.porcentaje = pct;
+                }
+                btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Guardando…';
+                try {
+                    var opId = 'gasto_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+                    await setDoc(doc(db, 'gastos', opId), data);
+                    mostrarAviso('Gasto guardado.');
+                    await window.cargarResumenMensual();
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo guardar el gasto: ' + (e && e.message ? e.message : 'error desconocido'));
+                    btn.disabled = false; btn.textContent = orig;
+                }
+            };
+
+            window._rmMarcarGastoPagado = async function(gastoId) {
+                try {
+                    await updateDoc(doc(db, 'gastos', gastoId), { estado: 'pagado', fechaPagoEfectiva: _hoyISOZona(ZONA_HORARIA_NEGOCIO), actualizadoEn: serverTimestamp(), actualizadoPor: (auth.currentUser && auth.currentUser.email) || null });
+                    mostrarAviso('Gasto marcado como pagado.');
+                    await window.cargarResumenMensual();
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo actualizar el gasto: ' + (e && e.message ? e.message : 'error desconocido'));
+                }
+            };
+
+            window._rmVincularGastoReal = async function(estimadoId) {
+                var montoTxt = prompt('Monto real pagado que reemplaza a este estimado:');
+                if (montoTxt === null) return;
+                var monto = Math.round(Number(montoTxt));
+                if (!monto || monto <= 0) { mostrarAviso('Monto inválido.'); return; }
+                var concepto = prompt('Concepto del gasto real (podés dejar el mismo):') || 'Gasto real (reemplaza estimado)';
+                try {
+                    var nuevoId = 'gasto_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+                    var estimado = _rmData.gastos.find(function(g){ return g.id === estimadoId; });
+                    await setDoc(doc(db, 'gastos', nuevoId), {
+                        concepto: concepto, categoria: (estimado && estimado.categoria) || '', alcance: (estimado && estimado.alcance) || 'general',
+                        servicioVinculado: (estimado && estimado.servicioVinculado) || null, modalidad: 'importe_fijo', montoFijo: monto,
+                        estado: 'pagado', fechaPagoEfectiva: _hoyISOZona(ZONA_HORARIA_NEGOCIO), nota: 'Reemplaza al estimado ' + estimadoId,
+                        reemplazaEstimadoId: estimadoId, anulado: false,
+                        creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
+                    });
+                    await updateDoc(doc(db, 'gastos', estimadoId), { reemplazadoPorGastoId: nuevoId, actualizadoEn: serverTimestamp(), actualizadoPor: (auth.currentUser && auth.currentUser.email) || null });
+                    mostrarAviso('Gasto real registrado; el estimado ya no se descuenta como previsto.');
+                    await window.cargarResumenMensual();
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo vincular el gasto real: ' + (e && e.message ? e.message : 'error desconocido'));
+                }
+            };
+        })();
+        /* ══ FIN RESUMEN MENSUAL + GASTOS ═══════════════════════════════════════ */
+
         window.buscarSesionesPorNombreInput = debounce(function() {
             var raw = ((document.getElementById("inpBuscadorSesiones") || {}).value || "").trim();
             var contenedor = document.getElementById("contenedorSesionesBuscadas");
@@ -8071,6 +8426,7 @@
             if (s === 'control-consultas') window.cargarControlConsultas();
             if (s === 'cursos') window.cargarCursos();
             if (s === 'preparar-jornada') window.cargarPreparaJornada();
+            if (s === 'resumen-mensual') window.cargarResumenMensual();
         };
 
         // ═══ DROPDOWNS DE HEADER ═══
