@@ -2605,6 +2605,12 @@
         let duoHorarios      = new Map();
         let _svBoxMap        = new Map(); // nombre servicio → boxId
         let _svDurMap        = new Map(); // nombre servicio → duracionMinutos
+        // nombre servicio → tipo estable (ej. 'consulta_inicial') — identifica
+        // reglas de negocio por tipo, no por texto visible/tildes/mayúsculas
+        // (punto 14: "evitando condicionales frágiles que dependan de... texto visible").
+        let _svTipoMap       = new Map();
+        const SERVICIO_TIPO_CONSULTA_INICIAL = 'consulta_inicial';
+        const DURACION_CONSULTA_INICIAL_MIN = 30; // regla fija del punto 14, no editable desde Servicios
         let _gsServicios     = [];        // cache local de docs 'services' // key: fecha|hora -> docId en calendarExceptions
         let cierresPorFecha  = new Map();
         let bloqueoPendienteConReserva = null;
@@ -4503,6 +4509,21 @@
                         reserva.nombreLimpio || reserva.cliente || "Paciente"
                     );
 
+                    // Punto 14: si esta reserva tiene una Consulta Inicial vinculada,
+                    // se cancela también (conserva historial — no se borra el
+                    // documento, solo cambia estado, mismo vocabulario que usa
+                    // "consultas": 'cancelada', no 'cancelado').
+                    if (reserva.consultaId) {
+                        try {
+                            await updateDoc(doc(db, "consultas", reserva.consultaId), {
+                                estado: "cancelada", motivoCancelacion: motivo, canceladoPor, canceladoAt: serverTimestamp(),
+                            });
+                            const _cIdx = todasLasConsultas.findIndex(c => c.id === reserva.consultaId);
+                            if (_cIdx >= 0) todasLasConsultas[_cIdx].estado = "cancelada";
+                            if (typeof window.renderConsultas === 'function') window.renderConsultas();
+                        } catch (eConsultaCanc) { console.warn('No se pudo sincronizar la cancelación con Consultas iniciales:', eConsultaCanc); }
+                    }
+
                     // Eliminar slots de extension en calendarExceptions
                     if (reserva.duracionMinutos > 30) {
                         const slotsExtra = reserva.duracionMinutos >= 90 ? 2 : 1;
@@ -4594,17 +4615,34 @@
             let lista = [];
             try {
                 const svSnap = await getDocs(collection(db, 'services'));
+                let _existeConsultaInicial = false;
                 svSnap.forEach(d => {
                     const data = d.data();
+                    if (data.tipo === SERVICIO_TIPO_CONSULTA_INICIAL) _existeConsultaInicial = true;
                     if (data.activo !== false) {
                         const n = (data.nombre || '').toString().trim();
                         if (n) {
                             lista.push(n);
                             if (data.boxId) _svBoxMap.set(n, data.boxId);
                             if (data.duracion) _svDurMap.set(n, Number(data.duracion));
+                            if (data.tipo) _svTipoMap.set(n, data.tipo);
                         }
                     }
                 });
+                // Se crea UNA sola vez, con id fijo (idempotente por construcción:
+                // nunca un segundo doc por reabrir esta pantalla) — reutiliza el
+                // servicio si ya existe, tal como pide el punto 14.
+                if (!_existeConsultaInicial) {
+                    try {
+                        await setDoc(doc(db, 'services', 'consulta_inicial'), {
+                            nombre: 'Consulta Inicial', activo: true,
+                            duracion: DURACION_CONSULTA_INICIAL_MIN, tipo: SERVICIO_TIPO_CONSULTA_INICIAL,
+                        }, { merge: true });
+                        lista.push('Consulta Inicial');
+                        _svDurMap.set('Consulta Inicial', DURACION_CONSULTA_INICIAL_MIN);
+                        _svTipoMap.set('Consulta Inicial', SERVICIO_TIPO_CONSULTA_INICIAL);
+                    } catch (eSeed) { console.warn('No se pudo crear el servicio "Consulta Inicial":', eSeed); }
+                }
                 lista.sort((a, b) => a.localeCompare(b, 'es'));
             } catch(e) { /* fallback below */ }
             if (!lista.length) {
@@ -4812,8 +4850,12 @@
 
             const clienteSnap = { ..._mreg_clienteSeleccionado };
 
-            // Duración según el servicio (definida en Servicios > Catálogo), por defecto 30 min
-            const durMin = _svDurMap.get(servicioIngresado) || 30;
+            // Duración según el servicio (definida en Servicios > Catálogo), por defecto 30 min.
+            // Consulta Inicial es una excepción fija (punto 14): siempre 30 min exactos,
+            // sin importar lo que diga el catálogo — no se identifica por el nombre
+            // visible sino por el tipo estable del servicio resuelto.
+            const _esConsultaInicial = _svTipoMap.get(servicioIngresado) === SERVICIO_TIPO_CONSULTA_INICIAL;
+            const durMin = _esConsultaInicial ? DURACION_CONSULTA_INICIAL_MIN : (_svDurMap.get(servicioIngresado) || 30);
             const slotsExtension = (() => {
                 if (durMin <= 30) return [];
                 const extra = Math.max(0, Math.ceil(durMin / 30) - 1);
@@ -4900,6 +4942,41 @@
                     boxLabel: _boxGuardar?.label || null
                 };
                 const ref = await addDoc(collection(db, "reservas"), reservaNueva);
+
+                // Punto 14: si el servicio es Consulta Inicial, se crea también el
+                // documento vinculado en "consultas" (colección real que ya leen
+                // Consultas/Control de consultas/Agenda CI/Mimar T Inteligente) —
+                // reservas y consultas quedan como dos documentos, no uno solo,
+                // porque unificarlos arrastraría todo el resto de esos módulos;
+                // se vinculan por id en ambos sentidos para que edición/cancelación
+                // pueda sincronizarse entre ambos lados. Si esta escritura falla,
+                // no revierte la reserva ya creada — se avisa que falta terminar
+                // la integración en vez de mostrar éxito completo.
+                if (_esConsultaInicial) {
+                    try {
+                        const consultaRef = await addDoc(collection(db, "consultas"), {
+                            nombre: clienteSnap.nombre,
+                            fecha: fechaSnap, hora: horaSnap,
+                            telefono: clienteSnap.phone || clienteSnap.telefono || '',
+                            dni: clienteSnap.dni || '',
+                            estado: 'pendiente',
+                            box: _boxGuardar?.id || null,
+                            servicio: servicioIngresado,
+                            duracionMinutos: durMin,
+                            origen: 'grilla',
+                            reservaId: ref.id,
+                            creadoPor: 'admin_manual',
+                            timestamp: serverTimestamp(),
+                        });
+                        await updateDoc(doc(db, "reservas", ref.id), { consultaId: consultaRef.id });
+                        if (typeof todasLasConsultas !== 'undefined') todasLasConsultas.push({ id: consultaRef.id, nombre: clienteSnap.nombre, fecha: fechaSnap, hora: horaSnap, estado: 'pendiente', reservaId: ref.id });
+                        if (typeof window.renderConsultas === 'function') window.renderConsultas();
+                    } catch (eConsulta) {
+                        console.error(eConsulta);
+                        mostrarAviso('La reserva se creó, pero no se pudo vincular con Consultas iniciales — revisá esa sección manualmente.');
+                    }
+                }
+
                 // Bloquear slot base en calendarExceptions (visible al público inmediatamente)
                 const _baseBlockId = `reserva_admin_${fechaSnap}_${horaSnap.replace(':','-')}`;
                 setDoc(doc(db, "calendarExceptions", _baseBlockId), {
