@@ -22,6 +22,7 @@ import {
   PREFS_AVISOS_DEFECTO, pendientesElegiblesParaAviso, pendientesVigentes,
   VENTANA_REVISAR_TURNO_DIAS,
   TIPO_MENSAJE_AVISO_DUENA, idAvisoDuena, docIdVersionadoParaAviso, construirTextoAvisoDuenaKit,
+  construirInformeGimena,
   construirTextoAvisoDuenaCumpleanosIndividual, construirTextoAvisoDuenaCumpleanosDia,
   construirTextoAvisoDuenaConsulta, construirTextoAvisoDuenaGenerico,
   estadoConsultaInicial, etiquetaEstadoConsultaInicial, ESTADO_CONSULTA_CANCELADA,
@@ -660,6 +661,93 @@ async function cargarMasActividad() {
   }
 }
 $("btn-cargar-mas").addEventListener("click", cargarMasActividad);
+
+// ── Informe de actividad para Gimena (punto 11) ──────────────────────────
+// Usa el MISMO filtro de fecha que ya tiene la pestaña Actividad (si no hay
+// filtro de fecha activo, el período es "hoy") — no se inventa un selector
+// de período aparte. Los totales económicos salen de pagos/gastos reales
+// (mismas fórmulas que el resumen mensual de admin.html), nunca de sumar
+// texto de activityLog.
+async function _obtenerPeriodoInforme() {
+  const hoyISO = fechaISOEnZona();
+  const desde = filtroActividad.fechaDesde || hoyISO;
+  const hasta = filtroActividad.fechaHasta || hoyISO;
+  return { desde, hasta };
+}
+
+$("btn-preparar-informe-gimena")?.addEventListener("click", async () => {
+  const btn = $("btn-preparar-informe-gimena");
+  btn.disabled = true;
+  const textoOrig = btn.textContent;
+  btn.textContent = "Preparando…";
+  try {
+    const { desde, hasta } = await _obtenerPeriodoInforme();
+
+    // Si hay actividad más antigua sin cargar y el período pedido podría
+    // incluirla, se avisa en vez de presentar un informe que en realidad
+    // está incompleto.
+    const combinados = actividadRecientes.concat(actividadAntiguos);
+    const masAntiguoCargadoISO = combinados.reduce((min, ev) => {
+      if (ev.timestampMs == null) return min;
+      const f = fechaISOEnZona(ev.timestampMs);
+      return !min || f < min ? f : min;
+    }, null);
+    const posibleIncompleto = actividadHayMas && (!masAntiguoCargadoISO || desde < masAntiguoCargadoISO);
+
+    const filtroPeriodo = { categoria: "todas", estado: "todos", fechaDesde: desde, fechaHasta: hasta };
+    const eventosPeriodo = combinados.filter((ev) => eventoCoincideFiltro(ev, filtroPeriodo));
+
+    // Totales económicos reales del período — por fecha EFECTIVA, igual
+    // criterio que el resumen mensual de admin.html.
+    const [pagosSnap, gastosSnap] = await Promise.all([
+      getDocs(collection(db, "pagos")),
+      getDocs(collection(db, "gastos")),
+    ]);
+    let cobros = 0, devoluciones = 0;
+    pagosSnap.forEach((d) => {
+      const p = d.data();
+      const f = p.fechaEfectiva || "";
+      if (f < desde || f > hasta) return;
+      if (p.tipo === "devolucion") devoluciones += p.monto || 0; else cobros += p.monto || 0;
+    });
+    let gastosPagados = 0;
+    gastosSnap.forEach((d) => {
+      const g = d.data();
+      if (g.anulado || g.modalidad !== "importe_fijo" || g.estado !== "pagado") return;
+      const f = g.fechaPagoEfectiva || "";
+      if (f < desde || f > hasta) return;
+      gastosPagados += g.montoFijo || 0;
+    });
+
+    const periodoLabel = desde === hasta ? `día ${desde}` : `${desde} al ${hasta}`;
+    const fechaCorteISO = fechaISOEnZona();
+    const informe = construirInformeGimena({
+      periodoLabel, fechaDesdeISO: desde, fechaHastaISO: hasta, fechaCorteISO,
+      eventos: eventosPeriodo, cobros, devoluciones, gastosPagados,
+    });
+
+    let texto = informe.resumenWhatsApp;
+    if (posibleIncompleto) texto += `\n\n⚠️ Puede faltar actividad anterior al ${masAntiguoCargadoISO || desde} sin cargar todavía — informe parcial.`;
+
+    const operador = await operadorActual();
+    const ref = await addDoc(collection(db, "informesGimena"), {
+      periodoLabel, fechaDesdeISO: desde, fechaHastaISO: hasta, fechaCorteISO,
+      filtros: filtroPeriodo, contenido: texto, totales: informe.totales,
+      porColeccionConteo: informe.porColeccionConteo, eventoIds: informe.eventoIds,
+      posibleIncompleto: !!posibleIncompleto,
+      generadoPor: operador?.email || null, generadoEn: serverTimestamp(),
+    });
+
+    avisoDuenaRegistro.set("informe_" + ref.id, { coleccion: "informesGimena", docId: ref.id, ocurrencia: null, texto, nombreEvento: `Informe de actividad — ${periodoLabel}` });
+    abrirAvisoDuena("informe_" + ref.id);
+  } catch (e) {
+    console.error(e);
+    toast("No se pudo preparar el informe: " + (e?.message || e));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOrig;
+  }
+});
 
 function manejarSnapshot(fuenteId, snap) {
   const items = [];

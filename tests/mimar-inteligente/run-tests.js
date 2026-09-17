@@ -19,6 +19,7 @@ import {
   construirTextoAvisoDuenaKit, construirTextoAvisoDuenaConsulta,
   construirTextoAvisoDuenaConsultaAgendada, construirTextoAvisoDuenaSolicitudConsulta,
   franjaDeHora, fechaAvisoConfirmacion, agruparPendientesPorDia, textoTurnoConDia,
+  construirInformeGimena,
 } from '../../mimar-inteligente/mimar-inteligente-logic.js';
 
 let fails = 0;
@@ -639,6 +640,27 @@ console.log('\n=== derivarPendientes: confirmacion_turno trae fechaActuarISO/fra
   const pT = pend.find((p) => p.docId === 'rT');
   check('turno de mañana: franja="mañana" y fechaActuarISO = el día calendario anterior', pM && pM.franja === 'mañana' && pM.fechaActuarISO === '2026-09-20');
   check('turno de tarde: franja="tarde" y fechaActuarISO = el mismo día del turno', pT && pT.franja === 'tarde' && pT.fechaActuarISO === '2026-09-21');
+}
+
+console.log('\n=== Informe de actividad para Gimena (punto 11) ===');
+{
+  const r = construirInformeGimena({
+    periodoLabel: 'día 2026-09-17', fechaDesdeISO: '2026-09-17', fechaHastaISO: '2026-09-17', fechaCorteISO: '2026-09-17',
+    eventos: [{ id: 'e1', coleccion: 'reservas' }, { id: 'e2', coleccion: 'reservas' }, { id: 'e3', coleccion: 'pagos' }, { id: 'e4', coleccion: 'consultas' }],
+    cobros: 120000, devoluciones: 20000, gastosPagados: 25000,
+  });
+  check('trato "Gime," sin saludo tipo "Hola"', r.resumenWhatsApp.startsWith('Gime, informe de actividad'));
+  check('cobros netos = cobros - devoluciones = $100.000 (ejemplo exacto del punto 4)', r.totales.cobrosNetos === 100000);
+  check('neto de caja = cobros netos - gastos pagados = $75.000 (mismo ejemplo)', r.totales.netoCaja === 75000);
+  check('cuenta eventos por colección sin perder ninguno (2+1+1 = 4)', r.porColeccionConteo.reservas === 2 && r.porColeccionConteo.pagos === 1 && r.porColeccionConteo.consultas === 1);
+  check('conserva los ids de los eventos incluidos (para poder auditar el detalle después)', r.eventoIds.length === 4 && r.eventoIds.includes('e3'));
+
+  const rVacio = construirInformeGimena({ periodoLabel: 'día sin actividad', fechaDesdeISO: '2026-09-01', fechaHastaISO: '2026-09-01', fechaCorteISO: '2026-09-01', eventos: [], cobros: 0, devoluciones: 0, gastosPagados: 0 });
+  check('mes/día sin movimientos no rompe: todos los totales en $0, nunca NaN', rVacio.totales.cobrosNetos === 0 && rVacio.totales.netoCaja === 0 && !Number.isNaN(rVacio.totales.netoCaja));
+  check('sin eventos dice explícitamente "Sin eventos registrados", no inventa actividad', rVacio.resumenWhatsApp.includes('Sin eventos registrados en este período.'));
+
+  const rNegativo = construirInformeGimena({ periodoLabel: 'mes con devoluciones altas', fechaDesdeISO: '2026-09-01', fechaHastaISO: '2026-09-30', fechaCorteISO: '2026-09-30', eventos: [], cobros: 10000, devoluciones: 30000, gastosPagados: 5000 });
+  check('un período con devoluciones mayores a los cobros da neto negativo real, sin aplanarlo a cero', rNegativo.totales.cobrosNetos === -20000 && rNegativo.totales.netoCaja === -25000);
 }
 
 console.log('\n' + '='.repeat(60));

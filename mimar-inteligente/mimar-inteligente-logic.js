@@ -873,6 +873,63 @@ export function resumenTextoPendientes(pendientes) {
   return `Tenés ${total} pendiente${total === 1 ? "" : "s"}: ${listado}.`;
 }
 
+// ── Informe general de actividad para Gimena (punto 11) ──────────────────
+// Combina el historial estructurado de activityLog (conteo por colección —
+// nunca reinterpreta el texto libre de "resumen") con los totales
+// económicos REALES del período: cobros/devoluciones/gastos pagados vienen
+// de pagos/gastos (mismas fórmulas que el resumen mensual de admin.html:
+// cobros netos = cobros − devoluciones, neto de caja = cobros netos −
+// gastos pagados) — nunca se suman eventos de auditoría como si fueran
+// ingresos. Es una función pura: quien llama ya resolvió las consultas a
+// Firestore y arma los números reales antes de pasarlos acá.
+const ETIQUETA_COLECCION_INFORME = {
+  reservas: "turnos/sesiones", consultas: "consultas iniciales", pedidosKit: "pedidos de kit",
+  clients: "pacientes", cursoMaquillaje: "curso de automaquillaje", reservasDepi: "depilación",
+  prestaciones: "precios registrados", pagos: "cobros/devoluciones", gastos: "gastos",
+};
+const ORDEN_COLECCION_INFORME = ["reservas", "consultas", "pedidosKit", "prestaciones", "pagos", "gastos", "clients", "cursoMaquillaje", "reservasDepi"];
+
+export function construirInformeGimena({ periodoLabel, fechaDesdeISO, fechaHastaISO, fechaCorteISO, eventos, cobros, devoluciones, gastosPagados }) {
+  const listaEventos = eventos || [];
+  const porColeccion = new Map();
+  for (const e of listaEventos) {
+    const k = e.coleccion || "otros";
+    if (!porColeccion.has(k)) porColeccion.set(k, []);
+    porColeccion.get(k).push(e);
+  }
+  const cobrosNum = cobros || 0, devolucionesNum = devoluciones || 0, gastosNum = gastosPagados || 0;
+  const cobrosNetos = cobrosNum - devolucionesNum;
+  const netoCaja = cobrosNetos - gastosNum;
+
+  const lineas = [];
+  lineas.push(`Gime, informe de actividad — ${periodoLabel}.`);
+  lineas.push(`Período: ${fechaDesdeISO} al ${fechaHastaISO}. Corte: ${fechaCorteISO}.`);
+  lineas.push(`Eventos registrados: ${listaEventos.length}.`);
+
+  const partesModulos = [];
+  const yaListadas = new Set();
+  for (const col of ORDEN_COLECCION_INFORME) {
+    const lista = porColeccion.get(col);
+    if (lista && lista.length) { partesModulos.push(`${lista.length} ${ETIQUETA_COLECCION_INFORME[col] || col}`); yaListadas.add(col); }
+  }
+  // Cualquier colección fuera del orden fijo también se informa — nunca se pierde una novedad por no estar en la lista prevista.
+  for (const [col, lista] of porColeccion) {
+    if (!yaListadas.has(col) && lista.length) partesModulos.push(`${lista.length} ${ETIQUETA_COLECCION_INFORME[col] || col}`);
+  }
+  if (partesModulos.length) lineas.push(partesModulos.join(", ") + ".");
+  else lineas.push("Sin eventos registrados en este período.");
+
+  lineas.push(`Cobros: ${formatearARS(cobrosNum)}. Devoluciones: ${formatearARS(devolucionesNum)}. Cobros netos: ${formatearARS(cobrosNetos)}.`);
+  lineas.push(`Gastos pagados: ${formatearARS(gastosNum)}. Neto de caja: ${formatearARS(netoCaja)}.`);
+
+  return {
+    resumenWhatsApp: lineas.join("\n"),
+    totales: { cobros: cobrosNum, devoluciones: devolucionesNum, cobrosNetos, gastosPagados: gastosNum, netoCaja },
+    porColeccionConteo: Object.fromEntries([...porColeccion.entries()].map(([k, v]) => [k, v.length])),
+    eventoIds: listaEventos.map((e) => e.id),
+  };
+}
+
 // ── Recomendaciones (punto 3 — no existía ninguna regla previa en el
 // repo, así que esta es una tarea manual explícita: texto editable y
 // programación explícita por la administradora, nunca generada sola por
