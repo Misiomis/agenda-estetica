@@ -14,6 +14,10 @@ import {
   recomendacionValida, enDescansoNocturno, pendientesElegiblesParaAviso,
   PREFS_AVISOS_DEFECTO, TIPOS_PENDIENTE, calcularRevisarTurnoPasado,
   resolverTelefonoConFallback, VENTANA_REVISAR_TURNO_DIAS,
+  validarYNormalizarTelefonoAR, formatearFechaLocal, formatearHoraLocal,
+  formatearFechaHoraLocal, diaSemanaLegible, referenciaTemporalConFecha,
+  construirTextoAvisoDuenaKit, construirTextoAvisoDuenaConsulta,
+  construirTextoAvisoDuenaConsultaAgendada, construirTextoAvisoDuenaSolicitudConsulta,
 } from '../../mimar-inteligente/mimar-inteligente-logic.js';
 
 let fails = 0;
@@ -485,6 +489,96 @@ console.log('\n=== Pendiente bloqueado por dato obligatorio faltante (teléfono)
   const pendsConFallback = derivarPendientes({ agenda: agendaConFallback, pedidosKitPendientes: [], cumpleanosHoy: null, recomendaciones: [], contactosPorId: {} }, ahoraCerca);
   const pcf = pendsConFallback.find((p) => p.docId === 'b2');
   check('con teléfono resuelto vía DNI, el pendiente NO queda bloqueado', pcf && pcf.bloqueado === false);
+}
+
+console.log('\n=== Config de Gimena: validación/normalización de teléfono (punto 9) ===');
+{
+  const v1 = validarYNormalizarTelefonoAR('376 4291807');
+  check('"376 4291807" es válido', v1.ok === true);
+  check('dígitos wa.me = 5493764291807 (ejemplo exacto del pedido)', v1.digitos === '5493764291807');
+  check('mostrable = "+54 9 376 4291807" (ejemplo exacto del pedido)', v1.mostrable === '+54 9 376 4291807');
+
+  const v2 = validarYNormalizarTelefonoAR('03764291807');
+  check('con 0 inicial también normaliza al mismo destino', v2.ok === true && v2.digitos === '5493764291807');
+
+  const v3 = validarYNormalizarTelefonoAR('');
+  check('vacío → error claro, no revienta', v3.ok === false && typeof v3.error === 'string');
+
+  const v4 = validarYNormalizarTelefonoAR('12');
+  check('número demasiado corto → inválido, nunca se fuerza un destino inventado', v4.ok === false);
+
+  const v5 = validarYNormalizarTelefonoAR('abc');
+  check('sin dígitos → inválido', v5.ok === false);
+}
+
+console.log('\n=== Fecha/hora local legible (punto 10 — nunca ISO crudo) ===');
+{
+  const ISO = '2026-09-15T23:24:32.372Z';
+  check('formatearFechaHoraLocal: ISO → "15/09/2026, 20:24" (ejemplo exacto del pedido)', formatearFechaHoraLocal(ISO) === '15/09/2026, 20:24');
+  check('formatearFechaLocal: solo la fecha', formatearFechaLocal(ISO) === '15/09/2026');
+  check('formatearHoraLocal: 24 horas, nunca "p. m."', formatearHoraLocal(ISO) === '20:24');
+  check('diaSemanaLegible: 15/09/2026 es martes', diaSemanaLegible(ISO) === 'martes');
+  check('acepta también un Timestamp de Firestore (objeto con toMillis())', formatearFechaHoraLocal({ toMillis: () => new Date(ISO).getTime() }) === '15/09/2026, 20:24');
+}
+
+console.log('\n=== Referencia temporal relativa + fecha exacta (punto 10) ===');
+{
+  const ahora = new Date('2026-09-17T15:00:00-03:00').getTime(); // jueves
+  const hoy = new Date('2026-09-17T10:00:00-03:00').getTime();
+  const ayer = new Date('2026-09-16T10:00:00-03:00').getTime();
+  const anteAyer = new Date('2026-09-14T10:00:00-03:00').getTime(); // lunes
+  check('mismo día calendario → "hoy, <fecha>"', referenciaTemporalConFecha(hoy, ahora) === 'hoy, 17/09/2026');
+  check('un día antes → "ayer, <fecha>"', referenciaTemporalConFecha(ayer, ahora) === 'ayer, 16/09/2026');
+  check('más de un día antes → "el <día> <fecha>", nunca "hace 3 días" sin fecha', referenciaTemporalConFecha(anteAyer, ahora) === 'el lunes 14/09/2026');
+}
+
+console.log('\n=== Plantilla "Avisar a Gimena" — pedido de kit (caso Aylen S del pedido) ===');
+{
+  const kitAylen = {
+    nombre: 'Aylen S',
+    fechaPedidoMs: new Date('2026-09-15T23:24:32.372Z').getTime(),
+    items: [
+      { nombre: 'Leche de limpieza', cantidad: 1, subtotal: 20000, subtotalCompleto: true },
+      { nombre: 'Tónico calmante', cantidad: 1, subtotal: 20000, subtotalCompleto: true },
+    ],
+    totalTexto: formatearARS(40000),
+    montoAbonadoTexto: 'No registrado',
+    saldoPendienteTexto: 'No registrado',
+    estadoPedido: 'pendiente',
+    discrepanciaTotal: null,
+    entrega: null,
+    observaciones: null,
+  };
+  const texto = construirTextoAvisoDuenaKit(kitAylen);
+  check('empieza con el trato "Gime," (no un saludo tipo "Hola")', texto.startsWith('Gime, tenés un pedido de kit de Aylen S.'));
+  check('incluye la fecha/hora local de la solicitud, no el ISO crudo', texto.includes('20:24') && !texto.includes('2026-09-15T23:24:32.372Z'));
+  check('lista los productos con su importe', texto.includes('Leche de limpieza') && texto.includes('Tónico calmante'));
+  check('total del pedido = $40.000 (viene de datos, no de un valor cargado a mano acá)', texto.includes(kitAylen.totalTexto));
+  check('monto abonado y saldo NO se inventan como $0 ni como pagado: "No registrado"', texto.includes('Monto abonado: No registrado.') && texto.includes('Saldo pendiente: No registrado.'));
+  check('no queda ninguna llave sin resolver ni "undefined"', !/\{.*\}/.test(texto) && !texto.includes('undefined'));
+}
+
+console.log('\n=== Plantilla "Avisar a Gimena" — consulta inicial agendada vs. solicitud sin turno ===');
+{
+  const consultaAgendada = normalizarItemAgenda('consultas', 'c1', {
+    nombre: 'Braulio Verón', fecha: '2026-09-21', hora: '10:30', duracionMinutos: 30,
+    estado: 'pendiente', box: 'b2', timestamp: { toMillis: () => new Date('2026-09-17T14:00:00-03:00').getTime() },
+  });
+  check('con fecha/hora, fechaIncompleta = false (va a la plantilla de "se agendó")', consultaAgendada.fechaIncompleta === false);
+  const textoAgendada = construirTextoAvisoDuenaConsulta(consultaAgendada, 'Pendiente de enviar confirmación');
+  check('plantilla "agendada": trato "Gime," y menciona la duración real (30 minutos)', textoAgendada.startsWith('Gime, se agendó una consulta inicial para Braulio Verón.') && textoAgendada.includes('30 minutos'));
+  check('incluye box y fecha de registro, ambos reales', textoAgendada.includes('Box: b2.') && textoAgendada.includes('Reserva registrada:'));
+
+  const consultaSinTurno = normalizarItemAgenda('consultas', 'c2', {
+    nombre: 'Persona Nueva', servicio: 'Fraxis Facial',
+    createdAt: { toMillis: () => new Date('2026-09-16T09:00:00-03:00').getTime() },
+    telefono: '3764000000',
+  });
+  check('sin fecha/hora, fechaIncompleta = true (va a la plantilla de "solicitud")', consultaSinTurno.fechaIncompleta === true);
+  const textoSolicitud = construirTextoAvisoDuenaConsulta(consultaSinTurno, '—');
+  check('plantilla "solicitud": nunca dice "se agendó" si no hay turno', textoSolicitud.startsWith('Gime, recibiste una solicitud de consulta inicial de Persona Nueva.') && !textoSolicitud.includes('se agendó'));
+  check('estado explícito "pendiente de coordinación"', textoSolicitud.includes('Estado: pendiente de coordinación.'));
+  check('incluye el servicio de interés real', textoSolicitud.includes('Fraxis Facial'));
 }
 
 console.log('\n' + '='.repeat(60));

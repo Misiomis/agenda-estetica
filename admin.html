@@ -738,14 +738,21 @@
         .grilla-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 0 20px; position: relative; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--surface); }
         .grilla-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; }
         .grilla-table th, .grilla-table td { border: 1px solid var(--border); }
+        /* Punto 13: la grilla se veía demasiado pálida (fondos casi blancos
+           por caja). Fondo/encabezados/bordes/texto de la grilla pasan a un
+           verde salvia moderado y propio de ella (variables locales, no se
+           tocan --surface/--surface-2 globales) — la identidad de cada box
+           queda en su ícono, etiqueta y color de acento (border-bottom del
+           encabezado, franja izquierda de cada turno), no en el fondo. */
+        .grilla-scroll-wrap { --grilla-fondo: #C4D5C1; --grilla-header: #96B498; --grilla-borde: #78967C; --grilla-texto: #2F4934; }
         .grilla-th-hora {
-            width: 52px; min-width: 52px; text-align: center; font-size: 10px; color: var(--ink-soft); font-weight: 700;
-            letter-spacing: .04em; padding: 10px 4px; background: var(--surface-2) !important;
+            width: 52px; min-width: 52px; text-align: center; font-size: 10px; color: var(--grilla-texto); font-weight: 700;
+            letter-spacing: .04em; padding: 10px 4px; background: var(--grilla-header) !important;
             position: sticky; left: 0; z-index: 6;
         }
-        .grilla-th-box { text-align: center; font-size: 11.5px; font-weight: 800; letter-spacing: .03em; padding: 10px 6px; color: var(--ink); min-width: 122px; }
-        .grilla-box-sub { display: block; font-size: 9px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); margin-top: 2px; }
-        .grilla-td-hora { text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-soft); padding: 0 2px; background: var(--surface-2); position: sticky; left: 0; z-index: 2; white-space: nowrap; }
+        .grilla-th-box { text-align: center; font-size: 11.5px; font-weight: 800; letter-spacing: .03em; padding: 10px 6px; color: var(--grilla-texto); min-width: 122px; background: var(--grilla-header); }
+        .grilla-box-sub { display: block; font-size: 9px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--grilla-texto); opacity: .75; margin-top: 2px; }
+        .grilla-td-hora { text-align: center; font-size: 11px; font-weight: 700; color: var(--grilla-texto); padding: 0 2px; background: var(--grilla-fondo); position: sticky; left: 0; z-index: 2; white-space: nowrap; }
         .grilla-td-box { padding: 3px 4px; height: 40px; vertical-align: middle; }
         .grilla-row-15 .grilla-td-hora { color: #A9B3A6; font-size: 9.5px; }
         .grilla-row-15 .grilla-td-box { height: 32px; }
@@ -780,9 +787,9 @@
         .grilla-celda-default-bloq .gcb-txt { color: #9AA396; }
         .grilla-sep-row td { padding: 3px 0 !important; height: auto !important; border: none !important; }
         .grilla-sep-cell { text-align: center; color: var(--border-strong); font-size: 11px; letter-spacing: .2em; }
-        .grilla-table thead th { position: sticky; top: var(--topbar-h); z-index: 5; background-color: var(--surface-2); box-shadow: 0 1px 0 var(--border); }
+        .grilla-table thead th { position: sticky; top: var(--topbar-h); z-index: 5; background-color: var(--grilla-header, var(--surface-2)); box-shadow: 0 1px 0 var(--grilla-borde, var(--border)); }
         @media (max-width: 768px) { .grilla-table thead th { top: 0; } }
-        .grilla-mini-header td { padding: 5px 2px; height: auto; background: var(--surface-2); border-top: 1px solid var(--border-strong) !important; border-bottom: 1px solid var(--border-strong) !important; }
+        .grilla-mini-header td { padding: 5px 2px; height: auto; background: var(--grilla-header, var(--surface-2)); border-top: 1px solid var(--grilla-borde, var(--border-strong)) !important; border-bottom: 1px solid var(--grilla-borde, var(--border-strong)) !important; }
         .grilla-mini-th { text-align: center; font-size: 11px; font-weight: 800; color: var(--ink-soft); letter-spacing: .04em; }
         .gth-short { display: none; }
         .consI-slot-btn { padding: 9px 4px; border-radius: 9px; border: 1px solid #E2C2BE; font-size: 12.5px; font-weight: 700; text-align: center; cursor: pointer; background: var(--danger-soft); color: var(--danger); font-family: inherit; transition: background .14s, border-color .14s, color .14s; }
@@ -1394,10 +1401,10 @@
                         <thead>
                             <tr>
                                 <th class="grilla-th-hora">Hora</th>
-                                <th class="grilla-th-box" style="background:#F7EDF6;border-bottom:3px solid #844578"><span class="gth-full">⬜ Box 1<span class="grilla-box-sub">General</span></span><span class="gth-short">⬜ B1</span></th>
-                                <th class="grilla-th-box" style="background:#EAF2FC;border-bottom:3px solid #315E95"><span class="gth-full">💎 Box 2<span class="grilla-box-sub">Corporal</span></span><span class="gth-short">💎 B2</span></th>
-                                <th class="grilla-th-box" style="background:#F0ECFA;border-bottom:3px solid #665096"><span class="gth-full">✨ Box 3<span class="grilla-box-sub">Facial</span></span><span class="gth-short">✨ B3</span></th>
-                                <th class="grilla-th-box" style="background:#E8F5EE;border-bottom:3px solid #2F7050"><span class="gth-full">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></span><span class="gth-short">🌿 B4</span></th>
+                                <th class="grilla-th-box" style="border-bottom:3px solid #844578"><span class="gth-full">⬜ Box 1<span class="grilla-box-sub">General</span></span><span class="gth-short">⬜ B1</span></th>
+                                <th class="grilla-th-box" style="border-bottom:3px solid #315E95"><span class="gth-full">💎 Box 2<span class="grilla-box-sub">Corporal</span></span><span class="gth-short">💎 B2</span></th>
+                                <th class="grilla-th-box" style="border-bottom:3px solid #665096"><span class="gth-full">✨ Box 3<span class="grilla-box-sub">Facial</span></span><span class="gth-short">✨ B3</span></th>
+                                <th class="grilla-th-box" style="border-bottom:3px solid #2F7050"><span class="gth-full">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></span><span class="gth-short">🌿 B4</span></th>
                             </tr>
                         </thead>
                         <tbody id="grilla-tbody">
@@ -2598,6 +2605,12 @@
         let duoHorarios      = new Map();
         let _svBoxMap        = new Map(); // nombre servicio → boxId
         let _svDurMap        = new Map(); // nombre servicio → duracionMinutos
+        // nombre servicio → tipo estable (ej. 'consulta_inicial') — identifica
+        // reglas de negocio por tipo, no por texto visible/tildes/mayúsculas
+        // (punto 14: "evitando condicionales frágiles que dependan de... texto visible").
+        let _svTipoMap       = new Map();
+        const SERVICIO_TIPO_CONSULTA_INICIAL = 'consulta_inicial';
+        const DURACION_CONSULTA_INICIAL_MIN = 30; // regla fija del punto 14, no editable desde Servicios
         let _gsServicios     = [];        // cache local de docs 'services' // key: fecha|hora -> docId en calendarExceptions
         let cierresPorFecha  = new Map();
         let bloqueoPendienteConReserva = null;
@@ -4496,6 +4509,21 @@
                         reserva.nombreLimpio || reserva.cliente || "Paciente"
                     );
 
+                    // Punto 14: si esta reserva tiene una Consulta Inicial vinculada,
+                    // se cancela también (conserva historial — no se borra el
+                    // documento, solo cambia estado, mismo vocabulario que usa
+                    // "consultas": 'cancelada', no 'cancelado').
+                    if (reserva.consultaId) {
+                        try {
+                            await updateDoc(doc(db, "consultas", reserva.consultaId), {
+                                estado: "cancelada", motivoCancelacion: motivo, canceladoPor, canceladoAt: serverTimestamp(),
+                            });
+                            const _cIdx = todasLasConsultas.findIndex(c => c.id === reserva.consultaId);
+                            if (_cIdx >= 0) todasLasConsultas[_cIdx].estado = "cancelada";
+                            if (typeof window.renderConsultas === 'function') window.renderConsultas();
+                        } catch (eConsultaCanc) { console.warn('No se pudo sincronizar la cancelación con Consultas iniciales:', eConsultaCanc); }
+                    }
+
                     // Eliminar slots de extension en calendarExceptions
                     if (reserva.duracionMinutos > 30) {
                         const slotsExtra = reserva.duracionMinutos >= 90 ? 2 : 1;
@@ -4587,17 +4615,34 @@
             let lista = [];
             try {
                 const svSnap = await getDocs(collection(db, 'services'));
+                let _existeConsultaInicial = false;
                 svSnap.forEach(d => {
                     const data = d.data();
+                    if (data.tipo === SERVICIO_TIPO_CONSULTA_INICIAL) _existeConsultaInicial = true;
                     if (data.activo !== false) {
                         const n = (data.nombre || '').toString().trim();
                         if (n) {
                             lista.push(n);
                             if (data.boxId) _svBoxMap.set(n, data.boxId);
                             if (data.duracion) _svDurMap.set(n, Number(data.duracion));
+                            if (data.tipo) _svTipoMap.set(n, data.tipo);
                         }
                     }
                 });
+                // Se crea UNA sola vez, con id fijo (idempotente por construcción:
+                // nunca un segundo doc por reabrir esta pantalla) — reutiliza el
+                // servicio si ya existe, tal como pide el punto 14.
+                if (!_existeConsultaInicial) {
+                    try {
+                        await setDoc(doc(db, 'services', 'consulta_inicial'), {
+                            nombre: 'Consulta Inicial', activo: true,
+                            duracion: DURACION_CONSULTA_INICIAL_MIN, tipo: SERVICIO_TIPO_CONSULTA_INICIAL,
+                        }, { merge: true });
+                        lista.push('Consulta Inicial');
+                        _svDurMap.set('Consulta Inicial', DURACION_CONSULTA_INICIAL_MIN);
+                        _svTipoMap.set('Consulta Inicial', SERVICIO_TIPO_CONSULTA_INICIAL);
+                    } catch (eSeed) { console.warn('No se pudo crear el servicio "Consulta Inicial":', eSeed); }
+                }
                 lista.sort((a, b) => a.localeCompare(b, 'es'));
             } catch(e) { /* fallback below */ }
             if (!lista.length) {
@@ -4805,8 +4850,12 @@
 
             const clienteSnap = { ..._mreg_clienteSeleccionado };
 
-            // Duración según el servicio (definida en Servicios > Catálogo), por defecto 30 min
-            const durMin = _svDurMap.get(servicioIngresado) || 30;
+            // Duración según el servicio (definida en Servicios > Catálogo), por defecto 30 min.
+            // Consulta Inicial es una excepción fija (punto 14): siempre 30 min exactos,
+            // sin importar lo que diga el catálogo — no se identifica por el nombre
+            // visible sino por el tipo estable del servicio resuelto.
+            const _esConsultaInicial = _svTipoMap.get(servicioIngresado) === SERVICIO_TIPO_CONSULTA_INICIAL;
+            const durMin = _esConsultaInicial ? DURACION_CONSULTA_INICIAL_MIN : (_svDurMap.get(servicioIngresado) || 30);
             const slotsExtension = (() => {
                 if (durMin <= 30) return [];
                 const extra = Math.max(0, Math.ceil(durMin / 30) - 1);
@@ -4893,6 +4942,41 @@
                     boxLabel: _boxGuardar?.label || null
                 };
                 const ref = await addDoc(collection(db, "reservas"), reservaNueva);
+
+                // Punto 14: si el servicio es Consulta Inicial, se crea también el
+                // documento vinculado en "consultas" (colección real que ya leen
+                // Consultas/Control de consultas/Agenda CI/Mimar T Inteligente) —
+                // reservas y consultas quedan como dos documentos, no uno solo,
+                // porque unificarlos arrastraría todo el resto de esos módulos;
+                // se vinculan por id en ambos sentidos para que edición/cancelación
+                // pueda sincronizarse entre ambos lados. Si esta escritura falla,
+                // no revierte la reserva ya creada — se avisa que falta terminar
+                // la integración en vez de mostrar éxito completo.
+                if (_esConsultaInicial) {
+                    try {
+                        const consultaRef = await addDoc(collection(db, "consultas"), {
+                            nombre: clienteSnap.nombre,
+                            fecha: fechaSnap, hora: horaSnap,
+                            telefono: clienteSnap.phone || clienteSnap.telefono || '',
+                            dni: clienteSnap.dni || '',
+                            estado: 'pendiente',
+                            box: _boxGuardar?.id || null,
+                            servicio: servicioIngresado,
+                            duracionMinutos: durMin,
+                            origen: 'grilla',
+                            reservaId: ref.id,
+                            creadoPor: 'admin_manual',
+                            timestamp: serverTimestamp(),
+                        });
+                        await updateDoc(doc(db, "reservas", ref.id), { consultaId: consultaRef.id });
+                        if (typeof todasLasConsultas !== 'undefined') todasLasConsultas.push({ id: consultaRef.id, nombre: clienteSnap.nombre, fecha: fechaSnap, hora: horaSnap, estado: 'pendiente', reservaId: ref.id });
+                        if (typeof window.renderConsultas === 'function') window.renderConsultas();
+                    } catch (eConsulta) {
+                        console.error(eConsulta);
+                        mostrarAviso('La reserva se creó, pero no se pudo vincular con Consultas iniciales — revisá esa sección manualmente.');
+                    }
+                }
+
                 // Bloquear slot base en calendarExceptions (visible al público inmediatamente)
                 const _baseBlockId = `reserva_admin_${fechaSnap}_${horaSnap.replace(':','-')}`;
                 setDoc(doc(db, "calendarExceptions", _baseBlockId), {
@@ -10546,11 +10630,16 @@
         // identificación fuerte, reservado a encabezados, franja de turnos e
         // indicadores — no se repite como borde en cada celda vacía, para no
         // saturar la grilla de color donde no aporta información.
+        // Punto 13: fondo de celda unificado a un verde salvia moderado (antes
+        // 4 pasteles casi blancos por box, que es lo que se veía "pálido").
+        // La identidad de cada box queda en su ícono/etiqueta (encabezado) y
+        // en "accent" (franja izquierda de cada turno ocupado) — sin esos dos,
+        // unificar el fondo sí perdería la distinción; con ellos, no.
         const GRILLA_BOXES = [
-            { id:'b1', num:1, label:'Box 1', title:'Box 1', sub:'General Corporal', icon:'⬜', bg:'#F7EDF6', border:'var(--border)', accent:'#844578' },
-            { id:'b2', num:2, label:'Box 2', title:'Box 2', sub:'Corporal',          icon:'💎', bg:'#EAF2FC', border:'var(--border)', accent:'#315E95' },
-            { id:'b3', num:3, label:'Box 3', title:'Box 3', sub:'Facial',            icon:'✨', bg:'#F0ECFA', border:'var(--border)', accent:'#665096' },
-            { id:'b4', num:4, label:'Box 4', title:'Box 4', sub:'Relax Corporal',    icon:'🌿', bg:'#E8F5EE', border:'var(--border)', accent:'#2F7050' },
+            { id:'b1', num:1, label:'Box 1', title:'Box 1', sub:'General Corporal', icon:'⬜', bg:'#C4D5C1', border:'#78967C', accent:'#844578' },
+            { id:'b2', num:2, label:'Box 2', title:'Box 2', sub:'Corporal',          icon:'💎', bg:'#C4D5C1', border:'#78967C', accent:'#315E95' },
+            { id:'b3', num:3, label:'Box 3', title:'Box 3', sub:'Facial',            icon:'✨', bg:'#C4D5C1', border:'#78967C', accent:'#665096' },
+            { id:'b4', num:4, label:'Box 4', title:'Box 4', sub:'Relax Corporal',    icon:'🌿', bg:'#C4D5C1', border:'#78967C', accent:'#2F7050' },
         ];
         // Aplica overrides de labels guardados en Firestore (se parchean después de cargar)
         const _aplicarBoxLabels = (overrides) => {
