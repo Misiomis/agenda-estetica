@@ -18,6 +18,8 @@ import {
   formatearFechaHoraLocal, diaSemanaLegible, referenciaTemporalConFecha,
   construirTextoAvisoDuenaKit, construirTextoAvisoDuenaConsulta,
   construirTextoAvisoDuenaConsultaAgendada, construirTextoAvisoDuenaSolicitudConsulta,
+  franjaDeHora, fechaAvisoConfirmacion, agruparPendientesPorDia, textoTurnoConDia,
+  construirInformeGimena,
 } from '../../mimar-inteligente/mimar-inteligente-logic.js';
 
 let fails = 0;
@@ -579,6 +581,86 @@ console.log('\n=== Plantilla "Avisar a Gimena" — consulta inicial agendada vs.
   check('plantilla "solicitud": nunca dice "se agendó" si no hay turno', textoSolicitud.startsWith('Gime, recibiste una solicitud de consulta inicial de Persona Nueva.') && !textoSolicitud.includes('se agendó'));
   check('estado explícito "pendiente de coordinación"', textoSolicitud.includes('Estado: pendiente de coordinación.'));
   check('incluye el servicio de interés real', textoSolicitud.includes('Fraxis Facial'));
+}
+
+console.log('\n=== Franja mañana/tarde y día para avisar (puntos 16-17) ===');
+{
+  check('turno 10:30 (antes del corte 12:00) → franja "mañana"', franjaDeHora('10:30') === 'mañana');
+  check('turno 16:00 (después del corte) → franja "tarde"', franjaDeHora('16:00') === 'tarde');
+  check('turno exactamente a las 12:00 → franja "tarde" (el corte es el límite de la mañana, no incluido en ella)', franjaDeHora('12:00') === 'tarde');
+
+  check('turno de mañana lunes 21/09 → avisar el domingo 20/09 (noche anterior)', fechaAvisoConfirmacion('2026-09-21', '10:30') === '2026-09-20');
+  check('turno de tarde lunes 21/09 → avisar el mismo lunes 21/09 (mediodía)', fechaAvisoConfirmacion('2026-09-21', '16:00') === '2026-09-21');
+}
+
+console.log('\n=== Texto de tarjeta sin "vence" para la hora del turno (punto 16) ===');
+{
+  const ahora = new Date('2026-09-20T20:00:00-03:00').getTime(); // domingo a la noche
+  const turnoMananaLunes = { ocurrencia: { fecha: '2026-09-21', hora: '10:30' } };
+  check('"Consulta: mañana, lunes {fecha}, 10:30 hs." — ejemplo exacto del pedido', textoTurnoConDia(turnoMananaLunes, ahora) === 'Consulta: mañana, lunes 21/09/2026, 10:30 hs.');
+
+  const ahoraLunesMediodia = new Date('2026-09-21T12:30:00-03:00').getTime();
+  const turnoTardeLunes = { ocurrencia: { fecha: '2026-09-21', hora: '16:00' } };
+  check('"Consulta: hoy, lunes {fecha}, 16:00 hs." — ejemplo exacto del pedido', textoTurnoConDia(turnoTardeLunes, ahoraLunesMediodia) === 'Consulta: hoy, lunes 21/09/2026, 16:00 hs.');
+
+  const turnoYaPasado = { ocurrencia: { fecha: '2026-09-18', hora: '09:00' } };
+  const textoP = textoTurnoConDia(turnoYaPasado, ahora);
+  check('turno ya pasado → "La consulta fue el..., revisar", nunca lo anuncia como si fuera futuro', textoP.startsWith('La consulta fue el') && textoP.includes('revisar'));
+  check('nunca usa la palabra "vence" para la hora de un turno', !textoP.toLowerCase().includes('vence') && !textoTurnoConDia(turnoMananaLunes, ahora).toLowerCase().includes('vence'));
+}
+
+console.log('\n=== Agrupación de Pendientes por día (puntos 16-17) — hoy/mañana/anteriores/próximos ===');
+{
+  const ahora = new Date('2026-09-17T10:00:00-03:00').getTime(); // jueves
+  const pendientes = [
+    { id: 'p1', fechaActuarISO: '2026-09-17' },               // hoy
+    { id: 'p2', fechaActuarISO: '2026-09-18' },               // mañana
+    { id: 'p3', fechaActuarISO: '2026-09-10' },               // atrasado (una semana)
+    { id: 'p4', fechaActuarISO: '2026-09-15' },               // atrasado (otro día distinto)
+    { id: 'p5', fechaActuarISO: '2026-09-25' },               // próximo
+    { id: 'p6', fechaActuarISO: null },                       // sin fecha específica → se trata como "hoy" (habilitado ahora)
+  ];
+  const g = agruparPendientesPorDia(pendientes, ahora);
+  check('agrupa "hoy" incluyendo los que no tienen fechaActuarISO (habilitados ahora)', g.hoy.map((p) => p.id).sort().join(',') === 'p1,p6');
+  check('agrupa "mañana" (día calendario siguiente)', g.manana.map((p) => p.id).join(',') === 'p2');
+  check('"anteriores" queda desglosado por fecha real, no mezclado en un solo bloque', g.anterioresPorFecha.length === 2);
+  check('los atrasados están ordenados cronológicamente (el más viejo primero)', g.anterioresPorFecha[0][0] === '2026-09-10' && g.anterioresPorFecha[1][0] === '2026-09-15');
+  check('"próximos" desglosa por fecha también', g.proximosPorFecha.length === 1 && g.proximosPorFecha[0][0] === '2026-09-25');
+}
+
+console.log('\n=== derivarPendientes: confirmacion_turno trae fechaActuarISO/franja reales ===');
+{
+  const ahora = new Date('2026-09-20T20:00:00-03:00').getTime(); // domingo a la noche
+  const agenda = construirAgenda([
+    normalizarItemAgenda('reservas', 'rM', { nombre: 'Turno Mañana', fecha: '2026-09-21', hora: '10:30', telefono: '3764000001', estado: 'confirmado' }),
+    normalizarItemAgenda('reservas', 'rT', { nombre: 'Turno Tarde', fecha: '2026-09-21', hora: '16:00', telefono: '3764000002', estado: 'confirmado' }),
+  ], []);
+  const pend = derivarPendientes({ agenda, pedidosKitPendientes: [], cumpleanosHoy: null, recomendaciones: [], contactosPorId: {} }, ahora);
+  const pM = pend.find((p) => p.docId === 'rM');
+  const pT = pend.find((p) => p.docId === 'rT');
+  check('turno de mañana: franja="mañana" y fechaActuarISO = el día calendario anterior', pM && pM.franja === 'mañana' && pM.fechaActuarISO === '2026-09-20');
+  check('turno de tarde: franja="tarde" y fechaActuarISO = el mismo día del turno', pT && pT.franja === 'tarde' && pT.fechaActuarISO === '2026-09-21');
+}
+
+console.log('\n=== Informe de actividad para Gimena (punto 11) ===');
+{
+  const r = construirInformeGimena({
+    periodoLabel: 'día 2026-09-17', fechaDesdeISO: '2026-09-17', fechaHastaISO: '2026-09-17', fechaCorteISO: '2026-09-17',
+    eventos: [{ id: 'e1', coleccion: 'reservas' }, { id: 'e2', coleccion: 'reservas' }, { id: 'e3', coleccion: 'pagos' }, { id: 'e4', coleccion: 'consultas' }],
+    cobros: 120000, devoluciones: 20000, gastosPagados: 25000,
+  });
+  check('trato "Gime," sin saludo tipo "Hola"', r.resumenWhatsApp.startsWith('Gime, informe de actividad'));
+  check('cobros netos = cobros - devoluciones = $100.000 (ejemplo exacto del punto 4)', r.totales.cobrosNetos === 100000);
+  check('neto de caja = cobros netos - gastos pagados = $75.000 (mismo ejemplo)', r.totales.netoCaja === 75000);
+  check('cuenta eventos por colección sin perder ninguno (2+1+1 = 4)', r.porColeccionConteo.reservas === 2 && r.porColeccionConteo.pagos === 1 && r.porColeccionConteo.consultas === 1);
+  check('conserva los ids de los eventos incluidos (para poder auditar el detalle después)', r.eventoIds.length === 4 && r.eventoIds.includes('e3'));
+
+  const rVacio = construirInformeGimena({ periodoLabel: 'día sin actividad', fechaDesdeISO: '2026-09-01', fechaHastaISO: '2026-09-01', fechaCorteISO: '2026-09-01', eventos: [], cobros: 0, devoluciones: 0, gastosPagados: 0 });
+  check('mes/día sin movimientos no rompe: todos los totales en $0, nunca NaN', rVacio.totales.cobrosNetos === 0 && rVacio.totales.netoCaja === 0 && !Number.isNaN(rVacio.totales.netoCaja));
+  check('sin eventos dice explícitamente "Sin eventos registrados", no inventa actividad', rVacio.resumenWhatsApp.includes('Sin eventos registrados en este período.'));
+
+  const rNegativo = construirInformeGimena({ periodoLabel: 'mes con devoluciones altas', fechaDesdeISO: '2026-09-01', fechaHastaISO: '2026-09-30', fechaCorteISO: '2026-09-30', eventos: [], cobros: 10000, devoluciones: 30000, gastosPagados: 5000 });
+  check('un período con devoluciones mayores a los cobros da neto negativo real, sin aplanarlo a cero', rNegativo.totales.cobrosNetos === -20000 && rNegativo.totales.netoCaja === -25000);
 }
 
 console.log('\n' + '='.repeat(60));

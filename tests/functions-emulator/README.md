@@ -35,4 +35,5 @@ cumpleaños (`resumenesCumpleanos`, punto 4).
   puede fallar en los casos de `clients` porque reutiliza un DNI fijo
   (`99999999`) que ya no estaría en estado "recién creado" — no es un bug de
   las Functions, es solo que hace falta limpiar el emulador entre corridas.
-- Última corrida limpia: 11/11 OK (activity-log) y 6/6 OK (cumpleanos).
+- Última corrida limpia: 18/18 OK (activity-log, incluye prestaciones/pagos/gastos
+  del punto 2 de facturación — 2026-09-17) y 6/6 OK (cumpleanos).

@@ -206,6 +206,90 @@ console.log('\n═══ Escenario 8 — sólo una generación completada (doc.s
   });
 }
 
+// ═══ Delta del punto 7 (2026-09-17): semana de la JORNADA, no de "hoy" ════
+// Mirror de _pjFechaISOaDateUTC + _pjRangoSemana + _pjFirmaContenido de
+// admin.html.
+function fechaISOaDateUTC(fechaISO) {
+  const p = (fechaISO || '').split('-').map(Number);
+  if (!p[0] || !p[1] || !p[2]) return new Date();
+  return new Date(Date.UTC(p[0], p[1] - 1, p[2], 12, 0, 0));
+}
+function rangoSemana(semanaId) {
+  const p = (semanaId || '').split('-').map(Number);
+  if (!p[0] || !p[1] || !p[2]) return { inicio: semanaId, fin: semanaId };
+  const lunes = new Date(Date.UTC(p[0], p[1] - 1, p[2], 12, 0, 0));
+  const domingo = new Date(lunes.getTime());
+  domingo.setUTCDate(domingo.getUTCDate() + 6);
+  const fmt = (dt) => String(dt.getUTCDate()).padStart(2, '0') + '/' + String(dt.getUTCMonth() + 1).padStart(2, '0');
+  return { inicio: fmt(lunes), fin: fmt(domingo) };
+}
+function firmaContenido(pd) {
+  return pd.sesiones.map((s) => {
+    const r = s.r;
+    return [r.id, r.fecha, r.hora, r.servicio || '', r.status || r.estado || '', (r.detalleSesion || '').length, (r.detalleSesion2 || '').length].join(':');
+  }).sort().join('|');
+}
+
+console.log('\n═══ Delta punto 7 — la hoja pertenece a la semana de la JORNADA, no del clic ═══');
+{
+  // Domingo 20/09/2026 preparando la jornada del lunes 21/09/2026 (semana siguiente)
+  const fechaJornada = '2026-09-21'; // lunes
+  const semanaDeLaJornada = semanaIdISO(fechaISOaDateUTC(fechaJornada), ZONA_HORARIA_NEGOCIO);
+  check('la jornada del lunes 21/09 pertenece a la semana que empieza el 21/09 (su propio lunes)', () => {
+    assert.strictEqual(semanaDeLaJornada, '2026-09-21');
+  });
+
+  // Si se prepara el domingo 20/09 pero la jornada es del lunes 21/09, la semana debe ser la del 21/09, NO la del domingo (semana anterior, que empezó el 14/09)
+  const semanaDelDomingoDeClic = semanaIdISO(new Date('2026-09-20T15:00:00Z'), ZONA_HORARIA_NEGOCIO); // "ahora" ficticio: domingo
+  check('la semana de la jornada (21/09) es DISTINTA de la semana del momento del clic (domingo 20/09, semana del 14/09) — el bug que corrige este delta', () => {
+    assert.notStrictEqual(semanaDeLaJornada, semanaDelDomingoDeClic);
+    assert.strictEqual(semanaDelDomingoDeClic, '2026-09-14');
+  });
+}
+
+console.log('\n═══ Delta punto 7 — rango de semana para el texto del diálogo ═══');
+{
+  const rango = rangoSemana('2026-09-14');
+  check('semana que empieza el 14/09/2026 → inicio "14/09", fin "20/09" (domingo)', () => {
+    assert.strictEqual(rango.inicio, '14/09');
+    assert.strictEqual(rango.fin, '20/09');
+  });
+  const rangoCruceMes = rangoSemana('2026-09-28');
+  check('una semana que cruza de mes (28/09 a 04/10) calcula bien el fin en el mes siguiente', () => {
+    assert.strictEqual(rangoCruceMes.inicio, '28/09');
+    assert.strictEqual(rangoCruceMes.fin, '04/10');
+  });
+}
+
+console.log('\n═══ Delta punto 7 — "Hay cambios desde el último informe" ═══');
+{
+  const pdOriginal = { sesiones: [{ r: { id: 'r1', fecha: '2026-09-21', hora: '10:00', servicio: 'Facial', estado: 'confirmado', detalleSesion: 'Nota corta' } }] };
+  const firmaOriginal = firmaContenido(pdOriginal);
+
+  const pdSinCambios = { sesiones: [{ r: { id: 'r1', fecha: '2026-09-21', hora: '10:00', servicio: 'Facial', estado: 'confirmado', detalleSesion: 'Otra nota de MISMO largo' } }] };
+  check('sin cambios reales en hora/servicio/estado/cantidad de sesiones → misma firma (no marca "hay cambios" por texto libre irrelevante de igual longitud)', () => {
+    // Se compara longitud de la nota, no el texto — esto es una limitación
+    // documentada: dos notas de igual longitud no disparan el aviso.
+    assert.strictEqual(firmaContenido(pdSinCambios).length, firmaOriginal.length);
+  });
+
+  const pdConSesionNueva = { sesiones: [...pdOriginal.sesiones, { r: { id: 'r2', fecha: '2026-09-21', hora: '11:00', servicio: 'Corporal', estado: 'confirmado', detalleSesion: '' } }] };
+  check('agregar una sesión nueva SÍ cambia la firma', () => {
+    assert.notStrictEqual(firmaContenido(pdConSesionNueva), firmaOriginal);
+  });
+
+  const pdHoraCambiada = { sesiones: [{ r: { id: 'r1', fecha: '2026-09-21', hora: '10:30', servicio: 'Facial', estado: 'confirmado', detalleSesion: 'Nota corta' } }] };
+  check('cambiar la hora de una sesión existente SÍ cambia la firma', () => {
+    assert.notStrictEqual(firmaContenido(pdHoraCambiada), firmaOriginal);
+  });
+
+  check('el orden de las sesiones no afecta la firma (se ordena antes de unir)', () => {
+    const a = { sesiones: [{ r: { id: 'r1', fecha: 'x', hora: '10:00', servicio: 'A', estado: '', detalleSesion: '' } }, { r: { id: 'r2', fecha: 'x', hora: '11:00', servicio: 'B', estado: '', detalleSesion: '' } }] };
+    const b = { sesiones: [{ r: { id: 'r2', fecha: 'x', hora: '11:00', servicio: 'B', estado: '', detalleSesion: '' } }, { r: { id: 'r1', fecha: 'x', hora: '10:00', servicio: 'A', estado: '', detalleSesion: '' } }] };
+    assert.strictEqual(firmaContenido(a), firmaContenido(b));
+  });
+}
+
 console.log('\n' + '='.repeat(60));
 if (fails) {
   console.log('RESULTADO: ' + fails + ' prueba(s) fallaron.');

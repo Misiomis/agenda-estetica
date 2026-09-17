@@ -17,10 +17,12 @@ import {
   normalizarPedidoKit, formatearARS, estadoTemporalTurno, etiquetaEstadoTemporal,
   agruparPorDia, eventoCoincideFiltro, filtroEsNeutro, FILTRO_ACTIVIDAD_VACIO,
   derivarPendientes, resumenTextoPendientes, contarPendientesPorTipo,
+  agruparPendientesPorDia, textoTurnoConDia, formatearFechaLocal, diaSemanaLegible,
   ETIQUETA_TIPO_PENDIENTE, TIPOS_PENDIENTE, normalizarRecomendacion, recomendacionValida,
   PREFS_AVISOS_DEFECTO, pendientesElegiblesParaAviso, pendientesVigentes,
   VENTANA_REVISAR_TURNO_DIAS,
   TIPO_MENSAJE_AVISO_DUENA, idAvisoDuena, docIdVersionadoParaAviso, construirTextoAvisoDuenaKit,
+  construirInformeGimena,
   construirTextoAvisoDuenaCumpleanosIndividual, construirTextoAvisoDuenaCumpleanosDia,
   construirTextoAvisoDuenaConsulta, construirTextoAvisoDuenaGenerico,
   estadoConsultaInicial, etiquetaEstadoConsultaInicial, ESTADO_CONSULTA_CANCELADA,
@@ -660,6 +662,93 @@ async function cargarMasActividad() {
 }
 $("btn-cargar-mas").addEventListener("click", cargarMasActividad);
 
+// ── Informe de actividad para Gimena (punto 11) ──────────────────────────
+// Usa el MISMO filtro de fecha que ya tiene la pestaña Actividad (si no hay
+// filtro de fecha activo, el período es "hoy") — no se inventa un selector
+// de período aparte. Los totales económicos salen de pagos/gastos reales
+// (mismas fórmulas que el resumen mensual de admin.html), nunca de sumar
+// texto de activityLog.
+async function _obtenerPeriodoInforme() {
+  const hoyISO = fechaISOEnZona();
+  const desde = filtroActividad.fechaDesde || hoyISO;
+  const hasta = filtroActividad.fechaHasta || hoyISO;
+  return { desde, hasta };
+}
+
+$("btn-preparar-informe-gimena")?.addEventListener("click", async () => {
+  const btn = $("btn-preparar-informe-gimena");
+  btn.disabled = true;
+  const textoOrig = btn.textContent;
+  btn.textContent = "Preparando…";
+  try {
+    const { desde, hasta } = await _obtenerPeriodoInforme();
+
+    // Si hay actividad más antigua sin cargar y el período pedido podría
+    // incluirla, se avisa en vez de presentar un informe que en realidad
+    // está incompleto.
+    const combinados = actividadRecientes.concat(actividadAntiguos);
+    const masAntiguoCargadoISO = combinados.reduce((min, ev) => {
+      if (ev.timestampMs == null) return min;
+      const f = fechaISOEnZona(ev.timestampMs);
+      return !min || f < min ? f : min;
+    }, null);
+    const posibleIncompleto = actividadHayMas && (!masAntiguoCargadoISO || desde < masAntiguoCargadoISO);
+
+    const filtroPeriodo = { categoria: "todas", estado: "todos", fechaDesde: desde, fechaHasta: hasta };
+    const eventosPeriodo = combinados.filter((ev) => eventoCoincideFiltro(ev, filtroPeriodo));
+
+    // Totales económicos reales del período — por fecha EFECTIVA, igual
+    // criterio que el resumen mensual de admin.html.
+    const [pagosSnap, gastosSnap] = await Promise.all([
+      getDocs(collection(db, "pagos")),
+      getDocs(collection(db, "gastos")),
+    ]);
+    let cobros = 0, devoluciones = 0;
+    pagosSnap.forEach((d) => {
+      const p = d.data();
+      const f = p.fechaEfectiva || "";
+      if (f < desde || f > hasta) return;
+      if (p.tipo === "devolucion") devoluciones += p.monto || 0; else cobros += p.monto || 0;
+    });
+    let gastosPagados = 0;
+    gastosSnap.forEach((d) => {
+      const g = d.data();
+      if (g.anulado || g.modalidad !== "importe_fijo" || g.estado !== "pagado") return;
+      const f = g.fechaPagoEfectiva || "";
+      if (f < desde || f > hasta) return;
+      gastosPagados += g.montoFijo || 0;
+    });
+
+    const periodoLabel = desde === hasta ? `día ${desde}` : `${desde} al ${hasta}`;
+    const fechaCorteISO = fechaISOEnZona();
+    const informe = construirInformeGimena({
+      periodoLabel, fechaDesdeISO: desde, fechaHastaISO: hasta, fechaCorteISO,
+      eventos: eventosPeriodo, cobros, devoluciones, gastosPagados,
+    });
+
+    let texto = informe.resumenWhatsApp;
+    if (posibleIncompleto) texto += `\n\n⚠️ Puede faltar actividad anterior al ${masAntiguoCargadoISO || desde} sin cargar todavía — informe parcial.`;
+
+    const operador = await operadorActual();
+    const ref = await addDoc(collection(db, "informesGimena"), {
+      periodoLabel, fechaDesdeISO: desde, fechaHastaISO: hasta, fechaCorteISO,
+      filtros: filtroPeriodo, contenido: texto, totales: informe.totales,
+      porColeccionConteo: informe.porColeccionConteo, eventoIds: informe.eventoIds,
+      posibleIncompleto: !!posibleIncompleto,
+      generadoPor: operador?.email || null, generadoEn: serverTimestamp(),
+    });
+
+    avisoDuenaRegistro.set("informe_" + ref.id, { coleccion: "informesGimena", docId: ref.id, ocurrencia: null, texto, nombreEvento: `Informe de actividad — ${periodoLabel}` });
+    abrirAvisoDuena("informe_" + ref.id);
+  } catch (e) {
+    console.error(e);
+    toast("No se pudo preparar el informe: " + (e?.message || e));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOrig;
+  }
+});
+
 function manejarSnapshot(fuenteId, snap) {
   const items = [];
   snap.forEach((d) => items.push(normalizarItemAgenda(fuenteId, d.id, d.data(), clientesPorDni)));
@@ -877,11 +966,16 @@ function avisarDuenaDesdePendiente(p) {
 }
 
 function pendienteTarjetaHtml(p) {
-  const momento = p.venceMs != null
-    ? `Vence a las ${formatoMomento(p.venceMs)}`
-    : p.habilitadoDesdeMs != null
-      ? `Habilitada desde ${formatoMomento(p.habilitadoDesdeMs)}`
-      : "Sin vencimiento propio";
+  // Punto 16: "vence" sólo si hay un vencimiento real de negocio — la hora
+  // de un turno no es una expiración del aviso, así que confirmacion_turno
+  // usa la frase de fecha/franja en vez de "Vence a las X".
+  const momento = p.tipo === "confirmacion_turno"
+    ? textoTurnoConDia(p)
+    : p.venceMs != null
+      ? `Vence a las ${formatoMomento(p.venceMs)}`
+      : p.habilitadoDesdeMs != null
+        ? `Habilitada desde ${formatoMomento(p.habilitadoDesdeMs)}`
+        : "Sin vencimiento propio";
   // Punto 3 + 6: un dato obligatorio faltante bloquea la acción y se marca
   // en rojo, con el campo exacto — nunca se oculta ni se completa solo.
   const bloqueoHtml = p.bloqueado
@@ -959,11 +1053,60 @@ function renderPendientesBandeja() {
   if (!visibles.length) {
     cont.innerHTML = avisoErrorHtml + `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Sin pendientes${filtroPendientesTipo !== "todas" ? " en este filtro" : ""}</h3><p>Nada requiere atención en este momento.</p></div>`;
   } else {
-    cont.innerHTML = avisoErrorHtml + visibles.map(pendienteTarjetaHtml).join("");
+    cont.innerHTML = avisoErrorHtml + pendientesAgrupadosHtml(visibles, ahoraMs);
   }
 
   const badge = $("nav-badge-pendientes");
   if (badge) { if (bandejaVisible.length > 0) { badge.hidden = false; badge.textContent = String(bandejaVisible.length); } else badge.hidden = true; }
+}
+
+// Dentro de un mismo día, separa mañana/tarde SÓLO para confirmacion_turno
+// (punto 17) — separadores chicos, misma vista, nunca pantallas distintas.
+// El resto de los tipos (kit, recomendación, etc.) no tiene franja propia
+// y va después, sin separador.
+function pendientesConSeparadorFranjaHtml(lista) {
+  const manana = lista.filter((p) => p.tipo === "confirmacion_turno" && p.franja === "mañana");
+  const tarde = lista.filter((p) => p.tipo === "confirmacion_turno" && p.franja === "tarde");
+  const resto = lista.filter((p) => !(p.tipo === "confirmacion_turno" && (p.franja === "mañana" || p.franja === "tarde")));
+  let html = "";
+  if (manana.length) {
+    html += `<div class="franja-separador">🌙 Turnos por la mañana · enviar la noche anterior</div>` + manana.map(pendienteTarjetaHtml).join("");
+  }
+  if (tarde.length) {
+    html += `<div class="franja-separador">☀️ Turnos por la tarde · enviar al mediodía</div>` + tarde.map(pendienteTarjetaHtml).join("");
+  }
+  html += resto.map(pendienteTarjetaHtml).join("");
+  return html;
+}
+
+function pendientesAgrupadosHtml(visibles, ahoraMs) {
+  const g = agruparPendientesPorDia(visibles, ahoraMs);
+  let html = "";
+  const tituloFecha = (fechaISO) => {
+    if (!fechaISO) return "Sin fecha registrada";
+    const dia = diaSemanaLegible(new Date(`${fechaISO}T12:00:00-03:00`).getTime());
+    const legible = formatearFechaLocal(new Date(`${fechaISO}T12:00:00-03:00`).getTime());
+    return dia ? `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${legible}` : legible;
+  };
+  if (g.hoy.length) {
+    html += `<div class="day-header">Hoy — ${escapeHtml(tituloFecha(g.hoyISO))}</div>` + pendientesConSeparadorFranjaHtml(g.hoy);
+  }
+  if (g.manana.length) {
+    html += `<div class="day-header">Mañana — ${escapeHtml(tituloFecha(g.mananaISO))}</div>` + pendientesConSeparadorFranjaHtml(g.manana);
+  }
+  if (g.anterioresPorFecha.length) {
+    html += `<div class="day-header pend-dia-header-atrasado">Anteriores pendientes</div>`;
+    for (const [fecha, lista] of g.anterioresPorFecha) {
+      html += `<div class="pend-dia-subheader">${escapeHtml(tituloFecha(fecha === "sin_fecha" ? null : fecha))}</div>` + pendientesConSeparadorFranjaHtml(lista);
+    }
+  }
+  if (g.proximosPorFecha.length) {
+    html += `<div class="day-header">Próximos días</div>`;
+    for (const [fecha, lista] of g.proximosPorFecha) {
+      html += `<div class="pend-dia-subheader">${escapeHtml(tituloFecha(fecha))}</div>` + pendientesConSeparadorFranjaHtml(lista);
+    }
+  }
+  return html;
 }
 
 // ══════════════════════════════════════════════════════════════════════

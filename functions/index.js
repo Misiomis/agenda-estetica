@@ -680,6 +680,92 @@ exports.onReservaDepiActividad = onDocumentWritten("reservasDepi/{docId}", async
     await registrarEvento(event.id, { coleccion: "reservasDepi", docId: event.params.docId, tipo, resumen, detalle });
 });
 
+// prestaciones — precio acordado por sesión (punto 2 de facturación) ─────
+exports.onPrestacionActividad = onDocumentWritten("prestaciones/{docId}", async (event) => {
+    const before = event.data.before;
+    const after = event.data.after;
+    const tipo = tipoDeCambio(before, after);
+    if (tipo === "delete") return; // las prestaciones no se borran (se anulan) — no hay flujo real que las elimine
+    const d = after.data();
+    const nombre = d.pacienteNombre || "Paciente";
+    const precioTxt = d.sinCargo ? "sin cargo" : (typeof d.precioAcordado === "number" ? `$${Math.round(d.precioAcordado).toLocaleString("es-AR")}` : "sin definir");
+    let resumen = null;
+    let detalle = null;
+
+    if (tipo === "create") {
+        resumen = `Precio registrado: ${nombre} — ${precioTxt}`;
+    } else {
+        const antes = before.data();
+        if (antes.anulada !== d.anulada && d.anulada === true) {
+            resumen = `Prestación anulada: ${nombre}`;
+            detalle = d.motivoAnulacion ? { motivo: d.motivoAnulacion } : null;
+        } else if (antes.precioAcordado !== d.precioAcordado || antes.sinCargo !== d.sinCargo) {
+            resumen = `Precio actualizado: ${nombre} — ahora ${precioTxt}`;
+            detalle = { precioAnterior: antes.precioAcordado ?? null, sinCargoAnterior: antes.sinCargo ?? null };
+        } else {
+            return; // actualizadoEn/actualizadoPor sin cambio real de precio — no es novedad
+        }
+    }
+    await registrarEvento(event.id, { coleccion: "prestaciones", docId: event.params.docId, tipo, resumen, detalle, responsable: d.actualizadoPor ? { origen: "admin", valor: d.actualizadoPor } : null });
+});
+
+// pagos — cobros/devoluciones (punto 2). Inmutables por reglas (sin
+// update/delete desde el cliente), así que solo el ALTA es una novedad real.
+// Ojo con event.id: es el id de ESTA entrega del evento, no del documento —
+// dos escrituras al mismo pago (reintento que en producción rechazan las
+// reglas, pero también un guión de administración con el Admin SDK que sí
+// puede reescribir) generan dos event.id DISTINTOS. La idempotencia real acá
+// no es event.id: es exigir before.exists === false — sólo la primera
+// creación de este operationId (el id del propio documento) cuenta como
+// "Cobro/Devolución registrada"; cualquier escritura posterior al MISMO id
+// se ignora, así nunca aparecen dos ingresos por un mismo pago. Verificado
+// con tests/functions-emulator/test-activity-log.js (reescribir el mismo
+// documento con contenido idéntico no duplica el evento).
+exports.onPagoActividad = onDocumentWritten("pagos/{docId}", async (event) => {
+    const before = event.data.before;
+    const after = event.data.after;
+    if (!after.exists) return; // sin delete real (regla de Firestore lo impide) — nada que registrar
+    if (before.exists) return; // no es un alta nueva — mismo operationId ya procesado antes, se ignora
+    const d = after.data();
+    const nombre = d.pacienteNombre || "Paciente";
+    const montoTxt = typeof d.monto === "number" ? `$${Math.round(d.monto).toLocaleString("es-AR")}` : "monto sin registrar";
+    const resumen = d.tipo === "devolucion"
+        ? `Devolución registrada: ${nombre} — ${montoTxt}`
+        : `Cobro registrado: ${nombre} — ${montoTxt}`;
+    await registrarEvento(event.id, {
+        coleccion: "pagos", docId: event.params.docId, tipo: "create", resumen,
+        detalle: { prestacionId: d.prestacionId || null, metodoPago: d.metodoPago || null, fechaEfectiva: d.fechaEfectiva || null, motivo: d.motivo || null },
+        responsable: d.creadoPor ? { origen: "admin", valor: d.creadoPor } : null,
+    });
+});
+
+// gastos — punto 4 de facturación ─────────────────────────────────────────
+exports.onGastoActividad = onDocumentWritten("gastos/{docId}", async (event) => {
+    const before = event.data.before;
+    const after = event.data.after;
+    const tipo = tipoDeCambio(before, after);
+    if (tipo === "delete") return; // no hay flujo que borre gastos (se anulan)
+    const d = after.data();
+    const montoTxt = d.modalidad === "porcentaje_estimado" ? `${d.porcentaje}% estimado` : `$${Math.round(d.montoFijo || 0).toLocaleString("es-AR")}`;
+    let resumen = null;
+
+    if (tipo === "create") {
+        resumen = `Nuevo gasto: ${d.concepto || "sin concepto"} — ${montoTxt}`;
+    } else {
+        const antes = before.data();
+        if (antes.estado !== d.estado && d.estado === "pagado") {
+            resumen = `Gasto marcado como pagado: ${d.concepto || "sin concepto"} — ${montoTxt}`;
+        } else if (!antes.reemplazadoPorGastoId && d.reemplazadoPorGastoId) {
+            resumen = `Estimado reemplazado por gasto real: ${d.concepto || "sin concepto"}`;
+        } else if (antes.anulado !== d.anulado && d.anulado === true) {
+            resumen = `Gasto anulado: ${d.concepto || "sin concepto"}`;
+        } else {
+            return;
+        }
+    }
+    await registrarEvento(event.id, { coleccion: "gastos", docId: event.params.docId, tipo, resumen });
+});
+
 // ── Resumen diario de cumpleaños (punto 4) ──────────────────────────────────
 //
 // clients.fechaNacimiento se guarda como string "YYYY-MM-DD" (ver

@@ -218,6 +218,16 @@ service cloud.firestore {
            .hasOnly(['leidoPor', 'atendido', 'atendidoPor', 'atendidoAt']);
     }
 
+    // Informe de actividad para Gimena (punto 11) — versión guardada con su
+    // período/filtros/contenido en el momento en que se preparó. Se puede
+    // crear (cada preparación es una versión nueva) y leer, pero no editar
+    // ni borrar desde el cliente: una corrección se prepara como un informe
+    // nuevo, nunca reescribe uno ya generado.
+    match /informesGimena/{id} {
+      allow read, create: if esAdmin();
+      allow update, delete: if false;
+    }
+
     // Resumen diario de cumpleaños (punto 4) — lo escribe solo la función
     // programada (Admin SDK, sin pasar por estas reglas).
     match /resumenesCumpleanos/{fecha} {
