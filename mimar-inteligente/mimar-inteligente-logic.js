@@ -656,6 +656,28 @@ function estadoContactoResuelto(contactosPorId, idContacto) {
   return estadoContacto(contactosPorId?.[idContacto]) === "enviado";
 }
 
+// ── Día/franja para agrupar Pendientes (puntos 16-17) ───────────────────
+// Corte configurable mañana/tarde — si no hay uno configurado en el
+// negocio, se documenta 12:00 como valor inicial (mismo criterio que el
+// resto del proyecto: un default explícito y documentado, no un número
+// mágico sin explicar).
+export const CORTE_MANANA_TARDE_DEFECTO = "12:00";
+
+export function franjaDeHora(hora, corte = CORTE_MANANA_TARDE_DEFECTO) {
+  if (!hora) return null;
+  return hora < corte ? "mañana" : "tarde";
+}
+
+// Fecha (ISO) en la que corresponde AVISAR un turno, según su franja:
+// turno de mañana → la noche del día calendario anterior; turno de tarde
+// → el mismo día, al mediodía (antes de la hora del turno). No confunde
+// "mañana" franja con "mañana" día siguiente — acá siempre se devuelve
+// una fecha ISO concreta, nunca la palabra.
+export function fechaAvisoConfirmacion(fechaTurnoISO, horaTurno, corte = CORTE_MANANA_TARDE_DEFECTO) {
+  if (!fechaTurnoISO) return null;
+  return franjaDeHora(horaTurno, corte) === "mañana" ? sumarDiasISO(fechaTurnoISO, -1) : fechaTurnoISO;
+}
+
 // agenda: salida de construirAgenda(). pedidosKitPendientes: fuentes.pedidosKit.items
 // (ya filtrados por estado "pendiente" en la propia query). cumpleanosHoy:
 // el doc resumenesCumpleanos/{hoy} tal cual llega (o null si no cargó
@@ -670,6 +692,10 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
     const tipoMensaje = item.coleccion === "consultas" ? "consulta" : "confirmacion";
     const idContactoRef = idContactoParaItem(item, tipoMensaje);
     if (estadoContactoResuelto(contactosPorId, idContactoRef)) continue;
+    // fechaActuarISO/franja (puntos 16-17): día y franja en que corresponde
+    // AVISAR este turno, separado de item.fecha (el turno en sí) y de
+    // item.registradoMs (cuándo se originó la reserva/consulta).
+    const franjaConf = franjaDeHora(item.hora);
     pendientes.push({
       id: `pend_${item.coleccion}_${item.id}_confirmacion_${item.fecha}_${item.hora}`,
       tipo: "confirmacion_turno", coleccion: item.coleccion, docId: item.id,
@@ -677,6 +703,8 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
       motivo: revision.motivos.map((m) => m.texto).join(" "),
       habilitadoDesdeMs: item.inicioMs - VENTANA_REVISION_MS, venceMs: revision.venceEnMs,
       ocurrencia: { fecha: item.fecha, hora: item.hora },
+      fechaActuarISO: fechaAvisoConfirmacion(item.fecha, item.hora), franja: franjaConf,
+      fechaOrigenISO: item.registradoMs != null ? fechaISOEnZona(item.registradoMs) : null,
       bloqueado: revision.bloqueado, campoFaltante: revision.bloqueado ? "telefono" : null,
     });
   }
@@ -689,6 +717,10 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
       nombre: item.nombre || "Paciente",
       motivo: rt.texto,
       habilitadoDesdeMs: item.finMs, venceMs: null, ocurrencia: { fecha: item.fecha, hora: item.hora },
+      // Se agrupa por el día en que terminó el turno (ya pasado) — no tiene
+      // franja mañana/tarde propia, es "a revisar" desde que se habilita.
+      fechaActuarISO: item.finMs != null ? fechaISOEnZona(item.finMs) : item.fecha, franja: null,
+      fechaOrigenISO: item.fecha || null,
       bloqueado: false, campoFaltante: null,
     });
   }
@@ -696,12 +728,18 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
   for (const kit of (pedidosKitPendientes || [])) {
     const productos = kit.productosResumen ? kit.productosResumen.join(", ")
       : (kit.items ? kit.items.map((it) => it.nombre).join(", ") : null);
+    // La referencia inicial para actuar es la fecha de SOLICITUD (punto 16):
+    // si pasan días sin atenderlo, conserva su origen real en vez de
+    // reaparecer como si se hubiera pedido hoy.
+    const fechaSolicitudISO = kit.fechaPedidoMs != null ? fechaISOEnZona(kit.fechaPedidoMs) : null;
     pendientes.push({
       id: `pend_pedidosKit_${kit.id}_kit`,
       tipo: "kit_pendiente", coleccion: "pedidosKit", docId: kit.id,
       nombre: kit.nombre || "Paciente",
       motivo: productos ? `Pedido sin entregar: ${productos}.` : "Pedido de kit todavía sin entregar.",
-      habilitadoDesdeMs: null, venceMs: null, ocurrencia: null, bloqueado: false, campoFaltante: null,
+      habilitadoDesdeMs: null, venceMs: null, ocurrencia: null,
+      fechaActuarISO: fechaSolicitudISO, franja: null, fechaOrigenISO: fechaSolicitudISO,
+      bloqueado: false, campoFaltante: null,
     });
   }
 
@@ -715,6 +753,7 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
         nombre: persona.nombre || "Paciente",
         motivo: "Hoy cumple años — falta preparar el saludo.",
         habilitadoDesdeMs: null, venceMs: null, ocurrencia: { fecha: cumpleanosHoy.fecha },
+        fechaActuarISO: cumpleanosHoy.fecha, franja: null, fechaOrigenISO: cumpleanosHoy.fecha,
         bloqueado: false, campoFaltante: null,
       });
     }
@@ -729,6 +768,9 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
       nombre: rec.pacienteNombre || "Paciente",
       motivo: rec.motivo || "Recomendación programada por la administradora.",
       habilitadoDesdeMs: rec.programadoParaMs, venceMs: null, ocurrencia: null,
+      // Sin programación explícita, ya está habilitada "ahora" — se agrupa en Hoy.
+      fechaActuarISO: rec.programadoParaMs != null ? fechaISOEnZona(rec.programadoParaMs) : fechaISOEnZona(ahoraMs), franja: null,
+      fechaOrigenISO: null,
       bloqueado: false, campoFaltante: null,
     });
   }
@@ -741,6 +783,62 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
 }
 
 // Agrupa por tipo con las cantidades — texto pedido explícitamente:
+// ── Agrupar Pendientes por día de actuar (puntos 16-17) ──────────────────
+// A diferencia de agruparPorDia (Actividad — mira hacia atrás: hoy/ayer/
+// anteriores), esta agrupación mira hacia ADELANTE: hoy / mañana (día
+// siguiente) / anteriores pendientes (atrasados, se muestran igual) /
+// próximos días. Nunca usa una sola "fecha" ambigua: agrupa siempre por
+// fechaActuarISO, que cada pendiente ya trae resuelto según su tipo.
+export function agruparPendientesPorDia(pendientes, ahoraMs = Date.now()) {
+  const hoyISO = fechaISOEnZona(ahoraMs);
+  const mananaISO = sumarDiasISO(hoyISO, 1);
+  const grupos = { hoy: [], manana: [], anteriores: [], proximos: [] };
+  for (const p of pendientes) {
+    const f = p.fechaActuarISO;
+    if (f == null || f === hoyISO) grupos.hoy.push(p);
+    else if (f === mananaISO) grupos.manana.push(p);
+    else if (f < hoyISO) grupos.anteriores.push(p);
+    else grupos.proximos.push(p);
+  }
+  // "Anteriores pendientes" y "Próximos días" van desglosados por fecha real
+  // (nunca mezclados en un bloque ambiguo) — se ordenan cronológicamente.
+  const porFecha = (lista) => {
+    const mapa = new Map();
+    for (const p of lista) {
+      const clave = p.fechaActuarISO || "sin_fecha";
+      if (!mapa.has(clave)) mapa.set(clave, []);
+      mapa.get(clave).push(p);
+    }
+    return [...mapa.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  };
+  return {
+    hoyISO, mananaISO,
+    hoy: grupos.hoy,
+    manana: grupos.manana,
+    anterioresPorFecha: porFecha(grupos.anteriores),
+    proximosPorFecha: porFecha(grupos.proximos),
+  };
+}
+
+// Texto de tarjeta sin la ambigüedad "vence mañana a las X" (punto 16):
+// separa siempre la palabra relativa del día calendario y la fecha exacta,
+// y NUNCA usa "vence" para la hora de un turno (sólo para un vencimiento
+// real de negocio, que este tipo de pendiente no tiene).
+export function textoTurnoConDia(item, ahoraMs = Date.now()) {
+  const hoyISO = fechaISOEnZona(ahoraMs);
+  const fecha = item.ocurrencia?.fecha;
+  const hora = item.ocurrencia?.hora;
+  if (!fecha) return "Turno sin fecha registrada.";
+  const inicioMs = inicioTurnoMs(fecha, hora || "00:00");
+  const diaSemana = DIAS_SEMANA_LARGO[new Date(`${fecha}T12:00:00${OFFSET_AR}`).getDay()];
+  const fechaLegible = inicioMs != null ? formatearFechaLocal(inicioMs) : fecha;
+  const horaTxt = hora ? `, ${hora}` : "";
+  if (fecha < hoyISO) return `La consulta fue el ${diaSemana} ${fechaLegible}${horaTxt} hs; revisar.`;
+  const relativo = fecha === hoyISO ? "hoy" : fecha === sumarDiasISO(hoyISO, 1) ? "mañana" : `el ${diaSemana}`;
+  return `Consulta: ${relativo}, ${diaSemana} ${fechaLegible}${horaTxt} hs.`;
+}
+const DIAS_SEMANA_LARGO = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
 // "Tenés 4 pendientes: 2 recomendaciones, 1 consulta y 1 kit". Se arma acá
 // (función pura, testeable) para que el job horario y la UI usen
 // exactamente el mismo texto.

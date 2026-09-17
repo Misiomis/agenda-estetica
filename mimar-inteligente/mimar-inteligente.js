@@ -17,6 +17,7 @@ import {
   normalizarPedidoKit, formatearARS, estadoTemporalTurno, etiquetaEstadoTemporal,
   agruparPorDia, eventoCoincideFiltro, filtroEsNeutro, FILTRO_ACTIVIDAD_VACIO,
   derivarPendientes, resumenTextoPendientes, contarPendientesPorTipo,
+  agruparPendientesPorDia, textoTurnoConDia, formatearFechaLocal, diaSemanaLegible,
   ETIQUETA_TIPO_PENDIENTE, TIPOS_PENDIENTE, normalizarRecomendacion, recomendacionValida,
   PREFS_AVISOS_DEFECTO, pendientesElegiblesParaAviso, pendientesVigentes,
   VENTANA_REVISAR_TURNO_DIAS,
@@ -877,11 +878,16 @@ function avisarDuenaDesdePendiente(p) {
 }
 
 function pendienteTarjetaHtml(p) {
-  const momento = p.venceMs != null
-    ? `Vence a las ${formatoMomento(p.venceMs)}`
-    : p.habilitadoDesdeMs != null
-      ? `Habilitada desde ${formatoMomento(p.habilitadoDesdeMs)}`
-      : "Sin vencimiento propio";
+  // Punto 16: "vence" sólo si hay un vencimiento real de negocio — la hora
+  // de un turno no es una expiración del aviso, así que confirmacion_turno
+  // usa la frase de fecha/franja en vez de "Vence a las X".
+  const momento = p.tipo === "confirmacion_turno"
+    ? textoTurnoConDia(p)
+    : p.venceMs != null
+      ? `Vence a las ${formatoMomento(p.venceMs)}`
+      : p.habilitadoDesdeMs != null
+        ? `Habilitada desde ${formatoMomento(p.habilitadoDesdeMs)}`
+        : "Sin vencimiento propio";
   // Punto 3 + 6: un dato obligatorio faltante bloquea la acción y se marca
   // en rojo, con el campo exacto — nunca se oculta ni se completa solo.
   const bloqueoHtml = p.bloqueado
@@ -959,11 +965,60 @@ function renderPendientesBandeja() {
   if (!visibles.length) {
     cont.innerHTML = avisoErrorHtml + `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Sin pendientes${filtroPendientesTipo !== "todas" ? " en este filtro" : ""}</h3><p>Nada requiere atención en este momento.</p></div>`;
   } else {
-    cont.innerHTML = avisoErrorHtml + visibles.map(pendienteTarjetaHtml).join("");
+    cont.innerHTML = avisoErrorHtml + pendientesAgrupadosHtml(visibles, ahoraMs);
   }
 
   const badge = $("nav-badge-pendientes");
   if (badge) { if (bandejaVisible.length > 0) { badge.hidden = false; badge.textContent = String(bandejaVisible.length); } else badge.hidden = true; }
+}
+
+// Dentro de un mismo día, separa mañana/tarde SÓLO para confirmacion_turno
+// (punto 17) — separadores chicos, misma vista, nunca pantallas distintas.
+// El resto de los tipos (kit, recomendación, etc.) no tiene franja propia
+// y va después, sin separador.
+function pendientesConSeparadorFranjaHtml(lista) {
+  const manana = lista.filter((p) => p.tipo === "confirmacion_turno" && p.franja === "mañana");
+  const tarde = lista.filter((p) => p.tipo === "confirmacion_turno" && p.franja === "tarde");
+  const resto = lista.filter((p) => !(p.tipo === "confirmacion_turno" && (p.franja === "mañana" || p.franja === "tarde")));
+  let html = "";
+  if (manana.length) {
+    html += `<div class="franja-separador">🌙 Turnos por la mañana · enviar la noche anterior</div>` + manana.map(pendienteTarjetaHtml).join("");
+  }
+  if (tarde.length) {
+    html += `<div class="franja-separador">☀️ Turnos por la tarde · enviar al mediodía</div>` + tarde.map(pendienteTarjetaHtml).join("");
+  }
+  html += resto.map(pendienteTarjetaHtml).join("");
+  return html;
+}
+
+function pendientesAgrupadosHtml(visibles, ahoraMs) {
+  const g = agruparPendientesPorDia(visibles, ahoraMs);
+  let html = "";
+  const tituloFecha = (fechaISO) => {
+    if (!fechaISO) return "Sin fecha registrada";
+    const dia = diaSemanaLegible(new Date(`${fechaISO}T12:00:00-03:00`).getTime());
+    const legible = formatearFechaLocal(new Date(`${fechaISO}T12:00:00-03:00`).getTime());
+    return dia ? `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${legible}` : legible;
+  };
+  if (g.hoy.length) {
+    html += `<div class="day-header">Hoy — ${escapeHtml(tituloFecha(g.hoyISO))}</div>` + pendientesConSeparadorFranjaHtml(g.hoy);
+  }
+  if (g.manana.length) {
+    html += `<div class="day-header">Mañana — ${escapeHtml(tituloFecha(g.mananaISO))}</div>` + pendientesConSeparadorFranjaHtml(g.manana);
+  }
+  if (g.anterioresPorFecha.length) {
+    html += `<div class="day-header pend-dia-header-atrasado">Anteriores pendientes</div>`;
+    for (const [fecha, lista] of g.anterioresPorFecha) {
+      html += `<div class="pend-dia-subheader">${escapeHtml(tituloFecha(fecha === "sin_fecha" ? null : fecha))}</div>` + pendientesConSeparadorFranjaHtml(lista);
+    }
+  }
+  if (g.proximosPorFecha.length) {
+    html += `<div class="day-header">Próximos días</div>`;
+    for (const [fecha, lista] of g.proximosPorFecha) {
+      html += `<div class="pend-dia-subheader">${escapeHtml(tituloFecha(fecha))}</div>` + pendientesConSeparadorFranjaHtml(lista);
+    }
+  }
+  return html;
 }
 
 // ══════════════════════════════════════════════════════════════════════
