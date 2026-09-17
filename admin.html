@@ -735,7 +735,19 @@
         .grilla-nav { display: flex; align-items: center; gap: 8px; padding: 14px 4px 10px; flex-wrap: wrap; }
         .grilla-fecha-titulo { flex: 1; text-align: center; font-family: 'Playfair Display', serif; font-size: 1.1em; color: var(--forest); font-weight: 600; min-width: 0; }
         .grilla-tools { display: flex; gap: 8px; padding: 0 4px 12px; flex-wrap: wrap; align-items: center; }
-        .grilla-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 0 20px; position: relative; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--surface); }
+        /* overflow-y:visible EXPLÍCITO — sin esto, fijar overflow-x:auto hace
+           que el navegador compute overflow-y como "auto" también (regla de
+           CSS para el eje no especificado), y este div pasa a ser SU PROPIO
+           contenedor de scroll en Y aunque nunca llegue a necesitar barra
+           propia (el contenido nunca excede su alto, que no está fijado).
+           Eso rompe el "position: sticky" del thead de la grilla: en vez de
+           pegarse contra el scroll real de la página (debajo del header),
+           quedaba pegado contra ESTE contenedor — que no scrollea de forma
+           independiente — y aparecía cortado/superpuesto de forma errática
+           al bajar la página. Con overflow-y:visible explícito, el scroll
+           vertical vuelve a ser el de la página y el thead se pega donde
+           corresponde, debajo del header real. */
+        .grilla-scroll-wrap { overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; padding: 0 0 20px; position: relative; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--surface); }
         /* table-layout:fixed — sin esto, el ancho de cada columna de box se
            recalculaba según el contenido más ancho presente en pantalla en
            ese momento (layout automático de tablas), así que el punto de
@@ -801,7 +813,7 @@
         .grilla-celda-default-bloq .gcb-txt { color: #9AA396; }
         .grilla-sep-row td { padding: 3px 0 !important; height: auto !important; border: none !important; }
         .grilla-sep-cell { text-align: center; color: var(--border-strong); font-size: 11px; letter-spacing: .2em; }
-        .grilla-table thead th { position: sticky; top: var(--topbar-h); z-index: 5; background-color: var(--grilla-header, var(--surface-2)); box-shadow: 0 1px 0 var(--grilla-borde, var(--border)); }
+        .grilla-table thead th { position: sticky; top: var(--topbar-h-real, var(--topbar-h)); z-index: 5; background-color: var(--grilla-header, var(--surface-2)); box-shadow: 0 1px 0 var(--grilla-borde, var(--border)); }
         @media (max-width: 768px) { .grilla-table thead th { top: 0; } }
         .grilla-mini-header td { padding: 5px 2px; height: auto; background: var(--grilla-header, var(--surface-2)); border-top: 1px solid var(--grilla-borde, var(--border-strong)) !important; border-bottom: 1px solid var(--grilla-borde, var(--border-strong)) !important; }
         .grilla-mini-th { text-align: center; font-size: 11px; font-weight: 800; color: var(--ink-soft); letter-spacing: .04em; }
@@ -2143,6 +2155,30 @@
     <script type="module">
         import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit, runTransaction, writeBatch } from "/js/firebase-web.js";
         import { registrarContactoPreparado, registrarContactoEstado } from "/js/contact-tracking.js";
+
+        // ── Alto real del header (barra superior sticky) ────────────────────────
+        // El thead de la Grilla también es sticky y se apila justo debajo del
+        // header (top: var(--topbar-h)) — pero --topbar-h es un valor fijo
+        // aproximado (60px) mientras que el header real puede medir un poco más
+        // (borde, ajustes de línea en pantallas angostas, etc.). Si el header
+        // real es más alto que el valor fijo, el thead de la Grilla queda
+        // pegado por encima de donde debería y una fila que sube por scroll se
+        // ve cortada en esa franja — se corrige midiendo el alto real y
+        // actualizándolo si cambia (resize, orientación, contenido dinámico).
+        (function () {
+            const _medirAltoHeader = () => {
+                const headerEl = document.querySelector('.header');
+                if (!headerEl) return;
+                document.documentElement.style.setProperty('--topbar-h-real', headerEl.offsetHeight + 'px');
+            };
+            _medirAltoHeader();
+            if (typeof ResizeObserver !== 'undefined') {
+                const headerEl = document.querySelector('.header');
+                if (headerEl) new ResizeObserver(_medirAltoHeader).observe(headerEl);
+            } else {
+                window.addEventListener('resize', _medirAltoHeader);
+            }
+        })();
 
         // Seguimiento centralizado de contactos por WhatsApp (punto 3 del
         // pedido de Mimar T Inteligente) — Admin también alimenta la misma
