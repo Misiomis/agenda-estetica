@@ -1488,11 +1488,17 @@
                     <input type="text" class="busc-input" id="inpBusPaciente" placeholder="Buscar paciente por nombre..." oninput="buscarPacienteNombreInput(); filtrarListadoClientesInput()" autocomplete="off" style="margin-bottom:0">
                     <div id="sugerenciasPaciente" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-lg); z-index:200; max-height:220px; overflow-y:auto;"></div>
                 </div>
-                <div class="filtros-advanced" style="grid-template-columns: minmax(180px, 1fr) auto; margin-bottom:12px;">
+                <div class="filtros-advanced" style="grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) auto; margin-bottom:12px;">
                     <select id="filtroTipoCliente" class="select-input" onchange="filtrarListadoClientes()">
                         <option value="todos">Todos los pacientes</option>
                         <option value="membresia">Solo membresía</option>
                         <option value="ocasional">Solo ocasionales</option>
+                    </select>
+                    <select id="filtroActividadCliente" class="select-input" onchange="filtrarListadoClientes()">
+                        <option value="todos">Cualquier actividad</option>
+                        <option value="activo">Consultar pacientes activos</option>
+                        <option value="inactivo">Consultar pacientes inactivos</option>
+                        <option value="cursos">Consultar pacientes de cursos</option>
                     </select>
                     <button class="btn-mini" onclick="limpiarFiltrosClientes()">Limpiar filtros</button>
                 </div>
@@ -2599,6 +2605,10 @@
         };
         let todasLasHistorias = [];
         let todasLosPacientes = [];
+        // Clasificación de pacientes (punto 15) — índices y estado de carga
+        let _clasifIndices = null;      // { atencionesPorDni, cursosPorDni } o null si todavía no se calculó
+        let _clasifCargando = false;
+        let _clasifError = null;        // string con el motivo si falló, o null
         let dniClienteCargado = "";
         let horariosDisponibles = [];
         let bloqueosHorarios = new Map();
@@ -2975,6 +2985,90 @@
         // redondeado como unidad exacta — evita error de punto flotante sin
         // sumarle precisión de centavos que el negocio no usa.
         const _fmtMoneyARS = (n) => (n === null || n === undefined || isNaN(n)) ? 'Sin registro' : ('$' + Math.round(n).toLocaleString('es-AR'));
+
+        // ─── Clasificación de pacientes: activo/inactivo/de cursos (punto 15) ──
+        // Se calcula EN VIVO cada vez que se entra/filtra "Pacientes" — nunca se
+        // persiste un campo de estado en Firestore. Ventaja: nunca queda
+        // desactualizada (se recalcula con todasLasReservas/todasLasConsultas
+        // tal como están en ese momento) y no hay que mantener sincronizado un
+        // campo derivado en cada alta/cancelación/reprogramación por separado.
+        // Resta 2 MESES CALENDARIO (no 60 días fijos) con ajuste de fin de mes
+        // (ej.: 30/03 menos 2 meses = 28/01 o 29/01 en bisiesto, nunca 30/01
+        // inventado). Devuelve fecha ISO.
+        function _restarMesesCalendarioISO(hoyISO, meses) {
+            const [y, m, d] = hoyISO.split('-').map(Number);
+            let mDestino = m - meses, yDestino = y;
+            while (mDestino <= 0) { mDestino += 12; yDestino -= 1; }
+            const ultimoDiaDestino = new Date(yDestino, mDestino, 0).getDate();
+            const diaAjustado = Math.min(d, ultimoDiaDestino);
+            return `${yDestino}-${String(mDestino).padStart(2,'0')}-${String(diaAjustado).padStart(2,'0')}`;
+        }
+        const MESES_ACTIVIDAD_PACIENTE = 2;
+
+        // Construye, en UNA sola pasada por cada colección (nunca por fila),
+        // los mapas dni→atenciones/dni→cursos que usa la clasificación.
+        function _construirIndicesClasificacionPacientes(reservas, consultas, cursos) {
+            const porDni = new Map(); // dni -> [{fecha, esFutura...}] ya filtradas a activas
+            const agregar = (dni, fecha) => {
+                if (!dni || !fecha) return;
+                if (!porDni.has(dni)) porDni.set(dni, []);
+                porDni.get(dni).push(fecha);
+            };
+            (reservas || []).forEach(r => {
+                const dni = normalizarDNI(r.dni || r.clienteDni || r.documento || '');
+                if (dni && esReservaActiva(r)) agregar(dni, r.fecha);
+            });
+            (consultas || []).forEach(c => {
+                // todasLasConsultas ya viene filtrada sin canceladas (ver _cargarDatosSecundarios),
+                // pero se revalida acá por si esta función se llama con otra fuente.
+                const dni = normalizarDNI(c.dni || c.clienteDni || c.documento || '');
+                if (dni && !esEstadoCancelado(c.estado || c.status)) agregar(dni, c.fecha);
+            });
+            const cursosPorDni = new Map();
+            (cursos || []).forEach(k => {
+                const dni = normalizarDNI(k.dni || '');
+                if (!dni) return;
+                if (!cursosPorDni.has(dni)) cursosPorDni.set(dni, []);
+                cursosPorDni.get(dni).push(k);
+            });
+            return { atencionesPorDni: porDni, cursosPorDni };
+        }
+
+        // Clasifica UN paciente ya con los índices construidos (O(1) por paciente).
+        function _clasificarPaciente(dni, indices, hoyISO) {
+            const fechaLimite = _restarMesesCalendarioISO(hoyISO, MESES_ACTIVIDAD_PACIENTE);
+            const atenciones = indices.atencionesPorDni.get(dni) || [];
+            const tieneAtencionReciente = atenciones.some(f => f >= fechaLimite && f <= hoyISO);
+            const tieneProximoTurno = atenciones.some(f => f > hoyISO);
+            const tieneCurso = (indices.cursosPorDni.get(dni) || []).length > 0;
+
+            if (tieneAtencionReciente || tieneProximoTurno) {
+                return {
+                    estado: 'activo',
+                    motivo: tieneAtencionReciente ? 'atencion_reciente' : 'proximo_turno',
+                    tambienCursos: tieneCurso,
+                };
+            }
+            // "De cursos" exige que NUNCA haya tenido una atención real (no solo
+            // en los últimos 2 meses) — una persona con tratamientos viejos y un
+            // curso reciente no es "solo de cursos", es inactiva con cursos.
+            const tuvoAlgunaAtencionAlgunaVez = atenciones.length > 0;
+            if (tieneCurso && !tuvoAlgunaAtencionAlgunaVez) {
+                return { estado: 'cursos', motivo: 'solo_cursos', tambienCursos: true };
+            }
+            if (!tuvoAlgunaAtencionAlgunaVez) {
+                return { estado: 'inactivo', motivo: 'sin_turnos_registrados', tambienCursos: tieneCurso };
+            }
+            return { estado: 'inactivo', motivo: 'sin_actividad_reciente', tambienCursos: tieneCurso };
+        }
+
+        const ETIQUETA_MOTIVO_CLASIFICACION = {
+            atencion_reciente: `Turno de atención dentro de los últimos ${MESES_ACTIVIDAD_PACIENTE} meses`,
+            proximo_turno: 'Tiene un próximo turno reservado',
+            solo_cursos: 'Sólo inscripción a curso, sin atenciones estéticas',
+            sin_turnos_registrados: 'Sin turnos registrados',
+            sin_actividad_reciente: `Sin atención en los últimos ${MESES_ACTIVIDAD_PACIENTE} meses ni turno próximo`,
+        };
 
         // ─── Clasificación única de estado (realizada/pendiente/cancelada) ───────
         // El buscador, "Preparar jornada" y "Exportar historial PDF" tenían CADA
@@ -5326,28 +5420,89 @@
             buscarClientePorDni(true);
         };
         
+        // Trae cursoMaquillaje UNA vez (reutiliza _cursosCache si ya se visitó
+        // "Mis Cursos" antes) y arma los índices de clasificación. Se llama al
+        // entrar a "Pacientes"; mientras está en vuelo, el filtro de actividad
+        // muestra "Calculando…" en vez de arriesgar un resultado incompleto.
+        async function _cargarClasificacionPacientes() {
+            if (_clasifIndices || _clasifCargando) return;
+            _clasifCargando = true;
+            _clasifError = null;
+            try {
+                const cursos = _cursosCache.length ? _cursosCache
+                    : (await getDocs(collection(db, 'cursoMaquillaje'))).docs.map(d => ({ id: d.id, ...d.data() }));
+                _clasifIndices = _construirIndicesClasificacionPacientes(todasLasReservas, todasLasConsultas, cursos);
+            } catch (e) {
+                console.error('Clasificación de pacientes:', e);
+                _clasifError = e?.message || 'No se pudo consultar el historial completo';
+            } finally {
+                _clasifCargando = false;
+                if (document.getElementById('sec-clientes')?.classList.contains('active')) window.filtrarListadoClientes();
+            }
+        }
+
+        const ETIQUETA_ESTADO_CLASIFICACION = { activo: 'Activo', inactivo: 'Inactivo', cursos: 'De cursos' };
+        const COLOR_ESTADO_CLASIFICACION = { activo: '#2F6B4F', inactivo: '#8A6A22', cursos: '#3D5C86' };
+
         window.filtrarListadoClientes = () => {
             const txt = (document.getElementById("inpBusPaciente").value || "").toLowerCase().trim();
             const tipo = document.getElementById("filtroTipoCliente")?.value || "todos";
+            const actividad = document.getElementById("filtroActividadCliente")?.value || "todos";
             const resumen = document.getElementById("resumenClientes");
             const cont = document.getElementById("contenedorClientes");
+
+            // Clasificación pendiente de calcular: se dispara la carga (si no
+            // está en vuelo) y, si el filtro de actividad la necesita, se avisa
+            // en vez de mostrar un resultado que todavía no es real.
+            if (!_clasifIndices && !_clasifError) _cargarClasificacionPacientes();
+            const hoyISO = _hoyISOZona(ZONA_HORARIA_NEGOCIO);
+
+            if (actividad !== 'todos' && !_clasifIndices) {
+                if (cont) cont.innerHTML = _clasifError
+                    ? `<div class="empty-state">No se pudo calcular la clasificación por actividad (${escapeHtml(_clasifError)}). <button class="btn-mini" onclick="_clasifError=null;_cargarClasificacionPacientes()">Reintentar</button></div>`
+                    : '<div class="empty-state">Calculando clasificación de actividad…</div>';
+                if (resumen) resumen.textContent = 'Calculando…';
+                return;
+            }
+
             const filtrados = todasLosPacientes.filter((p) => {
                 const okNombre = !txt || (p.fullName || "").toLowerCase().includes(txt);
                 const esMembresia = p.membershipActive === true;
                 const okTipo = tipo === "todos"
                     || (tipo === "membresia" && esMembresia)
                     || (tipo === "ocasional" && !esMembresia);
-                return okNombre && okTipo;
+                if (!okNombre || !okTipo) return false;
+                if (actividad === 'todos') return true;
+                const clasif = _clasificarPaciente(p.dni, _clasifIndices, hoyISO);
+                return clasif.estado === actividad;
             }).sort((a, b) => (a.fullName || "").localeCompare(b.fullName || "", 'es'));
+
             if (resumen) {
-                resumen.textContent = `${filtrados.length} paciente(s) · ${filtrados.filter(c => c.membershipActive).length} con membresía activa`;
+                let resumenTxt = `${filtrados.length} paciente(s) · ${filtrados.filter(c => c.membershipActive).length} con membresía activa`;
+                if (_clasifIndices) {
+                    const todos = todasLosPacientes.map(p => _clasificarPaciente(p.dni, _clasifIndices, hoyISO));
+                    const nActivos = todos.filter(c => c.estado === 'activo').length;
+                    const nInactivos = todos.filter(c => c.estado === 'inactivo').length;
+                    const nCursos = todos.filter(c => c.estado === 'cursos').length;
+                    resumenTxt += ` — ${nActivos} activos, ${nInactivos} inactivos, ${nCursos} de cursos`;
+                } else if (_clasifError) {
+                    resumenTxt += ` — clasificación por actividad no disponible (${_clasifError})`;
+                }
+                resumen.textContent = resumenTxt;
             }
             if (!cont) return;
             if (!filtrados.length) {
                 cont.innerHTML = '<div class="empty-state">No hay pacientes para ese filtro.</div>';
                 return;
             }
-            cont.innerHTML = filtrados.map((p) => `
+            cont.innerHTML = filtrados.map((p) => {
+                const clasif = _clasifIndices ? _clasificarPaciente(p.dni, _clasifIndices, hoyISO) : null;
+                const pillClasif = clasif
+                    ? `<span class="pill" style="background:${COLOR_ESTADO_CLASIFICACION[clasif.estado]}1A;color:${COLOR_ESTADO_CLASIFICACION[clasif.estado]};border:1px solid ${COLOR_ESTADO_CLASIFICACION[clasif.estado]}55;" title="${escapeHtml(ETIQUETA_MOTIVO_CLASIFICACION[clasif.motivo] || '')}">${ETIQUETA_ESTADO_CLASIFICACION[clasif.estado]}</span>`
+                    : (_clasifError ? `<span class="pill" style="background:rgba(138,106,34,0.10);color:#8A6A22;border:1px solid rgba(138,106,34,0.30);">Datos insuficientes</span>` : '');
+                const pillCursos = clasif && clasif.tambienCursos && clasif.estado !== 'cursos'
+                    ? `<span class="pill" style="background:rgba(61,92,134,0.10);color:#3D5C86;border:1px solid rgba(61,92,134,0.30);">También realizó cursos</span>` : '';
+                return `
                 <div class="detalle-dia-card" style="margin-top:0; border-left-width:4px; border-left-color:${p.membershipActive ? '#2F6B4F' : '#526358'}">
                     <div class="dato-sensible-wrap">
                         <b class="dato-sensible" onclick="revelarDato(this)">${escapeHtml(p.fullName || 'Sin nombre')}</b>
@@ -5359,6 +5514,7 @@
                     <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
                         <span class="pill ${p.membershipActive ? 'disponible' : 'bloqueado'}">${p.membershipActive ? 'Membresía activa' : 'Ocasional'}</span>
                         <span class="pill reservado">Horas: ${escapeHtml((p.hoursBalance ?? 0).toString())}</span>
+                        ${pillClasif}${pillCursos}
                     </div>
                     <div style="margin-top:8px;">
                         <button onclick="toggleMembresiaCliente('${escapeHtml(p.dni || '')}', ${!p.membershipActive})"
@@ -5367,9 +5523,9 @@
                         </button>
                     </div>
                 </div>
-            `).join('');
+            `; }).join('');
         };
-        
+
         window.filtrarListadoClientesInput = debounce(() => window.filtrarListadoClientes(), 180);
 
         window.toggleMembresiaCliente = async (dni, nuevoEstado) => {
@@ -5407,6 +5563,7 @@
         window.limpiarFiltrosClientes = () => {
             document.getElementById("inpBusPaciente").value = "";
             document.getElementById("filtroTipoCliente").value = "todos";
+            if (document.getElementById("filtroActividadCliente")) document.getElementById("filtroActividadCliente").value = "todos";
             document.getElementById("sugerenciasPaciente").style.display = "none";
             filtrarListadoClientes();
         };
