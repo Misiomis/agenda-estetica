@@ -6065,6 +6065,13 @@
             var _pjFecha = null;
             var _pjLastGenTs = null;
             var _pjLastGenFecha = null;
+            // Caché de "informes ya generados esta semana" para mostrar el badge
+            // inline en la lista (punto 7) — semanaId de la última consulta hecha,
+            // Map pacienteKey -> {generadoEnMs, firmaContenido}, y si falló.
+            var _pjInformesSemanaId = null;
+            var _pjInformesPorPaciente = null;
+            var _pjInformesCargando = false;
+            var _pjInformesError = null;
 
             // Delegan a la clave compartida (DNI o nombre sin tildes/mayúsculas):
             // agrupar por nombre "tal cual" trataba "María"/"Maria" como dos
@@ -6111,12 +6118,113 @@
                 var porClave = new Map();
                 qs.forEach(function(d){
                     var data = d.data();
-                    if (!pacienteKeys.has(data.pacienteKey)) return;
+                    if (pacienteKeys && !pacienteKeys.has(data.pacienteKey)) return;
                     var prev = porClave.get(data.pacienteKey);
                     var ts = (data.generadoEnMs || 0);
-                    if (!prev || ts > prev.generadoEnMs) porClave.set(data.pacienteKey, { generadoEnMs: ts, pacienteNombre: data.pacienteNombre || '' });
+                    if (!prev || ts > prev.generadoEnMs) porClave.set(data.pacienteKey, { generadoEnMs: ts, pacienteNombre: data.pacienteNombre || '', firmaContenido: data.firmaContenido || null });
                 });
                 return porClave;
+            }
+
+            // Firma liviana del contenido de sesiones de un paciente — no es un
+            // hash criptográfico, es una comparación suficiente para detectar
+            // "algo cambió" (sesión agregada/quitada, hora, servicio o nota
+            // editada) sin guardar el contenido completo dos veces.
+            function _pjFirmaContenido(pd) {
+                return pd.sesiones.map(function(s){
+                    var r = s.r;
+                    return [r.id, r.fecha, r.hora, r.servicio||'', r.status||r.estado||'', (r.detalleSesion||'').length, (r.detalleSesion2||'').length].join(':');
+                }).sort().join('|');
+            }
+
+            // Semana a la que pertenece la hoja: la de la fecha de la JORNADA que
+            // se está preparando, no la del momento en que se hace clic en
+            // generar (punto 7: "si el domingo se prepara la jornada del lunes
+            // siguiente, la hoja pertenece a la semana del lunes").
+            function _pjFechaISOaDateUTC(fechaISO) {
+                var p = (fechaISO||'').split('-').map(Number);
+                if (!p[0]||!p[1]||!p[2]) return new Date();
+                return new Date(Date.UTC(p[0], p[1]-1, p[2], 12, 0, 0));
+            }
+            function _pjRangoSemana(semanaId) {
+                // semanaId ya es la fecha ISO del lunes de esa semana.
+                var p = (semanaId||'').split('-').map(Number);
+                if (!p[0]||!p[1]||!p[2]) return { inicio: semanaId, fin: semanaId };
+                var lunes = new Date(Date.UTC(p[0], p[1]-1, p[2], 12, 0, 0));
+                var domingo = new Date(lunes.getTime());
+                domingo.setUTCDate(domingo.getUTCDate() + 6);
+                var fmt = function(dt){ return String(dt.getUTCDate()).padStart(2,'0') + '/' + String(dt.getUTCMonth()+1).padStart(2,'0'); };
+                return { inicio: fmt(lunes), fin: fmt(domingo) };
+            }
+
+            // Diálogo de lote con lista por paciente (punto 7): a diferencia del
+            // confirm simple anterior, permite decidir por persona y "Desmarcar
+            // repetidos y continuar" sin obligar a cancelar todo el lote por una
+            // sola hoja repetida. Devuelve { accion: 'generar' | 'cancelar', clavesExcluidas: Set }.
+            function _pjDialogoDuplicados(duplicados, totalSeleccionados, rangoSemana) {
+                return new Promise(function(resolve){
+                    var excluidas = new Set();
+                    var overlay = document.createElement('div');
+                    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,25,0.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+                    var box = document.createElement('div');
+                    box.style.cssText = 'background:#FFFFFF;border-radius:16px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,0.28);';
+
+                    var titulo = document.createElement('div');
+                    titulo.style.cssText = 'font-size:14px;line-height:1.5;color:#20382B;margin-bottom:14px;font-weight:700;';
+                    titulo.textContent = (duplicados.length === 1 ? 'Atención: ya hay un informe generado esta semana.' : 'Atención: ' + duplicados.length + ' paciente(s) ya tienen informe para la semana del ' + rangoSemana.inicio + ' al ' + rangoSemana.fin + '.');
+                    box.appendChild(titulo);
+
+                    var lista = document.createElement('div');
+                    lista.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-bottom:16px;';
+                    duplicados.forEach(function(dup){
+                        var fila = document.createElement('div');
+                        fila.style.cssText = 'border:1px solid #D8DFD7;border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;';
+                        var dt = dup.info.generadoEnMs ? new Date(dup.info.generadoEnMs) : null;
+                        var fechaHoraTxt = dt ? (dt.toLocaleDateString('es-AR', { timeZone: ZONA_HORARIA_NEGOCIO }) + ', ' + dt.toLocaleTimeString('es-AR', { timeZone: ZONA_HORARIA_NEGOCIO, hour: '2-digit', minute: '2-digit' })) : 'fecha no disponible';
+                        var cambios = dup.info.firmaContenido && dup.info.firmaContenido !== dup.firmaActual;
+                        var texto = document.createElement('div');
+                        texto.style.cssText = 'font-size:12.5px;color:#20382B;flex:1;';
+                        texto.innerHTML = '<strong>' + dup.nombre.replace(/[<>&]/g, function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];}) + '</strong><br>' +
+                            'Ya tiene un informe para esta semana, generado el ' + fechaHoraTxt + '.' +
+                            (cambios ? '<br><span style="color:#8A6A22;font-weight:700;">Hay cambios desde el último informe.</span>' : '');
+                        var btnDesmarcar = document.createElement('button');
+                        btnDesmarcar.textContent = 'Desmarcar';
+                        btnDesmarcar.style.cssText = 'flex-shrink:0;padding:6px 10px;border-radius:8px;border:1.5px solid #AD2E2E55;background:#fff;color:#AD2E2E;font-weight:700;cursor:pointer;font-size:11.5px;';
+                        btnDesmarcar.addEventListener('click', function(){
+                            if (excluidas.has(dup.key)) { excluidas.delete(dup.key); btnDesmarcar.textContent = 'Desmarcar'; btnDesmarcar.style.background = '#fff'; }
+                            else { excluidas.add(dup.key); btnDesmarcar.textContent = 'Desmarcado'; btnDesmarcar.style.background = '#FBEAEA'; }
+                        });
+                        fila.appendChild(texto); fila.appendChild(btnDesmarcar);
+                        lista.appendChild(fila);
+                    });
+                    box.appendChild(lista);
+
+                    var nota = document.createElement('div');
+                    nota.style.cssText = 'font-size:11.5px;color:#526358;margin-bottom:16px;';
+                    nota.textContent = 'Desmarcar sólo quita la hoja de esta selección — no cancela ni oculta ningún turno.';
+                    box.appendChild(nota);
+
+                    var fila2 = document.createElement('div');
+                    fila2.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;';
+                    var btnVolver = document.createElement('button');
+                    btnVolver.textContent = 'Volver (conservar selección)';
+                    btnVolver.style.cssText = 'padding:10px 14px;border-radius:10px;border:1.5px solid #7C8D81;background:#fff;color:#2D4A32;font-weight:700;cursor:pointer;font-size:12.5px;';
+                    var btnDesmarcarTodos = document.createElement('button');
+                    btnDesmarcarTodos.textContent = 'Desmarcar repetidos y continuar';
+                    btnDesmarcarTodos.style.cssText = 'padding:10px 14px;border-radius:10px;border:1.5px solid #AD2E2E55;background:#fff;color:#AD2E2E;font-weight:700;cursor:pointer;font-size:12.5px;';
+                    var btnGenerar = document.createElement('button');
+                    btnGenerar.textContent = duplicados.length === 1 ? 'Sí, generar igualmente' : 'Generar de todos modos';
+                    btnGenerar.style.cssText = 'padding:10px 14px;border-radius:10px;border:none;background:#2D4A32;color:#fff;font-weight:700;cursor:pointer;font-size:12.5px;';
+                    fila2.appendChild(btnVolver); fila2.appendChild(btnDesmarcarTodos); fila2.appendChild(btnGenerar);
+                    box.appendChild(fila2);
+
+                    overlay.appendChild(box);
+                    document.body.appendChild(overlay);
+                    function cerrar(resultado){ document.body.removeChild(overlay); resolve(resultado); }
+                    btnVolver.addEventListener('click', function(){ cerrar({ accion: 'cancelar', clavesExcluidas: new Set() }); });
+                    btnDesmarcarTodos.addEventListener('click', function(){ cerrar({ accion: 'generar', clavesExcluidas: new Set(duplicados.map(function(d){ return d.key; })) }); });
+                    btnGenerar.addEventListener('click', function(){ cerrar({ accion: 'generar', clavesExcluidas: excluidas }); });
+                });
             }
 
             function _pjRegistrarConfirmDialog(mensaje) {
@@ -6186,6 +6294,26 @@
                 _pjRender();
             }
 
+            // Carga (una vez por semana vista) el mapa de informes ya generados
+            // para anotar el badge inline. Nunca afirma "no hay informes previos"
+            // si la consulta falla — deja _pjInformesError con el motivo y no
+            // actualiza _pjInformesSemanaId, así que se puede reintentar.
+            async function _pjCargarInformesSemana(semanaId) {
+                _pjInformesCargando = true;
+                _pjInformesError = null;
+                try {
+                    var mapa = await _pjBuscarGeneracionesDeLaSemana(semanaId, null);
+                    _pjInformesPorPaciente = mapa;
+                    _pjInformesSemanaId = semanaId;
+                } catch (e) {
+                    console.warn('No se pudo consultar informes de la semana:', e);
+                    _pjInformesError = e && e.message ? e.message : 'sin conexión';
+                } finally {
+                    _pjInformesCargando = false;
+                    _pjRender();
+                }
+            }
+
             function _pjRender() {
                 var cont = document.getElementById('sec-preparar-jornada');
                 if (!cont) return;
@@ -6202,6 +6330,14 @@
                     patientMap.get(k).reservas.push(r);
                 });
                 var patients = [...patientMap.values()];
+
+                // Badge inline "Informe generado el..." (punto 7) — semana de la
+                // fecha de la jornada que se está viendo, no la de "hoy".
+                var _pjSemanaVista = f ? _semanaIdISO(_pjFechaISOaDateUTC(f), ZONA_HORARIA_NEGOCIO) : null;
+                if (_pjSemanaVista && _pjSemanaVista !== _pjInformesSemanaId && !_pjInformesCargando) {
+                    _pjCargarInformesSemana(_pjSemanaVista);
+                }
+                var _pjInformesListos = _pjSemanaVista && _pjSemanaVista === _pjInformesSemanaId && _pjInformesPorPaciente;
 
                 var lastGenHtml = '';
                 if (_pjLastGenTs && _pjLastGenFecha === f) {
@@ -6238,6 +6374,20 @@
                         } else {
                             listHtml += '<div style="width:16px;height:16px;flex-shrink:0;margin-top:3px;"></div>';
                         }
+                        var _pjBadgeInforme = '';
+                        if (isFirst && _pjInformesListos) {
+                            var _pjInfo = _pjInformesPorPaciente.get(k);
+                            if (_pjInfo) {
+                                var _dtInf = _pjInfo.generadoEnMs ? new Date(_pjInfo.generadoEnMs) : null;
+                                var _diaInf = _dtInf ? ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][_dtInf.getDay()] : '';
+                                var _txtInf = _dtInf
+                                    ? 'Informe generado el ' + _diaInf + ' ' + _dtInf.toLocaleDateString('es-AR',{timeZone:ZONA_HORARIA_NEGOCIO}) + ', ' + _dtInf.toLocaleTimeString('es-AR',{timeZone:ZONA_HORARIA_NEGOCIO,hour:'2-digit',minute:'2-digit'})
+                                    : 'Informe generado esta semana';
+                                _pjBadgeInforme = '<div style="margin-top:4px;font-size:10.5px;color:#8A6A22;background:rgba(138,106,34,0.08);border:1px solid rgba(138,106,34,0.22);border-radius:6px;padding:3px 8px;display:inline-block;">📄 ' + _txtInf + '</div>';
+                            }
+                        } else if (isFirst && _pjSemanaVista && !_pjInformesListos && !_pjInformesError) {
+                            _pjBadgeInforme = '<div style="margin-top:4px;font-size:10px;color:rgba(36,51,43,0.35);font-style:italic;">Verificando informes de la semana…</div>';
+                        }
                         listHtml += '<div style="flex:1;min-width:0;">' +
                             '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
                                 '<span style="font-size:13px;font-weight:800;color:rgba(138,106,34,0.9);min-width:40px;">' + (r.hora||'—') + '</span>' +
@@ -6246,6 +6396,7 @@
                             '</div>' +
                             '<div style="font-size:12px;color:rgba(36,51,43,0.5);margin-top:2px;">' + (r.servicio||'—') + '</div>' +
                             ((r.detalleSesion||'').trim() ? '<div style="font-size:11px;color:rgba(36,51,43,0.35);margin-top:3px;font-style:italic;white-space:pre-line;">' + (r.detalleSesion||'').trim().slice(0,110) + ((r.detalleSesion||'').length>110?'…':'') + '</div>' : '') +
+                            _pjBadgeInforme +
                         '</div></div>';
                     });
                 }
@@ -6655,7 +6806,11 @@
                 if (!totalEsperado) { mostrarAviso('Los pacientes seleccionados no tienen sesiones registradas.'); return; }
 
                 // ── Aviso de PDF de jornada duplicado en la misma semana ──────
-                var _pjSemanaId = _semanaIdISO(new Date(), ZONA_HORARIA_NEGOCIO);
+                // La semana es la de la FECHA DE LA JORNADA que se prepara, no la
+                // del momento en que se hace clic en generar (si el domingo se
+                // prepara el lunes siguiente, la hoja es de la semana del lunes).
+                var _pjSemanaId = _semanaIdISO(_pjFechaISOaDateUTC(f), ZONA_HORARIA_NEGOCIO);
+                var _pjRangoSem = _pjRangoSemana(_pjSemanaId);
                 var _pjLocksAdquiridos = [];
                 try {
                     for (var li = 0; li < patientData.length; li++) {
@@ -6679,31 +6834,40 @@
                     } catch (errVerif) {
                         console.error(errVerif);
                         mostrarAviso('No se pudo verificar si ya se generó un PDF esta semana para estos pacientes. No se generó nada — reintentá en un momento.');
+                        for (var lv = 0; lv < _pjLocksAdquiridos.length; lv++) { await _pjLiberarLock(_pjLocksAdquiridos[lv], _pjSemanaId); }
                         if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
                         return;
                     }
 
-                    var _pjDuplicados = patientData.filter(function(p){ return _pjGeneracionesPrevias.has(p.key); });
+                    var _pjDuplicados = patientData
+                        .filter(function(p){ return _pjGeneracionesPrevias.has(p.key); })
+                        .map(function(p){ return { key: p.key, nombre: p.nombre, info: _pjGeneracionesPrevias.get(p.key), firmaActual: _pjFirmaContenido(p) }; });
+
                     if (_pjDuplicados.length) {
-                        var _pjMsgDup;
-                        var _fmtPrevGen = function(ms){
-                            if (!ms) return '';
-                            var dt = new Date(ms);
-                            return ' (generado el ' + dt.toLocaleDateString('es-AR', { timeZone: ZONA_HORARIA_NEGOCIO }) + ' a las ' + dt.toLocaleTimeString('es-AR', { timeZone: ZONA_HORARIA_NEGOCIO, hour: '2-digit', minute: '2-digit' }) + ')';
-                        };
-                        if (_pjDuplicados.length === 1) {
-                            var _prevInfo = _pjGeneracionesPrevias.get(_pjDuplicados[0].key);
-                            _pjMsgDup = 'Esta semana ya se generó un PDF de sesiones para ' + _pjDuplicados[0].nombre + '.' + _fmtPrevGen(_prevInfo && _prevInfo.generadoEnMs) + ' ¿Deseás continuar?';
-                        } else {
-                            var _nombresDup = _pjDuplicados.map(function(p){ return p.nombre; }).join(', ');
-                            _pjMsgDup = 'Esta semana ya se generó un PDF de sesiones para: ' + _nombresDup + '. Si continuás, se va a generar el PDF completo para los ' + patientData.length + ' paciente(s) seleccionado(s), incluyendo a quienes ya lo tienen esta semana. ¿Deseás continuar?';
-                        }
-                        var _pjContinuar = await _pjRegistrarConfirmDialog(_pjMsgDup);
-                        if (!_pjContinuar) {
+                        var _pjResultado = await _pjDialogoDuplicados(_pjDuplicados, patientData.length, _pjRangoSem);
+                        if (_pjResultado.accion === 'cancelar') {
                             for (var lk = 0; lk < _pjLocksAdquiridos.length; lk++) { await _pjLiberarLock(_pjLocksAdquiridos[lk], _pjSemanaId); }
-                            mostrarAviso('Generación cancelada. No se generó ni registró nada.');
+                            mostrarAviso('Volviste sin generar nada — la selección se conserva.');
                             if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
                             return;
+                        }
+                        // accion === 'generar': se excluyen los pacientes desmarcados
+                        // (individualmente o vía "Desmarcar repetidos y continuar") —
+                        // el resto sigue de largo, sin obligar a cancelar todo el lote.
+                        if (_pjResultado.clavesExcluidas.size) {
+                            _pjResultado.clavesExcluidas.forEach(function(k){
+                                selected.delete(k);
+                                var idxLock = _pjLocksAdquiridos.indexOf(k);
+                                if (idxLock >= 0) { _pjLiberarLock(k, _pjSemanaId); _pjLocksAdquiridos.splice(idxLock, 1); }
+                            });
+                            patientData = patientData.filter(function(p){ return !_pjResultado.clavesExcluidas.has(p.key); });
+                            _pjRender();
+                            if (!patientData.length) {
+                                mostrarAviso('Se desmarcaron todos los pacientes seleccionados — no se generó ningún PDF.');
+                                if (btn) { btn.disabled = false; btn.textContent = btnOrigText; }
+                                return;
+                            }
+                            totalEsperado = patientData.reduce(function(s,p){ return s + p.sesiones.length; }, 0);
                         }
                     }
                 } catch (errLock) {
@@ -6976,7 +7140,8 @@
                             generadoEn: serverTimestamp(),
                             generadoPor: _pjEmailActual,
                             tipoDocumento: 'pdf_jornada_historiales',
-                            reservaIds: pd.sesiones.map(function(s){ return s.r.id; })
+                            reservaIds: pd.sesiones.map(function(s){ return s.r.id; }),
+                            firmaContenido: _pjFirmaContenido(pd)
                         });
                     });
                     await _pjBatch.commit();
