@@ -63,6 +63,75 @@ export function sumarDiasISO(fechaISO, dias) {
   return dt.toISOString().slice(0, 10);
 }
 
+// ── Fecha/hora local legible (punto 10 — "reemplazá las fechas ISO por
+// fecha y hora locales legibles") ────────────────────────────────────────
+// Acepta ms epoch o un string ISO (los campos "fecha"/"createdAt" de
+// pedidosKit se guardan como new Date().toISOString()). La presentación
+// nunca modifica el instante guardado, solo cómo se muestra.
+function _msDesde(valor) {
+  if (valor == null) return null;
+  if (typeof valor === "number") return Number.isFinite(valor) ? valor : null;
+  // Timestamp de Firestore (serverTimestamp() leído de vuelta): objeto con
+  // toMillis(), nunca un string ni un number — no se puede tratar igual.
+  if (typeof valor === "object" && typeof valor.toMillis === "function") return valor.toMillis();
+  if (typeof valor === "object" && typeof valor.seconds === "number") return valor.seconds * 1000 + Math.round((valor.nanoseconds || 0) / 1e6);
+  if (valor instanceof Date) return valor.getTime();
+  const ms = Date.parse(valor);
+  return Number.isNaN(ms) ? null : ms;
+}
+export function formatearFechaLocal(msOIso, tz = ZONA_HORARIA) {
+  const ms = _msDesde(msOIso);
+  if (ms === null) return null;
+  return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: tz }).format(ms);
+}
+export function formatearHoraLocal(msOIso, tz = ZONA_HORARIA) {
+  const ms = _msDesde(msOIso);
+  if (ms === null) return null;
+  return new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz }).format(ms);
+}
+export function formatearFechaHoraLocal(msOIso, tz = ZONA_HORARIA) {
+  const ms = _msDesde(msOIso);
+  if (ms === null) return null;
+  return `${formatearFechaLocal(ms, tz)}, ${formatearHoraLocal(ms, tz)}`;
+}
+
+const DIAS_SEMANA_LEGIBLE = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+function _ymdEnZona(ms, tz) {
+  const partes = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(ms));
+  const o = {};
+  partes.forEach((p) => { if (p.type !== "literal") o[p.type] = p.value; });
+  return { y: +o.year, m: +o.month, d: +o.day };
+}
+function _diaSemanaEnZona(ms, tz) {
+  const f = _ymdEnZona(ms, tz);
+  return new Date(Date.UTC(f.y, f.m - 1, f.d, 12)).getUTCDay(); // mediodía UTC: evita corrimiento de día por huso
+}
+function _diffDiasCalendario(msDesde, msHasta, tz) {
+  const a = _ymdEnZona(msDesde, tz), b = _ymdEnZona(msHasta, tz);
+  const ua = Date.UTC(a.y, a.m - 1, a.d), ub = Date.UTC(b.y, b.m - 1, b.d);
+  return Math.round((ub - ua) / 86400000);
+}
+export function diaSemanaLegible(msOIso, tz = ZONA_HORARIA) {
+  const ms = _msDesde(msOIso);
+  if (ms === null) return null;
+  return DIAS_SEMANA_LEGIBLE[_diaSemanaEnZona(ms, tz)];
+}
+
+// "hoy, 17/09/2026" / "ayer, 16/09/2026" / "el lunes 14/09/2026" — siempre
+// con la fecha absoluta al lado, nunca solo la palabra relativa (punto 10:
+// "acompañalo siempre con una fecha exacta"). msEvento es el instante
+// ORIGINAL del hecho (ej. fecha de solicitud), nunca el de la última edición.
+export function referenciaTemporalConFecha(msEventoOIso, ahoraMs = Date.now(), tz = ZONA_HORARIA) {
+  const msEvento = _msDesde(msEventoOIso);
+  if (msEvento === null) return null;
+  const fechaExacta = formatearFechaLocal(msEvento, tz);
+  const dias = _diffDiasCalendario(msEvento, ahoraMs, tz);
+  if (dias === 0) return `hoy, ${fechaExacta}`;
+  if (dias === 1) return `ayer, ${fechaExacta}`;
+  if (dias < 0) return fechaExacta; // evento "futuro" respecto de ahora (reloj desfasado entre dispositivos): solo la fecha, sin relativo engañoso
+  return `el ${diaSemanaLegible(msEvento, tz)} ${fechaExacta}`;
+}
+
 // ── Vocabulario de estado por colección ─────────────────────────────────
 const ESTADOS_CANCELADOS = {
   reservas: ["cancelado", "cancelada"],
@@ -122,6 +191,11 @@ export function normalizarItemAgenda(coleccion, id, data, clientesPorDni) {
   const duracionEstimada = duracionRegistrada === null;
   const inicioMs = inicioTurnoMs(fecha, hora);
   const finMs = fecha && hora ? finTurnoMs(fecha, hora, duracionRegistrada) : null;
+  // "timestamp" (admin.html, Nueva Consulta Inicial) y "createdAt"
+  // (fecha.html, autoreserva de paciente) son los dos nombres reales de
+  // campo de registro que usa esta colección — ninguno existe en el otro
+  // origen. Puede ser un Timestamp de Firestore, no siempre un string.
+  const registradoMs = _msDesde(d.timestamp) ?? _msDesde(d.createdAt) ?? null;
 
   return {
     coleccion,               // 'reservas' | 'consultas'
@@ -140,6 +214,7 @@ export function normalizarItemAgenda(coleccion, id, data, clientesPorDni) {
     duracionEstimada,
     inicioMs,
     finMs,
+    registradoMs, // instante en que se creó el registro — distinto de inicioMs (el turno)
     detalleSesion: d.detalleSesion || null,
     fechaIncompleta: !fecha || !hora || inicioMs === null,
   };
@@ -249,6 +324,28 @@ export function normalizarTelefonoWA(telefono) {
   if (d.length === 10) return "549" + d;
   if (d.length === 11 && d.startsWith("9")) return "54" + d;
   return "549" + d;
+}
+
+// ── Config central del responsable del negocio (Gimena) — punto 9 ────────
+// Valida y normaliza un celular argentino al formato de wa.me (13 dígitos:
+// 549 + código de área + línea, sin 0/15) y arma una versión legible para
+// mostrar en la vista previa. Rechaza explícitamente lo que no cierre en
+// 13 dígitos — nunca guarda ni abre un chat con un destino a medio normalizar.
+// El corte "3 dígitos de área + resto" es una simplificación deliberada para
+// el área real del negocio (376, Corrientes/Misiones); no es un formateador
+// general de todos los códigos de área argentinos.
+export function validarYNormalizarTelefonoAR(raw) {
+  const original = (raw || "").toString().trim();
+  if (!original) return { ok: false, error: "Ingresá un número de celular." };
+  const digitos = normalizarTelefonoWA(original);
+  if (digitos.length !== 13 || !digitos.startsWith("549")) {
+    return { ok: false, error: `"${original}" no se pudo normalizar a un celular argentino válido (esperado: código de área + línea, 10 dígitos en total).` };
+  }
+  const resto = digitos.slice(3);
+  const area = resto.slice(0, 3);
+  const linea = resto.slice(3);
+  const mostrable = `+54 9 ${area} ${linea}`;
+  return { ok: true, digitos, mostrable, original };
 }
 
 // ── Plantillas de mensaje (punto 7) ──────────────────────────────────────
@@ -401,12 +498,21 @@ export function normalizarPedidoKit(id, data) {
   const montoAbonado = typeof d.montoAbonado === "number" && Number.isFinite(d.montoAbonado) ? d.montoAbonado : null;
   const saldoPendiente = montoAbonado !== null && total !== null ? total - montoAbonado : null;
 
+  // "fecha" (kit-facial.html) y "createdAt" (admin.html) son ISO strings de
+  // dos puntos de escritura distintos del mismo pedido — ninguno de los dos
+  // existe siempre en ambos orígenes, así que se toma el primero disponible
+  // en vez de asumir un único nombre de campo.
+  const fechaPedidoISO = (typeof d.fecha === "string" && d.fecha) ? d.fecha : (typeof d.createdAt === "string" && d.createdAt) ? d.createdAt : null;
+  const fechaPedidoMs = fechaPedidoISO ? _msDesde(fechaPedidoISO) : null;
+
   return {
     id,
     nombre,
     telefono,
     dni: d.dni || null,
-    fechaPedido: typeof d.fecha === "string" ? d.fecha : null,
+    fechaPedidoISO,
+    fechaPedidoMs,
+    fechaPedido: fechaPedidoMs !== null ? formatearFechaHoraLocal(fechaPedidoMs) : null,
     productosResumen: Array.isArray(d.productos) && d.productos.length ? d.productos : null,
     items,
     cantidadTotal,
@@ -796,15 +902,40 @@ function listaConY(partes) {
 // kit: salida de normalizarPedidoKit(). Omite campos vacíos (total,
 // entrega) en vez de mostrar "No registrado" — un aviso a la dueña no
 // necesita remarcar huecos de datos, solo contar lo que sí se sabe.
+// Plantilla exacta pedida (punto 10). Usa siempre datos reales de
+// normalizarPedidoKit — montoAbonado/saldoPendiente ya vienen en
+// "No registrado" cuando Firestore no tiene el campo (nunca se infiere
+// deuda ni pago desde el estado de entrega). Ningún campo opcional ausente
+// deja una llave, "undefined" ni una línea vacía: si no hay dato, la línea
+// directamente no se agrega.
 export function construirTextoAvisoDuenaKit(kit) {
-  const lineas = kit.items && kit.items.length
-    ? kit.items.map((it) => `• ${it.cantidad} × ${it.nombre}`).join("\n")
-    : (kit.productosResumen && kit.productosResumen.length ? kit.productosResumen.map((p) => `• ${p}`).join("\n") : "• (sin detalle de productos)");
-  const partes = [`🛍️ Tenés un nuevo pedido de kit de ${kit.nombre}.`, "Pidió:", lineas];
-  if (kit.total != null) partes.push(`Total: ${kit.totalTexto}`);
-  if (kit.entrega) partes.push(kit.entrega);
-  partes.push(`Estado: ${kit.estadoPedido || "pendiente"}.`);
-  return partes.join("\n");
+  const nombre = kit.nombre || "Paciente";
+  const lineas = [`Gime, tenés un pedido de kit de ${nombre}.`];
+
+  const refTemporal = kit.fechaPedidoMs != null ? referenciaTemporalConFecha(kit.fechaPedidoMs) : null;
+  const hora = kit.fechaPedidoMs != null ? formatearHoraLocal(kit.fechaPedidoMs) : null;
+  if (refTemporal && hora) lineas.push(`Solicitado: ${refTemporal}, a las ${hora}.`);
+  else if (refTemporal) lineas.push(`Solicitado: ${refTemporal}.`);
+  else lineas.push("Solicitado: fecha no registrada.");
+
+  lineas.push("Productos:");
+  lineas.push(kit.items && kit.items.length
+    ? kit.items.map((it) => {
+        const importe = it.subtotalCompleto ? formatearARS(it.subtotal) : "importe no registrado";
+        const cant = it.cantidad > 1 ? `${it.cantidad} × ` : "";
+        return `• ${cant}${it.nombre} — ${importe}`;
+      }).join("\n")
+    : (kit.productosResumen && kit.productosResumen.length ? kit.productosResumen.map((p) => `• ${p}`).join("\n") : "• (sin detalle de productos)"));
+
+  lineas.push(`Total del pedido: ${kit.totalTexto}.`);
+  if (kit.discrepanciaTotal) lineas.push(`⚠️ El total registrado (${formatearARS(kit.discrepanciaTotal.registrado)}) no coincide con la suma de los productos (${formatearARS(kit.discrepanciaTotal.calculado)}) — revisar.`);
+  lineas.push(`Monto abonado: ${kit.montoAbonadoTexto}.`);
+  lineas.push(`Saldo pendiente: ${kit.saldoPendienteTexto}.`);
+  lineas.push(`Estado: ${kit.estadoPedido || "pendiente"}.`);
+  if (kit.entrega) lineas.push(kit.entrega);
+  if (kit.observaciones) lineas.push(`Nota: ${kit.observaciones}`);
+
+  return lineas.join("\n");
 }
 
 export function construirTextoAvisoDuenaCumpleanosIndividual(nombre, saludoRealizado) {
@@ -823,10 +954,53 @@ export function construirTextoAvisoDuenaCumpleanosDia(personas, nombresPendiente
 
 // item: normalizarItemAgenda() de una consulta. estadoConsulta: salida de
 // estadoConsultaInicial() de más abajo, en español, tal cual va al mensaje.
+// Dos plantillas distintas (punto 10) según si ya tiene turno asignado
+// (fechaIncompleta === false) o es una solicitud todavía sin coordinar
+// (fechaIncompleta === true, hoy sin ningún origen real que la produzca en
+// el proyecto auditado, pero normalizarItemAgenda ya la contempla si algún
+// alta futura crea un documento de consulta sin fecha/hora).
 export function construirTextoAvisoDuenaConsulta(item, estadoConsultaTexto) {
-  const fecha = item.fecha || "fecha a confirmar";
-  const hora = item.hora ? `${item.hora} hs` : "horario a confirmar";
-  return `📅 Consulta inicial de ${item.nombre || "Paciente"}.\nFecha: ${fecha}, ${hora}.\nEstado: ${estadoConsultaTexto}.`;
+  if (item.fechaIncompleta) return construirTextoAvisoDuenaSolicitudConsulta(item);
+  return construirTextoAvisoDuenaConsultaAgendada(item, estadoConsultaTexto);
+}
+
+export function construirTextoAvisoDuenaConsultaAgendada(item, estadoConsultaTexto) {
+  const nombre = item.nombre || "Paciente";
+  const lineas = [`Gime, se agendó una consulta inicial para ${nombre}.`];
+
+  const dia = diaSemanaLegible(item.inicioMs);
+  const fechaTxt = formatearFechaLocal(item.inicioMs);
+  const horaInicio = item.hora ? `${item.hora} hs` : null;
+  const horaFin = item.finMs != null ? formatearHoraLocal(item.finMs) : null;
+  const dur = item.duracionMinutos || 30;
+  if (dia && fechaTxt && horaInicio && horaFin) lineas.push(`Consulta: ${dia} ${fechaTxt}, de ${horaInicio} a ${horaFin} hs — ${dur} minutos.`);
+  else if (item.fecha) lineas.push(`Consulta: ${item.fecha}${item.hora ? ` ${item.hora} hs` : ""}.`);
+
+  if (item.registradoMs != null) lineas.push(`Reserva registrada: ${formatearFechaHoraLocal(item.registradoMs)}.`);
+  if (item.box) lineas.push(`Box: ${item.box}.`);
+  lineas.push(`Estado: ${estadoConsultaTexto || "pendiente"}.`);
+  if (item.detalleSesion) lineas.push(item.detalleSesion);
+
+  return lineas.join("\n");
+}
+
+// Solicitud de consulta SIN turno todavía coordinado. No inventa un
+// patientId: la persona todavía no tiene ficha, se referencia por su
+// registro de consulta (item.id).
+export function construirTextoAvisoDuenaSolicitudConsulta(item) {
+  const nombre = item.nombre || "Paciente";
+  const lineas = [`Gime, recibiste una solicitud de consulta inicial de ${nombre}.`];
+
+  lineas.push(item.registradoMs != null
+    ? `Solicitud registrada: ${referenciaTemporalConFecha(item.registradoMs)}.`
+    : "Solicitud registrada: fecha no registrada.");
+
+  if (item.servicio && item.servicio !== "Consulta Inicial") lineas.push(`Servicio de interés: ${item.servicio}.`);
+  lineas.push("Estado: pendiente de coordinación.");
+  if (item.telefono) lineas.push(`Teléfono de contacto: ${item.telefono}.`);
+  if (item.detalleSesion) lineas.push(item.detalleSesion);
+
+  return lineas.join("\n");
 }
 
 // Los otros tipos de movimiento (confirmación de turno común, turno a

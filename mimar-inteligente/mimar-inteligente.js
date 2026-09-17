@@ -10,7 +10,7 @@ import {
 } from "./firebase-web.js";
 import {
   ZONA_HORARIA, fechaISOEnZona, sumarDiasISO, normalizarItemAgenda, construirAgenda,
-  obtenerProximaReserva, construirTextoConfirmacion, normalizarTelefonoWA,
+  obtenerProximaReserva, construirTextoConfirmacion, normalizarTelefonoWA, validarYNormalizarTelefonoAR,
   construirTextoRecordatorio, construirTextoCumpleanos, construirTextoConsulta, construirTextoKit,
   idContactoParaItem, estadoContacto, etiquetaEstadoContacto, contactoVencido,
   docIdVersionadoContacto, docIdVersionadoCumpleanos,
@@ -105,10 +105,14 @@ let actividadCargandoMas = false;
 let filtroActividad = { ...FILTRO_ACTIVIDAD_VACIO };
 // resumenesCumpleanos/{hoyISO} — null mientras no cargó, luego { estado, personas, generadoAt }
 let cumpleanosHoy = null;
-// configuracion/mimarInteligente.duenaTelefono — compartido entre operadoras
-// (misma colección/reglas que ya usa el resto del panel: lectura abierta,
-// escritura solo admin). null mientras no cargó o no está configurado.
+// configuracion/mimarInteligente.{duenaTelefono,duenaNombre} — responsable
+// del negocio (Gimena), compartido entre operadoras (misma colección/reglas
+// que ya usa el resto del panel: lectura abierta, escritura solo admin).
+// null mientras no cargó o no está configurado. duenaTelefono se guarda ya
+// normalizado a dígitos wa.me (549...) — nunca el texto tal cual lo tipeó
+// quien configuró, para que todo lector lo use igual sin renormalizar.
 let duenaTelefono = null;
+let duenaNombre = null;
 let unsubConfigInteligente = null;
 // Contexto del diálogo "Avisar a la dueña" actualmente abierto:
 // { coleccion, docId, ocurrencia, idAviso, nombreEvento }
@@ -599,7 +603,12 @@ async function iniciarSuscripciones() {
   // existentes (lectura abierta, escritura solo admin), sin cambios de
   // seguridad. Compartido entre quien sea que use la app con la cuenta admin.
   unsubConfigInteligente = onSnapshot(doc(db, "configuracion", "mimarInteligente"),
-    (snap) => { duenaTelefono = snap.exists() ? (snap.data().duenaTelefono || null) : null; renderMas(); },
+    (snap) => {
+      const data = snap.exists() ? snap.data() : {};
+      duenaTelefono = data.duenaTelefono || null;
+      duenaNombre = data.duenaNombre || null;
+      renderMas();
+    },
     (err) => { console.warn("configuracion/mimarInteligente:", err?.message || err); });
 
   // Recomendaciones (GlowUp, punto 3) — tarea manual, texto editable y
@@ -834,14 +843,14 @@ function avisoDuenaPillHtml(coleccion, docId, ocurrencia) {
   const contacto = contactosPorId[idAviso];
   if (estadoContacto(contacto) === "enviado") {
     const ms = contacto?.enviadoAt?.toMillis ? contacto.enviadoAt.toMillis() : null;
-    return `<span class="pill pill-ok">✓ Avisado a la dueña${ms ? " · " + escapeHtml(formatoMomento(ms)) : ""}</span>`;
+    return `<span class="pill pill-ok">✓ Avisado a Gimena${ms ? " · " + escapeHtml(formatoMomento(ms)) : ""}</span>`;
   }
-  return `<span class="pill pill-muted">Sin avisar a la dueña</span>`;
+  return `<span class="pill pill-muted">Sin avisar a Gimena</span>`;
 }
 
 function avisarDuenaBtnHtml(key, coleccion, docId, ocurrencia, texto, nombreEvento) {
   avisoDuenaRegistro.set(key, { coleccion, docId, ocurrencia, texto, nombreEvento });
-  return `<button class="button button-light" type="button" data-avisar-duena="${escapeHtml(key)}"><svg class="icon"><use href="#i-whatsapp"/></svg> Avisar a la dueña</button>`;
+  return `<button class="button button-light" type="button" data-avisar-duena="${escapeHtml(key)}"><svg class="icon"><use href="#i-whatsapp"/></svg> Avisar a Gimena</button>`;
 }
 
 // Arma el texto correcto según el tipo de pendiente, buscando el detalle
@@ -1088,7 +1097,7 @@ function abrirAvisoDuena(key) {
   const ctx = avisoDuenaRegistro.get(key);
   if (!ctx) { toast("No se pudo preparar el aviso."); return; }
   avisoDuenaActual = ctx;
-  $("aviso-duena-titulo").textContent = ctx.nombreEvento || "Aviso a la dueña";
+  $("aviso-duena-titulo").textContent = ctx.nombreEvento || "Aviso a Gimena";
   $("aviso-duena-texto").value = ctx.texto || "";
   $("aviso-duena-status").textContent = "";
   $("aviso-duena-status").className = "dialog-status";
@@ -1172,8 +1181,8 @@ $("btn-aviso-duena-confirmar")?.addEventListener("click", async () => {
   const docIdAviso = docIdVersionadoParaAviso(docId, ocurrencia);
   try {
     const operador = await operadorActual();
-    await registrarContactoManual({ setDoc, doc, serverTimestamp, db, coleccion, docId: docIdAviso, tipoMensaje: TIPO_MENSAJE_AVISO_DUENA, operador, nota: "Avisado a la dueña desde Mimar T Inteligente" });
-    toast("Registrado: ya avisaste a la dueña");
+    await registrarContactoManual({ setDoc, doc, serverTimestamp, db, coleccion, docId: docIdAviso, tipoMensaje: TIPO_MENSAJE_AVISO_DUENA, operador, nota: "Avisado a Gimena desde Mimar T Inteligente" });
+    toast("Registrado: ya avisaste a Gimena");
     cerrarAvisoDuena();
   } catch (e) {
     $("aviso-duena-status").textContent = "No se pudo registrar el aviso.";
@@ -1916,19 +1925,53 @@ function renderMas() {
   if ($("avisos-descanso-inicio")) $("avisos-descanso-inicio").value = prefsAvisos.descansoInicioHora ?? "";
   if ($("avisos-descanso-fin")) $("avisos-descanso-fin").value = prefsAvisos.descansoFinHora ?? "";
 
+  const nombreInput = $("duena-nombre-input");
+  if (nombreInput && document.activeElement !== nombreInput) nombreInput.value = duenaNombre || "";
   const telInput = $("duena-telefono-input");
   if (telInput && document.activeElement !== telInput) telInput.value = duenaTelefono || "";
   const telEstado = $("duena-telefono-estado");
-  if (telEstado) telEstado.textContent = duenaTelefono
-    ? `Configurado: ${duenaTelefono} — "Avisar a la dueña" abre WhatsApp directo con este número.`
-    : `Sin configurar — "Avisar a la dueña" va a ofrecer compartir/copiar el mensaje para que elijas el chat vos misma.`;
+  if (telEstado) {
+    if (duenaTelefono) {
+      const v = validarYNormalizarTelefonoAR(duenaTelefono);
+      telEstado.textContent = v.ok
+        ? `Configurado: ${duenaNombre || "Gimena"} · ${v.mostrable} — "Avisar a Gimena" abre WhatsApp directo con este número.`
+        : `Configurado con un valor que ya no es válido (${duenaTelefono}) — volvé a guardarlo.`;
+    } else {
+      telEstado.textContent = `Sin configurar — "Avisar a Gimena" va a ofrecer compartir/copiar el mensaje para que elijas el chat vos misma.`;
+    }
+  }
 }
 
+// Punto 9: valida y normaliza antes de guardar (nunca guarda tal cual lo
+// tipeó quien lo configuró), muestra un error claro sin guardar nada si el
+// número no cierra a un celular argentino válido, y deja registrado quién
+// hizo el cambio (mismo criterio de trazabilidad que el resto del punto 8).
 $("btn-duena-telefono-guardar")?.addEventListener("click", async () => {
-  const valor = ($("duena-telefono-input")?.value || "").trim();
+  const nombre = ($("duena-nombre-input")?.value || "").trim();
+  const valorTel = ($("duena-telefono-input")?.value || "").trim();
+  const telEstado = $("duena-telefono-estado");
+
+  if (!valorTel) {
+    try {
+      await setDoc(doc(db, "configuracion", "mimarInteligente"), { duenaTelefono: null, duenaNombre: nombre || null, actualizadoPor: (await operadorActual()) || "sistema", updatedAt: serverTimestamp() }, { merge: true });
+      toast("Teléfono quitado" + (nombre ? ` (nombre "${nombre}" guardado)` : ""));
+    } catch (e) { toast("No se pudo guardar: " + (e?.message || e)); }
+    return;
+  }
+
+  const v = validarYNormalizarTelefonoAR(valorTel);
+  if (!v.ok) {
+    if (telEstado) telEstado.textContent = `❌ ${v.error}`;
+    toast("Número inválido — no se guardó nada.");
+    return;
+  }
   try {
-    await setDoc(doc(db, "configuracion", "mimarInteligente"), { duenaTelefono: valor || null, updatedAt: serverTimestamp() }, { merge: true });
-    toast(valor ? "Teléfono de la dueña guardado" : "Teléfono de la dueña quitado");
+    const operador = await operadorActual();
+    await setDoc(doc(db, "configuracion", "mimarInteligente"), {
+      duenaTelefono: v.digitos, duenaNombre: nombre || duenaNombre || "Gimena",
+      actualizadoPor: operador || "sistema", updatedAt: serverTimestamp(),
+    }, { merge: true });
+    toast(`Guardado: ${nombre || duenaNombre || "Gimena"} · ${v.mostrable}`);
   } catch (e) { toast("No se pudo guardar: " + (e?.message || e)); }
 });
 
