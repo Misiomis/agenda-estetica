@@ -83,6 +83,42 @@ async function esperar(fn, { intentos = 20, esperaMs = 500 } = {}) {
   eventos = await esperar(async () => { const e = await contarActivityLog('cursoMaquillaje', cm1.id); return e.length >= 1 ? e : null; }) || [];
   resultados.push(['cursoMaquillaje create -> 1 evento "Nueva inscripción"', eventos.length === 1 && /Nueva inscripción/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
 
+  // 11) Prestación nueva (precio definido) -> debe generar evento
+  await db.collection('prestaciones').doc('presta-testigo-1').set({ reservaId: 'presta-testigo-1', pacienteNombre: 'Prestacion Testigo', precioAcordado: 75000, sinCargo: false });
+  eventos = await esperar(async () => { const e = await contarActivityLog('prestaciones', 'presta-testigo-1'); return e.length >= 1 ? e : null; }) || [];
+  resultados.push(['prestacion create -> 1 evento "Precio registrado" con el monto real', eventos.length === 1 && /Precio registrado.*75\.000/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 12) Esa misma prestación se anula -> debe generar UN evento más "Prestación anulada" (no reescribe el primero)
+  await db.collection('prestaciones').doc('presta-testigo-1').update({ anulada: true, motivoAnulacion: 'prueba automatica' });
+  eventos = await esperar(async () => { const e = await contarActivityLog('prestaciones', 'presta-testigo-1'); return e.length >= 2 ? e : null; }) || eventos;
+  resultados.push(['prestacion anulada -> 2 eventos total, el 2do "Prestación anulada"', eventos.length === 2 && eventos.some(e => /Prestación anulada/.test(e.resumen)), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 13) Pago (cobro) nuevo -> debe generar evento con el monto real, nunca $0 inventado
+  await db.collection('pagos').doc('pago-testigo-1').set({ prestacionId: 'presta-testigo-1', pacienteNombre: 'Prestacion Testigo', monto: 30000, tipo: 'cobro', fechaEfectiva: '2026-09-17' });
+  eventos = await esperar(async () => { const e = await contarActivityLog('pagos', 'pago-testigo-1'); return e.length >= 1 ? e : null; }) || [];
+  resultados.push(['pago create -> 1 evento "Cobro registrado" con el monto real', eventos.length === 1 && /Cobro registrado.*30\.000/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 14) Reintento con el MISMO operationId (mismo id de documento) -> no debe duplicar el evento (idempotencia real)
+  await db.collection('pagos').doc('pago-testigo-1').set({ prestacionId: 'presta-testigo-1', pacienteNombre: 'Prestacion Testigo', monto: 30000, tipo: 'cobro', fechaEfectiva: '2026-09-17' }, { merge: true });
+  await new Promise(res => setTimeout(res, 3000));
+  eventos = await contarActivityLog('pagos', 'pago-testigo-1');
+  resultados.push(['pago reescrito con el mismo contenido (reintento) -> sigue en 1 evento, no duplica el ingreso', eventos.length === 1, JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 15) Devolución -> debe distinguirse del cobro en el resumen
+  await db.collection('pagos').doc('pago-testigo-2').set({ prestacionId: 'presta-testigo-1', pacienteNombre: 'Prestacion Testigo', monto: 10000, tipo: 'devolucion', motivo: 'prueba automatica', fechaEfectiva: '2026-09-17' });
+  eventos = await esperar(async () => { const e = await contarActivityLog('pagos', 'pago-testigo-2'); return e.length >= 1 ? e : null; }) || [];
+  resultados.push(['devolución create -> 1 evento "Devolución registrada" (no "Cobro registrado")', eventos.length === 1 && /Devolución registrada/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 16) Gasto nuevo -> debe generar evento
+  const g1 = await db.collection('gastos').add({ concepto: 'Gasto Testigo', modalidad: 'importe_fijo', montoFijo: 20000, estado: 'pendiente' });
+  eventos = await esperar(async () => { const e = await contarActivityLog('gastos', g1.id); return e.length >= 1 ? e : null; }) || [];
+  resultados.push(['gasto create -> 1 evento "Nuevo gasto"', eventos.length === 1 && /Nuevo gasto/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 17) Ese gasto pasa a pagado -> debe generar evento adicional
+  await g1.update({ estado: 'pagado', fechaPagoEfectiva: '2026-09-17' });
+  eventos = await esperar(async () => { const e = await contarActivityLog('gastos', g1.id); return e.length >= 2 ? e : null; }) || eventos;
+  resultados.push(['gasto marcado pagado -> 2 eventos total, el 2do "Gasto marcado como pagado"', eventos.length === 2 && eventos.some(e => /Gasto marcado como pagado/.test(e.resumen)), JSON.stringify(eventos.map(e=>e.resumen))]);
+
   console.log('\n=== RESULTADOS ===');
   let fallas = 0;
   for (const [nombre, ok, detalle] of resultados) {
