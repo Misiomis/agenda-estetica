@@ -736,7 +736,14 @@
         .grilla-fecha-titulo { flex: 1; text-align: center; font-family: 'Playfair Display', serif; font-size: 1.1em; color: var(--forest); font-weight: 600; min-width: 0; }
         .grilla-tools { display: flex; gap: 8px; padding: 0 4px 12px; flex-wrap: wrap; align-items: center; }
         .grilla-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 0 20px; position: relative; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--surface); }
-        .grilla-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; }
+        /* table-layout:fixed — sin esto, el ancho de cada columna de box se
+           recalculaba según el contenido más ancho presente en pantalla en
+           ese momento (layout automático de tablas), así que el punto de
+           corte del texto cambiaba turno a turno de forma inconsistente.
+           Fijo, cada columna tiene un ancho estable (la de hora, 52px
+           explícitos; las 4 de box se reparten el resto en partes iguales)
+           y el ellipsis de cada tarjeta corta siempre en el mismo lugar. */
+        .grilla-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
         .grilla-table th, .grilla-table td { border: 1px solid var(--border); }
         /* Punto 13: la grilla se veía demasiado pálida (fondos casi blancos
            por caja). Fondo/encabezados/bordes/texto de la grilla pasan a un
@@ -769,9 +776,16 @@
            no repetido en cada celda libre. */
         .grilla-celda-ocupada { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 3px 7px 3px 9px; height: 100%; border-radius: 7px; background: var(--surface); border: 1px solid var(--border-strong); border-left: 3px solid var(--box-accent, var(--sage)); cursor: pointer; overflow: hidden; }
         .grilla-celda-ocupada:hover { background: var(--sage-soft); }
-        .grilla-paciente-nombre { font-size: 11px; font-weight: 700; color: var(--forest); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-        .grilla-paciente-servicio { font-size: 9px; color: var(--sage-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-        .gc-sigue, .gc-ya-sede { display: block; margin-top: 3px; font-size: 8px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--gold); line-height: 1.2; }
+        /* width:100% (no solo max-width) — dentro de .grilla-celda-ocupada
+           (flex column, align-items:flex-start) un hijo NO se estira solo al
+           ancho del contenedor, así que max-width:100% no alcanzaba a fijar
+           un límite real: el texto largo empujaba el span más allá del borde
+           visible y la celda lo cortaba en seco, sin "…". Con width:100% el
+           span sí queda acotado al ancho real de la tarjeta y el ellipsis
+           se aplica de verdad. */
+        .grilla-paciente-nombre { display: block; width: 100%; box-sizing: border-box; font-size: 11px; font-weight: 700; color: var(--forest); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .grilla-paciente-servicio { display: block; width: 100%; box-sizing: border-box; font-size: 9px; color: var(--sage-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gc-sigue, .gc-ya-sede { display: block; width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; font-size: 8px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--gold); line-height: 1.2; }
         .grilla-celda-ocupada.gc-continua { border-left: 2.5px solid var(--gold) !important; }
         .gc-bloque-cont { cursor: pointer; justify-content: flex-end; padding: 0 4px; }
         .gc-bloque-cont:hover { background: #CFE0D4 !important; }
@@ -11369,7 +11383,13 @@
                     if (slotData) {
                         const { type, res } = slotData;
                         const nom  = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
-                        const srv  = escapeHtml((res.servicio || '').slice(0,22));
+                        // Antes se cortaba a 22 caracteres a mano (sin "…"), lo que
+                        // partía nombres de servicio largos a mitad de palabra
+                        // ("Tratamientos Corporale", "Tratamiento Detox Dren").
+                        // El texto completo se manda entero — el corte visual real
+                        // lo hace el CSS (text-overflow: ellipsis), que se adapta al
+                        // ancho real de la celda en vez de un límite de caracteres fijo.
+                        const srv  = escapeHtml(res.servicio || '');
                         const circ = _cm.get(res.id);
                         const circCls = circ?.isTarget ? ' gc-continua' : '';
                         // Bordess de la celda: eliminar borde entre slots del mismo bloque
