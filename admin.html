@@ -738,14 +738,21 @@
         .grilla-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 0 20px; position: relative; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--surface); }
         .grilla-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; }
         .grilla-table th, .grilla-table td { border: 1px solid var(--border); }
+        /* Punto 13: la grilla se veía demasiado pálida (fondos casi blancos
+           por caja). Fondo/encabezados/bordes/texto de la grilla pasan a un
+           verde salvia moderado y propio de ella (variables locales, no se
+           tocan --surface/--surface-2 globales) — la identidad de cada box
+           queda en su ícono, etiqueta y color de acento (border-bottom del
+           encabezado, franja izquierda de cada turno), no en el fondo. */
+        .grilla-scroll-wrap { --grilla-fondo: #C4D5C1; --grilla-header: #96B498; --grilla-borde: #78967C; --grilla-texto: #2F4934; }
         .grilla-th-hora {
-            width: 52px; min-width: 52px; text-align: center; font-size: 10px; color: var(--ink-soft); font-weight: 700;
-            letter-spacing: .04em; padding: 10px 4px; background: var(--surface-2) !important;
+            width: 52px; min-width: 52px; text-align: center; font-size: 10px; color: var(--grilla-texto); font-weight: 700;
+            letter-spacing: .04em; padding: 10px 4px; background: var(--grilla-header) !important;
             position: sticky; left: 0; z-index: 6;
         }
-        .grilla-th-box { text-align: center; font-size: 11.5px; font-weight: 800; letter-spacing: .03em; padding: 10px 6px; color: var(--ink); min-width: 122px; }
-        .grilla-box-sub { display: block; font-size: 9px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); margin-top: 2px; }
-        .grilla-td-hora { text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-soft); padding: 0 2px; background: var(--surface-2); position: sticky; left: 0; z-index: 2; white-space: nowrap; }
+        .grilla-th-box { text-align: center; font-size: 11.5px; font-weight: 800; letter-spacing: .03em; padding: 10px 6px; color: var(--grilla-texto); min-width: 122px; background: var(--grilla-header); }
+        .grilla-box-sub { display: block; font-size: 9px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--grilla-texto); opacity: .75; margin-top: 2px; }
+        .grilla-td-hora { text-align: center; font-size: 11px; font-weight: 700; color: var(--grilla-texto); padding: 0 2px; background: var(--grilla-fondo); position: sticky; left: 0; z-index: 2; white-space: nowrap; }
         .grilla-td-box { padding: 3px 4px; height: 40px; vertical-align: middle; }
         .grilla-row-15 .grilla-td-hora { color: #A9B3A6; font-size: 9.5px; }
         .grilla-row-15 .grilla-td-box { height: 32px; }
@@ -780,9 +787,9 @@
         .grilla-celda-default-bloq .gcb-txt { color: #9AA396; }
         .grilla-sep-row td { padding: 3px 0 !important; height: auto !important; border: none !important; }
         .grilla-sep-cell { text-align: center; color: var(--border-strong); font-size: 11px; letter-spacing: .2em; }
-        .grilla-table thead th { position: sticky; top: var(--topbar-h); z-index: 5; background-color: var(--surface-2); box-shadow: 0 1px 0 var(--border); }
+        .grilla-table thead th { position: sticky; top: var(--topbar-h); z-index: 5; background-color: var(--grilla-header, var(--surface-2)); box-shadow: 0 1px 0 var(--grilla-borde, var(--border)); }
         @media (max-width: 768px) { .grilla-table thead th { top: 0; } }
-        .grilla-mini-header td { padding: 5px 2px; height: auto; background: var(--surface-2); border-top: 1px solid var(--border-strong) !important; border-bottom: 1px solid var(--border-strong) !important; }
+        .grilla-mini-header td { padding: 5px 2px; height: auto; background: var(--grilla-header, var(--surface-2)); border-top: 1px solid var(--grilla-borde, var(--border-strong)) !important; border-bottom: 1px solid var(--grilla-borde, var(--border-strong)) !important; }
         .grilla-mini-th { text-align: center; font-size: 11px; font-weight: 800; color: var(--ink-soft); letter-spacing: .04em; }
         .gth-short { display: none; }
         .consI-slot-btn { padding: 9px 4px; border-radius: 9px; border: 1px solid #E2C2BE; font-size: 12.5px; font-weight: 700; text-align: center; cursor: pointer; background: var(--danger-soft); color: var(--danger); font-family: inherit; transition: background .14s, border-color .14s, color .14s; }
@@ -1394,10 +1401,10 @@
                         <thead>
                             <tr>
                                 <th class="grilla-th-hora">Hora</th>
-                                <th class="grilla-th-box" style="background:#F7EDF6;border-bottom:3px solid #844578"><span class="gth-full">⬜ Box 1<span class="grilla-box-sub">General</span></span><span class="gth-short">⬜ B1</span></th>
-                                <th class="grilla-th-box" style="background:#EAF2FC;border-bottom:3px solid #315E95"><span class="gth-full">💎 Box 2<span class="grilla-box-sub">Corporal</span></span><span class="gth-short">💎 B2</span></th>
-                                <th class="grilla-th-box" style="background:#F0ECFA;border-bottom:3px solid #665096"><span class="gth-full">✨ Box 3<span class="grilla-box-sub">Facial</span></span><span class="gth-short">✨ B3</span></th>
-                                <th class="grilla-th-box" style="background:#E8F5EE;border-bottom:3px solid #2F7050"><span class="gth-full">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></span><span class="gth-short">🌿 B4</span></th>
+                                <th class="grilla-th-box" style="border-bottom:3px solid #844578"><span class="gth-full">⬜ Box 1<span class="grilla-box-sub">General</span></span><span class="gth-short">⬜ B1</span></th>
+                                <th class="grilla-th-box" style="border-bottom:3px solid #315E95"><span class="gth-full">💎 Box 2<span class="grilla-box-sub">Corporal</span></span><span class="gth-short">💎 B2</span></th>
+                                <th class="grilla-th-box" style="border-bottom:3px solid #665096"><span class="gth-full">✨ Box 3<span class="grilla-box-sub">Facial</span></span><span class="gth-short">✨ B3</span></th>
+                                <th class="grilla-th-box" style="border-bottom:3px solid #2F7050"><span class="gth-full">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></span><span class="gth-short">🌿 B4</span></th>
                             </tr>
                         </thead>
                         <tbody id="grilla-tbody">
@@ -10546,11 +10553,16 @@
         // identificación fuerte, reservado a encabezados, franja de turnos e
         // indicadores — no se repite como borde en cada celda vacía, para no
         // saturar la grilla de color donde no aporta información.
+        // Punto 13: fondo de celda unificado a un verde salvia moderado (antes
+        // 4 pasteles casi blancos por box, que es lo que se veía "pálido").
+        // La identidad de cada box queda en su ícono/etiqueta (encabezado) y
+        // en "accent" (franja izquierda de cada turno ocupado) — sin esos dos,
+        // unificar el fondo sí perdería la distinción; con ellos, no.
         const GRILLA_BOXES = [
-            { id:'b1', num:1, label:'Box 1', title:'Box 1', sub:'General Corporal', icon:'⬜', bg:'#F7EDF6', border:'var(--border)', accent:'#844578' },
-            { id:'b2', num:2, label:'Box 2', title:'Box 2', sub:'Corporal',          icon:'💎', bg:'#EAF2FC', border:'var(--border)', accent:'#315E95' },
-            { id:'b3', num:3, label:'Box 3', title:'Box 3', sub:'Facial',            icon:'✨', bg:'#F0ECFA', border:'var(--border)', accent:'#665096' },
-            { id:'b4', num:4, label:'Box 4', title:'Box 4', sub:'Relax Corporal',    icon:'🌿', bg:'#E8F5EE', border:'var(--border)', accent:'#2F7050' },
+            { id:'b1', num:1, label:'Box 1', title:'Box 1', sub:'General Corporal', icon:'⬜', bg:'#C4D5C1', border:'#78967C', accent:'#844578' },
+            { id:'b2', num:2, label:'Box 2', title:'Box 2', sub:'Corporal',          icon:'💎', bg:'#C4D5C1', border:'#78967C', accent:'#315E95' },
+            { id:'b3', num:3, label:'Box 3', title:'Box 3', sub:'Facial',            icon:'✨', bg:'#C4D5C1', border:'#78967C', accent:'#665096' },
+            { id:'b4', num:4, label:'Box 4', title:'Box 4', sub:'Relax Corporal',    icon:'🌿', bg:'#C4D5C1', border:'#78967C', accent:'#2F7050' },
         ];
         // Aplica overrides de labels guardados en Firestore (se parchean después de cargar)
         const _aplicarBoxLabels = (overrides) => {
