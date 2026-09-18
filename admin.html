@@ -5468,6 +5468,14 @@
             if (contForm) contForm.style.display = "none";
             filtrarListadoClientes();
             buscarClientePorDni(true);
+            // Botón "✏️ Editar" en cada tarjeta (restaurado): además de cargar
+            // los datos, abre el formulario (estaba colapsado) y hace scroll
+            // hasta ahí — si no, quedaba lleno pero invisible fuera de pantalla.
+            const detForm = document.getElementById("detCliForm");
+            if (detForm) {
+                detForm.open = true;
+                setTimeout(() => detForm.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            }
         };
         
         // Trae cursoMaquillaje UNA vez (reutiliza _cursosCache si ya se visitó
@@ -5566,7 +5574,11 @@
                         <span class="pill reservado">Horas: ${escapeHtml((p.hoursBalance ?? 0).toString())}</span>
                         ${pillClasif}${pillCursos}
                     </div>
-                    <div style="margin-top:8px;">
+                    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                        <button onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni || '')}')"
+                            style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid #b5cce8;background:#f3f8ff;cursor:pointer;color:#2e61b1;font-weight:700;">
+                            ✏️ Editar
+                        </button>
                         <button onclick="toggleMembresiaCliente('${escapeHtml(p.dni || '')}', ${!p.membershipActive})"
                             style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid ${p.membershipActive ? 'var(--border)' : 'rgba(114,189,153,0.35)'};background:${p.membershipActive ? 'var(--surface-2)' : 'rgba(53,122,92,0.14)'};cursor:pointer;color:rgba(22,61,50,0.90);font-weight:700;">
                             ${p.membershipActive ? 'Cambiar a Ocasional' : 'Cambiar a Membresía'}
