@@ -5,11 +5,13 @@
 // sin listeners duplicados).
 import {
   db, auth, collection, query, where, orderBy, limit, startAfter, onSnapshot, doc, getDoc, getDocs,
-  getDocFromServer, setDoc, updateDoc, serverTimestamp,
+  getDocFromServer, setDoc, updateDoc, serverTimestamp, documentId,
   onAuthStateChanged, signInWithEmailAndPassword, signOut,
 } from "./firebase-web.js";
 import {
   ZONA_HORARIA, fechaISOEnZona, sumarDiasISO, normalizarItemAgenda, construirAgenda,
+  inicioTurnoMs, pacienteMatchKey, agruparBloquesDelDia, historialAnteriorPaciente,
+  construirTextoResumenJornada, CORTE_MANANA_TARDE_DEFECTO,
   obtenerProximaReserva, construirTextoConfirmacion, normalizarTelefonoWA, validarYNormalizarTelefonoAR,
   construirTextoRecordatorio, construirTextoCumpleanos, construirTextoConsulta, construirTextoKit,
   idContactoParaItem, estadoContacto, etiquetaEstadoContacto, contactoVencido,
@@ -115,6 +117,8 @@ let cumpleanosHoy = null;
 // quien configuró, para que todo lector lo use igual sin renormalizar.
 let duenaTelefono = null;
 let duenaNombre = null;
+let corteMananaTarde = CORTE_MANANA_TARDE_DEFECTO;
+let corteMananaTardeConfigurado = false;
 let unsubConfigInteligente = null;
 // Contexto del diálogo "Avisar a la dueña" actualmente abierto:
 // { coleccion, docId, ocurrencia, idAviso, nombreEvento }
@@ -609,6 +613,12 @@ async function iniciarSuscripciones() {
       const data = snap.exists() ? snap.data() : {};
       duenaTelefono = data.duenaTelefono || null;
       duenaNombre = data.duenaNombre || null;
+      // Corte mañana/tarde (punto 2 del pedido de Resumen de jornada): "si
+      // falta, incorporá un corte configurable con 12:00 como valor
+      // inicial" — CORTE_MANANA_TARDE_DEFECTO es ese valor inicial
+      // documentado, nunca un número mágico sin explicar.
+      corteMananaTardeConfigurado = /^\d{2}:\d{2}$/.test(data.corteMananaTarde || "");
+      corteMananaTarde = corteMananaTardeConfigurado ? data.corteMananaTarde : CORTE_MANANA_TARDE_DEFECTO;
       renderMas();
     },
     (err) => { console.warn("configuracion/mimarInteligente:", err?.message || err); });
@@ -1360,6 +1370,188 @@ $("btn-compartir-cumpleanos")?.addEventListener("click", async () => {
   else if (!resultado) toast("No se pudo compartir ni copiar — reintentá.");
 });
 
+// ══════════════════════════════════════════════════════════════════════
+// Resumen de jornada — pacientes únicos, cambios de box e historial
+// ══════════════════════════════════════════════════════════════════════
+// Consulta Firestore de nuevo cada vez que se genera/actualiza (nunca
+// queda en vivo con onSnapshot) — el pedido pide "datos actuales al
+// generar", no un panel reactivo. Fuente única: reservas, mismo criterio
+// que window.renderGrilla en admin.html (la Grilla tampoco mezcla
+// consultas iniciales, que tienen su propio flujo de 30 min aparte).
+function _fechaLegibleResumenJornada(fechaISO) {
+  const ms = inicioTurnoMs(fechaISO, "00:00");
+  if (ms == null) return fechaISO;
+  // diaSemanaLegible/formatearFechaLocal resuelven contra un ms epoch con
+  // zona horaria explícita — a propósito NO se usa "new Date(y,m-1,d)"
+  // (como fechaLindaHoy) para este texto: ese patrón arma la fecha con el
+  // huso LOCAL del dispositivo y recién después la formatea con el huso
+  // del negocio, lo que puede correr el día de la semana si el teléfono
+  // tiene otro huso — exactamente el desplazamiento que el pedido pide
+  // evitar.
+  return `${diaSemanaLegible(ms)} ${formatearFechaLocal(ms)}`;
+}
+
+// Trae una colección completa paginando de a 500 (punto 1: "con
+// paginación si corresponde") — necesario acá porque hace falta el
+// historial COMPLETO de cada paciente (cualquier fecha), no solo
+// hoy/mañana como el resto del panel.
+async function _obtenerColeccionCompleta(nombreColeccion) {
+  const docs = [];
+  let cursor = null;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    let q = query(collection(db, nombreColeccion), orderBy(documentId()), limit(500));
+    if (cursor) q = query(collection(db, nombreColeccion), orderBy(documentId()), startAfter(cursor), limit(500));
+    const snap = await getDocs(q);
+    if (snap.empty) break;
+    snap.forEach((d) => docs.push(d));
+    cursor = snap.docs[snap.docs.length - 1].id;
+    if (snap.docs.length < 500) break;
+  }
+  return docs;
+}
+
+// estado: 'idle' | 'cargando' | 'ok' | 'error'. Nunca se muestra un
+// resumen "ok" con datos parciales: un error de lectura queda marcado
+// como tal (punto 1: "diferenciá 'sin registros' de 'falló la
+// consulta'").
+let resumenJornada = { estado: "idle", fechaISO: null, texto: "", actualizadoMs: null, error: null };
+
+function renderResumenJornada() {
+  const estadoEl = $("resumen-jornada-estado");
+  const previewWrap = $("resumen-jornada-preview-wrap");
+  const textoEl = $("resumen-jornada-texto");
+  const waBtn = $("btn-resumen-jornada-whatsapp");
+  const btnGenerar = $("btn-generar-resumen-jornada");
+
+  if (btnGenerar) btnGenerar.disabled = resumenJornada.estado === "cargando";
+
+  if (estadoEl) {
+    if (resumenJornada.estado === "cargando") estadoEl.textContent = "Consultando Firestore…";
+    else if (resumenJornada.estado === "error") estadoEl.textContent = `⚠️ No se pudo generar el resumen: ${resumenJornada.error}. Esto es un error de conexión/lectura, no significa que no haya pacientes — reintentá.`;
+    else if (resumenJornada.estado === "ok") estadoEl.textContent = `Actualizado: ${formatoMomento(resumenJornada.actualizadoMs)} hs.`;
+    else estadoEl.textContent = "Todavía no se generó ningún resumen.";
+  }
+
+  if (previewWrap) previewWrap.hidden = resumenJornada.estado !== "ok";
+  if (resumenJornada.estado === "ok") {
+    if (textoEl && document.activeElement !== textoEl) textoEl.value = resumenJornada.texto;
+    if (waBtn) waBtn.hidden = !duenaTelefono;
+  }
+}
+
+// Filtra por identidad (pacienteMatchKey) y fecha ANTERIOR al día
+// seleccionado — el historial es obligatorio por paciente (punto 3), así
+// que un fallo acá se marca por-paciente, sin tirar abajo el resto del
+// resumen ni fingir "sin sesiones previas" (que significa algo distinto).
+function _historialDeBloque(bloque, todasActivas, fechaSeleccionadaISO) {
+  try {
+    const anteriores = todasActivas.filter((r) => r.fecha && r.fecha < fechaSeleccionadaISO && pacienteMatchKey(r) === bloque.pacienteKey);
+    return { estado: "ok", ...historialAnteriorPaciente(anteriores) };
+  } catch (e) {
+    return { estado: "error", error: e?.message || String(e) };
+  }
+}
+
+async function generarResumenJornada() {
+  const fechaISO = ($("resumen-jornada-fecha")?.value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaISO)) { toast("Elegí una fecha válida."); return; }
+
+  resumenJornada = { estado: "cargando", fechaISO, texto: "", actualizadoMs: null, error: null };
+  renderResumenJornada();
+
+  let docsReservas;
+  try {
+    docsReservas = await _obtenerColeccionCompleta("reservas");
+  } catch (e) {
+    resumenJornada = { estado: "error", fechaISO, texto: "", actualizadoMs: null, error: e?.code || e?.message || "error desconocido" };
+    renderResumenJornada();
+    return;
+  }
+
+  // Se normaliza con la MISMA función que el resto del panel — no
+  // reinterpreta estados a mano. clientesPorDni ya está cargado (login).
+  const todasLasReservas = docsReservas.map((d) => normalizarItemAgenda("reservas", d.id, d.data(), clientesPorDni));
+  const todasActivas = todasLasReservas.filter((r) => r.activa);
+  // Nota de alcance: no existe ningún estado de "ausente"/no-show en este
+  // modelo de datos (confirmado en el código real) — solo "cancelado" y
+  // "confirmado". No se inventa una categoría de ausencias que Firestore
+  // no registra; se excluyen únicamente cancelaciones/anuladas.
+  const reservasDelDia = todasActivas.filter((r) => r.fecha === fechaISO);
+
+  const bloques = agruparBloquesDelDia(reservasDelDia, corteMananaTarde);
+  const historialPorPaciente = new Map(bloques.map((b) => [b.pacienteKey, _historialDeBloque(b, todasActivas, fechaISO)]));
+
+  const boxLabelDe = (id) => boxLabel(id);
+  const texto = construirTextoResumenJornada({
+    fechaLegible: _fechaLegibleResumenJornada(fechaISO),
+    bloques, historialPorPaciente, boxLabelDe,
+  });
+
+  resumenJornada = { estado: "ok", fechaISO, texto, actualizadoMs: Date.now(), error: null };
+  renderResumenJornada();
+}
+
+$("btn-generar-resumen-jornada")?.addEventListener("click", () => { generarResumenJornada(); });
+
+// Default: hoy en la zona horaria del negocio (nunca la fecha local del
+// dispositivo, que puede diferir del huso de Buenos Aires).
+(function _inicializarFechaResumenJornada() {
+  const input = $("resumen-jornada-fecha");
+  if (input && !input.value) input.value = fechaISOEnZona();
+})();
+
+// Mismo registro honesto que "Avisar a Gimena": "preparado" al abrir
+// WhatsApp/copiar (nunca "enviado" solo por eso), "enviado" únicamente
+// con la confirmación manual explícita.
+function _idContactoResumenJornada() {
+  return { coleccion: "resumenesJornada", docId: resumenJornada.fechaISO, tipoMensaje: "resumen_jornada" };
+}
+
+$("btn-resumen-jornada-whatsapp")?.addEventListener("click", async () => {
+  if (resumenJornada.estado !== "ok" || !duenaTelefono) return;
+  const texto = $("resumen-jornada-texto")?.value || resumenJornada.texto;
+  try {
+    const operador = await operadorActual();
+    const { coleccion, docId, tipoMensaje } = _idContactoResumenJornada();
+    await registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion, docId, tipoMensaje, operador });
+  } catch (e) { console.warn("No se pudo registrar el resumen de jornada como preparado:", e); }
+  window.open(`https://wa.me/${normalizarTelefonoWA(duenaTelefono)}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+});
+
+$("btn-resumen-jornada-copiar")?.addEventListener("click", async () => {
+  const texto = $("resumen-jornada-texto")?.value || "";
+  const envioEstado = $("resumen-jornada-envio-estado");
+  try {
+    await navigator.clipboard.writeText(texto);
+    toast("Resumen copiado");
+    if (resumenJornada.estado === "ok") {
+      try {
+        const operador = await operadorActual();
+        const { coleccion, docId, tipoMensaje } = _idContactoResumenJornada();
+        await registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion, docId, tipoMensaje, operador });
+      } catch (e) { console.warn("No se pudo registrar el resumen de jornada como preparado:", e); }
+    }
+  } catch (e) {
+    $("resumen-jornada-texto")?.select();
+    if (envioEstado) envioEstado.textContent = "No se pudo copiar automáticamente — el texto ya quedó seleccionado para copiar a mano.";
+  }
+});
+
+$("btn-resumen-jornada-confirmar")?.addEventListener("click", async () => {
+  if (resumenJornada.estado !== "ok") return;
+  const envioEstado = $("resumen-jornada-envio-estado");
+  try {
+    const operador = await operadorActual();
+    const { coleccion, docId, tipoMensaje } = _idContactoResumenJornada();
+    await registrarContactoManual({ setDoc, doc, serverTimestamp, db, coleccion, docId, tipoMensaje, operador, nota: "Resumen de jornada avisado a Gimena desde Mimar T Inteligente" });
+    toast("Registrado: ya avisaste a Gimena");
+    if (envioEstado) envioEstado.textContent = "Registrado como avisado.";
+  } catch (e) {
+    if (envioEstado) envioEstado.textContent = "No se pudo registrar el aviso: " + (e?.message || e);
+  }
+});
+
 function renderAgenda(agenda, hoyISO, mananaISO) {
   const cont = $("lista-agenda");
   if (fuentes.reservas.estado === "cargando" || fuentes.consultas.estado === "cargando") {
@@ -2083,6 +2275,15 @@ function renderMas() {
       telEstado.textContent = `Sin configurar — "Avisar a Gimena" va a ofrecer compartir/copiar el mensaje para que elijas el chat vos misma.`;
     }
   }
+
+  const corteInput = $("corte-manana-tarde-input");
+  if (corteInput && document.activeElement !== corteInput) corteInput.value = corteMananaTarde || CORTE_MANANA_TARDE_DEFECTO;
+  const corteEstado = $("corte-manana-tarde-estado");
+  if (corteEstado) {
+    corteEstado.textContent = corteMananaTardeConfigurado
+      ? `Configurado: a partir de las ${corteMananaTarde} un ingreso cuenta como "tarde".`
+      : `Usando el valor inicial (${CORTE_MANANA_TARDE_DEFECTO}) — todavía no se configuró uno propio.`;
+  }
 }
 
 // Punto 9: valida y normaliza antes de guardar (nunca guarda tal cual lo
@@ -2115,6 +2316,25 @@ $("btn-duena-telefono-guardar")?.addEventListener("click", async () => {
       actualizadoPor: operador || "sistema", updatedAt: serverTimestamp(),
     }, { merge: true });
     toast(`Guardado: ${nombre || duenaNombre || "Gimena"} · ${v.mostrable}`);
+  } catch (e) { toast("No se pudo guardar: " + (e?.message || e)); }
+});
+
+// Corte mañana/tarde configurable (punto 2 del pedido de Resumen de
+// jornada) — mismo doc/reglas que duenaTelefono, sin cambios de seguridad.
+$("btn-corte-manana-tarde-guardar")?.addEventListener("click", async () => {
+  const valor = ($("corte-manana-tarde-input")?.value || "").trim();
+  const corteEstado = $("corte-manana-tarde-estado");
+  if (!/^\d{2}:\d{2}$/.test(valor)) {
+    if (corteEstado) corteEstado.textContent = "❌ Ingresá una hora válida (HH:MM, 24 horas).";
+    toast("Hora inválida — no se guardó nada.");
+    return;
+  }
+  try {
+    const operador = await operadorActual();
+    await setDoc(doc(db, "configuracion", "mimarInteligente"), {
+      corteMananaTarde: valor, actualizadoPorCorte: operador || "sistema", updatedAt: serverTimestamp(),
+    }, { merge: true });
+    toast(`Guardado: corte a las ${valor}`);
   } catch (e) { toast("No se pudo guardar: " + (e?.message || e)); }
 });
 

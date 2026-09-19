@@ -20,6 +20,8 @@ import {
   construirTextoAvisoDuenaConsultaAgendada, construirTextoAvisoDuenaSolicitudConsulta,
   franjaDeHora, fechaAvisoConfirmacion, agruparPendientesPorDia, textoTurnoConDia,
   construirInformeGimena,
+  pacienteMatchKey, encadenarSesiones, agruparBloquesDelDia, historialAnteriorPaciente,
+  construirTextoResumenJornada, TOLERANCIA_CONTINUIDAD_BOX_MS,
 } from '../../mimar-inteligente/mimar-inteligente-logic.js';
 
 let fails = 0;
@@ -661,6 +663,115 @@ console.log('\n=== Informe de actividad para Gimena (punto 11) ===');
 
   const rNegativo = construirInformeGimena({ periodoLabel: 'mes con devoluciones altas', fechaDesdeISO: '2026-09-01', fechaHastaISO: '2026-09-30', fechaCorteISO: '2026-09-30', eventos: [], cobros: 10000, devoluciones: 30000, gastosPagados: 5000 });
   check('un período con devoluciones mayores a los cobros da neto negativo real, sin aplanarlo a cero', rNegativo.totales.cobrosNetos === -20000 && rNegativo.totales.netoCaja === -25000);
+}
+
+console.log('\n=== Resumen de jornada: pacienteMatchKey (DNI prioritario, nombre normalizado de respaldo) ===');
+{
+  check('con DNI usa "dni:" + solo dígitos', pacienteMatchKey({ dni: '30.111.222', nombre: 'Ana' }) === 'dni:30111222');
+  check('sin DNI cae al nombre normalizado (sin tildes, minúscula)', pacienteMatchKey({ dni: '', nombre: 'María Gómez' }) === 'nom:maria gomez');
+  check('dos homónimos SIN DNI cargado comparten clave (limitación documentada del modelo)', pacienteMatchKey({ nombre: 'Ana Pérez' }) === pacienteMatchKey({ nombre: 'ana perez' }));
+  check('mismo nombre pero DNI distinto → claves distintas (el caso real que sí se puede resolver)', pacienteMatchKey({ dni: '111', nombre: 'Ana' }) !== pacienteMatchKey({ dni: '222', nombre: 'Ana' }));
+}
+
+console.log('\n=== Resumen de jornada: encadenarSesiones (dos boxes consecutivos vs. retiro y regreso) ===');
+{
+  const t1 = normalizarItemAgenda('reservas', 't1', { nombre: 'Ana', dni: '111', fecha: HOY, hora: '08:30', box: 'b2', servicio: 'Facial', duracionMinutos: 60 });
+  const t2 = normalizarItemAgenda('reservas', 't2', { nombre: 'Ana', dni: '111', fecha: HOY, hora: '09:30', box: 'b3', servicio: 'Drenaje', duracionMinutos: 60 }); // arranca justo cuando termina t1: misma sesión
+  const sesionesContiguas = encadenarSesiones([t1, t2]);
+  check('dos boxes consecutivos sin hueco → UNA sola sesión con los dos tramos', sesionesContiguas.length === 1 && sesionesContiguas[0].length === 2);
+
+  const t3 = normalizarItemAgenda('reservas', 't3', { nombre: 'Ana', dni: '111', fecha: HOY, hora: '15:00', box: 'b1', servicio: 'Otro', duracionMinutos: 60 }); // vuelve horas después, otro box
+  const sesionesConRegreso = encadenarSesiones([t1, t2, t3]);
+  check('retiro y regreso horas después → sesión aparte, NO se fusiona con la anterior', sesionesConRegreso.length === 2);
+  check('la sesión de la mañana conserva sus dos tramos', sesionesConRegreso[0].length === 2);
+  check('la sesión de la tarde queda sola', sesionesConRegreso[1].length === 1);
+
+  const t4 = normalizarItemAgenda('reservas', 't4', { nombre: 'Ana', dni: '111', fecha: HOY, hora: '11:00', box: 'b1', servicio: 'Otro', duracionMinutos: 60 }); // t2 termina 10:30; arranca 30 min después, justo en el límite de la tolerancia
+  const sesionesLimite = encadenarSesiones([t1, t2, t4], TOLERANCIA_CONTINUIDAD_BOX_MS);
+  check('un hueco exactamente igual a la tolerancia sigue siendo la misma sesión (borde inclusive)', sesionesLimite.length === 1);
+
+  // Tramo que termina cerca de medianoche y otro que arranca minutos después
+  // ya en el día calendario siguiente — el hueco REAL es chico (5 min, bien
+  // adentro de la tolerancia), pero fecha ("YYYY-MM-DD") es distinta: debe
+  // quedar como dos sesiones igual, nunca encadenar cruzando la medianoche.
+  const tardeNoche = normalizarItemAgenda('reservas', 't6', { nombre: 'Ana', dni: '111', fecha: HOY, hora: '23:30', box: 'b2', servicio: 'Facial', duracionMinutos: 60 }); // termina 00:30 del día siguiente
+  const madrugada = normalizarItemAgenda('reservas', 't7', { nombre: 'Ana', dni: '111', fecha: '2026-09-11', hora: '00:35', box: 'b3', servicio: 'Otro', duracionMinutos: 60 }); // 5 min después en tiempo real, pero YA es el día siguiente
+  const sesionesOtroDia = encadenarSesiones([tardeNoche, madrugada]);
+  check('nunca encadena a través de un día calendario distinto, aunque el hueco horario real sea chico', sesionesOtroDia.length === 2);
+}
+
+console.log('\n=== Resumen de jornada: agruparBloquesDelDia (bloque único, continuidad, franjas) ===');
+{
+  const t1 = normalizarItemAgenda('reservas', 't1', { nombre: 'Ana Gómez', dni: '111', fecha: HOY, hora: '08:30', box: 'b2', servicio: 'Facial', duracionMinutos: 60 });
+  const t2 = normalizarItemAgenda('reservas', 't2', { nombre: 'Ana Gómez', dni: '111', fecha: HOY, hora: '09:30', box: 'b3', servicio: 'Drenaje', duracionMinutos: 60 });
+  const cancelada = normalizarItemAgenda('reservas', 'tC', { nombre: 'Cancelada', dni: '999', fecha: HOY, hora: '08:00', box: 'b1', servicio: 'Facial', estado: 'cancelado' });
+  const bloques = agruparBloquesDelDia([t1, t2, cancelada].filter((r) => r.activa));
+  check('la reserva cancelada nunca entra a los bloques (se filtra ANTES de llamar)', bloques.length === 1);
+  check('una persona que cambia de box dos veces cuenta UNA sola vez', bloques.length === 1 && bloques[0].tramos.length === 2);
+  check('el segundo tramo queda marcado como continuación ("Continúa en sede")', bloques[0].tramos[0].continuaEnSede === false && bloques[0].tramos[1].continuaEnSede === true);
+  check('la franja se calcula por el PRIMER ingreso (08:30 → mañana)', bloques[0].franja === 'mañana');
+  check('no cruza de franja (ambos tramos son de mañana)', bloques[0].cruzaFranja === false);
+
+  const tM = normalizarItemAgenda('reservas', 'tM', { nombre: 'Beto Cruz', dni: '222', fecha: HOY, hora: '11:30', box: 'b1', servicio: 'Consulta', duracionMinutos: 60 }); // termina 12:30
+  const tT = normalizarItemAgenda('reservas', 'tT', { nombre: 'Beto Cruz', dni: '222', fecha: HOY, hora: '12:45', box: 'b2', servicio: 'Otro', duracionMinutos: 30 }); // 15 min después, cruza el corte de las 12:00
+  const bloquesCruce = agruparBloquesDelDia([tM, tT]);
+  check('ingresó a las 11:30 (mañana) pero un tramo cae después del corte → cruzaFranja=true', bloquesCruce[0].franja === 'mañana' && bloquesCruce[0].cruzaFranja === true);
+
+  const solo = normalizarItemAgenda('reservas', 'tS', { nombre: 'Cati Paz', dni: '333', fecha: HOY, hora: '16:00', box: 'b4', servicio: 'Facial', duracionMinutos: 60 });
+  const bloquesTarde = agruparBloquesDelDia([t1, t2, solo]);
+  check('orden final: por primera llegada (Ana 08:30 antes que Cati 16:00)', bloquesTarde[0].nombre === 'Ana Gómez' && bloquesTarde[1].nombre === 'Cati Paz');
+  check('dos pacientes distintos ese día → total de bloques = 2 (nunca cuenta por cantidad de turnos)', bloquesTarde.length === 2);
+}
+
+console.log('\n=== Resumen de jornada: historialAnteriorPaciente (últimas 2 sesiones + último detalle no vacío) ===');
+{
+  check('sin ninguna reserva anterior → sin sesiones ni detalle (no inventa nada)', historialAnteriorPaciente([]).sesiones.length === 0 && historialAnteriorPaciente([]).detalle === null);
+
+  const unaSola = normalizarItemAgenda('reservas', 'h1', { nombre: 'Ana', dni: '111', fecha: '2026-09-01', hora: '10:00', box: 'b1', servicio: 'Facial', duracionMinutos: 60, detalleSesion: 'Piel sensible' });
+  const histUna = historialAnteriorPaciente([unaSola]);
+  check('con una sola sesión previa, la muestra igual (no exige dos)', histUna.sesiones.length === 1);
+  check('toma el detalle de esa única sesión', histUna.detalle && histUna.detalle.texto === 'Piel sensible');
+
+  const s1 = normalizarItemAgenda('reservas', 'h2', { nombre: 'Ana', dni: '111', fecha: '2026-09-05', hora: '10:00', box: 'b1', servicio: 'Facial', duracionMinutos: 60 }); // sin detalle
+  const s2 = normalizarItemAgenda('reservas', 'h3', { nombre: 'Ana', dni: '111', fecha: '2026-09-08', hora: '10:00', box: 'b2', servicio: 'Drenaje', duracionMinutos: 60 }); // sin detalle (la más reciente de las 2 últimas)
+  const s3 = normalizarItemAgenda('reservas', 'h4', { nombre: 'Ana', dni: '111', fecha: '2026-09-02', hora: '10:00', box: 'b1', servicio: 'Limpieza', duracionMinutos: 60, detalleSesion: 'Usar protector solar' }); // 3ra sesión hacia atrás, CON detalle
+  const histTresAtras = historialAnteriorPaciente([unaSola, s1, s2, s3]);
+  check('últimas dos sesiones = las 2 fechas más recientes (05/09 y 08/09), no la más vieja con detalle', histTresAtras.sesiones.map((s) => s.fecha).sort().join(',') === '2026-09-05,2026-09-08');
+  check('si las últimas dos no tienen detalle, busca hacia atrás y encuentra el de una sesión anterior', histTresAtras.detalle && histTresAtras.detalle.texto === 'Usar protector solar' && histTresAtras.detalle.fecha === '2026-09-02');
+
+  const boxA = normalizarItemAgenda('reservas', 'h5', { nombre: 'Ana', dni: '111', fecha: '2026-09-06', hora: '09:00', box: 'b1', servicio: 'Facial', duracionMinutos: 60 });
+  const boxB = normalizarItemAgenda('reservas', 'h6', { nombre: 'Ana', dni: '111', fecha: '2026-09-06', hora: '10:00', box: 'b2', servicio: 'Masaje', duracionMinutos: 60 }); // mismo día, contiguo → misma sesión clínica
+  const histMultibox = historialAnteriorPaciente([boxA, boxB]);
+  check('una sesión que usó varios boxes cuenta como UNA sola sesión', histMultibox.sesiones.length === 1);
+  check('esa sesión conserva los dos tramos (los dos boxes) para poder listarlos', histMultibox.sesiones[0].tramos.length === 2);
+
+  const lejos1 = normalizarItemAgenda('reservas', 'h7', { nombre: 'Beto', dni: '444', fecha: '2026-09-06', hora: '09:00', box: 'b1', servicio: 'Facial', duracionMinutos: 60 });
+  const lejos2 = normalizarItemAgenda('reservas', 'h8', { nombre: 'Beto', dni: '444', fecha: '2026-09-06', hora: '15:00', box: 'b2', servicio: 'Masaje', duracionMinutos: 60 }); // mismo día, pero horas después: visita aparte
+  const histNoFusiona = historialAnteriorPaciente([lejos1, lejos2]);
+  check('dos visitas independientes que coincidieron en fecha NO se fusionan en una sola sesión', histNoFusiona.sesiones.length === 2);
+}
+
+console.log('\n=== Resumen de jornada: construirTextoResumenJornada (formato del mensaje) ===');
+{
+  const t1 = normalizarItemAgenda('reservas', 't1', { nombre: 'Ana Gómez', dni: '111', fecha: HOY, hora: '08:30', box: 'b2', servicio: 'Facial', duracionMinutos: 60 });
+  const bloques = agruparBloquesDelDia([t1]);
+  const historialPorPaciente = new Map([[bloques[0].pacienteKey, { estado: 'ok', ...historialAnteriorPaciente([]) }]]);
+  const texto = construirTextoResumenJornada({ fechaLegible: 'jueves 10/09/2026', bloques, historialPorPaciente, boxLabelDe: (b) => ({ b2: 'Box 2' }[b] || b) });
+  check('encabezado con el conteo exacto pedido', texto.startsWith('Gime, hoy jueves 10/09/2026 tenés 1 paciente único: 1 ingresa por la mañana y 0 ingresan por la tarde.'));
+  check('negrita de WhatsApp con un asterisco a cada lado en el nombre', texto.includes('*Ana Gómez*'));
+  check('negrita en el horario del tramo', texto.includes('*08:30–09:30*'));
+  check('usa la etiqueta de box resuelta, no el id crudo', texto.includes('Box 2') && !texto.includes('· b2'));
+  check('sin historial previo → mensaje explícito, no un bloque vacío', texto.includes('Sin sesiones previas registradas.'));
+  check('sin detalle previo → mensaje explícito', texto.includes('Sin detalle previo registrado.'));
+  check('nunca usa tablas (sin caracteres | de columnas)', !texto.includes('|'));
+
+  const historialError = new Map([[bloques[0].pacienteKey, { estado: 'error', error: 'timeout' }]]);
+  const textoError = construirTextoResumenJornada({ fechaLegible: 'jueves 10/09/2026', bloques, historialPorPaciente: historialError, boxLabelDe: null });
+  check('un historial que falló se marca explícitamente — nunca se confunde con "no había nada"', textoError.includes('No se pudo consultar el historial'));
+  check('un historial fallido NO debe decir "Sin sesiones previas registradas" (sería un resumen aparentemente completo pero falso)', !textoError.includes('Sin sesiones previas registradas'));
+
+  const textoSinPacientes = construirTextoResumenJornada({ fechaLegible: 'jueves 10/09/2026', bloques: [], historialPorPaciente: new Map() });
+  check('sin pacientes ese día: 0 y 0, mensaje explícito de "sin registros" (no un error)', textoSinPacientes.includes('tenés 0 pacientes únicos: 0 ingresan por la mañana y 0 ingresan por la tarde') && textoSinPacientes.includes('No hay pacientes agendados'));
 }
 
 console.log('\n' + '='.repeat(60));

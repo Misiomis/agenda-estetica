@@ -216,6 +216,39 @@
         </section>
       </section>
 
+      <!-- ══ TAB: RESUMEN DE JORNADA ══ -->
+      <section class="tab-view" id="tab-resumen-jornada" data-tab="resumen-jornada" hidden>
+        <div class="workspace-heading">
+          <div><span class="eyebrow">PARA GIMENA</span><h1>Resumen de jornada</h1></div>
+        </div>
+        <p class="hint-text" style="margin-bottom:12px;">Pacientes únicos del día, cambios de box e historial de las últimas sesiones — consulta datos reales de Firestore al generar, no queda en vivo.</p>
+
+        <section class="section-block">
+          <div class="list-panel" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label for="resumen-jornada-fecha" class="hint-text" style="display:block;margin-bottom:6px;">Fecha</label>
+              <input id="resumen-jornada-fecha" type="date">
+            </div>
+            <button class="button button-primary button-full" type="button" id="btn-generar-resumen-jornada">Generar/Actualizar resumen</button>
+            <p class="hint-text" id="resumen-jornada-estado">Todavía no se generó ningún resumen.</p>
+          </div>
+        </section>
+
+        <section class="section-block" id="resumen-jornada-preview-wrap" hidden>
+          <div class="section-heading"><h2>Vista previa</h2></div>
+          <div class="list-panel" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+            <label for="resumen-jornada-texto" class="hint-text" style="display:block;">Mensaje (podés editarlo antes de mandarlo)</label>
+            <textarea id="resumen-jornada-texto" class="wa-preview-textarea" rows="10"></textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="button button-primary" type="button" id="btn-resumen-jornada-whatsapp" hidden><svg class="icon"><use href="#i-whatsapp"/></svg> Abrir WhatsApp</button>
+              <button class="button button-light" type="button" id="btn-resumen-jornada-copiar">Copiar</button>
+              <button class="button button-light" type="button" id="btn-resumen-jornada-confirmar">Ya avisé a Gimena</button>
+            </div>
+            <p class="hint-text" id="resumen-jornada-envio-estado"></p>
+          </div>
+        </section>
+      </section>
+
       <!-- ══ TAB: MÁS ══ -->
       <section class="tab-view" id="tab-mas" data-tab="mas" hidden>
         <div class="workspace-heading">
@@ -263,7 +296,20 @@
           </div>
         </section>
 
+        <section class="section-block" id="corte-manana-tarde-section">
+          <div class="section-heading"><h2>Corte mañana/tarde</h2></div>
+          <div class="list-panel" style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <label for="corte-manana-tarde-input" class="hint-text">Hora a partir de la cual un turno cuenta como "tarde" (formato 24 hs)</label>
+            <input id="corte-manana-tarde-input" type="time" placeholder="12:00">
+            <button class="button button-light" type="button" id="btn-corte-manana-tarde-guardar">Guardar</button>
+            <p class="hint-text" id="corte-manana-tarde-estado">—</p>
+          </div>
+        </section>
+
         <div class="mas-lista">
+          <button class="mas-item" type="button" data-tab-btn="resumen-jornada">
+            <span><svg class="icon" style="margin-right:4px;vertical-align:-3px;"><use href="#i-calendar"/></svg> Resumen de jornada</span><svg class="icon"><use href="#i-arrow"/></svg>
+          </button>
           <button class="mas-item" type="button" data-tab-btn="pendientes">
             <span><svg class="icon" style="margin-right:4px;vertical-align:-3px;"><use href="#i-flag"/></svg> Turnos y recomendaciones <span class="nav-badge" id="nav-badge-pendientes" hidden></span></span><svg class="icon"><use href="#i-arrow"/></svg>
           </button>
