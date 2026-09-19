@@ -1555,6 +1555,14 @@
                                 <input id="cliPhone" class="select-input" type="text" inputmode="tel" placeholder="Ej: 375613943">
                             </div>
                             <div class="field">
+                                <label for="cliFechaNacimiento">Fecha de nacimiento <span class="field-opcional">(opcional)</span></label>
+                                <input id="cliFechaNacimiento" class="select-input" type="date" oninput="actualizarEdadClienteInput()">
+                            </div>
+                            <div class="field">
+                                <label for="cliEdad">Edad</label>
+                                <input id="cliEdad" class="select-input" type="text" readonly disabled placeholder="—" style="background:var(--surface-2);">
+                            </div>
+                            <div class="field">
                                 <label for="cliHoursBalance">Saldo de horas</label>
                                 <input id="cliHoursBalance" class="select-input" type="number" step="0.5" min="0" value="1" placeholder="Ej: 1, 1.5, 2" oninput="actualizarHoursBalanceAutoInput()">
                             </div>
@@ -5403,6 +5411,8 @@
             document.getElementById("cliNuevoDni").value = "";
             document.getElementById("cliPhone").value = "";
             document.getElementById("cliFullName").value = "";
+            document.getElementById("cliFechaNacimiento").value = "";
+            document.getElementById("cliEdad").value = "";
             document.getElementById("cliHoursBalance").value = "1";
             document.getElementById("cliEmail").value = "";
             document.getElementById("cliUsername").value = "";
@@ -5411,6 +5421,18 @@
             document.getElementById("cliConsent").checked = true;
             document.getElementById("cliPolitica").checked = true;
             dniClienteCargado = "";
+        };
+
+        // Edad en vivo a partir de "Fecha de nacimiento" (punto: cargar fecha de
+        // nacimiento y edad en la ficha de paciente). Reusa el mismo criterio de
+        // cálculo que ya usaba exportarHistorialPDF (_calcEdadFecha, más abajo en
+        // este mismo módulo) — nunca se guarda la edad, se calcula siempre al
+        // vuelo desde la fecha para que no quede desactualizada con el tiempo.
+        window.actualizarEdadClienteInput = () => {
+            const fn = document.getElementById("cliFechaNacimiento").value;
+            const edadEl = document.getElementById("cliEdad");
+            const e = fn ? _calcEdadFecha(fn) : null;
+            edadEl.value = e !== null ? `${e} años` : "";
         };
         
         window.buscarClientePorDni = async (mostrarMensaje = false) => {
@@ -5429,6 +5451,8 @@
                 const c = snap.data() || {};
                 document.getElementById("cliPhone").value = c.phone || "";
                 document.getElementById("cliFullName").value = c.fullName || c.fullLname || c.nombre || c.name || "";
+                document.getElementById("cliFechaNacimiento").value = c.fechaNacimiento || "";
+                window.actualizarEdadClienteInput();
                 document.getElementById("cliHoursBalance").value = (c.hoursBalance ?? "").toString();
                 document.getElementById("cliEmail").value = c.email || "";
                 document.getElementById("cliUsername").value = c.username || "";
@@ -5701,6 +5725,7 @@
                 mostrarAviso("Hours Balance debe ser un número mayor o igual a 0");
                 return;
             }
+            const fechaNacimiento = (document.getElementById("cliFechaNacimiento").value || "").trim() || null;
             const payload = {
                 active: document.getElementById("cliActivo").checked,
                 consentimientoAceptado: document.getElementById("cliConsent").checked,
@@ -5709,6 +5734,7 @@
                 fullName,
                 fullLname: fullName,
                 phone,
+                fechaNacimiento,
                 email,
                 username,
                 role: "client",
