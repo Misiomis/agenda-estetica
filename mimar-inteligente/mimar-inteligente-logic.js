@@ -1236,3 +1236,205 @@ export function construirTextoResumenDia(conteo, fechaLegible) {
   const cuerpo = partes.length ? partes.map((p) => `• ${p}`).join("\n") : "Sin pendientes accionables en este momento.";
   return `📋 Resumen del día — ${fechaLegible}\n\n${cuerpo}\n\n*Espacio Mimar T*`;
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// Resumen de jornada — pacientes únicos, cambios de box e historial
+// ══════════════════════════════════════════════════════════════════════
+// Fuente única: reservas (mismo criterio que window.renderGrilla en
+// admin.html — la Grilla tampoco mezcla consultas iniciales, que tienen su
+// propio flujo de 30 min separado del circuito de boxes). Cada tramo de
+// box es su propio documento de reserva; no existe una colección de
+// "sesión clínica" separada (confirmado en el código real, no hay
+// `sesiones`/`historiaClinica` — ver auditoría de la tarea). Por eso una
+// "sesión" acá se INFIERE encadenando tramos contiguos de la misma
+// identidad, nunca se lee de un campo que no existe.
+
+// Identidad estable: DNI si está cargado, si no el nombre normalizado
+// (sin tildes, sin mayúsculas) — mismo criterio que _pacienteMatchKey en
+// admin.html ("usar SIEMPRE esta clave, nunca comparar nombres tal cual").
+// Dos homónimos sin DNI cargado siguen siendo indistinguibles con este
+// modelo de datos — limitación heredada, documentada, no algo que esta
+// función pueda resolver sin un id de paciente propio en reservas.
+function _normalizarNombreParaClave(nombre) {
+  return (nombre || "").toString().trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ");
+}
+export function pacienteMatchKey(item) {
+  const dni = (item?.dni || "").toString().replace(/\D/g, "");
+  if (dni) return "dni:" + dni;
+  return "nom:" + _normalizarNombreParaClave(item?.nombre);
+}
+
+// Margen máximo entre el fin de un tramo y el inicio del siguiente (misma
+// identidad, mismo día) para considerarlos la MISMA sesión (ej.: pasa de
+// Box 2 a Box 3 para continuar el tratamiento). Un hueco mayor es una
+// visita aparte — "el paso de la hora, por sí solo, no acredita que
+// llegó" (punto 2 del pedido): sin este margen, dos visitas del mismo día
+// separadas por horas (retiro y regreso) se fusionarían solo por
+// coincidir en la fecha, exactamente lo que el pedido pide evitar. No hay
+// un valor configurado en el negocio para esto — 30 min es un default
+// explícito y documentado (tiempo razonable de cambio entre boxes), no un
+// número mágico sin explicar.
+export const TOLERANCIA_CONTINUIDAD_BOX_MS = 30 * 60000;
+
+// Encadena tramos (reservas ya normalizadas, con inicioMs/finMs/fecha) de
+// UNA identidad en sesiones: cada sesión es una cadena de tramos donde
+// cada uno empieza a lo sumo `tolerancia` después de que terminó el
+// anterior, sin cruzar de un día calendario a otro (nunca se encadena a
+// través de la medianoche, aunque el hueco horario "cerrara" por algún
+// dato inconsistente). Devuelve un array de sesiones (cada una, un array
+// de >=1 tramos), en orden cronológico ascendente.
+export function encadenarSesiones(tramos, tolerancia = TOLERANCIA_CONTINUIDAD_BOX_MS) {
+  const ordenados = (tramos || []).slice().sort((a, b) => (a.inicioMs ?? Infinity) - (b.inicioMs ?? Infinity));
+  const sesiones = [];
+  for (const t of ordenados) {
+    const sesionActual = sesiones[sesiones.length - 1];
+    const anterior = sesionActual ? sesionActual[sesionActual.length - 1] : null;
+    const continua = !!(anterior && anterior.finMs != null && t.inicioMs != null
+      && t.fecha === anterior.fecha
+      && (t.inicioMs - anterior.finMs) <= tolerancia);
+    if (continua) sesionActual.push(t);
+    else sesiones.push([t]);
+  }
+  return sesiones;
+}
+
+// Agrupa los tramos ACTIVOS de un día en bloques por paciente (punto 2).
+// Cada bloque conserva todas sus sesiones encadenadas del día (si hay un
+// retiro y regreso, quedan como sesiones separadas DENTRO del mismo
+// bloque, sin "Continúa en sede" entre ellas — tal como pide el punto 2).
+// franja/cruzaFranja usan el PRIMER ingreso del día (primer tramo con
+// inicioMs resuelto), así mañana+tarde suman siempre el total de bloques.
+export function agruparBloquesDelDia(reservasActivasDelDia, corte = CORTE_MANANA_TARDE_DEFECTO) {
+  const porPaciente = new Map();
+  for (const r of (reservasActivasDelDia || [])) {
+    const key = pacienteMatchKey(r);
+    if (!porPaciente.has(key)) porPaciente.set(key, []);
+    porPaciente.get(key).push(r);
+  }
+  const bloques = [];
+  for (const [key, tramosDelPaciente] of porPaciente) {
+    const sesiones = encadenarSesiones(tramosDelPaciente);
+    const tramosPlanos = [];
+    for (const sesion of sesiones) {
+      sesion.forEach((t, i) => tramosPlanos.push({ ...t, continuaEnSede: i > 0 }));
+    }
+    tramosPlanos.sort((a, b) => (a.inicioMs ?? Infinity) - (b.inicioMs ?? Infinity));
+    const nombre = tramosDelPaciente.find((t) => t.nombre)?.nombre || "Paciente";
+    const primerTramo = tramosPlanos.reduce((min, t) => (t.inicioMs != null && (min == null || t.inicioMs < min.inicioMs) ? t : min), null);
+    const franja = primerTramo ? franjaDeHora(primerTramo.hora, corte) : null;
+    const franjasPresentes = new Set(tramosPlanos.map((t) => franjaDeHora(t.hora, corte)).filter(Boolean));
+    bloques.push({
+      pacienteKey: key,
+      nombre,
+      tramos: tramosPlanos,
+      cantidadSesiones: sesiones.length,
+      primerIngresoMs: primerTramo ? primerTramo.inicioMs : null,
+      franja,
+      cruzaFranja: franjasPresentes.size > 1,
+    });
+  }
+  // Orden pedido: por primera llegada. Sin hora resoluble, al final.
+  return bloques.sort((a, b) => (a.primerIngresoMs ?? Infinity) - (b.primerIngresoMs ?? Infinity));
+}
+
+// Historial obligatorio por paciente (punto 3): recibe TODAS las reservas
+// ACTIVAS de esa identidad con fecha ANTERIOR al día seleccionado (ya
+// filtradas por quien llama — esta función no sabe nada de Firestore) y
+// devuelve las últimas dos sesiones (encadenadas con el mismo criterio de
+// arriba, así una sesión que usó varios boxes aparece completa y dos
+// visitas independientes que coincidieron en fecha NO se fusionan) más el
+// último detalle de sesión no vacío, buscando hacia atrás si las dos
+// últimas no tienen texto cargado.
+export function historialAnteriorPaciente(reservasPacienteAnteriores) {
+  const sesiones = encadenarSesiones(reservasPacienteAnteriores)
+    .map((tramos) => ({
+      fecha: tramos[0].fecha,
+      inicioMs: tramos.reduce((min, t) => (t.inicioMs != null && (min == null || t.inicioMs < min.inicioMs) ? t.inicioMs : min), null),
+      tramos: tramos.slice().sort((a, b) => (a.inicioMs ?? Infinity) - (b.inicioMs ?? Infinity)),
+    }))
+    .sort((a, b) => (b.inicioMs ?? -Infinity) - (a.inicioMs ?? -Infinity)); // más reciente primero
+
+  const ultimasDos = sesiones.slice(0, 2);
+
+  let detalle = null;
+  for (const sesion of sesiones) {
+    const conDetalle = sesion.tramos.slice().reverse().find((t) => (t.detalleSesion || "").toString().trim());
+    if (conDetalle) { detalle = { fecha: sesion.fecha, inicioMs: conDetalle.inicioMs ?? sesion.inicioMs, texto: conDetalle.detalleSesion.toString().trim() }; break; }
+  }
+
+  return { sesiones: ultimasDos, detalle };
+}
+
+// ── Mensaje de WhatsApp (punto 4) ────────────────────────────────────────
+// boxLabelDe: función (id de box) → etiqueta legible, inyectada por quien
+// llama (BOX_LABELS vive en la capa de UI, no en esta lógica pura).
+function _formatearTramoLinea(t, boxLabelDe) {
+  const horaFin = t.finMs != null ? formatearHoraLocal(t.finMs) : "??:??";
+  const box = boxLabelDe ? (boxLabelDe(t.box) || t.box || "Box sin asignar") : (t.box || "Box sin asignar");
+  const tratamiento = t.servicio || "Tratamiento sin registrar";
+  const continua = t.continuaEnSede ? " · Continúa en sede." : "";
+  return `*${t.hora}–${horaFin}* · ${tratamiento} · ${box}${continua}`;
+}
+
+function _formatearSesionHistorial(sesion, boxLabelDe) {
+  const fechaLegible = sesion.inicioMs != null ? formatearFechaLocal(sesion.inicioMs) : sesion.fecha;
+  const tramosTxt = sesion.tramos.map((t) => {
+    const box = boxLabelDe ? (boxLabelDe(t.box) || t.box || "Box sin asignar") : (t.box || "Box sin asignar");
+    return `${t.servicio || "Tratamiento sin registrar"} (${box})`;
+  }).join(", ");
+  return `• ${fechaLegible} — ${tramosTxt}`;
+}
+
+// bloques: salida de agruparBloquesDelDia(). historialPorPaciente: Map
+// pacienteKey -> { estado:'ok', ...historialAnteriorPaciente() } |
+// { estado:'error', error }. fechaLegible: "jueves 10/09/2026" (día de
+// semana + fecha exacta, ya resuelto por quien llama). No inventa ningún
+// dato ausente: un historial que falló se marca explícitamente, nunca se
+// muestra como "Sin sesiones previas registradas" (eso significa algo
+// distinto: se consultó bien y no había nada).
+export function construirTextoResumenJornada({ fechaLegible, bloques, historialPorPaciente, boxLabelDe }) {
+  const total = bloques.length;
+  const manana = bloques.filter((b) => b.franja === "mañana").length;
+  const tarde = bloques.filter((b) => b.franja === "tarde").length;
+
+  const lineas = [];
+  lineas.push(`Gime, hoy ${fechaLegible} tenés ${total} paciente${total === 1 ? "" : "s"} único${total === 1 ? "" : "s"}: ${manana} ingresa${manana === 1 ? "" : "n"} por la mañana y ${tarde} ingresa${tarde === 1 ? "" : "n"} por la tarde.`);
+
+  const cruzan = bloques.filter((b) => b.cruzaFranja).map((b) => b.nombre);
+  if (cruzan.length) lineas.push(`Continúan entre franjas: ${cruzan.join(", ")}.`);
+
+  if (!total) {
+    lineas.push("", "No hay pacientes agendados para este día.");
+    return lineas.join("\n");
+  }
+
+  for (const b of bloques) {
+    const bloqueLineas = [`*${b.nombre}*`];
+    bloqueLineas.push(...b.tramos.map((t) => _formatearTramoLinea(t, boxLabelDe)));
+
+    const hist = historialPorPaciente?.get(b.pacienteKey);
+    bloqueLineas.push("");
+    if (!hist || hist.estado === "error") {
+      bloqueLineas.push(`⚠️ No se pudo consultar el historial de ${b.nombre}${hist?.error ? ` (${hist.error})` : ""} — no se puede confirmar si tiene sesiones previas.`);
+    } else {
+      bloqueLineas.push("Últimas sesiones:");
+      if (hist.sesiones.length) {
+        bloqueLineas.push(...hist.sesiones.map((s) => _formatearSesionHistorial(s, boxLabelDe)));
+      } else {
+        bloqueLineas.push("Sin sesiones previas registradas.");
+      }
+      bloqueLineas.push("");
+      if (hist.detalle) {
+        const fechaDetalle = hist.detalle.inicioMs != null ? formatearFechaLocal(hist.detalle.inicioMs) : hist.detalle.fecha;
+        bloqueLineas.push(`*Último detalle registrado — ${fechaDetalle}:*`);
+        bloqueLineas.push(hist.detalle.texto);
+      } else {
+        bloqueLineas.push("Sin detalle previo registrado.");
+      }
+    }
+
+    lineas.push("", bloqueLineas.join("\n"));
+  }
+
+  return lineas.join("\n");
+}
