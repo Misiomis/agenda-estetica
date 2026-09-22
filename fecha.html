@@ -625,7 +625,29 @@ const formatearFechaLinda = (fecha) => {
 };
 const fechaAString = (f) => `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,"0")}-${String(f.getDate()).padStart(2,"0")}`;
 
+// ── Modo jornada especial (fechajornada.html / fechaservicio.html) ──────
+// Esas dos páginas ya preparan fecha(s) habilitada(s) y redirigen acá con
+// ?modo=jornada, pero esta página nunca leía nada de eso: mostraba el
+// calendario normal de Consulta Inicial, sin relación con la jornada. Este
+// bloque hace que, en ese modo, el calendario solo ofrezca los días/horas
+// de la jornada y, al reservar, entregue el turno a confirmarjornada.html
+// (que ya sabe crear la reserva real, atómica, en la colección reservas)
+// en vez de abrir el formulario de intake de Consulta Inicial.
+const _paramsUrl = new URLSearchParams(window.location.search);
+const MODO_JORNADA = _paramsUrl.get("modo") === "jornada" || localStorage.getItem("jornadaModo") === "1";
+let JORNADA_FECHAS = [];
+let JORNADA_SLOTS = [];
+if (MODO_JORNADA) {
+    try { JORNADA_FECHAS = JSON.parse(localStorage.getItem("jornadaAllowedDates") || "[]"); } catch(e) { JORNADA_FECHAS = []; }
+    try { JORNADA_SLOTS = JSON.parse(localStorage.getItem("jornadaSlots") || "[]"); } catch(e) { JORNADA_SLOTS = []; }
+}
+const SLOTS_ACTIVOS = (MODO_JORNADA && JORNADA_SLOTS.length) ? JORNADA_SLOTS : SLOTS_DIA;
+
 let fechaActual = new Date();
+if (MODO_JORNADA && JORNADA_FECHAS.length) {
+    const [jy, jm] = JORNADA_FECHAS[0].split("-").map(Number);
+    if (jy && jm) fechaActual = new Date(jy, jm - 1, 1);
+}
 let fechaSeleccionada = null, horaSeleccionada = null;
 const hoy = new Date(); hoy.setHours(0,0,0,0);
 let excepciones = {}, bloqueosHorarios = new Map(), diasHabilitadosConsulta = new Set(), bloqueosAdminCI = new Map();
@@ -850,9 +872,13 @@ function renderCalendario() {
     document.getElementById("mes").innerText = `${mesNombres[m]} ${y}`;
 
     const mesKey = `${y}-${String(m+1).padStart(2,"0")}`;
-    const bloqueado = mesesBloqueados.has(mesKey) || y > 2026 || (y === 2026 && m > 10);
+    // En modo jornada la fecha la fija la jornada, no el cierre de mes
+    // genérico de Consulta Inicial — y no se navega de mes (ver más abajo).
+    const bloqueado = MODO_JORNADA ? false : (mesesBloqueados.has(mesKey) || y > 2026 || (y === 2026 && m > 10));
     const btnSig = document.getElementById("btnMesSiguiente");
-    btnSig.disabled = bloqueado || (y === 2026 && m === 10);
+    const btnAnt = document.getElementById("btnMesAnterior");
+    btnSig.disabled = MODO_JORNADA || bloqueado || (y === 2026 && m === 10);
+    if (btnAnt) btnAnt.disabled = MODO_JORNADA;
 
     const cont = document.getElementById("dias"); cont.innerHTML = "";
 
@@ -873,6 +899,19 @@ function renderCalendario() {
         const fStr = `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
         const f = new Date(y,m,d); f.setHours(0,0,0,0);
         const div = document.createElement("div"); div.className = "dia"; div.innerText = d;
+
+        if (MODO_JORNADA) {
+            if (f < hoy) div.classList.add("pasado");
+            else if (JORNADA_FECHAS.includes(fStr)) {
+                div.classList.add("dia-libre");
+                div.onclick = () => seleccionarDia(f, fStr, div);
+            } else {
+                div.classList.add("sin-habilitar");
+                div.onclick = () => mostrarAviso("Día no habilitado", "Este día no forma parte de la jornada especial. Consultanos por WhatsApp si necesitás otra fecha 💬");
+            }
+            cont.appendChild(div);
+            continue;
+        }
 
         if (f.getDay() === 0) div.classList.add("domingo");
         else if (f < hoy) div.classList.add("pasado");
@@ -913,22 +952,30 @@ async function cargarHorarios(fStr) {
     actualizarResumen();
     cont.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(165,205,188,0.45);font-size:13px;">Buscando turnos...</div>`;
 
-    if (excepciones[fStr]) {
-        cont.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(255,120,120,0.70);font-size:13px;">Día cerrado: ${excepciones[fStr]}</div>`;
-        return;
-    }
-    if (!diasHabilitadosConsulta.has(fStr)) {
-        cont.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px 16px;color:rgba(165,205,188,0.42);font-size:13px;">Sin turnos disponibles para este día.</div>`;
-        return;
+    if (MODO_JORNADA) {
+        if (!JORNADA_FECHAS.includes(fStr)) {
+            cont.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px 16px;color:rgba(165,205,188,0.42);font-size:13px;">Sin turnos disponibles para este día.</div>`;
+            return;
+        }
+    } else {
+        if (excepciones[fStr]) {
+            cont.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:16px;color:rgba(255,120,120,0.70);font-size:13px;">Día cerrado: ${excepciones[fStr]}</div>`;
+            return;
+        }
+        if (!diasHabilitadosConsulta.has(fStr)) {
+            cont.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px 16px;color:rgba(165,205,188,0.42);font-size:13px;">Sin turnos disponibles para este día.</div>`;
+            return;
+        }
     }
 
     const ocupados = await obtenerHorasOcupadas(fStr);
     cont.innerHTML = "";
 
     let contadorVisibles = 0;
-    SLOTS_DIA.forEach((hora, idx) => {
-        // Horarios cerrados en Agenda CI: no se muestran al paciente
-        if (bloqueosAdminCI.has(keyBloqueo(fStr, hora))) return;
+    SLOTS_ACTIVOS.forEach((hora, idx) => {
+        // Horarios cerrados en Agenda CI: no aplica en modo jornada (esa
+        // franja de cierre es específica del flujo de Consulta Inicial)
+        if (!MODO_JORNADA && bloqueosAdminCI.has(keyBloqueo(fStr, hora))) return;
 
         const div = document.createElement("div");
         div.className = "hora";
@@ -1007,9 +1054,21 @@ document.getElementById("btnMesAnterior").onclick = async () => {
     }, {passive:true});
 })();
 
-// ── Abrir modal de datos ──
+// ── Abrir modal de datos (o, en modo jornada, ir directo a confirmar) ──
 document.getElementById("reservarBtn").onclick = () => {
     if (!fechaSeleccionada || !horaSeleccionada) return;
+
+    if (MODO_JORNADA) {
+        // La identidad (clienteDNI/clienteNombre) ya se completó en el
+        // registro previo de la jornada (fechajornada.html la exige antes
+        // de dejar continuar) — acá solo se entrega fecha/hora reales al
+        // confirmador, que ya sabe crear la reserva de forma atómica.
+        localStorage.setItem("fechaSeleccionada", fechaAString(fechaSeleccionada));
+        localStorage.setItem("horaSeleccionada", horaSeleccionada);
+        window.location.href = "confirmarjornada.html";
+        return;
+    }
+
     const pill = document.getElementById("mcTurnoPillText");
     if (pill) pill.textContent = `${formatearFechaLinda(fechaSeleccionada)} · ${horaSeleccionada} hs`;
     _metodoPago = null;
@@ -1249,7 +1308,24 @@ window.confirmarConsulta = async function() {
 };
 
 // ── Inicio ──
+function aplicarBrandingJornada() {
+    if (!MODO_JORNADA) return;
+    const servicio = localStorage.getItem("servicioSeleccionado") || "Jornada especial";
+    const heroTitle = document.querySelector(".hero-title");
+    if (heroTitle) heroTitle.innerHTML = `Reservar mi<br><em>turno de jornada</em>`;
+    const heroSub = document.querySelector(".hero-sub");
+    if (heroSub) heroSub.textContent = "Elegí el día y el horario disponibles para tu jornada";
+    const nombreServicio = document.querySelector(".servicio-nombre");
+    if (nombreServicio) nombreServicio.textContent = servicio;
+    // El precio de Consulta Inicial ($25.000, reintegrable) no aplica a la
+    // jornada especial — se oculta en vez de mostrar un valor que no
+    // corresponde (no se inventa un precio nuevo para la jornada).
+    const precioRow = document.querySelector(".precio-row");
+    if (precioRow) precioRow.style.display = "none";
+}
+
 async function iniciar() {
+    aplicarBrandingJornada();
     cargarTemaYAnuncio();
     await cargarDatos();
 }
