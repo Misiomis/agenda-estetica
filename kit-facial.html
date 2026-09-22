@@ -509,15 +509,15 @@
     </section>
 
     <!-- Modal: DNI no registrado -->
-    <div id="modalSinRegistro" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(6,14,11,0.93);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px;">
+    <div id="modalSinRegistro" role="dialog" aria-modal="true" aria-labelledby="modalSinRegistroTitulo" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(6,14,11,0.93);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px;">
         <div style="width:100%;max-width:420px;background:linear-gradient(165deg,#0d1a0e 0%,#07100a 100%);border:1px solid rgba(60,179,113,0.25);border-radius:24px;padding:34px 26px;box-shadow:0 32px 72px rgba(0,0,0,0.65);text-align:center;">
-            <div style="font-size:48px;margin-bottom:16px;">🌿</div>
-            <p style="font-family:'Cormorant Garamond',serif;font-size:24px;color:#b8e8c8;margin:0 0 14px;font-weight:600;font-style:italic;">¡Hola! Aún no te conocemos</p>
+            <div style="font-size:48px;margin-bottom:16px;" aria-hidden="true">🌿</div>
+            <p id="modalSinRegistroTitulo" style="font-family:'Cormorant Garamond',serif;font-size:24px;color:#b8e8c8;margin:0 0 14px;font-weight:600;font-style:italic;">¡Hola! Aún no te conocemos</p>
             <p style="font-size:14px;color:rgba(165,205,188,0.78);line-height:1.70;margin:0 0 8px;">El kit domiciliario está pensado para quienes ya son parte de nuestra comunidad de pacientes.</p>
             <p style="font-size:13px;color:rgba(165,205,188,0.55);line-height:1.65;margin:0 0 24px;">Sería un placer conocerte y ayudarte a encontrar los productos que realmente le sientan bien a tu piel. ¿Qué te parece si agendamos tu <strong style="color:rgba(185,230,205,0.80);">consulta inicial</strong>? Así Gimena puede recomendarte lo mejor para vos — consultá el valor y las condiciones vigentes al agendar.</p>
             <a href="/fecha.html" style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,rgba(60,179,113,0.22),rgba(60,179,113,0.10));border:1.5px solid rgba(60,179,113,0.40);border-radius:14px;color:rgba(185,230,205,0.92);font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px;">Agendar mi consulta inicial</a>
             <a href="https://wa.me/5493764291807?text=Hola%20Gime%2C%20quisiera%20ser%20paciente%20de%20Espacio%20Mimar%20T%20para%20acceder%20al%20kit%20facial%20%F0%9F%8C%BF" target="_blank" rel="noopener noreferrer" style="display:block;width:100%;padding:12px;background:transparent;border:1px solid rgba(165,205,188,0.25);border-radius:14px;color:rgba(165,205,188,0.70);font-size:13px;font-weight:600;text-decoration:none;margin-bottom:10px;">Prefiero escribir por WhatsApp</a>
-            <button onclick="document.getElementById('modalSinRegistro').style.display='none';" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(165,205,188,0.15);border-radius:14px;color:rgba(165,205,188,0.40);font-size:13px;cursor:pointer;font-family:inherit;">Volver</button>
+            <button id="btnCerrarModalSinRegistro" type="button" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(165,205,188,0.15);border-radius:14px;color:rgba(165,205,188,0.40);font-size:13px;cursor:pointer;font-family:inherit;">Volver</button>
         </div>
     </div>
 
@@ -667,10 +667,33 @@
             document.getElementById("verificDNIScreen").style.display = "block";
             document.getElementById("contenidoKit").style.display = "none";
             document.getElementById("successScreen").style.display = "none";
-            document.getElementById("modalSinRegistro").style.display = "none";
+            cerrarModalSinRegistro();
             const inp = document.getElementById("kitDniInput");
             if (inp) inp.value = '';
         };
+
+        // Foco: al abrir, se mueve adentro del modal (para lectores de
+        // pantalla y navegación por teclado); al cerrar, vuelve a donde
+        // estaba antes de abrirlo, en vez de perderse en el body.
+        let _focoAntesDeModalSinRegistro = null;
+        function abrirModalSinRegistro() {
+            const modal = document.getElementById("modalSinRegistro");
+            _focoAntesDeModalSinRegistro = document.activeElement;
+            modal.style.display = "flex";
+            modal.querySelector("a, button")?.focus();
+        }
+        function cerrarModalSinRegistro() {
+            const modal = document.getElementById("modalSinRegistro");
+            if (modal.style.display === "none") return;
+            modal.style.display = "none";
+            (_focoAntesDeModalSinRegistro || document.getElementById("kitDniInput"))?.focus();
+            _focoAntesDeModalSinRegistro = null;
+        }
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && document.getElementById("modalSinRegistro").style.display !== "none") cerrarModalSinRegistro();
+        });
+        document.getElementById("btnCerrarModalSinRegistro")?.addEventListener("click", cerrarModalSinRegistro);
+        document.getElementById("modalSinRegistro")?.addEventListener("click", (e) => { if (e.target.id === "modalSinRegistro") cerrarModalSinRegistro(); });
 
         // Verifica que el DNI exista en clients (paciente registrado). Ya no
         // consulta "consultas": esa colección solo permite lectura a admin
@@ -730,7 +753,7 @@
             btn.textContent = 'Continuar';
 
             if (!ok) {
-                document.getElementById('modalSinRegistro').style.display = 'flex';
+                abrirModalSinRegistro();
                 return;
             }
 
