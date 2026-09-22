@@ -1149,59 +1149,75 @@ window.confirmarConsulta = async function() {
     const fStr      = fechaAString(fechaSeleccionada);
 
     try {
-        // ── Bloqueo atómico del slot ─────────────────────────────────────────────
-        // runTransaction garantiza que si dos pacientes intentan el mismo slot
-        // simultáneamente, solo uno gana. El otro recibe SLOT_OCUPADO.
-        const lockId = `consulta_${fStr}_${horaSeleccionada.replace(':','-')}`;
-        const lockRef = doc(db, "calendarExceptions", lockId);
+        // ── Bloqueo atómico del slot ─────────────────────────────────────────
+        // calendarExceptions es de escritura exclusiva de administración —
+        // un cliente anónimo NUNCA puede escribir ahí (firestore.rules), así
+        // que el lock vive en consultaSlots (mismo patrón de confianza que
+        // reservas_slots, ya usado por fechaocasional.html). Sigue
+        // respetando un bloqueo puesto por admin en calendarExceptions
+        // (solo lectura, que sí está permitida para cualquiera).
+        const slotKey = horaSeleccionada.replace(':', '-');
+        const slotRef = doc(db, "consultaSlots", `${fStr}_${slotKey}`);
+        const blkRef  = doc(db, "calendarExceptions", `block_${fStr}_${slotKey}`);
+
         try {
             await runTransaction(db, async (tx) => {
-                const lockSnap = await tx.get(lockRef);
-                if (lockSnap.exists() && lockSnap.data().blocked === true) {
+                const blkSnap = await tx.get(blkRef);
+                if (blkSnap.exists()) {
+                    const bd = blkSnap.data();
+                    if (bd.active !== false && (bd.type === 'blocked' || bd.blocked === true)) {
+                        throw new Error("HORA_BLOQUEADA");
+                    }
+                }
+
+                const slotSnap = await tx.get(slotRef);
+                if (slotSnap.exists() && slotSnap.data().ocupado === true) {
                     throw new Error("SLOT_OCUPADO");
                 }
-                tx.set(lockRef, {
+
+                const consultaRef = doc(collection(db, "consultas"));
+                tx.set(consultaRef, {
+                    nombre,
+                    dni: dniRaw,
+                    fechaNacimiento: fechaNac,
+                    edad,
+                    domicilio,
+                    telefono,
+                    email: email || null,
+                    fecha: fStr,
+                    hora: horaSeleccionada,
+                    metodoPago: _metodoPago,
+                    estado: "pendiente",
+                    createdAt: serverTimestamp()
+                });
+                tx.set(slotRef, {
                     fecha: fStr, hora: horaSeleccionada,
-                    blocked: true, tipo: "consulta",
+                    ocupado: true, consultaId: consultaRef.id,
                     updatedAt: serverTimestamp()
                 });
             });
-        } catch(txErr) {
-            mostrarAviso("Horario no disponible", "Este turno acaba de ser ocupado. Por favor elegí otro horario.");
+        } catch (txErr) {
+            let titulo = "No se pudo reservar";
+            let texto = "No se pudo guardar tu turno. Por favor, intentá de nuevo.";
+            if (txErr.message === "HORA_BLOQUEADA") { titulo = "Horario no disponible"; texto = "Este horario ya no está disponible. Por favor elegí otro."; }
+            else if (txErr.message === "SLOT_OCUPADO") { titulo = "Horario no disponible"; texto = "Este turno acaba de ser ocupado por otra persona. Por favor elegí otro horario."; }
+            else if (txErr.code === "permission-denied") { titulo = "No se pudo reservar"; texto = "No tenemos permiso para guardar el turno en este momento. Escribinos por WhatsApp y te ayudamos a reservarlo."; }
+            else console.error("Error en la transacción de reserva:", txErr);
+            mostrarAviso(titulo, texto);
             btn.disabled = false; btn.textContent = "Confirmar turno";
             return;
         }
 
-        const consultaRef = await addDoc(collection(db,"consultas"), {
-            nombre,
-            dni: dniRaw,
-            fechaNacimiento: fechaNac,
-            edad,
-            domicilio,
-            telefono,
-            email: email || null,
-            fecha: fStr,
-            hora: horaSeleccionada,
-            metodoPago: _metodoPago,
-            estado: "pendiente",
-            createdAt: serverTimestamp()
-        });
-
-        // Actualizar el lock con el consultaId ahora que ya lo tenemos
-        setDoc(lockRef, {
-            fecha: fStr, hora: horaSeleccionada,
-            blocked: true, tipo: "consulta",
-            consultaId: consultaRef.id, updatedAt: serverTimestamp()
-        }, { merge: true }).catch(() => {});
-
-        // Guardar/actualizar perfil del paciente en clients (auto-completado futuro)
+        // Guardar/actualizar perfil del paciente en clients (auto-completado
+        // futuro) — no bloquea el éxito de la reserva si falla, pero el
+        // error queda en consola en vez de silenciarse del todo.
         setDoc(doc(db, "clients", dniRaw), {
             dni: dniRaw,
             nombre, fullName: nombre,
             domicilio, telefono, email: email || null,
             fechaNacimiento: fechaNac, edad,
             updatedAt: serverTimestamp()
-        }, { merge: true }).catch(() => {});
+        }, { merge: true }).catch((e) => console.warn("No se pudo actualizar la ficha de cliente:", e));
 
         // La notificación automática a Gimena por WhatsApp se eliminó: las
         // consultas nuevas se revisan desde Admin y se contactan a mano.

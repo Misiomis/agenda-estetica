@@ -53,6 +53,17 @@ service cloud.firestore {
       allow write:  if true;
     }
 
+    // Control atomico anti-solapamiento de Consulta Inicial (fecha.html) —
+    // mismo patron de confianza que reservas_slots (arriba), pero en su
+    // propia coleccion: la Consulta Inicial es con Gimena, no por box, asi
+    // que su exclusividad de horario no debe mezclarse con la ocupacion de
+    // reservas_slots (que es por box). No reutiliza calendarExceptions
+    // porque esa coleccion es de uso exclusivo de administracion.
+    match /consultaSlots/{slotId} {
+      allow read:   if true;
+      allow write:  if true;
+    }
+
     match /horarios/{horarioId} {
       allow read:   if true;
       allow write:  if esAdmin();
