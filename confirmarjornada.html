@@ -190,7 +190,7 @@
         <div class="modal-card">
             <h2>Turno confirmado</h2>
             <p id="resultadoFinal">Reserva guardada correctamente.</p>
-            <button class="btn" onclick="window.location.href='jornada.html'">Volver a jornada</button>
+            <button class="btn" id="btnVolverJornada" type="button">Volver a jornada</button>
             <button class="btn btn-secondary" onclick="window.location.href='serviciosjornada.html'">Ver servicios de jornada</button>
         </div>
     </div>
@@ -378,6 +378,14 @@
                 btnConfirmar.textContent = "Reintentar confirmación";
             }
         }
+
+        // "Volver a jornada" apuntaba a jornada.html, que no existe en el
+        // sitio — cada jornada (crio/radio/detox) ya guarda su propia
+        // página de origen en jornadaBackPage al arrancar (mismo dato que
+        // ya usa fechajornada.html para lo mismo), así que se reusa acá.
+        document.getElementById("btnVolverJornada")?.addEventListener("click", () => {
+            window.location.href = localStorage.getItem("jornadaBackPage") || "jornadacrio.html";
+        });
 
         await cargarTelefonoSugerido();
         btnConfirmar.addEventListener("click", confirmarTurnoJornada);
