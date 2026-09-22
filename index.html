@@ -898,6 +898,7 @@ img, video { max-width: 100%; height: auto; }
             <a href="#espacio">El Espacio</a>
             <a href="#faq">Preguntas frecuentes</a>
             <a href="#contacto">Contacto</a>
+            <a href="#" data-modal="login">Mis turnos</a>
         </nav>
         <a href="/fecha.html" class="nav-cta">Reservar turno</a>
         <button class="hamburger" id="hamburgerBtn" aria-label="Menú" aria-expanded="false">
@@ -910,6 +911,7 @@ img, video { max-width: 100%; height: auto; }
             <a href="#espacio">El Espacio</a>
             <a href="#faq">Preguntas frecuentes</a>
             <a href="#contacto">Contacto</a>
+            <a href="#" data-modal="login">Mis turnos</a>
             <a href="/fecha.html" class="btn-primary">Reservar turno</a>
         </nav>
     </div>
@@ -957,7 +959,7 @@ img, video { max-width: 100%; height: auto; }
                         <div class="hb-content">
                             <strong>Dra. Cecilia Rodríguez</strong>
                             <span>Cirujana Plástica · Medicina Estética</span>
-                            <em class="hb-pronto">Viernes 11 · Últimos cupos</em>
+                            <em class="hb-pronto" id="ceciliaPronto">Viernes 11 · Últimos cupos</em>
                         </div>
                         <span class="hb-arrow hb-arrow-doc">→</span>
                     </div>
@@ -1415,13 +1417,20 @@ img, video { max-width: 100%; height: auto; }
         const installText = document.getElementById("installText");
         const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
         const appYaInstalada = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-        const puedeMostrarWidget = () => { if (appYaInstalada()) return false; return esIOS || !!deferredInstallPrompt; };
+        // "Ahora no" tiene que significar "no otra vez en esta visita" — antes
+        // solo pausaba 10 segundos y volvía a insistir cada 25s indefinidamente.
+        const instalarDescartado = () => { try { return sessionStorage.getItem("installDismissedV1") === "1"; } catch (e) { return false; } };
+        const puedeMostrarWidget = () => { if (appYaInstalada() || instalarDescartado()) return false; return esIOS || !!deferredInstallPrompt; };
         const esconderWidget = () => installWidget?.classList.remove("show");
         const mostrarWidget = () => { if (!puedeMostrarWidget()) return; installWidget?.classList.add("show"); };
         const programarInsistencia = (delay = INSTALL_REMINDER_MS) => { clearTimeout(installReminderTimer); if (!puedeMostrarWidget()) return; installReminderTimer = setTimeout(() => { mostrarWidget(); programarInsistencia(INSTALL_REMINDER_MS); }, delay); };
         window.addEventListener("beforeinstallprompt", (event) => { event.preventDefault(); deferredInstallPrompt = event; mostrarWidget(); programarInsistencia(12000); });
         btnInstallApp?.addEventListener("click", async () => { if (!deferredInstallPrompt) return; deferredInstallPrompt.prompt(); const result = await deferredInstallPrompt.userChoice; deferredInstallPrompt = null; esconderWidget(); if (result?.outcome === "accepted") { clearTimeout(installReminderTimer); return; } programarInsistencia(8000); });
-        btnDismissInstall?.addEventListener("click", () => { esconderWidget(); programarInsistencia(10000); });
+        btnDismissInstall?.addEventListener("click", () => {
+            esconderWidget();
+            clearTimeout(installReminderTimer);
+            try { sessionStorage.setItem("installDismissedV1", "1"); } catch (e) { /* sin sessionStorage: no vuelve a insistir en esta carga igual, ya se limpió el timer */ }
+        });
         window.addEventListener("appinstalled", () => { clearTimeout(installReminderTimer); esconderWidget(); });
         if (esIOS && !window.navigator.standalone && installText) { installText.textContent = "En iPhone/iPad: toca Compartir y luego Agregar a pantalla de inicio."; mostrarWidget(); if (btnInstallApp) btnInstallApp.style.display = "none"; programarInsistencia(15000); }
     </script>
@@ -1433,7 +1442,7 @@ img, video { max-width: 100%; height: auto; }
             <!-- Encabezado -->
             <div style="background:linear-gradient(135deg,rgba(168,85,247,0.14),rgba(60,179,113,0.06));padding:28px 26px 22px;position:relative;">
                 <button onclick="cerrarModalCecilia()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:8px;color:rgba(165,205,188,0.55);font-size:18px;line-height:1;padding:4px 10px;cursor:pointer;">✕</button>
-                <p style="margin:0 0 4px;font-size:10px;font-weight:700;letter-spacing:.20em;text-transform:uppercase;color:#4ade80;">Este viernes 11 en Espacio Mimar T</p>
+                <p id="ceciliaEyebrow" style="margin:0 0 4px;font-size:10px;font-weight:700;letter-spacing:.20em;text-transform:uppercase;color:#4ade80;">Este viernes 11 en Espacio Mimar T</p>
                 <h2 style="margin:0 0 4px;font-family:'Cormorant Garamond',serif;font-size:clamp(22px,4vw,28px);font-weight:600;color:rgba(220,242,232,0.97);line-height:1.15;">Dra. Cecilia Rodríguez</h2>
                 <p style="margin:0 0 14px;font-size:12.5px;font-weight:600;color:rgba(192,132,252,0.75);letter-spacing:.04em;">Cirujana Plástica · Medicina Estética · Resultados Naturales</p>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;">
@@ -1447,10 +1456,10 @@ img, video { max-width: 100%; height: auto; }
                 <p style="margin:0 0 16px;font-size:13px;color:rgba(165,205,188,0.72);line-height:1.75;">Especialista en <strong style="color:rgba(220,242,232,0.90);">mamas, contorno corporal y lipofilling</strong>, la Dra. Cecilia Rodríguez llega a Espacio Mimar T con más de 15 años de trayectoria y un enfoque en resultados naturales que respetan la identidad de cada paciente.</p>
                 <p style="margin:0 0 20px;font-size:13px;color:rgba(165,205,188,0.72);line-height:1.75;">Miembro de <strong style="color:rgba(220,242,232,0.90);">SACPER y SACPERNEA</strong>, trabaja con los más altos estándares de la cirugía plástica argentina. Su llegada suma una nueva dimensión de tratamientos a nuestro espacio.</p>
                 <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.22);border-radius:12px;padding:14px 16px;margin-bottom:20px;">
-                    <p style="margin:0;font-size:12px;color:rgba(200,240,215,0.80);line-height:1.65;"><strong style="color:#4ade80;">Este viernes 11</strong> la Dra. Cecilia atiende en Espacio Mimar T, con cupos limitados. Escribinos por WhatsApp para reservar tu turno antes de que se completen.</p>
+                    <p id="ceciliaAvisoTexto" style="margin:0;font-size:12px;color:rgba(200,240,215,0.80);line-height:1.65;"><strong style="color:#4ade80;">Este viernes 11</strong> la Dra. Cecilia atiende en Espacio Mimar T, con cupos limitados. Escribinos por WhatsApp para reservar tu turno antes de que se completen.</p>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:10px;">
-                    <a href="https://wa.me/5493765021721?text=Hola%2C+quiero+reservar+un+turno+con+la+Dra.+Cecilia+para+este+viernes+11." target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(37,211,102,0.14);border:1px solid rgba(37,211,102,0.28);border-radius:12px;padding:13px 18px;text-decoration:none;color:rgba(180,245,210,0.90);font-size:13px;font-weight:700;letter-spacing:.03em;transition:background .2s;">
+                    <a id="ceciliaWaLink" href="https://wa.me/5493765021721?text=Hola%2C+quiero+reservar+un+turno+con+la+Dra.+Cecilia+para+este+viernes+11." target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(37,211,102,0.14);border:1px solid rgba(37,211,102,0.28);border-radius:12px;padding:13px 18px;text-decoration:none;color:rgba(180,245,210,0.90);font-size:13px;font-weight:700;letter-spacing:.03em;transition:background .2s;">
                         Reservar turno · WhatsApp 3765 021721
                     </a>
                     <a href="https://www.instagram.com/dra.ceciliarodriguez/" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(168,85,247,0.10);border:1px solid rgba(168,85,247,0.24);border-radius:12px;padding:13px 18px;text-decoration:none;color:rgba(192,132,252,0.85);font-size:13px;font-weight:700;letter-spacing:.03em;transition:background .2s;">
@@ -1472,10 +1481,26 @@ img, video { max-width: 100%; height: auto; }
         document.body.style.overflow='';
     }
     document.addEventListener('keydown',function(e){if(e.key==='Escape')cerrarModalCecilia();});
-    // Anuncio emergente: la Dra. Cecilia atiende el viernes 11 — se muestra una
-    // vez por sesión de navegador (mismo criterio que el popup de Novedades del
-    // panel admin), para avisar sin repetir en cada página que se visite.
+    // La convocatoria "Este viernes 11" era para una fecha puntual
+    // (11/09/2026) que ya pasó — mostrarla como si siguiera vigente es
+    // información falsa, y abrir el popup solo, encima, es una interrupción
+    // ya sin motivo real. Se cae a un texto neutral (sin inventar una fecha
+    // nueva) y se deja de auto-abrir una vez vencida — la tarjeta y el modal
+    // con la info profesional de la Dra. Cecilia siguen accesibles igual.
     (function(){
+        var VENCE = new Date('2026-09-12T00:00:00-03:00').getTime(); // el sábado siguiente al viernes 11
+        var vencido = Date.now() >= VENCE;
+        if (vencido) {
+            var pronto = document.getElementById('ceciliaPronto');
+            if (pronto) pronto.textContent = 'Cirujana Plástica en Espacio Mimar T';
+            var eyebrow = document.getElementById('ceciliaEyebrow');
+            if (eyebrow) eyebrow.textContent = 'En Espacio Mimar T';
+            var aviso = document.getElementById('ceciliaAvisoTexto');
+            if (aviso) aviso.innerHTML = 'La Dra. Cecilia atiende en Espacio Mimar T. Escribinos por WhatsApp para consultar disponibilidad y reservar tu turno.';
+            var waLink = document.getElementById('ceciliaWaLink');
+            if (waLink) waLink.href = 'https://wa.me/5493765021721?text=Hola%2C+quiero+reservar+un+turno+con+la+Dra.+Cecilia.';
+            return; // no se auto-abre una convocatoria ya vencida
+        }
         try {
             if (sessionStorage.getItem('cecilia-anuncio-viernes11')) return;
             sessionStorage.setItem('cecilia-anuncio-viernes11', '1');
@@ -1627,7 +1652,14 @@ img, video { max-width: 100%; height: auto; }
             raf = requestAnimationFrame(step);
             loader.addEventListener('transitionend', () => { cancelAnimationFrame(raf); }, { once: true });
         }
-        window.addEventListener('load', () => { setTimeout(() => { if (loader) loader.classList.add('hidden'); }, 1900); });
+        // El loader ya cumplió su función una vez que "load" disparó (todo
+        // terminó de cargar) — la espera extra era puramente decorativa.
+        // Se recorta a un fundido breve, y se salta del todo si la persona
+        // pidió menos movimiento (prefers-reduced-motion).
+        window.addEventListener('load', () => {
+            const delay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 400;
+            setTimeout(() => { if (loader) loader.classList.add('hidden'); }, delay);
+        });
     })();
     </script>
 </body>
