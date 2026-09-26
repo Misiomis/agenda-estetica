@@ -499,6 +499,11 @@
         .plan-v { border-radius: 10px; padding: 8px 12px; margin: 0 0 8px; font-size: 12.5px; line-height: 1.5; }
         .plan-v ul { margin: 4px 0 0; padding-left: 18px; }
         .plan-v-err { background: rgba(165,67,58,.10); border: 1px solid rgba(165,67,58,.40); color: #8a2f28; }
+        .plan-cartel { display: flex; gap: 12px; align-items: flex-start; margin: 10px 0 0; padding: 12px 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(230,150,170,.20), rgba(251,231,236,.55)); border: 1.5px solid rgba(214,120,148,.45); color: #7a2f47; box-shadow: 0 4px 14px rgba(214,120,148,.16); }
+        .plan-cartel .plan-cartel-ico { font-size: 26px; line-height: 1; flex: 0 0 auto; }
+        .plan-cartel strong { display: block; font-size: 13px; margin-bottom: 2px; }
+        .plan-cartel p { margin: 0; font-size: 12.5px; line-height: 1.45; }
+        .plan-cartel.plan-cartel-alerta { background: linear-gradient(135deg, rgba(230,150,170,.34), rgba(255,236,240,.75)); border-color: rgba(190,80,115,.65); }
         .plan-v-adv { background: rgba(138,106,34,.12); border: 1px solid rgba(138,106,34,.40); color: #6b4d10; }
         .plan-v-pen { background: rgba(61,92,134,.09); border: 1px solid rgba(61,92,134,.32); color: #2f4a70; }
         .plan-v-ok { background: rgba(47,107,79,.10); border: 1px solid rgba(47,107,79,.35); color: #245a42; }
@@ -2231,7 +2236,7 @@
         import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit, runTransaction, writeBatch } from "/js/firebase-web.js";
         import { registrarContactoPreparado, registrarContactoEstado } from "/js/contact-tracking.js";
         import {
-            DIAS as PLAN_DIAS, ETIQUETA_DIA as PLAN_ETIQUETA_DIA, MODOS as PLAN_MODOS, ALCANCES as PLAN_ALCANCES,
+            DIAS as PLAN_DIAS, ETIQUETA_DIA as PLAN_ETIQUETA_DIA, MODOS as PLAN_MODOS, ALCANCES as PLAN_ALCANCES, TRATAMIENTOS as PLAN_TRATAMIENTOS, FACIAL_INTERVALO_MIN_DIAS,
             ETIQUETA_ESTADO_PLAN, planVacia, normalizarPlanificacion, validarPlanificacion,
             estadoPlanificacion, resumenPlanificacion, serializarPlanificacion, nuevoIdFila as planNuevoIdFila
         } from "/js/planificacion-paciente.js";
@@ -5816,7 +5821,10 @@
             const lista = (arr) => `<ul>${arr.map(x => `<li>${escapeHtml(x.mensaje)}</li>`).join('')}</ul>`;
             let html = '';
             if (v.errores.length) html += `<div class="plan-v plan-v-err"><strong>Corregir antes de guardar</strong>${lista(v.errores)}</div>`;
-            if (v.advertencias.length) html += `<div class="plan-v plan-v-adv"><strong>Advertencias (se puede guardar igual, pero conviene revisar)</strong>${lista(v.advertencias)}</div>`;
+            const advFacial = v.advertencias.filter(x => x.campo === 'facial15');
+            const advResto = v.advertencias.filter(x => x.campo !== 'facial15');
+            if (advFacial.length) html += `<div class="plan-cartel plan-cartel-alerta" role="alert"><span class="plan-cartel-ico" aria-hidden="true">🌸</span><div><strong>Ojo con la frecuencia del facial</strong><p>${escapeHtml(advFacial[0].mensaje)}</p></div></div>`;
+            if (advResto.length) html += `<div class="plan-v plan-v-adv"><strong>Advertencias (se puede guardar igual, pero conviene revisar)</strong>${lista(advResto)}</div>`;
             if (v.pendientes.length) html += `<div class="plan-v plan-v-pen"><strong>Falta completar (se puede guardar y seguir después)</strong>${lista(v.pendientes)}</div>`;
             if (!html) html = '<div class="plan-v plan-v-ok">Todo completo y sin inconsistencias.</div>';
             return { html, hayErrores: v.errores.length > 0 };
@@ -5894,12 +5902,23 @@
                 </div>`;
             }).join('');
 
+            const tratHtml = Object.entries(PLAN_TRATAMIENTOS).map(([k, txt]) => `
+                <label class="plan-radio"><input type="radio" name="plan-trat-${dni}-${_planCtx}" value="${k}" data-plan-f="trat" ${d.tratamiento === k ? 'checked' : ''} data-plan-focus="trat:${k}"> ${escapeHtml(txt)}</label>`).join('');
+            const cartelFacial = (d.tratamiento === 'facial' || d.tratamiento === 'ambos')
+                ? `<div class="plan-cartel" role="note"><span class="plan-cartel-ico" aria-hidden="true">🌸</span><div><strong>Facial: cada ${FACIAL_INTERVALO_MIN_DIAS} días como mínimo</strong><p>Entre un facial y el siguiente tienen que pasar al menos ${FACIAL_INTERVALO_MIN_DIAS} días; antes de ese plazo no se recomienda.</p></div></div>` : '';
+
             const f = d.frecuencia;
             const num = (k, val) => `<input type="number" inputmode="numeric" min="1" step="1" class="plan-input" data-plan-f="frec" data-k="${k}" value="${escapeHtml(val)}">`;
 
             return `
             <div class="plan-editor">
                 ${_planAviso ? `<div class="plan-v plan-v-adv" role="status">${escapeHtml(_planAviso)}</div>` : ''}
+                <fieldset class="plan-sec">
+                    <legend>Tipo de tratamiento</legend>
+                    <div class="plan-radios" role="radiogroup" aria-label="Tipo de tratamiento">${tratHtml}</div>
+                    ${cartelFacial}
+                </fieldset>
+
                 <fieldset class="plan-sec">
                     <legend>1 · Disponibilidad semanal</legend>
                     <p class="plan-ayuda">Cada intervalo es el tiempo en que la persona puede permanecer en el establecimiento. Si tiene que terminar a las 11:00 y el tratamiento dura una hora, el turno tiene que empezar como máximo a las 10:00. Sin datos cargados no se asume disponibilidad.</p>
@@ -6037,6 +6056,7 @@
             if (!d) return false;
             const val = el.type === 'radio' ? el.value : el.value;
             if (kind === 'modo') d.disponibilidad.modo = val;
+            else if (kind === 'trat') { d.tratamiento = val; _planDirty = true; planRepintarEditor(_planAbierto, `trat:${val}`); return true; }
             else if (kind === 'int') {
                 const it = d.disponibilidad.dias[el.dataset.dia]?.[Number(el.dataset.idx)];
                 if (it) it[el.dataset.k] = val;
