@@ -468,6 +468,7 @@
         .plan-b-sin_configurar { color: #5b6660; background: rgba(91,102,96,.09); border-color: rgba(91,102,96,.35); }
         .plan-b-incompleta { color: #7d5a13; background: rgba(138,106,34,.12); border-color: rgba(138,106,34,.40); }
         .plan-b-configurada { color: #245a42; background: rgba(47,107,79,.12); border-color: rgba(47,107,79,.40); }
+        .plan-host-titulo { margin-top: 14px; font-size: 12.5px; color: var(--ink-soft); }
         .plan-flash { font-size: 12.5px; font-weight: 600; padding: 7px 10px; border-radius: 8px; margin: 2px 0 6px; }
         .plan-flash-ok { background: rgba(47,107,79,.12); color: #245a42; }
         .plan-flash-aviso { background: rgba(138,106,34,.12); color: #7d5a13; }
@@ -1648,6 +1649,10 @@
                             <button class="btn-mini btn-mini-primary" onclick="guardarCliente()">Guardar paciente</button>
                             <button class="btn-mini" onclick="limpiarFormularioCliente()">Limpiar</button>
                         </div>
+
+                        <!-- Disponibilidad y planificación del paciente cargado arriba (mismo panel
+                             que en las tarjetas del listado; se completa al cargar un paciente). -->
+                        <div id="plan-form-host"></div>
 
                         <!-- Herramientas administrativas — mismos permisos, confirmaciones
                              y efectos que antes; separadas para no competir visualmente
@@ -5477,6 +5482,7 @@
         };
         
         window.limpiarFormularioCliente = () => {
+            planRenderFormHost('');
             document.getElementById("cliDni").value = "";
             document.getElementById("cliNuevoDni").value = "";
             document.getElementById("cliPhone").value = "";
@@ -5509,12 +5515,14 @@
             const dni = normalizarDNI(document.getElementById("cliDni").value);
             if (!dni || dni.length < 4) {
                 dniClienteCargado = "";
+                planRenderFormHost('');
                 return;
             }
             try {
                 const snap = await getDoc(doc(db, "clients", dni));
                 if (!snap.exists()) {
                     dniClienteCargado = "";
+                    planRenderFormHost('');
                     if (mostrarMensaje) mostrarAviso("No existe paciente con ese DNI");
                     return;
                 }
@@ -5531,6 +5539,7 @@
                 document.getElementById("cliConsent").checked = c.consentimientoAceptado !== false;
                 document.getElementById("cliPolitica").checked = c.politicaAceptada !== false;
                 dniClienteCargado = dni;
+                planRenderFormHost(dni);
                 if (mostrarMensaje) mostrarAviso("Paciente cargado");
             } catch (error) {
                 console.error(error);
@@ -5702,6 +5711,8 @@
         // (validar, resumir, estado) vive en /js/planificacion-paciente.js.
         // ══════════════════════════════════════════════════════════════════
         let _planAbierto = null;       // dni con el editor desplegado (uno a la vez)
+        let _planCtx = 'lista';        // dónde está desplegado: 'lista' (tarjeta del listado) o 'form' (formulario de edición)
+        let _planFormDni = '';         // paciente cuyo panel se muestra en el formulario de edición
         let _planDraft = null;         // borrador en edición (misma forma que el guardado, números como texto)
         let _planDirty = false;
         let _planCarga = '';           // '' | 'cargando'
@@ -5711,7 +5722,7 @@
         let _planServicios = null;     // [{nombre, duracion}] de la colección services (se carga al abrir)
         let _planServiciosError = '';
         const _planFlash = {};         // dni -> {tipo:'ok'|'aviso', texto}
-        let _planListenersOk = false;
+        const _planListenersEn = new WeakSet();
 
         const _planSel = (dni) => `[data-plan-wrap="${(window.CSS && CSS.escape) ? CSS.escape(dni) : dni}"]`;
         const _planPaciente = (dni) => todasLosPacientes.find(p => p.dni === dni);
@@ -5739,15 +5750,32 @@
             }
         }
 
-        function planCardHtml(p) {
+        // Panel dentro del formulario "Alta / actualización de paciente": aparece cuando
+        // hay un paciente cargado (por DNI, por nombre o desde "✏️ Editar").
+        function planRenderFormHost(dni) {
+            const host = document.getElementById('plan-form-host');
+            if (!host) return;
+            const dniLimpio = (dni || '').toString();
+            if (_planFormDni === dniLimpio && host.innerHTML) return; // ya está mostrado
+            if (_planAbierto && _planCtx === 'form' && _planDirty) return; // nunca se pisa una edición sin guardar
+            if (_planAbierto && _planCtx === 'form') { _planAbierto = null; _planDraft = null; _planDirty = false; _planCarga = ''; _planAviso = ''; _planErrorGuardar = ''; }
+            _planFormDni = dniLimpio;
+            if (!dniLimpio) { host.innerHTML = ''; return; }
+            const p = _planPaciente(dniLimpio);
+            if (!p) { host.innerHTML = '<p class="plan-ayuda" style="margin-top:12px;">Guardá el paciente para poder cargar su disponibilidad y planificación.</p>'; return; }
+            host.innerHTML = `<div class="plan-host-titulo">Planificación de <b>${escapeHtml(p.fullName || 'paciente')}</b> · DNI ${escapeHtml(p.dni)}</div>` + planCardHtml(p, 'form');
+            planAsegurarListeners();
+        }
+
+        function planCardHtml(p, ctx = 'lista') {
             const dni = escapeHtml(p.dni || '');
             const estado = estadoPlanificacion(p.planificacion);
-            const abierto = _planAbierto === p.dni;
+            const abierto = _planAbierto === p.dni && _planCtx === ctx;
             const resumen = resumenPlanificacion(p.planificacion);
             const flash = _planFlash[p.dni];
             return `
-            <div class="plan-wrap" data-plan-wrap="${dni}">
-                <button type="button" class="plan-toggle" data-plan-toggle="${dni}" aria-expanded="${abierto}" aria-controls="plan-body-${dni}">
+            <div class="plan-wrap" data-plan-wrap="${dni}" data-plan-ctx="${ctx}">
+                <button type="button" class="plan-toggle" data-plan-toggle="${dni}" data-plan-ctx="${ctx}" aria-expanded="${abierto}" aria-controls="plan-body-${ctx}-${dni}">
                     <span class="plan-chevron" aria-hidden="true">${abierto ? '▾' : '▸'}</span>
                     <span class="plan-cabecera">
                         <span class="plan-titulo">Disponibilidad y planificación</span>
@@ -5756,26 +5784,25 @@
                     </span>
                 </button>
                 ${flash ? `<div class="plan-flash plan-flash-${flash.tipo}" role="status">${escapeHtml(flash.texto)}</div>` : ''}
-                <div id="plan-body-${dni}" class="plan-body" ${abierto ? '' : 'hidden'}>${abierto ? planEditorHtml(p) : ''}</div>
+                <div id="plan-body-${ctx}-${dni}" class="plan-body" ${abierto ? '' : 'hidden'}>${abierto ? planEditorHtml(p) : ''}</div>
             </div>`;
         }
 
         function planRepintar(dni, focoKey) {
             const p = _planPaciente(dni);
-            const wrap = document.querySelector(_planSel(dni));
-            if (!p || !wrap) return;
-            wrap.outerHTML = planCardHtml(p);
+            if (!p) return;
+            document.querySelectorAll(_planSel(dni)).forEach(wrap => { wrap.outerHTML = planCardHtml(p, wrap.dataset.planCtx || 'lista'); });
             if (focoKey) planFoco(dni, focoKey);
         }
         function planRepintarEditor(dni, focoKey) {
             const p = _planPaciente(dni);
-            const body = document.getElementById('plan-body-' + dni);
+            const body = document.getElementById(`plan-body-${_planCtx}-${dni}`);
             if (!p || !body) return;
             body.innerHTML = planEditorHtml(p);
             if (focoKey) planFoco(dni, focoKey);
         }
         function planFoco(dni, key) {
-            const body = document.getElementById('plan-body-' + dni);
+            const body = document.getElementById(`plan-body-${_planCtx}-${dni}`);
             const el = body && body.querySelector(`[data-plan-focus="${key}"]`);
             if (el) el.focus();
         }
@@ -5797,11 +5824,11 @@
 
         function planRefrescarValidacion() {
             if (!_planAbierto) return;
-            const cont = document.getElementById('plan-valid-' + _planAbierto);
+            const cont = document.getElementById(`plan-valid-${_planCtx}-${_planAbierto}`);
             if (!cont) return;
             const r = planValidacionHtml();
             cont.innerHTML = r.html;
-            const btn = document.querySelector(`#plan-body-${_planAbierto} [data-plan-guardar]`);
+            const btn = document.querySelector(`#plan-body-${_planCtx}-${_planAbierto} [data-plan-guardar]`);
             if (btn) btn.disabled = r.hayErrores || _planGuardando;
         }
 
@@ -5914,7 +5941,7 @@
                     </label>
                 </fieldset>
 
-                <div id="plan-valid-${dni}" class="plan-valid" role="status" aria-live="polite">${planValidacionHtml().html}</div>
+                <div id="plan-valid-${_planCtx}-${dni}" class="plan-valid" role="status" aria-live="polite">${planValidacionHtml().html}</div>
                 ${_planErrorGuardar ? `<div class="plan-v plan-v-err" role="alert">${escapeHtml(_planErrorGuardar)}</div>` : ''}
                 <div class="plan-acciones">
                     <button type="button" class="btn-mini btn-mini-primary" data-plan-guardar ${planValidacionHtml().hayErrores || _planGuardando ? 'disabled' : ''}>${_planGuardando ? 'Guardando…' : 'Guardar planificación'}</button>
@@ -5924,16 +5951,16 @@
         }
 
         // ── Abrir / cerrar ──
-        async function planAbrir(dni) {
-            if (_planAbierto && _planAbierto !== dni && _planDirty && !confirm('Tenés cambios sin guardar en la planificación de otro paciente. ¿Descartarlos y abrir esta?')) return;
+        async function planAbrir(dni, ctx = 'lista') {
+            if (_planAbierto && (_planAbierto !== dni || _planCtx !== ctx) && _planDirty && !confirm('Tenés cambios sin guardar en la planificación de otro paciente. ¿Descartarlos y abrir esta?')) return;
             const previo = _planAbierto;
             const p = _planPaciente(dni);
             if (!p) return;
-            _planAbierto = dni; _planDirty = false; _planAviso = ''; _planErrorGuardar = '';
+            _planAbierto = dni; _planCtx = ctx; _planDirty = false; _planAviso = ''; _planErrorGuardar = '';
             _planDraft = normalizarPlanificacion(p.planificacion);
             _planCarga = 'cargando';
             delete _planFlash[dni];
-            if (previo && previo !== dni) planRepintar(previo);
+            if (previo) planRepintar(previo);
             planRepintar(dni);
             // Se relee la ficha del servidor para no editar sobre una copia vieja
             // (por ejemplo si se cargó desde otro dispositivo).
@@ -5957,9 +5984,10 @@
 
         function planCerrar(dni, pedirConfirmacion = true) {
             if (pedirConfirmacion && _planDirty && !confirm('Hay cambios sin guardar. ¿Descartarlos?')) return false;
+            const _planCtxAntes = _planCtx;
             _planAbierto = null; _planDraft = null; _planDirty = false; _planAviso = ''; _planErrorGuardar = ''; _planCarga = '';
             planRepintar(dni, null);
-            document.querySelector(`${_planSel(dni)} [data-plan-toggle]`)?.focus();
+            document.querySelector(`${_planSel(dni)}[data-plan-ctx="${_planCtxAntes}"] [data-plan-toggle]`)?.focus();
             return true;
         }
 
@@ -6038,10 +6066,12 @@
         }
 
         function planAsegurarListeners() {
-            if (_planListenersOk) return;
-            const cont = document.getElementById('contenedorClientes');
-            if (!cont) return;
-            _planListenersOk = true;
+            ['contenedorClientes', 'plan-form-host'].forEach(planEnlazarContenedor);
+        }
+        function planEnlazarContenedor(idCont) {
+            const cont = document.getElementById(idCont);
+            if (!cont || _planListenersEn.has(cont)) return;
+            _planListenersEn.add(cont);
             const alCambiar = (ev) => {
                 const el = ev.target.closest && ev.target.closest('[data-plan-f]');
                 if (!el || _planGuardando) return;
@@ -6054,7 +6084,8 @@
                 if (!t) return;
                 if (t.dataset.planToggle !== undefined) {
                     const dni = t.dataset.planToggle;
-                    if (_planAbierto === dni) planCerrar(dni); else planAbrir(dni);
+                    const ctxClick = t.dataset.planCtx || 'lista';
+                    if (_planAbierto === dni && _planCtx === ctxClick) planCerrar(dni); else planAbrir(dni, ctxClick);
                     return;
                 }
                 if (!_planAbierto || !_planDraft || _planGuardando) return;
