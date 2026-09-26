@@ -350,3 +350,51 @@ export function serializarPlanificacion(planRaw) {
     observaciones: p.observaciones.trim(),
   };
 }
+
+// ── Regla de los 15 días del facial contra turnos reales ──────────────────
+// Un servicio cuenta como facial si su nombre lo dice; las consultas iniciales
+// no son tratamientos (el llamador las excluye por su tipo estable).
+export function esServicioFacial(nombre) {
+  return /facial/i.test(String(nombre == null ? '' : nombre));
+}
+
+const _dia = (f) => {
+  if (!FECHA_RE.test(String(f || ''))) return null;
+  const [y, m, d] = f.split('-').map(Number);
+  const t = Date.UTC(y, m - 1, d);
+  const dt = new Date(t);
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d ? Math.round(t / 86400000) : null;
+};
+const _fechaDeDia = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
+
+// previas: [{ fecha:'YYYY-MM-DD', servicio, id? }] — solo turnos activos y faciales
+// (el llamador ya filtra). Devuelve { conflicto:false } o el facial más cercano
+// que queda a menos de 15 días, con los días de diferencia y, si hay un facial
+// anterior, la primera fecha recomendada (esa fecha + 15 días).
+export function evaluarIntervaloFacial(fechaNueva, previas, idIgnorar) {
+  const nueva = _dia(fechaNueva);
+  if (nueva == null || !Array.isArray(previas)) return { conflicto: false };
+  let cercano = null;
+  previas.forEach((p) => {
+    if (!p || (idIgnorar && p.id === idIgnorar)) return;
+    const d = _dia(p.fecha);
+    if (d == null) return;
+    const dist = Math.abs(d - nueva);
+    if (dist < FACIAL_INTERVALO_MIN_DIAS && (!cercano || dist < cercano.dias)) cercano = { fecha: p.fecha, dias: dist, despues: d > nueva, servicio: p.servicio || '' };
+  });
+  if (!cercano) return { conflicto: false };
+  const base = cercano.despues ? null : _dia(cercano.fecha);
+  return {
+    conflicto: true,
+    ...cercano,
+    fechaRecomendada: base != null ? _fechaDeDia(base + FACIAL_INTERVALO_MIN_DIAS) : null,
+  };
+}
+
+export function textoConflictoFacial(res) {
+  if (!res || !res.conflicto) return '';
+  const cuando = res.dias === 0 ? 'ese mismo día'
+    : res.despues ? `dentro de ${res.dias} día${res.dias === 1 ? '' : 's'} (${formatearFechaCorta(res.fecha)})`
+      : `hace ${res.dias} día${res.dias === 1 ? '' : 's'} (${formatearFechaCorta(res.fecha)})`;
+  return `Esta paciente tiene otro facial ${cuando}.`;
+}
