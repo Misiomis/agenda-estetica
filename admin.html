@@ -1863,7 +1863,7 @@
                 <!-- Grilla de servicios -->
                 <div class="detalle-dia-card" style="max-width:700px;margin:0 auto;">
                     <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">📋 Grilla de Servicios</h3>
-                    <p style="font-size:13px;color:rgba(22,61,50,0.70);margin:0 0 20px;">Asigná cada servicio al box donde se realiza. Al seleccionar un servicio en el registro de un turno, el box se elegirá automáticamente — sin margen de error.</p>
+                    <p style="font-size:13px;color:rgba(22,61,50,0.70);margin:0 0 20px;">Indicá cuánto dura cada servicio y en qué box se realiza. La duración se respeta al agendar: el turno ocupa ese tiempo en el box. Al seleccionar un servicio en el registro de un turno, el box se elegirá automáticamente — sin margen de error.</p>
                     <div id="gs-lista" style="margin-bottom:16px;overflow-x:auto;"></div>
                     <button class="btn-mini" onclick="gsAgregarNuevo()" style="padding:10px 20px;font-size:13px;border-radius:12px;">+ Nuevo servicio</button>
                 </div>
@@ -10753,6 +10753,7 @@
             lista.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
                 <thead><tr style="color:rgba(22,61,50,0.5);font-size:10px;letter-spacing:.06em;text-align:left;">
                     <th style="padding:6px 8px;font-weight:600;">SERVICIO</th>
+                    <th style="padding:6px 8px;font-weight:600;">DURACIÓN</th>
                     <th style="padding:6px 8px;font-weight:600;">BOXES (uno o más)</th>
                     <th style="padding:6px 8px;"></th>
                 </tr></thead>
@@ -10761,6 +10762,12 @@
                         <td style="padding:7px 8px;min-width:130px;">
                             <input id="gs-nom-${s.id}" value="${escapeHtml(s.nombre||'')}"
                                 style="background:var(--surface);border:1.5px solid var(--border-strong);border-radius:8px;padding:6px 10px;color:rgba(36,51,43,0.92);font-size:13px;font-family:inherit;width:100%;box-sizing:border-box;outline:none;">
+                        </td>
+                        <td style="padding:7px 8px;white-space:nowrap;">
+                            ${s.tipo === SERVICIO_TIPO_CONSULTA_INICIAL
+                                ? `<span title="La Consulta Inicial dura siempre ${DURACION_CONSULTA_INICIAL_MIN} min" style="font-size:12px;color:rgba(22,61,50,0.6);">${DURACION_CONSULTA_INICIAL_MIN} min (fija)</span>`
+                                : `<input id="gs-dur-${s.id}" type="number" inputmode="numeric" min="5" max="480" step="5" value="${Number(s.duracion) > 0 ? Number(s.duracion) : ''}" placeholder="30" aria-label="Duración en minutos de ${escapeHtml(s.nombre || 'este servicio')}"
+                                    style="background:var(--surface);border:1.5px solid var(--border-strong);border-radius:8px;padding:6px 8px;color:rgba(36,51,43,0.92);font-size:13px;font-family:inherit;width:64px;box-sizing:border-box;outline:none;"> <span style="font-size:12px;color:rgba(22,61,50,0.6);">min</span>`}
                         </td>
                         <td style="padding:7px 8px;">
                             <div style="display:flex;flex-wrap:wrap;gap:6px;">
@@ -10800,6 +10807,7 @@
                     getDoc(doc(db, 'configuracion', 'serviciosBox'))
                 ]);
                 _gsServicios = svSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                _gsServicios.forEach(x => { if (x.nombre && Number(x.duracion) > 0) _svDurMap.set(x.nombre, Number(x.duracion)); });
                 // Cargar asignaciones de box desde configuracion (fuente de verdad)
                 _svBoxMap.clear();
                 if (boxSnap.exists()) {
@@ -10828,6 +10836,12 @@
             const nombre = (document.getElementById(`gs-nom-${id}`)?.value || '').trim();
             const boxIds = GRILLA_BOXES.filter(b => document.getElementById(`gs-chk-${id}-${b.id}`)?.checked).map(b => b.id);
             if (!nombre) { mostrarAviso('El nombre no puede estar vacío'); return; }
+            const durTxt = (document.getElementById(`gs-dur-${id}`)?.value || '').trim();
+            let duracion = null;
+            if (durTxt !== '') {
+                duracion = Number(durTxt);
+                if (!Number.isInteger(duracion) || duracion < 5 || duracion > 480) { mostrarAviso('La duración tiene que ser un número entero de minutos entre 5 y 480'); return; }
+            }
             try {
                 // 1. Actualizar nombre en services si cambió
                 if (nombre !== nombreAnterior) {
@@ -10839,6 +10853,14 @@
                     }
                     const idx = _gsServicios.findIndex(s => s.id === id);
                     if (idx >= 0) _gsServicios[idx].nombre = nombre;
+                }
+                // 1b. Duración: se usa al agendar (turno, ocupación del box y horarios que se bloquean)
+                if (duracion != null) {
+                    await setDoc(doc(db, 'services', id), { duracion, activo: true }, { merge: true });
+                    const idx2 = _gsServicios.findIndex(x => x.id === id);
+                    if (idx2 >= 0) _gsServicios[idx2].duracion = duracion;
+                    if (nombreAnterior && nombreAnterior !== nombre) _svDurMap.delete(nombreAnterior);
+                    _svDurMap.set(nombre, duracion);
                 }
                 // 2. Guardar boxes en configuracion/serviciosBox
                 if (boxIds.length) _svBoxMap.set(nombre, boxIds); else _svBoxMap.delete(nombre);
