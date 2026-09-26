@@ -456,6 +456,61 @@
         #modal-precio-kit-card .mpk-btn-save { flex: 1; padding: 12px; border: none; border-radius: var(--r-md); background: var(--forest); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: filter 0.15s; }
         #modal-precio-kit-card .mpk-btn-save:hover { filter: brightness(1.1); }
 
+        /* ── Disponibilidad y planificación por paciente (ficha del listado) ── */
+        .plan-wrap { margin-top: 10px; border-top: 1px dashed var(--border-strong); padding-top: 6px; }
+        .plan-toggle { width: 100%; display: flex; align-items: flex-start; gap: 8px; text-align: left; background: transparent; border: 0; padding: 8px 0; cursor: pointer; font: inherit; color: inherit; min-height: 44px; }
+        .plan-toggle:focus-visible, .plan-dia-btn:focus-visible, .plan-x:focus-visible { outline: 3px solid var(--forest-soft); outline-offset: 2px; border-radius: 8px; }
+        .plan-chevron { flex: none; width: 16px; color: var(--ink-soft); line-height: 1.5; }
+        .plan-cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+        .plan-titulo { font-weight: 700; font-size: 13px; color: var(--ink); }
+        .plan-resumen { flex-basis: 100%; font-size: 12px; color: var(--ink-soft); line-height: 1.45; }
+        .plan-badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+        .plan-b-sin_configurar { color: #5b6660; background: rgba(91,102,96,.09); border-color: rgba(91,102,96,.35); }
+        .plan-b-incompleta { color: #7d5a13; background: rgba(138,106,34,.12); border-color: rgba(138,106,34,.40); }
+        .plan-b-configurada { color: #245a42; background: rgba(47,107,79,.12); border-color: rgba(47,107,79,.40); }
+        .plan-flash { font-size: 12.5px; font-weight: 600; padding: 7px 10px; border-radius: 8px; margin: 2px 0 6px; }
+        .plan-flash-ok { background: rgba(47,107,79,.12); color: #245a42; }
+        .plan-flash-aviso { background: rgba(138,106,34,.12); color: #7d5a13; }
+        .plan-body { padding: 4px 0 2px; }
+        .plan-loading { padding: 14px 4px; font-size: 13px; color: var(--ink-soft); }
+        .plan-sec { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px 12px; margin: 0 0 10px; min-width: 0; }
+        .plan-sec legend { font-size: 12px; font-weight: 700; padding: 0 6px; color: var(--ink); }
+        .plan-ayuda { font-size: 12px; color: var(--ink-soft); margin: 4px 0 8px; line-height: 1.5; }
+        .plan-radios { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 10px; }
+        .plan-radio { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; min-height: 32px; }
+        .plan-radio input { margin-top: 3px; width: 18px; height: 18px; flex: none; }
+        .plan-dias { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+        .plan-dia-btn { min-height: 40px; padding: 6px 13px; border-radius: 999px; border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .plan-dia-btn[aria-pressed="true"] { background: var(--forest); border-color: var(--forest); color: #fff; }
+        .plan-dia-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+        .plan-dia-nombre { min-width: 78px; font-weight: 700; font-size: 13px; }
+        .plan-ints { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+        .plan-int { display: inline-flex; align-items: center; gap: 5px; }
+        .plan-input { min-height: 40px; padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; box-sizing: border-box; max-width: 100%; }
+        .plan-input:focus { outline: none; border-color: var(--forest); box-shadow: 0 0 0 3px var(--forest-soft); }
+        .plan-x { flex: none; min-width: 40px; height: 40px; padding: 0 10px; font-family: inherit; border-radius: 8px; border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--ink-soft); font-size: 20px; line-height: 1; cursor: pointer; }
+        .plan-x-turno { font-size: 13px; font-weight: 600; }
+        .plan-turno { position: relative; display: grid; grid-template-columns: 1fr 110px 1.6fr 96px 1.2fr auto; gap: 8px; align-items: end; padding: 8px 0; border-top: 1px solid var(--border); }
+        .plan-turno label, .plan-grid label, .plan-obs { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); min-width: 0; }
+        .plan-turno .plan-input, .plan-grid .plan-input, .plan-obs .plan-input { width: 100%; }
+        .plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+        .plan-obs { margin-top: 10px; }
+        .plan-v { border-radius: 10px; padding: 8px 12px; margin: 0 0 8px; font-size: 12.5px; line-height: 1.5; }
+        .plan-v ul { margin: 4px 0 0; padding-left: 18px; }
+        .plan-v-err { background: rgba(165,67,58,.10); border: 1px solid rgba(165,67,58,.40); color: #8a2f28; }
+        .plan-v-adv { background: rgba(138,106,34,.12); border: 1px solid rgba(138,106,34,.40); color: #6b4d10; }
+        .plan-v-pen { background: rgba(61,92,134,.09); border: 1px solid rgba(61,92,134,.32); color: #2f4a70; }
+        .plan-v-ok { background: rgba(47,107,79,.10); border: 1px solid rgba(47,107,79,.35); color: #245a42; }
+        .plan-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+        @media (max-width: 720px) {
+            .plan-turno { grid-template-columns: 1fr 1fr; padding-right: 0; }
+            .plan-turno .plan-turno-servicio { grid-column: 1 / -1; }
+            .plan-x-turno { grid-column: 1 / -1; width: 100%; font-size: 13px; font-weight: 600; }
+            .plan-dia-nombre { flex-basis: 100%; }
+            .plan-acciones .btn-mini { flex: 1; min-height: 44px; }
+        }
+        @media (prefers-reduced-motion: reduce) { .plan-wrap * { transition: none !important; animation: none !important; } }
+
         .filtros-advanced { display: grid; grid-template-columns: minmax(190px, 1.2fr) repeat(3, minmax(110px, 1fr)) auto; gap: 8px; margin-bottom: 10px; align-items: center; }
         .select-input { width: 100%; min-height: 44px; padding: 10px 12px; border-radius: var(--r-md); border: 1.5px solid var(--border-strong); box-sizing: border-box; outline: none; background: var(--surface); color: var(--ink); font-size: 16px; transition: border-color 0.15s, box-shadow 0.15s; }
         .select-input:focus { border-color: var(--forest); box-shadow: 0 0 0 3px var(--forest-soft); }
@@ -1514,7 +1569,7 @@
                     <input type="text" class="busc-input" id="inpBusPaciente" placeholder="Buscar paciente por nombre..." oninput="buscarPacienteNombreInput(); filtrarListadoClientesInput()" autocomplete="off" style="margin-bottom:0">
                     <div id="sugerenciasPaciente" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-lg); z-index:200; max-height:220px; overflow-y:auto;"></div>
                 </div>
-                <div class="filtros-advanced" style="grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) auto; margin-bottom:12px;">
+                <div class="filtros-advanced" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom:12px;">
                     <select id="filtroTipoCliente" class="select-input" onchange="filtrarListadoClientes()">
                         <option value="todos">Todos los pacientes</option>
                         <option value="membresia">Solo membresía</option>
@@ -1525,6 +1580,13 @@
                         <option value="activo">Consultar pacientes activos</option>
                         <option value="inactivo">Consultar pacientes inactivos</option>
                         <option value="cursos">Consultar pacientes de cursos</option>
+                    </select>
+                    <select id="filtroPlanCliente" class="select-input" onchange="filtrarListadoClientes()" aria-label="Filtrar por disponibilidad y planificación">
+                        <option value="todos">Cualquier planificación</option>
+                        <option value="revisar">Requieren revisión (sin configurar + incompletas)</option>
+                        <option value="sin_configurar">Planificación sin configurar</option>
+                        <option value="incompleta">Planificación incompleta</option>
+                        <option value="configurada">Planificación configurada</option>
                     </select>
                     <button class="btn-mini" onclick="limpiarFiltrosClientes()">Limpiar filtros</button>
                 </div>
@@ -2163,6 +2225,11 @@
     <script type="module">
         import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit, runTransaction, writeBatch } from "/js/firebase-web.js";
         import { registrarContactoPreparado, registrarContactoEstado } from "/js/contact-tracking.js";
+        import {
+            DIAS as PLAN_DIAS, ETIQUETA_DIA as PLAN_ETIQUETA_DIA, MODOS as PLAN_MODOS, ALCANCES as PLAN_ALCANCES,
+            ETIQUETA_ESTADO_PLAN, planVacia, normalizarPlanificacion, validarPlanificacion,
+            estadoPlanificacion, resumenPlanificacion, serializarPlanificacion, nuevoIdFila as planNuevoIdFila
+        } from "/js/planificacion-paciente.js";
 
         // ── Alto real del header (barra superior sticky) ────────────────────────
         // El thead de la Grilla también es sticky y se apila justo debajo del
@@ -3285,7 +3352,10 @@
                         username: c.username || "",
                         active: c.active !== false,
                         hoursBalance: c.hoursBalance ?? 0,
-                        membershipActive: resolverMembresiaActiva(c)
+                        membershipActive: resolverMembresiaActiva(c),
+                        // Disponibilidad y planificación (etapa 1): solo se lee tal cual
+                        // está guardada, nunca se completa a partir de reservas viejas.
+                        planificacion: c.planificacion && typeof c.planificacion === 'object' ? c.planificacion : null
                     };
                 }).filter(p => {
                     const d = (p.dni || "").toString();
@@ -5530,8 +5600,10 @@
             const txt = (document.getElementById("inpBusPaciente").value || "").toLowerCase().trim();
             const tipo = document.getElementById("filtroTipoCliente")?.value || "todos";
             const actividad = document.getElementById("filtroActividadCliente")?.value || "todos";
+            const filtroPlan = document.getElementById("filtroPlanCliente")?.value || "todos";
             const resumen = document.getElementById("resumenClientes");
             const cont = document.getElementById("contenedorClientes");
+            planAsegurarListeners();
 
             // Clasificación pendiente de calcular: se dispara la carga (si no
             // está en vuelo) y, si el filtro de actividad la necesita, se avisa
@@ -5554,6 +5626,10 @@
                     || (tipo === "membresia" && esMembresia)
                     || (tipo === "ocasional" && !esMembresia);
                 if (!okNombre || !okTipo) return false;
+                if (filtroPlan !== 'todos') {
+                    const est = estadoPlanificacion(p.planificacion);
+                    if (filtroPlan === 'revisar' ? est === 'configurada' : est !== filtroPlan) return false;
+                }
                 if (actividad === 'todos') return true;
                 const clasif = _clasificarPaciente(p.dni, _clasifIndices, hoyISO);
                 return clasif.estado === actividad;
@@ -5570,6 +5646,9 @@
                 } else if (_clasifError) {
                     resumenTxt += ` — clasificación por actividad no disponible (${_clasifError})`;
                 }
+                const _cPlan = { sin_configurar: 0, incompleta: 0, configurada: 0 };
+                todasLosPacientes.forEach(p => { _cPlan[estadoPlanificacion(p.planificacion)]++; });
+                resumenTxt += ` · Planificación: ${_cPlan.sin_configurar} sin configurar, ${_cPlan.incompleta} incompletas, ${_cPlan.configurada} configuradas`;
                 resumen.textContent = resumenTxt;
             }
             if (!cont) return;
@@ -5608,11 +5687,405 @@
                             ${p.membershipActive ? 'Cambiar a Ocasional' : 'Cambiar a Membresía'}
                         </button>
                     </div>
+                    ${planCardHtml(p)}
                 </div>
             `; }).join('');
         };
 
         window.filtrarListadoClientesInput = debounce(() => window.filtrarListadoClientes(), 180);
+
+        // ══════════════════════════════════════════════════════════════════
+        // Disponibilidad y planificación por paciente (etapa 1: cargar,
+        // editar, validar y guardar — sin generar reservas ni enviar nada).
+        // Se guarda en clients/{dni}.planificacion (solo ese campo, vía
+        // updateDoc), así el resto de la ficha no se toca. La lógica pura
+        // (validar, resumir, estado) vive en /js/planificacion-paciente.js.
+        // ══════════════════════════════════════════════════════════════════
+        let _planAbierto = null;       // dni con el editor desplegado (uno a la vez)
+        let _planDraft = null;         // borrador en edición (misma forma que el guardado, números como texto)
+        let _planDirty = false;
+        let _planCarga = '';           // '' | 'cargando'
+        let _planAviso = '';           // aviso al abrir (ej. no se pudo releer la ficha)
+        let _planErrorGuardar = '';
+        let _planGuardando = false;
+        let _planServicios = null;     // [{nombre, duracion}] de la colección services (se carga al abrir)
+        let _planServiciosError = '';
+        const _planFlash = {};         // dni -> {tipo:'ok'|'aviso', texto}
+        let _planListenersOk = false;
+
+        const _planSel = (dni) => `[data-plan-wrap="${(window.CSS && CSS.escape) ? CSS.escape(dni) : dni}"]`;
+        const _planPaciente = (dni) => todasLosPacientes.find(p => p.dni === dni);
+
+        function _planBoxesOpciones() {
+            return GRILLA_BOXES.map(b => ({ id: b.id, label: `${b.label} · ${b.sub}` }));
+        }
+
+        async function _planCargarServicios(forzar = false) {
+            if (_planServicios && !forzar) return;
+            _planServiciosError = '';
+            try {
+                const snap = await getDocs(collection(db, 'services'));
+                const lista = [];
+                snap.forEach(d => {
+                    const s = d.data() || {};
+                    if (s.activo === false || !s.nombre) return;
+                    lista.push({ nombre: s.nombre, duracion: Number(s.duracion) || 60, orden: s.orden || 99 });
+                });
+                lista.sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, 'es'));
+                _planServicios = lista;
+            } catch (e) {
+                console.error('planificación: servicios', e);
+                _planServiciosError = 'No se pudo cargar la lista de servicios.';
+            }
+        }
+
+        function planCardHtml(p) {
+            const dni = escapeHtml(p.dni || '');
+            const estado = estadoPlanificacion(p.planificacion);
+            const abierto = _planAbierto === p.dni;
+            const resumen = resumenPlanificacion(p.planificacion);
+            const flash = _planFlash[p.dni];
+            return `
+            <div class="plan-wrap" data-plan-wrap="${dni}">
+                <button type="button" class="plan-toggle" data-plan-toggle="${dni}" aria-expanded="${abierto}" aria-controls="plan-body-${dni}">
+                    <span class="plan-chevron" aria-hidden="true">${abierto ? '▾' : '▸'}</span>
+                    <span class="plan-cabecera">
+                        <span class="plan-titulo">Disponibilidad y planificación</span>
+                        <span class="plan-badge plan-b-${estado}">${ETIQUETA_ESTADO_PLAN[estado]}</span>
+                        <span class="plan-resumen">${resumen ? escapeHtml(resumen) : 'Disponibilidad sin configurar'}</span>
+                    </span>
+                </button>
+                ${flash ? `<div class="plan-flash plan-flash-${flash.tipo}" role="status">${escapeHtml(flash.texto)}</div>` : ''}
+                <div id="plan-body-${dni}" class="plan-body" ${abierto ? '' : 'hidden'}>${abierto ? planEditorHtml(p) : ''}</div>
+            </div>`;
+        }
+
+        function planRepintar(dni, focoKey) {
+            const p = _planPaciente(dni);
+            const wrap = document.querySelector(_planSel(dni));
+            if (!p || !wrap) return;
+            wrap.outerHTML = planCardHtml(p);
+            if (focoKey) planFoco(dni, focoKey);
+        }
+        function planRepintarEditor(dni, focoKey) {
+            const p = _planPaciente(dni);
+            const body = document.getElementById('plan-body-' + dni);
+            if (!p || !body) return;
+            body.innerHTML = planEditorHtml(p);
+            if (focoKey) planFoco(dni, focoKey);
+        }
+        function planFoco(dni, key) {
+            const body = document.getElementById('plan-body-' + dni);
+            const el = body && body.querySelector(`[data-plan-focus="${key}"]`);
+            if (el) el.focus();
+        }
+
+        function _planOpt(valor, texto, actual) {
+            return `<option value="${escapeHtml(valor)}" ${valor === actual ? 'selected' : ''}>${escapeHtml(texto)}</option>`;
+        }
+
+        function planValidacionHtml() {
+            const v = validarPlanificacion(_planDraft);
+            const lista = (arr) => `<ul>${arr.map(x => `<li>${escapeHtml(x.mensaje)}</li>`).join('')}</ul>`;
+            let html = '';
+            if (v.errores.length) html += `<div class="plan-v plan-v-err"><strong>Corregir antes de guardar</strong>${lista(v.errores)}</div>`;
+            if (v.advertencias.length) html += `<div class="plan-v plan-v-adv"><strong>Advertencias (se puede guardar igual, pero conviene revisar)</strong>${lista(v.advertencias)}</div>`;
+            if (v.pendientes.length) html += `<div class="plan-v plan-v-pen"><strong>Falta completar (se puede guardar y seguir después)</strong>${lista(v.pendientes)}</div>`;
+            if (!html) html = '<div class="plan-v plan-v-ok">Todo completo y sin inconsistencias.</div>';
+            return { html, hayErrores: v.errores.length > 0 };
+        }
+
+        function planRefrescarValidacion() {
+            if (!_planAbierto) return;
+            const cont = document.getElementById('plan-valid-' + _planAbierto);
+            if (!cont) return;
+            const r = planValidacionHtml();
+            cont.innerHTML = r.html;
+            const btn = document.querySelector(`#plan-body-${_planAbierto} [data-plan-guardar]`);
+            if (btn) btn.disabled = r.hayErrores || _planGuardando;
+        }
+
+        function planEditorHtml(p) {
+            const dni = escapeHtml(p.dni || '');
+            if (_planCarga === 'cargando' || !_planDraft) return '<div class="plan-loading">Cargando la última versión guardada…</div>';
+            const d = _planDraft;
+            const diasSel = PLAN_DIAS.filter(x => Object.prototype.hasOwnProperty.call(d.disponibilidad.dias, x));
+
+            const modoHtml = Object.entries(PLAN_MODOS).map(([k, txt]) => `
+                <label class="plan-radio"><input type="radio" name="plan-modo-${dni}" value="${k}" data-plan-f="modo" ${d.disponibilidad.modo === k ? 'checked' : ''} data-plan-focus="modo:${k}"> ${escapeHtml(txt)}</label>`).join('');
+
+            const diasBtns = PLAN_DIAS.map(x => `
+                <button type="button" class="plan-dia-btn" data-plan-dia="${x}" aria-pressed="${diasSel.includes(x)}" data-plan-focus="dia:${x}">${PLAN_ETIQUETA_DIA[x]}</button>`).join('');
+
+            const filasDias = diasSel.map(x => {
+                const ints = d.disponibilidad.dias[x];
+                return `
+                <div class="plan-dia-fila">
+                    <span class="plan-dia-nombre">${PLAN_ETIQUETA_DIA[x]}</span>
+                    <span class="plan-ints">
+                        ${ints.map((i, idx) => `
+                        <span class="plan-int">
+                            <input type="time" class="plan-input" data-plan-f="int" data-dia="${x}" data-idx="${idx}" data-k="desde" value="${escapeHtml(i.desde)}" aria-label="${PLAN_ETIQUETA_DIA[x]}, intervalo ${idx + 1}, desde" data-plan-focus="int:${x}:${idx}">
+                            <span aria-hidden="true">a</span>
+                            <input type="time" class="plan-input" data-plan-f="int" data-dia="${x}" data-idx="${idx}" data-k="hasta" value="${escapeHtml(i.hasta)}" aria-label="${PLAN_ETIQUETA_DIA[x]}, intervalo ${idx + 1}, hasta">
+                            <button type="button" class="plan-x" data-plan-delint="${x}:${idx}" aria-label="Quitar intervalo ${idx + 1} de ${PLAN_ETIQUETA_DIA[x]}">×</button>
+                        </span>`).join('')}
+                    </span>
+                    <button type="button" class="btn-mini" data-plan-addint="${x}">＋ Intervalo</button>
+                </div>`;
+            }).join('');
+
+            const servicios = _planServicios || [];
+            const boxes = _planBoxesOpciones();
+            const filasTurnos = d.turnosHabituales.map((r, idx) => {
+                const svs = servicios.some(s => s.nombre === r.servicio) || !r.servicio ? servicios.map(s => s.nombre) : [r.servicio, ...servicios.map(s => s.nombre)];
+                const boxIds = boxes.some(b => b.id === r.box) || !r.box ? boxes : [{ id: r.box, label: `${r.box} (no existe en la configuración actual)` }, ...boxes];
+                return `
+                <div class="plan-turno">
+                    <label>Día
+                        <select class="plan-input" data-plan-f="turno" data-id="${escapeHtml(r.id)}" data-k="dia" data-plan-focus="turno:${escapeHtml(r.id)}">
+                            ${_planOpt('', 'Elegir día', r.dia)}${PLAN_DIAS.map(x => _planOpt(x, PLAN_ETIQUETA_DIA[x], r.dia)).join('')}
+                        </select>
+                    </label>
+                    <label>Hora de inicio
+                        <input type="time" class="plan-input" data-plan-f="turno" data-id="${escapeHtml(r.id)}" data-k="horaInicio" value="${escapeHtml(r.horaInicio)}">
+                    </label>
+                    <label class="plan-turno-servicio">Servicio o tratamiento
+                        <select class="plan-input" data-plan-f="turno" data-id="${escapeHtml(r.id)}" data-k="servicio" data-plan-focus="turno:${escapeHtml(r.id)}:servicio">
+                            ${_planOpt('', 'Elegir servicio', r.servicio)}${svs.map(n => _planOpt(n, servicios.some(s => s.nombre === n) ? n : `${n} (no está en la lista actual)`, r.servicio)).join('')}
+                        </select>
+                    </label>
+                    <label>Duración (min)
+                        <input type="number" inputmode="numeric" min="1" step="1" class="plan-input" data-plan-f="turno" data-id="${escapeHtml(r.id)}" data-k="duracionMin" value="${escapeHtml(r.duracionMin)}">
+                    </label>
+                    <label>Box habitual
+                        <select class="plan-input" data-plan-f="turno" data-id="${escapeHtml(r.id)}" data-k="box">
+                            ${_planOpt('', 'Sin box definido', r.box)}${boxIds.map(b => _planOpt(b.id, b.label, r.box)).join('')}
+                        </select>
+                    </label>
+                    <button type="button" class="plan-x plan-x-turno" data-plan-delturno="${escapeHtml(r.id)}" aria-label="Quitar turno habitual ${idx + 1}">Quitar</button>
+                </div>`;
+            }).join('');
+
+            const f = d.frecuencia;
+            const num = (k, val) => `<input type="number" inputmode="numeric" min="1" step="1" class="plan-input" data-plan-f="frec" data-k="${k}" value="${escapeHtml(val)}">`;
+
+            return `
+            <div class="plan-editor">
+                ${_planAviso ? `<div class="plan-v plan-v-adv" role="status">${escapeHtml(_planAviso)}</div>` : ''}
+                <fieldset class="plan-sec">
+                    <legend>1 · Disponibilidad semanal</legend>
+                    <p class="plan-ayuda">Cada intervalo es el tiempo en que la persona puede permanecer en el establecimiento. Si tiene que terminar a las 11:00 y el tratamiento dura una hora, el turno tiene que empezar como máximo a las 10:00. Sin datos cargados no se asume disponibilidad.</p>
+                    <div class="plan-radios" role="radiogroup" aria-label="Tipo de disponibilidad">${modoHtml}</div>
+                    <div class="plan-dias" role="group" aria-label="Días en los que puede asistir">${diasBtns}</div>
+                    ${filasDias || '<p class="plan-ayuda">Elegí uno o más días para cargar sus horarios.</p>'}
+                </fieldset>
+
+                <fieldset class="plan-sec">
+                    <legend>2 · Turnos habituales</legend>
+                    <p class="plan-ayuda">Los lugares que se procura conservar en su agenda (aparte de cuándo puede venir). Al elegir el servicio se completan la duración y el box según la configuración del sistema; podés cambiarlos.${_planServiciosError ? ` <strong>${escapeHtml(_planServiciosError)}</strong> <button type="button" class="btn-mini" data-plan-reintentar-serv>Reintentar</button>` : ''}</p>
+                    ${filasTurnos || '<p class="plan-ayuda">Todavía no hay turnos habituales.</p>'}
+                    <button type="button" class="btn-mini" data-plan-addturno>＋ Agregar turno habitual</button>
+                </fieldset>
+
+                <fieldset class="plan-sec">
+                    <legend>3 · Frecuencia y objetivo</legend>
+                    <div class="plan-grid">
+                        <label>Turnos habituales por semana ${num('habitualSemana', f.habitualSemana)}</label>
+                        <label>Máximo de turnos por semana ${num('maximoSemana', f.maximoSemana)}</label>
+                        <label>Cantidad total de turnos prevista ${num('totalPrevisto', f.totalPrevisto)}</label>
+                        <label>La cantidad total corresponde a
+                            <select class="plan-input" data-plan-f="frec" data-k="alcance">
+                                ${_planOpt('', 'Sin indicar', f.alcance || '')}${Object.entries(PLAN_ALCANCES).map(([k, t]) => _planOpt(k, t, f.alcance || '')).join('')}
+                            </select>
+                        </label>
+                    </div>
+                    <p class="plan-ayuda">Estos datos solo describen la planificación: no modifican pagos, sesiones realizadas ni contadores.</p>
+                </fieldset>
+
+                <fieldset class="plan-sec">
+                    <legend>4 · Vigencia y observaciones</legend>
+                    <div class="plan-grid">
+                        <label>Se aplica desde <input type="date" class="plan-input" data-plan-f="vig" data-k="desde" value="${escapeHtml(d.vigencia.desde)}"></label>
+                        <label>Finaliza (si corresponde) <input type="date" class="plan-input" data-plan-f="vig" data-k="hasta" value="${escapeHtml(d.vigencia.hasta)}"></label>
+                    </div>
+                    <label class="plan-obs">Observaciones de disponibilidad
+                        <textarea class="plan-input" rows="2" data-plan-f="obs" placeholder="Ej: no puede los días de lluvia, llega en colectivo…">${escapeHtml(d.observaciones)}</textarea>
+                    </label>
+                </fieldset>
+
+                <div id="plan-valid-${dni}" class="plan-valid" role="status" aria-live="polite">${planValidacionHtml().html}</div>
+                ${_planErrorGuardar ? `<div class="plan-v plan-v-err" role="alert">${escapeHtml(_planErrorGuardar)}</div>` : ''}
+                <div class="plan-acciones">
+                    <button type="button" class="btn-mini btn-mini-primary" data-plan-guardar ${planValidacionHtml().hayErrores || _planGuardando ? 'disabled' : ''}>${_planGuardando ? 'Guardando…' : 'Guardar planificación'}</button>
+                    <button type="button" class="btn-mini" data-plan-cancelar ${_planGuardando ? 'disabled' : ''}>Cancelar</button>
+                </div>
+            </div>`;
+        }
+
+        // ── Abrir / cerrar ──
+        async function planAbrir(dni) {
+            if (_planAbierto && _planAbierto !== dni && _planDirty && !confirm('Tenés cambios sin guardar en la planificación de otro paciente. ¿Descartarlos y abrir esta?')) return;
+            const previo = _planAbierto;
+            const p = _planPaciente(dni);
+            if (!p) return;
+            _planAbierto = dni; _planDirty = false; _planAviso = ''; _planErrorGuardar = '';
+            _planDraft = normalizarPlanificacion(p.planificacion);
+            _planCarga = 'cargando';
+            delete _planFlash[dni];
+            if (previo && previo !== dni) planRepintar(previo);
+            planRepintar(dni);
+            // Se relee la ficha del servidor para no editar sobre una copia vieja
+            // (por ejemplo si se cargó desde otro dispositivo).
+            try {
+                const snap = await getDoc(doc(db, 'clients', dni));
+                if (_planAbierto !== dni) return;
+                if (snap.exists()) {
+                    const pl = snap.data().planificacion;
+                    p.planificacion = pl && typeof pl === 'object' ? pl : null;
+                    _planDraft = normalizarPlanificacion(p.planificacion);
+                }
+            } catch (e) {
+                console.error('planificación: releer ficha', e);
+                _planAviso = 'No se pudo comprobar la última versión guardada; se muestra la copia cargada al abrir el panel.';
+            }
+            await _planCargarServicios();
+            if (_planAbierto !== dni) return;
+            _planCarga = '';
+            planRepintar(dni);
+        }
+
+        function planCerrar(dni, pedirConfirmacion = true) {
+            if (pedirConfirmacion && _planDirty && !confirm('Hay cambios sin guardar. ¿Descartarlos?')) return false;
+            _planAbierto = null; _planDraft = null; _planDirty = false; _planAviso = ''; _planErrorGuardar = ''; _planCarga = '';
+            planRepintar(dni, null);
+            document.querySelector(`${_planSel(dni)} [data-plan-toggle]`)?.focus();
+            return true;
+        }
+
+        function _planMensajeError(e) {
+            const c = e && e.code;
+            if (c === 'permission-denied') return 'No tenés permiso para guardar en esta ficha (¿se venció la sesión?). No se guardó nada.';
+            if (c === 'unavailable' || c === 'deadline-exceeded') return 'No hay conexión con el servidor. No se guardó nada; tus cambios siguen acá, reintentá.';
+            if (c === 'not-found') return 'La ficha de este paciente ya no existe. No se guardó nada.';
+            return `No se pudo guardar${c ? ` (${c})` : ''}. Tus cambios siguen acá, reintentá.`;
+        }
+
+        async function planGuardar(dni) {
+            if (_planGuardando || _planAbierto !== dni || !_planDraft) return;
+            const v = validarPlanificacion(_planDraft);
+            if (v.errores.length) { planRefrescarValidacion(); return; }
+            const p = _planPaciente(dni);
+            _planGuardando = true; _planErrorGuardar = '';
+            planRepintarEditor(dni);
+            const serial = serializarPlanificacion(_planDraft);
+            try {
+                // Solo se toca el campo "planificacion" — el resto de la ficha no se reemplaza.
+                await updateDoc(doc(db, 'clients', dni), {
+                    planificacion: { ...serial, actualizadoAt: serverTimestamp(), actualizadoPor: (auth.currentUser && auth.currentUser.email) || null }
+                });
+                // Recién acá el guardado es real.
+                if (p) p.planificacion = serial;
+                const nAdv = v.advertencias.length, nPen = v.pendientes.length;
+                _planFlash[dni] = { tipo: nAdv || nPen ? 'aviso' : 'ok',
+                    texto: `✓ Guardado. ${nPen ? `Quedan ${nPen} dato${nPen === 1 ? '' : 's'} por completar. ` : ''}${nAdv ? `${nAdv} advertencia${nAdv === 1 ? '' : 's'} sin resolver.` : ''}`.trim() };
+                setTimeout(() => { delete _planFlash[dni]; if (_planAbierto !== dni) planRepintar(dni); }, 8000);
+                _planGuardando = false;
+                planCerrar(dni, false);
+                // el estado puede haber cambiado: refresca contadores/filtro
+                window.filtrarListadoClientes();
+            } catch (e) {
+                console.error('planificación: guardar', e);
+                _planGuardando = false;
+                _planErrorGuardar = _planMensajeError(e);
+                planRepintarEditor(dni);
+            }
+        }
+
+        // ── Edición del borrador ──
+        function _planAplicarCambio(el) {
+            const kind = el.dataset.planF;
+            const d = _planDraft;
+            if (!d) return false;
+            const val = el.type === 'radio' ? el.value : el.value;
+            if (kind === 'modo') d.disponibilidad.modo = val;
+            else if (kind === 'int') {
+                const it = d.disponibilidad.dias[el.dataset.dia]?.[Number(el.dataset.idx)];
+                if (it) it[el.dataset.k] = val;
+            } else if (kind === 'turno') {
+                const r = d.turnosHabituales.find(x => x.id === el.dataset.id);
+                if (!r) return false;
+                r[el.dataset.k] = val;
+                if (el.dataset.k === 'servicio') {
+                    const sv = (_planServicios || []).find(s => s.nombre === val);
+                    if (sv) {
+                        r.duracionMin = String(sv.duracion);
+                        const asignados = (_svBoxMap.get(sv.nombre) || []).filter(b => GRILLA_BOXES.some(x => x.id === b));
+                        if (asignados.length === 1) r.box = asignados[0];
+                        else if (asignados.length > 1 && !asignados.includes(r.box)) r.box = '';
+                    }
+                    _planDirty = true;
+                    planRepintarEditor(_planAbierto, `turno:${r.id}:servicio`);
+                    return true;
+                }
+            } else if (kind === 'frec') d.frecuencia[el.dataset.k] = el.dataset.k === 'alcance' ? (val || null) : val;
+            else if (kind === 'vig') d.vigencia[el.dataset.k] = val;
+            else if (kind === 'obs') d.observaciones = val;
+            else return false;
+            _planDirty = true;
+            planRefrescarValidacion();
+            return true;
+        }
+
+        function planAsegurarListeners() {
+            if (_planListenersOk) return;
+            const cont = document.getElementById('contenedorClientes');
+            if (!cont) return;
+            _planListenersOk = true;
+            const alCambiar = (ev) => {
+                const el = ev.target.closest && ev.target.closest('[data-plan-f]');
+                if (!el || _planGuardando) return;
+                _planAplicarCambio(el);
+            };
+            cont.addEventListener('input', alCambiar);
+            cont.addEventListener('change', alCambiar);
+            cont.addEventListener('click', (ev) => {
+                const t = ev.target.closest && ev.target.closest('[data-plan-toggle],[data-plan-dia],[data-plan-addint],[data-plan-delint],[data-plan-addturno],[data-plan-delturno],[data-plan-guardar],[data-plan-cancelar],[data-plan-reintentar-serv]');
+                if (!t) return;
+                if (t.dataset.planToggle !== undefined) {
+                    const dni = t.dataset.planToggle;
+                    if (_planAbierto === dni) planCerrar(dni); else planAbrir(dni);
+                    return;
+                }
+                if (!_planAbierto || !_planDraft || _planGuardando) return;
+                const d = _planDraft;
+                const dni = _planAbierto;
+                if (t.dataset.planDia) {
+                    const dia = t.dataset.planDia;
+                    if (Object.prototype.hasOwnProperty.call(d.disponibilidad.dias, dia)) delete d.disponibilidad.dias[dia];
+                    else d.disponibilidad.dias[dia] = [{ desde: '', hasta: '' }];
+                    _planDirty = true; planRepintarEditor(dni, `dia:${dia}`);
+                } else if (t.dataset.planAddint) {
+                    const dia = t.dataset.planAddint;
+                    const lista = d.disponibilidad.dias[dia] || (d.disponibilidad.dias[dia] = []);
+                    lista.push({ desde: '', hasta: '' });
+                    _planDirty = true; planRepintarEditor(dni, `int:${dia}:${lista.length - 1}`);
+                } else if (t.dataset.planDelint) {
+                    const [dia, idx] = t.dataset.planDelint.split(':');
+                    d.disponibilidad.dias[dia]?.splice(Number(idx), 1);
+                    _planDirty = true; planRepintarEditor(dni, `dia:${dia}`);
+                } else if (t.dataset.planAddturno !== undefined) {
+                    const id = planNuevoIdFila();
+                    d.turnosHabituales.push({ id, dia: '', horaInicio: '', servicio: '', duracionMin: '', box: '' });
+                    _planDirty = true; planRepintarEditor(dni, `turno:${id}`);
+                } else if (t.dataset.planDelturno) {
+                    d.turnosHabituales = d.turnosHabituales.filter(r => r.id !== t.dataset.planDelturno);
+                    _planDirty = true; planRepintarEditor(dni);
+                } else if (t.dataset.planGuardar !== undefined) planGuardar(dni);
+                else if (t.dataset.planCancelar !== undefined) planCerrar(dni);
+                else if (t.dataset.planReintentarServ !== undefined) _planCargarServicios(true).then(() => planRepintarEditor(dni));
+            });
+        }
 
         window.toggleMembresiaCliente = async (dni, nuevoEstado) => {
             if (!dni) return;
@@ -5650,6 +6123,7 @@
             document.getElementById("inpBusPaciente").value = "";
             document.getElementById("filtroTipoCliente").value = "todos";
             if (document.getElementById("filtroActividadCliente")) document.getElementById("filtroActividadCliente").value = "todos";
+            if (document.getElementById("filtroPlanCliente")) document.getElementById("filtroPlanCliente").value = "todos";
             document.getElementById("sugerenciasPaciente").style.display = "none";
             filtrarListadoClientes();
         };
@@ -5765,7 +6239,10 @@
                     username,
                     active: payload.active,
                     hoursBalance,
-                    membershipActive
+                    membershipActive,
+                    // guardarCliente no toca planificacion en Firestore (setDoc con merge);
+                    // se conserva también en la copia en memoria.
+                    planificacion: idx !== -1 ? (todasLosPacientes[idx].planificacion || null) : null
                 };
                 if (idx !== -1) {
                     todasLosPacientes[idx] = entradaActualizada;
