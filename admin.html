@@ -5906,9 +5906,6 @@
             const d = _planDraft;
             const diasSel = PLAN_DIAS.filter(x => Object.prototype.hasOwnProperty.call(d.disponibilidad.dias, x));
 
-            const modoHtml = Object.entries(PLAN_MODOS).map(([k, txt]) => `
-                <label class="plan-radio"><input type="radio" name="plan-modo-${dni}" value="${k}" data-plan-f="modo" ${d.disponibilidad.modo === k ? 'checked' : ''} data-plan-focus="modo:${k}"> ${escapeHtml(txt)}</label>`).join('');
-
             const diasBtns = PLAN_DIAS.map(x => `
                 <button type="button" class="plan-dia-btn" data-plan-dia="${x}" aria-pressed="${diasSel.includes(x)}" data-plan-focus="dia:${x}">${PLAN_ETIQUETA_DIA[x]}</button>`).join('');
 
@@ -5930,45 +5927,10 @@
                 </div>`;
             }).join('');
 
-            const servicios = _planServicios || [];
-            const boxes = _planBoxesOpciones();
-            const filasTurnos = d.turnosHabituales.map((r, idx) => {
-                const svs = servicios.some(s => s.nombre === r.servicio) || !r.servicio ? servicios.map(s => s.nombre) : [r.servicio, ...servicios.map(s => s.nombre)];
-                const boxIds = boxes.some(b => b.id === r.box) || !r.box ? boxes : [{ id: r.box, label: `${r.box} (no existe en la configuración actual)` }, ...boxes];
-                return `
-                <div class="plan-turno">
-                    <label>Día
-                        <select class="plan-input" data-plan-f="turno" data-id="${escapeHtml(r.id)}" data-k="dia" data-plan-focus="turno:${escapeHtml(r.id)}">
-                            ${_planOpt('', 'Elegir día', r.dia)}${PLAN_DIAS.map(x => _planOpt(x, PLAN_ETIQUETA_DIA[x], r.dia)).join('')}
-                        </select>
-                    </label>
-                    <label>Hora de inicio
-                        <input type="time" class="plan-input" data-plan-f="turno" data-id="${escapeHtml(r.id)}" data-k="horaInicio" value="${escapeHtml(r.horaInicio)}">
-                    </label>
-                    <label class="plan-turno-servicio">Servicio o tratamiento
-                        <select class="plan-input" data-plan-f="turno" data-id="${escapeHtml(r.id)}" data-k="servicio" data-plan-focus="turno:${escapeHtml(r.id)}:servicio">
-                            ${_planOpt('', 'Elegir servicio', r.servicio)}${svs.map(n => _planOpt(n, servicios.some(s => s.nombre === n) ? n : `${n} (no está en la lista actual)`, r.servicio)).join('')}
-                        </select>
-                    </label>
-                    <label>Duración (min)
-                        <input type="number" inputmode="numeric" min="1" step="1" class="plan-input" data-plan-f="turno" data-id="${escapeHtml(r.id)}" data-k="duracionMin" value="${escapeHtml(r.duracionMin)}">
-                    </label>
-                    <label>Box habitual
-                        <select class="plan-input" data-plan-f="turno" data-id="${escapeHtml(r.id)}" data-k="box">
-                            ${_planOpt('', 'Sin box definido', r.box)}${boxIds.map(b => _planOpt(b.id, b.label, r.box)).join('')}
-                        </select>
-                    </label>
-                    <button type="button" class="plan-x plan-x-turno" data-plan-delturno="${escapeHtml(r.id)}" aria-label="Quitar turno habitual ${idx + 1}">Quitar</button>
-                </div>`;
-            }).join('');
-
             const tratHtml = Object.entries(PLAN_TRATAMIENTOS).map(([k, txt]) => `
                 <label class="plan-radio"><input type="radio" name="plan-trat-${dni}-${_planCtx}" value="${k}" data-plan-f="trat" ${d.tratamiento === k ? 'checked' : ''} data-plan-focus="trat:${k}"> ${escapeHtml(txt)}</label>`).join('');
             const cartelFacial = (d.tratamiento === 'facial' || d.tratamiento === 'ambos')
                 ? `<div class="plan-cartel" role="note"><span class="plan-cartel-ico" aria-hidden="true">🌸</span><div><strong>Facial: cada ${FACIAL_INTERVALO_MIN_DIAS} días como mínimo</strong><p>Entre un facial y el siguiente tienen que pasar al menos ${FACIAL_INTERVALO_MIN_DIAS} días; antes de ese plazo no se recomienda.</p></div></div>` : '';
-
-            const f = d.frecuencia;
-            const num = (k, val) => `<input type="number" inputmode="numeric" min="1" step="1" class="plan-input" data-plan-f="frec" data-k="${k}" value="${escapeHtml(val)}">`;
 
             return `
             <div class="plan-editor">
@@ -5980,44 +5942,10 @@
                 </fieldset>
 
                 <fieldset class="plan-sec">
-                    <legend>1 · Disponibilidad semanal</legend>
-                    <p class="plan-ayuda">Cada intervalo es el tiempo en que la persona puede permanecer en el establecimiento. Si tiene que terminar a las 11:00 y el tratamiento dura una hora, el turno tiene que empezar como máximo a las 10:00. Sin datos cargados no se asume disponibilidad.</p>
-                    <div class="plan-radios" role="radiogroup" aria-label="Tipo de disponibilidad">${modoHtml}</div>
+                    <legend>Días y horarios disponibles</legend>
+                    <p class="plan-ayuda">Marcá los días y el horario en que la paciente puede venir (según lo que indicó en la consulta inicial).</p>
                     <div class="plan-dias" role="group" aria-label="Días en los que puede asistir">${diasBtns}</div>
-                    ${filasDias || '<p class="plan-ayuda">Elegí uno o más días para cargar sus horarios.</p>'}
-                </fieldset>
-
-                <fieldset class="plan-sec">
-                    <legend>2 · Turnos habituales</legend>
-                    <p class="plan-ayuda">Los lugares que se procura conservar en su agenda (aparte de cuándo puede venir). Al elegir el servicio se completan la duración y el box según la configuración del sistema; podés cambiarlos.${_planServiciosError ? ` <strong>${escapeHtml(_planServiciosError)}</strong> <button type="button" class="btn-mini" data-plan-reintentar-serv>Reintentar</button>` : ''}</p>
-                    ${filasTurnos || '<p class="plan-ayuda">Todavía no hay turnos habituales.</p>'}
-                    <button type="button" class="btn-mini" data-plan-addturno>＋ Agregar turno habitual</button>
-                </fieldset>
-
-                <fieldset class="plan-sec">
-                    <legend>3 · Frecuencia y objetivo</legend>
-                    <div class="plan-grid">
-                        <label>Turnos habituales por semana ${num('habitualSemana', f.habitualSemana)}</label>
-                        <label>Máximo de turnos por semana ${num('maximoSemana', f.maximoSemana)}</label>
-                        <label>Cantidad total de turnos prevista ${num('totalPrevisto', f.totalPrevisto)}</label>
-                        <label>La cantidad total corresponde a
-                            <select class="plan-input" data-plan-f="frec" data-k="alcance">
-                                ${_planOpt('', 'Sin indicar', f.alcance || '')}${Object.entries(PLAN_ALCANCES).map(([k, t]) => _planOpt(k, t, f.alcance || '')).join('')}
-                            </select>
-                        </label>
-                    </div>
-                    <p class="plan-ayuda">Estos datos solo describen la planificación: no modifican pagos, sesiones realizadas ni contadores.</p>
-                </fieldset>
-
-                <fieldset class="plan-sec">
-                    <legend>4 · Vigencia y observaciones</legend>
-                    <div class="plan-grid">
-                        <label>Se aplica desde <input type="date" class="plan-input" data-plan-f="vig" data-k="desde" value="${escapeHtml(d.vigencia.desde)}"></label>
-                        <label>Finaliza (si corresponde) <input type="date" class="plan-input" data-plan-f="vig" data-k="hasta" value="${escapeHtml(d.vigencia.hasta)}"></label>
-                    </div>
-                    <label class="plan-obs">Observaciones de disponibilidad
-                        <textarea class="plan-input" rows="2" data-plan-f="obs" placeholder="Ej: no puede los días de lluvia, llega en colectivo…">${escapeHtml(d.observaciones)}</textarea>
-                    </label>
+                    ${filasDias || '<p class="plan-ayuda">Elegí uno o más días.</p>'}
                 </fieldset>
 
                 <div id="plan-valid-${_planCtx}-${dni}" class="plan-valid" role="status" aria-live="polite">${planValidacionHtml().html}</div>

@@ -1,9 +1,14 @@
 // node tests/planificacion-paciente/run-tests.js
 import {
-  DIAS, planVacia, normalizarPlanificacion, esPlanificacionVacia, validarPlanificacion,
-  estadoPlanificacion, resumenPlanificacion, serializarPlanificacion, horaAMin, minAHora, TRATAMIENTOS, FACIAL_INTERVALO_MIN_DIAS,
+  DIAS, planVacia, normalizarPlanificacion, esPlanificacionVacia, validarPlanificacion as _validar,
+  estadoPlanificacion as _estado, resumenPlanificacion as _resumen, serializarPlanificacion, horaAMin, minAHora, TRATAMIENTOS, FACIAL_INTERVALO_MIN_DIAS,
   esServicioFacial, evaluarIntervaloFacial, textoConflictoFacial,
 } from '../../js/planificacion-paciente.js';
+
+// Las pruebas históricas cubren el modelo completo; el modo simple se prueba abajo.
+const validarPlanificacion = (p) => _validar(p, { completo: true });
+const estadoPlanificacion = (p) => _estado(p, { completo: true });
+const resumenPlanificacion = (p) => _resumen(p, { completo: true });
 
 let fails = 0;
 const check = (desc, cond) => { console.log((cond ? '  OK  ' : '  FAIL ') + desc); if (!cond) fails++; };
@@ -203,6 +208,21 @@ console.log('=== Regla de 15 días contra turnos reales ===');
   check('cruza de mes y de año', evaluarIntervaloFacial('2027-01-05', [{ fecha: '2026-12-25' }]).dias === 11 && evaluarIntervaloFacial('2027-01-05', [{ fecha: '2026-12-25' }]).fechaRecomendada === '2027-01-09');
   check('fechas inválidas no rompen', ev('basura').conflicto === false && ev('2026-10-17', [{ fecha: 'x' }, null]).conflicto === false && evaluarIntervaloFacial('2026-10-17', null).conflicto === false);
   check('texto claro', textoConflictoFacial(ev('2026-10-17')) === 'Esta paciente tiene otro facial hace 7 días (10/10).' || /hace 7 días/.test(textoConflictoFacial(ev('2026-10-17'))));
+}
+
+console.log('=== Modo simple: solo tratamiento + disponibilidad ===');
+{
+  const soloDisp = () => normalizarPlanificacion({ tratamiento: 'facial', disponibilidad: { modo: null, dias: { jueves: [{ desde: '07:30', hasta: '11:00' }] } } });
+  check('días + horario alcanzan para "Configurada" (sin modo, turnos, frecuencia ni vigencia)', _estado(soloDisp()) === 'configurada');
+  check('no pide turnos habituales, frecuencia ni vigencia', _validar(soloDisp()).pendientes.length === 0 && _validar(soloDisp()).advertencias.length === 0);
+  check('en el modelo completo esos datos siguen figurando como pendientes', _estado(soloDisp(), { completo: true }) === 'incompleta');
+  check('sin días → incompleta', _estado(normalizarPlanificacion({ tratamiento: 'facial' })) === 'incompleta');
+  check('un horario inválido sigue siendo error', _validar(normalizarPlanificacion({ disponibilidad: { dias: { lunes: [{ desde: '11:00', hasta: '09:00' }] } } })).errores.length === 1);
+  check('intervalos superpuestos siguen siendo error', _validar(normalizarPlanificacion({ disponibilidad: { dias: { lunes: [{ desde: '09:00', hasta: '11:00' }, { desde: '10:00', hasta: '12:00' }] } } })).errores.length === 1);
+  check('resumen simple: tratamiento y horarios, sin ruido', _resumen(soloDisp()) === 'Facial · Jueves · 07:30 a 11:00');
+  const vieja = normalizarPlanificacion({ tratamiento: 'facial', disponibilidad: { modo: 'estricta', dias: { jueves: [{ desde: '07:30', hasta: '11:00' }] } }, turnosHabituales: [{ id: 'a', dia: 'jueves', horaInicio: '08:00', servicio: 'X', duracionMin: 60, box: 'b3' }], frecuencia: { habitualSemana: 1, maximoSemana: null, totalPrevisto: null, alcance: null } });
+  check('una ficha con datos viejos conserva turnos y frecuencia al guardar', serializarPlanificacion(vieja).turnosHabituales.length === 1 && serializarPlanificacion(vieja).frecuencia.habitualSemana === 1);
+  check('y un dato viejo incompleto no bloquea ni ensucia el modo simple', _estado(vieja) === 'configurada' && _validar(vieja).errores.length === 0);
 }
 
 console.log('\n=== Utilidades ===');
