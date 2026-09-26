@@ -1,7 +1,7 @@
 // node tests/planificacion-paciente/run-tests.js
 import {
   DIAS, planVacia, normalizarPlanificacion, esPlanificacionVacia, validarPlanificacion,
-  estadoPlanificacion, resumenPlanificacion, serializarPlanificacion, horaAMin, minAHora,
+  estadoPlanificacion, resumenPlanificacion, serializarPlanificacion, horaAMin, minAHora, TRATAMIENTOS, FACIAL_INTERVALO_MIN_DIAS,
 } from '../../js/planificacion-paciente.js';
 
 let fails = 0;
@@ -153,6 +153,36 @@ console.log('\n=== Guardado / recarga (ida y vuelta) ===');
   const dosPacientes = [base(), (() => { const o = base(); o.disponibilidad.dias = { viernes: [{ desde: '14:00', hasta: '16:00' }] }; return o; })()];
   check('dos pacientes no comparten estado (cada plan es un objeto independiente)', resumenPlanificacion(dosPacientes[0]) !== resumenPlanificacion(dosPacientes[1]));
   check('normalizar no comparte referencias con lo recibido', (() => { const raw = clon(guardado); const n = normalizarPlanificacion(raw); n.disponibilidad.dias.lunes.push({ desde: '1', hasta: '2' }); return raw.disponibilidad.dias.lunes.length === 1; })());
+}
+
+console.log('\n=== Tratamiento (Facial / Corporal / Facial y corporal) y regla de 15 días ===');
+{
+  const con = (t, frecuencia) => { const p = base(); p.tratamiento = t; if (frecuencia) Object.assign(p.frecuencia, frecuencia); return p; };
+  const tieneFacial15 = (p) => validarPlanificacion(p).advertencias.some((a) => a.campo === 'facial15');
+  check('las 3 opciones existen', Object.keys(TRATAMIENTOS).join() === 'facial,corporal,ambos' && TRATAMIENTOS.ambos === 'Facial y corporal');
+  check('la regla guardada es 15 días', FACIAL_INTERVALO_MIN_DIAS === 15);
+  check('un plan viejo sin tratamiento sigue configurado (no se degrada)', estadoPlanificacion(base()) === 'configurada' && normalizarPlanificacion(base()).tratamiento === null);
+  check('valor inválido se descarta', normalizarPlanificacion({ tratamiento: 'otro' }).tratamiento === null);
+  check('elegir solo el tratamiento ya no es plan vacío', esPlanificacionVacia({ tratamiento: 'facial' }) === false);
+  check('se guarda y se lee igual', serializarPlanificacion(con('ambos')).tratamiento === 'ambos' && serializarPlanificacion(base()).tratamiento === null);
+  check('el resumen lo muestra', resumenPlanificacion(con('corporal')).startsWith('Corporal') && resumenPlanificacion(con('ambos')).startsWith('Facial y corporal'));
+  check('facial con 1 turno habitual por semana → cartel de 15 días', tieneFacial15(con('facial')));
+  check('el cartel no impide guardar (advertencia, no error)', validarPlanificacion(con('facial')).errores.length === 0);
+  check('corporal con 1 por semana → sin cartel', !tieneFacial15(con('corporal')));
+  check('sin tratamiento → sin cartel', !tieneFacial15(base()));
+  const quincenal = con('facial', { habitualSemana: '', maximoSemana: '', totalPrevisto: 2, alcance: 'mes' });
+  quincenal.turnosHabituales = [];
+  check('facial 2 por mes (cada 15 días) → sin cartel', !tieneFacial15(quincenal));
+  const tres = clon(quincenal); tres.frecuencia.totalPrevisto = 3;
+  check('facial 3 por mes → cartel', tieneFacial15(tres));
+  const mixto = con('ambos', { habitualSemana: 2, maximoSemana: 2 });
+  mixto.turnosHabituales = [
+    { id: 'x', dia: 'lunes', horaInicio: '09:00', servicio: 'Facial Hidratante', duracionMin: 60, box: '' },
+    { id: 'y', dia: 'jueves', horaInicio: '09:00', servicio: 'Masaje', duracionMin: 45, box: '' },
+  ];
+  check('facial y corporal con 1 facial + 1 masaje por semana → sin cartel', !tieneFacial15(mixto));
+  mixto.turnosHabituales[1].servicio = 'Facial Profundo';
+  check('facial y corporal con 2 faciales por semana → cartel', tieneFacial15(mixto));
 }
 
 console.log('\n=== Utilidades ===');

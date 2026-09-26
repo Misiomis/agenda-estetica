@@ -9,6 +9,7 @@
 //   version: 1,
 //   disponibilidad: { modo: 'estricta'|'preferida'|null,
 //                     dias: { lunes: [{desde:'09:00', hasta:'11:00'}], ... } },
+//   tratamiento: 'facial'|'corporal'|'ambos'|null,
 //   turnosHabituales: [{ id, dia, horaInicio, servicio, duracionMin, box }],
 //   frecuencia: { habitualSemana, maximoSemana, totalPrevisto, alcance:'mes'|'plan'|null },
 //   vigencia: { desde:'YYYY-MM-DD'|null, hasta:'YYYY-MM-DD'|null },
@@ -28,6 +29,11 @@ export const MODOS = {
   preferida: 'Prefiere estos días y horarios; otras opciones requieren consulta',
 };
 export const ALCANCES = { mes: 'Por mes', plan: 'Total del plan' };
+export const TRATAMIENTOS = { facial: 'Facial', corporal: 'Corporal', ambos: 'Facial y corporal' };
+// Regla del centro: el tratamiento facial se realiza como mínimo cada 15 días;
+// antes de ese plazo no se recomienda.
+export const FACIAL_INTERVALO_MIN_DIAS = 15;
+export const MENSAJE_FACIAL_15_DIAS = 'El tratamiento facial se realiza como mínimo cada 15 días; antes de ese plazo no se recomienda.';
 
 const HORA_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -61,6 +67,7 @@ export function nuevoIdFila() {
 export function planVacia() {
   return {
     version: 1,
+    tratamiento: null,
     disponibilidad: { modo: null, dias: {} },
     turnosHabituales: [],
     frecuencia: { habitualSemana: '', maximoSemana: '', totalPrevisto: '', alcance: null },
@@ -77,6 +84,7 @@ const _num = (v) => (v == null || v === '' ? '' : String(v));
 export function normalizarPlanificacion(raw) {
   const p = planVacia();
   if (!raw || typeof raw !== 'object') return p;
+  p.tratamiento = Object.prototype.hasOwnProperty.call(TRATAMIENTOS, raw.tratamiento) ? raw.tratamiento : null;
   const disp = raw.disponibilidad || {};
   p.disponibilidad.modo = Object.prototype.hasOwnProperty.call(MODOS, disp.modo) ? disp.modo : null;
   DIAS.forEach((d) => {
@@ -109,7 +117,7 @@ export function normalizarPlanificacion(raw) {
 
 export function esPlanificacionVacia(plan) {
   const p = normalizarPlanificacion(plan);
-  return !p.disponibilidad.modo
+  return !p.tratamiento && !p.disponibilidad.modo
     && Object.keys(p.disponibilidad.dias).length === 0
     && p.turnosHabituales.length === 0
     && !p.frecuencia.habitualSemana && !p.frecuencia.maximoSemana && !p.frecuencia.totalPrevisto
@@ -179,6 +187,18 @@ export function validarPlanificacion(planRaw) {
   }
   if (tot != null && !f.alcance) pen('alcance', 'Indicá si la cantidad total corresponde a "Por mes" o al "Total del plan".');
   if (tot == null && f.alcance && f.totalPrevisto === '') pen('totalPrevisto', 'Elegiste un alcance pero falta la cantidad total de turnos.');
+
+  // ── Tratamiento y regla de los 15 días del facial ──
+  if (p.tratamiento === 'facial' || p.tratamiento === 'ambos') {
+    const esFacial = (r) => /facial/i.test(r.servicio || '');
+    const facialesSemana = p.turnosHabituales.filter((r) => !_filaVacia(r) && r.dia && r.horaInicio && (p.tratamiento === 'facial' || esFacial(r))).length;
+    const motivos = [];
+    if (p.tratamiento === 'facial' && hab != null && hab >= 1) motivos.push(`${hab} turno${hab === 1 ? '' : 's'} habitual${hab === 1 ? '' : 'es'} por semana`);
+    if (p.tratamiento === 'facial' && max != null && max >= 1 && !(hab != null && hab >= 1)) motivos.push(`hasta ${max} turno${max === 1 ? '' : 's'} por semana`);
+    if (facialesSemana >= 2) motivos.push(`${facialesSemana} turnos habituales faciales en la misma semana`);
+    if (p.tratamiento === 'facial' && tot != null && f.alcance === 'mes' && tot > 2) motivos.push(`${tot} turnos por mes`);
+    if (motivos.length) adv('facial15', `${MENSAJE_FACIAL_15_DIAS} Lo cargado (${motivos.join(', ')}) supera esa frecuencia.`);
+  }
 
   // ── Vigencia ──
   const { desde, hasta } = p.vigencia;
@@ -262,6 +282,7 @@ export function resumenPlanificacion(planRaw) {
   if (esPlanificacionVacia(planRaw)) return '';
   const p = normalizarPlanificacion(planRaw);
   const partes = [];
+  if (p.tratamiento) partes.push(TRATAMIENTOS[p.tratamiento]);
   const diasSel = DIAS.filter((d) => Object.prototype.hasOwnProperty.call(p.disponibilidad.dias, d));
   if (diasSel.length) {
     const firma = (d) => _textoIntervalos(p.disponibilidad.dias[d]);
@@ -307,6 +328,7 @@ export function serializarPlanificacion(planRaw) {
   const entero = (v) => (ENTERO_POSITIVO_RE.test(String(v).trim()) ? parseInt(String(v).trim(), 10) : null);
   return {
     version: 1,
+    tratamiento: p.tratamiento,
     disponibilidad: { modo: p.disponibilidad.modo, dias },
     turnosHabituales: p.turnosHabituales
       .filter((r) => !_filaVacia(r))
