@@ -138,7 +138,19 @@ function _intervalosValidos(lista) {
 // pendientes = información que falta (permite guardar parcial).
 // advertencias = inconsistencias entre datos válidos (no bloquean, no se
 // corrigen solas).
-export function validarPlanificacion(planRaw) {
+// Modo simple (por defecto): solo cuentan el tratamiento y la disponibilidad
+// semanal, que es lo que la interfaz pide. Con { completo: true } se validan
+// además turnos habituales, frecuencia y vigencia (datos que pueden existir en
+// fichas guardadas, pero que ya no se piden).
+const _CAMPOS_COMPLETO = /^(habitualSemana|maximoSemana|totalPrevisto|alcance|vigencia|turnos|t:|facial15)/;
+export function validarPlanificacion(planRaw, opciones) {
+  const completo = !!(opciones && opciones.completo);
+  const v = _validarTodo(planRaw);
+  if (completo) return v;
+  const solo = (lista) => lista.filter((x) => !_CAMPOS_COMPLETO.test(x.campo) && x.campo !== 'modo');
+  return { errores: solo(v.errores), pendientes: solo(v.pendientes), advertencias: solo(v.advertencias) };
+}
+function _validarTodo(planRaw) {
   const p = normalizarPlanificacion(planRaw);
   const errores = [];
   const pendientes = [];
@@ -259,9 +271,9 @@ export function validarPlanificacion(planRaw) {
 }
 
 // 'sin_configurar' | 'incompleta' | 'configurada'
-export function estadoPlanificacion(planRaw) {
+export function estadoPlanificacion(planRaw, opciones) {
   if (esPlanificacionVacia(planRaw)) return 'sin_configurar';
-  const v = validarPlanificacion(planRaw);
+  const v = validarPlanificacion(planRaw, opciones);
   return v.errores.length === 0 && v.pendientes.length === 0 ? 'configurada' : 'incompleta';
 }
 export const ETIQUETA_ESTADO_PLAN = { sin_configurar: 'Sin configurar', incompleta: 'Incompleta', configurada: 'Configurada' };
@@ -278,8 +290,9 @@ function _textoIntervalos(lista) {
 }
 
 // Resumen breve para la ficha cerrada. Solo muestra lo efectivamente cargado.
-export function resumenPlanificacion(planRaw) {
+export function resumenPlanificacion(planRaw, opciones) {
   if (esPlanificacionVacia(planRaw)) return '';
+  const completo = !!(opciones && opciones.completo);
   const p = normalizarPlanificacion(planRaw);
   const partes = [];
   if (p.tratamiento) partes.push(TRATAMIENTOS[p.tratamiento]);
@@ -297,6 +310,7 @@ export function resumenPlanificacion(planRaw) {
   if (p.disponibilidad.modo === 'estricta') partes.push('Solo esos horarios');
   if (p.disponibilidad.modo === 'preferida') partes.push('Horarios preferidos');
   const f = p.frecuencia;
+  if (!completo) return partes.join(' · ');
   if (ENTERO_POSITIVO_RE.test(f.habitualSemana)) partes.push(`Habitual: ${f.habitualSemana} por semana`);
   if (ENTERO_POSITIVO_RE.test(f.maximoSemana)) partes.push(`Hasta ${f.maximoSemana} turno${f.maximoSemana === '1' ? '' : 's'} por semana`);
   if (ENTERO_POSITIVO_RE.test(f.totalPrevisto)) {
