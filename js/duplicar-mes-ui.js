@@ -59,6 +59,36 @@ const CSS = `
 @media (max-width:600px){.dm-card{padding:14px 12px}.dm-form label{flex:1 1 130px}}
 `;
 
+// Diálogo de confirmación propio (reemplaza a window.confirm, que se ve fuera de estilo).
+// Devuelve una promesa: true si se acepta; false si se cancela (botón, Escape o clic afuera).
+const CSS_CONFIRM = `
+.ac-overlay{position:fixed;inset:0;z-index:300000;background:rgba(6,22,15,.5);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:16px}
+.ac-card{width:100%;max-width:380px;background:var(--surface,#fff);color:var(--ink,#2f3d34);border:1px solid var(--border,#d8e2dc);border-radius:20px;box-shadow:0 24px 52px rgba(6,40,25,.28);padding:22px 20px 18px}
+.ac-card h3{font-family:'Playfair Display',serif;font-size:18px;margin:0 0 8px}
+.ac-card p{font-size:13.5px;line-height:1.5;margin:0 0 16px;opacity:.85;white-space:pre-line}
+.ac-acc{display:flex;gap:10px;flex-wrap:wrap}
+.ac-acc button{flex:1 1 130px;min-height:44px;border-radius:12px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;border:1.5px solid var(--border-strong,#b6c5bb);background:var(--surface,#fff);color:inherit}
+.ac-acc .ac-si{background:var(--forest,#2f5a47);border-color:var(--forest,#2f5a47);color:#fff}
+`;
+export function confirmarUI({ titulo = '¿Confirmar?', texto = '', aceptar = 'Aceptar', cancelar = 'Cancelar' } = {}) {
+  return new Promise((resolve) => {
+    if (!document.getElementById('ac-css')) { const s = document.createElement('style'); s.id = 'ac-css'; s.textContent = CSS_CONFIRM; document.head.appendChild(s); }
+    const previo = document.activeElement;
+    const ov = document.createElement('div');
+    ov.className = 'ac-overlay'; ov.setAttribute('role', 'alertdialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'ac-tit');
+    ov.innerHTML = '<div class="ac-card"><h3 id="ac-tit"></h3><p></p><div class="ac-acc"><button type="button" class="ac-no"></button><button type="button" class="ac-si"></button></div></div>';
+    ov.querySelector('h3').textContent = titulo; ov.querySelector('p').textContent = texto;
+    ov.querySelector('.ac-no').textContent = cancelar; ov.querySelector('.ac-si').textContent = aceptar;
+    const fin = (v) => { document.removeEventListener('keydown', tecla, true); ov.remove(); try { if (previo && previo.focus) previo.focus(); } catch (_) { /* sin foco previo */ } resolve(v); };
+    const tecla = (e) => { if (e.key === 'Escape') { e.stopPropagation(); fin(false); } };
+    ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('.ac-no')) fin(false); else if (e.target.closest('.ac-si')) fin(true); });
+    document.addEventListener('keydown', tecla, true);
+    document.body.appendChild(ov);
+    ov.querySelector('.ac-no').focus();
+  });
+}
+window.appConfirmar = confirmarUI;
+
 export function initDuplicarMes(deps) {
   const { db, F, escapeHtml: esc, mostrarAviso } = deps;
   const { collection, getDocs, getDoc, doc, setDoc, runTransaction, serverTimestamp, query, where } = F;
@@ -304,7 +334,7 @@ export function initDuplicarMes(deps) {
   async function ejecutar() {
     if (st.ejecutando || !st.res) return;
     const previa = st.res;
-    if (!window.confirm(`${previa.resumen.etiquetaBoton}?\n\nSe crean reservas reales en ${mesTxt(st.destinoMes)}. Los bloqueos no se modifican.`)) return;
+    if (!(await confirmarUI({ titulo: `${previa.resumen.etiquetaBoton}?`, texto: `Se crean reservas reales en ${mesTxt(st.destinoMes)}. Antes se descarga un respaldo. Los bloqueos no se modifican.`, aceptar: 'Sí, crear', cancelar: 'Volver' }))) return;
     st.ejecutando = true; $('dm-crear').disabled = true; $('dm-preparar').disabled = true;
     const out = $('dm-resultado');
     out.innerHTML = '<div class="dm-res">Revalidando con los datos actuales…</div>';
