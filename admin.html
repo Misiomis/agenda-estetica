@@ -1505,6 +1505,8 @@
                 </div>
                 <div class="grilla-tools">
                     <button class="btn-mini" id="btn-grilla-extra" onclick="grillaToggleExtra()">+ Horario extra</button>
+                    <button class="btn-mini" onclick="dmAbrir()">🗓️ Duplicar mes</button>
+                    <button class="btn-mini" onclick="navegar('pendientes-reagendar')">Pendientes de reagendar <span class="dm-badge dm-badge-pend" style="display:none"></span></button>
                     <button class="btn-mini" onclick="grillaVistaClasica()" style="border-color:rgba(100,180,140,0.22);color:rgba(22,61,50,0.55);">📅 Vista clásica</button>
                 </div>
                 <div class="grilla-scroll-wrap">
@@ -1533,6 +1535,12 @@
                     <div class="cliente-help" style="margin-top:14px; font-size:13px; background:rgba(53,122,92,0.10); border-radius:10px; padding:8px 12px;">Buscá por cualquier parte del nombre: "miriam", "sedof", "adriana c". Muestra todos sus turnos con box, servicio y resumen mensual.</div>
                 </div>
             </div>
+            <div id="sec-pendientes-reagendar" class="section">
+                <h3 style="font-family:'Playfair Display';margin:0 0 4px">Pendientes de reagendar</h3>
+                <p class="plan-ayuda">Turnos que la duplicación de un mes no pudo ubicar, con el motivo. Un pendiente no ocupa ningún box.</p>
+                <div id="dm-pend-cuerpo"></div>
+            </div>
+
             <div id="sec-agenda" class="section">
                 <div class="mode-toggle-wrap">
                     <button id="btnCompactMode" class="mode-toggle" onclick="toggleCompactMode()">Modo compacto: OFF</button>
@@ -1547,6 +1555,8 @@
                     <button class="btn-mini" onclick="irHoy()">Hoy</button>
                     <button class="btn-mini" onclick="verProximos7()">Próximos 7 días</button>
                     <button class="btn-mini" onclick="limpiarPanelDia()">Limpiar panel</button>
+                    <button class="btn-mini" onclick="dmAbrir()">🗓️ Duplicar mes</button>
+                    <button class="btn-mini" onclick="navegar('pendientes-reagendar')">Pendientes de reagendar <span class="dm-badge dm-badge-pend" style="display:none"></span></button>
                 </div>
                 <div class="calendar-container">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -2279,6 +2289,7 @@
             estadoPlanificacion, resumenPlanificacion, serializarPlanificacion, nuevoIdFila as planNuevoIdFila,
             esServicioFacial, evaluarIntervaloFacial, textoConflictoFacial
         } from "/js/planificacion-paciente.js";
+        import { initDuplicarMes } from "/js/duplicar-mes-ui.js";
         import {
             PREF_TRATAMIENTOS, PREF_ESTADOS, PREF_FRANJAS, PREF_PERIODOS, PREF_DIAS,
             tratamientoVacio, franjaVacia, frecuenciaVacia, lineasPreferencias, normalizarPreferencias,
@@ -9734,6 +9745,7 @@
             cerrarTodosDropdowns();
             cerrarBottomSheet();
             if (s === 'grilla') window.renderGrilla();
+            if (s === 'pendientes-reagendar') window.dmPendientesCargar?.();
             if (s === 'pedidos-kit') window.cargarPedidosKit();
             if (s === 'control') window.cargarSeccionControl();
             if (s === 'servicios') { gsCargar(); blRender(); }
@@ -11900,6 +11912,13 @@
             return rules.some(([desde, hasta]) => hora >= desde && hora <= hasta);
         };
 
+        initDuplicarMes({
+            db, auth, F: { collection, getDocs, getDoc, doc, setDoc, runTransaction, serverTimestamp, query, where },
+            escapeHtml, mostrarAviso: (m) => window.mostrarAviso(m), boxes: GRILLA_BOXES.map(b => ({ id: b.id, label: b.label })),
+            getPacientes: () => todasLosPacientes, getFechaAgenda: () => fechaActual, esReservaActiva, boxDeReserva: (r) => _grilla_boxDeReserva(r),
+            servicioInfo: (n) => ({ duracionMin: _svDurMap.get(n) || 30, boxes: _inferirBoxes(n, '').map(x => 'b' + x) }),
+            inferirBoxes: (n) => _inferirBoxes(n, ''),
+        });
         let _grilla_fecha         = fechaHoyISO();
         let _grilla_adminBlocks   = new Map(); // `${hora}_${boxId}` → docId
         let _grilla_adminUnblocks = new Map(); // `${hora}_${boxId}` → docId (override de default)
