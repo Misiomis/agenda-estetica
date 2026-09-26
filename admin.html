@@ -6098,7 +6098,7 @@
 
         // ── Abrir / cerrar ──
         async function planAbrir(dni, ctx = 'lista') {
-            if (_planAbierto && (_planAbierto !== dni || _planCtx !== ctx) && _planDirty && !confirm('Tenés cambios sin guardar en la planificación de otro paciente. ¿Descartarlos y abrir esta?')) return;
+            if (_planAbierto && (_planAbierto !== dni || _planCtx !== ctx) && _planDirty && !(await window.appConfirmar({ titulo: 'Cambios sin guardar', texto: 'Tenés cambios sin guardar en la planificación de otro paciente. ¿Descartarlos y abrir esta?', aceptar: 'Descartar y abrir', cancelar: 'Volver' }))) return;
             const previo = _planAbierto;
             const p = _planPaciente(dni);
             if (!p) return;
@@ -6128,8 +6128,8 @@
             planRepintar(dni);
         }
 
-        function planCerrar(dni, pedirConfirmacion = true) {
-            if (pedirConfirmacion && _planDirty && !confirm('Hay cambios sin guardar. ¿Descartarlos?')) return false;
+        async function planCerrar(dni, pedirConfirmacion = true) {
+            if (pedirConfirmacion && _planDirty && !(await window.appConfirmar({ titulo: 'Cambios sin guardar', texto: 'Hay cambios sin guardar. ¿Descartarlos?', aceptar: 'Descartar', cancelar: 'Seguir editando' }))) return false;
             const _planCtxAntes = _planCtx;
             _planAbierto = null; _planDraft = null; _planDirty = false; _planAviso = ''; _planErrorGuardar = ''; _planCarga = '';
             planRepintar(dni, null);
@@ -6370,7 +6370,7 @@
             const lote = _imp.lote;
             const afectadas = _imp.filas.filter(r => r.estado === 'con_cambios');
             if (!afectadas.length) return;
-            if (!window.confirm(`Se van a guardar preferencias en ${afectadas.length} paciente(s). Antes se descarga un respaldo. ¿Continuar?`)) return;
+            if (!(await window.appConfirmar({ titulo: `Guardar preferencias en ${afectadas.length} paciente${afectadas.length === 1 ? '' : 's'}?`, texto: 'Antes se descarga un respaldo. Lo ya importado no se toca.', aceptar: 'Sí, guardar', cancelar: 'Volver' }))) return;
             _imp.aplicando = true; _impBotones();
             // 1) Respaldo de lo que hay hoy (relectura del servidor)
             const respaldo = { loteId: lote.loteId, fecha: new Date().toISOString(), pacientes: {} };
