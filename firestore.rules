@@ -69,6 +69,14 @@ service cloud.firestore {
       allow write:  if esAdmin();
     }
 
+    // Duplicar mes: registro de lotes y pendientes de reagendar (solo administración)
+    match /duplicacionesMes/{loteId} {
+      allow read, write: if esAdmin();
+    }
+    match /pendientesReagendar/{pendId} {
+      allow read, write: if esAdmin();
+    }
+
     match /calendarExceptions/{excId} {
       allow read:   if true;
       allow write:  if esAdmin();
