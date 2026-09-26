@@ -2282,7 +2282,7 @@
         import {
             PREF_TRATAMIENTOS, PREF_ESTADOS, PREF_FRANJAS, PREF_PERIODOS, PREF_DIAS,
             tratamientoVacio, franjaVacia, frecuenciaVacia, lineasPreferencias, normalizarPreferencias,
-            serializarPreferencias, fusionarImportacion
+            serializarPreferencias, fusionarImportacion, resolverPaciente
         } from "/js/preferencias-paciente.js";
 
         // ── Alto real del header (barra superior sticky) ────────────────────────
@@ -6300,7 +6300,7 @@
         const _impEtq = {
             con_cambios: ['Listo para guardar', 'ok'], sin_cambios: ['Sin cambios (ya tenía la misma información)', 'ok'], ya_importado: ['Ya importada antes', 'ok'],
             guardado: ['Guardado', 'ok'], verificado: ['Guardado y verificado', 'ok'], error: ['Error al guardar', 'bad'],
-            no_encontrado: ['Paciente no encontrado', 'bad'], ambiguo: ['DNI en más de un paciente', 'bad'], identidad: ['El nombre no coincide', 'bad'],
+            no_encontrado: ['Paciente no encontrado', 'bad'], ambiguo: ['DNI en más de un paciente', 'bad'], identidad: ['Identidad contradictoria', 'bad'],
             pendiente: ['Pendiente (no se carga)', 'warn'],
         };
         function _impPintar() {
@@ -6316,7 +6316,7 @@
                 <div style="overflow-x:auto;"><table class="imp-pref-tabla"><thead><tr><th>Ficha</th><th>Paciente en el sistema</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>${
                 _imp.filas.map(r => {
                     const [t, c] = _impEtq[r.estado] || [r.estado, 'warn'];
-                    const det = [...(r.cambios || []), ...(r.conflictos || []).map(x => '⚠ ' + x), r.motivo ? r.motivo : '', r.error || ''].filter(Boolean);
+                    const det = [r.metodo ? 'Identificada por ' + ({ dni: 'DNI', nombre_exacto: 'nombre exacto', dni_candidato: 'DNI candidato' }[r.metodo] || r.metodo) : '', ...(r.notas || []), ...(r.cambios || []), ...(r.conflictos || []).map(x => '⚠ ' + x), r.estado !== 'con_cambios' ? (r.motivo || '') : '', r.error || ''].filter(Boolean);
                     return `<tr><td>${escapeHtml(r.ref)} · ${escapeHtml(r.ficha || '')}</td><td>${escapeHtml(r.nombreSistema || '—')}</td><td class="imp-pref-est ${c}">${escapeHtml(t)}</td><td>${det.map(x => escapeHtml(x)).join('<br>')}</td></tr>`;
                 }).join('')}</tbody></table></div>`;
             _impBotones();
@@ -6336,13 +6336,15 @@
                 const fila = { ref: e.ref, ficha: e.ficha, dni: _impDni(e.dni), entrada: e, cambios: [], conflictos: [] };
                 filas.push(fila);
                 if (!e.cargar) { fila.estado = 'pendiente'; fila.motivo = e.motivo || 'Marcada como pendiente en el archivo'; continue; }
-                const coinc = todasLosPacientes.filter(p => _impDni(p.dni) === fila.dni);
-                if (coinc.length === 0) { fila.estado = 'no_encontrado'; fila.motivo = 'No hay un paciente con ese DNI.'; continue; }
-                if (coinc.length > 1) { fila.estado = 'ambiguo'; fila.motivo = 'El DNI aparece en más de un paciente.'; continue; }
-                const pac = coinc[0];
+                const res = resolverPaciente(e, todasLosPacientes);
+                fila.metodo = res.metodo || ''; fila.notas = res.notas || []; fila.busqueda = res.busqueda || [];
+                if (res.estado !== 'identificado') {
+                    fila.estado = res.estado === 'contradiccion' ? 'identidad' : res.estado;
+                    fila.motivo = [...fila.notas, ...fila.busqueda].join(' ');
+                    continue;
+                }
+                const pac = res.paciente;
                 fila.nombreSistema = pac.fullName || '';
-                const esp = _impNorm(e.nombreSistema).split(' ')[0], act = _impNorm(pac.fullName).split(' ')[0];
-                if (e.nombreSistema && esp && act && esp !== act) { fila.estado = 'identidad'; fila.motivo = `El archivo esperaba "${e.nombreSistema}" y el sistema tiene "${pac.fullName}".`; continue; }
                 try {
                     const snap = await getDoc(doc(db, 'clients', pac.dni));
                     if (!snap.exists()) { fila.estado = 'no_encontrado'; fila.motivo = 'El paciente ya no existe.'; continue; }

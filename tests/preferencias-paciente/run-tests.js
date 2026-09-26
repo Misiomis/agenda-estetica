@@ -1,7 +1,7 @@
 // node tests/preferencias-paciente/run-tests.js   (datos 100% sintéticos)
 import {
   normalizarPreferencias, serializarPreferencias, validarPreferencias, lineasPreferencias, textoFrecuencia,
-  esPreferenciasVacia, fusionarImportacion, PREF_DIAS,
+  esPreferenciasVacia, fusionarImportacion, resolverPaciente, PREF_DIAS,
 } from '../../js/preferencias-paciente.js';
 import { normalizarPlanificacion, serializarPlanificacion, estadoPlanificacion, esPlanificacionVacia, validarPlanificacion } from '../../js/planificacion-paciente.js';
 
@@ -96,6 +96,33 @@ console.log('\n=== Importación segura ===');
   check('completa campos vacíos de un tratamiento existente', vacioFrec.preferencias.tratamientos[0].frecuencia.cadaDias === 15 && vacioFrec.preferencias.tratamientos[0].franjas.length === 1);
   let fallo = false; try { fusionarImportacion(undefined, ficha(), { ref: 'a' }); } catch (e) { fallo = true; }
   check('sin identificador de lote se rechaza', fallo);
+}
+
+console.log('=== Identificación del paciente ===');
+{
+  const pac = [
+    { dni: '90000001', fullName: 'Ana P' }, { dni: '90000002', fullName: 'Bea Quiroga Lopez' }, { dni: '90000003', fullName: 'Carla R' },
+    { dni: '90000004', fullName: 'Dora S' }, { dni: '90000005', fullName: 'Dora S' }, { dni: '90000006', fullName: 'Eva Toro' },
+    { dni: '90000007', fullName: 'Fanny Barbara' }, { dni: '90000008', fullName: 'Gigi T' },
+  ];
+  const r = (e) => resolverPaciente(e, pac);
+  const a = r({ dni: '90.000.001', dniEstado: 'legible', nombres: ['ana p'] });
+  check('nombre exacto (sin importar mayúsculas/puntuación) + DNI coincidente → por DNI', a.estado === 'identificado' && a.paciente.dni === '90000001' && a.metodo === 'dni' && a.notas.length === 0);
+  const b = r({ dni: '90000002', dniEstado: 'legible', nombres: ['Bea Quiroga'] });
+  check('DNI único con nombre diferente → identifica y anota la diferencia', b.estado === 'identificado' && b.paciente.dni === '90000002' && b.notas[0].includes('difiere'));
+  const c = r({ dni: '90000099', dniEstado: 'aportado', nombres: ['Carla R'] });
+  check('DNI que no existe pero el nombre exacto tiene otro DNI → contradicción (no se elige a ciegas)', c.estado === 'contradiccion' && c.notas[0].includes('90000003'));
+  check('DNI inexistente y nombre inexistente → no encontrado, con la búsqueda hecha', r({ dni: '90000098', dniEstado: 'legible', nombres: ['Nadie Aparece'] }).estado === 'no_encontrado' && r({ dni: '90000098', dniEstado: 'legible', nombres: ['Nadie Aparece'] }).busqueda.length === 2);
+  check('nombre repetido sin DNI → ambiguo', r({ dniEstado: 'ninguno', nombres: ['Dora S'] }).estado === 'ambiguo');
+  check('DNI repetido → ambiguo', resolverPaciente({ dni: '5', dniEstado: 'legible', nombres: [] }, [{ dni: '5', fullName: 'X' }, { dni: '5', fullName: 'Y' }]).estado === 'ambiguo');
+  const d = r({ dni: '90000097', dniEstado: 'dudoso', nombres: ['Eva Toro'] });
+  check('DNI dudoso + nombre exacto único → se carga por nombre y queda anotada la duda', d.estado === 'identificado' && d.metodo === 'nombre_exacto' && d.paciente.dni === '90000006' && d.notas.some((n) => n.includes('dudosa')) && d.notas.some((n) => n.includes('difiere')));
+  const e = r({ dni: '90000008', dniEstado: 'dudoso', nombres: ['Gigi Torres'] });
+  check('DNI dudoso que coincide exacto con un paciente de nombre compatible ("Gigi T" ~ Gigi Torres)', e.estado === 'identificado' && e.metodo === 'dni_candidato');
+  check('DNI dudoso que coincide con alguien de nombre incompatible NO identifica', r({ dni: '90000008', dniEstado: 'dudoso', nombres: ['Zoe Mar'] }).estado === 'no_encontrado');
+  check('mismas palabras en otro orden = nombre exacto (Apellido Nombre)', r({ dniEstado: 'ninguno', nombres: ['Toro Eva'] }).paciente.dni === '90000006');
+  check('nombre parecido pero no exacto NO identifica', r({ dniEstado: 'ninguno', nombres: ['Eva Toros'] }).estado === 'no_encontrado');
+  check('tildes y espacios se normalizan', resolverPaciente({ dniEstado: 'ninguno', nombres: ['  bárbara   fanny '] }, pac).paciente.dni === '90000007');
 }
 
 console.log('\n=== Integración con la planificación ===');

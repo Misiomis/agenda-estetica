@@ -320,3 +320,67 @@ export function fusionarImportacion(actualRaw, entranteRaw, { loteId, ref, ahora
   res.origen.lotes[marca] = { fichas: [ref], importadoEn: ahora || '' };
   return { preferencias: serializarPreferencias(res), cambios, conflictos, estado: cambios.length ? 'con_cambios' : 'sin_cambios' };
 }
+
+// ── Identificación del paciente de una ficha ──────────────────────────────
+// entrada: { dni, dniEstado:'legible'|'aportado'|'dudoso'|'ninguno', nombres:[texto…] }
+// pacientes: [{ dni (id interno), fullName }]
+// Devuelve { estado, paciente?, metodo?, notas[], busqueda[] } con estado
+// 'identificado' | 'no_encontrado' | 'ambiguo' | 'contradiccion'.
+//  · Nombre "exacto" = igual tras normalizar mayúsculas, tildes, espacios y
+//    puntuación; también si son las mismas palabras en otro orden (Apellido
+//    Nombre / Nombre Apellido). Nunca por parecido.
+//  · Un DNI legible/aportado con coincidencia única identifica aunque el nombre
+//    difiera; la diferencia se informa. Si no existe pero el nombre exacto
+//    apunta a alguien con otro DNI conocido, es una contradicción real.
+//  · Un DNI dudoso es solo un candidato de lectura: se identifica por nombre
+//    exacto único (o por el DNI candidato si coincide con un único paciente de
+//    nombre compatible) y la duda de lectura queda anotada.
+const normNombre = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+const soloDigitos = (v) => String(v == null ? '' : v).replace(/\D/g, '');
+const mismasPalabras = (a, b) => a.split(' ').sort().join(' ') === b.split(' ').sort().join(' ');
+function nombreIgual(a, b) {
+  const x = normNombre(a), y = normNombre(b);
+  return !!x && !!y && (x === y || mismasPalabras(x, y));
+}
+// "Yanina T" es compatible con "Yanina Toledo": mismo primer nombre y las demás
+// palabras del alias son iniciales de palabras de la ficha.
+function nombreCompatible(alias, completo) {
+  const a = normNombre(alias).split(' '), c = normNombre(completo).split(' ');
+  if (!a[0] || !c.includes(a[0])) return false;
+  return a.slice(1).every((w) => c.some((x) => x === w || (w.length === 1 && x.startsWith(w))));
+}
+export function resolverPaciente(entrada, pacientes) {
+  const notas = [];
+  const busqueda = [];
+  const dni = soloDigitos(entrada.dni);
+  const estadoDni = entrada.dniEstado || (dni ? 'legible' : 'ninguno');
+  const nombres = (entrada.nombres || []).filter(Boolean);
+  const porDni = dni ? pacientes.filter((p) => soloDigitos(p.dni) === dni) : [];
+  const porNombre = pacientes.filter((p) => nombres.some((n) => nombreIgual(n, p.fullName)));
+  if (dni) busqueda.push(`DNI ${dni}: ${porDni.length} coincidencia(s)`);
+  if (nombres.length) busqueda.push(`Nombre (${nombres.join(' / ')}): ${porNombre.length} coincidencia(s) exacta(s)`);
+  const ok = (paciente, metodo) => ({ estado: 'identificado', paciente, metodo, notas, busqueda });
+  const nombreDifiere = (p) => { if (nombres.length && !nombres.some((n) => nombreIgual(n, p.fullName))) notas.push(`El nombre de la ficha ("${nombres[0]}") difiere del del sistema ("${p.fullName}"); se resolvió por DNI.`); };
+
+  if (dni && (estadoDni === 'legible' || estadoDni === 'aportado')) {
+    if (porDni.length === 1) { nombreDifiere(porDni[0]); return ok(porDni[0], 'dni'); }
+    if (porDni.length > 1) return { estado: 'ambiguo', notas: [`El DNI ${dni} figura en ${porDni.length} pacientes.`], busqueda };
+    if (porNombre.length) {
+      return { estado: 'contradiccion', notas: [`El DNI ${dni} no existe, pero el nombre coincide con ${porNombre.map((p) => `"${p.fullName}" (DNI ${soloDigitos(p.dni)})`).join(' y ')}, que tiene otro DNI.`], busqueda };
+    }
+    return { estado: 'no_encontrado', notas: [`No hay paciente con el DNI ${dni} ni con ese nombre.`], busqueda };
+  }
+  // DNI dudoso o ausente
+  if (estadoDni === 'dudoso' && dni) notas.push(`La lectura del DNI (${dni}) es dudosa; no se usó para modificar nada.`);
+  if (porNombre.length === 1) {
+    const p = porNombre[0];
+    if (dni && soloDigitos(p.dni) !== dni) notas.push(`El DNI del sistema (${soloDigitos(p.dni)}) difiere de la lectura de la ficha (${dni}); se conservó el del sistema.`);
+    return ok(p, 'nombre_exacto');
+  }
+  if (porNombre.length > 1) return { estado: 'ambiguo', notas: ['Más de un paciente con ese nombre exacto.'], busqueda };
+  if (dni && porDni.length === 1 && nombres.some((n) => nombreCompatible(porDni[0].fullName, n))) {
+    notas.push(`Identificada por coincidencia exacta del DNI candidato (${dni}) con un único paciente de nombre compatible ("${porDni[0].fullName}"); confirmar la lectura del DNI en la foto.`);
+    return ok(porDni[0], 'dni_candidato');
+  }
+  return { estado: 'no_encontrado', notas: ['Sin coincidencia de nombre exacto ni de DNI.'], busqueda };
+}
