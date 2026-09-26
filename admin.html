@@ -483,6 +483,20 @@
         .plan-dias { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
         .plan-dia-btn { min-height: 40px; padding: 6px 13px; border-radius: 999px; border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
         .plan-dia-btn[aria-pressed="true"] { background: var(--forest); border-color: var(--forest); color: #fff; }
+        .plan-pref-lineas { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; font-size: 12.5px; color: var(--ink); font-weight: 500; }
+        .plan-pref-pend { color: #8a5a10; font-weight: 700; }
+        .plan-pref-card { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin: 0 0 10px; background: var(--surface); }
+        .plan-pref-card > .plan-grid { margin-bottom: 8px; }
+        .plan-pref-franja { border-top: 1px dashed var(--border-strong); padding-top: 8px; margin-top: 8px; }
+        .plan-dia-mini { min-height: 34px; padding: 4px 10px; font-size: 12px; }
+        .plan-pref-fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 6px; }
+        .plan-pref-h { font-size: 12.5px; font-weight: 700; margin: 12px 0 6px; color: var(--ink); }
+        .plan-pref-pendiente { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; background: rgba(138,106,34,.10); border: 1px solid rgba(138,106,34,.35); color: #6b4d10; border-radius: 10px; padding: 6px 10px; margin: 0 0 6px; }
+        .plan-pref-pendiente span { flex: 1; }
+        .imp-pref-tabla { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; }
+        .imp-pref-tabla th, .imp-pref-tabla td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+        .imp-pref-est { font-weight: 700; }
+        .imp-pref-est.ok { color: #2f5a47; } .imp-pref-est.warn { color: #8a5a10; } .imp-pref-est.bad { color: #a5433a; }
         .plan-dia-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 0; border-top: 1px solid var(--border); }
         .plan-dia-nombre { min-width: 78px; font-weight: 700; font-size: 13px; }
         .plan-ints { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
@@ -1689,6 +1703,20 @@
                     </div>
                 </details>
 
+                <details class="cliente-form-details" id="detImportPref" style="margin-top:14px;">
+                    <summary>Importar preferencias desde un archivo</summary>
+                    <div style="padding:10px 4px 4px;">
+                        <p class="plan-ayuda">Carga preferencias de fichas ya transcriptas a un archivo privado (.json) que queda en tu computadora. Primero se <b>simula</b>: no se guarda nada hasta que apliques. Antes de aplicar se descarga un respaldo. Es seguro repetirlo: lo ya importado no se toca.</p>
+                        <input type="file" id="impPrefArchivo" accept="application/json,.json" aria-label="Archivo de preferencias">
+                        <div class="plan-acciones" style="margin-top:8px;">
+                            <button type="button" class="btn-mini" id="impPrefSimular" disabled>Simular</button>
+                            <button type="button" class="btn-mini btn-mini-primary" id="impPrefAplicar" disabled>Respaldar y aplicar</button>
+                            <button type="button" class="btn-mini" id="impPrefInforme" disabled>Descargar informe</button>
+                        </div>
+                        <div id="impPrefResultado" role="status" aria-live="polite"></div>
+                    </div>
+                </details>
+
                 <div id="contenedorClientes" style="display:grid; gap:8px; margin-top:14px;"></div>
             </div>
             <div id="sec-pedidos-kit" class="section">
@@ -2251,6 +2279,11 @@
             estadoPlanificacion, resumenPlanificacion, serializarPlanificacion, nuevoIdFila as planNuevoIdFila,
             esServicioFacial, evaluarIntervaloFacial, textoConflictoFacial
         } from "/js/planificacion-paciente.js";
+        import {
+            PREF_TRATAMIENTOS, PREF_ESTADOS, PREF_FRANJAS, PREF_PERIODOS, PREF_DIAS,
+            tratamientoVacio, franjaVacia, frecuenciaVacia, lineasPreferencias, normalizarPreferencias,
+            serializarPreferencias, fusionarImportacion
+        } from "/js/preferencias-paciente.js";
 
         // ── Alto real del header (barra superior sticky) ────────────────────────
         // El thead de la Grilla también es sticky y se apila justo debajo del
@@ -5837,6 +5870,8 @@
             const estado = estadoPlanificacion(p.planificacion);
             const abierto = _planAbierto === p.dni && _planCtx === ctx;
             const resumen = resumenPlanificacion(p.planificacion);
+            const lineasPref = lineasPreferencias(p.planificacion && p.planificacion.preferencias);
+            const nPendPref = normalizarPreferencias(p.planificacion && p.planificacion.preferencias).pendientes.length;
             const flash = _planFlash[p.dni];
             return `
             <div class="plan-wrap" data-plan-wrap="${dni}" data-plan-ctx="${ctx}">
@@ -5845,7 +5880,8 @@
                     <span class="plan-cabecera">
                         <span class="plan-titulo">Disponibilidad y planificación</span>
                         <span class="plan-badge plan-b-${estado}">${ETIQUETA_ESTADO_PLAN[estado]}</span>
-                        <span class="plan-resumen">${resumen ? escapeHtml(resumen) : 'Disponibilidad sin configurar'}</span>
+                        <span class="plan-resumen">${resumen ? escapeHtml(resumen) : (lineasPref.length ? '' : 'Disponibilidad sin configurar')}</span>
+                        ${lineasPref.length ? `<span class="plan-pref-lineas">${lineasPref.slice(0, 6).map(l => `<span>${escapeHtml(l)}</span>`).join('')}${lineasPref.length > 6 ? `<span>… y ${lineasPref.length - 6} más</span>` : ''}${nPendPref ? `<span class="plan-pref-pend">⚠ ${nPendPref} dato${nPendPref === 1 ? '' : 's'} por confirmar</span>` : ''}</span>` : ''}
                     </span>
                 </button>
                 ${flash ? `<div class="plan-flash plan-flash-${flash.tipo}" role="status">${escapeHtml(flash.texto)}</div>` : ''}
@@ -5900,6 +5936,96 @@
             if (btn) btn.disabled = r.hayErrores || _planGuardando;
         }
 
+        // ── Preferencias por tratamiento (editor genérico por "ruta") ──
+        const _pv = (v) => escapeHtml(v == null ? '' : v);
+        const _pSel = (path, valor, opciones, vacio) => `<select class="plan-input" data-plan-f="pref" data-path="${path}">${vacio !== undefined ? _planOpt('', vacio, valor) : ''}${Object.entries(opciones).map(([k, t]) => _planOpt(k, t, valor)).join('')}</select>`;
+        const _pIn = (path, valor, tipo = 'text', extra = '') => `<input type="${tipo}" class="plan-input" data-plan-f="pref" data-path="${path}" value="${_pv(valor)}" ${extra}>`;
+        function _prefFranjaHtml(path, x) {
+            const dias = PREF_DIAS.map(d => `<button type="button" class="plan-dia-btn plan-dia-mini" data-plan-pref-dia="${path}.dias" data-dia="${d}" aria-pressed="${x.dias.includes(d)}">${PLAN_ETIQUETA_DIA[d].slice(0, 3)}</button>`).join('');
+            return `
+            <div class="plan-pref-franja">
+                <div class="plan-dias" role="group" aria-label="Días">${dias}</div>
+                <div class="plan-grid">
+                    <label>Franja ${_pSel(path + '.franja', x.franja, PREF_FRANJAS, 'Sin indicar')}</label>
+                    <label>Hora preferida ${_pIn(path + '.horaPreferida', x.horaPreferida, 'time')}</label>
+                    <label>Otras horas posibles ${_pIn(path + '.opcionesHora', x.opcionesHora.join(', '), 'text', 'data-list="1" placeholder="17:00, 19:00"')}</label>
+                    <label>Disponible desde ${_pIn(path + '.desde', x.desde, 'time')}</label>
+                    <label>Disponible hasta ${_pIn(path + '.hasta', x.hasta, 'time')}</label>
+                    <label>Minutos seguidos ${_pIn(path + '.minutosConsecutivos', x.minutosConsecutivos, 'number', 'min="1" step="1" inputmode="numeric"')}</label>
+                </div>
+                <label class="plan-obs">Nota (tal como figura en la ficha) ${_pIn(path + '.texto', x.texto)}</label>
+                <button type="button" class="btn-mini" data-plan-pref-del="${path}">Quitar horario</button>
+            </div>`;
+        }
+        function _prefFrecHtml(path, f) {
+            return `<div class="plan-grid">
+                <label>Cantidad ${_pIn(path + '.cantidad', f.cantidad, 'number', 'min="1" step="1" inputmode="numeric"')}</label>
+                <label>Período ${_pSel(path + '.periodo', f.periodo, PREF_PERIODOS, 'Sin indicar')}</label>
+                <label>O bien: cada N días ${_pIn(path + '.cadaDias', f.cadaDias, 'number', 'min="1" step="1" inputmode="numeric"')}</label>
+                <label>Tal como figura en la ficha ${_pIn(path + '.texto', f.texto, 'text', 'placeholder="Ej: cada 15 días"')}</label>
+            </div>`;
+        }
+        function prefEditorHtml(pref) {
+            const tr = pref.tratamientos.map((t, i) => `
+                <div class="plan-pref-card">
+                    <div class="plan-grid">
+                        <label>Tratamiento ${_pSel(`tratamientos.${i}.tratamiento`, t.tratamiento, PREF_TRATAMIENTOS)}</label>
+                        <label>Estado ${_pSel(`tratamientos.${i}.estado`, t.estado, PREF_ESTADOS)}</label>
+                    </div>
+                    <div class="plan-pref-h">Frecuencia de este tratamiento</div>
+                    ${_prefFrecHtml(`tratamientos.${i}.frecuencia`, t.frecuencia)}
+                    <div class="plan-pref-h">Días y horarios de este tratamiento</div>
+                    ${t.franjas.map((x, j) => _prefFranjaHtml(`tratamientos.${i}.franjas.${j}`, x)).join('') || '<p class="plan-ayuda">Sin días ni horarios cargados.</p>'}
+                    <div class="plan-acciones">
+                        <button type="button" class="btn-mini" data-plan-pref-add="tratamientos.${i}.franjas">＋ Agregar horario</button>
+                        <button type="button" class="btn-mini" data-plan-pref-del="tratamientos.${i}">Quitar tratamiento</button>
+                    </div>
+                </div>`).join('');
+            const ft = pref.frecuenciaTotal || frecuenciaVacia();
+            const noPuede = PREF_DIAS.map(d => `<button type="button" class="plan-dia-btn plan-dia-mini" data-plan-pref-dia="diasNoDisponibles" data-dia="${d}" aria-pressed="${pref.diasNoDisponibles.includes(d)}">${PLAN_ETIQUETA_DIA[d].slice(0, 3)}</button>`).join('');
+            const meses = pref.mesesContinuidad.map((m, i) => `<div class="plan-pref-fila"><input type="month" class="plan-input" data-plan-f="pref" data-path="mesesContinuidad.${i}.mes" value="${_pv(m.mes)}" aria-label="Mes de continuidad">${m.anioInferido ? '<span class="plan-ayuda">año inferido</span>' : ''}<button type="button" class="plan-x" data-plan-pref-del="mesesContinuidad.${i}" aria-label="Quitar mes">×</button></div>`).join('');
+            const aus = pref.ausencias.map((a, i) => `<div class="plan-pref-fila"><input type="date" class="plan-input" data-plan-f="pref" data-path="ausencias.${i}.desde" value="${_pv(a.desde)}" aria-label="Ausente desde"> a <input type="date" class="plan-input" data-plan-f="pref" data-path="ausencias.${i}.hasta" value="${_pv(a.hasta)}" aria-label="Ausente hasta"><input type="text" class="plan-input" data-plan-f="pref" data-path="ausencias.${i}.nota" value="${_pv(a.nota)}" placeholder="Nota" aria-label="Nota de la ausencia">${a.anioInferido ? '<span class="plan-ayuda">año inferido</span>' : ''}<button type="button" class="plan-x" data-plan-pref-del="ausencias.${i}" aria-label="Quitar ausencia">×</button></div>`).join('');
+            const pend = pref.pendientes.map((x, i) => `<div class="plan-pref-pendiente"><span><b>${_pv(x.campo)}:</b> ${_pv(x.detalle)}</span><button type="button" class="btn-mini" data-plan-pref-del="pendientes.${i}">Ya lo confirmé</button></div>`).join('');
+            return `
+            <details class="plan-pref" ${(pref.tratamientos.length || pref.franjasGenerales.length || pref.pendientes.length) ? 'open' : ''}>
+                <summary class="plan-pref-h" style="cursor:pointer;">Preferencias por tratamiento</summary>
+                <p class="plan-ayuda">Lo que la paciente pidió en su ficha: es una preferencia, no una obligación. Cada tratamiento tiene sus propios días, horarios y frecuencia.</p>
+                ${tr}
+                <div class="plan-acciones"><button type="button" class="btn-mini" data-plan-pref-add="tratamientos">＋ Agregar tratamiento</button></div>
+                <div class="plan-pref-h">Horarios generales (no son de un tratamiento en particular)</div>
+                ${pref.franjasGenerales.map((x, j) => _prefFranjaHtml(`franjasGenerales.${j}`, x)).join('')}
+                <button type="button" class="btn-mini" data-plan-pref-add="franjasGenerales">＋ Agregar horario general</button>
+                <div class="plan-pref-h">Frecuencia total (todos los tratamientos juntos)</div>
+                ${_prefFrecHtml('frecuenciaTotal', ft)}
+                <div class="plan-pref-h">Días en que NO puede</div>
+                <div class="plan-dias" role="group" aria-label="Días en que no puede">${noPuede}</div>
+                <div class="plan-pref-h">Meses de continuidad</div>
+                ${meses}<button type="button" class="btn-mini" data-plan-pref-add="mesesContinuidad">＋ Agregar mes</button>
+                <div class="plan-pref-h">Ausencias puntuales (no bloquean la agenda)</div>
+                ${aus}<button type="button" class="btn-mini" data-plan-pref-add="ausencias">＋ Agregar ausencia</button>
+                <label class="plan-obs">Observaciones ${'<textarea class="plan-input" rows="2" data-plan-f="pref" data-path="observaciones">' + _pv(pref.observaciones) + '</textarea>'}</label>
+                ${pend ? '<div class="plan-pref-h">Por confirmar</div>' + pend : ''}
+            </details>`;
+        }
+        // ruta tipo "tratamientos.0.franjas.1.horaPreferida" → [contenedor, clave]
+        function _prefRuta(ruta, crear) {
+            const partes = ruta.split('.');
+            const clave = partes.pop();
+            let o = _planDraft.preferencias;
+            for (const k of partes) {
+                if (o[k] == null && crear) o[k] = k === 'frecuenciaTotal' ? frecuenciaVacia() : {};
+                o = o[k];
+                if (o == null) return null;
+            }
+            return [o, clave];
+        }
+        function _prefAplicar(el) {
+            const r = _prefRuta(el.dataset.path, true);
+            if (!r) return;
+            const [o, k] = r;
+            o[k] = el.dataset.list ? el.value.split(',').map(x => x.trim()).filter(Boolean) : el.value;
+        }
+
         function planEditorHtml(p) {
             const dni = escapeHtml(p.dni || '');
             if (_planCarga === 'cargando' || !_planDraft) return '<div class="plan-loading">Cargando la última versión guardada…</div>';
@@ -5947,6 +6073,8 @@
                     <div class="plan-dias" role="group" aria-label="Días en los que puede asistir">${diasBtns}</div>
                     ${filasDias || '<p class="plan-ayuda">Elegí uno o más días.</p>'}
                 </fieldset>
+
+                ${prefEditorHtml(d.preferencias)}
 
                 <div id="plan-valid-${_planCtx}-${dni}" class="plan-valid" role="status" aria-live="polite">${planValidacionHtml().html}</div>
                 ${_planErrorGuardar ? `<div class="plan-v plan-v-err" role="alert">${escapeHtml(_planErrorGuardar)}</div>` : ''}
@@ -6067,6 +6195,7 @@
             } else if (kind === 'frec') d.frecuencia[el.dataset.k] = el.dataset.k === 'alcance' ? (val || null) : val;
             else if (kind === 'vig') d.vigencia[el.dataset.k] = val;
             else if (kind === 'obs') d.observaciones = val;
+            else if (kind === 'pref') _prefAplicar(el);
             else return false;
             _planDirty = true;
             planRefrescarValidacion();
@@ -6088,7 +6217,7 @@
             cont.addEventListener('input', alCambiar);
             cont.addEventListener('change', alCambiar);
             cont.addEventListener('click', (ev) => {
-                const t = ev.target.closest && ev.target.closest('[data-plan-toggle],[data-plan-dia],[data-plan-addint],[data-plan-delint],[data-plan-addturno],[data-plan-delturno],[data-plan-guardar],[data-plan-cancelar],[data-plan-reintentar-serv]');
+                const t = ev.target.closest && ev.target.closest('[data-plan-toggle],[data-plan-dia],[data-plan-addint],[data-plan-delint],[data-plan-addturno],[data-plan-delturno],[data-plan-guardar],[data-plan-cancelar],[data-plan-reintentar-serv],[data-plan-pref-add],[data-plan-pref-del],[data-plan-pref-dia]');
                 if (!t) return;
                 if (t.dataset.planToggle !== undefined) {
                     const dni = t.dataset.planToggle;
@@ -6099,7 +6228,35 @@
                 if (!_planAbierto || !_planDraft || _planGuardando) return;
                 const d = _planDraft;
                 const dni = _planAbierto;
-                if (t.dataset.planDia) {
+                if (t.dataset.planPrefAdd !== undefined) {
+                    const ruta = t.dataset.planPrefAdd;
+                    const pref = d.preferencias;
+                    if (ruta === 'tratamientos') {
+                        const usados = pref.tratamientos.map(x => x.tratamiento);
+                        pref.tratamientos.push(tratamientoVacio(Object.keys(PREF_TRATAMIENTOS).find(k => !usados.includes(k)) || 'facial'));
+                    } else if (ruta === 'franjasGenerales') pref.franjasGenerales.push(franjaVacia());
+                    else if (ruta === 'mesesContinuidad') pref.mesesContinuidad.push({ mes: '', anioInferido: false });
+                    else if (ruta === 'ausencias') pref.ausencias.push({ desde: '', hasta: '', nota: '', anioInferido: false });
+                    else { const r = _prefRuta(ruta + '.x', false); if (r && Array.isArray(r[0])) r[0].push(franjaVacia()); else if (r && r[0] && Array.isArray(r[0][ruta.split('.').pop()])) r[0][ruta.split('.').pop()].push(franjaVacia()); }
+                    _planDirty = true; planRepintarEditor(dni);
+                } else if (t.dataset.planPrefDel !== undefined) {
+                    const partes = t.dataset.planPrefDel.split('.');
+                    const idx = Number(partes.pop());
+                    const r = _prefRuta(partes.join('.') + '.x', false);
+                    const lista = r && (partes.length ? r[0] : null);
+                    if (lista && Array.isArray(lista)) lista.splice(idx, 1);
+                    _planDirty = true; planRepintarEditor(dni);
+                } else if (t.dataset.planPrefDia !== undefined) {
+                    const ruta = t.dataset.planPrefDia;
+                    const r = _prefRuta(ruta, true);
+                    if (r) {
+                        const lista = r[0][r[1]] || (r[0][r[1]] = []);
+                        const i = lista.indexOf(t.dataset.dia);
+                        if (i >= 0) lista.splice(i, 1); else lista.push(t.dataset.dia);
+                        t.setAttribute('aria-pressed', String(i < 0));
+                        _planDirty = true; planRefrescarValidacion();
+                    }
+                } else if (t.dataset.planDia) {
                     const dia = t.dataset.planDia;
                     if (Object.prototype.hasOwnProperty.call(d.disponibilidad.dias, dia)) delete d.disponibilidad.dias[dia];
                     else d.disponibilidad.dias[dia] = [{ desde: '', hasta: '' }];
@@ -6125,6 +6282,156 @@
                 else if (t.dataset.planReintentarServ !== undefined) _planCargarServicios(true).then(() => planRepintarEditor(dni));
             });
         }
+
+        // ── Importar preferencias desde un archivo privado ─────────────────────
+        // El archivo (.json) se lee en este navegador y no se sube a ningún lado.
+        // Flujo: simular (no escribe) → respaldo descargable → aplicar con una
+        // transacción por paciente → releer y verificar. Repetirlo es seguro.
+        const _imp = { lote: null, filas: [], simulado: false, aplicando: false };
+        const _impNorm = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+        const _impDni = (v) => String(v || '').replace(/\D/g, '');
+        const _impEl = (id) => document.getElementById(id);
+        function _impBotones() {
+            const conCambios = _imp.filas.some(r => r.estado === 'con_cambios');
+            _impEl('impPrefSimular').disabled = !_imp.lote || _imp.aplicando;
+            _impEl('impPrefAplicar').disabled = !_imp.simulado || !conCambios || _imp.aplicando;
+            _impEl('impPrefInforme').disabled = !_imp.filas.length;
+        }
+        const _impEtq = {
+            con_cambios: ['Listo para guardar', 'ok'], sin_cambios: ['Sin cambios (ya tenía la misma información)', 'ok'], ya_importado: ['Ya importada antes', 'ok'],
+            guardado: ['Guardado', 'ok'], verificado: ['Guardado y verificado', 'ok'], error: ['Error al guardar', 'bad'],
+            no_encontrado: ['Paciente no encontrado', 'bad'], ambiguo: ['DNI en más de un paciente', 'bad'], identidad: ['El nombre no coincide', 'bad'],
+            pendiente: ['Pendiente (no se carga)', 'warn'],
+        };
+        function _impPintar() {
+            const cont = _impEl('impPrefResultado');
+            if (!_imp.filas.length) { cont.innerHTML = ''; return; }
+            const cuenta = (e) => _imp.filas.filter(r => r.estado === e).length;
+            const resumen = [
+                ['Listas para guardar', cuenta('con_cambios')], ['Guardadas', cuenta('guardado')], ['Verificadas', cuenta('verificado')],
+                ['Sin cambios', cuenta('sin_cambios') + cuenta('ya_importado')], ['Pendientes', cuenta('pendiente')],
+                ['No encontradas / ambiguas / identidad', cuenta('no_encontrado') + cuenta('ambiguo') + cuenta('identidad')], ['Errores', cuenta('error')],
+            ].map(([t, n]) => `<span><b>${n}</b> ${t}</span>`).join(' · ');
+            cont.innerHTML = `<p class="plan-ayuda" style="margin-top:10px;">${resumen}</p>
+                <div style="overflow-x:auto;"><table class="imp-pref-tabla"><thead><tr><th>Ficha</th><th>Paciente en el sistema</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>${
+                _imp.filas.map(r => {
+                    const [t, c] = _impEtq[r.estado] || [r.estado, 'warn'];
+                    const det = [...(r.cambios || []), ...(r.conflictos || []).map(x => '⚠ ' + x), r.motivo ? r.motivo : '', r.error || ''].filter(Boolean);
+                    return `<tr><td>${escapeHtml(r.ref)} · ${escapeHtml(r.ficha || '')}</td><td>${escapeHtml(r.nombreSistema || '—')}</td><td class="imp-pref-est ${c}">${escapeHtml(t)}</td><td>${det.map(x => escapeHtml(x)).join('<br>')}</td></tr>`;
+                }).join('')}</tbody></table></div>`;
+            _impBotones();
+        }
+        function _impDescargar(nombre, objeto) {
+            const blob = new Blob([JSON.stringify(objeto, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob); a.download = nombre;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        }
+        async function _impSimular() {
+            _imp.filas = []; _imp.simulado = false; _impPintar();
+            const lote = _imp.lote;
+            const filas = [];
+            for (const e of (lote.entradas || [])) {
+                const fila = { ref: e.ref, ficha: e.ficha, dni: _impDni(e.dni), entrada: e, cambios: [], conflictos: [] };
+                filas.push(fila);
+                if (!e.cargar) { fila.estado = 'pendiente'; fila.motivo = e.motivo || 'Marcada como pendiente en el archivo'; continue; }
+                const coinc = todasLosPacientes.filter(p => _impDni(p.dni) === fila.dni);
+                if (coinc.length === 0) { fila.estado = 'no_encontrado'; fila.motivo = 'No hay un paciente con ese DNI.'; continue; }
+                if (coinc.length > 1) { fila.estado = 'ambiguo'; fila.motivo = 'El DNI aparece en más de un paciente.'; continue; }
+                const pac = coinc[0];
+                fila.nombreSistema = pac.fullName || '';
+                const esp = _impNorm(e.nombreSistema).split(' ')[0], act = _impNorm(pac.fullName).split(' ')[0];
+                if (e.nombreSistema && esp && act && esp !== act) { fila.estado = 'identidad'; fila.motivo = `El archivo esperaba "${e.nombreSistema}" y el sistema tiene "${pac.fullName}".`; continue; }
+                try {
+                    const snap = await getDoc(doc(db, 'clients', pac.dni));
+                    if (!snap.exists()) { fila.estado = 'no_encontrado'; fila.motivo = 'El paciente ya no existe.'; continue; }
+                    const pl = snap.data().planificacion;
+                    const r = fusionarImportacion(pl && pl.preferencias, e.preferencias, { loteId: lote.loteId, ref: e.ref, ahora: new Date().toISOString() });
+                    fila.estado = r.estado; fila.cambios = r.cambios; fila.conflictos = r.conflictos; fila.dniDoc = pac.dni;
+                } catch (err) { fila.estado = 'error'; fila.error = 'No se pudo leer la ficha: ' + (err && err.message || err); }
+            }
+            _imp.filas = filas; _imp.simulado = true; _impPintar();
+        }
+        async function _impAplicar() {
+            const lote = _imp.lote;
+            const afectadas = _imp.filas.filter(r => r.estado === 'con_cambios');
+            if (!afectadas.length) return;
+            if (!window.confirm(`Se van a guardar preferencias en ${afectadas.length} paciente(s). Antes se descarga un respaldo. ¿Continuar?`)) return;
+            _imp.aplicando = true; _impBotones();
+            // 1) Respaldo de lo que hay hoy (relectura del servidor)
+            const respaldo = { loteId: lote.loteId, fecha: new Date().toISOString(), pacientes: {} };
+            try {
+                for (const r of afectadas) {
+                    const snap = await getDoc(doc(db, 'clients', r.dniDoc));
+                    respaldo.pacientes[r.dniDoc] = { nombre: (snap.data() || {}).fullName || '', planificacionAntes: (snap.data() || {}).planificacion || null };
+                }
+            } catch (err) {
+                _imp.aplicando = false; _impBotones();
+                mostrarAviso('No se pudo armar el respaldo; no se guardó nada.');
+                return;
+            }
+            _impDescargar(`respaldo-preferencias-${lote.loteId}-${respaldo.fecha.slice(0, 10)}.json`, respaldo);
+            // 2) Una transacción por paciente (si alguien edita en simultáneo, se reintenta con lo nuevo)
+            const email = (auth.currentUser && auth.currentUser.email) || null;
+            for (const r of afectadas) {
+                try {
+                    let esperado = null;
+                    await runTransaction(db, async (tx) => {
+                        const ref = doc(db, 'clients', r.dniDoc);
+                        const snap = await tx.get(ref);
+                        if (!snap.exists()) throw new Error('El paciente ya no existe');
+                        const pl = snap.data().planificacion;
+                        const res = fusionarImportacion(pl && pl.preferencias, r.entrada.preferencias, { loteId: lote.loteId, ref: r.ref, ahora: new Date().toISOString() });
+                        if (res.estado === 'ya_importado') { esperado = null; return; }
+                        const base = serializarPlanificacion(normalizarPlanificacion(pl));
+                        tx.update(ref, { planificacion: { ...base, preferencias: res.preferencias, actualizadoAt: serverTimestamp(), actualizadoPor: email } });
+                        esperado = res.preferencias;
+                    });
+                    if (!esperado) { r.estado = 'ya_importado'; continue; }
+                    r.estado = 'guardado';
+                    // 3) Verificación: releer y comparar
+                    const leida = await getDoc(doc(db, 'clients', r.dniDoc));
+                    const pl2 = leida.data() && leida.data().planificacion;
+                    const igual = pl2 && JSON.stringify(serializarPreferencias(pl2.preferencias)) === JSON.stringify(serializarPreferencias(esperado));
+                    r.estado = igual ? 'verificado' : 'error';
+                    if (!igual) r.error = 'Lo leído después de guardar no coincide con lo previsto.';
+                    const local = todasLosPacientes.find(p => p.dni === r.dniDoc);
+                    if (local && pl2) local.planificacion = pl2;
+                } catch (err) {
+                    console.error('importar preferencias', r.ref, err);
+                    r.estado = 'error'; r.error = (err && err.message) || String(err);
+                }
+                _impPintar();
+            }
+            _imp.aplicando = false; _impPintar();
+            window.filtrarListadoClientes();
+        }
+        function _impInit() {
+            const inp = _impEl('impPrefArchivo');
+            if (!inp || inp.dataset.listo) return;
+            inp.dataset.listo = '1';
+            inp.addEventListener('change', async () => {
+                _imp.lote = null; _imp.filas = []; _imp.simulado = false; _impPintar();
+                const file = inp.files && inp.files[0];
+                if (!file) { _impBotones(); return; }
+                try {
+                    const lote = JSON.parse(await file.text());
+                    if (!lote || !lote.loteId || !Array.isArray(lote.entradas)) throw new Error('El archivo no tiene loteId y entradas.');
+                    _imp.lote = lote;
+                    _impEl('impPrefResultado').innerHTML = `<p class="plan-ayuda">Archivo leído: lote <b>${escapeHtml(lote.loteId)}</b>, ${lote.entradas.length} entradas. Tocá "Simular".</p>`;
+                } catch (err) {
+                    _impEl('impPrefResultado').innerHTML = `<div class="plan-v plan-v-err">No se pudo leer el archivo: ${escapeHtml(err.message)}</div>`;
+                }
+                _impBotones();
+            });
+            _impEl('impPrefSimular').addEventListener('click', () => { _impSimular(); });
+            _impEl('impPrefAplicar').addEventListener('click', () => { _impAplicar(); });
+            _impEl('impPrefInforme').addEventListener('click', () => {
+                _impDescargar(`informe-preferencias-${(_imp.lote && _imp.lote.loteId) || 'lote'}.json`, _imp.filas.map(({ entrada, ...r }) => r));
+            });
+        }
+        _impInit();
 
         window.toggleMembresiaCliente = async (dni, nuevoEstado) => {
             if (!dni) return;

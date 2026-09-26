@@ -19,6 +19,8 @@
 // poder distinguir "pendiente" (vacío) de "inválido" (texto que no es un
 // entero positivo).
 
+import { normalizarPreferencias, esPreferenciasVacia, validarPreferencias, serializarPreferencias, tienePreferenciasUtiles } from './preferencias-paciente.js';
+
 export const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 export const ETIQUETA_DIA = {
   lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves',
@@ -73,6 +75,7 @@ export function planVacia() {
     frecuencia: { habitualSemana: '', maximoSemana: '', totalPrevisto: '', alcance: null },
     vigencia: { desde: '', hasta: '' },
     observaciones: '',
+    preferencias: normalizarPreferencias(null),
   };
 }
 
@@ -112,6 +115,7 @@ export function normalizarPlanificacion(raw) {
   p.vigencia.desde = _txt(v.desde);
   p.vigencia.hasta = _txt(v.hasta);
   p.observaciones = _txt(raw.observaciones);
+  p.preferencias = normalizarPreferencias(raw.preferencias);
   return p;
 }
 
@@ -122,7 +126,8 @@ export function esPlanificacionVacia(plan) {
     && p.turnosHabituales.length === 0
     && !p.frecuencia.habitualSemana && !p.frecuencia.maximoSemana && !p.frecuencia.totalPrevisto
     && !p.frecuencia.alcance && !p.vigencia.desde && !p.vigencia.hasta
-    && !p.observaciones.trim();
+    && !p.observaciones.trim()
+    && esPreferenciasVacia(p.preferencias);
 }
 
 const _filaVacia = (r) => !r.dia && !r.horaInicio && !r.servicio && !r.duracionMin && !r.box;
@@ -146,9 +151,13 @@ const _CAMPOS_COMPLETO = /^(habitualSemana|maximoSemana|totalPrevisto|alcance|vi
 export function validarPlanificacion(planRaw, opciones) {
   const completo = !!(opciones && opciones.completo);
   const v = _validarTodo(planRaw);
-  if (completo) return v;
-  const solo = (lista) => lista.filter((x) => !_CAMPOS_COMPLETO.test(x.campo) && x.campo !== 'modo');
-  return { errores: solo(v.errores), pendientes: solo(v.pendientes), advertencias: solo(v.advertencias) };
+  const pref = normalizarPreferencias(planRaw && planRaw.preferencias);
+  const erroresPref = validarPreferencias(pref).errores.map((x) => ({ campo: `pref:${x.campo}`, mensaje: x.mensaje }));
+  if (completo) return { ...v, errores: [...v.errores, ...erroresPref] };
+  // Con preferencias por tratamiento cargadas, no hace falta además una disponibilidad "dura".
+  const conPref = tienePreferenciasUtiles(pref);
+  const solo = (lista) => lista.filter((x) => !_CAMPOS_COMPLETO.test(x.campo) && x.campo !== 'modo' && !(conPref && x.campo === 'disponibilidad'));
+  return { errores: [...solo(v.errores), ...erroresPref], pendientes: solo(v.pendientes), advertencias: solo(v.advertencias) };
 }
 function _validarTodo(planRaw) {
   const p = normalizarPlanificacion(planRaw);
@@ -362,6 +371,7 @@ export function serializarPlanificacion(planRaw) {
     },
     vigencia: { desde: fechaValida(p.vigencia.desde) ? p.vigencia.desde : null, hasta: fechaValida(p.vigencia.hasta) ? p.vigencia.hasta : null },
     observaciones: p.observaciones.trim(),
+    ...(esPreferenciasVacia(p.preferencias) ? {} : { preferencias: serializarPreferencias(p.preferencias) }),
   };
 }
 
