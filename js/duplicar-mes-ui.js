@@ -3,7 +3,7 @@
 // vista previa y, cuando el administrador pulsa el botón final, guarda con la MISMA
 // validación aplicada sobre datos recién leídos.
 import {
-  prepararDuplicacion, evaluarOcurrencia, buscarAlternativas, normalizarBloqueos, ocupacionDesdeReservas,
+  prepararDuplicacion, prepararCopia, evaluarOcurrencia, buscarAlternativas, normalizarBloqueos, ocupacionDesdeReservas,
   fechaLarga, horaAMin, minAHora, idReservaDe, claveOcurrencia, categoriaServicio, tieneBloqueoProtegido, motivosInsalvables,
 } from './duplicar-mes.js';
 
@@ -12,7 +12,7 @@ const CAT_TXT = { facial: 'Facial', corporal: 'Corporal', relax: 'Relax', otro: 
 const COLECCION_PEND = 'pendientesReagendar';
 const COLECCION_LOTES = 'duplicacionesMes';
 const CATEGORIAS_ORIGEN = {
-  usada_pauta: 'Usadas para una pauta', cita_puntual_continua: 'Cita confirmada para continuar', excepcion_historica: 'Excepción histórica (no continúa)',
+  usada_pauta: 'Copiadas al mes de destino', pendiente: 'No se pudieron copiar (van a pendientes)', cita_puntual_continua: 'Cita confirmada para continuar', excepcion_historica: 'Excepción histórica (no continúa)',
   cancelada: 'Canceladas (no se regeneran)', continuidad_por_definir: 'Continuidad por definir', sin_paciente: 'Sin paciente identificado',
 };
 const MOTIVO_TXT = {
@@ -97,7 +97,9 @@ export function initDuplicarMes(deps) {
     return out;
   }
   function armarCtx(datos, decisiones, origen, destino) {
-    const { bloqueos, desbloqueos } = normalizarBloqueos(datos.bloqueosRaw);
+    // Los documentos "block_<fecha>_<hora>" (sin box) son cierres de horario de la agenda pública: el alta manual del
+    // administrador no los respeta, así que tampoco frenan la copia. Sí cuentan los cierres de día y los bloqueos por box.
+    const { bloqueos, desbloqueos } = normalizarBloqueos(datos.bloqueosRaw.filter((d) => !((d.hora || d.hour || d.time) && !d.boxId && d.source !== 'admin_unblock')));
     const ctx = {
       origen, destino, reservas: datos.reservas, pacientes: datos.pacientes, servicios: datos.servicios, boxes: deps.boxes,
       bloqueos, desbloqueos, pendientes: datos.pendientes.map((p) => ({ id: p.id, clave: p.clave, estado: p.estado, reservaId: p.reservaId })), decisiones,
@@ -169,7 +171,7 @@ export function initDuplicarMes(deps) {
         st.datos = { reservas, bloqueosRaw, pendientes, pacientes: mapaPacientes(), servicios: mapaServicios(reservas), origen, destino };
       }
       st.ctx = armarCtx(st.datos, st.decisiones, origen, destino);
-      st.res = prepararDuplicacion(st.ctx);
+      st.res = prepararCopia(st.ctx);
       st.origenMes = origen; st.destinoMes = destino;
       pintar();
     } catch (e) {
@@ -316,7 +318,7 @@ export function initDuplicarMes(deps) {
       const [reservas, bloqueosRaw, pendientes] = await Promise.all([leerReservas(a.ini < b.ini ? a.ini : b.ini, a.fin > b.fin ? a.fin : b.fin), leerBloqueos(), leerPendientes().catch(() => [])]);
       const fresco = { reservas, bloqueosRaw, pendientes, pacientes: st.datos.pacientes, servicios: mapaServicios(reservas), origen, destino };
       const ctxF = armarCtx(fresco, st.decisiones, origen, destino);
-      const resF = prepararDuplicacion(ctxF);
+      const resF = prepararCopia(ctxF);
       const clavesPrevia = new Set(previa.items.map((i) => i.clave));
       const itemsF = resF.items.filter((i) => clavesPrevia.has(i.clave));
       const aCrear = itemsF.filter((i) => i.estado === 'crear');

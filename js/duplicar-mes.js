@@ -90,7 +90,8 @@ export function normalizarBloqueos(docs) {
     if (d.source === 'admin_unblock') { if (hora && d.boxId) desbloqueos.push({ fecha, hora, boxId: d.boxId }); return; }
     const esBloqueo = d.blocked === true || String(d.type || '').toLowerCase() === 'blocked' || d.adminBlocked === true || d.source === 'admin';
     if (!esBloqueo) return;
-    const prot = esProtegido(d) && (!d.boxId || d.boxId === BOX_DEPILACION);
+    // Todo bloqueo del administrador sobre el box 2 se trata como protegido (ese box se reserva para depilación).
+    const prot = (esProtegido(d) || d.source === 'admin') && d.boxId === BOX_DEPILACION;
     // intervalo explícito (bloqueo parcial o recurrente ya expandido a fechas)
     const desdeI = horaAMin(d.desde), hastaI = horaAMin(d.hasta);
     if (d.boxId && desdeI != null && hastaI != null && hastaI > desdeI) {
@@ -538,3 +539,64 @@ export function buscarAlternativas(ctx, item, { max = 6, incluirRestricciones = 
 // Motivos que ninguna autorización del paciente puede superar.
 export function motivosInsalvables(motivos) { return (motivos || []).filter((m) => CODIGOS_DUROS.includes(m.codigo)); }
 export function tieneBloqueoProtegido(motivos) { return (motivos || []).some((m) => m.codigo === 'bloqueo_depilacion_protegido'); }
+
+// ── Copia simple (la que usa la pantalla) ─────────────────────────────────
+// Cada reserva activa del mes de origen se copia al mismo día de la semana del
+// mes de destino, respetando su posición (el 2.º lunes pasa al 2.º lunes), con
+// la misma hora, servicio, duración y box. Lo que no se puede ubicar (bloqueo,
+// box ocupado, cierre, superposición, sin fecha equivalente…) queda como
+// pendiente con su motivo. No se deducen pautas ni se piden aclaraciones.
+export function prepararCopia(ctx) {
+  const { origen, destino } = ctx;
+  const mesOrigen = `${origen.anio}-${String(origen.mes).padStart(2, '0')}`;
+  const mesDestino = `${destino.anio}-${String(destino.mes).padStart(2, '0')}`;
+  const nombreDe = ctx.nombreDe || ((r) => r.nombreLimpio || r.nombre || r.cliente || '');
+  const catDe = (r) => categoriaServicio(r.servicio, (ctx.servicios || {})[r.servicio]);
+  const resOrigen = (ctx.reservas || []).filter((r) => mesDe(String(r.fecha || '')) === mesOrigen && fechaValida(r.fecha) && horaAMin(r.hora) != null);
+  const activasDestino = (ctx.reservas || []).filter((r) => mesDe(String(r.fecha || '')) === mesDestino && ctx.esActiva(r));
+  const ocupacionBase = ocupacionDesdeReservas(ctx.reservas, ctx);
+  const pendientesPrevios = new Map((ctx.pendientes || []).map((p) => [p.clave, p]));
+  const reservasPorClave = new Map();
+  activasDestino.forEach((r) => { if (r.duplicacion && r.duplicacion.ocurrenciaKey) reservasPorClave.set(r.duplicacion.ocurrenciaKey, r); });
+  const items = [];
+  const origenExplicado = [];
+  const aceptadas = [];
+  const usadas = new Set();
+  const explicar = (r, categoria, texto) => origenExplicado.push({ reservaId: r.id, fecha: r.fecha, hora: normHora(r.hora), paciente: nombreDe(r), dni: String(r.dni || '').trim(), servicio: r.servicio || '', categoria, texto });
+
+  const ordenadas = resOrigen.slice().sort((a, b) => (a.fecha + normHora(a.hora)).localeCompare(b.fecha + normHora(b.hora)));
+  ordenadas.forEach((r) => {
+    if (!ctx.esActiva(r)) { explicar(r, 'cancelada', 'Cancelada: no se copia.'); return; }
+    const dni = String(r.dni || '').trim();
+    const dow = diaSemana(r.fecha);
+    const ord = ordinalEnMes(r.fecha);
+    let fecha = nesimoDiaSemana(destino.anio, destino.mes, dow, ord);
+    const sinFecha = !fecha;
+    if (sinFecha) fecha = nesimoDiaSemana(destino.anio, destino.mes, dow, 'ultimo');
+    const cat = catDe(r);
+    const hora = normHora(r.hora);
+    let clave = claveOcurrencia(dni || nombreDe(r), cat, fecha, hora);
+    if (usadas.has(clave)) clave = `${clave}|${r.id}`;
+    usadas.add(clave);
+    const item = { clave, idReserva: idReservaDe(clave), dni, paciente: nombreDe(r), categoria: cat, servicio: r.servicio || '', fecha, hora, dur: ctx.duracionDe(r), boxId: ctx.boxDe(r), patronKey: `${dni}|${cat}`, origen: { tipo: 'reserva', refs: [r.id], espejo: r.id }, frecuencia: '', motivos: [], advertencias: [], estado: '' };
+    const previa = pendientesPrevios.get(clave);
+    const equivalente = reservasPorClave.get(clave) || (dni ? activasDestino.find((x) => String(x.dni || '').trim() === dni && catDe(x) === cat && x.fecha === fecha) : null);
+    if (equivalente && !sinFecha) { item.estado = 'ya_cubierta'; item.reservaExistente = equivalente.id; items.push(item); explicar(r, 'usada_pauta', `Ya existe en el destino (${fecha.split('-').reverse().join('/')}).`); return; }
+    if (previa && previa.estado === 'resuelto' && previa.reservaId) { item.estado = 'ya_cubierta'; item.reservaExistente = previa.reservaId; items.push(item); explicar(r, 'usada_pauta', 'Ya reagendada.'); return; }
+    if (sinFecha) item.motivos.push({ codigo: 'sin_fecha_equivalente', texto: `${destinoMesNombre(destino)} no tiene un ${DIAS_NOMBRE[dow]} número ${ord}; se muestra el último ${DIAS_NOMBRE[dow]} solo como referencia.` });
+    const ev = evaluarOcurrencia({ ...ctx, ocupacion: [...ocupacionBase, ...aceptadas] }, { fecha, hora, dur: item.dur, boxId: item.boxId, dni, servicio: item.servicio, categoria: cat });
+    item.motivos.push(...ev.motivos); item.advertencias = ev.advertencias;
+    const dItem = ((ctx.decisiones || {}).items || {})[clave] || {};
+    if (dItem.estadoManual === 'pendiente_consultar') { item.motivos.push({ codigo: 'pendiente_consultar', texto: 'Marcado para consultar con la paciente.' }); item.estadoManual = 'pendiente_consultar'; }
+    if (item.motivos.length) { item.estado = 'pendiente'; if (previa) item.yaRegistrado = true; explicar(r, 'pendiente', 'No se pudo copiar en su lugar: figura en pendientes.'); }
+    else { item.estado = 'crear'; aceptadas.push({ id: item.idReserva, fecha, ini: horaAMin(hora), dur: item.dur, boxId: item.boxId, dni, nombre: item.paciente, servicio: item.servicio }); explicar(r, 'usada_pauta', `Se copia al ${DIAS_NOMBRE[dow]} ${fecha.split('-').reverse().join('/')}.`); }
+    items.push(item);
+  });
+
+  const cuenta = (e) => items.filter((i) => i.estado === e).length;
+  const nuevos = items.filter((i) => i.estado === 'pendiente' && !i.yaRegistrado).length;
+  const resumen = { crear: cuenta('crear'), yaCubiertas: cuenta('ya_cubierta'), pendientes: cuenta('pendiente'), pendientesNuevos: nuevos, pendientesYaRegistrados: items.filter((i) => i.estado === 'pendiente' && i.yaRegistrado).length, fueraCupo: 0, porDefinir: 0, deficits: 0, reservasOrigen: resOrigen.length, pacientes: new Set(resOrigen.map((r) => String(r.dni || '')).filter(Boolean)).size, guardarPendientes: nuevos };
+  resumen.etiquetaBoton = `Crear ${resumen.crear} turno${resumen.crear === 1 ? '' : 's'} y guardar ${resumen.guardarPendientes} pendiente${resumen.guardarPendientes === 1 ? '' : 's'}`;
+  return { items, patrones: [], porDefinir: [], deficits: [], origenExplicado, resumen, mesOrigen, mesDestino };
+}
+const destinoMesNombre = (d) => ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][d.mes - 1];
