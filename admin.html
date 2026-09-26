@@ -499,6 +499,16 @@
         .plan-v { border-radius: 10px; padding: 8px 12px; margin: 0 0 8px; font-size: 12.5px; line-height: 1.5; }
         .plan-v ul { margin: 4px 0 0; padding-left: 18px; }
         .plan-v-err { background: rgba(165,67,58,.10); border: 1px solid rgba(165,67,58,.40); color: #8a2f28; }
+        .fc15-overlay { position: fixed; inset: 0; z-index: 210000; background: rgba(6,22,15,.55); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .fc15-card { width: 100%; max-width: 400px; background: linear-gradient(165deg,#fff 0%,#fff3f6 100%); border: 1.5px solid rgba(214,120,148,.5); border-radius: 22px; box-shadow: 0 24px 52px rgba(120,40,70,.24); padding: 24px 22px 20px; text-align: center; color: #7a2f47; }
+        .fc15-ico { font-size: 38px; line-height: 1; margin-bottom: 6px; }
+        .fc15-card h3 { font-family: 'Playfair Display', serif; font-size: 18px; margin: 0 0 10px; }
+        .fc15-card p { font-size: 13.5px; line-height: 1.5; margin: 0 0 8px; color: #6b3a4b; }
+        .fc15-sug { background: rgba(214,120,148,.14); border-radius: 10px; padding: 8px 10px; }
+        .fc15-acc { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+        .fc15-acc button { width: 100%; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; min-height: 44px; }
+        .fc15-ok { background: linear-gradient(135deg,#4a7060,#2f5a47); border: none; color: #fff; }
+        .fc15-igual { background: transparent; border: 1.5px solid rgba(190,80,115,.55); color: #8a2f52; }
         .plan-cartel { display: flex; gap: 12px; align-items: flex-start; margin: 10px 0 0; padding: 12px 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(230,150,170,.20), rgba(251,231,236,.55)); border: 1.5px solid rgba(214,120,148,.45); color: #7a2f47; box-shadow: 0 4px 14px rgba(214,120,148,.16); }
         .plan-cartel .plan-cartel-ico { font-size: 26px; line-height: 1; flex: 0 0 auto; }
         .plan-cartel strong { display: block; font-size: 13px; margin-bottom: 2px; }
@@ -2238,7 +2248,8 @@
         import {
             DIAS as PLAN_DIAS, ETIQUETA_DIA as PLAN_ETIQUETA_DIA, MODOS as PLAN_MODOS, ALCANCES as PLAN_ALCANCES, TRATAMIENTOS as PLAN_TRATAMIENTOS, FACIAL_INTERVALO_MIN_DIAS,
             ETIQUETA_ESTADO_PLAN, planVacia, normalizarPlanificacion, validarPlanificacion,
-            estadoPlanificacion, resumenPlanificacion, serializarPlanificacion, nuevoIdFila as planNuevoIdFila
+            estadoPlanificacion, resumenPlanificacion, serializarPlanificacion, nuevoIdFila as planNuevoIdFila,
+            esServicioFacial, evaluarIntervaloFacial, textoConflictoFacial
         } from "/js/planificacion-paciente.js";
 
         // ── Alto real del header (barra superior sticky) ────────────────────────
@@ -5023,6 +5034,51 @@
             document.getElementById('mreg-btn-confirmar').disabled = false;
         };
 
+        // Regla del centro: el facial va como mínimo cada 15 días. Se avisa con un cartel
+        // (nunca bloquea): la persona decide si agenda igual. Mira los turnos reales
+        // activos de la misma paciente (por DNI), tanto anteriores como posteriores.
+        async function _facial15Confirmar({ dni, fecha, servicio, idIgnorar }) {
+            const dniTxt = (dni == null ? '' : String(dni)).trim();
+            if (!dniTxt || !esServicioFacial(servicio)) return true;
+            if (_svTipoMap.get(servicio) === SERVICIO_TIPO_CONSULTA_INICIAL) return true;
+            const porId = new Map();
+            todasLasReservas.filter(r => String(r.dni || '').trim() === dniTxt).forEach(r => porId.set(r.id, r));
+            try {
+                const snap = await getDocs(query(collection(db, 'reservas'), where('dni', '==', dniTxt)));
+                snap.docs.forEach(d => porId.set(d.id, { id: d.id, ...d.data() }));
+            } catch (_) { /* si falla la consulta en vivo, alcanza con lo ya cargado */ }
+            const previas = [...porId.values()]
+                .filter(r => esReservaActiva(r) && typeof r.fecha === 'string' && esServicioFacial(r.servicio) && _svTipoMap.get(r.servicio) !== SERVICIO_TIPO_CONSULTA_INICIAL)
+                .map(r => ({ id: r.id, fecha: r.fecha, servicio: r.servicio }));
+            const res = evaluarIntervaloFacial(fecha, previas, idIgnorar);
+            if (!res.conflicto) return true;
+            const sugerida = res.fechaRecomendada ? `<p class="fc15-sug">Fecha recomendada: <b>${escapeHtml(res.fechaRecomendada.split('-').reverse().join('/'))}</b> o posterior.</p>` : '';
+            return new Promise((resolve) => {
+                const previo = document.activeElement;
+                const ov = document.createElement('div');
+                ov.className = 'fc15-overlay';
+                ov.setAttribute('role', 'alertdialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'fc15-tit');
+                ov.innerHTML = `
+                    <div class="fc15-card">
+                        <div class="fc15-ico" aria-hidden="true">🌸</div>
+                        <h3 id="fc15-tit">Ojo: es muy pronto para otro facial</h3>
+                        <p>${escapeHtml(textoConflictoFacial(res))}</p>
+                        <p>El facial se realiza <b>como mínimo cada ${FACIAL_INTERVALO_MIN_DIAS} días</b>; antes de ese plazo no se recomienda.</p>
+                        ${sugerida}
+                        <div class="fc15-acc">
+                            <button type="button" class="fc15-ok" data-fc15="no">Elegir otra fecha</button>
+                            <button type="button" class="fc15-igual" data-fc15="si">Agendar igual</button>
+                        </div>
+                    </div>`;
+                const cerrar = (v) => { document.removeEventListener('keydown', tecla, true); ov.remove(); try { previo && previo.focus && previo.focus(); } catch (_) {} resolve(v); };
+                const tecla = (e) => { if (e.key === 'Escape') { e.stopPropagation(); cerrar(false); } };
+                ov.addEventListener('click', (e) => { const b = e.target.closest('[data-fc15]'); if (b) cerrar(b.dataset.fc15 === 'si'); });
+                document.addEventListener('keydown', tecla, true);
+                document.body.appendChild(ov);
+                ov.querySelector('.fc15-ok').focus();
+            });
+        }
+
         window.confirmarRegistroManual = async () => {
             if (!_mreg_clienteSeleccionado) { mostrarAviso("Seleccioná un paciente"); return; }
             const servicioIngresado = document.getElementById('mreg-servicio-hidden').value.trim();
@@ -5145,6 +5201,8 @@
                     }
                 }
             }
+
+            if (!(await _facial15Confirmar({ dni: clienteSnap.dni, fecha: fechaSnap, servicio: servicioIngresado }))) return;
 
             try {
                 const _boxGuardar = _mreg_boxPresel ? { id: _mreg_boxPresel.id, label: _mreg_boxPresel.label } : null;
@@ -5269,6 +5327,8 @@
             if (!nuevoServicio) { mostrarAviso("Seleccioná un servicio"); return; }
             const reservaId = _mcs_reservaId; // capturar ANTES de cerrar (cerrar nullea _mcs_reservaId)
             if (!reservaId) { mostrarAviso("Error: no hay reserva seleccionada"); return; }
+            const _rCS = todasLasReservas.find(x => x.id === reservaId);
+            if (_rCS && !(await _facial15Confirmar({ dni: _rCS.dni, fecha: _rCS.fecha, servicio: nuevoServicio, idIgnorar: reservaId }))) return;
             try {
                 mostrarLoader(true);
                 cerrarModalCambioServicio();

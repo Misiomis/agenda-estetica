@@ -2,6 +2,7 @@
 import {
   DIAS, planVacia, normalizarPlanificacion, esPlanificacionVacia, validarPlanificacion,
   estadoPlanificacion, resumenPlanificacion, serializarPlanificacion, horaAMin, minAHora, TRATAMIENTOS, FACIAL_INTERVALO_MIN_DIAS,
+  esServicioFacial, evaluarIntervaloFacial, textoConflictoFacial,
 } from '../../js/planificacion-paciente.js';
 
 let fails = 0;
@@ -183,6 +184,25 @@ console.log('\n=== Tratamiento (Facial / Corporal / Facial y corporal) y regla d
   check('facial y corporal con 1 facial + 1 masaje por semana → sin cartel', !tieneFacial15(mixto));
   mixto.turnosHabituales[1].servicio = 'Facial Profundo';
   check('facial y corporal con 2 faciales por semana → cartel', tieneFacial15(mixto));
+}
+
+console.log('=== Regla de 15 días contra turnos reales ===');
+{
+  const previas = [{ id: 'r1', fecha: '2026-10-10', servicio: 'Facial Prueba' }];
+  const ev = (f, p = previas, id) => evaluarIntervaloFacial(f, p, id);
+  check('esServicioFacial', esServicioFacial('Facial Hidratante') && esServicioFacial('LIMPIEZA FACIAL') && !esServicioFacial('Masaje') && !esServicioFacial(null));
+  check('sin turnos previos → sin conflicto', ev('2026-10-20', []).conflicto === false);
+  check('a 14 días → conflicto', ev('2026-10-24').conflicto === true && ev('2026-10-24').dias === 14);
+  check('a 15 días exactos → permitido', ev('2026-10-25').conflicto === false);
+  check('a 16 días → permitido', ev('2026-10-26').conflicto === false);
+  check('recomienda la fecha 15 días después del anterior', ev('2026-10-17').fechaRecomendada === '2026-10-25');
+  check('mismo día → conflicto', ev('2026-10-10').conflicto === true && ev('2026-10-10').dias === 0);
+  check('facial posterior a menos de 15 días también avisa (sin fecha recomendada)', ev('2026-10-01').conflicto === true && ev('2026-10-01').despues === true && ev('2026-10-01').fechaRecomendada === null);
+  check('no cuenta el turno que se está editando', ev('2026-10-17', previas, 'r1').conflicto === false);
+  check('elige el más cercano', ev('2026-10-20', [{ id: 'a', fecha: '2026-10-09' }, { id: 'b', fecha: '2026-10-18' }]).fecha === '2026-10-18');
+  check('cruza de mes y de año', evaluarIntervaloFacial('2027-01-05', [{ fecha: '2026-12-25' }]).dias === 11 && evaluarIntervaloFacial('2027-01-05', [{ fecha: '2026-12-25' }]).fechaRecomendada === '2027-01-09');
+  check('fechas inválidas no rompen', ev('basura').conflicto === false && ev('2026-10-17', [{ fecha: 'x' }, null]).conflicto === false && evaluarIntervaloFacial('2026-10-17', null).conflicto === false);
+  check('texto claro', textoConflictoFacial(ev('2026-10-17')) === 'Esta paciente tiene otro facial hace 7 días (10/10).' || /hace 7 días/.test(textoConflictoFacial(ev('2026-10-17'))));
 }
 
 console.log('\n=== Utilidades ===');
