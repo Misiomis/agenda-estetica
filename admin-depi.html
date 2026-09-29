@@ -1071,8 +1071,19 @@
         const fechaMin = fmtFecha(primerDia);
         const fechaMax = fmtFecha(ultimoDia);
 
-        let diasConReservas = new Set();
-        let diasBloqueados = new Set();
+        // Un día se pinta verde si tiene AL MENOS UN horario libre, sin importar
+        // si tiene el marcador "día bloqueado" (que es solo una nota interna del
+        // admin — no ocupa horarios por sí solo, como ya indica cargarDatos() en
+        // la web pública). "Libre" = ni reservado por una paciente ni bloqueado
+        // a mano; un horario bloqueado a mano no cuenta como reserva, solo como
+        // horario no disponible.
+        let diasConReservas = new Set();       // solo turnos reales (para el puntito "tiene-reservas")
+        const ocupadasPorDia = new Map();      // fecha -> Set(horas) reservadas o bloqueadas
+        const marcarOcupada = (fecha, hora) => {
+            if (!fecha || !hora) return;
+            if (!ocupadasPorDia.has(fecha)) ocupadasPorDia.set(fecha, new Set());
+            ocupadasPorDia.get(fecha).add(hora);
+        };
         try {
             const [snapR, snapEx] = await Promise.all([
                 getDocs(query(collection(db, COLECCION), where('fecha', '>=', fechaMin), where('fecha', '<=', fechaMax))),
@@ -1083,10 +1094,16 @@
             // (panel, la otra profesional, o la paciente desde la web).
             snapR.forEach(d => {
                 const dat = d.data();
-                if (!dat.fecha) return;
+                if (!dat.fecha || dat.eliminado) return; // cancelada: no ocupa el horario
                 diasConReservas.add(dat.fecha);
+                marcarOcupada(dat.fecha, dat.hora);
             });
-            snapEx.forEach(d => { const dat = d.data(); if (dat.fecha && dat.tipo === 'dia') diasBloqueados.add(dat.fecha); });
+            // tipo:'dia' es solo la nota interna (no cuenta como ocupación);
+            // tipo:'slot'/'reserva'/'extension' sí ocupan ese horario puntual.
+            snapEx.forEach(d => {
+                const dat = d.data();
+                if ((dat.tipo === 'slot' || dat.tipo === 'reserva' || dat.tipo === 'extension') && dat.hora) marcarOcupada(dat.fecha, dat.hora);
+            });
         } catch(e) {
             console.error("cargarCalendario:", e);
         }
@@ -1101,7 +1118,8 @@
             const fecha = `${_calAnio}-${String(_calMes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const esHoy = fecha === hoy;
             const tieneTurnos = diasConReservas.has(fecha);
-            const esBloq = diasBloqueados.has(fecha);
+            const ocupadas = ocupadasPorDia.get(fecha)?.size || 0;
+            const tieneLibre = ocupadas < TODOS_HORARIOS.length;
             const esSel = fecha === _diaSeleccionado;
             const esPasado = fecha < hoy;
             let cls = 'cal-day';
@@ -1111,10 +1129,9 @@
             if (esPasado && !esHoy) {
                 cls += ' pasado';
             } else if (!esHoy) {
-                // Bloqueado sin reservas = cerrado (rojo); con reservas = trabaja ese día (verde)
-                if (tieneTurnos) cls += ' libre';
-                else if (esBloq) cls += ' bloqueado-depi';
-                else cls += ' libre';
+                // Verde: queda al menos un horario libre (ni reservado ni bloqueado a mano).
+                // Rojo: los 30 horarios están ocupados (todos reservados y/o bloqueados).
+                cls += tieneLibre ? ' libre' : ' bloqueado-depi';
             }
             celdas += `<button class="${cls}" onclick="verDia('${fecha}')">${d}</button>`;
         }
