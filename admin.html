@@ -89,6 +89,27 @@
             color: var(--ink); padding-bottom: 0; font-size: 15px; line-height: 1.5;
             position: relative;
         }
+        /* mobile-fixes.css (compartido por todo el sitio) fija "html, body {
+           overflow-x: hidden }" sin distinguir escritorio de celular. Por la
+           especificación de CSS, un overflow-x no-visible fuerza a que el
+           overflow-y del MISMO elemento tampoco quede en "visible" (se
+           recalcula a "auto"), aunque no esté escrito — así que en TODO el
+           panel, tanto <html> como <body> quedan marcados como contenedores
+           de scroll propios (uno anidado dentro del otro), en vez de que el
+           scroll de la página sea, como se ve a simple vista, el del
+           documento. Eso es lo que rompía el thead pegajoso de la Grilla (y
+           rompería cualquier otro position:sticky del panel contra la
+           página): quedaba pegado contra <body> — que nunca scrollea por sí
+           mismo, solo <html> lo hace — así que nunca se activaba al bajar.
+           En escritorio (donde no hace falta la protección de
+           mobile-fixes.css contra un desborde horizontal) se restaura el
+           "visible" real en los dos ejes, para que el scroll de la página
+           vuelva a ser el de <html>/<body> tal cual se ve, y position:sticky
+           se pegue contra eso. En celular (donde mobile-fixes.css sí hace
+           falta) no se toca nada. */
+        @media (min-width: 769px) {
+            html, body { overflow-x: visible; }
+        }
         ::selection { background: var(--sage-soft); color: var(--forest); }
         a { color: var(--forest); }
         :focus-visible { outline: 2.5px solid var(--forest); outline-offset: 2px; border-radius: 4px; }
@@ -820,19 +841,34 @@
         .grilla-nav { display: flex; align-items: center; gap: 8px; padding: 14px 4px 10px; flex-wrap: wrap; }
         .grilla-fecha-titulo { flex: 1; text-align: center; font-family: 'Playfair Display', serif; font-size: 1.1em; color: var(--forest); font-weight: 600; min-width: 0; }
         .grilla-tools { display: flex; gap: 8px; padding: 0 4px 12px; flex-wrap: wrap; align-items: center; }
-        /* overflow-y:visible EXPLÍCITO — sin esto, fijar overflow-x:auto hace
-           que el navegador compute overflow-y como "auto" también (regla de
-           CSS para el eje no especificado), y este div pasa a ser SU PROPIO
-           contenedor de scroll en Y aunque nunca llegue a necesitar barra
-           propia (el contenido nunca excede su alto, que no está fijado).
-           Eso rompe el "position: sticky" del thead de la grilla: en vez de
-           pegarse contra el scroll real de la página (debajo del header),
-           quedaba pegado contra ESTE contenedor — que no scrollea de forma
-           independiente — y aparecía cortado/superpuesto de forma errática
-           al bajar la página. Con overflow-y:visible explícito, el scroll
-           vertical vuelve a ser el de la página y el thead se pega donde
-           corresponde, debajo del header real. */
-        .grilla-scroll-wrap { overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; padding: 0 0 20px; position: relative; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--surface); }
+        /* Sin overflow-x/y acá en desktop — un intento anterior ponía
+           overflow-x:auto (scroll horizontal) con overflow-y:visible, con un
+           comentario que decía que el "visible" escrito a mano bastaba para
+           que el scroll vertical siguiera siendo el de la página. Eso no es
+           así: la especificación de CSS dice que si un eje tiene overflow no
+           -visible (acá overflow-x:auto) el otro eje NUNCA queda en visible
+           — el navegador lo recalcula a "auto" igual, se escriba lo que se
+           escriba. Y no alcanza con cambiar QUÉ valor no-visible se usa
+           (probado también con overflow-y:clip, mismo resultado): calquier
+           valor de overflow que no sea "visible" en cualquiera de los dos
+           ejes convierte a este div en un contenedor de scroll propio a los
+           efectos de position:sticky — y como este div nunca scrollea de
+           forma independiente (su alto es automático, no tiene barra
+           propia), el thead de la grilla quedaba pegado contra ESTE
+           contenedor en vez de contra la página: aparecía un hueco arriba
+           (del alto del header real) y el thead se superponía a los
+           primeros turnos al bajar. En desktop, las 4 columnas de box
+           (min-width:122px c/u) más la de hora entran de sobra en el ancho
+           disponible — nunca hace falta scroll horizontal — así que acá
+           directamente no hay overflow especial: overflow:visible en los
+           dos ejes (mismo valor en ambos, sin disparar la sustitución) deja
+           a este div fuera de la cadena de contenedores de scroll y el
+           thead se pega correctamente contra la página, debajo del header
+           real. El scroll horizontal para pantallas angostas, donde si
+           puede hacer falta, se agrega solo ahí más abajo (@media
+           max-width:768px, junto al top:0 del thead que ya asumía este
+           mismo problema en esa franja angosta). */
+        .grilla-scroll-wrap { overflow: visible; -webkit-overflow-scrolling: touch; padding: 0 0 20px; position: relative; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--surface); }
         /* table-layout:fixed — sin esto, el ancho de cada columna de box se
            recalculaba según el contenido más ancho presente en pantalla en
            ese momento (layout automático de tablas), así que el punto de
@@ -899,7 +935,16 @@
         .grilla-sep-row td { padding: 3px 0 !important; height: auto !important; border: none !important; }
         .grilla-sep-cell { text-align: center; color: var(--border-strong); font-size: 11px; letter-spacing: .2em; }
         .grilla-table thead th { position: sticky; top: var(--topbar-h-real, var(--topbar-h)); z-index: 5; background-color: var(--grilla-header, var(--surface-2)); box-shadow: 0 1px 0 var(--grilla-borde, var(--border)); }
-        @media (max-width: 768px) { .grilla-table thead th { top: 0; } }
+        @media (max-width: 768px) {
+            /* Acá sí puede hacer falta scroll horizontal (columnas angostas
+               que igual no siempre entran) — así que acá sí se acepta que
+               .grilla-scroll-wrap sea su propio contenedor de scroll, con el
+               mismo costado (el thead ya no puede pegarse contra la página
+               real, así que directamente se fija con top:0 dentro de este
+               contenedor en vez de intentar pegarse contra el header). */
+            .grilla-scroll-wrap { overflow-x: auto; overflow-y: hidden; }
+            .grilla-table thead th { top: 0; }
+        }
         .grilla-mini-header td { padding: 5px 2px; height: auto; background: var(--grilla-header, var(--surface-2)); border-top: 1px solid var(--grilla-borde, var(--border-strong)) !important; border-bottom: 1px solid var(--grilla-borde, var(--border-strong)) !important; }
         .grilla-mini-th { text-align: center; font-size: 11px; font-weight: 800; color: var(--ink-soft); letter-spacing: .04em; }
         .gth-short { display: none; }
