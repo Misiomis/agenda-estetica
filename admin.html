@@ -6788,14 +6788,20 @@
             ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
             var waHref = phone ? 'https://wa.me/549'+phone+'?text='+encodeURIComponent(txt) : '';
             var escaped = txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-            ov.innerHTML = "<div style='background:#172c22;border:1px solid rgba(114,189,153,0.18);border-radius:16px;padding:20px;max-width:540px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:11px;'>" +
-                "<div style='display:flex;justify-content:space-between;align-items:center;'><span style='font-size:13px;font-weight:800;color:rgba(76,103,89,0.92);letter-spacing:.04em;'>"+(d.titulo||'Mensaje')+"</span><button onclick='this.closest(\"div[style*=fixed]\").remove()' style='background:none;border:none;color:rgba(22,61,50,0.50);font-size:18px;cursor:pointer;padding:0 4px;'>×</button></div>" +
-                "<textarea id='_ses_ta_"+idx+"' readonly style='background:rgba(0,0,0,0.28);border:1px solid rgba(114,189,153,0.14);border-radius:10px;padding:12px 14px;color:rgba(22,61,50,0.88);font-size:12px;font-family:monospace;line-height:1.65;resize:none;height:320px;outline:none;white-space:pre;'>"+escaped+"</textarea>" +
+            // Antes esta tarjeta tenía fondo oscuro (#172c22) con texto en los
+            // mismos tonos "ink" oscuros que usa el resto del panel sobre fondo
+            // CLARO — texto oscuro sobre fondo oscuro, casi ilegible (botones
+            // que se veían en blanco). Se pasa al mismo tema claro que ya usa
+            // el resto del panel (var(--surface)/var(--ink)/var(--border)),
+            // con contraste verificado.
+            ov.innerHTML = "<div style='background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:540px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:11px;box-shadow:var(--shadow-lg);'>" +
+                "<div style='display:flex;justify-content:space-between;align-items:center;'><span style='font-size:13px;font-weight:800;color:var(--ink);letter-spacing:.04em;'>"+(d.titulo||'Mensaje')+"</span><button onclick='this.closest(\"div[style*=fixed]\").remove()' style='background:none;border:none;color:var(--ink-soft);font-size:20px;cursor:pointer;padding:0 4px;line-height:1;'>×</button></div>" +
+                "<textarea id='_ses_ta_"+idx+"' readonly style='background:var(--surface-2);border:1px solid var(--border-strong);border-radius:10px;padding:12px 14px;color:var(--ink);font-size:12px;font-family:monospace;line-height:1.65;resize:none;height:320px;outline:none;white-space:pre;'>"+escaped+"</textarea>" +
                 "<div style='display:flex;gap:8px;flex-wrap:wrap;'>" +
-                "<button onclick='var ta=document.getElementById(\"_ses_ta_"+idx+"\");ta.select();try{navigator.clipboard.writeText(ta.value).then(function(){mostrarAviso(\"Copiado al portapapeles\");}).catch(function(){document.execCommand(\"copy\");mostrarAviso(\"Copiado\");});}catch(e){document.execCommand(\"copy\");mostrarAviso(\"Copiado\");}' style='flex:1;padding:10px;background:rgba(53,122,92,0.18);border:1.5px solid rgba(114,189,153,0.32);border-radius:9px;color:rgba(22,61,50,0.95);font-weight:700;font-size:12px;cursor:pointer;'>Copiar texto</button>" +
-                (waHref ? "<a href='"+waHref+"' target='_blank' rel='noopener' style='flex:1;padding:10px;background:rgba(37,211,102,0.10);border:1.5px solid rgba(37,211,102,0.28);border-radius:9px;color:rgba(22,61,50,0.92);font-weight:700;font-size:12px;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;'>Abrir en WhatsApp</a>" : '') +
+                "<button onclick='var ta=document.getElementById(\"_ses_ta_"+idx+"\");ta.select();try{navigator.clipboard.writeText(ta.value).then(function(){mostrarAviso(\"Copiado al portapapeles\");}).catch(function(){document.execCommand(\"copy\");mostrarAviso(\"Copiado\");});}catch(e){document.execCommand(\"copy\");mostrarAviso(\"Copiado\");}' style='flex:1;padding:10px;background:var(--forest);border:none;border-radius:9px;color:#fff;font-weight:700;font-size:12px;cursor:pointer;'>Copiar texto</button>" +
+                (waHref ? "<a href='"+waHref+"' target='_blank' rel='noopener' style='flex:1;padding:10px;background:var(--whatsapp);border:none;border-radius:9px;color:#fff;font-weight:700;font-size:12px;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;'>Abrir en WhatsApp</a>" : '') +
                 "</div>" +
-                "<p style='font-size:11px;color:rgba(22,61,50,0.45);margin:0;text-align:center;'>Copia el texto y pegalo directamente en WhatsApp para mantener el formato.</p>" +
+                "<p style='font-size:11px;color:var(--ink-soft);margin:0;text-align:center;'>Copia el texto y pegalo directamente en WhatsApp para mantener el formato.</p>" +
                 "</div>";
             document.body.appendChild(ov);
         };
