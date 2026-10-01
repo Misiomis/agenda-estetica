@@ -1912,6 +1912,13 @@
                     <div id="gs-lista" style="margin-bottom:16px;overflow-x:auto;"></div>
                     <button class="btn-mini" onclick="gsAgregarNuevo()" style="padding:10px 20px;font-size:13px;border-radius:12px;">+ Nuevo servicio</button>
                 </div>
+                <!-- Servicio predeterminado por box (arrastrar en la Grilla) -->
+                <div class="detalle-dia-card" style="max-width:700px;margin:16px auto 0;">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">🎯 Servicio predeterminado por box</h3>
+                    <p style="font-size:13px;color:rgba(22,61,50,0.70);margin:0 0 16px;">Al arrastrar un turno a otro box en la Grilla, el sistema <b>nunca inventa</b> el servicio: solo lo cambia al que elijas acá para ese box. Un box sin predeterminado no cambia el servicio al arrastrar un turno ahí. Solo podés elegir un servicio que ya esté asignado a ese box arriba.</p>
+                    <div id="gs-defaults"></div>
+                    <button class="btn-mini" onclick="gsGuardarDefaults()" style="margin-top:14px;padding:10px 20px;font-size:13px;border-radius:12px;">💾 Guardar predeterminados</button>
+                </div>
             </div>
 
             <div id="sec-control" class="section">
@@ -2335,6 +2342,7 @@
             esServicioFacial, evaluarIntervaloFacial, textoConflictoFacial
         } from "/js/planificacion-paciente.js";
         import { initDuplicarMes } from "/js/duplicar-mes-ui.js";
+        import { normalizarServiciosBox, serializarServiciosBox, serviciosDelBox, resolverServicioAlArrastrar } from "/js/grilla-servicio-box.js";
         import {
             PREF_TRATAMIENTOS, PREF_ESTADOS, PREF_FRANJAS, PREF_PERIODOS, PREF_DIAS,
             tratamientoVacio, franjaVacia, frecuenciaVacia, lineasPreferencias, normalizarPreferencias,
@@ -2849,6 +2857,12 @@
         let bloqueosHorarios = new Map();
         let duoHorarios      = new Map();
         let _svBoxMap        = new Map(); // nombre servicio → boxId
+        // Servicio predeterminado de cada box (boxId → nombre del servicio).
+        // Se aplica SOLO al arrastrar un turno a ese box en la Grilla, y solo si
+        // está configurado a mano en Servicios → Grilla de Servicios. Si un box
+        // no tiene predeterminado, arrastrar un turno ahí no cambia su servicio
+        // — nunca se "inventa" un servicio (p. ej. nunca Hi-Fu salvo elegido a mano).
+        let _svBoxDefaultMap = new Map();
         let _svDurMap        = new Map(); // nombre servicio → duracionMinutos
         // nombre servicio → tipo estable (ej. 'consulta_inicial') — identifica
         // reglas de negocio por tipo, no por texto visible/tildes/mayúsculas
@@ -3391,8 +3405,9 @@
                 cierresPorFecha     = extraerCierresDiaDesdeFirebase(snapBloqueos);
 
                 if (_svBoxSnap?.exists?.()) {
-                    const _asgn = _svBoxSnap.data().assignments || {};
-                    Object.entries(_asgn).forEach(([k, v]) => { if (k && v) _svBoxMap.set(k, Array.isArray(v) ? v : [v]); });
+                    const _normSvBox = normalizarServiciosBox(_svBoxSnap.data());
+                    _svBoxMap = _normSvBox.boxesPorServicio;
+                    _svBoxDefaultMap = _normSvBox.defaultPorBox;
                 }
                 if (_blSnap?.exists?.()) _aplicarBoxLabels(_blSnap.data().boxes || {});
 
@@ -10835,11 +10850,14 @@
             });
         };
 
-        // Guarda el mapa entero en configuracion/serviciosBox
+        // Guarda el documento entero en configuracion/serviciosBox — reemplazo
+        // completo (sin merge), no solo de "assignments": siempre con el estado
+        // completo de los dos Map en memoria (asignaciones Y predeterminados
+        // por box), para que borrar un servicio también borre sus entradas acá
+        // en vez de dejarlas huérfanas (un merge no borraría lo ausente).
         const _gsPersistir = async () => {
-            const assignments = {};
-            _svBoxMap.forEach((v, k) => { if (v) assignments[k] = v; });
-            await setDoc(doc(db, 'configuracion', 'serviciosBox'), { assignments });
+            const datos = serializarServiciosBox(_svBoxMap, _svBoxDefaultMap);
+            await setDoc(doc(db, 'configuracion', 'serviciosBox'), datos);
         };
 
         const gsCargar = async () => {
@@ -10853,16 +10871,55 @@
                 ]);
                 _gsServicios = svSnap.docs.map(d => ({ id: d.id, ...d.data() }));
                 _gsServicios.forEach(x => { if (x.nombre && Number(x.duracion) > 0) _svDurMap.set(x.nombre, Number(x.duracion)); });
-                // Cargar asignaciones de box desde configuracion (fuente de verdad)
-                _svBoxMap.clear();
-                if (boxSnap.exists()) {
-                    const asgn = boxSnap.data().assignments || {};
-                    Object.entries(asgn).forEach(([k, v]) => { if (k && v) _svBoxMap.set(k, Array.isArray(v) ? v : [v]); });
-                }
+                // Cargar asignaciones de box y predeterminados desde configuracion (fuente de verdad)
+                const _normGs = normalizarServiciosBox(boxSnap.exists() ? boxSnap.data() : null);
+                _svBoxMap = _normGs.boxesPorServicio;
+                _svBoxDefaultMap = _normGs.defaultPorBox;
                 gsRender();
+                gsRenderDefaults();
             } catch(e) {
                 console.error('gsCargar:', e);
                 lista.innerHTML = '<div style="font-size:13px;color:rgba(165,67,58,0.7);">Error al cargar: ' + (e.code||e.message) + '</div>';
+            }
+        };
+
+        // Un <select> por box, con los servicios ya asignados a ESE box (arriba
+        // en la Grilla de Servicios) como únicas opciones posibles — nunca se
+        // puede elegir como predeterminado un servicio que no esté asignado.
+        const gsRenderDefaults = () => {
+            const cont = document.getElementById('gs-defaults');
+            if (!cont) return;
+            cont.innerHTML = GRILLA_BOXES.map(b => {
+                const opciones = serviciosDelBox(b.id, _svBoxMap);
+                const actual = _svBoxDefaultMap.get(b.id) || '';
+                if (!opciones.length) {
+                    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);">
+                        <span style="min-width:170px;font-size:13px;font-weight:700;">${b.icon} ${escapeHtml(b.label)} · ${escapeHtml(b.sub)}</span>
+                        <span style="font-size:12.5px;color:rgba(22,61,50,0.45);">Sin servicios asignados a este box todavía</span>
+                    </div>`;
+                }
+                return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);flex-wrap:wrap;">
+                    <span style="min-width:170px;font-size:13px;font-weight:700;">${b.icon} ${escapeHtml(b.label)} · ${escapeHtml(b.sub)}</span>
+                    <select id="gs-def-${b.id}" style="flex:1;min-width:180px;background:var(--surface);border:1.5px solid var(--border-strong);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.92);font-size:13px;font-family:inherit;">
+                        <option value="">— Sin predeterminado (no cambia el servicio) —</option>
+                        ${opciones.map(n => `<option value="${escapeHtml(n)}" ${n === actual ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('')}
+                    </select>
+                </div>`;
+            }).join('');
+        };
+
+        window.gsGuardarDefaults = async () => {
+            try {
+                GRILLA_BOXES.forEach(b => {
+                    const sel = document.getElementById(`gs-def-${b.id}`);
+                    if (!sel) return; // sin opciones (sin select renderizado) → no toca ese box
+                    if (sel.value) _svBoxDefaultMap.set(b.id, sel.value); else _svBoxDefaultMap.delete(b.id);
+                });
+                await _gsPersistir();
+                mostrarAviso('✓ Predeterminados guardados');
+            } catch(e) {
+                console.error('gsGuardarDefaults:', e);
+                mostrarAviso('Error al guardar: ' + (e.code || e.message));
             }
         };
 
@@ -10891,11 +10948,12 @@
                 // 1. Actualizar nombre en services si cambió
                 if (nombre !== nombreAnterior) {
                     await setDoc(doc(db, 'services', id), { nombre, activo: true }, { merge: true });
-                    // Migrar clave en _svBoxMap si el nombre cambió
+                    // Migrar clave en _svBoxMap (y en los predeterminados que lo usaban) si el nombre cambió
                     if (nombreAnterior && _svBoxMap.has(nombreAnterior)) {
                         _svBoxMap.set(nombre, _svBoxMap.get(nombreAnterior));
                         _svBoxMap.delete(nombreAnterior);
                     }
+                    if (nombreAnterior) _svBoxDefaultMap.forEach((def, boxId) => { if (def === nombreAnterior) _svBoxDefaultMap.set(boxId, nombre); });
                     const idx = _gsServicios.findIndex(s => s.id === id);
                     if (idx >= 0) _gsServicios[idx].nombre = nombre;
                 }
@@ -10909,7 +10967,11 @@
                 }
                 // 2. Guardar boxes en configuracion/serviciosBox
                 if (boxIds.length) _svBoxMap.set(nombre, boxIds); else _svBoxMap.delete(nombre);
+                // Si se desmarcó un box donde este servicio era el predeterminado,
+                // ese box se queda sin predeterminado (nunca se inventa otro).
+                _svBoxDefaultMap.forEach((def, boxId) => { if (def === nombre && !boxIds.includes(boxId)) _svBoxDefaultMap.delete(boxId); });
                 await _gsPersistir();
+                gsRenderDefaults();
                 mostrarAviso('✓ Guardado');
             } catch(e) {
                 console.error('gsGuardar:', e);
@@ -10939,9 +11001,15 @@
             try {
                 await deleteDoc(doc(db, 'services', id));
                 _gsServicios = _gsServicios.filter(s => s.id !== id);
-                if (sv.nombre) _svBoxMap.delete(sv.nombre);
+                if (sv.nombre) {
+                    _svBoxMap.delete(sv.nombre);
+                    // Si era el predeterminado de algún box, ese box se queda sin
+                    // predeterminado (nunca se inventa otro en su lugar).
+                    _svBoxDefaultMap.forEach((nombre, boxId) => { if (nombre === sv.nombre) _svBoxDefaultMap.delete(boxId); });
+                }
                 await _gsPersistir();
                 gsRender();
+                gsRenderDefaults();
                 mostrarAviso('Servicio eliminado');
             } catch(e) { mostrarAviso('No se pudo borrar: ' + (e.code||e.message)); }
         };
@@ -12203,26 +12271,14 @@
                 if (boxActual !== nuevoBoxId) updates.box = nuevoBoxId;
                 if (horaActual !== horaNueva) updates.hora = horaNueva;
 
-                // Auto-cambiar servicio cuando cambia de box
+                // Cambiar servicio al cambiar de box: SOLO el predeterminado que
+                // la administradora configuró a mano para ese box (Servicios →
+                // Grilla de Servicios → "Servicio predeterminado por box"). Nunca
+                // se inventa ni se elige uno "exclusivo" por su cuenta — un box
+                // sin predeterminado configurado no cambia el servicio.
                 if (boxActual !== nuevoBoxId) {
-                    // Buscar servicio del box destino: priorizar el que es exclusivo de ese box
-                    let svcExclusivo = null, svcCompartido = null;
-                    for (const [svcNom, boxIds] of _svBoxMap.entries()) {
-                        const bxArr = Array.isArray(boxIds) ? boxIds : [boxIds];
-                        if (bxArr.includes(nuevoBoxId)) {
-                            if (!svcCompartido) svcCompartido = svcNom;
-                            if (bxArr.length === 1 && !svcExclusivo) svcExclusivo = svcNom;
-                        }
-                    }
-                    const svcParaBox = svcExclusivo || svcCompartido;
-                    if (svcParaBox && svcParaBox !== r.servicio) {
-                        // Solo cambiar si el servicio actual no pertenece al box destino
-                        const curBoxes = _svBoxMap.get(r.servicio) || [];
-                        const curArr = Array.isArray(curBoxes) ? curBoxes : [curBoxes];
-                        if (!curArr.includes(nuevoBoxId)) {
-                            updates.servicio = svcParaBox;
-                        }
-                    }
+                    const svcParaBox = resolverServicioAlArrastrar(nuevoBoxId, r.servicio, _svBoxMap, _svBoxDefaultMap);
+                    if (svcParaBox) updates.servicio = svcParaBox;
                 }
 
                 await updateDoc(doc(db, "reservas", reservaId), updates);
