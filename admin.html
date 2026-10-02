@@ -436,18 +436,25 @@
         .mreg-btn-confirm:disabled { background: var(--border); cursor: not-allowed; color: #fff; }
 
         /* ── Modal cambio de servicio / precio kit (mismo estilo de modal claro) ── */
-        #modal-cambio-servicio-overlay, #modal-precio-kit-overlay, #modal-precio-pagos-overlay {
+        #modal-cambio-servicio-overlay, #modal-precio-kit-overlay, #modal-precio-pagos-overlay, #modal-enviar-recibo-overlay {
             position: fixed; inset: 0; background: rgba(22,32,27,0.45);
             display: none; align-items: center; justify-content: center; padding: 16px;
         }
-        #modal-cambio-servicio-overlay.open, #modal-precio-kit-overlay.open, #modal-precio-pagos-overlay.open { display: flex; }
+        #modal-cambio-servicio-overlay.open, #modal-precio-kit-overlay.open, #modal-precio-pagos-overlay.open, #modal-enviar-recibo-overlay.open { display: flex; }
         #modal-cambio-servicio-overlay { z-index: 100001; }
         #modal-precio-kit-overlay { z-index: 100002; }
         #modal-precio-pagos-overlay { z-index: 100003; }
-        #modal-precio-pagos-card {
+        #modal-enviar-recibo-overlay { z-index: 100004; }
+        #modal-precio-pagos-card, #modal-enviar-recibo-card {
             width: 100%; max-width: 460px; max-height: 88vh; overflow-y: auto; background: var(--surface); border-radius: var(--r-xl);
             border: 1px solid var(--border); box-shadow: var(--shadow-lg); padding: 22px 20px 18px; animation: popInSoft 0.18s ease-out;
         }
+        /* Barra de 4 acciones principales de una sesión (Guardar Nota · Recordar ·
+           Enviar recibo · Precio y pagos) — alineadas en escritorio, 2x2 en
+           celular, sin que ninguna ocupe una fila completa innecesariamente. */
+        .ac-row-primary-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
+        .ac-row-primary-4 button { padding: 9px 6px; font-size: 11.5px; min-height: 40px; }
+        @media (max-width: 480px) { .ac-row-primary-4 { grid-template-columns: repeat(2, 1fr); } }
         #modal-cambio-servicio-card {
             width: 100%; max-width: 440px; background: var(--surface); border-radius: var(--r-xl);
             border: 1px solid var(--border); box-shadow: var(--shadow-lg); padding: 24px 22px 20px; animation: popInSoft 0.18s ease-out;
@@ -2333,7 +2340,12 @@
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
     <script type="module">
-        import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit, runTransaction, writeBatch } from "/js/firebase-web.js";
+        import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit, runTransaction, writeBatch, storage, ref, uploadBytes, getDownloadURL } from "/js/firebase-web.js";
+        import {
+            MONEDA_CANONICA, ESCALA_CANONICA, ETIQUETA_UNIDAD, parsearImporte, formatearImporte, validarPrecio, validarMontoPago,
+            totalRecibido, saldoPendiente, estadoCuenta, ETIQUETA_ESTADO, tieneEscalaConfirmada, construirInstantaneaRecibo,
+            construirMensajeRecibo, validarRespaldo, nuevoIdOperacion,
+        } from "/js/precio-pagos.js";
         import { registrarContactoPreparado, registrarContactoEstado } from "/js/contact-tracking.js";
         import {
             DIAS as PLAN_DIAS, ETIQUETA_DIA as PLAN_ETIQUETA_DIA, MODOS as PLAN_MODOS, ALCANCES as PLAN_ALCANCES, TRATAMIENTOS as PLAN_TRATAMIENTOS, FACIAL_INTERVALO_MIN_DIAS,
@@ -3233,7 +3245,10 @@
         // ningún ejemplo ni pantalla existente), así que se usa el peso entero
         // redondeado como unidad exacta — evita error de punto flotante sin
         // sumarle precisión de centavos que el negocio no usa.
-        const _fmtMoneyARS = (n) => (n === null || n === undefined || isNaN(n)) ? 'Sin registro' : ('$' + Math.round(n).toLocaleString('es-AR'));
+        // Mostrar 300, no $300.000: los importes del sistema están en miles de pesos
+        // (ver js/precio-pagos.js). Un '$' pelado se podía leer como pesos sueltos — se
+        // saca el signo y la unidad se aclara una sola vez junto al monto, no en cada cifra.
+        const _fmtMoneyARS = (n) => (n === null || n === undefined || isNaN(n)) ? 'Sin registro' : (Math.round(n * 10) / 10).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
 
         // ─── Clasificación de pacientes: activo/inactivo/de cursos (punto 15) ──
         // Se calcula EN VIVO cada vez que se entra/filtra "Pacientes" — nunca se
@@ -3672,8 +3687,7 @@
                             <button onclick="cancelarEdicionAdmin('${r.id}')" style="border:1px solid var(--border); background:var(--surface-2); border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px; color:rgba(22,61,50,0.85)">Cancelar</button>
                         </div>
                     </div>` : `
-                    <textarea id="n-${r.id}" placeholder="${esDuo ? 'Nota paciente 1...' : 'Detalle de la sesion...'}" style="width:100%; box-sizing:border-box; margin-top:6px"></textarea>
-                    <button id="btnN-${r.id}" class="btn-save" onclick="guardarN('${r.id}')">Guardar nota</button>`;
+                    <textarea id="n-${r.id}" placeholder="${esDuo ? 'Nota paciente 1...' : 'Detalle de la sesion...'}" style="width:100%; box-sizing:border-box; margin-top:6px"></textarea>`;
 
                 // Nota para paciente 2 (solo en Duo)
                 const notaDisplay2 = esDuo ? (tieneNota2 ? `
@@ -3791,20 +3805,22 @@
                     <small>${_boxBadge}${_boxAsig ? '&nbsp;' : ''}${escapeHtml(r.servicio || 'Servicio')}${_edadR ? ` · Edad: ${_edadR}` : ''}</small>
                     ${notaDisplay1}
                     ${notaDisplay2}
-                    <div class="ac-row-primary">
-                        <button class="btn-ws btn-confirmar" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','confirmar','${r.id}')">Confirmar</button>
+                    <div class="ac-row-primary-4">
+                        <button class="btn-mini" style="border-color:rgba(53,122,92,0.35);color:#2F6B4F;background:rgba(53,122,92,0.08)" onclick="guardarN('${r.id}')">💾 Guardar Nota</button>
                         <button class="btn-ws btn-recordar" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','recordar','${r.id}')">Recordar</button>
+                        <button class="btn-mini" style="border-color:rgba(37,211,102,0.40);color:#128c7e;background:rgba(37,211,102,0.08)" onclick="abrirEnviarRecibo('${r.id}','${_pacienteMatchKey(r)}','${(r.nombreLimpio||'').replace(/'/g,"\\'")}','${(r.servicio||'').replace(/'/g,"\\'")}','${(r.phone || r.telefono || '').replace(/'/g,"\\'")}')">🧾 Enviar recibo</button>
+                        <button class="btn-mini" style="border-color:rgba(45,74,50,0.35);color:#2D4A32;background:rgba(45,74,50,0.06)" onclick="abrirPrecioPagos('${r.id}','${_pacienteMatchKey(r)}','${(r.nombreLimpio||'').replace(/'/g,"\\'")}','${(r.servicio||'').replace(/'/g,"\\'")}')">💳 Precio y pagos</button>
                     </div>
                     <div class="ac-row-secondary">
-                        <button class="btn-ws btn-cancelar ac-avisar-btn" title="Solo envía mensaje de aviso" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar','${r.id}')">Avisar Canc.</button>
-                        <button onclick="window._adminToggleMas('r${r.id}')" class="ac-mas-btn" id="admas-btn-r${r.id}">··· Más</button>
+                        <button onclick="window._adminToggleMas('r${r.id}')" class="ac-mas-btn ac-mas-btn-full" id="admas-btn-r${r.id}">⋯ Más acciones</button>
                     </div>
                     <div id="admas-r${r.id}" class="ac-mas-panel" style="display:none;margin-top:8px;">
+                        <button class="btn-ws btn-confirmar" style="width:100%;" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','confirmar','${r.id}')">Confirmar</button>
+                        <button class="btn-ws btn-cancelar ac-avisar-btn" style="width:100%;" title="Solo envía mensaje de aviso" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','cancelar','${r.id}')">Avisar cancelación</button>
                         <button class="btn-mini" style="width:100%;border-color:rgba(74,222,128,0.40);color:#2F6B4F;background:rgba(74,222,128,0.08)" onclick="marcarConfirmacionManual('${r.id}', ${r.confirmacionManual ? 'false' : 'true'})">${r.confirmacionManual ? '✓ Confirmado — quitar' : 'Marcar como confirmado'}</button>
                         ${btnEnviar1}${btnEnviar2}
                         ${btnRec}
                         <button class="btn-mini" style="width:100%;border-color:#b5cce8;color:#2e61b1;background:#f3f8ff" onclick="cambiarServicioReserva('${r.id}')">Cambiar servicio</button>
-                        <button class="btn-mini" style="width:100%;border-color:rgba(45,74,50,0.35);color:#2D4A32;background:rgba(45,74,50,0.06)" onclick="abrirPrecioPagos('${r.id}','${_pacienteMatchKey(r)}','${(r.nombreLimpio||'').replace(/'/g,"\\'")}')">💳 Precio y pagos</button>
                         ${_btnOtroBox}
                         <div class="ac-destructive">
                             <button class="btn-mini" style="width:100%;border-color:#e0b0b0;color:#a02828;background:#fff5f5" onclick="cancelarTurnoYNotificar('${r.id}')">Cancelar turno y notificar</button>
@@ -8155,42 +8171,46 @@
         })();
         /* ══ FIN PREPARAR JORNADA ══════════════════════════════════════════════ */
 
-        /* ══ PRECIO Y PAGOS (punto 2) ═══════════════════════════════════════════
-           Alcance de esta implementación: cubre las sesiones de la colección
-           "reservas" (el flujo principal de "atender a un paciente" en este
-           panel). Las consultas iniciales (`consultas`), la depilación
-           (`reservasDepi`, panel aparte) y el curso de automaquillaje tienen
-           cada una su propio modelo de datos y NO quedan cubiertas por este
-           pase — se documenta como límite explícito en vez de simular que
-           "todos los servicios" ya tienen precio y pagos.
-           Un documento de "prestaciones" por reserva (id = reservaId). Los
-           movimientos de dinero van en "pagos", con id = operationId generado
-           por el cliente (mismo id en un reintento/doble toque = mismo
-           documento, nunca un cobro duplicado). Un pago con prestacionId nulo
-           es un adelanto/saldo a favor del paciente, todavía sin aplicar. */
+        /* ══ PRECIO Y PAGOS ══════════════════════════════════════════════════════
+           Alcance: cubre las sesiones de la colección "reservas" (el flujo
+           principal de "atender a un paciente" en este panel). Consultas
+           iniciales, depilación y curso de automaquillaje tienen su propio
+           modelo y NO quedan cubiertas por este pase — límite explícito, no
+           se simula que "todo" tiene precio y pagos.
+
+           Unidad: miles de pesos ARS (ver js/precio-pagos.js). Un documento
+           de "prestaciones" por reserva (id = reservaId). Los movimientos van
+           en "pagos", id = operationId generado por el cliente ANTES de
+           escribir y reutilizado en reintentos (mismo id ⇒ mismo documento,
+           nunca un cobro duplicado). Cada pago nuevo ("cobro") exige un
+           respaldo ya subido a Storage antes de confirmarse — ver
+           _ppSubirRespaldo. La escritura en Firestore va en una transacción
+           que relee el estado actual y, si el id de la operación ya existe,
+           no vuelve a escribir nada (idempotencia real, no solo deshabilitar
+           el botón). auditoria/ queda un registro de cada operación.
+           Un pago con prestacionId nulo es un adelanto/saldo a favor del
+           paciente, todavía sin aplicar a una sesión puntual. */
         (function(){
             function _ppCobradoDe(pagos, reservaId) {
-                return pagos.filter(function(p){ return p.prestacionId === reservaId; })
-                    .reduce(function(s,p){ return s + (p.tipo === 'devolucion' ? -p.monto : p.monto); }, 0);
+                return totalRecibido(pagos.filter(function(p){ return p.prestacionId === reservaId; }));
             }
 
-            var _ppReservaId = null, _ppPacienteKey = null, _ppPacienteNombre = '';
+            var _ppReservaId = null, _ppPacienteKey = null, _ppPacienteNombre = '', _ppServicio = '';
             var _ppPrestacion = null, _ppPagos = [], _ppSaldoAFavor = 0;
+            var _ppRespaldoArchivo = null; // File elegido a mano, pendiente de subir
+            var _ppSubiendo = false;
 
-            function _ppEstado() {
+            function _ppEstadoChip() {
                 if (!_ppPrestacion) return { label: 'Sin registro', color: '#7C8D81' };
                 if (_ppPrestacion.anulada) return { label: 'Anulada', color: '#AD2E2E' };
-                if (_ppPrestacion.sinCargo) return { label: 'Sin cargo', color: '#526358' };
-                var precio = _ppPrestacion.precioAcordado;
-                if (precio === null || precio === undefined) return { label: 'Precio no definido', color: '#8A6A22' };
-                var cobrado = _ppCobradoDe(_ppPagos, _ppReservaId);
-                if (cobrado <= 0) return { label: 'Pendiente', color: '#AD2E2E' };
-                if (cobrado < precio) return { label: 'Parcial', color: '#8A6A22' };
-                return { label: 'Pagado', color: '#2F6B4F' };
+                var e = estadoCuenta({ precio: _ppPrestacion.sinCargo ? null : _ppPrestacion.precioAcordado, sinCargo: !!_ppPrestacion.sinCargo, recibido: _ppCobradoDe(_ppPagos, _ppReservaId) });
+                var colores = { sin_precio: '#8A6A22', sin_cargo: '#526358', sin_pagos: '#AD2E2E', parcial: '#8A6A22', completo: '#2F6B4F', saldo_a_favor: '#2F6B4F' };
+                return { label: ETIQUETA_ESTADO[e], color: colores[e] };
             }
 
-            async function _ppCargar(reservaId, pacienteKey, pacienteNombre) {
-                _ppReservaId = reservaId; _ppPacienteKey = pacienteKey; _ppPacienteNombre = pacienteNombre;
+            async function _ppCargar(reservaId, pacienteKey, pacienteNombre, servicio) {
+                _ppReservaId = reservaId; _ppPacienteKey = pacienteKey; _ppPacienteNombre = pacienteNombre; _ppServicio = servicio || '';
+                _ppRespaldoArchivo = null;
                 var body = document.getElementById('mpp-body');
                 document.getElementById('mpp-paciente-label').textContent = pacienteNombre || '—';
                 body.innerHTML = 'Cargando…';
@@ -8201,7 +8221,7 @@
                     _ppPrestacion = prestSnap.exists() ? prestSnap.data() : null;
                     _ppPagos = [];
                     pagosSnap.forEach(function(d){ _ppPagos.push(Object.assign({ id: d.id }, d.data())); });
-                    _ppPagos.sort(function(a,b){ return (a.fechaEfectiva||'').localeCompare(b.fechaEfectiva||''); });
+                    _ppPagos.sort(function(a,b){ return (a.fechaEfectiva||'').localeCompare(b.fechaEfectiva||'') || (a.creadoEn && a.creadoEn.seconds || 0) - (b.creadoEn && b.creadoEn.seconds || 0); });
                     _ppSaldoAFavor = 0;
                     if (pacienteKey) {
                         var sueltosSnap = await getDocs(query(collection(db, 'pagos'), where('pacienteKey', '==', pacienteKey), where('prestacionId', '==', null)));
@@ -8214,102 +8234,186 @@
                 }
             }
 
+            function _ppUnidadBanner() {
+                return '<p style="font-size:11px;color:#7C8D81;margin:0 0 10px;">' + ETIQUETA_UNIDAD + '.</p>';
+            }
+
+            function _ppAvisoEscalaVieja(reg) {
+                if (!reg || tieneEscalaConfirmada(reg)) return '';
+                return '<p style="font-size:11.5px;color:#8A6A22;background:rgba(138,106,34,0.10);border:1px solid rgba(138,106,34,0.30);border-radius:8px;padding:6px 10px;margin:0 0 10px;">⚠ Este registro es anterior a esta versión y no tiene la unidad confirmada explícitamente. Se muestra el número tal cual está guardado.</p>';
+            }
+
             function _ppRender() {
                 var body = document.getElementById('mpp-body');
-                var est = _ppEstado();
-                var precio = _ppPrestacion ? _ppPrestacion.precioAcordado : null;
+                var est = _ppEstadoChip();
+                var precio = _ppPrestacion && !_ppPrestacion.sinCargo ? _ppPrestacion.precioAcordado : null;
                 var tienePrecio = precio !== null && precio !== undefined;
                 var cobrado = _ppCobradoDe(_ppPagos, _ppReservaId);
-                var saldoPend = tienePrecio ? (precio - cobrado) : null;
+                var saldoPend = tienePrecio ? saldoPendiente(precio, cobrado) : null;
 
                 var html = '';
+                html += _ppUnidadBanner();
                 html += '<div style="margin-bottom:12px;"><span style="font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 10px;border-radius:999px;background:' + est.color + '1A;color:' + est.color + ';border:1px solid ' + est.color + '55;">' + est.label + '</span></div>';
+                html += _ppAvisoEscalaVieja(_ppPrestacion);
 
+                // ── Precio acordado: despliegue progresivo — mientras no haya un
+                // precio válido (ni "sin cargo"), solo se ve este campo y la ayuda. ──
                 html += '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;">';
-                html += '<label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Precio acordado</label>';
+                html += '<label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Precio acordado (miles de ARS)</label>';
                 html += '<div style="display:flex;gap:8px;align-items:center;">';
-                html += '<input type="number" id="mpp-precio-input" min="0" step="100" value="' + (tienePrecio ? precio : '') + '" placeholder="Sin definir" style="flex:1;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:14px;" ' + (_ppPrestacion && _ppPrestacion.sinCargo ? 'disabled' : '') + '>';
-                html += '<label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;"><input type="checkbox" id="mpp-sincargo-input" ' + (_ppPrestacion && _ppPrestacion.sinCargo ? 'checked' : '') + ' onchange="document.getElementById(\'mpp-precio-input\').disabled=this.checked;"> Sin cargo</label>';
+                html += '<input type="text" inputmode="decimal" id="mpp-precio-input" value="' + (tienePrecio ? formatearImporte(precio) : '') + '" placeholder="Ej: 300" oninput="window._ppOnPrecioInput()" style="flex:1;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:14px;" ' + (_ppPrestacion && _ppPrestacion.sinCargo ? 'disabled' : '') + '>';
+                html += '<label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;"><input type="checkbox" id="mpp-sincargo-input" ' + (_ppPrestacion && _ppPrestacion.sinCargo ? 'checked' : '') + ' onchange="window._ppOnSinCargoChange(this)"> Sin cargo</label>';
                 html += '</div>';
+                html += '<div id="mpp-precio-error" style="color:#AD2E2E;font-size:12px;margin-top:4px;"></div>';
+                var hayPrecioOSinCargo = tienePrecio || (_ppPrestacion && _ppPrestacion.sinCargo);
+                if (!hayPrecioOSinCargo) {
+                    html += '<p style="font-size:12px;color:#7C8D81;margin:6px 0 0;">Ingresá el precio acordado para continuar.</p>';
+                }
                 html += '<button class="btn-mini" style="width:100%;margin-top:8px;" onclick="window._ppGuardarPrecio(this)">Guardar precio</button>';
                 html += '</div>';
 
-                if (_ppPrestacion && !_ppPrestacion.sinCargo && tienePrecio) {
-                    html += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Cobrado</span><strong>' + _fmtMoneyARS(cobrado) + '</strong></div>';
-                    html += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:12px;"><span>Saldo pendiente</span><strong style="color:' + (saldoPend > 0 ? '#AD2E2E' : '#2F6B4F') + '">' + _fmtMoneyARS(saldoPend) + '</strong></div>';
-                }
-
-                if (_ppSaldoAFavor > 0) {
-                    html += '<div style="background:rgba(47,107,79,0.10);border:1px solid rgba(47,107,79,0.25);border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:12.5px;color:#2F6B4F;">💚 Saldo a favor del paciente (adelantos sin aplicar a una sesión): <strong>' + _fmtMoneyARS(_ppSaldoAFavor) + '</strong></div>';
-                }
-
-                html += '<div style="font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;letter-spacing:.03em;margin:10px 0 6px;">Movimientos</div>';
-                if (!_ppPagos.length) {
-                    html += '<p style="font-size:12.5px;color:#7C8D81;margin:0 0 10px;">Todavía no hay pagos registrados.</p>';
-                } else {
-                    html += '<div style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;">';
-                    _ppPagos.forEach(function(p){
-                        var signo = p.tipo === 'devolucion' ? '−' : '+';
-                        var color = p.tipo === 'devolucion' ? '#AD2E2E' : '#2F6B4F';
-                        html += '<div style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:12.5px;">' +
-                            '<div style="display:flex;justify-content:space-between;gap:8px;"><span>' + escapeHtml(p.fechaEfectiva || '—') + ' · ' + escapeHtml(p.metodoPago || '—') + '</span><strong style="color:' + color + ';white-space:nowrap;">' + signo + _fmtMoneyARS(p.monto) + '</strong></div>' +
-                            (p.nota ? '<div style="color:#7C8D81;margin-top:2px;">' + escapeHtml(p.nota) + '</div>' : '') +
-                            (p.motivo ? '<div style="color:#7C8D81;margin-top:2px;">Motivo: ' + escapeHtml(p.motivo) + '</div>' : '') +
-                            '</div>';
-                    });
+                // Todo lo que sigue solo se despliega con precio válido o sin cargo —
+                // escribir o desplegar acá NUNCA guarda ni registra nada por sí solo.
+                if (hayPrecioOSinCargo) {
+                    // Concepto y alcance (según el modelo existente: esta sesión, o un
+                    // plan/período — el período solo se pide si corresponde).
+                    var alcance = (_ppPrestacion && _ppPrestacion.alcance) || 'sesion';
+                    html += '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;">';
+                    html += '<label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Concepto y alcance</label>';
+                    html += '<p style="font-size:12.5px;color:rgba(36,51,43,0.80);margin:0 0 6px;">' + escapeHtml(_ppServicio || 'Sesión') + '</p>';
+                    html += '<select id="mpp-alcance-input" onchange="window._ppOnAlcanceChange(this)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;">';
+                    html += '<option value="sesion"' + (alcance === 'sesion' ? ' selected' : '') + '>Esta sesión</option>';
+                    html += '<option value="plan"' + (alcance === 'plan' ? ' selected' : '') + '>Plan / período</option>';
+                    html += '</select>';
+                    html += '<div id="mpp-periodo-wrap" style="margin-top:8px;' + (alcance === 'plan' ? '' : 'display:none;') + '">';
+                    html += '<input type="number" min="1" step="1" id="mpp-periodo-meses-input" value="' + ((_ppPrestacion && _ppPrestacion.periodoMeses) || '') + '" placeholder="Cantidad de meses" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;">';
                     html += '</div>';
-                }
-
-                if (_ppPrestacion && !_ppPrestacion.sinCargo && tienePrecio && !_ppPrestacion.anulada) {
-                    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">';
-                    html += '<input type="number" id="mpp-monto-input" min="1" step="100" placeholder="Monto $" style="padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;">';
-                    html += '<input type="date" id="mpp-fecha-input" value="' + _hoyISOZona(ZONA_HORARIA_NEGOCIO) + '" style="padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;">';
+                    html += '<button class="btn-mini" style="width:100%;margin-top:8px;" onclick="window._ppGuardarConcepto(this)">Guardar concepto</button>';
                     html += '</div>';
-                    html += '<select id="mpp-metodo-input" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;margin-bottom:6px;"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="tarjeta">Tarjeta</option><option value="otro">Otro</option></select>';
-                    html += '<input type="text" id="mpp-nota-input" placeholder="Nota (opcional)" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;margin-bottom:8px;">';
-                    html += '<button class="btn-mini" style="width:100%;border-color:rgba(74,222,128,0.40);color:#2F6B4F;background:rgba(74,222,128,0.08);margin-bottom:6px;" id="mpp-btn-registrar" onclick="window._ppRegistrarPago(this)">Registrar pago</button>';
-                    if (saldoPend > 0) {
-                        html += '<button class="btn-mini" style="width:100%;border-color:#b5cce8;color:#2e61b1;background:#f3f8ff;margin-bottom:6px;" id="mpp-btn-marcarpagado" onclick="window._ppMarcarComoPagado(this)">Marcar como pagado (' + _fmtMoneyARS(saldoPend) + ')</button>';
+
+                    if (!_ppPrestacion || !_ppPrestacion.sinCargo) {
+                        html += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Total recibido</span><strong>' + _fmtMoneyARS(cobrado) + '</strong></div>';
+                        html += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:12px;"><span>Saldo pendiente</span><strong style="color:' + (saldoPend > 0 ? '#AD2E2E' : saldoPend < 0 ? '#2F6B4F' : '#2F6B4F') + '">' + (saldoPend < 0 ? 'A favor ' : '') + _fmtMoneyARS(Math.abs(saldoPend)) + '</strong></div>';
                     }
-                    html += '<button class="btn-mini" style="width:100%;border-color:#e0b0b0;color:#a02828;background:#fff5f5;" onclick="window._ppAbrirDevolucion()">Registrar devolución / ajuste</button>';
+
+                    if (_ppSaldoAFavor > 0) {
+                        html += '<div style="background:rgba(47,107,79,0.10);border:1px solid rgba(47,107,79,0.25);border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:12.5px;color:#2F6B4F;">💚 Saldo a favor del paciente (adelantos sin aplicar a una sesión): <strong>' + _fmtMoneyARS(_ppSaldoAFavor) + '</strong></div>';
+                    }
+
+                    html += '<div style="font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;letter-spacing:.03em;margin:10px 0 6px;">Historial de pagos</div>';
+                    if (!_ppPagos.length) {
+                        html += '<p style="font-size:12.5px;color:#7C8D81;margin:0 0 10px;">Todavía no hay pagos registrados.</p>';
+                    } else {
+                        html += '<div style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;">';
+                        _ppPagos.forEach(function(p){
+                            var signo = p.tipo === 'devolucion' ? '−' : '+';
+                            var color = p.tipo === 'devolucion' ? '#AD2E2E' : '#2F6B4F';
+                            var tieneResp = p.respaldo && p.respaldo.storagePath;
+                            html += '<div style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:12.5px;">' +
+                                '<div style="display:flex;justify-content:space-between;gap:8px;"><span>' + escapeHtml(p.fechaEfectiva || '—') + ' · ' + escapeHtml(p.metodoPago || '—') + '</span><strong style="color:' + color + ';white-space:nowrap;">' + signo + _fmtMoneyARS(p.monto) + '</strong></div>' +
+                                (p.nota ? '<div style="color:#7C8D81;margin-top:2px;">' + escapeHtml(p.nota) + '</div>' : '') +
+                                (p.motivo ? '<div style="color:#7C8D81;margin-top:2px;">Motivo: ' + escapeHtml(p.motivo) + '</div>' : '') +
+                                (tieneResp
+                                    ? '<button class="btn-mini" style="margin-top:4px;padding:4px 10px;font-size:11px;" onclick="window._ppVerRespaldo(\'' + p.respaldo.storagePath + '\')">Ver respaldo</button>'
+                                    : (p.tipo === 'cobro' ? '<div style="color:#8A6A22;margin-top:2px;font-size:11px;">⚠ Registro anterior sin comprobante</div>' : '')) +
+                                '</div>';
+                        });
+                        html += '</div>';
+                    }
+
+                    if (_ppPrestacion && !_ppPrestacion.sinCargo && tienePrecio && !_ppPrestacion.anulada) {
+                        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">';
+                        html += '<input type="text" inputmode="decimal" id="mpp-monto-input" placeholder="Importe de este pago" style="padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;">';
+                        html += '<input type="date" id="mpp-fecha-input" value="' + _hoyISOZona(ZONA_HORARIA_NEGOCIO) + '" style="padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;">';
+                        html += '</div>';
+                        html += '<select id="mpp-metodo-input" onchange="window._ppOnMetodoChange(this)" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;margin-bottom:6px;"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="tarjeta">Tarjeta</option><option value="otro">Otro</option></select>';
+                        html += '<input type="text" id="mpp-nota-input" placeholder="Nota (opcional)" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;margin-bottom:8px;">';
+                        html += '<label style="display:block;font-size:11.5px;font-weight:700;color:#526358;margin-bottom:4px;">Respaldo del pago (factura, comprobante o foto del comprobante)</label>';
+                        html += '<input type="file" id="mpp-respaldo-input" accept="application/pdf,image/jpeg,image/png" onchange="window._ppOnRespaldoChange(this)" style="width:100%;font-size:12.5px;margin-bottom:4px;">';
+                        html += '<div id="mpp-respaldo-aviso" style="font-size:11.5px;color:#7C8D81;margin-bottom:6px;">Para registrar este pago, adjuntá la factura o el comprobante correspondiente.</div>';
+                        html += '<div id="mpp-respaldo-efectivo" style="font-size:11.5px;color:#2F6B4F;margin-bottom:6px;display:none;">En efectivo podés dejarlo así: se genera un comprobante interno de recepción con importe, fecha y operador.</div>';
+                        html += '<button class="btn-mini" style="width:100%;border-color:rgba(74,222,128,0.40);color:#2F6B4F;background:rgba(74,222,128,0.08);margin-bottom:6px;" id="mpp-btn-registrar" onclick="window._ppRegistrarPago(this)">Registrar pago</button>';
+                        if (saldoPend > 0) {
+                            html += '<button class="btn-mini" style="width:100%;border-color:#b5cce8;color:#2e61b1;background:#f3f8ff;margin-bottom:6px;" id="mpp-btn-marcarpagado" onclick="window._ppMarcarComoPagado(this)">Marcar como pagado (' + _fmtMoneyARS(saldoPend) + ')</button>';
+                        }
+                        html += '<button class="btn-mini" style="width:100%;border-color:#e0b0b0;color:#a02828;background:#fff5f5;" onclick="window._ppAbrirDevolucion()">Registrar devolución / ajuste</button>';
+                    }
                 }
 
                 html += '<button class="btn-mini" style="width:100%;margin-top:10px;" onclick="window._ppCerrar()">Cerrar</button>';
                 body.innerHTML = html;
-                var btnReg = document.getElementById('mpp-btn-registrar'); if (btnReg && !btnReg.dataset.opId) btnReg.dataset.opId = _ppReservaId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-                var btnMarc = document.getElementById('mpp-btn-marcarpagado'); if (btnMarc && !btnMarc.dataset.opId) btnMarc.dataset.opId = _ppReservaId + '_marcar_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+                var btnReg = document.getElementById('mpp-btn-registrar'); if (btnReg && !btnReg.dataset.opId) btnReg.dataset.opId = nuevoIdOperacion('pago', _ppReservaId);
+                var btnMarc = document.getElementById('mpp-btn-marcarpagado'); if (btnMarc && !btnMarc.dataset.opId) btnMarc.dataset.opId = nuevoIdOperacion('pagomarcar', _ppReservaId);
+                window._ppOnMetodoChange(document.getElementById('mpp-metodo-input'));
             }
+
+            // Progresivo: tipear o tildar "sin cargo" revalida en vivo, nunca guarda solo.
+            window._ppOnPrecioInput = function() {
+                var errEl = document.getElementById('mpp-precio-error');
+                var r = validarPrecio(document.getElementById('mpp-precio-input').value, { sinCargo: document.getElementById('mpp-sincargo-input').checked });
+                errEl.textContent = r.ok ? '' : r.error;
+            };
+            window._ppOnSinCargoChange = function(chk) {
+                document.getElementById('mpp-precio-input').disabled = chk.checked;
+                window._ppOnPrecioInput();
+            };
+            window._ppOnAlcanceChange = function(sel) {
+                document.getElementById('mpp-periodo-wrap').style.display = sel.value === 'plan' ? '' : 'none';
+            };
+            window._ppOnMetodoChange = function(sel) {
+                if (!sel) return;
+                var esEfectivo = sel.value === 'efectivo';
+                var avisoEl = document.getElementById('mpp-respaldo-aviso'), efEl = document.getElementById('mpp-respaldo-efectivo');
+                if (!avisoEl) return;
+                avisoEl.style.display = (esEfectivo && !_ppRespaldoArchivo) ? 'none' : (esEfectivo ? 'none' : '');
+                efEl.style.display = (esEfectivo && !_ppRespaldoArchivo) ? '' : 'none';
+            };
+            window._ppOnRespaldoChange = function(input) {
+                var f = input.files && input.files[0];
+                _ppRespaldoArchivo = f || null;
+                window._ppOnMetodoChange(document.getElementById('mpp-metodo-input'));
+            };
+            window._ppVerRespaldo = async function(storagePath) {
+                try {
+                    var url = await getDownloadURL(ref(storage, storagePath));
+                    window.open(url, '_blank', 'noopener');
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo abrir el respaldo: ' + (e && e.message ? e.message : 'error desconocido'));
+                }
+            };
 
             window._ppCerrar = function() {
                 document.getElementById('modal-precio-pagos-overlay').classList.remove('open');
-                _ppReservaId = null; _ppPrestacion = null; _ppPagos = []; _ppSaldoAFavor = 0;
+                _ppReservaId = null; _ppPrestacion = null; _ppPagos = []; _ppSaldoAFavor = 0; _ppRespaldoArchivo = null;
             };
 
-            window.abrirPrecioPagos = function(reservaId, pacienteKey, pacienteNombre) {
-                _ppCargar(reservaId, pacienteKey, pacienteNombre);
+            window.abrirPrecioPagos = function(reservaId, pacienteKey, pacienteNombre, servicio) {
+                _ppCargar(reservaId, pacienteKey, pacienteNombre, servicio);
             };
 
             window._ppGuardarPrecio = async function(btn) {
-                var input = document.getElementById('mpp-precio-input');
                 var sinCargo = document.getElementById('mpp-sincargo-input').checked;
-                var valor = input.value.trim();
-                var precio = sinCargo ? null : (valor === '' ? null : Math.round(Number(valor)));
-                if (!sinCargo && valor !== '' && (isNaN(precio) || precio < 0)) { mostrarAviso('Precio inválido.'); return; }
+                var r = validarPrecio(document.getElementById('mpp-precio-input').value, { sinCargo: sinCargo });
+                if (!r.ok) { document.getElementById('mpp-precio-error').textContent = r.error; return; }
                 btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Guardando…';
                 try {
                     await setDoc(doc(db, 'prestaciones', _ppReservaId), {
                         reservaId: _ppReservaId,
                         pacienteKey: _ppPacienteKey,
                         pacienteNombre: _ppPacienteNombre,
-                        precioAcordado: precio,
-                        sinCargo: sinCargo,
+                        precioAcordado: r.precio,
+                        sinCargo: r.sinCargo,
+                        moneda: MONEDA_CANONICA,
+                        escala: ESCALA_CANONICA,
+                        version: ((_ppPrestacion && _ppPrestacion.version) || 0) + 1,
                         actualizadoEn: serverTimestamp(),
                         actualizadoPor: (auth.currentUser && auth.currentUser.email) || null,
                         creadoEn: (_ppPrestacion && _ppPrestacion.creadoEn) || serverTimestamp(),
                         creadoPor: (_ppPrestacion && _ppPrestacion.creadoPor) || (auth.currentUser && auth.currentUser.email) || null
                     }, { merge: true });
                     mostrarAviso('Precio guardado.');
-                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre);
+                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre, _ppServicio);
                 } catch (e) {
                     console.error(e);
                     mostrarAviso('No se pudo guardar el precio: ' + (e && e.message ? e.message : 'error desconocido'));
@@ -8317,43 +8421,137 @@
                 }
             };
 
+            window._ppGuardarConcepto = async function(btn) {
+                var alcance = document.getElementById('mpp-alcance-input').value;
+                var meses = null;
+                if (alcance === 'plan') {
+                    var mTxt = document.getElementById('mpp-periodo-meses-input').value.trim();
+                    if (mTxt) {
+                        meses = parseInt(mTxt, 10);
+                        if (!Number.isInteger(meses) || meses <= 0) { mostrarAviso('La cantidad de meses tiene que ser un entero positivo.'); return; }
+                    }
+                }
+                btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Guardando…';
+                try {
+                    await setDoc(doc(db, 'prestaciones', _ppReservaId), {
+                        alcance: alcance, periodoMeses: meses,
+                        actualizadoEn: serverTimestamp(), actualizadoPor: (auth.currentUser && auth.currentUser.email) || null
+                    }, { merge: true });
+                    mostrarAviso('Concepto guardado.');
+                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre, _ppServicio);
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo guardar el concepto: ' + (e && e.message ? e.message : 'error desconocido'));
+                    btn.disabled = false; btn.textContent = orig;
+                }
+            };
+
+            // Sube el respaldo a Storage y recién DESPUÉS corre la transacción de
+            // Firestore — si la subida falla, no se escribe nada (el pago queda sin
+            // confirmar, no "a medias"). Para efectivo sin archivo elegido, genera y
+            // sube el comprobante interno de recepción en vez de pedir un escaneo.
+            async function _ppSubirRespaldo(opId, metodo, monto, fecha, nota) {
+                if (_ppRespaldoArchivo) {
+                    var v = validarRespaldo(_ppRespaldoArchivo);
+                    if (!v.ok) return { ok: false, error: v.error };
+                    var path = 'respaldosPago/' + _ppReservaId + '/' + opId + '.' + v.ext;
+                    await uploadBytes(ref(storage, path), _ppRespaldoArchivo, { contentType: _ppRespaldoArchivo.type });
+                    return { ok: true, respaldo: { storagePath: path, tipo: 'adjunto', nombreArchivo: _ppRespaldoArchivo.name, mime: _ppRespaldoArchivo.type, tamanoBytes: _ppRespaldoArchivo.size } };
+                }
+                if (metodo === 'efectivo') {
+                    try {
+                        var blob = await window._reGenerarComprobanteInternoEfectivo({
+                            pacienteNombre: _ppPacienteNombre, servicio: _ppServicio, monto: monto, fecha: fecha, nota: nota,
+                            operador: (auth.currentUser && auth.currentUser.email) || 'admin',
+                        });
+                        var pathEf = 'respaldosPago/' + _ppReservaId + '/' + opId + '.pdf';
+                        await uploadBytes(ref(storage, pathEf), blob, { contentType: 'application/pdf' });
+                        return { ok: true, respaldo: { storagePath: pathEf, tipo: 'comprobante_interno_efectivo', mime: 'application/pdf' } };
+                    } catch (e) {
+                        console.error(e);
+                        return { ok: false, error: 'No se pudo generar el comprobante interno de efectivo: ' + (e && e.message ? e.message : 'error desconocido') };
+                    }
+                }
+                return { ok: false, error: 'Para registrar este pago, adjuntá la factura o el comprobante correspondiente.' };
+            }
+
+            // Transacción: relee la prestación, verifica que el pago (por su id de
+            // operación) no exista todavía (si ya existe, no se vuelve a escribir —
+            // así un reintento/doble toque nunca duplica el cobro) y escribe el pago
+            // + un registro de auditoría. Nunca sube archivos ni manda mensajes acá
+            // adentro — eso ya pasó antes (respaldo) o pasa después (recibo).
+            // Expuesta en window únicamente para poder probar la idempotencia real
+            // (la transacción, no el botón) desde los tests — Firestore sigue
+            // validando con las mismas reglas la llame quien la llame.
+            window._ppEjecutarPago = _ppEjecutarPago;
+            async function _ppEjecutarPago(opId, datosPago) {
+                return runTransaction(db, async function(tx) {
+                    var pagoRef = doc(db, 'pagos', opId);
+                    var pagoSnap = await tx.get(pagoRef);
+                    if (pagoSnap.exists()) return { yaExistia: true };
+                    var prestRef = doc(db, 'prestaciones', _ppReservaId);
+                    var prestSnap = await tx.get(prestRef);
+                    tx.set(pagoRef, datosPago);
+                    tx.set(doc(collection(db, 'auditoria')), {
+                        operacion: datosPago.tipo === 'devolucion' ? 'devolucion_pago' : 'registrar_pago',
+                        pagoId: opId, prestacionId: _ppReservaId,
+                        responsable: (auth.currentUser && auth.currentUser.email) || null,
+                        fecha: serverTimestamp(), motivo: datosPago.motivo || null,
+                    });
+                    if (prestSnap.exists()) {
+                        tx.update(prestRef, { version: (prestSnap.data().version || 0) + 1, actualizadoEn: serverTimestamp() });
+                    }
+                    return { yaExistia: false };
+                });
+            }
+
             window._ppRegistrarPago = async function(btn) {
-                var monto = Math.round(Number(document.getElementById('mpp-monto-input').value));
-                if (!monto || monto <= 0) { mostrarAviso('Ingresá un monto válido.'); return; }
+                var mr = validarMontoPago(document.getElementById('mpp-monto-input').value);
+                if (!mr.ok) { mostrarAviso(mr.error); return; }
                 var fecha = document.getElementById('mpp-fecha-input').value || _hoyISOZona(ZONA_HORARIA_NEGOCIO);
                 var metodo = document.getElementById('mpp-metodo-input').value;
                 var nota = document.getElementById('mpp-nota-input').value.trim();
                 var opId = btn.dataset.opId;
-                btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Registrando…';
+                btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Subiendo respaldo…';
                 try {
-                    await setDoc(doc(db, 'pagos', opId), {
+                    var resp = await _ppSubirRespaldo(opId, metodo, mr.monto, fecha, nota);
+                    if (!resp.ok) { mostrarAviso(resp.error); btn.disabled = false; btn.textContent = orig; return; }
+                    btn.textContent = 'Registrando…';
+                    var r = await _ppEjecutarPago(opId, {
                         operacionId: opId, prestacionId: _ppReservaId, pacienteKey: _ppPacienteKey, pacienteNombre: _ppPacienteNombre,
-                        monto: monto, fechaEfectiva: fecha, metodoPago: metodo, nota: nota, tipo: 'cobro',
+                        monto: mr.monto, fechaEfectiva: fecha, metodoPago: metodo, nota: nota, tipo: 'cobro',
+                        moneda: MONEDA_CANONICA, escala: ESCALA_CANONICA, respaldo: resp.respaldo,
                         creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
                     });
-                    mostrarAviso('Pago registrado.');
-                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre);
+                    mostrarAviso(r.yaExistia ? 'Este pago ya estaba registrado (no se duplicó).' : 'Pago registrado y verificado.');
+                    _ppRespaldoArchivo = null;
+                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre, _ppServicio);
                 } catch (e) {
                     console.error(e);
-                    mostrarAviso('No se pudo registrar el pago: ' + (e && e.message ? e.message : 'error desconocido'));
+                    mostrarAviso('No se pudo registrar el pago: ' + (e && e.message ? e.message : 'sin conexión') + '. El respaldo ya subido no se pierde; podés reintentar sin que se duplique.');
                     btn.disabled = false; btn.textContent = orig;
                 }
             };
 
             window._ppMarcarComoPagado = async function(btn) {
                 var precio = _ppPrestacion.precioAcordado;
-                var saldoPend = precio - _ppCobradoDe(_ppPagos, _ppReservaId);
-                if (saldoPend <= 0) { mostrarAviso('Ya está pagado.'); await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre); return; }
+                var saldoPend = saldoPendiente(precio, _ppCobradoDe(_ppPagos, _ppReservaId));
+                if (saldoPend <= 0) { mostrarAviso('Ya está pagado.'); await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre, _ppServicio); return; }
                 var opId = btn.dataset.opId;
-                btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Registrando…';
+                var fecha = _hoyISOZona(ZONA_HORARIA_NEGOCIO);
+                btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Subiendo respaldo…';
                 try {
-                    await setDoc(doc(db, 'pagos', opId), {
+                    var resp = await _ppSubirRespaldo(opId, 'efectivo', saldoPend, fecha, 'Marcado como pagado (saldo restante)');
+                    if (!resp.ok) { mostrarAviso(resp.error); btn.disabled = false; btn.textContent = orig; return; }
+                    btn.textContent = 'Registrando…';
+                    var r = await _ppEjecutarPago(opId, {
                         operacionId: opId, prestacionId: _ppReservaId, pacienteKey: _ppPacienteKey, pacienteNombre: _ppPacienteNombre,
-                        monto: saldoPend, fechaEfectiva: _hoyISOZona(ZONA_HORARIA_NEGOCIO), metodoPago: 'efectivo', nota: 'Marcado como pagado (saldo restante)', tipo: 'cobro',
+                        monto: saldoPend, fechaEfectiva: fecha, metodoPago: 'efectivo', nota: 'Marcado como pagado (saldo restante)', tipo: 'cobro',
+                        moneda: MONEDA_CANONICA, escala: ESCALA_CANONICA, respaldo: resp.respaldo,
                         creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
                     });
-                    mostrarAviso('Registrado el cobro del saldo restante.');
-                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre);
+                    mostrarAviso(r.yaExistia ? 'Ya estaba registrado.' : 'Registrado el cobro del saldo restante.');
+                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre, _ppServicio);
                 } catch (e) {
                     console.error(e);
                     mostrarAviso('No se pudo registrar: ' + (e && e.message ? e.message : 'error desconocido'));
@@ -8362,21 +8560,22 @@
             };
 
             window._ppAbrirDevolucion = async function() {
-                var montoTxt = prompt('Monto a devolver/ajustar (número, sin signo):');
+                var montoTxt = prompt('Monto a devolver/ajustar (miles de ARS, sin signo):');
                 if (montoTxt === null) return;
-                var monto = Math.round(Number(montoTxt));
-                if (!monto || monto <= 0) { mostrarAviso('Monto inválido.'); return; }
+                var mr = validarMontoPago(montoTxt);
+                if (!mr.ok) { mostrarAviso(mr.error); return; }
                 var motivo = prompt('Motivo de la devolución/ajuste (obligatorio):');
                 if (!motivo || !motivo.trim()) { mostrarAviso('La devolución/ajuste necesita un motivo.'); return; }
-                var opId = _ppReservaId + '_dev_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+                var opId = nuevoIdOperacion('dev', _ppReservaId);
                 try {
-                    await setDoc(doc(db, 'pagos', opId), {
+                    var r = await _ppEjecutarPago(opId, {
                         operacionId: opId, prestacionId: _ppReservaId, pacienteKey: _ppPacienteKey, pacienteNombre: _ppPacienteNombre,
-                        monto: monto, fechaEfectiva: _hoyISOZona(ZONA_HORARIA_NEGOCIO), metodoPago: null, nota: '', motivo: motivo.trim(), tipo: 'devolucion',
+                        monto: mr.monto, fechaEfectiva: _hoyISOZona(ZONA_HORARIA_NEGOCIO), metodoPago: null, nota: '', motivo: motivo.trim(), tipo: 'devolucion',
+                        moneda: MONEDA_CANONICA, escala: ESCALA_CANONICA,
                         creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
                     });
-                    mostrarAviso('Devolución/ajuste registrado.');
-                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre);
+                    mostrarAviso(r.yaExistia ? 'Ya estaba registrado.' : 'Devolución/ajuste registrado.');
+                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre, _ppServicio);
                 } catch (e) {
                     console.error(e);
                     mostrarAviso('No se pudo registrar la devolución: ' + (e && e.message ? e.message : 'error desconocido'));
@@ -8384,6 +8583,205 @@
             };
         })();
         /* ══ FIN PRECIO Y PAGOS ═════════════════════════════════════════════════ */
+
+        /* ══ RECIBOS (Enviar recibo) ═════════════════════════════════════════════
+           PDF determinístico (plantilla fija, sin IA) generado con jsPDF a partir
+           de una instantánea inmutable (js/precio-pagos.js:construirInstantaneaRecibo).
+           Cada recibo queda guardado en Firestore (recibos/) con esa instantánea +
+           la ruta del PDF en Storage, y su estado real de envío: "generado" →
+           "compartido_iniciado" cuando se toca Descargar o WhatsApp. Nunca
+           "enviado"/"entregado": no hay forma de confirmar eso desde acá (WhatsApp
+           Web no devuelve ese dato), así que no se simula. */
+        (function(){
+            var _reReservaId = null, _reServicio = '', _rePacienteNombre = '', _rePhone = '';
+            var _rePagos = [], _rePrestacion = null, _rePagoElegidoId = null;
+
+            window.abrirEnviarRecibo = async function(reservaId, pacienteKey, pacienteNombre, servicio, phone) {
+                _reReservaId = reservaId; _reServicio = servicio || ''; _rePacienteNombre = pacienteNombre || ''; _rePhone = phone || '';
+                var body = document.getElementById('mer-body');
+                document.getElementById('mer-paciente-label').textContent = pacienteNombre || '—';
+                body.innerHTML = 'Cargando…';
+                document.getElementById('modal-enviar-recibo-overlay').classList.add('open');
+                try {
+                    var prestSnap = await getDoc(doc(db, 'prestaciones', reservaId));
+                    _rePrestacion = prestSnap.exists() ? prestSnap.data() : null;
+                    var pagosSnap = await getDocs(query(collection(db, 'pagos'), where('prestacionId', '==', reservaId), where('tipo', '==', 'cobro')));
+                    _rePagos = [];
+                    pagosSnap.forEach(function(d){ _rePagos.push(Object.assign({ id: d.id }, d.data())); });
+                    _rePagos.sort(function(a,b){ return (a.fechaEfectiva||'').localeCompare(b.fechaEfectiva||''); });
+                    _rePagoElegidoId = _rePagos.length ? _rePagos[_rePagos.length - 1].id : null;
+                    _reRender();
+                } catch (e) {
+                    console.error(e);
+                    body.innerHTML = '<p style="color:#AD2E2E;font-size:13px;">No se pudo cargar (' + (e && e.message ? e.message : 'sin conexión') + ').</p><button class="btn-mini" style="width:100%;margin-top:10px;" onclick="window._reCerrar()">Cerrar</button>';
+                }
+            };
+
+            function _reRender() {
+                var body = document.getElementById('mer-body');
+                if (!_rePagos.length) {
+                    body.innerHTML = '<p style="font-size:13px;color:#7C8D81;">Primero registrá un pago para generar el recibo.</p><button class="btn-mini" style="width:100%;margin-top:10px;" onclick="window._reCerrar()">Cerrar</button>';
+                    return;
+                }
+                var html = '<p style="font-size:11px;color:#7C8D81;margin:0 0 10px;">' + ETIQUETA_UNIDAD + '.</p>';
+                html += '<label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Pago a recibir</label>';
+                html += '<select id="mer-pago-select" onchange="window._reOnPagoChange(this)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;font-size:13px;margin-bottom:10px;">';
+                _rePagos.forEach(function(p){ html += '<option value="' + p.id + '"' + (p.id === _rePagoElegidoId ? ' selected' : '') + '>' + escapeHtml(p.fechaEfectiva || '—') + ' · ' + _fmtMoneyARS(p.monto) + '</option>'; });
+                html += '</select>';
+                html += '<div id="mer-preview"></div>';
+                html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">';
+                html += '<button class="btn-mini" style="flex:1;min-width:140px;" onclick="window._reDescargar()">Descargar PDF</button>';
+                html += (_rePhone ? '<button class="btn-mini" style="flex:1;min-width:140px;border-color:rgba(37,211,102,0.4);color:#128c7e;background:rgba(37,211,102,0.08);" onclick="window._reCompartirWA()">Compartir por WhatsApp</button>' : '');
+                html += '</div>';
+                html += '<p style="font-size:11px;color:#8A6A22;margin:8px 0 0;">WhatsApp no permite adjuntar el PDF automáticamente desde acá: descargalo primero y adjuntalo vos en el chat.</p>';
+                html += '<button class="btn-mini" style="width:100%;margin-top:10px;" onclick="window._reCerrar()">Cerrar</button>';
+                body.innerHTML = html;
+                _rePreview();
+            }
+
+            function _rePagoElegido() { return _rePagos.find(function(p){ return p.id === _rePagoElegidoId; }); }
+            function _rePagosHastaElegido() {
+                var elegido = _rePagoElegido();
+                return _rePagos.filter(function(p){ return (p.fechaEfectiva || '') <= (elegido.fechaEfectiva || '') && (p.creadoEn && elegido.creadoEn ? (p.creadoEn.seconds || 0) <= (elegido.creadoEn.seconds || 0) : true); });
+            }
+            function _reSnapshot() {
+                return construirInstantaneaRecibo({ prestacion: _rePrestacion, pagoElegido: _rePagoElegido(), pagosHastaEse: _rePagosHastaElegido(), pacienteNombre: _rePacienteNombre, servicio: _reServicio });
+            }
+
+            window._reOnPagoChange = function(sel) { _rePagoElegidoId = sel.value; _rePreview(); };
+
+            function _rePreview() {
+                var el = document.getElementById('mer-preview');
+                if (!el) return;
+                var s = _reSnapshot();
+                el.innerHTML = '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.7;">' +
+                    '<div><b>' + escapeHtml(s.concepto) + '</b>' + (s.periodoMeses ? ' · ' + s.periodoMeses + ' mes' + (s.periodoMeses === 1 ? '' : 'es') : '') + '</div>' +
+                    '<div>Fecha del pago: ' + escapeHtml(s.fechaPago || '—') + '</div>' +
+                    (s.precioAcordado != null ? '<div>Precio acordado: ' + _fmtMoneyARS(s.precioAcordado) + '</div>' : '') +
+                    '<div>Este pago: ' + _fmtMoneyARS(s.montoEstePago) + '</div>' +
+                    '<div>Total recibido acumulado: ' + _fmtMoneyARS(s.totalRecibidoHastaEsto) + '</div>' +
+                    (s.precioAcordado != null ? '<div>Saldo: ' + (s.saldo < 0 ? 'A favor ' : '') + _fmtMoneyARS(Math.abs(s.saldo)) + '</div>' : '') +
+                    '<div>Estado: <b>' + escapeHtml(ETIQUETA_ESTADO[s.estado] || s.estado) + '</b></div>' +
+                    '<div style="margin-top:6px;color:#7C8D81;">Destinatario: ' + escapeHtml(_rePacienteNombre || '—') + (_rePhone ? ' · ' + escapeHtml(_rePhone) : ' · sin teléfono') + '</div>' +
+                    '</div>';
+            }
+
+            // Plantilla determinística del PDF del recibo — SOLO los campos que pide
+            // la sección 6: nada clínico, ni DNI, ni teléfono, ni domicilio, ni datos
+            // bancarios, ni adjuntos originales.
+            function _reDibujarPdf(reciboId, s) {
+                var tools = getPdfTools(); if (!tools) return null;
+                var docPdf = new tools.jsPDF({ unit: 'pt', format: 'a4' });
+                var x = 56, y = 64;
+                docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(14);
+                docPdf.text('Espacio Mimar T', x, y); y += 20;
+                docPdf.setFontSize(12); docPdf.text('Comprobante interno de pago', x, y); y += 10;
+                docPdf.setDrawColor(200); docPdf.line(x, y, 540, y); y += 24;
+                docPdf.setFont('helvetica', 'normal'); docPdf.setFontSize(10.5);
+                var hoy = _hoyISOZona(ZONA_HORARIA_NEGOCIO);
+                var filas = [
+                    ['Recibo N°', reciboId],
+                    ['Paciente', s.pacienteNombre || '—'],
+                    ['Fecha del pago', s.fechaPago || '—'],
+                    ['Fecha de emisión', hoy],
+                    ['Concepto', s.concepto + (s.periodoMeses ? ' (' + s.periodoMeses + ' mes' + (s.periodoMeses === 1 ? '' : 'es') + ')' : '')],
+                ];
+                if (s.periodoDesde && s.periodoHasta) filas.push(['Período cubierto', s.periodoDesde + ' a ' + s.periodoHasta]);
+                if (s.precioAcordado != null) filas.push(['Precio acordado', formatearImporte(s.precioAcordado)]);
+                filas.push(['Importe recibido (este pago)', formatearImporte(s.montoEstePago)]);
+                filas.push(['Total recibido acumulado', formatearImporte(s.totalRecibidoHastaEsto)]);
+                if (s.precioAcordado != null) filas.push([s.saldo < 0 ? 'Saldo a favor' : 'Saldo pendiente', formatearImporte(Math.abs(s.saldo))]);
+                filas.push(['Estado', ETIQUETA_ESTADO[s.estado] || s.estado]);
+                filas.forEach(function(f){
+                    docPdf.setFont('helvetica', 'bold'); docPdf.text(f[0] + ':', x, y);
+                    docPdf.setFont('helvetica', 'normal'); docPdf.text(String(f[1]), x + 180, y);
+                    y += 20;
+                });
+                y += 12;
+                docPdf.setFontSize(9); docPdf.setTextColor(110);
+                docPdf.text(limpiarTextoPdf(ETIQUETA_UNIDAD + '.'), x, y, { maxWidth: 480 }); y += 24;
+                docPdf.text('Este documento es un comprobante interno de Espacio Mimar T. No constituye factura fiscal ni equivale a una factura o remito.', x, y, { maxWidth: 480 });
+                return docPdf;
+            }
+
+            async function _reGenerarYSubir() {
+                var s = _reSnapshot();
+                var reciboId = nuevoIdOperacion('recibo', _reReservaId);
+                var docPdf = _reDibujarPdf(reciboId, s);
+                if (!docPdf) throw new Error('No se pudo generar el PDF');
+                var blob = docPdf.output('blob');
+                var path = 'recibos/' + _reReservaId + '/' + reciboId + '.pdf';
+                await uploadBytes(ref(storage, path), blob, { contentType: 'application/pdf' });
+                await setDoc(doc(db, 'recibos', reciboId), Object.assign({}, s, {
+                    reciboId: reciboId, pagoId: _rePagoElegidoId, prestacionId: _reReservaId, pacienteKey: null,
+                    versionPlantilla: 1, storagePath: path, estado: 'generado',
+                    creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null,
+                }));
+                return { reciboId: reciboId, blob: blob, snapshot: s };
+            }
+
+            window._reDescargar = async function() {
+                try {
+                    var r = await _reGenerarYSubir();
+                    var urlObj = URL.createObjectURL(r.blob);
+                    var a = document.createElement('a'); a.href = urlObj; a.download = 'recibo-' + r.reciboId + '.pdf'; document.body.appendChild(a); a.click(); a.remove();
+                    setTimeout(function(){ URL.revokeObjectURL(urlObj); }, 4000);
+                    await setDoc(doc(db, 'recibos', r.reciboId), { estado: 'compartido_iniciado', compartidoEn: serverTimestamp() }, { merge: true });
+                    mostrarAviso('Recibo descargado.');
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo generar el recibo: ' + (e && e.message ? e.message : 'error desconocido'));
+                }
+            };
+
+            window._reCompartirWA = async function() {
+                try {
+                    var r = await _reGenerarYSubir();
+                    var primerNombre = (_rePacienteNombre || '').split(' ')[0] || '';
+                    var msg = construirMensajeRecibo(r.snapshot, primerNombre);
+                    var waUrl = 'https://wa.me/' + normalizarWA(_rePhone) + '?text=' + encodeURIComponent(msg);
+                    window.open(waUrl, '_blank', 'noopener');
+                    await setDoc(doc(db, 'recibos', r.reciboId), { estado: 'compartido_iniciado', compartidoEn: serverTimestamp() }, { merge: true });
+                    mostrarAviso('Se abrió WhatsApp con el mensaje. Recordá adjuntar el PDF (descargalo con el otro botón).');
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo generar el recibo: ' + (e && e.message ? e.message : 'error desconocido'));
+                }
+            };
+
+            window._reCerrar = function() {
+                document.getElementById('modal-enviar-recibo-overlay').classList.remove('open');
+                _reReservaId = null; _rePagos = []; _rePrestacion = null; _rePagoElegidoId = null;
+            };
+
+            // Comprobante interno de recepción en efectivo — mismo motor de PDF,
+            // plantilla distinta (documento INTERNO, no el recibo del paciente).
+            window._reGenerarComprobanteInternoEfectivo = async function(datos) {
+                var tools = getPdfTools(); if (!tools) throw new Error('Generador de PDF no disponible');
+                var docPdf = new tools.jsPDF({ unit: 'pt', format: 'a4' });
+                var x = 56, y = 64;
+                docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(13);
+                docPdf.text('Espacio Mimar T — Comprobante interno de recepción en efectivo', x, y, { maxWidth: 480 }); y += 30;
+                docPdf.setFont('helvetica', 'normal'); docPdf.setFontSize(10.5);
+                [
+                    ['Paciente', datos.pacienteNombre || '—'],
+                    ['Concepto', datos.servicio || '—'],
+                    ['Importe recibido', formatearImporte(datos.monto)],
+                    ['Fecha', datos.fecha || '—'],
+                    ['Operador responsable', datos.operador || '—'],
+                ].forEach(function(f){
+                    docPdf.setFont('helvetica', 'bold'); docPdf.text(f[0] + ':', x, y);
+                    docPdf.setFont('helvetica', 'normal'); docPdf.text(String(f[1]), x + 160, y);
+                    y += 20;
+                });
+                if (datos.nota) { y += 8; docPdf.text(limpiarTextoPdf('Nota: ' + datos.nota), x, y, { maxWidth: 480 }); y += 20; }
+                y += 12; docPdf.setFontSize(9); docPdf.setTextColor(110);
+                docPdf.text(limpiarTextoPdf(ETIQUETA_UNIDAD + '. Documento interno, no es un recibo para el paciente.'), x, y, { maxWidth: 480 });
+                return docPdf.output('blob');
+            };
+        })();
+        /* ══ FIN RECIBOS ═════════════════════════════════════════════════════════ */
+
 
         /* ══ RESUMEN MENSUAL + GASTOS (puntos 3 y 4) ════════════════════════════
            Los importes de cabecera (cobros netos, gastos, neto de caja, neto
@@ -8533,7 +8931,7 @@
 
                 var mesLabelCap = MESES_RM[mes-1];
                 var html = '';
-                html += '<div style="padding:20px 20px 4px;"><h2 style="margin:0;font-size:20px;color:#20382B;">Resumen mensual</h2></div>';
+                html += '<div style="padding:20px 20px 4px;"><h2 style="margin:0;font-size:20px;color:#20382B;">Resumen mensual</h2><p style="margin:4px 0 0;font-size:11.5px;color:#7C8D81;">Importes expresados en miles de pesos argentinos (ARS).</p></div>';
                 html += '<div style="padding:0 20px 24px;">';
 
                 html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:16px;">';
@@ -10758,7 +11156,11 @@
         recargarJornadaStatus();
         cargarSabado30Status();
         aplicarModoCompactoInicial();
-        initPwaAdminPrompt();
+        // Desactivado a pedido: el aviso "Instalar Panel Admin" volvía a
+        // aparecer solo cada ~25s incluso después de tocar "Ahora no"
+        // (programarInsistenciaAdmin). Se deja la función y el widget
+        // intactos, sin llamarla, por si en algún momento se quiere retomar.
+        // initPwaAdminPrompt();
         document.getElementById("userAdmin").value = ADMIN_EMAILS[0];
         iniciarGuardiaAuth();
         
@@ -12809,6 +13211,15 @@
             <p class="mreg-title" id="mpp-title" style="margin-bottom:2px;">💳 Precio y pagos</p>
             <p class="mreg-subtitle" id="mpp-paciente-label" style="margin-bottom:14px;">—</p>
             <div id="mpp-body">Cargando…</div>
+        </div>
+    </div>
+
+    <!-- Modal: Enviar recibo (PDF del pago elegido) -->
+    <div id="modal-enviar-recibo-overlay" role="dialog" aria-modal="true" aria-labelledby="mer-title">
+        <div id="modal-enviar-recibo-card">
+            <p class="mreg-title" id="mer-title" style="margin-bottom:2px;">🧾 Enviar recibo</p>
+            <p class="mreg-subtitle" id="mer-paciente-label" style="margin-bottom:14px;">—</p>
+            <div id="mer-body">Cargando…</div>
         </div>
     </div>
 
