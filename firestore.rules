@@ -167,8 +167,22 @@ service cloud.firestore {
     // construcción). No se borra: una prestación se anula con un campo
     // (anulada/motivoAnulacion), nunca desaparece, para preservar trazabilidad
     // aunque se cancele la sesión asociada.
+    // Validación mínima de tipos/rangos del lado del servidor (no alcanza con
+    // que el botón del cliente valide: un cliente alterado podría mandar
+    // cualquier cosa). Todo campo es opcional acá a propósito — documentos ya
+    // guardados antes de esta validación (versión/escala/moneda ausentes)
+    // siguen siendo legibles y editables, nunca se los rechaza por ser viejos.
+    function _prestacionValida() {
+      let d = request.resource.data;
+      return (!('precioAcordado' in d) || d.precioAcordado == null || (d.precioAcordado is number && d.precioAcordado > 0))
+        && (!('sinCargo' in d) || d.sinCargo is bool)
+        && (!('alcance' in d) || d.alcance in ['sesion', 'plan'])
+        && (!('moneda' in d) || d.moneda == 'ARS')
+        && (!('escala' in d) || d.escala == 'miles_ars');
+    }
     match /prestaciones/{reservaId} {
-      allow read, create, update: if esAdmin();
+      allow read: if esAdmin();
+      allow create, update: if esAdmin() && _prestacionValida();
       allow delete: if false;
     }
 
@@ -180,7 +194,44 @@ service cloud.firestore {
     // El id del documento es un operationId generado por el cliente, para que
     // un reintento/doble toque reescriba el mismo movimiento en vez de
     // duplicarlo.
+    // Un pago nuevo ("cobro") tiene que traer su respaldo (factura/comprobante/
+    // recibo interno de efectivo) ya subido a Storage — la validación de que
+    // "no se confirma un pago sin respaldo" no depende solo de que el botón
+    // del panel lo pida, queda exigida acá también. Una devolución/ajuste no
+    // exige un respaldo nuevo (es una reversión de un cobro que ya lo tenía).
+    function _pagoValido() {
+      let d = request.resource.data;
+      return d.monto is number && d.monto > 0
+        && d.tipo in ['cobro', 'devolucion']
+        && (!('moneda' in d) || d.moneda == 'ARS')
+        && (!('escala' in d) || d.escala == 'miles_ars')
+        && (d.tipo != 'cobro' || (
+             'respaldo' in d && d.respaldo != null
+             && d.respaldo.storagePath is string && d.respaldo.storagePath.size() > 0
+           ));
+    }
     match /pagos/{pagoId} {
+      allow read: if esAdmin();
+      allow create: if esAdmin() && _pagoValido();
+      allow update, delete: if false;
+    }
+
+    // Recibos en PDF generados para un pago (sección 6/7). La instantánea de
+    // importes/período queda fija al crearlo — solo se permite update para
+    // los campos de seguimiento del envío (nunca para los importes ni para
+    // el PDF ya generado): así "reenviar" nunca reescribe lo que dice el
+    // recibo, y regenerarlo da exactamente el mismo documento nuevo.
+    match /recibos/{reciboId} {
+      allow read, create: if esAdmin();
+      allow update: if esAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['estado', 'compartidoEn', 'actualizadoPor', 'actualizadoEn']);
+      allow delete: if false;
+    }
+
+    // Auditoría de operaciones financieras (sección 7) — registro de solo
+    // lectura/creación, nunca editable ni borrable.
+    match /auditoria/{auditoriaId} {
       allow read, create: if esAdmin();
       allow update, delete: if false;
     }
