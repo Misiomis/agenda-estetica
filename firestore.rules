@@ -133,17 +133,20 @@ service cloud.firestore {
       allow write:  if esAdmin();
     }
 
-    // Curso de Automaquillaje — inscripciones públicas, gestión solo admin
+    // Curso de Automaquillaje — las inscripciones ya NO se hacen desde la
+    // web pública (se coordinan por WhatsApp y las carga Gimena desde el
+    // panel admin), así que no hay ninguna razón legítima para que esto
+    // sea de lectura/escritura pública. Son datos de contacto (DNI,
+    // teléfono, email) — quedarían expuestos a cualquiera si se dejara
+    // "if true".
     match /cursoMaquillaje/{docId} {
-      allow read:   if true;
-      allow create: if true;
-      allow update, delete: if esAdmin();
+      allow read, write: if esAdmin();
     }
 
-    // Sesiones del curso — admin las crea/edita, todos pueden leer
+    // Sesiones del curso — ídem: solo admin, ya no hay picker público que
+    // necesite leerlas.
     match /cursoSesiones/{docId} {
-      allow read:   if true;
-      allow write:  if esAdmin();
+      allow read, write: if esAdmin();
     }
 
     // Cobros de sesión depilación — registros financieros internos, nunca
