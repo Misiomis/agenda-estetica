@@ -3489,6 +3489,7 @@
                         fullName: toTitleCase(c.fullName || c.fullLname || c.nombre || c.name || ""),
                         phone: c.phone || c.telefono || "",
                         email: c.email || "",
+                        fechaNacimiento: c.fechaNacimiento || "",
                         username: c.username || "",
                         active: c.active !== false,
                         hoursBalance: c.hoursBalance ?? 0,
@@ -10507,16 +10508,19 @@
             if (!p) return;
             const nombreEl = document.getElementById('inscribir-nombre-' + id);
             const dniEl = document.getElementById('inscribir-dni-' + id);
+            const nacimEl = document.getElementById('inscribir-nacim-' + id);
             const telEl = document.getElementById('inscribir-tel-' + id);
             const emailEl = document.getElementById('inscribir-email-' + id);
             const busq = document.getElementById('inscribir-busq-' + id);
             if (nombreEl) nombreEl.value = p.fullName || '';
             if (dniEl) dniEl.value = p.dni || '';
+            if (nacimEl) nacimEl.value = p.fechaNacimiento || '';
             if (telEl) telEl.value = p.phone || '';
             if (emailEl) emailEl.value = p.email || '';
             if (busq) busq.value = p.fullName || '';
             const res = document.getElementById('inscribir-resultados-' + id);
             if (res) { res.style.display = 'none'; res.innerHTML = ''; }
+            if (!p.fechaNacimiento) mostrarAviso('Esta paciente no tiene fecha de nacimiento cargada en su ficha — completala a mano para poder inscribirla.');
         };
 
         window.guardarInscripcionCurso = async function(id) {
