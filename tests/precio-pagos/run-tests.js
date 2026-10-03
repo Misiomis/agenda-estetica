@@ -81,6 +81,8 @@ console.log('\n=== Instantánea del recibo: no se recalcula con el acumulado de 
   const prest2 = { ...prest, periodoMeses: 3 };
   const snapPlan = construirInstantaneaRecibo({ prestacion: prest2, pagoElegido: pago1, pagosHastaEse: [pago1], servicio: 'Plan' });
   check('con período registrado, el mensaje sí lo menciona', /Período cubierto: 3 meses/.test(construirMensajeRecibo(snapPlan, '')));
+  const snapServicio = construirInstantaneaRecibo({ prestacion: prest, pagoElegido: pago1, pagosHastaEse: [pago1], servicio: 'Tratamiento Detox Drenante' });
+  check('el mensaje de WhatsApp nunca nombra el tratamiento específico (privacidad)', !construirMensajeRecibo(snapServicio, '').includes('Detox'));
 }
 
 console.log('\n=== Respaldo obligatorio ===');
