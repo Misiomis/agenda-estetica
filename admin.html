@@ -9287,7 +9287,8 @@
                 window._sesMsgDB.push({ texto: _mkMsgAviso(), phone: phoneWA, titulo: 'Aviso previo de horarios' });
 
                 // ── Formateador de lista de sesiones (pendientes o realizadas) ──
-                var _bxF = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
+                // A propósito NO incluye el box: a la paciente solo le interesa qué
+                // tratamiento y cuándo, no en qué cabina física va a estar.
                 var _mkMsgLista = function(lista, hdrTxt) {
                     var sorted = lista.slice().sort(function(a,b){return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1;});
                     var n = 1, cuerpo = '', total = 0;
@@ -9299,10 +9300,7 @@
                         var diaFull = dt ? _diasFull[dt.getDay()] : '';
                         var dN = fp[2] ? parseInt(fp[2]) : '';
                         var mesNom = fp[1] ? (_mesFull[+fp[1]-1]||'') : '';
-                        var boxId = _grilla_boxDeReserva(r);
-                        var boxObj = (typeof GRILLA_BOXES!=='undefined') ? GRILLA_BOXES.find(function(b){return b.id===boxId;}) : null;
-                        var boxTxt = boxObj ? boxObj.title : (boxId ? (_bxF[boxId]||'') : '');
-                        cuerpo += '\n*' + n++ + '. ' + diaFull + ' ' + dN + ' de ' + mesNom + '*\n' + (r.hora||'--') + ' hs\n' + (r.servicio||'Sesion') + (boxTxt ? '\n' + boxTxt : '') + '\n';
+                        cuerpo += '\n*' + n++ + '. ' + diaFull + ' ' + dN + ' de ' + mesNom + '*\n' + (r.hora||'--') + ' hs\n' + (r.servicio||'Sesion') + '\n';
                     });
                     return hdrTxt + cuerpo + '\nTotal: ' + total + ' sesion' + (total!==1?'es':'') + '\nEspacio Mimar T';
                 };
