@@ -8712,9 +8712,14 @@
                 var blob = docPdf.output('blob');
                 var path = 'recibos/' + _reReservaId + '/' + reciboId + '.pdf';
                 await uploadBytes(ref(storage, path), blob, { contentType: 'application/pdf' });
-                await setDoc(doc(db, 'recibos', reciboId), Object.assign({}, s, {
+                // s.estado es el estado del PAGO en el momento del recibo (parcial/completo/...);
+                // el doc de recibos usa "estado" para el estado de ENTREGA (generado/compartido_iniciado).
+                // Son dos cosas distintas — si se guardaran bajo la misma clave, una pisa a la otra
+                // y el estado del pago queda perdido para siempre en el documento persistido.
+                var sSinEstado = Object.assign({}, s); delete sSinEstado.estado;
+                await setDoc(doc(db, 'recibos', reciboId), Object.assign({}, sSinEstado, {
                     reciboId: reciboId, pagoId: _rePagoElegidoId, prestacionId: _reReservaId, pacienteKey: null,
-                    versionPlantilla: 1, storagePath: path, estado: 'generado',
+                    versionPlantilla: 1, storagePath: path, estadoPago: s.estado, estado: 'generado',
                     creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null,
                 }));
                 return { reciboId: reciboId, blob: blob, snapshot: s };
@@ -8926,7 +8931,12 @@
                         pendienteCierre += pend;
                         if (!r.fecha.startsWith(prefijoMes)) pendienteDeAntes += pend;
                     });
-                    return { key: key, nombre: nombre, cobradoMes: cobradoMes, pendienteCierre: pendienteCierre, pendienteDeAntes: pendienteDeAntes };
+                    var reservaIdsConPagoMes = Array.from(new Set(pagosDelMes.filter(function(p){ return p.pacienteKey === key; }).map(function(p){ return p.prestacionId; }).filter(Boolean)));
+                    var recibos = reservaIdsConPagoMes.map(function(rid){
+                        var r = reservasPorId.get(rid);
+                        return { reservaId: rid, servicio: r ? (r.servicio||'') : '', phone: r ? (r.phone||r.telefono||'') : '', nombreReserva: r ? (r.nombreLimpio||nombre) : nombre };
+                    });
+                    return { key: key, nombre: nombre, cobradoMes: cobradoMes, pendienteCierre: pendienteCierre, pendienteDeAntes: pendienteDeAntes, recibos: recibos };
                 }).sort(function(a,b){ return a.nombre.localeCompare(b.nombre); });
 
                 var mesLabelCap = MESES_RM[mes-1];
@@ -8978,6 +8988,17 @@
                         html += '<div style="padding:10px 14px;' + (idx ? 'border-top:1px solid var(--border);' : '') + '">';
                         html += '<strong style="font-size:13.5px;">' + escapeHtml(f.nombre) + '</strong><br>';
                         html += '<span style="font-size:12px;color:#526358;">Cobrado en ' + mesLabelCap + ': ' + _fmtMoneyARS(f.cobradoMes) + ' — Pendiente al cierre de ' + mesLabelCap + ': ' + _fmtMoneyARS(f.pendienteCierre) + (f.pendienteDeAntes > 0 ? ' (de las cuales ' + _fmtMoneyARS(f.pendienteDeAntes) + ' son deuda de antes de este mes)' : '') + '</span>';
+                        if (f.recibos.length) {
+                            html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">';
+                            f.recibos.forEach(function(rc){
+                                var kEsc = String(f.key).replace(/'/g,"\\'");
+                                var nEsc = String(rc.nombreReserva||'').replace(/'/g,"\\'");
+                                var sEsc = String(rc.servicio||'').replace(/'/g,"\\'");
+                                var pEsc = String(rc.phone||'').replace(/'/g,"\\'");
+                                html += '<button class="btn-mini" style="border-color:rgba(37,211,102,0.40);color:#128c7e;background:rgba(37,211,102,0.08)" onclick="abrirEnviarRecibo(\'' + rc.reservaId + '\',\'' + kEsc + '\',\'' + nEsc + '\',\'' + sEsc + '\',\'' + pEsc + '\')">🧾 Enviar recibo' + (f.recibos.length > 1 && rc.servicio ? ' (' + escapeHtml(rc.servicio) + ')' : '') + '</button>';
+                            });
+                            html += '</div>';
+                        }
                         html += '</div>';
                     });
                     html += '</div>';
@@ -10413,6 +10434,99 @@
                 window.renderSesionesCurso();
             } catch(e) { mostrarAviso('Error al actualizar el cupo'); }
         };
+
+        window.toggleInscribirAlumna = function(id, forzarCerrar) {
+            const editor = document.getElementById('inscribir-editor-' + id);
+            if (!editor) return;
+            const abrir = forzarCerrar ? false : editor.style.display !== 'block';
+            editor.style.display = abrir ? 'block' : 'none';
+            if (!abrir) {
+                const res = document.getElementById('inscribir-resultados-' + id);
+                if (res) { res.style.display = 'none'; res.innerHTML = ''; }
+            }
+        };
+
+        window.buscarPacienteCurso = function(id) {
+            const input = document.getElementById('inscribir-busq-' + id);
+            const cont = document.getElementById('inscribir-resultados-' + id);
+            if (!input || !cont) return;
+            const txt = input.value.trim().toLowerCase();
+            const dniTxt = txt.replace(/\D/g, '');
+            if (txt.length < 2) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
+            const coincidencias = todasLosPacientes.filter(p =>
+                (p.fullName || '').toLowerCase().includes(txt) || (dniTxt.length >= 3 && (p.dni || '').includes(dniTxt))
+            ).slice(0, 8);
+            cont.innerHTML = coincidencias.length
+                ? coincidencias.map(p => `<div style="padding:8px 10px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--cm-borde);" onmousedown="seleccionarPacienteCurso('${id}','${String(p.dni).replace(/'/g,"\\'")}')">${escapeHtml(p.fullName)} <span style="color:var(--cm-muted);">· DNI ${escapeHtml(p.dni)}</span></div>`).join('')
+                : '<div style="padding:8px 10px;font-size:12px;color:var(--cm-muted);">Sin coincidencias — completá los datos manualmente abajo.</div>';
+            cont.style.display = 'block';
+        };
+
+        window.seleccionarPacienteCurso = function(id, dni) {
+            const p = todasLosPacientes.find(x => x.dni === dni);
+            if (!p) return;
+            const nombreEl = document.getElementById('inscribir-nombre-' + id);
+            const dniEl = document.getElementById('inscribir-dni-' + id);
+            const telEl = document.getElementById('inscribir-tel-' + id);
+            const emailEl = document.getElementById('inscribir-email-' + id);
+            const busq = document.getElementById('inscribir-busq-' + id);
+            if (nombreEl) nombreEl.value = p.fullName || '';
+            if (dniEl) dniEl.value = p.dni || '';
+            if (telEl) telEl.value = p.phone || '';
+            if (emailEl) emailEl.value = p.email || '';
+            if (busq) busq.value = p.fullName || '';
+            const res = document.getElementById('inscribir-resultados-' + id);
+            if (res) { res.style.display = 'none'; res.innerHTML = ''; }
+        };
+
+        window.guardarInscripcionCurso = async function(id) {
+            const s = _cursoSesiones.find(x => x.id === id);
+            if (!s) return;
+            const nombreCompleto = (document.getElementById('inscribir-nombre-' + id).value || '').trim();
+            const dni = (document.getElementById('inscribir-dni-' + id).value || '').trim();
+            const nacim = document.getElementById('inscribir-nacim-' + id).value;
+            const telefono = (document.getElementById('inscribir-tel-' + id).value || '').trim();
+            const email = (document.getElementById('inscribir-email-' + id).value || '').trim();
+            if (!nombreCompleto || !dni || !nacim || !telefono) {
+                mostrarAviso('Completá nombre y apellido, DNI, fecha de nacimiento y teléfono.');
+                return;
+            }
+            const inscCount = _cursosCache.filter(c => c.sesionId === id && (c.estado||'inscripta') !== 'cancelada').length;
+            if (inscCount >= (s.capacidad || 10)) { mostrarAviso('Esta sesión ya está completa.'); return; }
+            const partes = nombreCompleto.split(/\s+/);
+            const nombreSolo = partes[0] || nombreCompleto;
+            const apellido = partes.slice(1).join(' ');
+            let edad = null;
+            if (nacim) {
+                const hoy = new Date(); const nac = new Date(nacim + 'T00:00:00');
+                edad = hoy.getFullYear() - nac.getFullYear();
+                const m = hoy.getMonth() - nac.getMonth();
+                if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+            }
+            const btn = document.querySelector(`#inscribir-editor-${id} .cm-btn-primary`);
+            if (btn) { btn.disabled = true; btn.textContent = 'Inscribiendo...'; }
+            try {
+                const fechaRegistro = new Date().toISOString().slice(0, 10);
+                const datos = {
+                    nombre: nombreCompleto, apellido, nombreSolo, dni, telefono, email,
+                    fechaNacimiento: nacim, edad,
+                    nivelMaquillaje: null, nivelDesc: '', expectativas: '',
+                    estado: 'inscripta', fechaRegistro, timestamp: serverTimestamp(),
+                    sesionId: s.id, fecha: s.fecha, horaInicio: s.horaInicio, horaFin: s.horaFin,
+                    inscriptoPorAdmin: true
+                };
+                const ref = await addDoc(collection(db, 'cursoMaquillaje'), datos);
+                _cursosCache.push(Object.assign({ id: ref.id }, datos, { timestamp: null }));
+                mostrarAviso('Inscripción registrada ✓');
+                window.toggleInscribirAlumna(id, true);
+                window.renderSesionesCurso();
+            } catch (e) {
+                console.error(e);
+                mostrarAviso('No se pudo inscribir: ' + (e && e.message ? e.message : 'error desconocido'));
+                if (btn) { btn.disabled = false; btn.textContent = '💾 Inscribir'; }
+            }
+        };
+
         function _capturarEstadoInscriptas() {
             const estado = { notas: {}, editAbiertas: [], masAbiertos: [], waAbiertos: [], historialAbierto: false };
             document.querySelectorAll('#cursos-lista textarea[id^="nota-ta-"]').forEach(ta => {
@@ -10565,6 +10679,30 @@
                         <div style="display:flex;gap:8px;margin-top:8px;">
                             <button class="cm-btn cm-btn-sm cm-btn-primary" onclick="guardarCupoSesion('${s.id}')">💾 Guardar cupo</button>
                             <button class="cm-btn cm-btn-sm" onclick="toggleCupoSesion('${s.id}', true)">Cancelar</button>
+                        </div>
+                    </div>
+
+                    ${lleno
+                        ? `<p class="cm-muted" style="font-size:12px;margin:10px 0 0;color:var(--cm-warn);">Esta sesión está completa — para anotar a alguien igual, primero subí el cupo.</p>`
+                        : `<button class="cm-btn cm-btn-sm cm-btn-primary" style="margin-top:10px;" onclick="toggleInscribirAlumna('${s.id}')">+ Inscribir alumna</button>`}
+                    <div id="inscribir-editor-${s.id}" style="display:none;margin-top:10px;">
+                        <label class="cm-label">Buscar paciente ya registrada (opcional)</label>
+                        <input type="text" id="inscribir-busq-${s.id}" class="cm-field" placeholder="Nombre o DNI..." oninput="buscarPacienteCurso('${s.id}')" autocomplete="off">
+                        <div id="inscribir-resultados-${s.id}" style="display:none;margin-top:4px;max-height:160px;overflow-y:auto;border:1px solid var(--cm-borde);border-radius:10px;background:var(--cm-campo);"></div>
+                        <p class="cm-muted" style="font-size:12px;margin:8px 0 6px;">O completá los datos de una persona nueva:</p>
+                        <label class="cm-label">Nombre y apellido</label>
+                        <input type="text" id="inscribir-nombre-${s.id}" class="cm-field" placeholder="Nombre y apellido">
+                        <label class="cm-label" style="margin-top:8px;">DNI</label>
+                        <input type="text" id="inscribir-dni-${s.id}" class="cm-field" inputmode="numeric" placeholder="DNI">
+                        <label class="cm-label" style="margin-top:8px;">Fecha de nacimiento</label>
+                        <input type="date" id="inscribir-nacim-${s.id}" class="cm-field" max="${new Date().toISOString().slice(0,10)}">
+                        <label class="cm-label" style="margin-top:8px;">Número de teléfono</label>
+                        <input type="tel" id="inscribir-tel-${s.id}" class="cm-field" placeholder="Teléfono">
+                        <label class="cm-label" style="margin-top:8px;">Correo electrónico (opcional)</label>
+                        <input type="email" id="inscribir-email-${s.id}" class="cm-field" placeholder="Email (opcional)">
+                        <div style="display:flex;gap:8px;margin-top:10px;">
+                            <button class="cm-btn cm-btn-sm cm-btn-primary" onclick="guardarInscripcionCurso('${s.id}')">💾 Inscribir</button>
+                            <button class="cm-btn cm-btn-sm" onclick="toggleInscribirAlumna('${s.id}', true)">Cancelar</button>
                         </div>
                     </div>
 
