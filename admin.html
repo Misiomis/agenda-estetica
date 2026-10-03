@@ -12864,9 +12864,11 @@
                 // Grilla de Servicios → "Servicio predeterminado por box"). Nunca
                 // se inventa ni se elige uno "exclusivo" por su cuenta — un box
                 // sin predeterminado configurado no cambia el servicio.
+                let _boxSinPredeterminado = false;
                 if (boxActual !== nuevoBoxId) {
                     const svcParaBox = resolverServicioAlArrastrar(nuevoBoxId, r.servicio, _svBoxMap, _svBoxDefaultMap);
                     if (svcParaBox) updates.servicio = svcParaBox;
+                    else if (!_svBoxDefaultMap.has(nuevoBoxId)) _boxSinPredeterminado = true;
                 }
 
                 await updateDoc(doc(db, "reservas", reservaId), updates);
@@ -12889,6 +12891,7 @@
                         ? `Movido a ${boxLabel}`
                         : `Horario cambiado a ${horaNueva} hs`;
                 if (updates.servicio) toastMsg += ` · ${updates.servicio}`;
+                else if (_boxSinPredeterminado) toastMsg += ` · sin predeterminado configurado para ese box (Servicios → Grilla de Servicios)`;
                 mostrarAviso(toastMsg);
             } catch(e) {
                 console.error(e);
