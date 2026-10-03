@@ -131,7 +131,9 @@ export function construirInstantaneaRecibo({ prestacion, pagoElegido, pagosHasta
 // recibo).
 export function construirMensajeRecibo(snapshot, primerNombre) {
   const nom = primerNombre ? `, ${primerNombre}` : '';
-  const partes = [`Hola${nom}. Te enviamos el comprobante de tu ${(snapshot.concepto || 'sesión').toLowerCase()}.`];
+  // No se nombra el servicio/tratamiento en el mensaje — el recibo es solo
+  // comprobante de un monto, no un detalle de qué se hizo.
+  const partes = [`Hola${nom}. Te enviamos el comprobante de tu pago.`];
   if (snapshot.estado === 'completo') {
     partes.push(`El monto acordado es ${formatearImporte(snapshot.precioAcordado)} y recibimos el total de ${formatearImporte(snapshot.totalRecibidoHastaEsto)}. El pago está completo.`);
   } else if (snapshot.precioAcordado != null) {

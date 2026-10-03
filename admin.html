@@ -8655,7 +8655,7 @@
                 if (!el) return;
                 var s = _reSnapshot();
                 el.innerHTML = '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.7;">' +
-                    '<div><b>' + escapeHtml(s.concepto) + '</b>' + (s.periodoMeses ? ' · ' + s.periodoMeses + ' mes' + (s.periodoMeses === 1 ? '' : 'es') : '') + '</div>' +
+                    '<div style="color:#2D4A32;font-weight:800;">Recibo N° ' + escapeHtml(_reNumeroRecibo()) + '</div>' +
                     '<div>Fecha del pago: ' + escapeHtml(s.fechaPago || '—') + '</div>' +
                     (s.precioAcordado != null ? '<div>Precio acordado: ' + _fmtMoneyARS(s.precioAcordado) + '</div>' : '') +
                     '<div>Este pago: ' + _fmtMoneyARS(s.montoEstePago) + '</div>' +
@@ -8666,25 +8666,60 @@
                     '</div>';
             }
 
+            // El recibo que ve/recibe la paciente es solo comprobante de un MONTO — no
+            // detalla qué tratamiento se hizo (eso queda en la ficha interna, no en un
+            // papel que puede circular). "Concepto"/servicio se omite a propósito.
+            function _reNumeroRecibo() {
+                if (!_rePagoElegidoId) return '—';
+                var elegido = _rePagoElegido();
+                var fecha = (elegido && elegido.fechaEfectiva || '').replace(/-/g, '');
+                var sufijo = _rePagoElegidoId.replace(/[^a-zA-Z0-9]/g, '').slice(-5).toUpperCase();
+                return (fecha || '000000') + '-' + sufijo;
+            }
+
+            var _reLogoDataUrlCache = null;
+            async function _reCargarLogoDataUrl() {
+                if (_reLogoDataUrlCache !== null) return _reLogoDataUrlCache;
+                try {
+                    var resp = await fetch('img/icon-512.png');
+                    var blob = await resp.blob();
+                    _reLogoDataUrlCache = await new Promise(function(res, rej){
+                        var r = new FileReader();
+                        r.onload = function(){ res(r.result); };
+                        r.onerror = rej;
+                        r.readAsDataURL(blob);
+                    });
+                } catch (e) { _reLogoDataUrlCache = false; }
+                return _reLogoDataUrlCache;
+            }
+
             // Plantilla determinística del PDF del recibo — SOLO los campos que pide
             // la sección 6: nada clínico, ni DNI, ni teléfono, ni domicilio, ni datos
-            // bancarios, ni adjuntos originales.
-            function _reDibujarPdf(reciboId, s) {
+            // bancarios, ni adjuntos originales, ni el tratamiento realizado.
+            async function _reDibujarPdf(numeroRecibo, s) {
                 var tools = getPdfTools(); if (!tools) return null;
                 var docPdf = new tools.jsPDF({ unit: 'pt', format: 'a4' });
-                var x = 56, y = 64;
-                docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(14);
-                docPdf.text('Espacio Mimar T', x, y); y += 20;
-                docPdf.setFontSize(12); docPdf.text('Comprobante interno de pago', x, y); y += 10;
-                docPdf.setDrawColor(200); docPdf.line(x, y, 540, y); y += 24;
+                var verde = [45, 74, 50]; // var(--forest), color de marca
+                var x = 56, y = 60;
+                var logo = await _reCargarLogoDataUrl();
+                if (logo) { try { docPdf.addImage(logo, 'PNG', x, y - 28, 34, 34); } catch (e) {} }
+                var xTexto = logo ? x + 44 : x;
+                docPdf.setTextColor(verde[0], verde[1], verde[2]);
+                docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(16);
+                docPdf.text('Espacio Mimar T', xTexto, y); y += 18;
+                docPdf.setFontSize(11); docPdf.setFont('helvetica', 'normal');
+                docPdf.text('Comprobante de pago', xTexto, y);
+                docPdf.setFont('helvetica', 'bold'); docPdf.text('N° ' + numeroRecibo, 540, y - 18, { align: 'right' });
+                y += 16;
+                docPdf.setDrawColor(verde[0], verde[1], verde[2]); docPdf.setLineWidth(1.4);
+                docPdf.line(x, y, 540, y); y += 26;
+                docPdf.setTextColor(30); docPdf.setDrawColor(200); docPdf.setLineWidth(1);
                 docPdf.setFont('helvetica', 'normal'); docPdf.setFontSize(10.5);
                 var hoy = _hoyISOZona(ZONA_HORARIA_NEGOCIO);
                 var filas = [
-                    ['Recibo N°', reciboId],
                     ['Paciente', s.pacienteNombre || '—'],
                     ['Fecha del pago', s.fechaPago || '—'],
                     ['Fecha de emisión', hoy],
-                    ['Concepto', s.concepto + (s.periodoMeses ? ' (' + s.periodoMeses + ' mes' + (s.periodoMeses === 1 ? '' : 'es') + ')' : '')],
                 ];
                 if (s.periodoDesde && s.periodoHasta) filas.push(['Período cubierto', s.periodoDesde + ' a ' + s.periodoHasta]);
                 if (s.precioAcordado != null) filas.push(['Precio acordado', formatearImporte(s.precioAcordado)]);
@@ -8700,36 +8735,41 @@
                 y += 12;
                 docPdf.setFontSize(9); docPdf.setTextColor(110);
                 docPdf.text(limpiarTextoPdf(ETIQUETA_UNIDAD + '.'), x, y, { maxWidth: 480 }); y += 24;
-                docPdf.text('Este documento es un comprobante interno de Espacio Mimar T. No constituye factura fiscal ni equivale a una factura o remito.', x, y, { maxWidth: 480 });
+                docPdf.text('Este documento es un comprobante de pago de Espacio Mimar T. No constituye factura fiscal.', x, y, { maxWidth: 480 });
                 return docPdf;
             }
 
-            async function _reGenerarYSubir() {
+            // Genera el PDF en el navegador y registra la instantánea en Firestore.
+            // NO sube el PDF a Cloud Storage (ese bucket no está provisionado en el
+            // proyecto todavía) — el PDF se descarga/comparte directo desde acá, y lo
+            // que queda guardado en Firestore es el registro exacto de los valores
+            // del recibo (storagePath: null documenta a propósito que no hay copia en
+            // la nube, no es un olvido).
+            async function _reGenerarYRegistrar() {
                 var s = _reSnapshot();
                 var reciboId = nuevoIdOperacion('recibo', _reReservaId);
-                var docPdf = _reDibujarPdf(reciboId, s);
+                var numeroRecibo = _reNumeroRecibo();
+                var docPdf = await _reDibujarPdf(numeroRecibo, s);
                 if (!docPdf) throw new Error('No se pudo generar el PDF');
                 var blob = docPdf.output('blob');
-                var path = 'recibos/' + _reReservaId + '/' + reciboId + '.pdf';
-                await uploadBytes(ref(storage, path), blob, { contentType: 'application/pdf' });
                 // s.estado es el estado del PAGO en el momento del recibo (parcial/completo/...);
                 // el doc de recibos usa "estado" para el estado de ENTREGA (generado/compartido_iniciado).
                 // Son dos cosas distintas — si se guardaran bajo la misma clave, una pisa a la otra
                 // y el estado del pago queda perdido para siempre en el documento persistido.
                 var sSinEstado = Object.assign({}, s); delete sSinEstado.estado;
                 await setDoc(doc(db, 'recibos', reciboId), Object.assign({}, sSinEstado, {
-                    reciboId: reciboId, pagoId: _rePagoElegidoId, prestacionId: _reReservaId, pacienteKey: null,
-                    versionPlantilla: 1, storagePath: path, estadoPago: s.estado, estado: 'generado',
+                    reciboId: reciboId, numeroRecibo: numeroRecibo, pagoId: _rePagoElegidoId, prestacionId: _reReservaId, pacienteKey: null,
+                    versionPlantilla: 2, storagePath: null, estadoPago: s.estado, estado: 'generado',
                     creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null,
                 }));
-                return { reciboId: reciboId, blob: blob, snapshot: s };
+                return { reciboId: reciboId, numeroRecibo: numeroRecibo, blob: blob, snapshot: s };
             }
 
             window._reDescargar = async function() {
                 try {
-                    var r = await _reGenerarYSubir();
+                    var r = await _reGenerarYRegistrar();
                     var urlObj = URL.createObjectURL(r.blob);
-                    var a = document.createElement('a'); a.href = urlObj; a.download = 'recibo-' + r.reciboId + '.pdf'; document.body.appendChild(a); a.click(); a.remove();
+                    var a = document.createElement('a'); a.href = urlObj; a.download = 'recibo-' + r.numeroRecibo + '.pdf'; document.body.appendChild(a); a.click(); a.remove();
                     setTimeout(function(){ URL.revokeObjectURL(urlObj); }, 4000);
                     await setDoc(doc(db, 'recibos', r.reciboId), { estado: 'compartido_iniciado', compartidoEn: serverTimestamp() }, { merge: true });
                     mostrarAviso('Recibo descargado.');
@@ -8741,7 +8781,7 @@
 
             window._reCompartirWA = async function() {
                 try {
-                    var r = await _reGenerarYSubir();
+                    var r = await _reGenerarYRegistrar();
                     var primerNombre = (_rePacienteNombre || '').split(' ')[0] || '';
                     var msg = construirMensajeRecibo(r.snapshot, primerNombre);
                     var waUrl = 'https://wa.me/' + normalizarWA(_rePhone) + '?text=' + encodeURIComponent(msg);
