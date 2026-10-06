@@ -3215,6 +3215,33 @@
         };
         const _pacienteNombreDisplay = (r) => (r.nombreLimpio || r.nombre || r.paciente || r.clienteNombre || '—').toString().trim();
 
+        // ─── Teléfono vigente de un paciente ───────────────────────────────────
+        // SIEMPRE el de su ficha actual en Pacientes — nunca el que haya quedado
+        // congelado en una reserva o consulta vieja. Así, actualizar el teléfono
+        // de una paciente se refleja al instante en recordatorios, confirmaciones
+        // y cualquier mensaje armado después, sin tener que tocar reserva por
+        // reserva. El teléfono propio del documento solo se usa cuando no hay
+        // ninguna ficha de paciente que lo identifique (reserva suelta, sin
+        // cliente cargado) — ahí sí es lo único que hay.
+        function _mapaTelefonosPacientes() {
+            const porDNI = new Map(), porNombre = new Map();
+            todasLosPacientes.forEach(p => {
+                const tel = normalizarTelefono(p.phone || "");
+                if (!tel) return;
+                if (p.dni && !porDNI.has(p.dni)) porDNI.set(p.dni, tel);
+                const nk = normalizarNombreKey(p.fullName || "");
+                if (nk && !porNombre.has(nk)) porNombre.set(nk, tel);
+            });
+            return { porDNI, porNombre };
+        }
+        function _telefonoVigente(dniRaw, nombreLimpio, phoneDirecto, mapas) {
+            const dni = normalizarDNI(dniRaw || "");
+            return (dni && mapas.porDNI.get(dni))
+                || phoneDirecto
+                || mapas.porNombre.get(normalizarNombreKey(nombreLimpio || ""))
+                || "";
+        }
+
         // ─── Huso horario del negocio (centralizado) ───────────────────────────
         // No hay configuración propia en Firestore para esto todavía, así que
         // se adopta America/Argentina/Buenos_Aires como default documentado
@@ -3369,10 +3396,13 @@
         // entregar un historial silenciosamente incompleto.
         async function _fetchReservasCompletasParaExport() {
             const snap = await getDocs(collection(db, "reservas"));
+            const mapasTel = _mapaTelefonosPacientes();
             const completas = snap.docs.map(d => {
                 const data = d.data();
                 const nombreLimpio = toTitleCase(borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || ""));
-                const phone = normalizarTelefono(data.phone ?? data.telefono ?? "");
+                const phoneDirecto = normalizarTelefono(data.phone ?? data.telefono ?? "");
+                const dniReserva = data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "";
+                const phone = _telefonoVigente(dniReserva, nombreLimpio, phoneDirecto, mapasTel);
                 return { id: d.id, ...data, phone, nombreLimpio };
             });
             // Control de integridad: la colección completa nunca puede traer MENOS
@@ -3467,21 +3497,6 @@
 
                 if (resultados2[0].status === 'rejected') console.warn("Error reservas F2:", resultados2[0].reason);
 
-                // ── Pacientes: lookups de teléfono por DNI y nombre ──────────────
-                const phonePorDNI    = new Map();
-                const phonePorNombre = new Map();
-                (snapC.docs || []).forEach(docCli => {
-                    const cli = docCli.data() || {};
-                    const phoneCli = normalizarTelefono(cli.phone || cli.telefono || "");
-                    if (!phoneCli) return;
-                    [docCli.id, cli.dni, cli.DNI, cli.documento, cli.document]
-                        .map(normalizarDNI).filter(Boolean)
-                        .forEach(dni => { if (!phonePorDNI.has(dni)) phonePorDNI.set(dni, phoneCli); });
-                    [cli.fullName, cli.nombre, cli.name, cli.username]
-                        .map(normalizarNombreKey).filter(Boolean)
-                        .forEach(nk  => { if (!phonePorNombre.has(nk))  phonePorNombre.set(nk, phoneCli); });
-                });
-
                 todasLosPacientes = (snapC.docs || []).map(docCli => {
                     const c = docCli.data() || {};
                     return {
@@ -3504,33 +3519,31 @@
                         && !d.includes("__PLACEHOLDER__") && !d.includes("<__") && !d.startsWith("549");
                 }).sort((a, b) => (a.fullName || "").localeCompare((b.fullName || ""), 'es'));
 
-                // ── Reservas completas con cross-ref de teléfono ─────────────────
+                // ── Reservas completas: el teléfono SIEMPRE sale de la ficha vigente
+                // del paciente cuando existe (nunca el que haya quedado congelado en
+                // la reserva) ──
+                const mapasTelF2 = _mapaTelefonosPacientes();
                 const reservasFull = snapRTodos.docs.map(d => {
                     const data = d.data();
                     const nombreLimpio  = toTitleCase(borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || ""));
                     const phoneDirecto  = normalizarTelefono(data.phone ?? data.telefono ?? "");
-                    const dniReserva    = normalizarDNI(data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "");
-                    const phone         = phoneDirecto
-                        || phonePorDNI.get(dniReserva)
-                        || phonePorNombre.get(normalizarNombreKey(nombreLimpio))
-                        || "";
+                    const dniReserva    = data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "";
+                    const phone         = _telefonoVigente(dniReserva, nombreLimpio, phoneDirecto, mapasTelF2);
                     return { id: d.id, ...data, phone, nombreLimpio };
                 });
 
-                // ── Consultas: mismo cross-ref de teléfono por DNI que las reservas ──
+                // ── Consultas: mismo criterio de teléfono vigente que las reservas ──
                 // (antes solo se leía el campo propio de la consulta — una consulta
                 // creada sin teléfono a mano nunca lo encontraba aunque la ficha del
-                // cliente ya lo tuviera).
+                // cliente ya lo tuviera, y si tenía uno viejo cargado nunca se
+                // actualizaba al cambiar el teléfono en Pacientes).
                 todasLasConsultas = (snapConsultas.docs || [])
                     .map(d => {
                         const data = d.data() || {};
                         const nombreLimpio = toTitleCase(borrarEtiquetaDNI(data.nombre || data.cliente || ""));
                         const phoneDirecto = normalizarTelefono(data.phone ?? data.telefono ?? "");
-                        const dniConsulta  = normalizarDNI(data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "");
-                        const phone        = phoneDirecto
-                            || phonePorDNI.get(dniConsulta)
-                            || phonePorNombre.get(normalizarNombreKey(nombreLimpio))
-                            || "";
+                        const dniConsulta  = data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "";
+                        const phone        = _telefonoVigente(dniConsulta, nombreLimpio, phoneDirecto, mapasTelF2);
                         return { id: d.id, ...data, phone, telefono: phone || data.telefono };
                     })
                     .filter(c => !['cancelada','cancelado'].includes((c.estado||'').toLowerCase()));
