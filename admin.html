@@ -1693,7 +1693,7 @@
                         Alta / actualización de paciente
                     </summary>
                     <div class="detalle-dia-card" style="margin-top:10px;">
-                        <p style="font-size:13px; margin:0 0 14px 0; color:var(--ink-soft);">Completá al menos DNI, nombre y teléfono. Si el DNI ya está cargado, se actualiza esa misma ficha.</p>
+                        <p style="font-size:13px; margin:0 0 14px 0; color:var(--ink-soft);">Completá al menos DNI, nombre y teléfono. Si el DNI ya está cargado, se actualiza esa misma ficha — una vez cargado un paciente existente, el DNI queda bloqueado para que no se cree uno duplicado por error (para corregirlo de verdad, usá "Cambiar ID" en Herramientas administrativas).</p>
                         <div class="cliente-form-grid">
                             <div class="field full" style="position:relative">
                                 <label for="cliFullName">Nombre y apellido</label>
@@ -2865,6 +2865,21 @@
         let _clasifCargando = false;
         let _clasifError = null;        // string con el motivo si falló, o null
         let dniClienteCargado = "";
+        // El DNI es el ID del documento en Firestore (doc(db,"clients",dni)) y la
+        // clave con la que se enlazan sus reservas/historias/pagos. Si se edita a
+        // mano una vez cargado un paciente existente, "Guardar paciente" termina
+        // creando un paciente NUEVO bajo el DNI tipeado (en vez de actualizar el
+        // que ya estaba) — eso fue justo el bug reportado. Por eso el campo se
+        // bloquea apenas se carga un paciente existente; para cambiar el DNI de
+        // verdad está "Cambiar ID" en Herramientas administrativas, que migra el
+        // documento en vez de duplicarlo.
+        function _cliDniBloquear(bloquear) {
+            const el = document.getElementById('cliDni');
+            if (!el) return;
+            el.readOnly = !!bloquear;
+            el.style.background = bloquear ? 'var(--surface-2)' : '';
+            el.title = bloquear ? 'Paciente ya cargado: el DNI no se edita acá (crearía un duplicado). Para cambiarlo de verdad, usá "Cambiar ID" en Herramientas administrativas.' : '';
+        }
         let horariosDisponibles = [];
         let bloqueosHorarios = new Map();
         let duoHorarios      = new Map();
@@ -5696,6 +5711,7 @@
             document.getElementById("cliConsent").checked = true;
             document.getElementById("cliPolitica").checked = true;
             dniClienteCargado = "";
+            _cliDniBloquear(false);
         };
 
         // Edad en vivo a partir de "Fecha de nacimiento" (punto: cargar fecha de
@@ -5714,6 +5730,7 @@
             const dni = normalizarDNI(document.getElementById("cliDni").value);
             if (!dni || dni.length < 4) {
                 dniClienteCargado = "";
+                _cliDniBloquear(false);
                 planRenderFormHost('');
                 return;
             }
@@ -5721,6 +5738,7 @@
                 const snap = await getDoc(doc(db, "clients", dni));
                 if (!snap.exists()) {
                     dniClienteCargado = "";
+                    _cliDniBloquear(false);
                     planRenderFormHost('');
                     if (mostrarMensaje) mostrarAviso("No existe paciente con ese DNI");
                     return;
@@ -5738,6 +5756,7 @@
                 document.getElementById("cliConsent").checked = c.consentimientoAceptado !== false;
                 document.getElementById("cliPolitica").checked = c.politicaAceptada !== false;
                 dniClienteCargado = dni;
+                _cliDniBloquear(true);
                 planRenderFormHost(dni);
                 if (mostrarMensaje) mostrarAviso("Paciente cargado");
             } catch (error) {
@@ -6636,6 +6655,15 @@
                 mostrarAviso("El DNI debe tener al menos 4 dígitos");
                 return;
             }
+            // El DNI es el ID del documento — si difiere del paciente que estaba
+            // cargado, guardar así NO lo actualiza: crea un paciente nuevo bajo el
+            // DNI tipeado y deja intacto (sin los cambios que se querían hacer) el
+            // original. Para cambiar el DNI de verdad está "Cambiar ID", que migra
+            // el documento en vez de duplicarlo.
+            if (dniClienteCargado && dni !== dniClienteCargado) {
+                mostrarAviso('Este DNI (' + dni + ') no es el del paciente cargado (' + dniClienteCargado + ') — guardar así crearía un paciente duplicado. Para corregir el DNI usá "Cambiar ID" en Herramientas administrativas.');
+                return;
+            }
             if (!fullName) {
                 mostrarAviso("Completá el nombre del paciente");
                 return;
@@ -6677,6 +6705,7 @@
                 }
                 await setDoc(doc(db, "clients", dni), payload, { merge: true });
                 dniClienteCargado = dni;
+                _cliDniBloquear(true);
 
                 // Actualizar lista en memoria sin necesidad de recargar todo
                 const idx = todasLosPacientes.findIndex(p => p.dni === dni);
@@ -6798,6 +6827,7 @@
                 document.getElementById("cliDni").value = dniNuevo;
                 document.getElementById("cliNuevoDni").value = "";
                 dniClienteCargado = dniNuevo;
+                _cliDniBloquear(true);
                 mostrarAviso("ID de paciente actualizado");
             } catch (error) {
                 console.error(error);
