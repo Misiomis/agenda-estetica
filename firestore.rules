@@ -198,10 +198,15 @@ service cloud.firestore {
     // un reintento/doble toque reescriba el mismo movimiento en vez de
     // duplicarlo.
     // Un pago nuevo ("cobro") tiene que traer su respaldo (factura/comprobante/
-    // recibo interno de efectivo) ya subido a Storage — la validación de que
-    // "no se confirma un pago sin respaldo" no depende solo de que el botón
-    // del panel lo pida, queda exigida acá también. Una devolución/ajuste no
-    // exige un respaldo nuevo (es una reversión de un cobro que ya lo tenía).
+    // recibo interno de efectivo) — la validación de que "no se confirma un
+    // pago sin respaldo" no depende solo de que el botón del panel lo pida,
+    // queda exigida acá también. Una devolución/ajuste no exige un respaldo
+    // nuevo (es una reversión de un cobro que ya lo tenía).
+    // El respaldo normalmente se sube a Storage (storagePath). Si Storage no
+    // está disponible, el cliente cae a guardarlo embebido en el propio
+    // documento (base64DataUrl) — acotado en tamaño para que el documento
+    // entre en el límite de 1 MiB de Firestore; 950.000 caracteres de base64
+    // corresponden a los ~650 KB que valida el cliente antes de subir.
     function _pagoValido() {
       let d = request.resource.data;
       return d.monto is number && d.monto > 0
@@ -210,7 +215,13 @@ service cloud.firestore {
         && (!('escala' in d) || d.escala == 'miles_ars')
         && (d.tipo != 'cobro' || (
              'respaldo' in d && d.respaldo != null
-             && d.respaldo.storagePath is string && d.respaldo.storagePath.size() > 0
+             && (
+                  (d.respaldo.storagePath is string && d.respaldo.storagePath.size() > 0)
+                  || (d.respaldo.modo == 'firestore_embebido'
+                      && d.respaldo.base64DataUrl is string
+                      && d.respaldo.base64DataUrl.size() > 0
+                      && d.respaldo.base64DataUrl.size() < 950000)
+                )
            ));
     }
     match /pagos/{pagoId} {

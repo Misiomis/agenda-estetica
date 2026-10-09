@@ -2860,6 +2860,20 @@
         };
         let todasLasHistorias = [];
         let todasLosPacientes = [];
+        // "Cambiar ID" (corregir el DNI de un paciente) no reescribe el DNI en
+        // cada reserva/pago/consulta vieja uno por uno — en vez de eso, el doc
+        // viejo de clients/{dniViejo} queda como una redirección hacia el nuevo
+        // DNI. Así, cualquier documento histórico que todavía apunte al DNI
+        // anterior sigue encontrando los datos vigentes del paciente (y se
+        // agrupa junto con el resto de su historial) sin perder trazabilidad ni
+        // tocar los documentos ya emitidos. Se reconstruye en cada carga de
+        // Fase 2 a partir de clients/*.redirigidoA.
+        let _redirectDNI = new Map(); // dniViejo (normalizado) → dniNuevo
+        function _resolverDniFinal(dni) {
+            let actual = dni, saltos = 0;
+            while (actual && _redirectDNI.has(actual) && saltos < 10) { actual = _redirectDNI.get(actual); saltos++; }
+            return actual;
+        }
         // Clasificación de pacientes (punto 15) — índices y estado de carga
         let _clasifIndices = null;      // { atencionesPorDni, cursosPorDni } o null si todavía no se calculó
         let _clasifCargando = false;
@@ -3224,37 +3238,43 @@
         // por distinto personal) se tratarían como dos pacientes diferentes.
         const _pacienteMatchKey = (r) => {
             const dni = (r.dni || r.clienteDni || r.documento || '').toString().trim();
-            if (dni) return 'dni:' + dni;
+            if (dni) return 'dni:' + _resolverDniFinal(normalizarDNI(dni));
             const nombre = (r.nombreLimpio || r.nombre || r.paciente || r.clienteNombre || '').toString();
             return 'nom:' + nombre.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
         };
         const _pacienteNombreDisplay = (r) => (r.nombreLimpio || r.nombre || r.paciente || r.clienteNombre || '—').toString().trim();
 
-        // ─── Teléfono vigente de un paciente ───────────────────────────────────
-        // SIEMPRE el de su ficha actual en Pacientes — nunca el que haya quedado
-        // congelado en una reserva o consulta vieja. Así, actualizar el teléfono
-        // de una paciente se refleja al instante en recordatorios, confirmaciones
-        // y cualquier mensaje armado después, sin tener que tocar reserva por
-        // reserva. El teléfono propio del documento solo se usa cuando no hay
-        // ninguna ficha de paciente que lo identifique (reserva suelta, sin
-        // cliente cargado) — ahí sí es lo único que hay.
-        function _mapaTelefonosPacientes() {
-            const porDNI = new Map(), porNombre = new Map();
+        // ─── Datos vigentes de un paciente (teléfono Y nombre) ─────────────────
+        // SIEMPRE los de su ficha actual en Pacientes — nunca los que hayan
+        // quedado congelados en una reserva o consulta vieja. Así, corregir el
+        // nombre o el teléfono de una paciente se refleja al instante en todo lo
+        // que se arma después (recordatorios, confirmaciones, recibos, Sesiones,
+        // Resumen mensual, exportaciones…) sin tener que tocar reserva por
+        // reserva. El dato propio del documento solo se usa cuando no hay
+        // ninguna ficha de paciente que lo identifique por DNI (reserva suelta,
+        // sin cliente cargado) — ahí sí es lo único que hay.
+        function _mapaDatosVigentesPacientes() {
+            const telPorDNI = new Map(), telPorNombre = new Map(), nombrePorDNI = new Map();
             todasLosPacientes.forEach(p => {
+                if (p.dni && p.fullName && !nombrePorDNI.has(p.dni)) nombrePorDNI.set(p.dni, p.fullName);
                 const tel = normalizarTelefono(p.phone || "");
                 if (!tel) return;
-                if (p.dni && !porDNI.has(p.dni)) porDNI.set(p.dni, tel);
+                if (p.dni && !telPorDNI.has(p.dni)) telPorDNI.set(p.dni, tel);
                 const nk = normalizarNombreKey(p.fullName || "");
-                if (nk && !porNombre.has(nk)) porNombre.set(nk, tel);
+                if (nk && !telPorNombre.has(nk)) telPorNombre.set(nk, tel);
             });
-            return { porDNI, porNombre };
+            return { porDNI: telPorDNI, porNombre: telPorNombre, nombrePorDNI };
         }
         function _telefonoVigente(dniRaw, nombreLimpio, phoneDirecto, mapas) {
-            const dni = normalizarDNI(dniRaw || "");
+            const dni = _resolverDniFinal(normalizarDNI(dniRaw || ""));
             return (dni && mapas.porDNI.get(dni))
                 || phoneDirecto
                 || mapas.porNombre.get(normalizarNombreKey(nombreLimpio || ""))
                 || "";
+        }
+        function _nombreVigente(dniRaw, nombreDirecto, mapas) {
+            const dni = _resolverDniFinal(normalizarDNI(dniRaw || ""));
+            return (dni && mapas.nombrePorDNI.get(dni)) || nombreDirecto || "";
         }
 
         // ─── Huso horario del negocio (centralizado) ───────────────────────────
@@ -3411,12 +3431,13 @@
         // entregar un historial silenciosamente incompleto.
         async function _fetchReservasCompletasParaExport() {
             const snap = await getDocs(collection(db, "reservas"));
-            const mapasTel = _mapaTelefonosPacientes();
+            const mapasTel = _mapaDatosVigentesPacientes();
             const completas = snap.docs.map(d => {
                 const data = d.data();
-                const nombreLimpio = toTitleCase(borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || ""));
-                const phoneDirecto = normalizarTelefono(data.phone ?? data.telefono ?? "");
                 const dniReserva = data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "";
+                const nombreDirecto = toTitleCase(borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || ""));
+                const nombreLimpio = _nombreVigente(dniReserva, nombreDirecto, mapasTel);
+                const phoneDirecto = normalizarTelefono(data.phone ?? data.telefono ?? "");
                 const phone = _telefonoVigente(dniReserva, nombreLimpio, phoneDirecto, mapasTel);
                 return { id: d.id, ...data, phone, nombreLimpio };
             });
@@ -3512,7 +3533,19 @@
 
                 if (resultados2[0].status === 'rejected') console.warn("Error reservas F2:", resultados2[0].reason);
 
-                todasLosPacientes = (snapC.docs || []).map(docCli => {
+                // Redirecciones de "Cambiar ID" (ver declaración de _redirectDNI más
+                // arriba): se reconstruyen en cada carga a partir de los docs viejos
+                // que quedaron marcados con redirigidoA, y se excluyen del listado de
+                // pacientes (no son una persona, son un puntero al DNI nuevo).
+                _redirectDNI = new Map();
+                (snapC.docs || []).forEach(docCli => {
+                    const c = docCli.data() || {};
+                    if (c.redirigidoA) _redirectDNI.set(normalizarDNI(docCli.id), normalizarDNI(c.redirigidoA));
+                });
+
+                todasLosPacientes = (snapC.docs || [])
+                    .filter(docCli => !(docCli.data() || {}).redirigidoA)
+                    .map(docCli => {
                     const c = docCli.data() || {};
                     return {
                         dni: docCli.id,
@@ -3534,32 +3567,34 @@
                         && !d.includes("__PLACEHOLDER__") && !d.includes("<__") && !d.startsWith("549");
                 }).sort((a, b) => (a.fullName || "").localeCompare((b.fullName || ""), 'es'));
 
-                // ── Reservas completas: el teléfono SIEMPRE sale de la ficha vigente
-                // del paciente cuando existe (nunca el que haya quedado congelado en
-                // la reserva) ──
-                const mapasTelF2 = _mapaTelefonosPacientes();
+                // ── Reservas completas: nombre y teléfono SIEMPRE salen de la ficha
+                // vigente del paciente cuando existe (nunca lo que haya quedado
+                // congelado en la reserva) ──
+                const mapasTelF2 = _mapaDatosVigentesPacientes();
                 const reservasFull = snapRTodos.docs.map(d => {
                     const data = d.data();
-                    const nombreLimpio  = toTitleCase(borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || ""));
-                    const phoneDirecto  = normalizarTelefono(data.phone ?? data.telefono ?? "");
                     const dniReserva    = data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "";
+                    const nombreDirecto = toTitleCase(borrarEtiquetaDNI(data.clienteNombre || data.nombre || data.cliente || data.title || data.displayName || ""));
+                    const nombreLimpio  = _nombreVigente(dniReserva, nombreDirecto, mapasTelF2);
+                    const phoneDirecto  = normalizarTelefono(data.phone ?? data.telefono ?? "");
                     const phone         = _telefonoVigente(dniReserva, nombreLimpio, phoneDirecto, mapasTelF2);
                     return { id: d.id, ...data, phone, nombreLimpio };
                 });
 
-                // ── Consultas: mismo criterio de teléfono vigente que las reservas ──
-                // (antes solo se leía el campo propio de la consulta — una consulta
-                // creada sin teléfono a mano nunca lo encontraba aunque la ficha del
-                // cliente ya lo tuviera, y si tenía uno viejo cargado nunca se
-                // actualizaba al cambiar el teléfono en Pacientes).
+                // ── Consultas: mismo criterio de nombre/teléfono vigente que las
+                // reservas ── (antes solo se leía el campo propio de la consulta —
+                // una consulta creada sin teléfono a mano nunca lo encontraba aunque
+                // la ficha del cliente ya lo tuviera, y si el nombre o el teléfono
+                // quedaban viejos nunca se actualizaban al corregirlos en Pacientes).
                 todasLasConsultas = (snapConsultas.docs || [])
                     .map(d => {
                         const data = d.data() || {};
-                        const nombreLimpio = toTitleCase(borrarEtiquetaDNI(data.nombre || data.cliente || ""));
-                        const phoneDirecto = normalizarTelefono(data.phone ?? data.telefono ?? "");
                         const dniConsulta  = data.dni ?? data.clienteDni ?? data.documento ?? data.document ?? "";
+                        const nombreDirecto = toTitleCase(borrarEtiquetaDNI(data.nombre || data.cliente || ""));
+                        const nombreLimpio = _nombreVigente(dniConsulta, nombreDirecto, mapasTelF2);
+                        const phoneDirecto = normalizarTelefono(data.phone ?? data.telefono ?? "");
                         const phone        = _telefonoVigente(dniConsulta, nombreLimpio, phoneDirecto, mapasTelF2);
-                        return { id: d.id, ...data, phone, telefono: phone || data.telefono };
+                        return { id: d.id, ...data, phone, telefono: phone || data.telefono, nombreLimpio };
                     })
                     .filter(c => !['cancelada','cancelado'].includes((c.estado||'').toLowerCase()));
 
@@ -5147,6 +5182,7 @@
                 const matches = [];
                 snap.forEach(docSnap => {
                     const d = docSnap.data();
+                    if (d.redirigidoA) return; // DNI migrado con "Cambiar ID" — no es un paciente seleccionable
                     const nombre = (d.fullName || d.fullLname || d.nombre || d.name || '').toString().trim();
                     if (nombre.toLowerCase().includes(q.toLowerCase())) {
                         matches.push({ id: docSnap.id, nombre, phone: normalizarTelefono(d.phone || '') });
@@ -5735,7 +5771,19 @@
                 return;
             }
             try {
-                const snap = await getDoc(doc(db, "clients", dni));
+                var snap = await getDoc(doc(db, "clients", dni));
+                var dniResuelto = dni;
+                // Si este DNI fue migrado con "Cambiar ID", seguir la redirección
+                // sola hasta el DNI vigente, en vez de mostrar una ficha vacía.
+                if (snap.exists() && (snap.data() || {}).redirigidoA) {
+                    var destino = normalizarDNI((snap.data() || {}).redirigidoA);
+                    var snapDestino = await getDoc(doc(db, "clients", destino));
+                    if (snapDestino.exists()) {
+                        snap = snapDestino; dniResuelto = destino;
+                        document.getElementById("cliDni").value = destino;
+                        if (mostrarMensaje) mostrarAviso("Ese DNI se había cambiado a " + destino + " — se cargó esa ficha.");
+                    }
+                }
                 if (!snap.exists()) {
                     dniClienteCargado = "";
                     _cliDniBloquear(false);
@@ -5755,9 +5803,9 @@
                 document.getElementById("cliMembership").checked = c.membershipActive === true || c.membresia === true;
                 document.getElementById("cliConsent").checked = c.consentimientoAceptado !== false;
                 document.getElementById("cliPolitica").checked = c.politicaAceptada !== false;
-                dniClienteCargado = dni;
+                dniClienteCargado = dniResuelto;
                 _cliDniBloquear(true);
-                planRenderFormHost(dni);
+                planRenderFormHost(dniResuelto);
                 if (mostrarMensaje) mostrarAviso("Paciente cargado");
             } catch (error) {
                 console.error(error);
@@ -6729,6 +6777,13 @@
                     todasLosPacientes.sort((a, b) => (a.fullName || "").localeCompare(b.fullName || "", 'es'));
                 }
                 filtrarListadoClientes();
+                // El parche en memoria de arriba alcanza para los listados de
+                // pacientes, pero las reservas/consultas YA CARGADAS llevan su
+                // propio nombre/teléfono "vigente" calculado en el momento de esa
+                // carga (ver _telefonoVigente/_nombreVigente) — sin este refresco,
+                // una corrección de nombre o teléfono no se vería en Sesiones,
+                // Resumen mensual ni en los mensajes hasta recargar la página.
+                _cargarDatosSecundarios().catch(e => console.warn('No se pudo refrescar reservas/consultas tras guardar el paciente:', e));
 
                 mostrarAviso(`Paciente "${fullName}" guardado ✓`);
                 limpiarFormularioCliente();
@@ -6754,7 +6809,8 @@
             try {
                 mostrarLoader(true);
                 const snap = await getDocs(collection(db, "clients"));
-                const actualizados = await asegurarCampoMembresiaEnFirestore(snap.docs || []);
+                const docsReales = (snap.docs || []).filter(d => !(d.data() || {}).redirigidoA);
+                const actualizados = await asegurarCampoMembresiaEnFirestore(docsReales);
                 await cargarTodo();
                 mostrarAviso(actualizados ? `Membresía normalizada en ${actualizados} paciente(s)` : "Todos los pacientes ya tenían membresía definida");
             } catch (error) {
@@ -6769,12 +6825,13 @@
             try {
                 mostrarLoader(true);
                 const snap = await getDocs(collection(db, "clients"));
-                const total = (snap.docs || []).length;
+                const docsReales = (snap.docs || []).filter(d => !(d.data() || {}).redirigidoA);
+                const total = docsReales.length;
                 if (!total) {
                     mostrarAviso("No hay pacientes para actualizar");
                     return;
                 }
-                const tareas = (snap.docs || []).map((d) =>
+                const tareas = docsReales.map((d) =>
                     setDoc(doc(db, "clients", d.id), {
                         membershipActive: true,
                         membresia: true,
@@ -6812,23 +6869,43 @@
                     mostrarAviso("No existe un paciente con ese DNI actual");
                     return;
                 }
-                if (snapNuevo.exists()) {
-                    mostrarAviso("Ya existe un paciente con el nuevo DNI");
+                const dataActual = snapActual.data() || {};
+                if (dataActual.redirigidoA) {
+                    mostrarAviso("Este DNI ya se había migrado antes, a " + dataActual.redirigidoA + " — cargá ese DNI para seguir editando desde ahí.");
                     return;
                 }
-                const dataActual = snapActual.data() || {};
+                if (snapNuevo.exists()) {
+                    mostrarAviso("Ya existe un paciente con el nuevo DNI — no se puede fusionar ni sobrescribir automáticamente. Si es un duplicado real, revisalo a mano primero.");
+                    return;
+                }
                 const payload = {
                     ...dataActual,
                     dni: dniNuevo,
                     updatedAt: serverTimestamp()
                 };
                 await setDoc(refNuevo, payload, { merge: true });
-                await deleteDoc(refActual);
+                // El doc viejo NO se borra — queda como una redirección hacia el DNI
+                // nuevo. Así, las reservas, pagos e historias que ya existían y
+                // todavía referencian el DNI anterior siguen encontrando los datos
+                // vigentes del paciente (y se siguen agrupando con el resto de su
+                // historial) sin que haga falta reescribir cada documento viejo uno
+                // por uno, y sin tocar documentos ya emitidos (recibos, etc.).
+                await setDoc(refActual, {
+                    redirigidoA: dniNuevo,
+                    dniAnterior: dniActual,
+                    fullName: dataActual.fullName || dataActual.fullLname || '',
+                    migradoEn: serverTimestamp(),
+                    migradoPor: (auth.currentUser && auth.currentUser.email) || null,
+                });
+                _redirectDNI.set(dniActual, dniNuevo);
                 document.getElementById("cliDni").value = dniNuevo;
                 document.getElementById("cliNuevoDni").value = "";
                 dniClienteCargado = dniNuevo;
                 _cliDniBloquear(true);
-                mostrarAviso("ID de paciente actualizado");
+                mostrarAviso("ID de paciente actualizado. Sus reservas, pagos e historial anteriores lo siguen encontrando con los datos nuevos.");
+                // Refresca todasLosPacientes (el DNI nuevo todavía no está ahí) y
+                // reservas/consultas ya cargadas, igual que al guardar un paciente.
+                _cargarDatosSecundarios().catch(e => console.warn('No se pudo refrescar tras cambiar el ID:', e));
             } catch (error) {
                 console.error(error);
                 mostrarAviso("No se pudo cambiar el ID");
@@ -8352,13 +8429,13 @@
                         _ppPagos.forEach(function(p){
                             var signo = p.tipo === 'devolucion' ? '−' : '+';
                             var color = p.tipo === 'devolucion' ? '#AD2E2E' : '#2F6B4F';
-                            var tieneResp = p.respaldo && p.respaldo.storagePath;
+                            var tieneResp = p.respaldo && (p.respaldo.storagePath || p.respaldo.modo === 'firestore_embebido');
                             html += '<div style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:12.5px;">' +
                                 '<div style="display:flex;justify-content:space-between;gap:8px;"><span>' + escapeHtml(p.fechaEfectiva || '—') + ' · ' + escapeHtml(p.metodoPago || '—') + '</span><strong style="color:' + color + ';white-space:nowrap;">' + signo + _fmtMoneyARS(p.monto) + '</strong></div>' +
                                 (p.nota ? '<div style="color:#7C8D81;margin-top:2px;">' + escapeHtml(p.nota) + '</div>' : '') +
                                 (p.motivo ? '<div style="color:#7C8D81;margin-top:2px;">Motivo: ' + escapeHtml(p.motivo) + '</div>' : '') +
                                 (tieneResp
-                                    ? '<button class="btn-mini" style="margin-top:4px;padding:4px 10px;font-size:11px;" onclick="window._ppVerRespaldo(\'' + p.respaldo.storagePath + '\')">Ver respaldo</button>'
+                                    ? '<button class="btn-mini" style="margin-top:4px;padding:4px 10px;font-size:11px;" onclick="window._ppVerRespaldo(\'' + p.id + '\')">Ver respaldo</button>'
                                     : (p.tipo === 'cobro' ? '<div style="color:#8A6A22;margin-top:2px;font-size:11px;">⚠ Registro anterior sin comprobante</div>' : '')) +
                                 '</div>';
                         });
@@ -8417,9 +8494,19 @@
                 _ppRespaldoArchivo = f || null;
                 window._ppOnMetodoChange(document.getElementById('mpp-metodo-input'));
             };
-            window._ppVerRespaldo = async function(storagePath) {
+            window._ppVerRespaldo = async function(pagoId) {
                 try {
-                    var url = await getDownloadURL(ref(storage, storagePath));
+                    var p = _ppPagos.find(function(x){ return x.id === pagoId; });
+                    var resp = p && p.respaldo;
+                    if (!resp) { mostrarAviso('No se encontró el respaldo de este pago.'); return; }
+                    if (resp.modo === 'firestore_embebido') {
+                        var blob = await (await fetch(resp.base64DataUrl)).blob();
+                        var blobUrl = URL.createObjectURL(blob);
+                        window.open(blobUrl, '_blank', 'noopener');
+                        setTimeout(function(){ URL.revokeObjectURL(blobUrl); }, 60000);
+                        return;
+                    }
+                    var url = await getDownloadURL(ref(storage, resp.storagePath));
                     window.open(url, '_blank', 'noopener');
                 } catch (e) {
                     console.error(e);
@@ -8490,17 +8577,93 @@
                 }
             };
 
-            // Sube el respaldo a Storage y recién DESPUÉS corre la transacción de
-            // Firestore — si la subida falla, no se escribe nada (el pago queda sin
-            // confirmar, no "a medias"). Para efectivo sin archivo elegido, genera y
-            // sube el comprobante interno de recepción en vez de pedir un escaneo.
+            // Tamaño máximo (del archivo ORIGINAL, antes de base64) para el respaldo
+            // embebido en Firestore — base64 infla ~33%, y el documento completo de
+            // Firestore tiene que entrar en 1 MiB. Deja margen de sobra para el
+            // resto de los campos del pago.
+            var _PP_LIMITE_EMBEBIDO_BYTES = 650 * 1024;
+
+            function _ppBlobABase64(blob) {
+                return new Promise(function(res, rej) {
+                    var r = new FileReader();
+                    r.onload = function(){ res(r.result); };
+                    r.onerror = rej;
+                    r.readAsDataURL(blob);
+                });
+            }
+            // Si una foto pesa más que el límite embebible, se recomprime achicando
+            // calidad/resolución hasta que entre — así una foto de celular (varios MB)
+            // casi siempre termina entrando sin que la administradora tenga que hacer
+            // nada especial. Un PDF no se puede recomprimir así: si pesa de más, se
+            // rechaza con un mensaje claro en vez de corromperlo.
+            async function _ppComprimirImagenParaEmbeber(blob, limiteBytes) {
+                var dataUrl = await _ppBlobABase64(blob);
+                var img = await new Promise(function(res, rej){ var im = new Image(); im.onload = function(){ res(im); }; im.onerror = rej; im.src = dataUrl; });
+                var calidad = 0.82, maxLado = 1600, ultimo = blob;
+                for (var intento = 0; intento < 6; intento++) {
+                    var escala = Math.min(1, maxLado / Math.max(img.width, img.height));
+                    var w = Math.max(1, Math.round(img.width * escala)), h = Math.max(1, Math.round(img.height * escala));
+                    var canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    var out = await new Promise(function(res){ canvas.toBlob(res, 'image/jpeg', calidad); });
+                    if (out) { ultimo = out; if (out.size <= limiteBytes) return out; }
+                    calidad = Math.max(0.35, calidad - 0.12); maxLado = Math.round(maxLado * 0.85);
+                }
+                return ultimo;
+            }
+            async function _ppPrepararRespaldoEmbebido(blob, contentType) {
+                var b = blob;
+                if (contentType.indexOf('image/') === 0 && b.size > _PP_LIMITE_EMBEBIDO_BYTES) {
+                    b = await _ppComprimirImagenParaEmbeber(b, _PP_LIMITE_EMBEBIDO_BYTES);
+                }
+                if (b.size > _PP_LIMITE_EMBEBIDO_BYTES) {
+                    return { ok: false, error: 'El archivo pesa ' + Math.round(b.size / 1024) + ' KB y, sin almacenamiento en la nube disponible, el máximo es ' + Math.round(_PP_LIMITE_EMBEBIDO_BYTES / 1024) + ' KB. Probá con una foto en vez de un PDF pesado.' };
+                }
+                var dataUrl = await _ppBlobABase64(b);
+                return { ok: true, dataUrl: dataUrl, tamanoBytes: b.size };
+            }
+
+            // Un uploadBytes que nunca responde (red lenta, bucket no provisionado
+            // respondiendo distinto a lo esperado, etc.) no puede dejar el registro
+            // del pago colgado para siempre — por eso se acota con un timeout y,
+            // vencido, se trata igual que un error de Storage (cae al respaldo
+            // embebido). El upload abandonado puede seguir en curso en segundo
+            // plano; si llega a completarse ya no se usa para nada, pero tampoco
+            // rompe nada.
+            function _ppConTimeout(promesa, ms) {
+                return new Promise(function(res, rej) {
+                    var listo = false;
+                    var t = setTimeout(function(){ if (!listo) { listo = true; rej(new Error('timeout esperando Storage (' + ms + 'ms)')); } }, ms);
+                    promesa.then(function(v){ if (!listo) { listo = true; clearTimeout(t); res(v); } }, function(e){ if (!listo) { listo = true; clearTimeout(t); rej(e); } });
+                });
+            }
+
+            // Guarda el respaldo de un pago. Primero intenta Storage (lo correcto,
+            // sin límite de tamaño); si Storage no está disponible (ej. el bucket
+            // nunca se provisionó en la consola de Firebase — pasa HOY en este
+            // proyecto) o tarda demasiado, cae automáticamente a guardar el archivo
+            // embebido en el propio documento de pago en Firestore, acotado en
+            // tamaño. El día que se habilite Storage, este fallback deja de
+            // activarse solo — no hace falta tocar código de nuevo.
+            async function _ppGuardarArchivoRespaldo(blob, opId, ext, tipo, metaExtra) {
+                var contentType = blob.type || (ext === 'pdf' ? 'application/pdf' : 'application/octet-stream');
+                var path = 'respaldosPago/' + _ppReservaId + '/' + opId + '.' + ext;
+                try {
+                    await _ppConTimeout(uploadBytes(ref(storage, path), blob, { contentType: contentType }), 8000);
+                    return { ok: true, respaldo: Object.assign({ storagePath: path, modo: 'storage', tipo: tipo, mime: contentType, tamanoBytes: blob.size }, metaExtra || {}) };
+                } catch (eStorage) {
+                    console.warn('Storage no disponible (o demasiado lento), se guarda el respaldo embebido en Firestore:', eStorage);
+                    var r = await _ppPrepararRespaldoEmbebido(blob, contentType);
+                    if (!r.ok) return r;
+                    return { ok: true, respaldo: Object.assign({ storagePath: null, modo: 'firestore_embebido', tipo: tipo, mime: contentType, tamanoBytes: r.tamanoBytes, base64DataUrl: r.dataUrl }, metaExtra || {}) };
+                }
+            }
+
             async function _ppSubirRespaldo(opId, metodo, monto, fecha, nota) {
                 if (_ppRespaldoArchivo) {
                     var v = validarRespaldo(_ppRespaldoArchivo);
                     if (!v.ok) return { ok: false, error: v.error };
-                    var path = 'respaldosPago/' + _ppReservaId + '/' + opId + '.' + v.ext;
-                    await uploadBytes(ref(storage, path), _ppRespaldoArchivo, { contentType: _ppRespaldoArchivo.type });
-                    return { ok: true, respaldo: { storagePath: path, tipo: 'adjunto', nombreArchivo: _ppRespaldoArchivo.name, mime: _ppRespaldoArchivo.type, tamanoBytes: _ppRespaldoArchivo.size } };
+                    return await _ppGuardarArchivoRespaldo(_ppRespaldoArchivo, opId, v.ext, 'adjunto', { nombreArchivo: _ppRespaldoArchivo.name });
                 }
                 if (metodo === 'efectivo') {
                     try {
@@ -8508,9 +8671,7 @@
                             pacienteNombre: _ppPacienteNombre, servicio: _ppServicio, monto: monto, fecha: fecha, nota: nota,
                             operador: (auth.currentUser && auth.currentUser.email) || 'admin',
                         });
-                        var pathEf = 'respaldosPago/' + _ppReservaId + '/' + opId + '.pdf';
-                        await uploadBytes(ref(storage, pathEf), blob, { contentType: 'application/pdf' });
-                        return { ok: true, respaldo: { storagePath: pathEf, tipo: 'comprobante_interno_efectivo', mime: 'application/pdf' } };
+                        return await _ppGuardarArchivoRespaldo(blob, opId, 'pdf', 'comprobante_interno_efectivo', {});
                     } catch (e) {
                         console.error(e);
                         return { ok: false, error: 'No se pudo generar el comprobante interno de efectivo: ' + (e && e.message ? e.message : 'error desconocido') };
@@ -8789,23 +8950,32 @@
             // que queda guardado en Firestore es el registro exacto de los valores
             // del recibo (storagePath: null documenta a propósito que no hay copia en
             // la nube, no es un olvido).
+            //
+            // El id del recibo es DETERMINÍSTICO (reservaId + pagoId): un pago tiene
+            // siempre el mismo recibo. Volver a tocar "Descargar"/"Compartir" para el
+            // mismo pago reusa el documento ya creado en vez de generar uno nuevo —
+            // regenerar el PDF da exactamente el mismo contenido (misma instantánea),
+            // así que no hace falta (ni conviene) reescribirlo cada vez.
             async function _reGenerarYRegistrar() {
                 var s = _reSnapshot();
-                var reciboId = nuevoIdOperacion('recibo', _reReservaId);
+                var reciboId = 'recibo_' + _reReservaId + '_' + _rePagoElegidoId;
                 var numeroRecibo = _reNumeroRecibo();
                 var docPdf = await _reDibujarPdf(numeroRecibo, s);
                 if (!docPdf) throw new Error('No se pudo generar el PDF');
                 var blob = docPdf.output('blob');
-                // s.estado es el estado del PAGO en el momento del recibo (parcial/completo/...);
-                // el doc de recibos usa "estado" para el estado de ENTREGA (generado/compartido_iniciado).
-                // Son dos cosas distintas — si se guardaran bajo la misma clave, una pisa a la otra
-                // y el estado del pago queda perdido para siempre en el documento persistido.
-                var sSinEstado = Object.assign({}, s); delete sSinEstado.estado;
-                await setDoc(doc(db, 'recibos', reciboId), Object.assign({}, sSinEstado, {
-                    reciboId: reciboId, numeroRecibo: numeroRecibo, pagoId: _rePagoElegidoId, prestacionId: _reReservaId, pacienteKey: null,
-                    versionPlantilla: 2, storagePath: null, estadoPago: s.estado, estado: 'generado',
-                    creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null,
-                }));
+                var yaExiste = await getDoc(doc(db, 'recibos', reciboId));
+                if (!yaExiste.exists()) {
+                    // s.estado es el estado del PAGO en el momento del recibo (parcial/completo/...);
+                    // el doc de recibos usa "estado" para el estado de ENTREGA (generado/compartido_iniciado).
+                    // Son dos cosas distintas — si se guardaran bajo la misma clave, una pisa a la otra
+                    // y el estado del pago queda perdido para siempre en el documento persistido.
+                    var sSinEstado = Object.assign({}, s); delete sSinEstado.estado;
+                    await setDoc(doc(db, 'recibos', reciboId), Object.assign({}, sSinEstado, {
+                        reciboId: reciboId, numeroRecibo: numeroRecibo, pagoId: _rePagoElegidoId, prestacionId: _reReservaId, pacienteKey: null,
+                        versionPlantilla: 2, storagePath: null, estadoPago: s.estado, estado: 'generado',
+                        creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null,
+                    }));
+                }
                 return { reciboId: reciboId, numeroRecibo: numeroRecibo, blob: blob, snapshot: s };
             }
 
