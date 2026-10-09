@@ -149,11 +149,23 @@ img, video { max-width: 100%; height: auto; }
 
 /* ── HERO ── */
 .hero {
-  position: relative; height: 100svh; min-height: 600px;
-  display: flex; align-items: center; overflow: hidden;
-  padding: 0 clamp(24px, 8vw, 120px);
+  /* min-height (no height fijo) + sin overflow:hidden acá: si el contenido
+     (título + subtítulo + credenciales + grilla de accesos, incluida la
+     tarjeta del Curso) es más alto que el viewport, la sección CRECE para
+     mostrarlo completo en vez de recortarlo. overflow:hidden se mueve a
+     .hero-bg (ver abajo), que es la única capa que de verdad lo necesita
+     (contener el grain, que a propósito mide el doble para poder animarse
+     sin mostrar sus bordes) — así se contiene el fondo sin limitar el alto
+     real del contenido. */
+  position: relative; min-height: max(100svh, 600px);
+  display: flex; align-items: center;
+  /* Un colchón vertical chico, solo para que el contenido no quede pegado al
+     borde cuando de verdad necesita más alto que el viewport — cuando entra
+     de sobra, align-items:center sigue centrándolo igual que antes, sin
+     hueco de más. */
+  padding: clamp(28px, 4svh, 48px) clamp(24px, 8vw, 120px);
 }
-.hero-bg { position: absolute; inset: 0; z-index: 0; }
+.hero-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
 .hero-bg-img {
   width: 100%; height: 100%; object-fit: cover; object-position: center 30%;
   transform: scale(1.04); transition: transform 8s ease-out;
@@ -700,7 +712,6 @@ img, video { max-width: 100%; height: auto; }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
-  .hero { min-height: 100svh; }
   .hero-content { text-align: center; }
   .hero-badge { justify-content: center; }
   .hero-actions { flex-direction: column; }
