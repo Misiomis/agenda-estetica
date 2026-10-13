@@ -924,6 +924,44 @@
            span sí queda acotado al ancho real de la tarjeta y el ellipsis
            se aplica de verdad. */
         .grilla-paciente-nombre { display: block; width: 100%; box-sizing: border-box; font-size: 11px; font-weight: 700; color: var(--forest); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* El nombre es clickeable (ver "Últimas sesiones") sin cambiar su
+           apariencia en reposo — solo gana un subrayado sutil al pasar el
+           mouse/foco, para que se note que es interactivo sin competir
+           visualmente con el resto de la celda. */
+        .grilla-paciente-nombre-clickable { cursor: pointer; text-decoration-line: underline; text-decoration-color: transparent; text-underline-offset: 2px; transition: text-decoration-color .15s; }
+        .grilla-paciente-nombre-clickable:hover, .grilla-paciente-nombre-clickable:focus-visible { text-decoration-color: var(--forest); }
+        .grilla-paciente-nombre-clickable:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 3px; }
+
+        /* ── Historial "Últimas sesiones" (popover desktop / modal mobile) ── */
+        .gh-popover {
+            position: fixed; z-index: 10050; width: 300px; max-width: calc(100vw - 24px);
+            background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px;
+            box-shadow: 0 10px 32px rgba(22,61,50,0.22); padding: 14px 16px; font-size: 13px;
+        }
+        .gh-modal-overlay {
+            position: fixed; inset: 0; z-index: 10050; background: rgba(16,30,22,0.45);
+            display: flex; align-items: flex-end; justify-content: center;
+        }
+        .gh-modal-overlay .gh-popover {
+            position: static; width: 100%; max-width: 480px; border-radius: 16px 16px 0 0;
+            max-height: 72vh; overflow-y: auto; box-shadow: 0 -8px 28px rgba(22,61,50,0.28);
+        }
+        @media (min-width: 540px) {
+            .gh-modal-overlay { align-items: center; }
+            .gh-modal-overlay .gh-popover { border-radius: 16px; max-height: 80vh; }
+        }
+        .gh-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+        .gh-titulo { font-weight: 800; color: var(--ink); font-size: 13px; }
+        .gh-paciente { color: var(--forest); font-weight: 700; }
+        .gh-close { background: none; border: none; font-size: 18px; line-height: 1; cursor: pointer; color: var(--ink-soft); padding: 2px 4px; }
+        .gh-close:focus-visible, .gh-reintentar:focus-visible, .gh-expandir:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+        .gh-lista { margin-top: 10px; display: flex; flex-direction: column; gap: 9px; }
+        .gh-fila { font-size: 12.5px; line-height: 1.5; color: var(--ink); }
+        .gh-fila b { color: var(--forest); }
+        .gh-desc-larga { color: var(--ink-soft); }
+        .gh-expandir { background: none; border: none; padding: 0; color: var(--forest); font-size: 11.5px; font-weight: 700; cursor: pointer; text-decoration: underline; margin-left: 4px; }
+        .gh-estado { font-size: 12.5px; color: var(--ink-soft); padding: 6px 0; }
+        .gh-reintentar { margin-top: 8px; background: var(--forest); color: #fff; border: none; border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
         .grilla-paciente-servicio { display: block; width: 100%; box-sizing: border-box; font-size: 9px; color: var(--sage-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .gc-sigue, .gc-ya-sede { display: block; width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; font-size: 8px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--gold); line-height: 1.2; }
         .grilla-celda-ocupada.gc-continua { border-left: 2.5px solid var(--gold) !important; }
@@ -13072,6 +13110,204 @@
             navegar('agenda');
         };
 
+        /* ══ Historial "Últimas sesiones" al hacer click en el nombre de la Grilla ══
+           Fuente: la misma colección "reservas" que ya usa toda la app, filtrada
+           por _pacienteMatchKey (DNI prioritario — nunca coincidencia de nombre —
+           y sigue la cadena de "Cambiar ID" vía _resolverDniFinal, igual que el
+           resto del panel). "Sesión realizada" = esReservaActiva(r) [no cancelada]
+           && !_esSesionPendiente(r) [ya pasó su horario de fin] — el mismo criterio
+           que ya usan "Sesiones pendientes/realizadas". El "tratamiento" es
+           r.servicio tal cual quedó cargado en ESA reserva (nunca el del turno
+           que se está mirando); la "descripción" es r.detalleSesion, el mismo
+           campo que llena "Guardar Nota" en la tarjeta de turno — no hay una
+           colección "Historias" separada por sesión clínica en este proyecto
+           (la colección llamada "historias" es un log de auditoría de acciones
+           del admin, sin datos de paciente por sesión), así que no hay otra
+           fuente de "descripción" que inventar ni mezclar.
+           Carga: primero filtra en memoria sobre todasLasReservas (ya cargada
+           por la propia Grilla — cero consultas nuevas); si la reserva clickeada
+           trae un DNI, además dispara UNA consulta a Firestore acotada a ese DNI
+           para garantizar que un cambio recién guardado en otra pestaña/sesión
+           se vea sin recargar — nunca se trae la colección completa ni se
+           consulta por cada tarjeta. Un token por apertura descarta respuestas
+           tardías si mientras tanto se abrió el historial de otro paciente. */
+        let _ghToken = 0;
+        let _ghFocoPrevio = null;
+        let _ghOnKeydown = null;
+        let _ghOnClickFuera = null;
+
+        function _ghSesionesEnMemoria(matchKey) {
+            const ahora = Date.now();
+            return todasLasReservas.filter(x =>
+                _pacienteMatchKey(x) === matchKey &&
+                esReservaActiva(x) &&
+                !_esSesionPendiente(x, ahora)
+            );
+        }
+        function _ghOrdenarYLimitar(lista) {
+            return lista
+                .slice()
+                .sort((a, b) => {
+                    const av = `${a.fecha || ''}T${normalizarHora(a.hora) || '00:00'}`;
+                    const bv = `${b.fecha || ''}T${normalizarHora(b.hora) || '00:00'}`;
+                    return bv < av ? -1 : bv > av ? 1 : 0;
+                })
+                .slice(0, 3);
+        }
+        function _ghFormatoFecha(fechaISO) {
+            const p = (fechaISO || '').split('-');
+            if (p.length !== 3) return fechaISO || '—';
+            const anioActual = new Date().getFullYear();
+            const corto = `${p[2]}/${p[1]}`;
+            return Number(p[0]) !== anioActual ? `${corto}/${p[0]}` : corto;
+        }
+        async function _ghConsultarPorDni(dni) {
+            const snap = await getDocs(query(collection(db, 'reservas'), where('dni', '==', dni)));
+            const out = [];
+            snap.forEach(d => out.push({ id: d.id, ...d.data() }));
+            return out;
+        }
+
+        function _ghCerrar() {
+            const existente = document.getElementById('gh-overlay') || document.getElementById('gh-popover-el');
+            if (existente) existente.remove();
+            if (_ghOnKeydown) { document.removeEventListener('keydown', _ghOnKeydown, true); _ghOnKeydown = null; }
+            if (_ghOnClickFuera) { document.removeEventListener('mousedown', _ghOnClickFuera, true); _ghOnClickFuera = null; }
+            if (_ghFocoPrevio && document.contains(_ghFocoPrevio)) { try { _ghFocoPrevio.focus(); } catch (_) {} }
+            _ghFocoPrevio = null;
+        }
+
+        function _ghRenderContenido(nombre, estado, filas, dniParaReintentar) {
+            const cuerpo = document.getElementById('gh-body');
+            if (!cuerpo) return;
+            let html = `<div class="gh-header"><span class="gh-titulo">Últimas sesiones <span style="color:var(--ink-soft);font-weight:400;">·</span> <span class="gh-paciente">${escapeHtml(nombre)}</span></span><button type="button" class="gh-close" id="gh-btn-cerrar" aria-label="Cerrar">×</button></div>`;
+            if (estado === 'cargando') {
+                html += `<div class="gh-estado" role="status">Cargando…</div>`;
+            } else if (estado === 'error') {
+                html += `<div class="gh-estado" role="alert">No se pudo cargar el historial.</div><button type="button" class="gh-reintentar" id="gh-btn-reintentar">Reintentar</button>`;
+            } else if (!filas.length) {
+                html += `<div class="gh-estado">Este paciente no tiene sesiones registradas.</div>`;
+            } else {
+                html += '<div class="gh-lista">' + filas.map((r, i) => {
+                    const fecha = escapeHtml(_ghFormatoFecha(r.fecha));
+                    const trat = escapeHtml(r.servicio || '—');
+                    const det = (r.detalleSesion || '').trim();
+                    if (!det) return `<div class="gh-fila"><b>${fecha}</b> · ${trat}</div>`;
+                    const esLarga = det.length > 90;
+                    const detEsc = escapeHtml(det);
+                    const corta = escapeHtml(det.slice(0, 90)) + '…';
+                    return esLarga
+                        ? `<div class="gh-fila"><b>${fecha}</b> · ${trat} — <span class="gh-desc-larga" id="gh-desc-${i}" data-full="${detEsc.replace(/"/g, '&quot;')}" data-corta="${corta.replace(/"/g, '&quot;')}">${corta}</span><button type="button" class="gh-expandir" data-expandir="${i}">ver más</button></div>`
+                        : `<div class="gh-fila"><b>${fecha}</b> · ${trat} — <span class="gh-desc-larga">${detEsc}</span></div>`;
+                }).join('') + '</div>';
+            }
+            cuerpo.innerHTML = html;
+            const btnCerrar = document.getElementById('gh-btn-cerrar');
+            if (btnCerrar) { btnCerrar.onclick = _ghCerrar; if (estado !== 'cargando') btnCerrar.focus(); }
+            const btnReintentar = document.getElementById('gh-btn-reintentar');
+            if (btnReintentar) btnReintentar.onclick = () => _ghCargarYRenderizar(nombre, dniParaReintentar, _ghMatchKeyActual);
+            cuerpo.querySelectorAll('[data-expandir]').forEach(btn => {
+                btn.onclick = () => {
+                    const span = document.getElementById('gh-desc-' + btn.dataset.expandir);
+                    const expandido = btn.textContent === 'ver menos';
+                    span.textContent = expandido ? span.dataset.corta : span.dataset.full;
+                    btn.textContent = expandido ? 'ver más' : 'ver menos';
+                };
+            });
+        }
+
+        let _ghMatchKeyActual = null;
+        async function _ghCargarYRenderizar(nombre, dni, matchKey) {
+            const miToken = ++_ghToken;
+            const enMemoria = _ghOrdenarYLimitar(_ghSesionesEnMemoria(matchKey));
+            if (!dni) { _ghRenderContenido(nombre, 'ok', enMemoria, dni); return; }
+            _ghRenderContenido(nombre, 'cargando', [], dni);
+            try {
+                const remotas = await _ghConsultarPorDni(dni);
+                if (miToken !== _ghToken) return; // se abrió otro paciente mientras tanto
+                const porId = new Map();
+                enMemoria.forEach(r => porId.set(r.id, r));
+                remotas.forEach(r => porId.set(r.id, r));
+                const combinadas = _ghOrdenarYLimitar(
+                    Array.from(porId.values()).filter(x => _pacienteMatchKey(x) === matchKey && esReservaActiva(x) && !_esSesionPendiente(x))
+                );
+                _ghRenderContenido(nombre, 'ok', combinadas, dni);
+            } catch (e) {
+                console.error('Historial de paciente (Grilla):', e);
+                if (miToken !== _ghToken) return;
+                _ghRenderContenido(nombre, 'error', [], dni);
+            }
+        }
+
+        window.grillaVerHistorialPaciente = function(ev, reservaId) {
+            if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            _ghCerrar();
+            const trigger = ev ? ev.currentTarget : null;
+            _ghFocoPrevio = trigger;
+            const matchKey = _pacienteMatchKey(r);
+            _ghMatchKeyActual = matchKey;
+            const nombre = _pacienteNombreDisplay(r);
+            const dni = normalizarDNI(r.dni ?? r.clienteDni ?? r.documento ?? r.document ?? '');
+
+            const esMobile = window.innerWidth < 640;
+            let contenedorFoco;
+            if (esMobile) {
+                const overlay = document.createElement('div');
+                overlay.id = 'gh-overlay';
+                overlay.className = 'gh-modal-overlay';
+                overlay.setAttribute('role', 'presentation');
+                overlay.innerHTML = '<div class="gh-popover" id="gh-popover-el" role="dialog" aria-modal="true" aria-label="Últimas sesiones" tabindex="-1"><div id="gh-body"></div></div>';
+                document.body.appendChild(overlay);
+                _ghOnClickFuera = (e) => { if (e.target === overlay) _ghCerrar(); };
+                contenedorFoco = overlay.querySelector('#gh-popover-el');
+            } else {
+                const pop = document.createElement('div');
+                pop.id = 'gh-popover-el';
+                pop.className = 'gh-popover';
+                pop.setAttribute('role', 'dialog');
+                pop.setAttribute('aria-modal', 'true');
+                pop.setAttribute('aria-label', 'Últimas sesiones');
+                pop.tabIndex = -1;
+                pop.innerHTML = '<div id="gh-body"></div>';
+                document.body.appendChild(pop);
+                // Posicionar junto al nombre clickeado, sin salirse del viewport.
+                if (trigger) {
+                    const rct = trigger.getBoundingClientRect();
+                    const anchoPop = 300;
+                    let left = Math.min(rct.left, window.innerWidth - anchoPop - 12);
+                    left = Math.max(12, left);
+                    let top = rct.bottom + 6;
+                    pop.style.left = left + 'px';
+                    pop.style.top = top + 'px';
+                    // Si no entra debajo, mostrar arriba del nombre.
+                    requestAnimationFrame(() => {
+                        const h = pop.getBoundingClientRect().height;
+                        if (rct.bottom + 6 + h > window.innerHeight) {
+                            pop.style.top = Math.max(12, rct.top - h - 6) + 'px';
+                        }
+                    });
+                }
+                _ghOnClickFuera = (e) => { if (!pop.contains(e.target) && e.target !== trigger) _ghCerrar(); };
+                contenedorFoco = pop;
+            }
+            _ghOnKeydown = (e) => {
+                if (e.key === 'Escape') { e.preventDefault(); _ghCerrar(); return; }
+                if (e.key !== 'Tab') return;
+                // Foco cíclico simple dentro del panel.
+                const foco = contenedorFoco.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
+                if (!foco.length) return;
+                const primero = foco[0], ultimo = foco[foco.length - 1];
+                if (e.shiftKey && document.activeElement === primero) { e.preventDefault(); ultimo.focus(); }
+                else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero.focus(); }
+            };
+            document.addEventListener('keydown', _ghOnKeydown, true);
+            setTimeout(() => document.addEventListener('mousedown', _ghOnClickFuera, true), 0);
+
+            _ghCargarYRenderizar(nombre, dni, matchKey);
+        };
+
         /* ── Drag-and-drop para cambiar de box en la grilla ── */
         let _gDrag = null; // reservaId en arrastre
 
@@ -13323,7 +13559,7 @@
                                 circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                             }
                             inner = `<div class="grilla-celda-ocupada${circCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv} (arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
-                                <span class="grilla-paciente-nombre">${nom}</span>
+                                <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Ver últimas sesiones de ${nom}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaVerHistorialPaciente(event,'${res.id}')}">${nom}</span>
                                 <span class="grilla-paciente-servicio">${srv}</span>
                                 ${circHtml}
                             </div>`;
