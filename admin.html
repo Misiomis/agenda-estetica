@@ -932,36 +932,61 @@
         .grilla-paciente-nombre-clickable:hover, .grilla-paciente-nombre-clickable:focus-visible { text-decoration-color: var(--forest); }
         .grilla-paciente-nombre-clickable:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 3px; }
 
-        /* ── Historial "Últimas sesiones" (popover desktop / modal mobile) ── */
-        .gh-popover {
-            position: fixed; z-index: 10050; width: 300px; max-width: calc(100vw - 24px);
-            background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px;
-            box-shadow: 0 10px 32px rgba(22,61,50,0.22); padding: 14px 16px; font-size: 13px;
-        }
+        /* ── Historial "Últimas sesiones" ────────────────────────────────────
+           SIEMPRE un modal centrado respecto de la pantalla visible (no un
+           popover anclado al nombre) — en escritorio, celular y tablet por
+           igual. Se arma como "portal": un nodo nuevo colgado directo de
+           <body>, con position:fixed propio, así nunca queda condicionado
+           por el tamaño/overflow/transform de la celda de la Grilla que lo
+           abrió. Header (título + paciente + X) fijo arriba; el scroll
+           vertical ocurre solo dentro de .gh-body, nunca en todo el modal —
+           así la X siempre queda alcanzable aunque haya muchas sesiones o
+           una descripción larga expandida. */
         .gh-modal-overlay {
             position: fixed; inset: 0; z-index: 10050; background: rgba(16,30,22,0.45);
-            display: flex; align-items: flex-end; justify-content: center;
+            display: flex; align-items: center; justify-content: center;
+            padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+                     max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
         }
-        .gh-modal-overlay .gh-popover {
-            position: static; width: 100%; max-width: 480px; border-radius: 16px 16px 0 0;
-            max-height: 72vh; overflow-y: auto; box-shadow: 0 -8px 28px rgba(22,61,50,0.28);
+        .gh-modal {
+            width: 100%; max-width: 420px;
+            /* dvh (altura dinámica de viewport) en vez de vh: en mobile, vh
+               no descuenta la barra de direcciones del navegador y puede
+               dejar la X real fuera de la pantalla visible. */
+            max-height: min(85dvh, 640px);
+            display: flex; flex-direction: column;
+            background: var(--surface); border: 1px solid var(--border-strong); border-radius: 16px;
+            box-shadow: 0 16px 40px rgba(22,61,50,0.28);
+            overflow: hidden; /* el redondeado de las esquinas se respeta; el scroll real va en .gh-body */
         }
-        @media (min-width: 540px) {
-            .gh-modal-overlay { align-items: center; }
-            .gh-modal-overlay .gh-popover { border-radius: 16px; max-height: 80vh; }
+        .gh-header {
+            flex: 0 0 auto; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+            padding: 16px 10px 14px 18px; border-bottom: 1px solid var(--border);
         }
-        .gh-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
-        .gh-titulo { font-weight: 800; color: var(--ink); font-size: 13px; }
-        .gh-paciente { color: var(--forest); font-weight: 700; }
-        .gh-close { background: none; border: none; font-size: 18px; line-height: 1; cursor: pointer; color: var(--ink-soft); padding: 2px 4px; }
+        .gh-header-textos { min-width: 0; }
+        .gh-titulo { display: block; font-weight: 700; color: var(--ink-soft); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+        .gh-paciente {
+            display: block; color: var(--forest); font-weight: 800; font-size: 15px; margin-top: 2px;
+            overflow-wrap: anywhere; word-break: break-word; /* nombres largos nunca desbordan horizontalmente */
+        }
+        /* Área táctil real de 44×44 con separación del borde del modal — el
+           glifo "×" es más chico, centrado adentro con flex. */
+        .gh-close {
+            flex: 0 0 auto; width: 44px; height: 44px; margin: -8px -6px -8px 0;
+            display: flex; align-items: center; justify-content: center;
+            background: none; border: none; border-radius: 10px; font-size: 22px; line-height: 1;
+            cursor: pointer; color: var(--ink-soft);
+        }
+        .gh-close:hover { background: var(--surface-2); color: var(--ink); }
         .gh-close:focus-visible, .gh-reintentar:focus-visible, .gh-expandir:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-        .gh-lista { margin-top: 10px; display: flex; flex-direction: column; gap: 9px; }
-        .gh-fila { font-size: 12.5px; line-height: 1.5; color: var(--ink); }
+        .gh-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 18px 18px; font-size: 13px; }
+        .gh-lista { display: flex; flex-direction: column; gap: 11px; }
+        .gh-fila { font-size: 12.5px; line-height: 1.55; color: var(--ink); overflow-wrap: anywhere; word-break: break-word; }
         .gh-fila b { color: var(--forest); }
         .gh-desc-larga { color: var(--ink-soft); }
         .gh-expandir { background: none; border: none; padding: 0; color: var(--forest); font-size: 11.5px; font-weight: 700; cursor: pointer; text-decoration: underline; margin-left: 4px; }
         .gh-estado { font-size: 12.5px; color: var(--ink-soft); padding: 6px 0; }
-        .gh-reintentar { margin-top: 8px; background: var(--forest); color: #fff; border: none; border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .gh-reintentar { margin-top: 8px; background: var(--forest); color: #fff; border: none; border-radius: 8px; padding: 10px 14px; min-height: 40px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
         .grilla-paciente-servicio { display: block; width: 100%; box-sizing: border-box; font-size: 9px; color: var(--sage-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .gc-sigue, .gc-ya-sede { display: block; width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; font-size: 8px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--gold); line-height: 1.2; }
         .grilla-celda-ocupada.gc-continua { border-left: 2.5px solid var(--gold) !important; }
@@ -13103,14 +13128,17 @@
             }
         };
 
-        window.grillaCeldaOcupada = (reservaId) => {
-            const r = todasLasReservas.find(x => x.id === reservaId);
-            if (!r) return;
-            verTurnos(r.fecha, null);
-            navegar('agenda');
-        };
+        /* ══ Historial "Últimas sesiones" al hacer click en un turno de la Grilla ══
+           Grilla y Agenda son vistas independientes: tocar un turno (en
+           cualquier parte de la tarjeta, no solo el nombre) abre ESTE
+           historial y nunca navega a Agenda — antes grillaCeldaOcupada()
+           hacía verTurnos()+navegar('agenda'), lo que en celular/tablet
+           sacaba a la administradora de la Grilla sin querer. Esa función se
+           quitó; ir a Agenda ahora es solo a través de su opción del menú.
+           El arrastre (draggable/ondragstart/ondragend) no se tocó y sigue
+           funcionando igual, porque un click estacionario y un drag son
+           gestos distintos para el navegador.
 
-        /* ══ Historial "Últimas sesiones" al hacer click en el nombre de la Grilla ══
            Fuente: la misma colección "reservas" que ya usa toda la app, filtrada
            por _pacienteMatchKey (DNI prioritario — nunca coincidencia de nombre —
            y sigue la cadena de "Cambiar ID" vía _resolverDniFinal, igual que el
@@ -13134,7 +13162,6 @@
         let _ghToken = 0;
         let _ghFocoPrevio = null;
         let _ghOnKeydown = null;
-        let _ghOnClickFuera = null;
 
         function _ghSesionesEnMemoria(matchKey) {
             const ahora = Date.now();
@@ -13169,26 +13196,34 @@
         }
 
         function _ghCerrar() {
-            const existente = document.getElementById('gh-overlay') || document.getElementById('gh-popover-el');
+            const existente = document.getElementById('gh-overlay');
             if (existente) existente.remove();
             if (_ghOnKeydown) { document.removeEventListener('keydown', _ghOnKeydown, true); _ghOnKeydown = null; }
-            if (_ghOnClickFuera) { document.removeEventListener('mousedown', _ghOnClickFuera, true); _ghOnClickFuera = null; }
+            // El propio overlay ya se quitó del DOM, así que su listener de
+            // "clic afuera" (agregado directo sobre el overlay, no sobre
+            // document) se va con él — no hace falta sacarlo a mano.
             if (_ghFocoPrevio && document.contains(_ghFocoPrevio)) { try { _ghFocoPrevio.focus(); } catch (_) {} }
             _ghFocoPrevio = null;
         }
 
-        function _ghRenderContenido(nombre, estado, filas, dniParaReintentar) {
+        // El header (título, paciente, X) se arma UNA sola vez al abrir y
+        // nunca se vuelve a tocar — solo #gh-body cambia entre
+        // cargando/ok/vacío/error. Así la X nunca desaparece ni pierde su
+        // listener mientras el contenido se actualiza, y el scroll de una
+        // lista larga o una descripción expandida queda contenido adentro de
+        // #gh-body sin mover la cabecera.
+        function _ghRenderContenido(estado, filas, nombre, dniParaReintentar) {
             const cuerpo = document.getElementById('gh-body');
             if (!cuerpo) return;
-            let html = `<div class="gh-header"><span class="gh-titulo">Últimas sesiones <span style="color:var(--ink-soft);font-weight:400;">·</span> <span class="gh-paciente">${escapeHtml(nombre)}</span></span><button type="button" class="gh-close" id="gh-btn-cerrar" aria-label="Cerrar">×</button></div>`;
+            let html = '';
             if (estado === 'cargando') {
-                html += `<div class="gh-estado" role="status">Cargando…</div>`;
+                html = `<div class="gh-estado" role="status">Cargando…</div>`;
             } else if (estado === 'error') {
-                html += `<div class="gh-estado" role="alert">No se pudo cargar el historial.</div><button type="button" class="gh-reintentar" id="gh-btn-reintentar">Reintentar</button>`;
+                html = `<div class="gh-estado" role="alert">No se pudo cargar el historial.</div><button type="button" class="gh-reintentar" id="gh-btn-reintentar">Reintentar</button>`;
             } else if (!filas.length) {
-                html += `<div class="gh-estado">Este paciente no tiene sesiones registradas.</div>`;
+                html = `<div class="gh-estado">Este paciente no tiene sesiones registradas.</div>`;
             } else {
-                html += '<div class="gh-lista">' + filas.map((r, i) => {
+                html = '<div class="gh-lista">' + filas.map((r, i) => {
                     const fecha = escapeHtml(_ghFormatoFecha(r.fecha));
                     const trat = escapeHtml(r.servicio || '—');
                     const det = (r.detalleSesion || '').trim();
@@ -13202,8 +13237,6 @@
                 }).join('') + '</div>';
             }
             cuerpo.innerHTML = html;
-            const btnCerrar = document.getElementById('gh-btn-cerrar');
-            if (btnCerrar) { btnCerrar.onclick = _ghCerrar; if (estado !== 'cargando') btnCerrar.focus(); }
             const btnReintentar = document.getElementById('gh-btn-reintentar');
             if (btnReintentar) btnReintentar.onclick = () => _ghCargarYRenderizar(nombre, dniParaReintentar, _ghMatchKeyActual);
             cuerpo.querySelectorAll('[data-expandir]').forEach(btn => {
@@ -13220,8 +13253,8 @@
         async function _ghCargarYRenderizar(nombre, dni, matchKey) {
             const miToken = ++_ghToken;
             const enMemoria = _ghOrdenarYLimitar(_ghSesionesEnMemoria(matchKey));
-            if (!dni) { _ghRenderContenido(nombre, 'ok', enMemoria, dni); return; }
-            _ghRenderContenido(nombre, 'cargando', [], dni);
+            if (!dni) { _ghRenderContenido('ok', enMemoria, nombre, dni); return; }
+            _ghRenderContenido('cargando', [], nombre, dni);
             try {
                 const remotas = await _ghConsultarPorDni(dni);
                 if (miToken !== _ghToken) return; // se abrió otro paciente mientras tanto
@@ -13231,14 +13264,20 @@
                 const combinadas = _ghOrdenarYLimitar(
                     Array.from(porId.values()).filter(x => _pacienteMatchKey(x) === matchKey && esReservaActiva(x) && !_esSesionPendiente(x))
                 );
-                _ghRenderContenido(nombre, 'ok', combinadas, dni);
+                if (miToken !== _ghToken) return;
+                _ghRenderContenido('ok', combinadas, nombre, dni);
             } catch (e) {
                 console.error('Historial de paciente (Grilla):', e);
                 if (miToken !== _ghToken) return;
-                _ghRenderContenido(nombre, 'error', [], dni);
+                _ghRenderContenido('error', [], nombre, dni);
             }
         }
 
+        // SIEMPRE un modal centrado (nunca un popover anclado a la celda) —
+        // en escritorio, celular y tablet por igual. Se cuelga directo de
+        // <body> (un "portal"), con su propio position:fixed: nunca queda
+        // condicionado por el tamaño, el scroll, un transform o el overflow
+        // de la celda de la Grilla que lo abrió.
         window.grillaVerHistorialPaciente = function(ev, reservaId) {
             if (ev) { ev.stopPropagation(); ev.preventDefault(); }
             const r = todasLasReservas.find(x => x.id === reservaId);
@@ -13249,61 +13288,42 @@
             const matchKey = _pacienteMatchKey(r);
             _ghMatchKeyActual = matchKey;
             const nombre = _pacienteNombreDisplay(r);
+            const nombreEsc = escapeHtml(nombre);
             const dni = normalizarDNI(r.dni ?? r.clienteDni ?? r.documento ?? r.document ?? '');
 
-            const esMobile = window.innerWidth < 640;
-            let contenedorFoco;
-            if (esMobile) {
-                const overlay = document.createElement('div');
-                overlay.id = 'gh-overlay';
-                overlay.className = 'gh-modal-overlay';
-                overlay.setAttribute('role', 'presentation');
-                overlay.innerHTML = '<div class="gh-popover" id="gh-popover-el" role="dialog" aria-modal="true" aria-label="Últimas sesiones" tabindex="-1"><div id="gh-body"></div></div>';
-                document.body.appendChild(overlay);
-                _ghOnClickFuera = (e) => { if (e.target === overlay) _ghCerrar(); };
-                contenedorFoco = overlay.querySelector('#gh-popover-el');
-            } else {
-                const pop = document.createElement('div');
-                pop.id = 'gh-popover-el';
-                pop.className = 'gh-popover';
-                pop.setAttribute('role', 'dialog');
-                pop.setAttribute('aria-modal', 'true');
-                pop.setAttribute('aria-label', 'Últimas sesiones');
-                pop.tabIndex = -1;
-                pop.innerHTML = '<div id="gh-body"></div>';
-                document.body.appendChild(pop);
-                // Posicionar junto al nombre clickeado, sin salirse del viewport.
-                if (trigger) {
-                    const rct = trigger.getBoundingClientRect();
-                    const anchoPop = 300;
-                    let left = Math.min(rct.left, window.innerWidth - anchoPop - 12);
-                    left = Math.max(12, left);
-                    let top = rct.bottom + 6;
-                    pop.style.left = left + 'px';
-                    pop.style.top = top + 'px';
-                    // Si no entra debajo, mostrar arriba del nombre.
-                    requestAnimationFrame(() => {
-                        const h = pop.getBoundingClientRect().height;
-                        if (rct.bottom + 6 + h > window.innerHeight) {
-                            pop.style.top = Math.max(12, rct.top - h - 6) + 'px';
-                        }
-                    });
-                }
-                _ghOnClickFuera = (e) => { if (!pop.contains(e.target) && e.target !== trigger) _ghCerrar(); };
-                contenedorFoco = pop;
-            }
+            const overlay = document.createElement('div');
+            overlay.id = 'gh-overlay';
+            overlay.className = 'gh-modal-overlay';
+            overlay.innerHTML =
+                `<div class="gh-modal" id="gh-modal-el" role="dialog" aria-modal="true" aria-label="Últimas sesiones de ${nombreEsc}" tabindex="-1">` +
+                    `<div class="gh-header">` +
+                        `<div class="gh-header-textos"><span class="gh-titulo">Últimas sesiones</span><span class="gh-paciente">${nombreEsc}</span></div>` +
+                        `<button type="button" class="gh-close" id="gh-btn-cerrar" aria-label="Cerrar">×</button>` +
+                    `</div>` +
+                    `<div class="gh-body" id="gh-body"></div>` +
+                `</div>`;
+            document.body.appendChild(overlay);
+            const modalEl = document.getElementById('gh-modal-el');
+
+            // Clic en el fondo oscuro (nunca dentro del modal) lo cierra; con
+            // el overlay cubriendo toda la pantalla, también evita que un
+            // toque "accidental" llegue a la Grilla de atrás mientras está
+            // abierto.
+            overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) _ghCerrar(); });
+            document.getElementById('gh-btn-cerrar').onclick = _ghCerrar;
+
             _ghOnKeydown = (e) => {
                 if (e.key === 'Escape') { e.preventDefault(); _ghCerrar(); return; }
                 if (e.key !== 'Tab') return;
-                // Foco cíclico simple dentro del panel.
-                const foco = contenedorFoco.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
+                // Foco cíclico simple dentro del modal.
+                const foco = modalEl.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
                 if (!foco.length) return;
                 const primero = foco[0], ultimo = foco[foco.length - 1];
                 if (e.shiftKey && document.activeElement === primero) { e.preventDefault(); ultimo.focus(); }
                 else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero.focus(); }
             };
             document.addEventListener('keydown', _ghOnKeydown, true);
-            setTimeout(() => document.addEventListener('mousedown', _ghOnClickFuera, true), 0);
+            document.getElementById('gh-btn-cerrar').focus();
 
             _ghCargarYRenderizar(nombre, dni, matchKey);
         };
@@ -13558,14 +13578,14 @@
                                 const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
                                 circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                             }
-                            inner = `<div class="grilla-celda-ocupada${circCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — ${srv} (arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
+                            inner = `<div class="grilla-celda-ocupada${circCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
                                 <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Ver últimas sesiones de ${nom}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaVerHistorialPaciente(event,'${res.id}')}">${nom}</span>
                                 <span class="grilla-paciente-servicio">${srv}</span>
                                 ${circHtml}
                             </div>`;
                         } else {
                             // Continuación: bloque sólido sin texto, clicable
-                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}" onclick="grillaCeldaOcupada('${res.id}')" title="${nom} — continúa" style="--box-accent:${box.accent};${divRad}"></div>`;
+                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — continúa (tocá para ver sus últimas sesiones)" style="--box-accent:${box.accent};${divRad}"></div>`;
                         }
                     } else if (adminBloq) {
                         inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
