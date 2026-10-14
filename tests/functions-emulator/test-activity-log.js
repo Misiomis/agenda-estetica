@@ -73,15 +73,72 @@ async function esperar(fn, { intentos = 20, esperaMs = 500 } = {}) {
   eventos = await esperar(async () => { const e = await contarActivityLog('pedidosKit', k1.id); return e.length >= 1 ? e : null; }) || [];
   resultados.push(['pedidoKit create -> 1 evento "Nuevo pedido de kit"', eventos.length === 1 && /Nuevo pedido de kit/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
 
-  // 9) Reserva de depilación nueva -> debe generar evento
+  // 9) Reserva de depilación nueva -> debe generar evento. No hay emulador
+  // de FCM en el Local Emulator Suite, así que no se puede observar acá si
+  // notifyAndroidDevices() efectivamente mandó el push "depilacion_nueva" —
+  // esa parte queda cubierta por lectura de código (mismo patrón ya
+  // probado de onPedidoKitActividad) y por la prueba manual contra el
+  // emulador descripta en el plan. Lo que SÍ se puede verificar acá es que
+  // el trigger no se cae (activityLog se sigue escribiendo con normalidad)
+  // y que la regla "solo en altas" se respeta.
   const rd1 = await db.collection('reservasDepi').add({ nombre: 'Depi Testigo', fecha: '2099-08-08', hora: '14:00', estado: 'confirmado' });
   eventos = await esperar(async () => { const e = await contarActivityLog('reservasDepi', rd1.id); return e.length >= 1 ? e : null; }) || [];
   resultados.push(['reservaDepi create -> 1 evento "Nueva reserva de depilación"', eventos.length === 1 && /Nueva reserva de depilación/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 9b) Cambio irrelevante (sin estado/fecha/hora) -> NO debe generar evento nuevo
+  await rd1.update({ notas: 'nota interna sin relevancia' });
+  await new Promise(res => setTimeout(res, 3000));
+  eventos = await contarActivityLog('reservasDepi', rd1.id);
+  resultados.push(['reservaDepi cambio irrelevante -> sigue en 1 evento (sin ruido, sin push de "nueva")', eventos.length === 1, JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 9c) Cancelación REAL tal como la hace admin-depi.html: estado:'cancelada'
+  // (femenino) — antes del fix esto NUNCA generaba el evento "cancelada"
+  // porque la función comparaba contra "cancelado" (masculino) a secas.
+  // Esta es la prueba de regresión del bug encontrado.
+  await rd1.update({ estado: 'cancelada', eliminado: true });
+  eventos = await esperar(async () => { const e = await contarActivityLog('reservasDepi', rd1.id); return e.length >= 2 ? e : null; }) || eventos;
+  resultados.push(['reservaDepi cancelada (estado:"cancelada", femenino) -> 2 eventos, el 2do "cancelada"', eventos.length === 2 && eventos.some(e => /Reserva de depilación cancelada/.test(e.resumen)), JSON.stringify(eventos.map(e=>e.resumen))]);
 
   // 10) Inscripción a curso de automaquillaje nueva -> debe generar evento
   const cm1 = await db.collection('cursoMaquillaje').add({ nombre: 'Curso Testigo' });
   eventos = await esperar(async () => { const e = await contarActivityLog('cursoMaquillaje', cm1.id); return e.length >= 1 ? e : null; }) || [];
   resultados.push(['cursoMaquillaje create -> 1 evento "Nueva inscripción"', eventos.length === 1 && /Nueva inscripción/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 11) Prestación nueva (precio definido) -> debe generar evento
+  await db.collection('prestaciones').doc('presta-testigo-1').set({ reservaId: 'presta-testigo-1', pacienteNombre: 'Prestacion Testigo', precioAcordado: 75000, sinCargo: false });
+  eventos = await esperar(async () => { const e = await contarActivityLog('prestaciones', 'presta-testigo-1'); return e.length >= 1 ? e : null; }) || [];
+  resultados.push(['prestacion create -> 1 evento "Precio registrado" con el monto real', eventos.length === 1 && /Precio registrado.*75\.000/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 12) Esa misma prestación se anula -> debe generar UN evento más "Prestación anulada" (no reescribe el primero)
+  await db.collection('prestaciones').doc('presta-testigo-1').update({ anulada: true, motivoAnulacion: 'prueba automatica' });
+  eventos = await esperar(async () => { const e = await contarActivityLog('prestaciones', 'presta-testigo-1'); return e.length >= 2 ? e : null; }) || eventos;
+  resultados.push(['prestacion anulada -> 2 eventos total, el 2do "Prestación anulada"', eventos.length === 2 && eventos.some(e => /Prestación anulada/.test(e.resumen)), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 13) Pago (cobro) nuevo -> debe generar evento con el monto real, nunca $0 inventado
+  await db.collection('pagos').doc('pago-testigo-1').set({ prestacionId: 'presta-testigo-1', pacienteNombre: 'Prestacion Testigo', monto: 30000, tipo: 'cobro', fechaEfectiva: '2026-09-17' });
+  eventos = await esperar(async () => { const e = await contarActivityLog('pagos', 'pago-testigo-1'); return e.length >= 1 ? e : null; }) || [];
+  resultados.push(['pago create -> 1 evento "Cobro registrado" con el monto real', eventos.length === 1 && /Cobro registrado.*30\.000/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 14) Reintento con el MISMO operationId (mismo id de documento) -> no debe duplicar el evento (idempotencia real)
+  await db.collection('pagos').doc('pago-testigo-1').set({ prestacionId: 'presta-testigo-1', pacienteNombre: 'Prestacion Testigo', monto: 30000, tipo: 'cobro', fechaEfectiva: '2026-09-17' }, { merge: true });
+  await new Promise(res => setTimeout(res, 3000));
+  eventos = await contarActivityLog('pagos', 'pago-testigo-1');
+  resultados.push(['pago reescrito con el mismo contenido (reintento) -> sigue en 1 evento, no duplica el ingreso', eventos.length === 1, JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 15) Devolución -> debe distinguirse del cobro en el resumen
+  await db.collection('pagos').doc('pago-testigo-2').set({ prestacionId: 'presta-testigo-1', pacienteNombre: 'Prestacion Testigo', monto: 10000, tipo: 'devolucion', motivo: 'prueba automatica', fechaEfectiva: '2026-09-17' });
+  eventos = await esperar(async () => { const e = await contarActivityLog('pagos', 'pago-testigo-2'); return e.length >= 1 ? e : null; }) || [];
+  resultados.push(['devolución create -> 1 evento "Devolución registrada" (no "Cobro registrado")', eventos.length === 1 && /Devolución registrada/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 16) Gasto nuevo -> debe generar evento
+  const g1 = await db.collection('gastos').add({ concepto: 'Gasto Testigo', modalidad: 'importe_fijo', montoFijo: 20000, estado: 'pendiente' });
+  eventos = await esperar(async () => { const e = await contarActivityLog('gastos', g1.id); return e.length >= 1 ? e : null; }) || [];
+  resultados.push(['gasto create -> 1 evento "Nuevo gasto"', eventos.length === 1 && /Nuevo gasto/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 17) Ese gasto pasa a pagado -> debe generar evento adicional
+  await g1.update({ estado: 'pagado', fechaPagoEfectiva: '2026-09-17' });
+  eventos = await esperar(async () => { const e = await contarActivityLog('gastos', g1.id); return e.length >= 2 ? e : null; }) || eventos;
+  resultados.push(['gasto marcado pagado -> 2 eventos total, el 2do "Gasto marcado como pagado"', eventos.length === 2 && eventos.some(e => /Gasto marcado como pagado/.test(e.resumen)), JSON.stringify(eventos.map(e=>e.resumen))]);
 
   console.log('\n=== RESULTADOS ===');
   let fallas = 0;

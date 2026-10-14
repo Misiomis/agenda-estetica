@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Exportar contactos — Espacio Mimar T</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #F6F4ED; color: #20382B; max-width: 560px; margin: 40px auto; padding: 0 20px; }
+  h1 { font-size: 1.3rem; }
+  button { background: #2D4A32; color: #fff; border: none; border-radius: 10px; padding: 14px 20px; font-size: 15px; font-weight: 700; cursor: pointer; min-height: 44px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.secundario { background: #fff; color: #2D4A32; border: 1.5px solid #7C8D81; }
+  input { width: 100%; box-sizing: border-box; padding: 12px; border: 1.5px solid #7C8D81; border-radius: 10px; font-size: 16px; margin-bottom: 10px; }
+  #status { white-space: pre-wrap; background: #fff; border: 1px solid #D8DFD7; border-radius: 10px; padding: 14px; margin-top: 16px; font-size: 13px; line-height: 1.5; max-height: 50vh; overflow: auto; }
+  .fila { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .aviso { background: #F8E7E6; border: 1px solid #e0b8b4; border-radius: 10px; padding: 12px 14px; font-size: 13px; margin: 14px 0; }
+</style>
+</head>
+<body>
+  <h1>Exportar contactos (nombres + teléfonos)</h1>
+  <p class="aviso">Página temporal de uso único — solo lectura de Firestore, no modifica nada. Requiere iniciar sesión con la cuenta admin. Cerrala/borrala cuando termines de usarla.</p>
+
+  <div id="login-box">
+    <input id="email" type="email" placeholder="Email admin" autocomplete="username">
+    <input id="pass" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <button id="btn-login">Ingresar</button>
+  </div>
+
+  <div id="app-box" hidden>
+    <p id="quien"></p>
+    <div class="fila">
+      <button id="btn-exportar">Exportar contactos ahora</button>
+      <button class="secundario" id="btn-logout">Cerrar sesión</button>
+    </div>
+    <div class="fila" id="descargas" hidden>
+      <button class="secundario" id="btn-descargar-json">Descargar JSON</button>
+      <button class="secundario" id="btn-descargar-vcf">Descargar VCF</button>
+    </div>
+  </div>
+
+  <div id="status" hidden></div>
+
+  <script type="module">
+    import { app, auth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "/js/firebase-web.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+
+    const functions = getFunctions(app);
+    const exportarFn = httpsCallable(functions, "exportarContactosAdmin", { timeout: 300000 });
+
+    const $ = (id) => document.getElementById(id);
+    let ultimaExportacion = null;
+
+    function status(msg) {
+      $("status").hidden = false;
+      $("status").textContent = msg;
+    }
+
+    $("btn-login").addEventListener("click", async () => {
+      try {
+        await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value);
+      } catch (e) {
+        status("Error de login: " + (e.message || e));
+      }
+    });
+    $("btn-logout").addEventListener("click", () => signOut(auth));
+
+    onAuthStateChanged(auth, (user) => {
+      $("login-box").hidden = !!user;
+      $("app-box").hidden = !user;
+      if (user) $("quien").textContent = "Sesión: " + user.email;
+    });
+
+    $("btn-exportar").addEventListener("click", async () => {
+      $("btn-exportar").disabled = true;
+      $("btn-exportar").textContent = "Exportando… puede tardar un momento";
+      $("descargas").hidden = true;
+      status("Leyendo Firestore (solo lectura)…");
+      try {
+        const resultado = await exportarFn();
+        ultimaExportacion = resultado.data;
+        const r = ultimaExportacion;
+        status(
+          `Exportación completa: ${r.exportacion_completa}\n` +
+          `Documentos revisados: ${r.total_documentos_revisados}\n` +
+          `Teléfonos encontrados: ${r.total_telefonos_encontrados}\n` +
+          `Teléfonos únicos normalizados: ${r.total_telefonos_unicos_normalizados}\n` +
+          `Contactos para VCF: ${r.contactos_vcf}\n` +
+          `Por revisar: ${r.por_revisar.length}\n` +
+          `Errores: ${r.errores.length}${r.errores.length ? "\n" + JSON.stringify(r.errores, null, 2) : ""}\n\n` +
+          `Colecciones recorridas:\n` + r.colecciones_recorridas.map((c) => `  - ${c.coleccion}: ${c.documentos} documentos`).join("\n")
+        );
+        $("descargas").hidden = false;
+      } catch (e) {
+        status("Falló la exportación: " + (e.message || e));
+      } finally {
+        $("btn-exportar").disabled = false;
+        $("btn-exportar").textContent = "Exportar contactos ahora";
+      }
+    });
+
+    function descargar(nombre, contenido, tipo) {
+      const blob = new Blob([contenido], { type: tipo });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = nombre;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }
+    $("btn-descargar-json").addEventListener("click", () => {
+      if (!ultimaExportacion) return;
+      const { vcf, ...json } = ultimaExportacion;
+      descargar("contactos_firestore_completo.json", JSON.stringify(json, null, 2), "application/json");
+    });
+    $("btn-descargar-vcf").addEventListener("click", () => {
+      if (!ultimaExportacion) return;
+      descargar("contactos_whatsapp.vcf", ultimaExportacion.vcf, "text/vcard");
+    });
+  </script>
+</body>
+</html>

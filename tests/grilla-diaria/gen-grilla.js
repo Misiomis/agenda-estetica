@@ -12,7 +12,13 @@ const { jsPDF } = require('jspdf');
 function generarGrillaPDF(fecha, reservas, boxes) {
   const getBoxId = (r) => r.boxId || '';
   const _nd = (r) => (r.nombre || r.paciente || '—').trim();
-  const esReservaActiva = (r) => (r.estado || '').toLowerCase() !== 'cancelado';
+  // 2026-09-16 (punto 1, auditoría de facturación): admin.html centralizó
+  // esReservaActiva para excluir también la variante femenina "cancelada"
+  // (imprimirGrillaJornada llama directo a esa función compartida).
+  const esReservaActiva = (r) => {
+    const estados = [r.estado, r.status].map(v => (v || '').toString().trim().toLowerCase()).filter(Boolean);
+    return !estados.some(e => e === 'cancelado' || e === 'cancelada');
+  };
 
   const reservasDia = reservas
     .filter(r => r.fecha === fecha && esReservaActiva(r))

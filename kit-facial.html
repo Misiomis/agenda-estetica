@@ -473,70 +473,6 @@
             border-color: var(--primary-dk);
         }
 
-        /* ── NOT LOGGED IN ── */
-        .not-logged-in {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border-g);
-            padding: 26px 18px;
-            border-radius: var(--r-lg);
-            text-align: center;
-        }
-
-        .not-logged-in .nl-icon { font-size: 34px; margin-bottom: 12px; display: block; }
-
-        .not-logged-in h3 {
-            margin: 0 0 8px;
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 22px;
-            font-style: italic;
-            color: var(--ink);
-        }
-
-        .not-logged-in p {
-            margin: 0 0 18px;
-            color: var(--muted);
-            font-size: 13.5px;
-            line-height: 1.65;
-        }
-
-        .not-logged-in .btn-login {
-            display: block;
-            width: 100%;
-            padding: 13px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dk));
-            color: white;
-            text-decoration: none;
-            border-radius: var(--r-md);
-            font-weight: 700;
-            font-size: 14px;
-            margin-bottom: 10px;
-            transition: transform var(--trans), box-shadow var(--trans);
-            box-shadow: 0 8px 20px rgba(79, 151, 119, 0.26);
-        }
-
-        .not-logged-in .btn-login:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 12px 28px rgba(79, 151, 119, 0.34);
-        }
-
-        .not-logged-in .btn-wa {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 12px;
-            background: #25D366;
-            color: white;
-            text-decoration: none;
-            border-radius: var(--r-md);
-            font-weight: 700;
-            font-size: 14px;
-            transition: opacity .2s;
-        }
-
-        .not-logged-in .btn-wa:hover { opacity: 0.92; }
-
         /* ── RESPONSIVE ── */
         @media (max-width: 480px) {
             .hero { padding: 28px 12px 0; }
@@ -573,14 +509,15 @@
     </section>
 
     <!-- Modal: DNI no registrado -->
-    <div id="modalSinRegistro" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(6,14,11,0.93);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px;">
+    <div id="modalSinRegistro" role="dialog" aria-modal="true" aria-labelledby="modalSinRegistroTitulo" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(6,14,11,0.93);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px;">
         <div style="width:100%;max-width:420px;background:linear-gradient(165deg,#0d1a0e 0%,#07100a 100%);border:1px solid rgba(60,179,113,0.25);border-radius:24px;padding:34px 26px;box-shadow:0 32px 72px rgba(0,0,0,0.65);text-align:center;">
-            <div style="font-size:48px;margin-bottom:16px;">🌿</div>
-            <p style="font-family:'Cormorant Garamond',serif;font-size:24px;color:#b8e8c8;margin:0 0 14px;font-weight:600;font-style:italic;">¡Hola! Aún no te conocemos</p>
+            <div style="font-size:48px;margin-bottom:16px;" aria-hidden="true">🌿</div>
+            <p id="modalSinRegistroTitulo" style="font-family:'Cormorant Garamond',serif;font-size:24px;color:#b8e8c8;margin:0 0 14px;font-weight:600;font-style:italic;">¡Hola! Aún no te conocemos</p>
             <p style="font-size:14px;color:rgba(165,205,188,0.78);line-height:1.70;margin:0 0 8px;">El kit domiciliario está pensado para quienes ya son parte de nuestra comunidad de pacientes.</p>
-            <p style="font-size:13px;color:rgba(165,205,188,0.55);line-height:1.65;margin:0 0 24px;">Sería un placer conocerte y ayudarte a encontrar los productos que realmente le sientan bien a tu piel. ¿Qué te parece si agendamos una <strong style="color:rgba(185,230,205,0.80);">consulta inicial gratuita</strong>? Así Gimena puede recomendarte lo mejor para vos.</p>
+            <p style="font-size:13px;color:rgba(165,205,188,0.55);line-height:1.65;margin:0 0 24px;">Sería un placer conocerte y ayudarte a encontrar los productos que realmente le sientan bien a tu piel. ¿Qué te parece si agendamos tu <strong style="color:rgba(185,230,205,0.80);">consulta inicial</strong>? Así Gimena puede recomendarte lo mejor para vos — consultá el valor y las condiciones vigentes al agendar.</p>
             <a href="/fecha.html" style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,rgba(60,179,113,0.22),rgba(60,179,113,0.10));border:1.5px solid rgba(60,179,113,0.40);border-radius:14px;color:rgba(185,230,205,0.92);font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px;">Agendar mi consulta inicial</a>
-            <button onclick="document.getElementById('modalSinRegistro').style.display='none';" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(165,205,188,0.15);border-radius:14px;color:rgba(165,205,188,0.40);font-size:13px;cursor:pointer;font-family:inherit;">Volver</button>
+            <a href="https://wa.me/5493764291807?text=Hola%20Gime%2C%20quisiera%20ser%20paciente%20de%20Espacio%20Mimar%20T%20para%20acceder%20al%20kit%20facial%20%F0%9F%8C%BF" target="_blank" rel="noopener noreferrer" style="display:block;width:100%;padding:12px;background:transparent;border:1px solid rgba(165,205,188,0.25);border-radius:14px;color:rgba(165,205,188,0.70);font-size:13px;font-weight:600;text-decoration:none;margin-bottom:10px;">Prefiero escribir por WhatsApp</a>
+            <button id="btnCerrarModalSinRegistro" type="button" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(165,205,188,0.15);border-radius:14px;color:rgba(165,205,188,0.40);font-size:13px;cursor:pointer;font-family:inherit;">Volver</button>
         </div>
     </div>
 
@@ -602,6 +539,8 @@
             <div id="feedbackMessage" class="feedback-message" style="display: none;"></div>
 
             <div id="contenidoKit" style="display:none;">
+                <p id="pacienteActivo" style="font-size:12.5px;color:rgba(165,205,188,0.60);margin:0 0 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;"></p>
+                <p id="catalogoRefAviso" class="feedback-message info" style="display:none;margin-bottom:14px;">Mostrando precios de referencia — te confirmamos el valor final al recibir tu pedido.</p>
                 <div class="productos-list" id="productosList">
                     <div class="productos-loading">Cargando productos...</div>
                 </div>
@@ -629,23 +568,13 @@
                 <button class="btn-otro" id="btnNuevaSolicitud">Hacer otra solicitud</button>
             </div>
 
-            <div id="noLoggedIn" class="not-logged-in" style="display: none;">
-                <span class="nl-icon">🌿</span>
-                <h3>Espacio exclusivo</h3>
-                <p id="nlMsg">Para solicitar el kit debés iniciar sesión con tu cuenta de paciente.</p>
-                <a href="https://wa.me/5493764291807?text=Hola%20Gime%2C%20quisiera%20ser%20paciente%20de%20Espacio%20Mimar%20T%20para%20acceder%20al%20kit%20facial%20%F0%9F%8C%BF" class="btn-wa" target="_blank" rel="noopener noreferrer">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                    Quiero ser paciente
-                </a>
-            </div>
         </div>
     </main>
 
     <script src="/js/shared-footer.js"></script>
-    <script src="/js/mimi-bot.js"></script>
 
     <script type="module">
-        import { db, collection, addDoc, doc, getDoc, getDocs, query, where } from "/js/firebase-web.js";
+        import { db, collection, addDoc, doc, getDoc } from "/js/firebase-web.js";
 
         const PRODUCTOS_DEFAULT = [
             { nombre: "Leche de limpieza",                   precio: 15000 },
@@ -680,16 +609,25 @@
         const formatPrecio = (n) => '$' + Number(n).toLocaleString('es-AR');
 
         const cargarProductosKit = async () => {
+            const avisoRef = document.getElementById('catalogoRefAviso');
+            let usandoRespaldo = false;
             try {
                 const snap = await getDoc(doc(db, 'configuracion', 'kitProductos'));
                 if (snap.exists() && Array.isArray(snap.data().productos) && snap.data().productos.length > 0) {
                     productosKit = snap.data().productos;
                 } else {
+                    // Catálogo configurado vacío (o sin configurar todavía) — distinto de
+                    // un error de conexión, pero en ambos casos el precio que se muestra
+                    // es de referencia, no confirmado: se avisa igual en los dos casos.
                     productosKit = PRODUCTOS_DEFAULT;
+                    usandoRespaldo = true;
                 }
             } catch (e) {
+                console.warn('[Kit] No se pudo consultar el catálogo, usando precios de referencia:', e.code || e.message);
                 productosKit = PRODUCTOS_DEFAULT;
+                usandoRespaldo = true;
             }
+            if (avisoRef) avisoRef.style.display = usandoRespaldo ? 'block' : 'none';
             renderizarProductos();
         };
 
@@ -728,31 +666,69 @@
         const _mostrarVerif = () => {
             document.getElementById("verificDNIScreen").style.display = "block";
             document.getElementById("contenidoKit").style.display = "none";
-            document.getElementById("noLoggedIn").style.display = "none";
             document.getElementById("successScreen").style.display = "none";
+            cerrarModalSinRegistro();
             const inp = document.getElementById("kitDniInput");
             if (inp) inp.value = '';
         };
 
-        // Verifica que el DNI exista en clients (paciente registrado)
+        // Foco: al abrir, se mueve adentro del modal (para lectores de
+        // pantalla y navegación por teclado); al cerrar, vuelve a donde
+        // estaba antes de abrirlo, en vez de perderse en el body.
+        let _focoAntesDeModalSinRegistro = null;
+        function abrirModalSinRegistro() {
+            const modal = document.getElementById("modalSinRegistro");
+            _focoAntesDeModalSinRegistro = document.activeElement;
+            modal.style.display = "flex";
+            modal.querySelector("a, button")?.focus();
+        }
+        function cerrarModalSinRegistro() {
+            const modal = document.getElementById("modalSinRegistro");
+            if (modal.style.display === "none") return;
+            modal.style.display = "none";
+            (_focoAntesDeModalSinRegistro || document.getElementById("kitDniInput"))?.focus();
+            _focoAntesDeModalSinRegistro = null;
+        }
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && document.getElementById("modalSinRegistro").style.display !== "none") cerrarModalSinRegistro();
+        });
+        document.getElementById("btnCerrarModalSinRegistro")?.addEventListener("click", cerrarModalSinRegistro);
+        document.getElementById("modalSinRegistro")?.addEventListener("click", (e) => { if (e.target.id === "modalSinRegistro") cerrarModalSinRegistro(); });
+
+        // Verifica que el DNI exista en clients (paciente registrado). Ya no
+        // consulta "consultas": esa colección solo permite lectura a admin
+        // (firestore.rules), así que para cualquier visitante anónimo esa
+        // consulta terminaba siempre en error de permisos — conectarla sin
+        // ampliar las reglas hubiera sido dejar la verificación rota "en
+        // apariencia funcionando". clients sí es de lectura pública.
         const verificarAccesoKit = async (dniRaw) => {
             const dni = String(dniRaw || '').replace(/\D/g, '');
-            if (!dni) return false;
+            if (!dni) return { ok: false, datos: null };
             try {
                 const clientSnap = await getDoc(doc(db, 'clients', dni));
-                if (clientSnap.exists()) return true;
+                if (clientSnap.exists()) return { ok: true, datos: clientSnap.data() };
             } catch (e) {
                 console.error('[Kit] Error consultando clients:', e);
             }
-            // También acepta si tiene consulta registrada
-            try {
-                const q = query(collection(db, 'consultas'), where('dni', '==', dni));
-                const qSnap = await getDocs(q);
-                if (!qSnap.empty) return true;
-            } catch (e) {
-                console.warn('[Kit] No se pudo verificar consultas (permisos):', e.code || e.message);
-            }
-            return false;
+            return { ok: false, datos: null };
+        };
+
+        // Refleja qué paciente quedó identificado y permite limpiar SOLO ese
+        // contexto (nunca todo localStorage) para que un dispositivo
+        // compartido no arrastre el nombre de la persona anterior.
+        const actualizarPacienteActivo = () => {
+            const el = document.getElementById('pacienteActivo');
+            if (!el) return;
+            const { dni, nombre } = getUserData();
+            if (!dni) { el.textContent = ''; return; }
+            el.innerHTML = `<span>Pedido para <strong style="color:rgba(185,230,205,0.85);">${escapeHtml(nombre || 'paciente sin nombre registrado')}</strong> · DNI ${escapeHtml(dni)}</span><button type="button" onclick="window.cambiarPacienteKit()" style="background:transparent;border:1px solid rgba(165,205,188,0.25);border-radius:10px;color:rgba(165,205,188,0.70);font-size:11.5px;padding:5px 10px;cursor:pointer;font-family:inherit;">Cambiar paciente</button>`;
+        };
+
+        window.cambiarPacienteKit = () => {
+            localStorage.removeItem('clienteDNI');
+            localStorage.removeItem('clienteNombre');
+            document.getElementById('contenidoKit').style.display = 'none';
+            _mostrarVerif();
         };
 
         const checkAuthAndLoad = () => {
@@ -769,21 +745,27 @@
             }
             input.style.borderColor = '';
             btn.disabled = true;
-            btn.textContent = 'Cargando...';
+            btn.textContent = 'Verificando...';
 
-            localStorage.setItem('clienteDNI', dni);
-            // Intentar pre-cargar nombre desde Firestore (no bloquea si falla)
-            try {
-                const datos = await getClienteData(dni);
-                if (datos?.fullName || datos?.nombre) {
-                    localStorage.setItem('clienteNombre', datos.fullName || datos.nombre);
-                }
-            } catch(_e) {}
+            const { ok, datos } = await verificarAccesoKit(dni);
 
             btn.disabled = false;
             btn.textContent = 'Continuar';
+
+            if (!ok) {
+                abrirModalSinRegistro();
+                return;
+            }
+
+            // Recién acá se guarda la identidad, y siempre con el dato fresco
+            // recién consultado — nunca se conserva un nombre viejo de una
+            // búsqueda anterior en el mismo dispositivo.
+            localStorage.setItem('clienteDNI', dni);
+            localStorage.setItem('clienteNombre', datos?.fullName || datos?.nombre || '');
+
             document.getElementById("verificDNIScreen").style.display = "none";
             document.getElementById("contenidoKit").style.display = "block";
+            actualizarPacienteActivo();
             cargarProductosKit();
         };
 
@@ -821,7 +803,10 @@
 
             try {
                 const datosCliente = await getClienteData(dni);
-                const nombre = localStorage.getItem('clienteNombre') || datosCliente?.fullName || datosCliente?.nombre || '';
+                // Prioridad al dato fresco de Firestore, nunca al cacheado en
+                // localStorage — evita que un nombre viejo de otra búsqueda en
+                // el mismo dispositivo se cuele en un pedido nuevo.
+                const nombre = datosCliente?.fullName || datosCliente?.nombre || localStorage.getItem('clienteNombre') || '';
 
                 const pedidoData = {
                     fecha: new Date().toISOString(),
@@ -862,18 +847,12 @@
 
         const getClienteData = async (dni) => {
             try {
-                const { doc, getDoc } = await import("/js/firebase-web.js");
-                const docRef = doc(db, "clients", dni);
-                const docSnap = await getDoc(docRef);
+                const docSnap = await getDoc(doc(db, "clients", dni));
                 return docSnap.exists() ? docSnap.data() : null;
             } catch (e) {
                 console.error("Error getting client:", e);
                 return null;
             }
-        };
-
-        const showEffect = (message, type) => {
-            showFeedback(message, type);
         };
 
         document.getElementById("btnSolicitarKit").addEventListener("click", submitKitRequest);

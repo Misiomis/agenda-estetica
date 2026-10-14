@@ -40,9 +40,19 @@ function check(desc, fn) {
 }
 
 // ─── Mirrors de admin.html ───────────────────────────────────────────────
+// esEstadoCancelado/esReservaActiva actualizados (2026-09-16, punto 1 de la
+// auditoría de facturación) — admin.html sólo reconocía la variante
+// masculina "cancelado". "cancelada" es la variante REAL escrita hoy por
+// cambiarEstadoConsulta() para consultas, y una variante histórica real de
+// reservas (documentada de forma independiente en
+// mimar-inteligente-logic.js: ESTADOS_CANCELADOS.reservas incluye ambas).
+// Con la lógica vieja, una reserva histórica marcada "cancelada" seguía
+// apareciendo como activa en "Preparar jornada", el buscador y el PDF.
+const ESTADOS_CANCELADO_VARIANTES = ['cancelado', 'cancelada'];
+const esEstadoCancelado = (v) => ESTADOS_CANCELADO_VARIANTES.includes((v || '').toString().trim().toLowerCase());
 const esReservaActiva = (r) => {
   const estados = [r.estado, r.status].map(v => (v || '').toString().trim().toLowerCase()).filter(Boolean);
-  return !estados.includes('cancelado');
+  return !estados.some(e => ESTADOS_CANCELADO_VARIANTES.includes(e));
 };
 
 // Clave correcta actual (admin.html: _pacienteMatchKey)
@@ -77,8 +87,7 @@ function finSesionMs(r) {
   return inicio + duracion * 60000;
 }
 function clasificar(r, now) {
-  const st = (r.estado || r.status || '').toLowerCase();
-  const isCancelled = st === 'cancelado';
+  const isCancelled = esEstadoCancelado(r.estado || r.status);
   const finMs = finSesionMs(r);
   const isPending = !isCancelled && finMs !== null && now < finMs;
   return isCancelled ? 'canc' : (isPending ? 'pend' : 'real');
@@ -230,7 +239,7 @@ const casoC = [
   { dni: '33333333', nombre: 'Paciente Estado Raro', fecha: '2026-01-02', hora: '08:00', estado: '', servicio: 'B' },
   { dni: '33333333', nombre: 'Paciente Estado Raro', fecha: '2026-01-03', hora: '08:00', estado: 'cancelado', servicio: 'C' },
 ];
-check('esReservaActiva sólo excluye "cancelado"; "activo" y vacío pasan (no se descartan)', () => {
+check('esReservaActiva sólo excluye "cancelado"/"cancelada"; "activo" y vacío pasan (no se descartan)', () => {
   const activas = casoC.filter(esReservaActiva);
   assert.strictEqual(activas.length, 2, 'esperaba 2 activas (activo + vacío), hubo ' + activas.length);
 });
@@ -238,6 +247,45 @@ check('el grupo del paciente conserva las 2 sesiones activas, ninguna se pierde 
   const grupos = simularBuscador(casoC);
   assert.strictEqual(grupos.size, 1);
   assert.strictEqual([...grupos.values()][0].sesiones.length, 2);
+});
+
+// ═══ CASO F (punto 1, 2026-09-16): variante femenina "cancelada" ═══════════
+console.log('\n═══ CASO F — "cancelada" (femenino) se excluye igual que "cancelado" ═══');
+
+const casoE = [
+  { dni: '44444444', nombre: 'Paciente Cancelada Femenino', fecha: '2026-03-10', hora: '09:00', estado: 'cancelada', servicio: 'X' },
+  { dni: '44444444', nombre: 'Paciente Cancelada Femenino', fecha: '2026-03-11', hora: '09:00', status: 'Cancelada', servicio: 'Y' }, // status, mayúscula, distinto campo
+  { dni: '44444444', nombre: 'Paciente Cancelada Femenino', fecha: '2026-03-12', hora: '09:00', estado: 'confirmada', servicio: 'Z' },
+];
+check('"cancelada" en el campo estado se excluye', () => {
+  assert.strictEqual(esReservaActiva(casoE[0]), false);
+});
+check('"Cancelada" (mayúscula) en el campo status también se excluye', () => {
+  assert.strictEqual(esReservaActiva(casoE[1]), false);
+});
+check('"confirmada" no se confunde con cancelada/cancelado y queda activa', () => {
+  assert.strictEqual(esReservaActiva(casoE[2]), true);
+});
+check('Preparar jornada / buscador / historial excluyen igual "cancelado" que "cancelada"', () => {
+  const grupos = simularBuscador(casoE);
+  assert.strictEqual(grupos.size, 1);
+  assert.strictEqual([...grupos.values()][0].sesiones.length, 1, 'sólo la sesión "confirmada" debe quedar activa');
+});
+
+// Reproduce el escenario del punto 1: un paciente estaba tildado en
+// "Preparar jornada" y su turno del día se cancela (con cualquiera de las
+// dos variantes) antes de generar — generarPDFJornada() vuelve a traer
+// datos frescos y debe dejar de considerarlo seleccionado/activo.
+check('turno tildado que pasa a "cancelada" después de seleccionarlo queda fuera de la jornada fresca', () => {
+  const seleccionado = { dni: '55555555', nombre: 'Turno Cancelado Post-Seleccion', fecha: '2026-03-15', hora: '10:00', estado: 'confirmada', servicio: 'W' };
+  const clave = pacienteMatchKey(conNombreLimpio(seleccionado));
+  const selected = new Set([clave]);
+  // Se cancela (variante femenina) en otra pestaña/dispositivo antes de generar
+  const seleccionadoCancelado = Object.assign({}, seleccionado, { estado: 'cancelada' });
+  const reservasDiaFrescas = [seleccionadoCancelado].map(conNombreLimpio).filter(r => r.fecha === '2026-03-15' && esReservaActiva(r));
+  const clavesActivasHoy = new Set(reservasDiaFrescas.map(pacienteMatchKey));
+  const seleccionadosQueYaNoAplican = [...selected].filter(k => !clavesActivasHoy.has(k));
+  assert.strictEqual(seleccionadosQueYaNoAplican.length, 1, 'debe detectarse como seleccionado que ya no aplica');
 });
 
 // ═══ CASO D: orden cronológico + PDF real de jornada con las 10 sesiones íntegras ═══

@@ -3,13 +3,16 @@
 // solo funciones puras sobre los datos ya traídos. Se puede probar con Node
 // (`node tests/mimar-inteligente/run-tests.js`) sin levantar el módulo.
 //
-// Fuentes de datos soportadas en esta v1: 'reservas' y 'consultas' (las dos
-// colecciones que reloj/config.js ya trata como agenda activa, junto con
-// 'reservasDepi' — que queda fuera de esta primera versión porque tiene un
-// panel, un login y campos propios que todavía no se auditaron a fondo; ver
-// notas de entrega). Cada colección tiene su propio vocabulario de estado:
-// 'reservas' usa 'confirmado'/'cancelado'; 'consultas' usa
+// El panel se concentra en 3 funciones: próximo paciente (reservas +
+// consultas), pedidos de kit facial (pedidosKit) y nuevos turnos de
+// depilación (reservasDepi). 'reservas'/'reservasDepi' usan
+// 'confirmado'/'cancelado' (o 'cancelada'); 'consultas' usa
 // 'pendiente'/'confirmada'/'cancelada'. No se mezclan.
+//
+// Nota: este archivo todavía exporta algunas funciones puras de versiones
+// anteriores (pendientes/actividad/cumpleaños/resumen de jornada) que ya no
+// importa mimar-inteligente.js — se dejaron sin borrar por ahora porque no
+// afectan el comportamiento actual; es una limpieza pendiente, no un riesgo.
 
 export const ZONA_HORARIA = "America/Argentina/Buenos_Aires";
 export const OFFSET_AR = "-03:00";
@@ -61,6 +64,75 @@ export function sumarDiasISO(fechaISO, dias) {
   const dt = new Date(Date.UTC(y, m - 1, d));
   dt.setUTCDate(dt.getUTCDate() + dias);
   return dt.toISOString().slice(0, 10);
+}
+
+// ── Fecha/hora local legible (punto 10 — "reemplazá las fechas ISO por
+// fecha y hora locales legibles") ────────────────────────────────────────
+// Acepta ms epoch o un string ISO (los campos "fecha"/"createdAt" de
+// pedidosKit se guardan como new Date().toISOString()). La presentación
+// nunca modifica el instante guardado, solo cómo se muestra.
+function _msDesde(valor) {
+  if (valor == null) return null;
+  if (typeof valor === "number") return Number.isFinite(valor) ? valor : null;
+  // Timestamp de Firestore (serverTimestamp() leído de vuelta): objeto con
+  // toMillis(), nunca un string ni un number — no se puede tratar igual.
+  if (typeof valor === "object" && typeof valor.toMillis === "function") return valor.toMillis();
+  if (typeof valor === "object" && typeof valor.seconds === "number") return valor.seconds * 1000 + Math.round((valor.nanoseconds || 0) / 1e6);
+  if (valor instanceof Date) return valor.getTime();
+  const ms = Date.parse(valor);
+  return Number.isNaN(ms) ? null : ms;
+}
+export function formatearFechaLocal(msOIso, tz = ZONA_HORARIA) {
+  const ms = _msDesde(msOIso);
+  if (ms === null) return null;
+  return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: tz }).format(ms);
+}
+export function formatearHoraLocal(msOIso, tz = ZONA_HORARIA) {
+  const ms = _msDesde(msOIso);
+  if (ms === null) return null;
+  return new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz }).format(ms);
+}
+export function formatearFechaHoraLocal(msOIso, tz = ZONA_HORARIA) {
+  const ms = _msDesde(msOIso);
+  if (ms === null) return null;
+  return `${formatearFechaLocal(ms, tz)}, ${formatearHoraLocal(ms, tz)}`;
+}
+
+const DIAS_SEMANA_LEGIBLE = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+function _ymdEnZona(ms, tz) {
+  const partes = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(ms));
+  const o = {};
+  partes.forEach((p) => { if (p.type !== "literal") o[p.type] = p.value; });
+  return { y: +o.year, m: +o.month, d: +o.day };
+}
+function _diaSemanaEnZona(ms, tz) {
+  const f = _ymdEnZona(ms, tz);
+  return new Date(Date.UTC(f.y, f.m - 1, f.d, 12)).getUTCDay(); // mediodía UTC: evita corrimiento de día por huso
+}
+function _diffDiasCalendario(msDesde, msHasta, tz) {
+  const a = _ymdEnZona(msDesde, tz), b = _ymdEnZona(msHasta, tz);
+  const ua = Date.UTC(a.y, a.m - 1, a.d), ub = Date.UTC(b.y, b.m - 1, b.d);
+  return Math.round((ub - ua) / 86400000);
+}
+export function diaSemanaLegible(msOIso, tz = ZONA_HORARIA) {
+  const ms = _msDesde(msOIso);
+  if (ms === null) return null;
+  return DIAS_SEMANA_LEGIBLE[_diaSemanaEnZona(ms, tz)];
+}
+
+// "hoy, 17/09/2026" / "ayer, 16/09/2026" / "el lunes 14/09/2026" — siempre
+// con la fecha absoluta al lado, nunca solo la palabra relativa (punto 10:
+// "acompañalo siempre con una fecha exacta"). msEvento es el instante
+// ORIGINAL del hecho (ej. fecha de solicitud), nunca el de la última edición.
+export function referenciaTemporalConFecha(msEventoOIso, ahoraMs = Date.now(), tz = ZONA_HORARIA) {
+  const msEvento = _msDesde(msEventoOIso);
+  if (msEvento === null) return null;
+  const fechaExacta = formatearFechaLocal(msEvento, tz);
+  const dias = _diffDiasCalendario(msEvento, ahoraMs, tz);
+  if (dias === 0) return `hoy, ${fechaExacta}`;
+  if (dias === 1) return `ayer, ${fechaExacta}`;
+  if (dias < 0) return fechaExacta; // evento "futuro" respecto de ahora (reloj desfasado entre dispositivos): solo la fecha, sin relativo engañoso
+  return `el ${diaSemanaLegible(msEvento, tz)} ${fechaExacta}`;
 }
 
 // ── Vocabulario de estado por colección ─────────────────────────────────
@@ -122,6 +194,11 @@ export function normalizarItemAgenda(coleccion, id, data, clientesPorDni) {
   const duracionEstimada = duracionRegistrada === null;
   const inicioMs = inicioTurnoMs(fecha, hora);
   const finMs = fecha && hora ? finTurnoMs(fecha, hora, duracionRegistrada) : null;
+  // "timestamp" (admin.html, Nueva Consulta Inicial) y "createdAt"
+  // (fecha.html, autoreserva de paciente) son los dos nombres reales de
+  // campo de registro que usa esta colección — ninguno existe en el otro
+  // origen. Puede ser un Timestamp de Firestore, no siempre un string.
+  const registradoMs = _msDesde(d.timestamp) ?? _msDesde(d.createdAt) ?? null;
 
   return {
     coleccion,               // 'reservas' | 'consultas'
@@ -140,7 +217,15 @@ export function normalizarItemAgenda(coleccion, id, data, clientesPorDni) {
     duracionEstimada,
     inicioMs,
     finMs,
+    registradoMs, // instante en que se creó el registro — distinto de inicioMs (el turno)
     detalleSesion: d.detalleSesion || null,
+    // Sesión "Duo" (dos pacientes en la misma reserva, panel admin) — solo
+    // existe en reservas. detalleSesion2/duoNombre2 son el mismo campo que
+    // ya escribe/lee admin.html, así que cargar el detalle acá se refleja
+    // de inmediato en la agenda general (misma colección, mismo documento).
+    duo: d.duo === true,
+    duoNombre2: d.duoNombre2 || null,
+    detalleSesion2: d.detalleSesion2 || null,
     fechaIncompleta: !fecha || !hora || inicioMs === null,
   };
 }
@@ -249,6 +334,28 @@ export function normalizarTelefonoWA(telefono) {
   if (d.length === 10) return "549" + d;
   if (d.length === 11 && d.startsWith("9")) return "54" + d;
   return "549" + d;
+}
+
+// ── Config central del responsable del negocio (Gimena) — punto 9 ────────
+// Valida y normaliza un celular argentino al formato de wa.me (13 dígitos:
+// 549 + código de área + línea, sin 0/15) y arma una versión legible para
+// mostrar en la vista previa. Rechaza explícitamente lo que no cierre en
+// 13 dígitos — nunca guarda ni abre un chat con un destino a medio normalizar.
+// El corte "3 dígitos de área + resto" es una simplificación deliberada para
+// el área real del negocio (376, Corrientes/Misiones); no es un formateador
+// general de todos los códigos de área argentinos.
+export function validarYNormalizarTelefonoAR(raw) {
+  const original = (raw || "").toString().trim();
+  if (!original) return { ok: false, error: "Ingresá un número de celular." };
+  const digitos = normalizarTelefonoWA(original);
+  if (digitos.length !== 13 || !digitos.startsWith("549")) {
+    return { ok: false, error: `"${original}" no se pudo normalizar a un celular argentino válido (esperado: código de área + línea, 10 dígitos en total).` };
+  }
+  const resto = digitos.slice(3);
+  const area = resto.slice(0, 3);
+  const linea = resto.slice(3);
+  const mostrable = `+54 9 ${area} ${linea}`;
+  return { ok: true, digitos, mostrable, original };
 }
 
 // ── Plantillas de mensaje (punto 7) ──────────────────────────────────────
@@ -401,12 +508,21 @@ export function normalizarPedidoKit(id, data) {
   const montoAbonado = typeof d.montoAbonado === "number" && Number.isFinite(d.montoAbonado) ? d.montoAbonado : null;
   const saldoPendiente = montoAbonado !== null && total !== null ? total - montoAbonado : null;
 
+  // "fecha" (kit-facial.html) y "createdAt" (admin.html) son ISO strings de
+  // dos puntos de escritura distintos del mismo pedido — ninguno de los dos
+  // existe siempre en ambos orígenes, así que se toma el primero disponible
+  // en vez de asumir un único nombre de campo.
+  const fechaPedidoISO = (typeof d.fecha === "string" && d.fecha) ? d.fecha : (typeof d.createdAt === "string" && d.createdAt) ? d.createdAt : null;
+  const fechaPedidoMs = fechaPedidoISO ? _msDesde(fechaPedidoISO) : null;
+
   return {
     id,
     nombre,
     telefono,
     dni: d.dni || null,
-    fechaPedido: typeof d.fecha === "string" ? d.fecha : null,
+    fechaPedidoISO,
+    fechaPedidoMs,
+    fechaPedido: fechaPedidoMs !== null ? formatearFechaHoraLocal(fechaPedidoMs) : null,
     productosResumen: Array.isArray(d.productos) && d.productos.length ? d.productos : null,
     items,
     cantidadTotal,
@@ -422,6 +538,38 @@ export function normalizarPedidoKit(id, data) {
     montoAbonadoTexto: montoAbonado !== null ? formatearARS(montoAbonado) : "No registrado",
     saldoPendiente,
     saldoPendienteTexto: saldoPendiente !== null ? formatearARS(saldoPendiente) : "No registrado",
+  };
+}
+
+// ── Nuevos turnos de depilación ───────────────────────────────────────────
+// Campos reales confirmados en depilacion.html (autorreserva pública) y
+// admin-depi.html (alta manual): nombre, fecha, hora, servicio/combo,
+// telefono, estado — nunca "status". esActiva("reservasDepi", ...) cae en
+// su fallback genérico ["cancelado","cancelada"] (no está en
+// ESTADOS_CANCELADOS), que ya cubre ambas grafías — admin-depi.html cancela
+// escribiendo 'cancelada' (femenino), por eso no hace falta agregar una
+// entrada propia para esta colección.
+export function normalizarReservaDepi(id, data) {
+  const d = data || {};
+  const nombre = d.nombre || d.cliente || d.clienteNombre || "Paciente";
+  const fecha = d.fecha || null;
+  const hora = d.hora || null;
+  const estadoBruto = d.estado || d.status || "";
+  const activa = esActiva("reservasDepi", estadoBruto);
+  const inicioMs = inicioTurnoMs(fecha, hora);
+  const creadoMs = _msDesde(d.timestamp) ?? _msDesde(d.createdAt) ?? null;
+  return {
+    coleccion: "reservasDepi",
+    id,
+    nombre,
+    telefono: d.phone || d.telefono || null,
+    servicio: d.servicio || d.combo || null,
+    fecha,
+    hora,
+    estadoBruto,
+    activa,
+    inicioMs,
+    creadoMs,
   };
 }
 
@@ -550,6 +698,28 @@ function estadoContactoResuelto(contactosPorId, idContacto) {
   return estadoContacto(contactosPorId?.[idContacto]) === "enviado";
 }
 
+// ── Día/franja para agrupar Pendientes (puntos 16-17) ───────────────────
+// Corte configurable mañana/tarde — si no hay uno configurado en el
+// negocio, se documenta 12:00 como valor inicial (mismo criterio que el
+// resto del proyecto: un default explícito y documentado, no un número
+// mágico sin explicar).
+export const CORTE_MANANA_TARDE_DEFECTO = "12:00";
+
+export function franjaDeHora(hora, corte = CORTE_MANANA_TARDE_DEFECTO) {
+  if (!hora) return null;
+  return hora < corte ? "mañana" : "tarde";
+}
+
+// Fecha (ISO) en la que corresponde AVISAR un turno, según su franja:
+// turno de mañana → la noche del día calendario anterior; turno de tarde
+// → el mismo día, al mediodía (antes de la hora del turno). No confunde
+// "mañana" franja con "mañana" día siguiente — acá siempre se devuelve
+// una fecha ISO concreta, nunca la palabra.
+export function fechaAvisoConfirmacion(fechaTurnoISO, horaTurno, corte = CORTE_MANANA_TARDE_DEFECTO) {
+  if (!fechaTurnoISO) return null;
+  return franjaDeHora(horaTurno, corte) === "mañana" ? sumarDiasISO(fechaTurnoISO, -1) : fechaTurnoISO;
+}
+
 // agenda: salida de construirAgenda(). pedidosKitPendientes: fuentes.pedidosKit.items
 // (ya filtrados por estado "pendiente" en la propia query). cumpleanosHoy:
 // el doc resumenesCumpleanos/{hoy} tal cual llega (o null si no cargó
@@ -564,6 +734,10 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
     const tipoMensaje = item.coleccion === "consultas" ? "consulta" : "confirmacion";
     const idContactoRef = idContactoParaItem(item, tipoMensaje);
     if (estadoContactoResuelto(contactosPorId, idContactoRef)) continue;
+    // fechaActuarISO/franja (puntos 16-17): día y franja en que corresponde
+    // AVISAR este turno, separado de item.fecha (el turno en sí) y de
+    // item.registradoMs (cuándo se originó la reserva/consulta).
+    const franjaConf = franjaDeHora(item.hora);
     pendientes.push({
       id: `pend_${item.coleccion}_${item.id}_confirmacion_${item.fecha}_${item.hora}`,
       tipo: "confirmacion_turno", coleccion: item.coleccion, docId: item.id,
@@ -571,6 +745,8 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
       motivo: revision.motivos.map((m) => m.texto).join(" "),
       habilitadoDesdeMs: item.inicioMs - VENTANA_REVISION_MS, venceMs: revision.venceEnMs,
       ocurrencia: { fecha: item.fecha, hora: item.hora },
+      fechaActuarISO: fechaAvisoConfirmacion(item.fecha, item.hora), franja: franjaConf,
+      fechaOrigenISO: item.registradoMs != null ? fechaISOEnZona(item.registradoMs) : null,
       bloqueado: revision.bloqueado, campoFaltante: revision.bloqueado ? "telefono" : null,
     });
   }
@@ -583,6 +759,10 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
       nombre: item.nombre || "Paciente",
       motivo: rt.texto,
       habilitadoDesdeMs: item.finMs, venceMs: null, ocurrencia: { fecha: item.fecha, hora: item.hora },
+      // Se agrupa por el día en que terminó el turno (ya pasado) — no tiene
+      // franja mañana/tarde propia, es "a revisar" desde que se habilita.
+      fechaActuarISO: item.finMs != null ? fechaISOEnZona(item.finMs) : item.fecha, franja: null,
+      fechaOrigenISO: item.fecha || null,
       bloqueado: false, campoFaltante: null,
     });
   }
@@ -590,12 +770,18 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
   for (const kit of (pedidosKitPendientes || [])) {
     const productos = kit.productosResumen ? kit.productosResumen.join(", ")
       : (kit.items ? kit.items.map((it) => it.nombre).join(", ") : null);
+    // La referencia inicial para actuar es la fecha de SOLICITUD (punto 16):
+    // si pasan días sin atenderlo, conserva su origen real en vez de
+    // reaparecer como si se hubiera pedido hoy.
+    const fechaSolicitudISO = kit.fechaPedidoMs != null ? fechaISOEnZona(kit.fechaPedidoMs) : null;
     pendientes.push({
       id: `pend_pedidosKit_${kit.id}_kit`,
       tipo: "kit_pendiente", coleccion: "pedidosKit", docId: kit.id,
       nombre: kit.nombre || "Paciente",
       motivo: productos ? `Pedido sin entregar: ${productos}.` : "Pedido de kit todavía sin entregar.",
-      habilitadoDesdeMs: null, venceMs: null, ocurrencia: null, bloqueado: false, campoFaltante: null,
+      habilitadoDesdeMs: null, venceMs: null, ocurrencia: null,
+      fechaActuarISO: fechaSolicitudISO, franja: null, fechaOrigenISO: fechaSolicitudISO,
+      bloqueado: false, campoFaltante: null,
     });
   }
 
@@ -609,6 +795,7 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
         nombre: persona.nombre || "Paciente",
         motivo: "Hoy cumple años — falta preparar el saludo.",
         habilitadoDesdeMs: null, venceMs: null, ocurrencia: { fecha: cumpleanosHoy.fecha },
+        fechaActuarISO: cumpleanosHoy.fecha, franja: null, fechaOrigenISO: cumpleanosHoy.fecha,
         bloqueado: false, campoFaltante: null,
       });
     }
@@ -623,6 +810,9 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
       nombre: rec.pacienteNombre || "Paciente",
       motivo: rec.motivo || "Recomendación programada por la administradora.",
       habilitadoDesdeMs: rec.programadoParaMs, venceMs: null, ocurrencia: null,
+      // Sin programación explícita, ya está habilitada "ahora" — se agrupa en Hoy.
+      fechaActuarISO: rec.programadoParaMs != null ? fechaISOEnZona(rec.programadoParaMs) : fechaISOEnZona(ahoraMs), franja: null,
+      fechaOrigenISO: null,
       bloqueado: false, campoFaltante: null,
     });
   }
@@ -635,6 +825,62 @@ export function derivarPendientes({ agenda, pedidosKitPendientes, cumpleanosHoy,
 }
 
 // Agrupa por tipo con las cantidades — texto pedido explícitamente:
+// ── Agrupar Pendientes por día de actuar (puntos 16-17) ──────────────────
+// A diferencia de agruparPorDia (Actividad — mira hacia atrás: hoy/ayer/
+// anteriores), esta agrupación mira hacia ADELANTE: hoy / mañana (día
+// siguiente) / anteriores pendientes (atrasados, se muestran igual) /
+// próximos días. Nunca usa una sola "fecha" ambigua: agrupa siempre por
+// fechaActuarISO, que cada pendiente ya trae resuelto según su tipo.
+export function agruparPendientesPorDia(pendientes, ahoraMs = Date.now()) {
+  const hoyISO = fechaISOEnZona(ahoraMs);
+  const mananaISO = sumarDiasISO(hoyISO, 1);
+  const grupos = { hoy: [], manana: [], anteriores: [], proximos: [] };
+  for (const p of pendientes) {
+    const f = p.fechaActuarISO;
+    if (f == null || f === hoyISO) grupos.hoy.push(p);
+    else if (f === mananaISO) grupos.manana.push(p);
+    else if (f < hoyISO) grupos.anteriores.push(p);
+    else grupos.proximos.push(p);
+  }
+  // "Anteriores pendientes" y "Próximos días" van desglosados por fecha real
+  // (nunca mezclados en un bloque ambiguo) — se ordenan cronológicamente.
+  const porFecha = (lista) => {
+    const mapa = new Map();
+    for (const p of lista) {
+      const clave = p.fechaActuarISO || "sin_fecha";
+      if (!mapa.has(clave)) mapa.set(clave, []);
+      mapa.get(clave).push(p);
+    }
+    return [...mapa.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  };
+  return {
+    hoyISO, mananaISO,
+    hoy: grupos.hoy,
+    manana: grupos.manana,
+    anterioresPorFecha: porFecha(grupos.anteriores),
+    proximosPorFecha: porFecha(grupos.proximos),
+  };
+}
+
+// Texto de tarjeta sin la ambigüedad "vence mañana a las X" (punto 16):
+// separa siempre la palabra relativa del día calendario y la fecha exacta,
+// y NUNCA usa "vence" para la hora de un turno (sólo para un vencimiento
+// real de negocio, que este tipo de pendiente no tiene).
+export function textoTurnoConDia(item, ahoraMs = Date.now()) {
+  const hoyISO = fechaISOEnZona(ahoraMs);
+  const fecha = item.ocurrencia?.fecha;
+  const hora = item.ocurrencia?.hora;
+  if (!fecha) return "Turno sin fecha registrada.";
+  const inicioMs = inicioTurnoMs(fecha, hora || "00:00");
+  const diaSemana = DIAS_SEMANA_LARGO[new Date(`${fecha}T12:00:00${OFFSET_AR}`).getDay()];
+  const fechaLegible = inicioMs != null ? formatearFechaLocal(inicioMs) : fecha;
+  const horaTxt = hora ? `, ${hora}` : "";
+  if (fecha < hoyISO) return `La consulta fue el ${diaSemana} ${fechaLegible}${horaTxt} hs; revisar.`;
+  const relativo = fecha === hoyISO ? "hoy" : fecha === sumarDiasISO(hoyISO, 1) ? "mañana" : `el ${diaSemana}`;
+  return `Consulta: ${relativo}, ${diaSemana} ${fechaLegible}${horaTxt} hs.`;
+}
+const DIAS_SEMANA_LARGO = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
 // "Tenés 4 pendientes: 2 recomendaciones, 1 consulta y 1 kit". Se arma acá
 // (función pura, testeable) para que el job horario y la UI usen
 // exactamente el mismo texto.
@@ -667,6 +913,63 @@ export function resumenTextoPendientes(pendientes) {
     ? partes.slice(0, -1).join(", ") + " y " + partes[partes.length - 1]
     : partes[0];
   return `Tenés ${total} pendiente${total === 1 ? "" : "s"}: ${listado}.`;
+}
+
+// ── Informe general de actividad para Gimena (punto 11) ──────────────────
+// Combina el historial estructurado de activityLog (conteo por colección —
+// nunca reinterpreta el texto libre de "resumen") con los totales
+// económicos REALES del período: cobros/devoluciones/gastos pagados vienen
+// de pagos/gastos (mismas fórmulas que el resumen mensual de admin.html:
+// cobros netos = cobros − devoluciones, neto de caja = cobros netos −
+// gastos pagados) — nunca se suman eventos de auditoría como si fueran
+// ingresos. Es una función pura: quien llama ya resolvió las consultas a
+// Firestore y arma los números reales antes de pasarlos acá.
+const ETIQUETA_COLECCION_INFORME = {
+  reservas: "turnos/sesiones", consultas: "consultas iniciales", pedidosKit: "pedidos de kit",
+  clients: "pacientes", cursoMaquillaje: "curso de automaquillaje", reservasDepi: "depilación",
+  prestaciones: "precios registrados", pagos: "cobros/devoluciones", gastos: "gastos",
+};
+const ORDEN_COLECCION_INFORME = ["reservas", "consultas", "pedidosKit", "prestaciones", "pagos", "gastos", "clients", "cursoMaquillaje", "reservasDepi"];
+
+export function construirInformeGimena({ periodoLabel, fechaDesdeISO, fechaHastaISO, fechaCorteISO, eventos, cobros, devoluciones, gastosPagados }) {
+  const listaEventos = eventos || [];
+  const porColeccion = new Map();
+  for (const e of listaEventos) {
+    const k = e.coleccion || "otros";
+    if (!porColeccion.has(k)) porColeccion.set(k, []);
+    porColeccion.get(k).push(e);
+  }
+  const cobrosNum = cobros || 0, devolucionesNum = devoluciones || 0, gastosNum = gastosPagados || 0;
+  const cobrosNetos = cobrosNum - devolucionesNum;
+  const netoCaja = cobrosNetos - gastosNum;
+
+  const lineas = [];
+  lineas.push(`Gime, informe de actividad — ${periodoLabel}.`);
+  lineas.push(`Período: ${fechaDesdeISO} al ${fechaHastaISO}. Corte: ${fechaCorteISO}.`);
+  lineas.push(`Eventos registrados: ${listaEventos.length}.`);
+
+  const partesModulos = [];
+  const yaListadas = new Set();
+  for (const col of ORDEN_COLECCION_INFORME) {
+    const lista = porColeccion.get(col);
+    if (lista && lista.length) { partesModulos.push(`${lista.length} ${ETIQUETA_COLECCION_INFORME[col] || col}`); yaListadas.add(col); }
+  }
+  // Cualquier colección fuera del orden fijo también se informa — nunca se pierde una novedad por no estar en la lista prevista.
+  for (const [col, lista] of porColeccion) {
+    if (!yaListadas.has(col) && lista.length) partesModulos.push(`${lista.length} ${ETIQUETA_COLECCION_INFORME[col] || col}`);
+  }
+  if (partesModulos.length) lineas.push(partesModulos.join(", ") + ".");
+  else lineas.push("Sin eventos registrados en este período.");
+
+  lineas.push(`Cobros: ${formatearARS(cobrosNum)}. Devoluciones: ${formatearARS(devolucionesNum)}. Cobros netos: ${formatearARS(cobrosNetos)}.`);
+  lineas.push(`Gastos pagados: ${formatearARS(gastosNum)}. Neto de caja: ${formatearARS(netoCaja)}.`);
+
+  return {
+    resumenWhatsApp: lineas.join("\n"),
+    totales: { cobros: cobrosNum, devoluciones: devolucionesNum, cobrosNetos, gastosPagados: gastosNum, netoCaja },
+    porColeccionConteo: Object.fromEntries([...porColeccion.entries()].map(([k, v]) => [k, v.length])),
+    eventoIds: listaEventos.map((e) => e.id),
+  };
 }
 
 // ── Recomendaciones (punto 3 — no existía ninguna regla previa en el
@@ -753,4 +1056,427 @@ export function pendientesElegiblesParaAviso(pendientes, prefs, estadosPend, aho
     if (override?.resuelto) return false;
     return true;
   });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Reorganización por secciones + "Avisar a la dueña" (pedido nuevo)
+// ══════════════════════════════════════════════════════════════════════
+// Estas plantillas son un DESTINATARIO distinto de las de arriba: las de
+// arriba (construirTextoConfirmacion/Recordatorio/Cumpleanos/Consulta/Kit)
+// se le mandan a LA PACIENTE. Estas se le mandan A LA DUEÑA, para avisarle
+// que pasó algo — son mensajes de aviso interno, no de atención al público.
+// Es un aviso independiente de la tarea con la paciente (punto 2 del
+// pedido): preparar/enviar la confirmación de una consulta y avisarle a la
+// dueña que hay una consulta nueva son dos acciones separadas, con su
+// propio registro de "ya avisé" (ver idAvisoDueña).
+
+// tipoMensaje fijo, distinto de "confirmacion"/"consulta"/"cumpleanos"/
+// "kit" — así el registro de "avisé a la dueña" en contactosWhatsApp NUNCA
+// se confunde ni se pisa con el de la tarea con la paciente, aunque sea el
+// mismo documento de origen (misma coleccion/docId, tipoMensaje distinto).
+export const TIPO_MENSAJE_AVISO_DUENA = "aviso_dueña";
+
+// Igual que idContactoParaItem pero para el aviso a la dueña: usa la misma
+// versión por ocurrencia (fecha/hora de turno, año de cumpleaños) que ya
+// usa el contacto con la paciente, para que una reprogramación o un cambio
+// de año tampoco arrastren un "ya avisé" viejo.
+export function docIdVersionadoParaAviso(docId, ocurrencia) {
+  if (ocurrencia?.fecha && ocurrencia?.hora) return docIdVersionadoContacto(docId, "confirmacion", ocurrencia.fecha, ocurrencia.hora);
+  if (ocurrencia?.fecha && !ocurrencia?.hora) return docIdVersionadoCumpleanos(docId, ocurrencia.fecha);
+  return docId;
+}
+
+export function idAvisoDuena(coleccion, docId, ocurrencia) {
+  return `${coleccion}_${docIdVersionadoParaAviso(docId, ocurrencia)}_${TIPO_MENSAJE_AVISO_DUENA}`;
+}
+
+function listaConY(partes) {
+  if (!partes.length) return "";
+  if (partes.length === 1) return partes[0];
+  return partes.slice(0, -1).join(", ") + " y " + partes[partes.length - 1];
+}
+
+// kit: salida de normalizarPedidoKit(). Omite campos vacíos (total,
+// entrega) en vez de mostrar "No registrado" — un aviso a la dueña no
+// necesita remarcar huecos de datos, solo contar lo que sí se sabe.
+// Plantilla exacta pedida (punto 10). Usa siempre datos reales de
+// normalizarPedidoKit — montoAbonado/saldoPendiente ya vienen en
+// "No registrado" cuando Firestore no tiene el campo (nunca se infiere
+// deuda ni pago desde el estado de entrega). Ningún campo opcional ausente
+// deja una llave, "undefined" ni una línea vacía: si no hay dato, la línea
+// directamente no se agrega.
+export function construirTextoAvisoDuenaKit(kit) {
+  const nombre = kit.nombre || "Paciente";
+  const lineas = [`Gime, tenés un pedido de kit de ${nombre}.`];
+
+  const refTemporal = kit.fechaPedidoMs != null ? referenciaTemporalConFecha(kit.fechaPedidoMs) : null;
+  const hora = kit.fechaPedidoMs != null ? formatearHoraLocal(kit.fechaPedidoMs) : null;
+  if (refTemporal && hora) lineas.push(`Solicitado: ${refTemporal}, a las ${hora}.`);
+  else if (refTemporal) lineas.push(`Solicitado: ${refTemporal}.`);
+  else lineas.push("Solicitado: fecha no registrada.");
+
+  lineas.push("Productos:");
+  lineas.push(kit.items && kit.items.length
+    ? kit.items.map((it) => {
+        const importe = it.subtotalCompleto ? formatearARS(it.subtotal) : "importe no registrado";
+        const cant = it.cantidad > 1 ? `${it.cantidad} × ` : "";
+        return `• ${cant}${it.nombre} — ${importe}`;
+      }).join("\n")
+    : (kit.productosResumen && kit.productosResumen.length ? kit.productosResumen.map((p) => `• ${p}`).join("\n") : "• (sin detalle de productos)"));
+
+  lineas.push(`Total del pedido: ${kit.totalTexto}.`);
+  if (kit.discrepanciaTotal) lineas.push(`⚠️ El total registrado (${formatearARS(kit.discrepanciaTotal.registrado)}) no coincide con la suma de los productos (${formatearARS(kit.discrepanciaTotal.calculado)}) — revisar.`);
+  lineas.push(`Monto abonado: ${kit.montoAbonadoTexto}.`);
+  lineas.push(`Saldo pendiente: ${kit.saldoPendienteTexto}.`);
+  lineas.push(`Estado: ${kit.estadoPedido || "pendiente"}.`);
+  if (kit.entrega) lineas.push(kit.entrega);
+  if (kit.observaciones) lineas.push(`Nota: ${kit.observaciones}`);
+
+  return lineas.join("\n");
+}
+
+export function construirTextoAvisoDuenaCumpleanosIndividual(nombre, saludoRealizado) {
+  return `🎂 Hoy es el cumpleaños de ${nombre || "una paciente"}.\nSaludo: ${saludoRealizado ? "realizado" : "pendiente"}.`;
+}
+
+// personas: cumpleanosHoy.personas (cada una con nombre, clientId).
+// pendientesDeSaludar: subconjunto de nombres sin saludo registrado —
+// se calcula afuera (con contactosPorId) porque esta función es pura.
+export function construirTextoAvisoDuenaCumpleanosDia(personas, nombresPendientes) {
+  if (!personas || !personas.length) return "🎂 Hoy no hay cumpleaños.";
+  const lista = personas.map((p) => `• ${p.nombre || "Paciente"}`).join("\n");
+  const pend = nombresPendientes && nombresPendientes.length ? nombresPendientes.join(", ") : "ninguno";
+  return `🎂 Hoy cumplen años:\n${lista}\nPendientes de saludar: ${pend}.`;
+}
+
+// item: normalizarItemAgenda() de una consulta. estadoConsulta: salida de
+// estadoConsultaInicial() de más abajo, en español, tal cual va al mensaje.
+// Dos plantillas distintas (punto 10) según si ya tiene turno asignado
+// (fechaIncompleta === false) o es una solicitud todavía sin coordinar
+// (fechaIncompleta === true, hoy sin ningún origen real que la produzca en
+// el proyecto auditado, pero normalizarItemAgenda ya la contempla si algún
+// alta futura crea un documento de consulta sin fecha/hora).
+export function construirTextoAvisoDuenaConsulta(item, estadoConsultaTexto) {
+  if (item.fechaIncompleta) return construirTextoAvisoDuenaSolicitudConsulta(item);
+  return construirTextoAvisoDuenaConsultaAgendada(item, estadoConsultaTexto);
+}
+
+export function construirTextoAvisoDuenaConsultaAgendada(item, estadoConsultaTexto) {
+  const nombre = item.nombre || "Paciente";
+  const lineas = [`Gime, se agendó una consulta inicial para ${nombre}.`];
+
+  const dia = diaSemanaLegible(item.inicioMs);
+  const fechaTxt = formatearFechaLocal(item.inicioMs);
+  const horaInicio = item.hora ? `${item.hora} hs` : null;
+  const horaFin = item.finMs != null ? formatearHoraLocal(item.finMs) : null;
+  const dur = item.duracionMinutos || 30;
+  if (dia && fechaTxt && horaInicio && horaFin) lineas.push(`Consulta: ${dia} ${fechaTxt}, de ${horaInicio} a ${horaFin} hs — ${dur} minutos.`);
+  else if (item.fecha) lineas.push(`Consulta: ${item.fecha}${item.hora ? ` ${item.hora} hs` : ""}.`);
+
+  if (item.registradoMs != null) lineas.push(`Reserva registrada: ${formatearFechaHoraLocal(item.registradoMs)}.`);
+  if (item.box) lineas.push(`Box: ${item.box}.`);
+  lineas.push(`Estado: ${estadoConsultaTexto || "pendiente"}.`);
+  if (item.detalleSesion) lineas.push(item.detalleSesion);
+
+  return lineas.join("\n");
+}
+
+// Solicitud de consulta SIN turno todavía coordinado. No inventa un
+// patientId: la persona todavía no tiene ficha, se referencia por su
+// registro de consulta (item.id).
+export function construirTextoAvisoDuenaSolicitudConsulta(item) {
+  const nombre = item.nombre || "Paciente";
+  const lineas = [`Gime, recibiste una solicitud de consulta inicial de ${nombre}.`];
+
+  lineas.push(item.registradoMs != null
+    ? `Solicitud registrada: ${referenciaTemporalConFecha(item.registradoMs)}.`
+    : "Solicitud registrada: fecha no registrada.");
+
+  if (item.servicio && item.servicio !== "Consulta Inicial") lineas.push(`Servicio de interés: ${item.servicio}.`);
+  lineas.push("Estado: pendiente de coordinación.");
+  if (item.telefono) lineas.push(`Teléfono de contacto: ${item.telefono}.`);
+  if (item.detalleSesion) lineas.push(item.detalleSesion);
+
+  return lineas.join("\n");
+}
+
+// Los otros tipos de movimiento (confirmación de turno común, turno a
+// revisar, recomendación) no tienen plantilla propia en el pedido — se
+// arma un aviso genérico breve con los mismos datos que ya muestra la
+// tarjeta, para no dejar esas categorías sin la acción "Avisar a la dueña".
+export function construirTextoAvisoDuenaGenerico(p) {
+  const etiqueta = ETIQUETA_TIPO_PENDIENTE[p.tipo] || "Movimiento";
+  return `🔔 ${etiqueta}: ${p.nombre || "Paciente"}.\n${p.motivo || ""}`.trim();
+}
+
+// Estados de Consultas iniciales (punto 1 del pedido): tres pasos propios,
+// distintos del estado de contacto genérico — nunca infiere "confirmada"
+// por el paso del tiempo, solo por el campo estadoBruto real del documento
+// (mismo criterio que estadoTemporalTurno: no inventar realización).
+export const ESTADO_CONSULTA_CANCELADA = "cancelada";
+export const ESTADO_CONSULTA_CONFIRMADA = "confirmada";
+export const ESTADO_CONSULTA_ESPERANDO = "esperando_respuesta";
+export const ESTADO_CONSULTA_PENDIENTE_ENVIO = "pendiente_enviar_confirmacion";
+
+export function estadoConsultaInicial(item, contactoDoc) {
+  const bruto = (item.estadoBruto || "").toLowerCase();
+  if (bruto === "cancelada" || bruto === "cancelado") return ESTADO_CONSULTA_CANCELADA;
+  if (bruto === "confirmada") return ESTADO_CONSULTA_CONFIRMADA;
+  const estContacto = estadoContacto(contactoDoc);
+  if (estContacto === "preparado" || estContacto === "enviado") return ESTADO_CONSULTA_ESPERANDO;
+  return ESTADO_CONSULTA_PENDIENTE_ENVIO;
+}
+
+export function etiquetaEstadoConsultaInicial(estado) {
+  switch (estado) {
+    case ESTADO_CONSULTA_CANCELADA: return "Cancelada";
+    case ESTADO_CONSULTA_CONFIRMADA: return "Consulta confirmada";
+    case ESTADO_CONSULTA_ESPERANDO: return "Confirmación enviada, esperando respuesta";
+    default: return "Pendiente de enviar confirmación";
+  }
+}
+
+// Cumpleaños de los próximos N días (sección Cumpleaños, "Próximos 7
+// días") — se calcula del lado del cliente sobre clientesPorDni, que ya se
+// carga completo al iniciar sesión (mismo mapa que usa el fallback de
+// teléfono), sin ninguna consulta nueva a Firestore. Compara solo mes/día
+// de fechaNacimiento ("YYYY-MM-DD", siempre string en este proyecto — ver
+// nota en admin.html) contra cada uno de los próximos `dias` días — nunca
+// incluye HOY (eso ya lo cubre resumenesCumpleanos/{hoy}, que además sabe
+// distinguir "no se pudo calcular" de "no hay"). 29/02 en año no bisiesto
+// simplemente no matchea ningún MM-DD real de ese año — comportamiento
+// esperado, no un bug a corregir acá.
+export function cumpleanosProximos(clientesPorDni, hoyISO, dias = 7) {
+  const objetivo = new Map(); // "MM-DD" -> fechaISO del próximo match
+  for (let i = 1; i <= dias; i++) {
+    const iso = sumarDiasISO(hoyISO, i);
+    objetivo.set(iso.slice(5), iso);
+  }
+  const resultado = [];
+  for (const [clientId, data] of Object.entries(clientesPorDni || {})) {
+    const fn = (data?.fechaNacimiento || "").toString().trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fn)) continue;
+    const mmdd = fn.slice(5);
+    if (!objetivo.has(mmdd)) continue;
+    const nombre = data.fullName || data.fullLname || data.nombre || data.name || "Paciente";
+    resultado.push({ clientId, nombre, fecha: objetivo.get(mmdd) });
+  }
+  return resultado.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.nombre.localeCompare(b.nombre));
+}
+
+// "Compartir resumen del día" (punto 4): separa categorías, cuenta solo lo
+// vigente (ya filtrado afuera por pendientesVigentes). No repite el listado
+// completo de cumpleaños/kits/consultas — para eso están sus propias
+// secciones; el resumen es un conteo accionable, como pide el punto 1.
+export function construirTextoResumenDia(conteo, fechaLegible) {
+  const partes = [];
+  if (conteo.cumpleanos) partes.push(`🎂 ${conteo.cumpleanos} cumpleaños por saludar`);
+  if (conteo.confirmacion_turno) partes.push(`📅 ${conteo.confirmacion_turno} turnos/consultas por confirmar`);
+  if (conteo.kit_pendiente) partes.push(`🛍️ ${conteo.kit_pendiente} pedidos de kit por atender`);
+  if (conteo.revisar_turno) partes.push(`🔎 ${conteo.revisar_turno} turnos a revisar`);
+  if (conteo.recomendacion) partes.push(`💡 ${conteo.recomendacion} recomendaciones pendientes`);
+  const cuerpo = partes.length ? partes.map((p) => `• ${p}`).join("\n") : "Sin pendientes accionables en este momento.";
+  return `📋 Resumen del día — ${fechaLegible}\n\n${cuerpo}\n\n*Espacio Mimar T*`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Resumen de jornada — pacientes únicos, cambios de box e historial
+// ══════════════════════════════════════════════════════════════════════
+// Fuente única: reservas (mismo criterio que window.renderGrilla en
+// admin.html — la Grilla tampoco mezcla consultas iniciales, que tienen su
+// propio flujo de 30 min separado del circuito de boxes). Cada tramo de
+// box es su propio documento de reserva; no existe una colección de
+// "sesión clínica" separada (confirmado en el código real, no hay
+// `sesiones`/`historiaClinica` — ver auditoría de la tarea). Por eso una
+// "sesión" acá se INFIERE encadenando tramos contiguos de la misma
+// identidad, nunca se lee de un campo que no existe.
+
+// Identidad estable: DNI si está cargado, si no el nombre normalizado
+// (sin tildes, sin mayúsculas) — mismo criterio que _pacienteMatchKey en
+// admin.html ("usar SIEMPRE esta clave, nunca comparar nombres tal cual").
+// Dos homónimos sin DNI cargado siguen siendo indistinguibles con este
+// modelo de datos — limitación heredada, documentada, no algo que esta
+// función pueda resolver sin un id de paciente propio en reservas.
+function _normalizarNombreParaClave(nombre) {
+  return (nombre || "").toString().trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ");
+}
+export function pacienteMatchKey(item) {
+  const dni = (item?.dni || "").toString().replace(/\D/g, "");
+  if (dni) return "dni:" + dni;
+  return "nom:" + _normalizarNombreParaClave(item?.nombre);
+}
+
+// Margen máximo entre el fin de un tramo y el inicio del siguiente (misma
+// identidad, mismo día) para considerarlos la MISMA sesión (ej.: pasa de
+// Box 2 a Box 3 para continuar el tratamiento). Un hueco mayor es una
+// visita aparte — "el paso de la hora, por sí solo, no acredita que
+// llegó" (punto 2 del pedido): sin este margen, dos visitas del mismo día
+// separadas por horas (retiro y regreso) se fusionarían solo por
+// coincidir en la fecha, exactamente lo que el pedido pide evitar. No hay
+// un valor configurado en el negocio para esto — 30 min es un default
+// explícito y documentado (tiempo razonable de cambio entre boxes), no un
+// número mágico sin explicar.
+export const TOLERANCIA_CONTINUIDAD_BOX_MS = 30 * 60000;
+
+// Encadena tramos (reservas ya normalizadas, con inicioMs/finMs/fecha) de
+// UNA identidad en sesiones: cada sesión es una cadena de tramos donde
+// cada uno empieza a lo sumo `tolerancia` después de que terminó el
+// anterior, sin cruzar de un día calendario a otro (nunca se encadena a
+// través de la medianoche, aunque el hueco horario "cerrara" por algún
+// dato inconsistente). Devuelve un array de sesiones (cada una, un array
+// de >=1 tramos), en orden cronológico ascendente.
+export function encadenarSesiones(tramos, tolerancia = TOLERANCIA_CONTINUIDAD_BOX_MS) {
+  const ordenados = (tramos || []).slice().sort((a, b) => (a.inicioMs ?? Infinity) - (b.inicioMs ?? Infinity));
+  const sesiones = [];
+  for (const t of ordenados) {
+    const sesionActual = sesiones[sesiones.length - 1];
+    const anterior = sesionActual ? sesionActual[sesionActual.length - 1] : null;
+    const continua = !!(anterior && anterior.finMs != null && t.inicioMs != null
+      && t.fecha === anterior.fecha
+      && (t.inicioMs - anterior.finMs) <= tolerancia);
+    if (continua) sesionActual.push(t);
+    else sesiones.push([t]);
+  }
+  return sesiones;
+}
+
+// Agrupa los tramos ACTIVOS de un día en bloques por paciente (punto 2).
+// Cada bloque conserva todas sus sesiones encadenadas del día (si hay un
+// retiro y regreso, quedan como sesiones separadas DENTRO del mismo
+// bloque, sin "Continúa en sede" entre ellas — tal como pide el punto 2).
+// franja/cruzaFranja usan el PRIMER ingreso del día (primer tramo con
+// inicioMs resuelto), así mañana+tarde suman siempre el total de bloques.
+export function agruparBloquesDelDia(reservasActivasDelDia, corte = CORTE_MANANA_TARDE_DEFECTO) {
+  const porPaciente = new Map();
+  for (const r of (reservasActivasDelDia || [])) {
+    const key = pacienteMatchKey(r);
+    if (!porPaciente.has(key)) porPaciente.set(key, []);
+    porPaciente.get(key).push(r);
+  }
+  const bloques = [];
+  for (const [key, tramosDelPaciente] of porPaciente) {
+    const sesiones = encadenarSesiones(tramosDelPaciente);
+    const tramosPlanos = [];
+    for (const sesion of sesiones) {
+      sesion.forEach((t, i) => tramosPlanos.push({ ...t, continuaEnSede: i > 0 }));
+    }
+    tramosPlanos.sort((a, b) => (a.inicioMs ?? Infinity) - (b.inicioMs ?? Infinity));
+    const nombre = tramosDelPaciente.find((t) => t.nombre)?.nombre || "Paciente";
+    const primerTramo = tramosPlanos.reduce((min, t) => (t.inicioMs != null && (min == null || t.inicioMs < min.inicioMs) ? t : min), null);
+    const franja = primerTramo ? franjaDeHora(primerTramo.hora, corte) : null;
+    const franjasPresentes = new Set(tramosPlanos.map((t) => franjaDeHora(t.hora, corte)).filter(Boolean));
+    bloques.push({
+      pacienteKey: key,
+      nombre,
+      tramos: tramosPlanos,
+      cantidadSesiones: sesiones.length,
+      primerIngresoMs: primerTramo ? primerTramo.inicioMs : null,
+      franja,
+      cruzaFranja: franjasPresentes.size > 1,
+    });
+  }
+  // Orden pedido: por primera llegada. Sin hora resoluble, al final.
+  return bloques.sort((a, b) => (a.primerIngresoMs ?? Infinity) - (b.primerIngresoMs ?? Infinity));
+}
+
+// Historial obligatorio por paciente (punto 3): recibe TODAS las reservas
+// ACTIVAS de esa identidad con fecha ANTERIOR al día seleccionado (ya
+// filtradas por quien llama — esta función no sabe nada de Firestore) y
+// devuelve las últimas dos sesiones (encadenadas con el mismo criterio de
+// arriba, así una sesión que usó varios boxes aparece completa y dos
+// visitas independientes que coincidieron en fecha NO se fusionan) más el
+// último detalle de sesión no vacío, buscando hacia atrás si las dos
+// últimas no tienen texto cargado.
+export function historialAnteriorPaciente(reservasPacienteAnteriores) {
+  const sesiones = encadenarSesiones(reservasPacienteAnteriores)
+    .map((tramos) => ({
+      fecha: tramos[0].fecha,
+      inicioMs: tramos.reduce((min, t) => (t.inicioMs != null && (min == null || t.inicioMs < min.inicioMs) ? t.inicioMs : min), null),
+      tramos: tramos.slice().sort((a, b) => (a.inicioMs ?? Infinity) - (b.inicioMs ?? Infinity)),
+    }))
+    .sort((a, b) => (b.inicioMs ?? -Infinity) - (a.inicioMs ?? -Infinity)); // más reciente primero
+
+  const ultimasDos = sesiones.slice(0, 2);
+
+  let detalle = null;
+  for (const sesion of sesiones) {
+    const conDetalle = sesion.tramos.slice().reverse().find((t) => (t.detalleSesion || "").toString().trim());
+    if (conDetalle) { detalle = { fecha: sesion.fecha, inicioMs: conDetalle.inicioMs ?? sesion.inicioMs, texto: conDetalle.detalleSesion.toString().trim() }; break; }
+  }
+
+  return { sesiones: ultimasDos, detalle };
+}
+
+// ── Mensaje de WhatsApp (punto 4) ────────────────────────────────────────
+// boxLabelDe: función (id de box) → etiqueta legible, inyectada por quien
+// llama (BOX_LABELS vive en la capa de UI, no en esta lógica pura).
+function _formatearTramoLinea(t, boxLabelDe) {
+  const horaFin = t.finMs != null ? formatearHoraLocal(t.finMs) : "??:??";
+  const box = boxLabelDe ? (boxLabelDe(t.box) || t.box || "Box sin asignar") : (t.box || "Box sin asignar");
+  const tratamiento = t.servicio || "Tratamiento sin registrar";
+  const continua = t.continuaEnSede ? " · Continúa en sede." : "";
+  return `*${t.hora}–${horaFin}* · ${tratamiento} · ${box}${continua}`;
+}
+
+function _formatearSesionHistorial(sesion, boxLabelDe) {
+  const fechaLegible = sesion.inicioMs != null ? formatearFechaLocal(sesion.inicioMs) : sesion.fecha;
+  const tramosTxt = sesion.tramos.map((t) => {
+    const box = boxLabelDe ? (boxLabelDe(t.box) || t.box || "Box sin asignar") : (t.box || "Box sin asignar");
+    return `${t.servicio || "Tratamiento sin registrar"} (${box})`;
+  }).join(", ");
+  return `• ${fechaLegible} — ${tramosTxt}`;
+}
+
+// bloques: salida de agruparBloquesDelDia(). historialPorPaciente: Map
+// pacienteKey -> { estado:'ok', ...historialAnteriorPaciente() } |
+// { estado:'error', error }. fechaLegible: "jueves 10/09/2026" (día de
+// semana + fecha exacta, ya resuelto por quien llama). No inventa ningún
+// dato ausente: un historial que falló se marca explícitamente, nunca se
+// muestra como "Sin sesiones previas registradas" (eso significa algo
+// distinto: se consultó bien y no había nada).
+export function construirTextoResumenJornada({ fechaLegible, bloques, historialPorPaciente, boxLabelDe }) {
+  const total = bloques.length;
+  const manana = bloques.filter((b) => b.franja === "mañana").length;
+  const tarde = bloques.filter((b) => b.franja === "tarde").length;
+
+  const lineas = [];
+  lineas.push(`Gime, hoy ${fechaLegible} tenés ${total} paciente${total === 1 ? "" : "s"} único${total === 1 ? "" : "s"}: ${manana} ingresa${manana === 1 ? "" : "n"} por la mañana y ${tarde} ingresa${tarde === 1 ? "" : "n"} por la tarde.`);
+
+  const cruzan = bloques.filter((b) => b.cruzaFranja).map((b) => b.nombre);
+  if (cruzan.length) lineas.push(`Continúan entre franjas: ${cruzan.join(", ")}.`);
+
+  if (!total) {
+    lineas.push("", "No hay pacientes agendados para este día.");
+    return lineas.join("\n");
+  }
+
+  for (const b of bloques) {
+    const bloqueLineas = [`*${b.nombre}*`];
+    bloqueLineas.push(...b.tramos.map((t) => _formatearTramoLinea(t, boxLabelDe)));
+
+    const hist = historialPorPaciente?.get(b.pacienteKey);
+    bloqueLineas.push("");
+    if (!hist || hist.estado === "error") {
+      bloqueLineas.push(`⚠️ No se pudo consultar el historial de ${b.nombre}${hist?.error ? ` (${hist.error})` : ""} — no se puede confirmar si tiene sesiones previas.`);
+    } else {
+      bloqueLineas.push("Últimas sesiones:");
+      if (hist.sesiones.length) {
+        bloqueLineas.push(...hist.sesiones.map((s) => _formatearSesionHistorial(s, boxLabelDe)));
+      } else {
+        bloqueLineas.push("Sin sesiones previas registradas.");
+      }
+      bloqueLineas.push("");
+      if (hist.detalle) {
+        const fechaDetalle = hist.detalle.inicioMs != null ? formatearFechaLocal(hist.detalle.inicioMs) : hist.detalle.fecha;
+        bloqueLineas.push(`*Último detalle registrado — ${fechaDetalle}:*`);
+        bloqueLineas.push(hist.detalle.texto);
+      } else {
+        bloqueLineas.push("Sin detalle previo registrado.");
+      }
+    }
+
+    lineas.push("", bloqueLineas.join("\n"));
+  }
+
+  return lineas.join("\n");
 }

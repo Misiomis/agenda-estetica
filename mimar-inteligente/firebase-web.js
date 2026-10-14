@@ -25,6 +25,7 @@ import {
   writeBatch,
   runTransaction,
   increment,
+  documentId,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth,
@@ -48,7 +49,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 export {
-  addDoc, app, auth, collection, db, deleteDoc, doc, firebaseConfig,
+  addDoc, app, auth, collection, db, deleteDoc, doc, documentId, firebaseConfig,
   getApp, getAuth, getDoc, getDocFromServer, getDocs, getFirestore,
   increment, initializeApp, limit, onAuthStateChanged, orderBy,
   onSnapshot, query, serverTimestamp, setDoc, signInWithEmailAndPassword,

@@ -1,0 +1,37 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function esAdmin() {
+      return request.auth != null
+        && request.auth.token.email == "espaciomimart36@gmail.com";
+    }
+
+    // Respaldos de un pago (factura/comprobante/recibo interno de efectivo).
+    // Documentos privados del negocio — nunca lectura pública, nunca un link
+    // permanente expuesto: siempre se sirven a través de una URL firmada de
+    // corta duración (getDownloadURL) pedida por el panel, autenticado como
+    // admin. Tamaño y tipo también se validan en el servidor, no solo en el
+    // cliente (el cliente puede mentir; esta regla no).
+    match /respaldosPago/{reservaId}/{archivo} {
+      allow read: if esAdmin();
+      allow write: if esAdmin()
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('application/pdf|image/jpeg|image/png');
+    }
+
+    // Recibos en PDF generados para el paciente — mismo criterio: privados,
+    // sin link permanente expuesto.
+    match /recibos/{reservaId}/{archivo} {
+      allow read: if esAdmin();
+      allow write: if esAdmin()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('application/pdf');
+    }
+
+    // Todo lo demás del bucket: sin acceso desde el cliente.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
