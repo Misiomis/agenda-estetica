@@ -226,9 +226,17 @@ export function normalizarItemAgenda(coleccion, id, data, clientesPorDni) {
     duo: d.duo === true,
     duoNombre2: d.duoNombre2 || null,
     detalleSesion2: d.detalleSesion2 || null,
+    // Quién atendió a la clienta — dato informativo, nunca modifica el
+    // horario/servicio/estado del turno (ver ATENDIDO_POR_OPCIONES).
+    atendidoPor: d.atendidoPor || null,
     fechaIncompleta: !fecha || !hora || inicioMs === null,
   };
 }
+
+// Opciones fijas de "Atendida por" (punto 4 del pedido de mejoras): dato
+// puramente informativo sobre el detalle del turno, no un rol de usuario ni
+// un permiso — por eso es una lista fija de nombres, no una colección.
+export const ATENDIDO_POR_OPCIONES = ["Gimena", "Cristina"];
 
 // ── Agenda combinada, ordenada cronológicamente ─────────────────────────
 export function construirAgenda(itemsReservas, itemsConsultas) {
@@ -239,6 +247,43 @@ export function construirAgenda(itemsReservas, itemsConsultas) {
     if (ka !== kb) return ka - kb;
     return (a.id || "").localeCompare(b.id || "");
   });
+}
+
+// ── Secciones de turnos colapsables (mejora de organización) ────────────
+// Clasifica por fecha calendario (comparación de strings ISO "AAAA-MM-DD",
+// válida porque siempre vienen con ese formato) — nunca por inicioMs, para
+// que un turno sin hora registrada (fechaIncompleta) igual caiga en su día
+// real en vez de desaparecer de todas las secciones.
+export function clasificarPorFecha(fechaISO, hoyISO) {
+  if (!fechaISO) return "sin-fecha";
+  if (fechaISO === hoyISO) return "hoy";
+  return fechaISO > hoyISO ? "proximo" : "anterior";
+}
+
+// Agrupa reservas + turnos de depilación (las dos colecciones que son
+// "turnos" en el sentido amplio) en las secciones pedidas: hoy / próximos /
+// anteriores. Las consultas (Turnos de valoración) se arman aparte con
+// agruparValoracion — son un tipo de turno distinto, no un recorte por fecha.
+export function agruparTurnosPorSeccion(itemsReservas, itemsReservasDepi, hoyISO) {
+  const todos = [...itemsReservas, ...itemsReservasDepi];
+  const hoy = [];
+  const proximos = [];
+  const anteriores = [];
+  for (const it of todos) {
+    const grupo = clasificarPorFecha(it.fecha, hoyISO);
+    if (grupo === "hoy" || grupo === "sin-fecha") hoy.push(it); // sin fecha: visible, no se pierde
+    else if (grupo === "proximo") proximos.push(it);
+    else anteriores.push(it);
+  }
+  const porInicio = (a, b) => (a.inicioMs ?? Infinity) - (b.inicioMs ?? Infinity);
+  hoy.sort(porInicio);
+  proximos.sort(porInicio);
+  anteriores.sort((a, b) => (b.inicioMs ?? -Infinity) - (a.inicioMs ?? -Infinity)); // más reciente primero
+  return { hoy, proximos, anteriores };
+}
+
+export function agruparValoracion(itemsConsultas) {
+  return itemsConsultas.slice().sort((a, b) => (a.inicioMs ?? Infinity) - (b.inicioMs ?? Infinity));
 }
 
 // ── Próxima reserva ──────────────────────────────────────────────────────
@@ -570,6 +615,7 @@ export function normalizarReservaDepi(id, data) {
     activa,
     inicioMs,
     creadoMs,
+    atendidoPor: d.atendidoPor || null,
   };
 }
 
