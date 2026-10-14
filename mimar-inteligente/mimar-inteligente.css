@@ -3,14 +3,23 @@
    sentirse como la misma familia de producto, no una pantalla aparte. */
 :root {
   color-scheme: light;
-  --forest: #173e33;
-  --forest-deep: #102d26;
-  --forest-light: #285646;
-  --ink: #233a32;
-  --muted: #64746b;
-  --paper: #f6f5ef;
-  --surface: #fffefa;
-  --line: #dedfd5;
+  /* Paleta "espacio de bienestar" (mejora visual): verde petróleo/salvia +
+     beige/crema + rosa empolvado como acento, siempre con texto oscuro de
+     buen contraste — nunca color solo, el texto ya dice el estado. */
+  --forest: #1d4a3d;
+  --forest-deep: #123229;
+  --forest-light: #2f6652;
+  --sage: #e7efe6;
+  --sage-line: #cfe0cd;
+  --sage-ink: #3c5a46;
+  --blush: #f3e2de;
+  --blush-line: #e3c2bb;
+  --blush-ink: #8a4f47;
+  --ink: #26332c;
+  --muted: #6b7a70;
+  --paper: #f2ece1;
+  --surface: #fbf7ee;
+  --line: #e2dccb;
   --accent: #ddcda7;
   --emerald: #2f8f6f;
   --emerald-soft: #e4eeda;
@@ -132,8 +141,6 @@ input:not([type="checkbox"]) { border: 1px solid #c9d0c3; border-radius: 9px; pa
 .status-panel-urgente { box-shadow: 0 0 0 3px var(--amber) inset; }
 .btn-reconocer-alarma { margin-top: 10px; }
 
-.item-no-leido { border-left: 3px solid var(--emerald); }
-
 /* ── Prompt "¿Enviaste el mensaje?" (no bloqueante) ── */
 .confirm-envio-banner {
   position: fixed; left: 14px; right: 14px; bottom: 14px; z-index: 50;
@@ -145,40 +152,37 @@ input:not([type="checkbox"]) { border: 1px solid #c9d0c3; border-radius: 9px; pa
 .confirm-envio-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .confirm-envio-actions .button { flex: 1; min-width: 100px; padding: 9px 10px; font-size: .82rem; }
 
-/* ── Accesos rápidos ── */
-.quick-actions { display: flex; gap: 10px; margin-bottom: 20px; }
-.quick-actions .button { flex: 1; }
-.quick-actions .count-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
-  background: rgba(255,255,255,.22); font-size: .75rem; font-weight: 800;
+/* ── Secciones colapsables (turnos agrupados en hoy/próximos/valoración/
+      anteriores + pedidos de kit) — el encabezado entero es el botón que
+      expande/contrae; el contador sigue visible aunque esté cerrada. ── */
+.section-block { margin-bottom: 18px; scroll-margin-top: 84px; }
+.section-toggle {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: var(--sage); border: 1px solid var(--sage-line); border-radius: 14px;
+  padding: 13px 14px; margin-bottom: 10px; text-align: left;
 }
-.button-light .count-badge { background: var(--emerald-soft); color: var(--forest); }
-
-/* ── Secciones tipo lista (bandeja + agenda), inspiradas en schedule-panel ── */
-.section-block { margin-bottom: 22px; scroll-margin-top: 84px; }
-.section-heading { display: flex; align-items: center; gap: 10px; padding: 4px 2px 12px; }
-.section-heading h2 { font: 1.25rem/1.2 var(--serif); }
-.count-pill { min-width: 25px; height: 23px; display: inline-grid; place-items: center; border-radius: 7px; background: #eceee6; color: #64765a; font-size: .78rem; font-weight: 700; }
+.section-toggle:active { background: #dfe9dc; }
+.section-toggle h2 { flex: 1; font: 1.1rem/1.2 var(--serif); color: var(--sage-ink); }
+.section-chevron { width: 18px; height: 18px; color: var(--sage-ink); transition: transform .18s ease; flex-shrink: 0; }
+/* Variante rosa empolvado para diferenciar Kits (pedidos) de los turnos
+   (verde salvia) — mismo patrón, solo cambia el acento de color. */
+.section-toggle-blush { background: var(--blush); border-color: var(--blush-line); }
+.section-toggle-blush:active { background: #ecd0c9; }
+.section-toggle-blush h2, .section-toggle-blush .section-chevron { color: var(--blush-ink); }
+.section-block[data-colapsado="true"] .section-chevron { transform: rotate(-90deg); }
+.section-block[data-colapsado="true"] > .list-panel { display: none; }
+.count-pill { min-width: 25px; height: 23px; display: inline-grid; place-items: center; border-radius: 7px; background: var(--surface); color: var(--sage-ink); font-size: .78rem; font-weight: 700; border: 1px solid var(--sage-line); }
 
 .list-panel { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); overflow: hidden; }
-.day-header { padding: 10px 16px; background: #f0f1e9; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-/* Puntos 16-17: separadores chicos dentro de la MISMA bandeja de
-   Pendientes — nunca una pantalla aparte por día o franja. */
-.pend-dia-header-atrasado { background: #f7e9e5; color: #a5433a; }
-.pend-dia-subheader { padding: 6px 16px; background: #f7f7f2; color: var(--muted); font-size: .68rem; font-weight: 600; letter-spacing: .04em; }
-.franja-separador { padding: 6px 16px; font-size: .72rem; font-weight: 700; color: var(--forest); background: #eef3ea; border-top: 1px solid #e2e6da; border-bottom: 1px solid #e2e6da; }
-.item-row { padding: 16px; border-bottom: 1px solid #e7e8df; border-left: 3px solid transparent; }
+.item-row { padding: 16px; border-bottom: 1px solid var(--line); }
 .item-row:last-child { border-bottom: 0; }
-.item-row[data-revision="true"] { border-left-color: #b78029; background: #fbf7ee; }
 .item-row-top { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
 .item-time { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--forest); white-space: nowrap; }
 .item-name { font-size: 1rem; font-weight: 600; flex: 1; min-width: 140px; overflow-wrap: anywhere; }
 .item-service { font-size: .85rem; color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
 .item-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.item-motivos { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
-.item-motivo { font-size: .82rem; padding: 8px 10px; border-radius: 9px; background: #f3ebd8; color: var(--amber); border: 1px solid #e4d3a8; }
 .item-actions { margin-top: 10px; }
+.pill-atendido { background: var(--blush); color: var(--blush-ink); border: 1px solid var(--blush-line); }
 
 .empty-state { text-align: center; padding: 34px 20px; color: var(--muted); }
 .empty-state .icon { width: 28px; height: 28px; margin-bottom: 10px; }
@@ -213,56 +217,10 @@ dialog::backdrop { background: #0c251ecc; }
 
 @media (max-width: 380px) {
   .brand-copy > span { display: none; }
-  .quick-actions { flex-direction: column; }
-}
-
-/* ── Navegación inferior (punto 4) ── */
-.bottom-nav {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-  display: flex; background: var(--surface); border-top: 1px solid var(--line);
-  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
-  box-shadow: 0 -6px 20px rgba(16,45,38,.06);
-}
-.nav-item {
-  flex: 1; min-height: 56px; background: transparent; border: 0; border-radius: 12px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .02em; position: relative;
-  padding: 4px 2px;
-}
-.nav-item .icon { width: 22px; height: 22px; }
-.nav-item[aria-current="page"] { color: var(--forest); background: var(--emerald-soft); }
-.nav-badge {
-  position: absolute; top: 2px; right: calc(50% - 22px); min-width: 16px; height: 16px; padding: 0 4px;
-  border-radius: 999px; background: var(--red); color: #fff; font-size: .62rem; font-weight: 800;
-  display: inline-grid; place-items: center;
 }
 
 /* ── Pestañas ── */
 .tab-view { padding-top: 4px; }
-
-/* ── Resumen de hoy (tiles de Inicio) ── */
-.resumen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
-.resumen-tile {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
-  min-height: 76px;
-}
-.resumen-tile:active { background: #eeeee5; }
-.resumen-num { font: 400 1.7rem/1 var(--serif); color: var(--forest); }
-.resumen-label { font-size: .78rem; color: var(--muted); line-height: 1.25; }
-
-/* ── Agrupado Hoy/Ayer/Anteriores en Actividad ── */
-.day-header-group { padding: 12px 4px 8px; background: transparent; color: var(--muted); }
-.day-header-expand { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
-.day-header-expand::-webkit-details-marker { display: none; }
-.day-header-expand::before { content: "▸"; font-size: .7rem; transition: transform .15s ease; }
-details[open] > .day-header-expand::before { transform: rotate(90deg); }
-#actividad-alcance { color: var(--muted); }
-.count-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
-  background: var(--emerald-soft); color: var(--forest); font-size: .7rem; font-weight: 800; margin-left: 4px;
-}
 
 /* ── "Más": lista de acciones ── */
 .mas-lista { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface); }
@@ -307,40 +265,3 @@ details[open] > .day-header-expand::before { transform: rotate(90deg); }
 .aviso-discrepancia { background: #f3ebd8; color: var(--amber); border: 1px solid #e4d3a8; border-radius: 10px; padding: 10px 12px; font-size: .82rem; margin: 8px 0; }
 .wa-preview-textarea { width: 100%; border: 1px solid #c9d0c3; border-radius: 10px; padding: 11px; background: #fffefb; color: var(--ink); font: inherit; font-size: 15px; resize: vertical; margin-bottom: 12px; }
 
-@media (max-width: 380px) {
-  .resumen-grid { gap: 8px; }
-  .resumen-tile { padding: 12px; min-height: 68px; }
-}
-
-/* ── GlowUp: bandeja de pendientes, recomendaciones, avisos horarios ── */
-.pend-filtros { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; }
-.pend-filtro-chip {
-  flex-shrink: 0; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line);
-  background: var(--surface); color: var(--muted); font-size: .82rem; font-weight: 600; white-space: nowrap;
-}
-.pend-filtro-chip.activo { background: var(--forest); color: #fffef8; border-color: var(--forest); }
-.pend-row .item-actions { margin-top: 10px; }
-/* Punto 6: "cada acción que todavía requiere mi intervención debe mostrar
-   una etiqueta textual 'Pendiente' en rojo con contraste suficiente" —
-   reutiliza --red (el mismo tono del badge de navegación: ~6.1:1 de
-   contraste sobre blanco), no depende solo del color (el texto ya dice
-   "Pendiente: falta ..."). */
-.pill-pendiente-rojo { background: #fdecea; color: var(--red); border: 1px solid #f1b6ae; font-weight: 800; }
-.pend-row-bloqueado { border-left: 3px solid var(--red); }
-.pendiente-bloqueado {
-  margin-top: 6px; padding: 8px 10px; border-radius: 8px;
-  background: #fdecea; color: var(--red); font-size: .82rem; font-weight: 700;
-}
-.entrada-aviso-texto { font-size: 1rem; font-weight: 600; margin: 0 0 12px; }
-.entrada-aviso-categorias { display: flex; flex-direction: column; gap: 8px; }
-.entrada-aviso-categoria-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px; border-radius: 10px; background: var(--surface, #f4f4ef); border: 1px solid var(--line, #e3e3da);
-}
-.entrada-aviso-categoria-row .num { font-weight: 800; color: var(--forest, #1f3d2b); }
-.entrada-aviso-categoria-row.bloqueado { border-color: #f1b6ae; background: #fdecea; }
-.entrada-aviso-categoria-row.bloqueado .num { color: var(--red); }
-.avisos-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: .9rem; }
-.avisos-toggle-row input[type="checkbox"] { width: 20px; height: 20px; flex-shrink: 0; }
-.avisos-categorias { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-#avisos-descanso-inicio, #avisos-descanso-fin { border: 1px solid #c9d0c3; border-radius: 8px; padding: 8px; text-align: center; }

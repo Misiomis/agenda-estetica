@@ -13,6 +13,7 @@ import {
   construirTextoKit, estadoContacto,
   normalizarPedidoKit, formatearARS, normalizarReservaDepi,
   TIPO_MENSAJE_AVISO_DUENA, idAvisoDuena, docIdVersionadoParaAviso, construirTextoAvisoDuenaKit,
+  agruparTurnosPorSeccion, agruparValoracion, ATENDIDO_POR_OPCIONES,
 } from "./mimar-inteligente-logic.js";
 import {
   registrarContactoPreparado, registrarContactoEstado, registrarContactoManual,
@@ -74,9 +75,24 @@ let alarmaReconocidaKey = null;
 let ultimaProxKeyVista = null;
 let ultimaSincronizacion = null;
 // Fecha de hoy (zona AR) vigente desde el último login/reconexión — usada
-// para filtrar "Sesiones de hoy" sin recalcular la zona horaria en cada
-// render (misma fecha que ya delimita qReservas/qConsultas).
+// para clasificar los turnos en hoy/próximos/anteriores sin recalcular la
+// zona horaria en cada render.
 let hoyISOActual = null;
+// Cuánto hacia atrás se trae para "Turnos anteriores" — solo visibilidad
+// (ver/cargar detalle), nada de recordatorios ni avisos automáticos: no es
+// la bandeja de Pendientes que se retiró, es un historial acotado y mudo.
+const VENTANA_ANTERIORES_DIAS = 7;
+
+// Qué secciones colapsables arrancan cerradas — el contador sigue visible
+// igual; nunca se pierde información, solo se oculta la lista. Estado
+// puramente de UI (no se persiste), se resetea sola al recargar la app.
+const seccionesColapsadas = {
+  "kits-section": false,
+  "turnos-hoy-section": false,
+  "turnos-proximos-section": true,
+  "turnos-valoracion-section": true,
+  "turnos-anteriores-section": true,
+};
 
 // contactosWhatsApp cargados, indexados por id (coleccion_docId_tipoMensaje)
 let contactosPorId = {};
@@ -137,6 +153,20 @@ document.querySelectorAll("[data-tab-btn]").forEach((btn) => {
     // nunca se asume "activado" de entrada.
     if (destino === "mas") refrescarEstadoNotif();
   });
+});
+
+// ── Secciones colapsables (Kits / Turnos de hoy / Próximos / Valoración /
+// Anteriores) — solo oculta el list-panel vía CSS (data-colapsado en el
+// section-block), nunca deja de renderizar sus datos por detrás.
+document.addEventListener("click", (ev) => {
+  const btn = ev.target.closest("[data-toggle-seccion]");
+  if (!btn) return;
+  const id = btn.getAttribute("data-toggle-seccion");
+  const seccion = $(id);
+  if (!seccion) return;
+  const colapsado = !(seccionesColapsadas[id] ?? false);
+  seccionesColapsadas[id] = colapsado;
+  seccion.setAttribute("data-colapsado", String(colapsado));
 });
 
 // ── Login ────────────────────────────────────────────────────────────────
@@ -417,7 +447,6 @@ async function iniciarSuscripciones() {
   detenerSuscripciones(); // nunca dejar listeners duplicados, aunque se reintente
 
   const hoyISO = fechaISOEnZona();
-  const mananaISO = sumarDiasISO(hoyISO, 1);
   hoyISOActual = hoyISO;
   $("date-heading").textContent = fechaLindaHoy(hoyISO);
 
@@ -434,15 +463,19 @@ async function iniciarSuscripciones() {
     console.warn("clients (fallback de teléfono):", e?.message || e);
   }
 
-  // Solo hoy/mañana — la ventana ampliada hacia atrás (VENTANA_REVISAR_TURNO_DIAS)
-  // solo existía para la bandeja de "turnos pasados sin revisar" (Pendientes,
-  // ya retirada); el próximo turno nunca mira hacia el pasado.
-  const qReservas = query(collection(db, "reservas"), where("fecha", ">=", hoyISO), where("fecha", "<=", mananaISO));
+  // Sin tope superior de fecha (las secciones "Próximos turnos"/"Turnos de
+  // valoración" muestran cualquier turno futuro, no solo hoy/mañana) y con
+  // un margen hacia atrás para poder armar "Turnos anteriores" — ver
+  // VENTANA_ANTERIORES_DIAS. El próximo turno (obtenerProximaReserva) sigue
+  // sin verse afectado: solo mira turnos con finMs futuro, sin importar
+  // cuán ancha sea la ventana que se trajo.
+  const desdeISO = sumarDiasISO(hoyISO, -VENTANA_ANTERIORES_DIAS);
+  const qReservas = query(collection(db, "reservas"), where("fecha", ">=", desdeISO));
   unsubReservas = onSnapshot(qReservas, { includeMetadataChanges: true },
     (snap) => manejarSnapshot("reservas", snap),
     (err) => manejarErrorFuente("reservas", err));
 
-  const qConsultas = query(collection(db, "consultas"), where("fecha", ">=", hoyISO), where("fecha", "<=", mananaISO));
+  const qConsultas = query(collection(db, "consultas"), where("fecha", ">=", desdeISO));
   unsubConsultas = onSnapshot(qConsultas, { includeMetadataChanges: true },
     (snap) => manejarSnapshot("consultas", snap),
     (err) => manejarErrorFuente("consultas", err));
@@ -453,10 +486,9 @@ async function iniciarSuscripciones() {
     (snap) => manejarSnapshotKits(snap),
     (err) => manejarErrorFuente("pedidosKit", err));
 
-  // Nuevos turnos de depilación — sin tope superior de fecha (a diferencia
-  // de reservas/consultas): un turno de depilación dentro de una semana
-  // también es una novedad a mostrar, no solo hoy/mañana.
-  const qReservasDepi = query(collection(db, "reservasDepi"), where("fecha", ">=", hoyISO));
+  // Turnos de depilación — misma ventana hacia atrás que reservas/consultas,
+  // sin tope hacia adelante.
+  const qReservasDepi = query(collection(db, "reservasDepi"), where("fecha", ">=", desdeISO));
   unsubReservasDepi = onSnapshot(qReservasDepi, { includeMetadataChanges: true },
     (snap) => manejarSnapshotReservasDepi(snap),
     (err) => manejarErrorFuente("reservasDepi", err));
@@ -527,8 +559,7 @@ function renderTodo() {
   renderConexion();
   renderProximoTurno(ultimaAgenda, ahoraMs);
   renderKitsTab();
-  renderDepiTab();
-  renderSesionesTab();
+  renderTurnos();
 }
 
 function reconciliar() { renderTodo(); }
@@ -711,78 +742,75 @@ function renderKitsTab() {
   cont.innerHTML = !items.length
     ? `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Sin pedidos de kit por atender</h3></div>`
     : items.map(kitTarjetaHtml).join("");
-  const badge = $("nav-badge-kits");
-  if (badge) { if (items.length > 0) { badge.hidden = false; badge.textContent = String(items.length); } else badge.hidden = true; }
 }
 
-// ── Nuevos turnos de depilación ──────────────────────────────────────────
-// Se muestran también las canceladas (pill "Cancelado"), nunca desaparecen
-// en silencio — así se refleja una cancelación real sin que el panel quede
-// mostrando datos desactualizados.
-function depiTarjetaHtml(r) {
-  return `
-  <div class="item-row">
-    <div class="item-row-top">
-      ${esReciente(r.creadoMs) ? '<span class="pill pill-nuevo">Nuevo</span>' : ""}
-      <span class="item-name">${escapeHtml(r.nombre)}</span>
-    </div>
-    <div class="item-service">${escapeHtml(r.servicio || "Servicio sin registrar")}</div>
-    <div class="item-pills">
-      <span class="pill pill-muted">${escapeHtml(r.fecha || "—")} · ${escapeHtml(r.hora || "—")} hs</span>
-      ${!r.activa ? '<span class="pill pill-warn">Cancelado</span>' : ""}
-    </div>
-    <div class="item-actions"><button class="button button-light" type="button" data-abrir="reservasDepi::${escapeHtml(r.id)}">Ver turno</button></div>
-  </div>`;
-}
-
-function renderDepiTab() {
-  const cont = $("lista-depi");
-  if (!cont) return;
-  if (fuentes.reservasDepi.estado === "cargando") { cont.innerHTML = `<div class="loading-state">Cargando…</div>`; return; }
-  if (fuentes.reservasDepi.estado === "error") { cont.innerHTML = `<div class="error-state">No se pudo consultar los turnos de depilación (${escapeHtml(fuentes.reservasDepi.error || "error desconocido")}).</div>`; return; }
-  const items = fuentes.reservasDepi.items;
-  $("count-depi").textContent = String(items.length);
-  cont.innerHTML = !items.length
-    ? `<div class="empty-state"><svg class="icon"><use href="#i-calendar"/></svg><h3>Sin turnos de depilación por ahora</h3></div>`
-    : items.map(depiTarjetaHtml).join("");
-}
-
-// ── Sesiones de hoy (cargar el detalle de lo que se hizo) ───────────────
-// Mismo campo que ya usa admin.html (detalleSesion/detalleSesion2) sobre el
-// mismo documento de reservas/consultas — cargarlo acá lo refleja de
-// inmediato en la agenda general, sin ninguna colección nueva.
-function sesionTarjetaHtml(it) {
-  const tieneNota = !!(it.detalleSesion && it.detalleSesion.trim());
-  const tieneNota2 = it.duo && !!(it.detalleSesion2 && it.detalleSesion2.trim());
-  const pillDetalle = it.duo
-    ? (tieneNota && tieneNota2 ? "Con detalle (2)" : tieneNota || tieneNota2 ? "Con detalle parcial" : "Sin detalle")
+// ── Turnos (hoy / próximos / valoración / anteriores) ────────────────────
+// Una sola tarjeta para reservas, consultas y depilación: "Cargar detalle"
+// (reservas/consultas) escribe directo en detalleSesion/detalleSesion2,
+// mismo campo que ya usa admin.html — se refleja en la agenda general sin
+// ninguna colección nueva. Depilación es "Ver turno" (solo lectura +
+// Atendida por). Las canceladas se siguen mostrando (pill "Cancelado"),
+// nunca desaparecen en silencio.
+function turnoCardHtml(it) {
+  const esDepi = it.coleccion === "reservasDepi";
+  const tieneNota = !esDepi && !!(it.detalleSesion && it.detalleSesion.trim());
+  const tieneNota2 = !esDepi && it.duo && !!(it.detalleSesion2 && it.detalleSesion2.trim());
+  const pillDetalle = esDepi ? null : it.duo
+    ? (tieneNota && tieneNota2 ? "Con detalle (2)" : (tieneNota || tieneNota2) ? "Con detalle parcial" : "Sin detalle")
     : (tieneNota ? "Con detalle" : "Sin detalle");
   return `
   <div class="item-row">
     <div class="item-row-top">
-      <span class="pill ${tieneNota || tieneNota2 ? "pill-ok" : "pill-muted"}">${escapeHtml(pillDetalle)}</span>
+      ${esDepi && esReciente(it.creadoMs) ? '<span class="pill pill-nuevo">Nuevo</span>' : ""}
+      ${pillDetalle ? `<span class="pill ${tieneNota || tieneNota2 ? "pill-ok" : "pill-muted"}">${escapeHtml(pillDetalle)}</span>` : ""}
       ${it.duo ? '<span class="pill pill-box">Duo</span>' : ""}
       ${!it.activa ? '<span class="pill pill-warn">Cancelado</span>' : ""}
+      ${it.atendidoPor ? `<span class="pill pill-atendido">Atendida por ${escapeHtml(it.atendidoPor)}</span>` : ""}
       <span class="item-name">${escapeHtml(it.nombre || "Sin nombre registrado")}</span>
     </div>
-    <div class="item-service">${escapeHtml(it.hora || "—")} hs${it.servicio ? " · " + escapeHtml(it.servicio) : ""}</div>
-    <div class="item-actions"><button class="button button-light" type="button" data-abrir="${escapeHtml(it.coleccion)}::${escapeHtml(it.id)}">Cargar detalle</button></div>
+    <div class="item-service">${escapeHtml(it.fecha || "—")} · ${escapeHtml(it.hora || "—")} hs${it.servicio ? " · " + escapeHtml(it.servicio) : ""}</div>
+    <div class="item-actions"><button class="button button-light" type="button" data-abrir="${escapeHtml(it.coleccion)}::${escapeHtml(it.id)}">${esDepi ? "Ver turno" : "Cargar detalle"}</button></div>
   </div>`;
 }
 
-function renderSesionesTab() {
-  const cont = $("lista-sesiones");
-  if (!cont) return;
-  if (fuentes.reservas.estado === "cargando" || fuentes.consultas.estado === "cargando") { cont.innerHTML = `<div class="loading-state">Cargando…</div>`; return; }
-  if (fuentes.reservas.estado === "error" && fuentes.consultas.estado === "error") {
-    cont.innerHTML = `<div class="error-state">No se pudo consultar las sesiones de hoy.</div>`;
+function listaOVacia(items, iconId, mensajeVacio) {
+  return !items.length
+    ? `<div class="empty-state"><svg class="icon"><use href="#${iconId}"/></svg><h3>${escapeHtml(mensajeVacio)}</h3></div>`
+    : items.map(turnoCardHtml).join("");
+}
+
+function renderTurnos() {
+  const contHoy = $("lista-turnos-hoy");
+  const contProximos = $("lista-turnos-proximos");
+  const contValoracion = $("lista-turnos-valoracion");
+  const contAnteriores = $("lista-turnos-anteriores");
+  if (!contHoy || !contProximos || !contValoracion || !contAnteriores) return;
+
+  const todosLosContenedores = [contHoy, contProximos, contValoracion, contAnteriores];
+  const estados = [fuentes.reservas.estado, fuentes.consultas.estado, fuentes.reservasDepi.estado];
+  if (estados.includes("cargando")) {
+    todosLosContenedores.forEach((c) => { c.innerHTML = `<div class="loading-state">Cargando…</div>`; });
     return;
   }
-  const items = ultimaAgenda.filter((it) => it.fecha === hoyISOActual);
-  $("count-sesiones").textContent = String(items.length);
-  cont.innerHTML = !items.length
-    ? `<div class="empty-state"><svg class="icon"><use href="#i-activity"/></svg><h3>Sin sesiones registradas para hoy</h3></div>`
-    : items.map(sesionTarjetaHtml).join("");
+  if (estados.every((e) => e === "error")) {
+    todosLosContenedores.forEach((c) => { c.innerHTML = `<div class="error-state">No se pudo consultar los turnos.</div>`; });
+    return;
+  }
+
+  const reservasItems = ultimaAgenda.filter((it) => it.coleccion === "reservas");
+  const consultasItems = ultimaAgenda.filter((it) => it.coleccion === "consultas");
+  const { hoy, proximos, anteriores } = agruparTurnosPorSeccion(reservasItems, fuentes.reservasDepi.items, hoyISOActual);
+  const valoracion = agruparValoracion(consultasItems);
+
+  $("count-turnos-hoy").textContent = String(hoy.length);
+  $("count-turnos-proximos").textContent = String(proximos.length);
+  $("count-turnos-valoracion").textContent = String(valoracion.length);
+  $("count-turnos-anteriores").textContent = String(anteriores.length);
+
+  contHoy.innerHTML = listaOVacia(hoy, "i-calendar", "Sin turnos para hoy");
+  contProximos.innerHTML = listaOVacia(proximos, "i-calendar", "Sin próximos turnos registrados");
+  contValoracion.innerHTML = listaOVacia(valoracion, "i-activity", "Sin turnos de valoración registrados");
+  contAnteriores.innerHTML = listaOVacia(anteriores, "i-calendar", `Sin turnos en los últimos ${VENTANA_ANTERIORES_DIAS} días`);
 }
 
 // ── Diálogo "Avisar a la dueña" ──────────────────────────────────────────
@@ -1021,6 +1049,7 @@ async function abrirModal(idAttr) {
       <div class="detail-row"><span>Teléfono</span><span>${item.telefono ? escapeHtml(item.telefono) : "sin registrar"}</span></div>
       <div class="detail-row"><span>Estado registrado</span><span>${escapeHtml(item.estadoBruto || "sin estado")}</span></div>
       <div class="detail-row"><span>Activo</span><span>${item.activa ? "Sí" : "No — cancelado"}</span></div>
+      ${atendidoPorSelectHtml(coleccion, id, item.atendidoPor)}
       <div class="detalle-subtitulo">Qué ocurrió (historial)</div>
       <div id="historial-detalle-body"><p class="hint-text">Cargando historial…</p></div>
     `;
@@ -1045,6 +1074,7 @@ async function abrirModal(idAttr) {
       <textarea id="detalle-sesion2-texto" class="wa-preview-textarea" rows="5" placeholder="Qué se hizo en la sesión…">${escapeHtml(item.detalleSesion2 || "")}</textarea>
       <button class="button button-light" type="button" id="btn-guardar-detalle-sesion2" data-guardar-sesion2="${escapeHtml(coleccion)}::${escapeHtml(id)}">Guardar detalle — Paciente 2</button>
       ` : ""}
+      ${atendidoPorSelectHtml(coleccion, id, item.atendidoPor)}
       <div class="detalle-subtitulo">Qué ocurrió (historial)</div>
       <div id="historial-detalle-body"><p class="hint-text">Cargando historial…</p></div>
     `;
@@ -1136,6 +1166,39 @@ document.addEventListener("click", async (ev) => {
     mostrarModalStatus("No se pudo guardar: " + (e?.message || e), "error");
   } finally {
     btn.disabled = false;
+  }
+});
+
+// ── "Atendida por" (reservas, consultas y depilación) ────────────────────
+// Dato puramente informativo (punto 4 del pedido de mejoras): nunca toca
+// fecha/hora/servicio/estado del turno, solo el campo atendidoPor del mismo
+// documento. Se guarda apenas se elige (sin botón aparte) para que no haga
+// falta un paso extra al cargar el detalle de la atención.
+function atendidoPorSelectHtml(coleccion, id, valorActual) {
+  const opciones = ATENDIDO_POR_OPCIONES.map((nombre) =>
+    `<option value="${escapeHtml(nombre)}" ${valorActual === nombre ? "selected" : ""}>${escapeHtml(nombre)}</option>`
+  ).join("");
+  return `
+  <div class="detalle-subtitulo">Atendida por</div>
+  <select class="wa-preview-textarea" data-atendido-sel="${escapeHtml(coleccion)}::${escapeHtml(id)}">
+    <option value="" ${!valorActual ? "selected" : ""}>Sin seleccionar</option>
+    ${opciones}
+  </select>`;
+}
+
+document.addEventListener("change", async (ev) => {
+  const sel = ev.target.closest("[data-atendido-sel]");
+  if (!sel) return;
+  const [coleccion, id] = sel.getAttribute("data-atendido-sel").split("::");
+  const valor = sel.value || null;
+  sel.disabled = true;
+  try {
+    await updateDoc(doc(db, coleccion, id), { atendidoPor: valor });
+    toast(valor ? `Atendida por: ${valor}` : "Se quitó quién atendió");
+  } catch (e) {
+    toast("No se pudo guardar: " + (e?.message || e));
+  } finally {
+    sel.disabled = false;
   }
 });
 
