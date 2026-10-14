@@ -2,8 +2,7 @@
 
 Estas pruebas corren contra el **Firebase Local Emulator Suite**, nunca
 contra producción. Verifican `functions/index.js`: la bandeja de actividad
-(`activityLog`, punto 2), el campo derivado `cumpleMesDia` y el resumen de
-cumpleaños (`resumenesCumpleanos`, punto 4).
+(`activityLog`) y el campo derivado `cumpleMesDia`.
 
 ## Cómo correrlas
 
@@ -17,7 +16,6 @@ cumpleaños (`resumenesCumpleanos`, punto 4).
 2. Con el emulador arriba ("All emulators ready"), en otra terminal:
    ```
    FIRESTORE_EMULATOR_HOST=127.0.0.1:8090 GCLOUD_PROJECT=estetica-8d067 node tests/functions-emulator/test-activity-log.js
-   FIRESTORE_EMULATOR_HOST=127.0.0.1:8090 GCLOUD_PROJECT=estetica-8d067 node tests/functions-emulator/test-cumpleanos.js
    ```
    (Ajustar el puerto si `firebase.json` lo cambió — ver el bloque `emulators.firestore.port`.)
 
@@ -35,5 +33,7 @@ cumpleaños (`resumenesCumpleanos`, punto 4).
   puede fallar en los casos de `clients` porque reutiliza un DNI fijo
   (`99999999`) que ya no estaría en estado "recién creado" — no es un bug de
   las Functions, es solo que hace falta limpiar el emulador entre corridas.
-- Última corrida limpia: 18/18 OK (activity-log, incluye prestaciones/pagos/gastos
-  del punto 2 de facturación — 2026-09-17) y 6/6 OK (cumpleanos).
+- Última corrida limpia: ver salida de la terminal — incluye reservas,
+  clientes, consultas, pedidos de kit, reservas de depilación (alta,
+  cambio irrelevante y cancelación en ambas grafías), curso de
+  automaquillaje, prestaciones, pagos y gastos.

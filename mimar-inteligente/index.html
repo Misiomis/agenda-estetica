@@ -38,6 +38,7 @@
       </span>
       <div class="header-actions">
         <span class="connection" id="connection" role="status"><span class="status-dot"></span><span id="connection-text">Iniciando</span></span>
+        <button class="icon-button" type="button" id="btn-ir-ajustes" data-tab-btn="mas" aria-label="Ajustes" hidden><svg class="icon"><use href="#i-more"/></svg></button>
       </div>
     </header>
 
@@ -63,11 +64,10 @@
     <!-- ══ APP ══ -->
     <main id="workspace" hidden>
 
-      <!-- ══ TAB: INICIO ══ -->
+      <!-- ══ PANTALLA ÚNICA: próximo paciente + kits + depilación ══ -->
       <section class="tab-view" id="tab-inicio" data-tab="inicio">
         <div class="workspace-heading">
           <div><span class="eyebrow">RESUMEN</span><h1 id="date-heading">Hoy</h1></div>
-          <button class="button button-light" type="button" id="btn-compartir-resumen">Compartir resumen del día</button>
         </div>
 
         <div class="status-panel">
@@ -90,40 +90,19 @@
 
         <div class="notice warning-notice" id="fuentes-aviso" hidden></div>
 
-        <div class="resumen-grid" role="group" aria-label="Resumen del día">
-          <button class="resumen-tile" type="button" data-ir-tab="cumpleanos">
-            <span class="resumen-num" id="resumen-cumpleanos">0</span>
-            <span class="resumen-label">Cumpleaños por saludar</span>
-          </button>
-          <button class="resumen-tile" type="button" data-ir-tab="consultas">
-            <span class="resumen-num" id="resumen-consultas-pend">0</span>
-            <span class="resumen-label">Consultas pendientes de enviar confirmación</span>
-          </button>
-          <button class="resumen-tile" type="button" data-ir-tab="kits">
-            <span class="resumen-num" id="resumen-kits">0</span>
-            <span class="resumen-label">Pedidos de kits por atender</span>
-          </button>
-          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="confirmacion_turno">
-            <span class="resumen-num" id="resumen-pendientes">0</span>
-            <span class="resumen-label">Turnos por confirmar</span>
-          </button>
-          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="revisar_turno">
-            <span class="resumen-num" id="resumen-revisar-turno">0</span>
-            <span class="resumen-label">Turnos a revisar</span>
-          </button>
-          <button class="resumen-tile" type="button" data-ir-tab="pendientes" data-ir-pend-filtro="recomendacion">
-            <span class="resumen-num" id="resumen-recomendaciones">0</span>
-            <span class="resumen-label">Recomendaciones</span>
-          </button>
-        </div>
+        <section class="section-block">
+          <div class="section-heading"><h2>Pedidos de kit</h2><span class="count-pill" id="count-kits">0</span></div>
+          <div class="list-panel" id="lista-kits"><div class="loading-state">Cargando…</div></div>
+        </section>
 
-        <section class="section-block" id="agenda-section">
-          <div class="section-heading">
-            <h2>Hoy y mañana</h2>
-            <span class="count-pill" id="count-agenda">0</span>
-          </div>
-          <p class="hint-text" style="margin-bottom:10px;">Fuentes incluidas: Reservas y Consultas iniciales. Depilación todavía no está integrada en esta versión.</p>
-          <div class="list-panel" id="lista-agenda"><div class="loading-state">Cargando…</div></div>
+        <section class="section-block" id="depi-section">
+          <div class="section-heading"><h2>Nuevos turnos de depilación</h2><span class="count-pill" id="count-depi">0</span></div>
+          <div class="list-panel" id="lista-depi"><div class="loading-state">Cargando…</div></div>
+        </section>
+
+        <section class="section-block" id="sesiones-section">
+          <div class="section-heading"><h2>Sesiones de hoy</h2><span class="count-pill" id="count-sesiones">0</span></div>
+          <div class="list-panel" id="lista-sesiones"><div class="loading-state">Cargando…</div></div>
         </section>
 
         <footer class="page-footer">
@@ -132,155 +111,18 @@
         </footer>
       </section>
 
-      <!-- ══ TAB: ACTIVIDAD ══ -->
-      <section class="tab-view" id="tab-actividad" data-tab="actividad" hidden>
-        <div class="workspace-heading">
-          <div><span class="eyebrow">HISTORIAL</span><h1>Actividad</h1></div>
-          <button class="button button-light" type="button" id="btn-abrir-filtros">
-            <svg class="icon"><use href="#i-filter"/></svg> Filtros <span class="count-badge" id="filtros-activos-badge" hidden>1</span>
-          </button>
-        </div>
-        <p class="hint-text" id="actividad-alcance" style="margin-bottom:12px;">Cargando actividad…</p>
-        <button class="button button-primary button-full" type="button" id="btn-preparar-informe-gimena" style="margin-bottom:14px;"><svg class="icon"><use href="#i-whatsapp"/></svg> Preparar informe para Gimena (según filtro de fecha)</button>
-        <div class="list-panel" id="lista-actividad-hoy"></div>
-        <div id="grupo-ayer-wrap" hidden>
-          <div class="day-header day-header-group">Ayer</div>
-          <div class="list-panel" id="lista-actividad-ayer"></div>
-        </div>
-        <details id="grupo-anteriores-wrap" hidden>
-          <summary class="day-header day-header-group day-header-expand">Fechas anteriores <span id="conteo-anteriores"></span></summary>
-          <div class="list-panel" id="lista-actividad-anteriores"></div>
-        </details>
-        <button class="button button-light button-full" id="btn-cargar-mas" type="button" style="margin-top:14px;" hidden>Cargar más antiguos</button>
-      </section>
-
-      <!-- ══ TAB: PENDIENTES ══ -->
-      <section class="tab-view" id="tab-pendientes" data-tab="pendientes" hidden>
-        <div class="workspace-heading">
-          <div><span class="eyebrow">REQUIERE ACCIÓN</span><h1>Turnos y recomendaciones</h1></div>
-          <button class="button button-primary" type="button" id="btn-nueva-recomendacion"><svg class="icon"><use href="#i-flag"/></svg> Recomendación</button>
-        </div>
-        <p class="hint-text" style="margin-bottom:10px;">Cumpleaños, Consultas iniciales y Pedidos de kits ya tienen su propia sección — acá quedan turnos comunes por confirmar, turnos a revisar y recomendaciones.</p>
-
-        <div class="pend-filtros" id="pend-filtros" role="group" aria-label="Filtrar por tipo">
-          <button class="pend-filtro-chip activo" type="button" data-pend-filtro="todas">Todas</button>
-          <button class="pend-filtro-chip" type="button" data-pend-filtro="recomendacion">Recomendaciones</button>
-          <button class="pend-filtro-chip" type="button" data-pend-filtro="confirmacion_turno">Confirmaciones</button>
-          <button class="pend-filtro-chip" type="button" data-pend-filtro="revisar_turno">Revisar turno</button>
-        </div>
-
-        <section class="section-block" id="bandeja-section">
-          <div class="section-heading">
-            <h2>Bandeja de pendientes</h2>
-            <span class="count-pill" id="count-pendientes-bandeja">0</span>
-          </div>
-          <div class="list-panel" id="lista-pendientes-bandeja"><div class="loading-state">Cargando…</div></div>
-        </section>
-      </section>
-
-      <!-- ══ TAB: CUMPLEAÑOS ══ -->
-      <section class="tab-view" id="tab-cumpleanos" data-tab="cumpleanos" hidden>
-        <div class="workspace-heading">
-          <div><span class="eyebrow">SALUDOS</span><h1>Cumpleaños</h1></div>
-          <button class="button button-light" type="button" id="btn-compartir-cumpleanos">Compartir cumpleaños de hoy</button>
-        </div>
-        <section class="section-block">
-          <div class="section-heading"><h2>Hoy</h2></div>
-          <div class="list-panel" id="lista-cumple-hoy"><div class="loading-state">Cargando…</div></div>
-        </section>
-        <section class="section-block">
-          <div class="section-heading"><h2>Próximos 7 días</h2></div>
-          <div class="list-panel" id="lista-cumple-proximos"><div class="loading-state">Cargando…</div></div>
-        </section>
-      </section>
-
-      <!-- ══ TAB: CONSULTAS INICIALES ══ -->
-      <section class="tab-view" id="tab-consultas" data-tab="consultas" hidden>
-        <div class="workspace-heading">
-          <div><span class="eyebrow">ATENCIÓN</span><h1>Consultas iniciales</h1></div>
-        </div>
-        <section class="section-block">
-          <div class="section-heading"><h2>Pendientes de enviar confirmación / esperando respuesta / confirmadas</h2><span class="count-pill" id="count-consultas">0</span></div>
-          <div class="list-panel" id="lista-consultas"><div class="loading-state">Cargando…</div></div>
-        </section>
-      </section>
-
-      <!-- ══ TAB: PEDIDOS DE KITS ══ -->
-      <section class="tab-view" id="tab-kits" data-tab="kits" hidden>
-        <div class="workspace-heading">
-          <div><span class="eyebrow">SEGUIMIENTO</span><h1>Pedidos de kits</h1></div>
-        </div>
-        <section class="section-block">
-          <div class="section-heading"><h2>Por atender</h2><span class="count-pill" id="count-kits">0</span></div>
-          <div class="list-panel" id="lista-kits"><div class="loading-state">Cargando…</div></div>
-        </section>
-      </section>
-
-      <!-- ══ TAB: RESUMEN DE JORNADA ══ -->
-      <section class="tab-view" id="tab-resumen-jornada" data-tab="resumen-jornada" hidden>
-        <div class="workspace-heading">
-          <div><span class="eyebrow">PARA GIMENA</span><h1>Resumen de jornada</h1></div>
-        </div>
-        <p class="hint-text" style="margin-bottom:12px;">Pacientes únicos del día, cambios de box e historial de las últimas sesiones — consulta datos reales de Firestore al generar, no queda en vivo.</p>
-
-        <section class="section-block">
-          <div class="list-panel" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-            <div>
-              <label for="resumen-jornada-fecha" class="hint-text" style="display:block;margin-bottom:6px;">Fecha</label>
-              <input id="resumen-jornada-fecha" type="date">
-            </div>
-            <button class="button button-primary button-full" type="button" id="btn-generar-resumen-jornada">Generar/Actualizar resumen</button>
-            <p class="hint-text" id="resumen-jornada-estado">Todavía no se generó ningún resumen.</p>
-          </div>
-        </section>
-
-        <section class="section-block" id="resumen-jornada-preview-wrap" hidden>
-          <div class="section-heading"><h2>Vista previa</h2></div>
-          <div class="list-panel" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-            <label for="resumen-jornada-texto" class="hint-text" style="display:block;">Mensaje (podés editarlo antes de mandarlo)</label>
-            <textarea id="resumen-jornada-texto" class="wa-preview-textarea" rows="10"></textarea>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="button button-primary" type="button" id="btn-resumen-jornada-whatsapp" hidden><svg class="icon"><use href="#i-whatsapp"/></svg> Abrir WhatsApp</button>
-              <button class="button button-light" type="button" id="btn-resumen-jornada-copiar">Copiar</button>
-              <button class="button button-light" type="button" id="btn-resumen-jornada-confirmar">Ya avisé a Gimena</button>
-            </div>
-            <p class="hint-text" id="resumen-jornada-envio-estado"></p>
-          </div>
-        </section>
-      </section>
-
       <!-- ══ TAB: MÁS ══ -->
       <section class="tab-view" id="tab-mas" data-tab="mas" hidden>
         <div class="workspace-heading">
           <div><span class="eyebrow">CUENTA Y APP</span><h1>Más</h1></div>
+          <button class="button button-light" type="button" id="btn-volver-inicio" data-tab-btn="inicio">← Volver</button>
         </div>
 
-        <section class="section-block" id="avisos-config-section">
-          <div class="section-heading"><h2>Recordatorio horario de pendientes</h2></div>
-          <div class="list-panel" style="padding:16px;display:flex;flex-direction:column;gap:14px;">
-            <label class="avisos-toggle-row">
-              <span>Avisar cada hora si hay pendientes</span>
-              <input type="checkbox" id="avisos-activo">
-            </label>
-            <div class="avisos-categorias" id="avisos-categorias"></div>
-            <div>
-              <label for="avisos-pausa" class="hint-text" style="display:block;margin-bottom:6px;">Pausar avisos hasta</label>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <input type="datetime-local" id="avisos-pausa">
-                <button class="button button-light" type="button" id="btn-avisos-pausar">Pausar</button>
-                <button class="button button-light" type="button" id="btn-avisos-quitar-pausa" hidden>Quitar pausa</button>
-              </div>
-              <p class="hint-text" id="avisos-pausa-estado"></p>
-            </div>
-            <div>
-              <span class="hint-text" style="display:block;margin-bottom:6px;">Descanso nocturno (no avisar en este rango horario)</span>
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                <label class="hint-text">Desde <input type="number" id="avisos-descanso-inicio" min="0" max="23" style="width:56px;"></label>
-                <label class="hint-text">Hasta <input type="number" id="avisos-descanso-fin" min="0" max="23" style="width:56px;"></label>
-                <button class="button button-light" type="button" id="btn-avisos-descanso-guardar">Guardar</button>
-                <button class="button button-light" type="button" id="btn-avisos-descanso-quitar">Quitar descanso</button>
-              </div>
-            </div>
+        <section class="section-block" id="estado-notif-section">
+          <div class="section-heading"><h2>Notificaciones</h2></div>
+          <div class="list-panel" style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <p class="hint-text" id="estado-notif-texto">Verificando…</p>
+            <button class="button button-light" type="button" id="btn-activar-notif" hidden>Activar notificaciones</button>
           </div>
         </section>
 
@@ -296,26 +138,7 @@
           </div>
         </section>
 
-        <section class="section-block" id="corte-manana-tarde-section">
-          <div class="section-heading"><h2>Corte mañana/tarde</h2></div>
-          <div class="list-panel" style="padding:16px;display:flex;flex-direction:column;gap:10px;">
-            <label for="corte-manana-tarde-input" class="hint-text">Hora a partir de la cual un turno cuenta como "tarde" (formato 24 hs)</label>
-            <input id="corte-manana-tarde-input" type="time" placeholder="12:00">
-            <button class="button button-light" type="button" id="btn-corte-manana-tarde-guardar">Guardar</button>
-            <p class="hint-text" id="corte-manana-tarde-estado">—</p>
-          </div>
-        </section>
-
         <div class="mas-lista">
-          <button class="mas-item" type="button" data-tab-btn="resumen-jornada">
-            <span><svg class="icon" style="margin-right:4px;vertical-align:-3px;"><use href="#i-calendar"/></svg> Resumen de jornada</span><svg class="icon"><use href="#i-arrow"/></svg>
-          </button>
-          <button class="mas-item" type="button" data-tab-btn="pendientes">
-            <span><svg class="icon" style="margin-right:4px;vertical-align:-3px;"><use href="#i-flag"/></svg> Turnos y recomendaciones <span class="nav-badge" id="nav-badge-pendientes" hidden></span></span><svg class="icon"><use href="#i-arrow"/></svg>
-          </button>
-          <button class="mas-item" type="button" data-tab-btn="actividad">
-            <span><svg class="icon" style="margin-right:4px;vertical-align:-3px;"><use href="#i-activity"/></svg> Actividad (historial completo)</span><svg class="icon"><use href="#i-arrow"/></svg>
-          </button>
           <button class="mas-item" type="button" id="btn-ajustes-notif" hidden>
             <span>🔔 Sonido y vibración por categoría</span><svg class="icon"><use href="#i-arrow"/></svg>
           </button>
@@ -330,25 +153,6 @@
       </section>
 
     </main>
-
-    <!-- ══ NAVEGACIÓN INFERIOR ══ -->
-    <nav class="bottom-nav" id="bottom-nav" hidden aria-label="Navegación principal">
-      <button class="nav-item" type="button" data-tab-btn="inicio" aria-current="page">
-        <svg class="icon"><use href="#i-home"/></svg><span>Resumen</span>
-      </button>
-      <button class="nav-item" type="button" data-tab-btn="cumpleanos">
-        <svg class="icon"><use href="#i-flag"/></svg><span>Cumpleaños</span><span class="nav-badge" id="nav-badge-cumpleanos" hidden></span>
-      </button>
-      <button class="nav-item" type="button" data-tab-btn="consultas">
-        <svg class="icon"><use href="#i-calendar"/></svg><span>Consultas</span><span class="nav-badge" id="nav-badge-consultas" hidden></span>
-      </button>
-      <button class="nav-item" type="button" data-tab-btn="kits">
-        <svg class="icon"><use href="#i-inbox"/></svg><span>Kits</span><span class="nav-badge" id="nav-badge-kits" hidden></span>
-      </button>
-      <button class="nav-item" type="button" data-tab-btn="mas">
-        <svg class="icon"><use href="#i-more"/></svg><span>Más</span>
-      </button>
-    </nav>
   </div>
 
   <!-- ══ MODAL DETALLE ══ -->
@@ -365,7 +169,6 @@
         <textarea id="wa-preview-texto" class="wa-preview-textarea" rows="5"></textarea>
       </div>
       <button class="button button-primary button-full" id="btn-preparar-wa" type="button" hidden><svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp</button>
-      <button class="button button-light button-full" id="btn-registrar-manual" type="button" hidden>Registrar envío manual (hecho por fuera del sistema)</button>
       <button class="button button-light button-full" id="btn-cerrar-detalle-2" type="button">Cerrar</button>
     </div>
   </dialog>
@@ -391,49 +194,6 @@
     </div>
   </dialog>
 
-  <!-- ══ Aviso emergente de entrada (punto 6): resumen al abrir la app
-       con pendientes sin resolver. La cruz SOLO cierra este aviso — nunca
-       resuelve tareas, no cambia categorías, no silencia los avisos
-       horarios. Reaparece la próxima vez que haya pendientes. ══ -->
-  <dialog id="entrada-aviso-dialog" aria-labelledby="entrada-aviso-titulo">
-    <div class="dialog-heading">
-      <div><span class="eyebrow">REQUIERE ACCIÓN</span><h2 id="entrada-aviso-titulo">Tenés pendientes</h2></div>
-      <button class="icon-button" type="button" id="btn-cerrar-entrada-aviso" aria-label="Cerrar aviso"><svg class="icon"><use href="#i-close"/></svg></button>
-    </div>
-    <div class="dialog-body">
-      <p id="entrada-aviso-texto" class="entrada-aviso-texto"></p>
-      <div id="entrada-aviso-categorias" class="entrada-aviso-categorias"></div>
-      <p id="entrada-aviso-cache-nota" class="hint-text" hidden>Estos datos pueden estar desactualizados — todavía no se confirmaron contra el servidor.</p>
-    </div>
-    <div class="dialog-actions">
-      <button class="button button-primary button-full" type="button" id="btn-entrada-aviso-atender">Atender ahora</button>
-    </div>
-  </dialog>
-
-  <!-- ══ MODAL: nueva/editar recomendación ══ -->
-  <dialog id="recomendacion-dialog" aria-labelledby="recomendacion-dialog-titulo">
-    <div class="dialog-heading">
-      <div><span class="eyebrow">RECOMENDACIÓN</span><h2 id="recomendacion-dialog-titulo">Nueva recomendación</h2></div>
-      <button class="icon-button" type="button" id="btn-cerrar-recomendacion" aria-label="Cerrar"><svg class="icon"><use href="#i-close"/></svg></button>
-    </div>
-    <div class="dialog-status" id="recomendacion-dialog-status"></div>
-    <div class="dialog-body">
-      <label for="rec-paciente">Paciente</label>
-      <input id="rec-paciente" type="text" placeholder="Nombre de la paciente">
-      <label for="rec-telefono">Teléfono (opcional, para WhatsApp)</label>
-      <input id="rec-telefono" type="tel" placeholder="Ej: 3764000000">
-      <label for="rec-texto">Texto de la recomendación (editable, vos lo escribís)</label>
-      <textarea id="rec-texto" class="wa-preview-textarea" rows="5" placeholder="Ej: Recomendar el sérum de vitamina C para después de la sesión…"></textarea>
-      <label for="rec-programado">Programar para (opcional — si no elegís nada, queda habilitada ya)</label>
-      <input id="rec-programado" type="datetime-local">
-    </div>
-    <div class="dialog-actions">
-      <button class="button button-primary button-full" type="button" id="btn-guardar-recomendacion">Guardar recomendación</button>
-      <button class="button button-primary button-full" type="button" id="btn-whatsapp-recomendacion" hidden><svg class="icon"><use href="#i-whatsapp"/></svg> Abrir WhatsApp</button>
-      <button class="button button-light button-full" type="button" id="btn-cancelar-recomendacion">Cancelar</button>
-    </div>
-  </dialog>
-
   <!-- ══ "¿Enviaste el mensaje?" — no bloqueante ══ -->
   <div id="confirm-envio-banner" class="confirm-envio-banner" hidden>
     <p id="confirm-envio-texto">¿Enviaste el mensaje?</p>
@@ -452,17 +212,6 @@
       <button class="button button-primary" id="btn-update-instalar" type="button">Actualizar</button>
       <button class="button button-light" id="btn-update-mas-tarde" type="button">Más tarde</button>
     </div>
-  </div>
-
-  <!-- ══ Panel inferior genérico (filtros / menús) ══ -->
-  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
-  <div class="bottom-sheet" id="bottom-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheet-titulo">
-    <div class="sheet-handle" aria-hidden="true"></div>
-    <div class="sheet-heading">
-      <h3 id="sheet-titulo">—</h3>
-      <button class="icon-button" type="button" id="btn-cerrar-sheet" aria-label="Cerrar"><svg class="icon"><use href="#i-close"/></svg></button>
-    </div>
-    <div class="sheet-body" id="sheet-body"></div>
   </div>
 
   <div id="toast" class="toast" role="status" hidden></div>

@@ -3,13 +3,16 @@
 // solo funciones puras sobre los datos ya traídos. Se puede probar con Node
 // (`node tests/mimar-inteligente/run-tests.js`) sin levantar el módulo.
 //
-// Fuentes de datos soportadas en esta v1: 'reservas' y 'consultas' (las dos
-// colecciones que reloj/config.js ya trata como agenda activa, junto con
-// 'reservasDepi' — que queda fuera de esta primera versión porque tiene un
-// panel, un login y campos propios que todavía no se auditaron a fondo; ver
-// notas de entrega). Cada colección tiene su propio vocabulario de estado:
-// 'reservas' usa 'confirmado'/'cancelado'; 'consultas' usa
+// El panel se concentra en 3 funciones: próximo paciente (reservas +
+// consultas), pedidos de kit facial (pedidosKit) y nuevos turnos de
+// depilación (reservasDepi). 'reservas'/'reservasDepi' usan
+// 'confirmado'/'cancelado' (o 'cancelada'); 'consultas' usa
 // 'pendiente'/'confirmada'/'cancelada'. No se mezclan.
+//
+// Nota: este archivo todavía exporta algunas funciones puras de versiones
+// anteriores (pendientes/actividad/cumpleaños/resumen de jornada) que ya no
+// importa mimar-inteligente.js — se dejaron sin borrar por ahora porque no
+// afectan el comportamiento actual; es una limpieza pendiente, no un riesgo.
 
 export const ZONA_HORARIA = "America/Argentina/Buenos_Aires";
 export const OFFSET_AR = "-03:00";
@@ -216,6 +219,13 @@ export function normalizarItemAgenda(coleccion, id, data, clientesPorDni) {
     finMs,
     registradoMs, // instante en que se creó el registro — distinto de inicioMs (el turno)
     detalleSesion: d.detalleSesion || null,
+    // Sesión "Duo" (dos pacientes en la misma reserva, panel admin) — solo
+    // existe en reservas. detalleSesion2/duoNombre2 son el mismo campo que
+    // ya escribe/lee admin.html, así que cargar el detalle acá se refleja
+    // de inmediato en la agenda general (misma colección, mismo documento).
+    duo: d.duo === true,
+    duoNombre2: d.duoNombre2 || null,
+    detalleSesion2: d.detalleSesion2 || null,
     fechaIncompleta: !fecha || !hora || inicioMs === null,
   };
 }
@@ -528,6 +538,38 @@ export function normalizarPedidoKit(id, data) {
     montoAbonadoTexto: montoAbonado !== null ? formatearARS(montoAbonado) : "No registrado",
     saldoPendiente,
     saldoPendienteTexto: saldoPendiente !== null ? formatearARS(saldoPendiente) : "No registrado",
+  };
+}
+
+// ── Nuevos turnos de depilación ───────────────────────────────────────────
+// Campos reales confirmados en depilacion.html (autorreserva pública) y
+// admin-depi.html (alta manual): nombre, fecha, hora, servicio/combo,
+// telefono, estado — nunca "status". esActiva("reservasDepi", ...) cae en
+// su fallback genérico ["cancelado","cancelada"] (no está en
+// ESTADOS_CANCELADOS), que ya cubre ambas grafías — admin-depi.html cancela
+// escribiendo 'cancelada' (femenino), por eso no hace falta agregar una
+// entrada propia para esta colección.
+export function normalizarReservaDepi(id, data) {
+  const d = data || {};
+  const nombre = d.nombre || d.cliente || d.clienteNombre || "Paciente";
+  const fecha = d.fecha || null;
+  const hora = d.hora || null;
+  const estadoBruto = d.estado || d.status || "";
+  const activa = esActiva("reservasDepi", estadoBruto);
+  const inicioMs = inicioTurnoMs(fecha, hora);
+  const creadoMs = _msDesde(d.timestamp) ?? _msDesde(d.createdAt) ?? null;
+  return {
+    coleccion: "reservasDepi",
+    id,
+    nombre,
+    telefono: d.phone || d.telefono || null,
+    servicio: d.servicio || d.combo || null,
+    fecha,
+    hora,
+    estadoBruto,
+    activa,
+    inicioMs,
+    creadoMs,
   };
 }
 

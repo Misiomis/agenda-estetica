@@ -1,34 +1,18 @@
-// Mimar T Inteligente — app/página. Misma lógica de negocio que la v1 web
-// (mimar-inteligente-logic.js), con una interfaz organizada en pestañas
-// (Inicio / Actividad / Pendientes / Más) y comportamiento correcto dentro
-// de la app Android (botón Atrás, panel inferior, retorno de segundo plano,
-// sin listeners duplicados).
+// Mimar T Inteligente — pantalla única para quien atiende pacientes:
+// próximo paciente (alarma inteligente), pedidos de kit facial y nuevos
+// turnos de depilación. Comportamiento correcto dentro de la app Android
+// (botón Atrás, retorno de segundo plano, sin listeners duplicados).
 import {
-  db, auth, collection, query, where, orderBy, limit, startAfter, onSnapshot, doc, getDoc, getDocs,
-  getDocFromServer, setDoc, updateDoc, serverTimestamp, documentId,
+  db, auth, collection, query, where, onSnapshot, doc, getDoc, getDocs,
+  getDocFromServer, setDoc, updateDoc, serverTimestamp,
   onAuthStateChanged, signInWithEmailAndPassword, signOut,
 } from "./firebase-web.js";
 import {
   ZONA_HORARIA, fechaISOEnZona, sumarDiasISO, normalizarItemAgenda, construirAgenda,
-  inicioTurnoMs, pacienteMatchKey, agruparBloquesDelDia, historialAnteriorPaciente,
-  construirTextoResumenJornada, CORTE_MANANA_TARDE_DEFECTO,
-  obtenerProximaReserva, construirTextoConfirmacion, normalizarTelefonoWA, validarYNormalizarTelefonoAR,
-  construirTextoRecordatorio, construirTextoCumpleanos, construirTextoConsulta, construirTextoKit,
-  idContactoParaItem, estadoContacto, etiquetaEstadoContacto, contactoVencido,
-  docIdVersionadoContacto, docIdVersionadoCumpleanos,
-  normalizarPedidoKit, formatearARS, estadoTemporalTurno, etiquetaEstadoTemporal,
-  agruparPorDia, eventoCoincideFiltro, filtroEsNeutro, FILTRO_ACTIVIDAD_VACIO,
-  derivarPendientes, resumenTextoPendientes, contarPendientesPorTipo,
-  agruparPendientesPorDia, textoTurnoConDia, formatearFechaLocal, diaSemanaLegible,
-  ETIQUETA_TIPO_PENDIENTE, TIPOS_PENDIENTE, normalizarRecomendacion, recomendacionValida,
-  PREFS_AVISOS_DEFECTO, pendientesElegiblesParaAviso, pendientesVigentes,
-  VENTANA_REVISAR_TURNO_DIAS,
+  obtenerProximaReserva, normalizarTelefonoWA, validarYNormalizarTelefonoAR,
+  construirTextoKit, estadoContacto,
+  normalizarPedidoKit, formatearARS, normalizarReservaDepi,
   TIPO_MENSAJE_AVISO_DUENA, idAvisoDuena, docIdVersionadoParaAviso, construirTextoAvisoDuenaKit,
-  construirInformeGimena,
-  construirTextoAvisoDuenaCumpleanosIndividual, construirTextoAvisoDuenaCumpleanosDia,
-  construirTextoAvisoDuenaConsulta, construirTextoAvisoDuenaGenerico,
-  estadoConsultaInicial, etiquetaEstadoConsultaInicial, ESTADO_CONSULTA_CANCELADA,
-  construirTextoResumenDia, cumpleanosProximos,
 } from "./mimar-inteligente-logic.js";
 import {
   registrarContactoPreparado, registrarContactoEstado, registrarContactoManual,
@@ -69,22 +53,30 @@ const fuentes = {
   reservas: { estado: "cargando", error: null, fromCache: true, items: [] },
   consultas: { estado: "cargando", error: null, fromCache: true, items: [] },
   pedidosKit: { estado: "cargando", error: null, fromCache: true, items: [] },
+  reservasDepi: { estado: "cargando", error: null, fromCache: true, items: [] },
 };
 
 let unsubReservas = null;
 let unsubConsultas = null;
 let unsubPedidosKit = null;
-let unsubActividad = null;
+let unsubReservasDepi = null;
 let unsubContactos = null;
-let unsubCumpleanos = null;
-let unsubRecomendaciones = null;
-let unsubPendienteEstados = null;
-let unsubPrefsAvisos = null;
 let uidActual = null;
 let tickInterval = null;
 let itemSeleccionado = null;
 let ultimaAgenda = [];
+// Alarma inteligente (próximo turno en curso): clave del turno ya
+// "reconocido" por quien atiende — nunca se escribe a Firestore, es
+// puramente una variable en memoria que se resetea sola en cuanto cambia
+// el próximo turno (nuevo turno = nueva alarma, aunque el anterior ya se
+// haya reconocido).
+let alarmaReconocidaKey = null;
+let ultimaProxKeyVista = null;
 let ultimaSincronizacion = null;
+// Fecha de hoy (zona AR) vigente desde el último login/reconexión — usada
+// para filtrar "Sesiones de hoy" sin recalcular la zona horaria en cada
+// render (misma fecha que ya delimita qReservas/qConsultas).
+let hoyISOActual = null;
 
 // contactosWhatsApp cargados, indexados por id (coleccion_docId_tipoMensaje)
 let contactosPorId = {};
@@ -96,19 +88,6 @@ let contactosPorId = {};
 // reconexión) — no es un listener en vivo porque un cambio de teléfono no
 // es algo que necesite reflejarse segundo a segundo.
 let clientesPorDni = {};
-// activityLog: página reciente (viva, onSnapshot) + páginas más antiguas
-// (estáticas, cargadas a pedido con "Cargar más antiguos"). Combinar ambas
-// para tener la lista completa cargada — nunca se presenta como "el total"
-// sin aclarar el alcance (punto 3).
-const PAGINA_ACTIVIDAD = 40;
-let actividadRecientes = [];
-let actividadAntiguos = [];
-let actividadCursor = null; // último doc crudo de Firestore, para paginar
-let actividadHayMas = false;
-let actividadCargandoMas = false;
-let filtroActividad = { ...FILTRO_ACTIVIDAD_VACIO };
-// resumenesCumpleanos/{hoyISO} — null mientras no cargó, luego { estado, personas, generadoAt }
-let cumpleanosHoy = null;
 // configuracion/mimarInteligente.{duenaTelefono,duenaNombre} — responsable
 // del negocio (Gimena), compartido entre operadoras (misma colección/reglas
 // que ya usa el resto del panel: lectura abierta, escritura solo admin).
@@ -117,8 +96,6 @@ let cumpleanosHoy = null;
 // quien configuró, para que todo lector lo use igual sin renormalizar.
 let duenaTelefono = null;
 let duenaNombre = null;
-let corteMananaTarde = CORTE_MANANA_TARDE_DEFECTO;
-let corteMananaTardeConfigurado = false;
 let unsubConfigInteligente = null;
 // Contexto del diálogo "Avisar a la dueña" actualmente abierto:
 // { coleccion, docId, ocurrencia, idAviso, nombreEvento }
@@ -130,30 +107,7 @@ let avisoDuenaActual = null;
 // que recalcularlo (y quizás obtener otro valor) al confirmar más tarde.
 let pendienteConfirmarEnvio = null;
 
-// ── GlowUp: pendientes, recomendaciones y avisos horarios ────────────────
-let recomendaciones = []; // recomendacionesInteligente normalizadas
-let pendienteEstados = {}; // pendienteEstadoInteligente indexado por pendienteId: { postergadoHastaMs, resuelto }
-let prefsAvisos = { ...PREFS_AVISOS_DEFECTO };
-let ultimosPendientes = []; // último cálculo de derivarPendientes(), para no recalcular en cada click
-
-// ── Entrada automática y anuncio emergente (punto 6) ─────────────────────
-// entradaAvisoMostrado: ya se decidió (mostrar o no) para esta "entrada
-// lógica" — evita que sucesivos snapshots/ticks reabran el aviso. Se
-// resetea en un login nuevo y al volver de un segundo plano real (no un
-// paso breve por WhatsApp, ver appStateChange más abajo).
-let entradaAvisoMostrado = false;
-let entradaAvisoAbierto = false;
-let ultimoBackgroundMs = null;
-// Qué fuentes ya entregaron al menos una respuesta real (éxito o error) en
-// esta sesión de suscripciones — evaluarEntradaLogica no decide nada hasta
-// que TODAS respondieron, para no anunciar un resumen incompleto (bug real
-// encontrado en el teléfono: el aviso salió con "8 turnos... y 2 turnos a
-// revisar" sin mencionar el kit pendiente, porque pedidosKit todavía no
-// había llegado cuando reservas/consultas sí).
-const FUENTES_ENTRADA_REQUERIDAS = ["reservas", "consultas", "pedidosKit", "contactos", "cumpleanos", "recomendaciones", "pendienteEstados"];
-let fuentesEntradaListas = new Set();
-
-// ── Pestañas (Inicio / Actividad / Pendientes / Más) ─────────────────────
+// ── Pantalla única (Inicio) + Ajustes ────────────────────────────────────
 let tabActual = "inicio";
 const scrollGuardadoPorTab = {};
 
@@ -176,105 +130,14 @@ function mostrarTab(nombre) {
 document.querySelectorAll("[data-tab-btn]").forEach((btn) => {
   btn.addEventListener("click", () => {
     scrollGuardadoPorTab[tabActual] = window.scrollY;
-    mostrarTab(btn.getAttribute("data-tab-btn"));
-  });
-});
-
-// Tiles de resumen (Inicio) → navegan a la pestaña correspondiente y, si
-// corresponde, dejan un filtro de categoría (Actividad) o de tipo
-// (Pendientes) aplicado.
-let filtroPendientesTipo = "todas";
-function aplicarFiltroPendientes(tipo) {
-  filtroPendientesTipo = tipo || "todas";
-  document.querySelectorAll("[data-pend-filtro]").forEach((chip) => {
-    chip.classList.toggle("activo", chip.getAttribute("data-pend-filtro") === filtroPendientesTipo);
-  });
-  renderPendientesBandeja();
-}
-document.querySelectorAll("[data-pend-filtro]").forEach((chip) => {
-  chip.addEventListener("click", () => aplicarFiltroPendientes(chip.getAttribute("data-pend-filtro")));
-});
-
-document.querySelectorAll("[data-ir-tab]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    scrollGuardadoPorTab[tabActual] = window.scrollY;
-    const destino = btn.getAttribute("data-ir-tab");
-    const categoria = btn.getAttribute("data-ir-categoria");
-    if (categoria) { filtroActividad = { ...FILTRO_ACTIVIDAD_VACIO, categoria }; renderActividad(); }
-    const pendFiltro = btn.getAttribute("data-ir-pend-filtro");
-    if (pendFiltro) aplicarFiltroPendientes(pendFiltro);
+    const destino = btn.getAttribute("data-tab-btn");
     mostrarTab(destino);
+    // Puede haber cambiado desde que se entró (ej. volviendo de los
+    // Ajustes nativos de notificaciones) — se refresca al entrar a Más,
+    // nunca se asume "activado" de entrada.
+    if (destino === "mas") refrescarEstadoNotif();
   });
 });
-
-// ── Panel inferior genérico (filtros / menús) ─────────────────────────────
-let sheetAbierto = false;
-function abrirSheet(titulo, bodyHtml) {
-  $("sheet-titulo").textContent = titulo;
-  $("sheet-body").innerHTML = bodyHtml;
-  $("sheet-backdrop").hidden = false;
-  $("bottom-sheet").hidden = false;
-  sheetAbierto = true;
-}
-function cerrarSheet() {
-  $("sheet-backdrop").hidden = true;
-  $("bottom-sheet").hidden = true;
-  sheetAbierto = false;
-}
-$("btn-cerrar-sheet").addEventListener("click", cerrarSheet);
-$("sheet-backdrop").addEventListener("click", cerrarSheet);
-
-const CATEGORIAS_FILTRO = [
-  ["todas", "Todas"], ["reservas", "Reservas"], ["consultas", "Consultas"],
-  ["pedidosKit", "Kits"], ["clients", "Pacientes"], ["cursoMaquillaje", "Curso"], ["reservasDepi", "Depilación"],
-];
-
-function abrirSheetFiltros() {
-  const f = filtroActividad;
-  const opciones = CATEGORIAS_FILTRO.map(([v, l]) => `<option value="${v}" ${f.categoria === v ? "selected" : ""}>${l}</option>`).join("");
-  abrirSheet("Filtrar actividad", `
-    <div class="sheet-field">
-      <label for="filtro-categoria">Categoría</label>
-      <select id="filtro-categoria">${opciones}</select>
-    </div>
-    <div class="sheet-field">
-      <label for="filtro-estado">Estado</label>
-      <select id="filtro-estado">
-        <option value="todos" ${f.estado === "todos" ? "selected" : ""}>Todos</option>
-        <option value="pendiente" ${f.estado === "pendiente" ? "selected" : ""}>Pendientes de atender</option>
-        <option value="atendido" ${f.estado === "atendido" ? "selected" : ""}>Ya atendidos</option>
-      </select>
-    </div>
-    <div class="sheet-field">
-      <label for="filtro-desde">Desde (fecha)</label>
-      <input id="filtro-desde" type="date" value="${f.fechaDesde || ""}">
-    </div>
-    <div class="sheet-field">
-      <label for="filtro-hasta">Hasta (fecha)</label>
-      <input id="filtro-hasta" type="date" value="${f.fechaHasta || ""}">
-    </div>
-    <div class="sheet-actions">
-      <button class="button button-light" type="button" id="btn-filtro-restablecer">Restablecer</button>
-      <button class="button button-primary" type="button" id="btn-filtro-aplicar">Aplicar</button>
-    </div>
-  `);
-  $("btn-filtro-aplicar").addEventListener("click", () => {
-    filtroActividad = {
-      categoria: $("filtro-categoria").value,
-      estado: $("filtro-estado").value,
-      fechaDesde: $("filtro-desde").value || null,
-      fechaHasta: $("filtro-hasta").value || null,
-    };
-    cerrarSheet();
-    renderActividad();
-  });
-  $("btn-filtro-restablecer").addEventListener("click", () => {
-    filtroActividad = { ...FILTRO_ACTIVIDAD_VACIO };
-    cerrarSheet();
-    renderActividad();
-  });
-}
-$("btn-abrir-filtros").addEventListener("click", abrirSheetFiltros);
 
 // ── Login ────────────────────────────────────────────────────────────────
 $("login-form").addEventListener("submit", async (ev) => {
@@ -311,6 +174,41 @@ $("btn-salir").addEventListener("click", async () => {
 
 $("btn-ajustes-notif").addEventListener("click", () => {
   window.Capacitor?.Plugins?.FcmPlugin?.openNotificationSettings?.();
+});
+
+// ── Indicador de permisos de notificación (punto 5) ──────────────────────
+// SOLO lee el estado real (getPermissionStatus) — nunca pide permiso por el
+// solo hecho de mostrar la pantalla, y nunca muestra "activadas" si el
+// permiso real no está otorgado.
+async function refrescarEstadoNotif() {
+  const texto = $("estado-notif-texto");
+  const btn = $("btn-activar-notif");
+  if (!texto) return;
+  const FcmPlugin = window.Capacitor?.Plugins?.FcmPlugin;
+  if (!nativeApp || !FcmPlugin?.getPermissionStatus) {
+    texto.textContent = "Ejecutando en el navegador — las notificaciones nativas no aplican acá.";
+    if (btn) btn.hidden = true;
+    return;
+  }
+  try {
+    const { notifications } = await FcmPlugin.getPermissionStatus();
+    if (notifications === "granted") {
+      texto.textContent = "Notificaciones activadas.";
+      if (btn) btn.hidden = true;
+    } else {
+      texto.textContent = "Notificaciones desactivadas — no vas a recibir avisos de kits nuevos ni de turnos de depilación.";
+      if (btn) btn.hidden = false;
+    }
+  } catch (e) {
+    texto.textContent = "No se pudo verificar el estado de las notificaciones.";
+  }
+}
+$("btn-activar-notif")?.addEventListener("click", async () => {
+  const FcmPlugin = window.Capacitor?.Plugins?.FcmPlugin;
+  if (!FcmPlugin?.requestNotificationPermission) return;
+  await FcmPlugin.requestNotificationPermission(); // único punto que PIDE el permiso, por una acción explícita
+  await refrescarEstadoNotif();
+  registrarTokenFcm(); // reintenta el registro del token ahora que puede haber permiso nuevo
 });
 
 // ── Actualización remota de la APK (punto 8) ─────────────────────────────
@@ -365,20 +263,14 @@ $("btn-update-instalar").addEventListener("click", async () => {
 function mostrarAcceso(mensaje) {
   $("access-panel").hidden = false;
   $("workspace").hidden = true;
-  $("bottom-nav").hidden = true;
-  document.body.classList.remove("con-nav-inferior");
+  $("btn-ir-ajustes").hidden = true;
   $("btn-salir").hidden = true;
   $("btn-ajustes-notif").hidden = true;
   $("login-form").hidden = true;
   $("access-message").textContent = mensaje;
-  // Limpia el estado del GlowUp al cerrar sesión — nada de esto debe
-  // reaparecer para la próxima persona que entre en este mismo dispositivo.
-  recomendaciones = []; pendienteEstados = {}; ultimosPendientes = []; clientesPorDni = {};
-  prefsAvisos = { ...PREFS_AVISOS_DEFECTO };
-  const bandeja = $("lista-pendientes-bandeja");
-  if (bandeja) bandeja.innerHTML = "";
-  entradaAvisoMostrado = false;
-  if (entradaAvisoAbierto) cerrarEntradaAviso();
+  // Limpia el estado al cerrar sesión — nada de esto debe reaparecer para
+  // la próxima persona que entre en este mismo dispositivo.
+  clientesPorDni = {};
 }
 
 async function mostrarInfoVersion() {
@@ -423,8 +315,7 @@ onAuthStateChanged(auth, async (user) => {
 
   $("access-panel").hidden = true;
   $("workspace").hidden = false;
-  $("bottom-nav").hidden = false;
-  document.body.classList.add("con-nav-inferior");
+  $("btn-ir-ajustes").hidden = false;
   mostrarTab("inicio");
   $("btn-salir").hidden = false;
   if (nativeApp && window.Capacitor?.Plugins?.FcmPlugin) $("btn-ajustes-notif").hidden = false;
@@ -433,17 +324,12 @@ onAuthStateChanged(auth, async (user) => {
     buscarActualizacion(); // chequeo silencioso al abrir — no molesta si no hay nada nuevo
   }
   mostrarInfoVersion();
-  // Con valores por defecto (PREFS_AVISOS_DEFECTO) hasta que llegue el
-  // snapshot real de configNotificacionesInteligente — la pestaña "Más" no
-  // debe depender de que ya haya llegado un doc de Firestore para mostrar
-  // sus controles.
   renderMas();
 
   if (uidActual !== user.uid) {
     uidActual = user.uid;
     iniciarSuscripciones();
     registrarTokenFcm();
-    entradaAvisoMostrado = false; // login nuevo = nueva entrada lógica
   }
   consumirDeepLinkPendiente();
 });
@@ -489,25 +375,19 @@ async function registrarTokenFcm() {
   } catch (e) { console.warn("No se pudo registrar el token FCM:", e); }
 }
 
-// ── Deep link desde una notificación tocada (punto 5) ────────────────────
-// El aviso horario de pendientes (GlowUp) apunta a la pestaña Pendientes en
-// general, no a un registro puntual — se distingue con el valor sentinela
-// "pendientes_resumen" que ya arma FCMService.kt. Tocar el aviso NUNCA
-// marca nada como resuelto solo por abrirlo.
+// ── Deep link desde una notificación tocada ──────────────────────────────
+// Solo quedan dos avisos con push: "kit_nuevo" (pedidosKit) y
+// "depilacion_nueva" (reservasDepi) — los únicos dos que corresponden a las
+// 3 funciones de este panel.
 function despacharDeepLink(coleccion, docId) {
-  if (!coleccion) return;
-  if (coleccion === "pendientes_resumen") {
-    mostrarTab("pendientes");
-    aplicarFiltroPendientes("todas");
-    toast("Mostrando tus pendientes actualizados.");
-    return;
-  }
-  if (!docId || coleccion === "clients") return; // cumpleaños no tiene modal de detalle propio en v1
+  if (!coleccion || !docId) return;
   let intentos = 0;
   const intentar = () => {
     const existe = coleccion === "pedidosKit"
       ? fuentes.pedidosKit.items.some((k) => k.id === docId)
-      : ultimaAgenda.some((it) => it.coleccion === coleccion && it.id === docId);
+      : coleccion === "reservasDepi"
+      ? fuentes.reservasDepi.items.some((r) => r.id === docId)
+      : false;
     if (existe) { abrirModal(`${coleccion}::${docId}`); return true; }
     return false;
   };
@@ -527,28 +407,19 @@ function detenerSuscripciones() {
   if (unsubReservas) { unsubReservas(); unsubReservas = null; }
   if (unsubConsultas) { unsubConsultas(); unsubConsultas = null; }
   if (unsubPedidosKit) { unsubPedidosKit(); unsubPedidosKit = null; }
-  if (unsubActividad) { unsubActividad(); unsubActividad = null; }
+  if (unsubReservasDepi) { unsubReservasDepi(); unsubReservasDepi = null; }
   if (unsubContactos) { unsubContactos(); unsubContactos = null; }
-  if (unsubCumpleanos) { unsubCumpleanos(); unsubCumpleanos = null; }
-  if (unsubRecomendaciones) { unsubRecomendaciones(); unsubRecomendaciones = null; }
-  if (unsubPendienteEstados) { unsubPendienteEstados(); unsubPendienteEstados = null; }
-  if (unsubPrefsAvisos) { unsubPrefsAvisos(); unsubPrefsAvisos = null; }
   if (unsubConfigInteligente) { unsubConfigInteligente(); unsubConfigInteligente = null; }
   if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
 }
 
 async function iniciarSuscripciones() {
   detenerSuscripciones(); // nunca dejar listeners duplicados, aunque se reintente
-  fuentesEntradaListas = new Set(); // nueva tanda de suscripciones = a esperar de nuevo
 
   const hoyISO = fechaISOEnZona();
   const mananaISO = sumarDiasISO(hoyISO, 1);
+  hoyISOActual = hoyISO;
   $("date-heading").textContent = fechaLindaHoy(hoyISO);
-  // Rango ampliado hacia atrás (punto 3: "los pendientes de días anteriores
-  // no deben desaparecer") — acotado a VENTANA_REVISAR_TURNO_DIAS, no a
-  // "todo el historial". Mismo campo en las dos puntas (fecha >= / <=): no
-  // requiere índice compuesto nuevo ni usa != / not-in.
-  const desdeISO = sumarDiasISO(hoyISO, -VENTANA_REVISAR_TURNO_DIAS);
 
   // Fallback de teléfono por DNI (caso Arenhardt Yamila) — se recarga acá
   // porque esta función ya se llama en cada login/reconexión ("revalidación
@@ -563,12 +434,15 @@ async function iniciarSuscripciones() {
     console.warn("clients (fallback de teléfono):", e?.message || e);
   }
 
-  const qReservas = query(collection(db, "reservas"), where("fecha", ">=", desdeISO), where("fecha", "<=", mananaISO));
+  // Solo hoy/mañana — la ventana ampliada hacia atrás (VENTANA_REVISAR_TURNO_DIAS)
+  // solo existía para la bandeja de "turnos pasados sin revisar" (Pendientes,
+  // ya retirada); el próximo turno nunca mira hacia el pasado.
+  const qReservas = query(collection(db, "reservas"), where("fecha", ">=", hoyISO), where("fecha", "<=", mananaISO));
   unsubReservas = onSnapshot(qReservas, { includeMetadataChanges: true },
     (snap) => manejarSnapshot("reservas", snap),
     (err) => manejarErrorFuente("reservas", err));
 
-  const qConsultas = query(collection(db, "consultas"), where("fecha", ">=", desdeISO), where("fecha", "<=", mananaISO));
+  const qConsultas = query(collection(db, "consultas"), where("fecha", ">=", hoyISO), where("fecha", "<=", mananaISO));
   unsubConsultas = onSnapshot(qConsultas, { includeMetadataChanges: true },
     (snap) => manejarSnapshot("consultas", snap),
     (err) => manejarErrorFuente("consultas", err));
@@ -579,31 +453,19 @@ async function iniciarSuscripciones() {
     (snap) => manejarSnapshotKits(snap),
     (err) => manejarErrorFuente("pedidosKit", err));
 
-  // Bandeja de actividad (punto 2/4) — página más reciente, viva. El resto
-  // de la historia se pagina a pedido con "Cargar más antiguos" (más abajo).
-  actividadRecientes = []; actividadAntiguos = []; actividadCursor = null; actividadHayMas = false;
-  const qActividad = query(collection(db, "activityLog"), orderBy("timestamp", "desc"), limit(PAGINA_ACTIVIDAD));
-  unsubActividad = onSnapshot(qActividad,
-    (snap) => {
-      const items = [];
-      snap.forEach((d) => items.push(convertirEventoActividad(d)));
-      actividadRecientes = items;
-      if (!actividadCursor && snap.docs.length) actividadCursor = snap.docs[snap.docs.length - 1];
-      actividadHayMas = snap.docs.length === PAGINA_ACTIVIDAD; // puede haber más atrás de esta página
-      renderActividad();
-    },
-    (err) => { console.warn("activityLog:", err?.message || err); });
+  // Nuevos turnos de depilación — sin tope superior de fecha (a diferencia
+  // de reservas/consultas): un turno de depilación dentro de una semana
+  // también es una novedad a mostrar, no solo hoy/mañana.
+  const qReservasDepi = query(collection(db, "reservasDepi"), where("fecha", ">=", hoyISO));
+  unsubReservasDepi = onSnapshot(qReservasDepi, { includeMetadataChanges: true },
+    (snap) => manejarSnapshotReservasDepi(snap),
+    (err) => manejarErrorFuente("reservasDepi", err));
 
   // Estado real de contacto por WhatsApp (punto 3) — para no mostrar nunca
   // un turno como "confirmado" solo porque alguien abrió WhatsApp.
   unsubContactos = onSnapshot(collection(db, "contactosWhatsApp"),
-    (snap) => { contactosPorId = {}; snap.forEach((d) => { contactosPorId[d.id] = d.data(); }); fuentesEntradaListas.add("contactos"); renderTodo(); },
-    (err) => { console.warn("contactosWhatsApp:", err?.message || err); fuentesEntradaListas.add("contactos"); renderTodo(); });
-
-  // Cumpleaños de hoy (punto 4) — documento generado por la función programada.
-  unsubCumpleanos = onSnapshot(doc(db, "resumenesCumpleanos", hoyISO),
-    (snap) => { cumpleanosHoy = snap.exists() ? snap.data() : { estado: "no_generado" }; fuentesEntradaListas.add("cumpleanos"); renderTodo(); },
-    (err) => { cumpleanosHoy = { estado: "error", detalle: err?.message || String(err) }; fuentesEntradaListas.add("cumpleanos"); renderTodo(); });
+    (snap) => { contactosPorId = {}; snap.forEach((d) => { contactosPorId[d.id] = d.data(); }); renderTodo(); },
+    (err) => { console.warn("contactosWhatsApp:", err?.message || err); renderTodo(); });
 
   // Teléfono de la dueña para "Avisar a la dueña" — colección/reglas ya
   // existentes (lectura abierta, escritura solo admin), sin cambios de
@@ -613,31 +475,9 @@ async function iniciarSuscripciones() {
       const data = snap.exists() ? snap.data() : {};
       duenaTelefono = data.duenaTelefono || null;
       duenaNombre = data.duenaNombre || null;
-      // Corte mañana/tarde (punto 2 del pedido de Resumen de jornada): "si
-      // falta, incorporá un corte configurable con 12:00 como valor
-      // inicial" — CORTE_MANANA_TARDE_DEFECTO es ese valor inicial
-      // documentado, nunca un número mágico sin explicar.
-      corteMananaTardeConfigurado = /^\d{2}:\d{2}$/.test(data.corteMananaTarde || "");
-      corteMananaTarde = corteMananaTardeConfigurado ? data.corteMananaTarde : CORTE_MANANA_TARDE_DEFECTO;
       renderMas();
     },
     (err) => { console.warn("configuracion/mimarInteligente:", err?.message || err); });
-
-  // Recomendaciones (GlowUp, punto 3) — tarea manual, texto editable y
-  // programación explícita de la administradora.
-  unsubRecomendaciones = onSnapshot(collection(db, "recomendacionesInteligente"),
-    (snap) => { recomendaciones = []; snap.forEach((d) => recomendaciones.push(normalizarRecomendacion(d.id, d.data()))); fuentesEntradaListas.add("recomendaciones"); renderTodo(); },
-    (err) => { console.warn("recomendacionesInteligente:", err?.message || err); fuentesEntradaListas.add("recomendaciones"); renderTodo(); });
-
-  // Overrides de pendientes derivados (postergar/resolver a mano).
-  unsubPendienteEstados = onSnapshot(collection(db, "pendienteEstadoInteligente"),
-    (snap) => { pendienteEstados = {}; snap.forEach((d) => { pendienteEstados[d.id] = d.data(); }); fuentesEntradaListas.add("pendienteEstados"); renderTodo(); },
-    (err) => { console.warn("pendienteEstadoInteligente:", err?.message || err); fuentesEntradaListas.add("pendienteEstados"); renderTodo(); });
-
-  // Preferencias del aviso horario — un doc por cuenta admin (id = uid).
-  unsubPrefsAvisos = onSnapshot(doc(db, "configNotificacionesInteligente", uidActual || "_"),
-    (snap) => { prefsAvisos = snap.exists() ? { ...PREFS_AVISOS_DEFECTO, ...snap.data() } : { ...PREFS_AVISOS_DEFECTO }; renderMas(); },
-    (err) => { console.warn("configNotificacionesInteligente:", err?.message || err); });
 
   tickInterval = setInterval(renderTodo, 1000); // el reloj y la cuenta regresiva necesitan tick fino
 }
@@ -648,123 +488,12 @@ function convertirEventoActividad(d) {
   return { id: d.id, ...data, timestampMs: cuando ? cuando.getTime() : null };
 }
 
-async function cargarMasActividad() {
-  if (actividadCargandoMas || !actividadHayMas || !actividadCursor) return;
-  actividadCargandoMas = true;
-  $("btn-cargar-mas").disabled = true;
-  $("btn-cargar-mas").textContent = "Cargando…";
-  try {
-    const q = query(collection(db, "activityLog"), orderBy("timestamp", "desc"), startAfter(actividadCursor), limit(PAGINA_ACTIVIDAD));
-    const snap = await getDocs(q);
-    const items = [];
-    snap.forEach((d) => items.push(convertirEventoActividad(d)));
-    actividadAntiguos = actividadAntiguos.concat(items);
-    if (snap.docs.length) actividadCursor = snap.docs[snap.docs.length - 1];
-    actividadHayMas = snap.docs.length === PAGINA_ACTIVIDAD;
-  } catch (e) {
-    toast("No se pudo cargar actividad más antigua: " + (e.message || e));
-  } finally {
-    actividadCargandoMas = false;
-    $("btn-cargar-mas").disabled = false;
-    $("btn-cargar-mas").textContent = "Cargar más antiguos";
-    renderActividad();
-  }
-}
-$("btn-cargar-mas").addEventListener("click", cargarMasActividad);
-
-// ── Informe de actividad para Gimena (punto 11) ──────────────────────────
-// Usa el MISMO filtro de fecha que ya tiene la pestaña Actividad (si no hay
-// filtro de fecha activo, el período es "hoy") — no se inventa un selector
-// de período aparte. Los totales económicos salen de pagos/gastos reales
-// (mismas fórmulas que el resumen mensual de admin.html), nunca de sumar
-// texto de activityLog.
-async function _obtenerPeriodoInforme() {
-  const hoyISO = fechaISOEnZona();
-  const desde = filtroActividad.fechaDesde || hoyISO;
-  const hasta = filtroActividad.fechaHasta || hoyISO;
-  return { desde, hasta };
-}
-
-$("btn-preparar-informe-gimena")?.addEventListener("click", async () => {
-  const btn = $("btn-preparar-informe-gimena");
-  btn.disabled = true;
-  const textoOrig = btn.textContent;
-  btn.textContent = "Preparando…";
-  try {
-    const { desde, hasta } = await _obtenerPeriodoInforme();
-
-    // Si hay actividad más antigua sin cargar y el período pedido podría
-    // incluirla, se avisa en vez de presentar un informe que en realidad
-    // está incompleto.
-    const combinados = actividadRecientes.concat(actividadAntiguos);
-    const masAntiguoCargadoISO = combinados.reduce((min, ev) => {
-      if (ev.timestampMs == null) return min;
-      const f = fechaISOEnZona(ev.timestampMs);
-      return !min || f < min ? f : min;
-    }, null);
-    const posibleIncompleto = actividadHayMas && (!masAntiguoCargadoISO || desde < masAntiguoCargadoISO);
-
-    const filtroPeriodo = { categoria: "todas", estado: "todos", fechaDesde: desde, fechaHasta: hasta };
-    const eventosPeriodo = combinados.filter((ev) => eventoCoincideFiltro(ev, filtroPeriodo));
-
-    // Totales económicos reales del período — por fecha EFECTIVA, igual
-    // criterio que el resumen mensual de admin.html.
-    const [pagosSnap, gastosSnap] = await Promise.all([
-      getDocs(collection(db, "pagos")),
-      getDocs(collection(db, "gastos")),
-    ]);
-    let cobros = 0, devoluciones = 0;
-    pagosSnap.forEach((d) => {
-      const p = d.data();
-      const f = p.fechaEfectiva || "";
-      if (f < desde || f > hasta) return;
-      if (p.tipo === "devolucion") devoluciones += p.monto || 0; else cobros += p.monto || 0;
-    });
-    let gastosPagados = 0;
-    gastosSnap.forEach((d) => {
-      const g = d.data();
-      if (g.anulado || g.modalidad !== "importe_fijo" || g.estado !== "pagado") return;
-      const f = g.fechaPagoEfectiva || "";
-      if (f < desde || f > hasta) return;
-      gastosPagados += g.montoFijo || 0;
-    });
-
-    const periodoLabel = desde === hasta ? `día ${desde}` : `${desde} al ${hasta}`;
-    const fechaCorteISO = fechaISOEnZona();
-    const informe = construirInformeGimena({
-      periodoLabel, fechaDesdeISO: desde, fechaHastaISO: hasta, fechaCorteISO,
-      eventos: eventosPeriodo, cobros, devoluciones, gastosPagados,
-    });
-
-    let texto = informe.resumenWhatsApp;
-    if (posibleIncompleto) texto += `\n\n⚠️ Puede faltar actividad anterior al ${masAntiguoCargadoISO || desde} sin cargar todavía — informe parcial.`;
-
-    const operador = await operadorActual();
-    const ref = await addDoc(collection(db, "informesGimena"), {
-      periodoLabel, fechaDesdeISO: desde, fechaHastaISO: hasta, fechaCorteISO,
-      filtros: filtroPeriodo, contenido: texto, totales: informe.totales,
-      porColeccionConteo: informe.porColeccionConteo, eventoIds: informe.eventoIds,
-      posibleIncompleto: !!posibleIncompleto,
-      generadoPor: operador?.email || null, generadoEn: serverTimestamp(),
-    });
-
-    avisoDuenaRegistro.set("informe_" + ref.id, { coleccion: "informesGimena", docId: ref.id, ocurrencia: null, texto, nombreEvento: `Informe de actividad — ${periodoLabel}` });
-    abrirAvisoDuena("informe_" + ref.id);
-  } catch (e) {
-    console.error(e);
-    toast("No se pudo preparar el informe: " + (e?.message || e));
-  } finally {
-    btn.disabled = false;
-    btn.textContent = textoOrig;
-  }
-});
 
 function manejarSnapshot(fuenteId, snap) {
   const items = [];
   snap.forEach((d) => items.push(normalizarItemAgenda(fuenteId, d.id, d.data(), clientesPorDni)));
   fuentes[fuenteId] = { estado: "ok", error: null, fromCache: snap.metadata.fromCache, items };
   if (!snap.metadata.fromCache) ultimaSincronizacion = Date.now();
-  fuentesEntradaListas.add(fuenteId);
   renderTodo();
 }
 
@@ -772,7 +501,14 @@ function manejarSnapshotKits(snap) {
   const items = [];
   snap.forEach((d) => items.push(normalizarPedidoKit(d.id, d.data())));
   fuentes.pedidosKit = { estado: "ok", error: null, fromCache: snap.metadata.fromCache, items };
-  fuentesEntradaListas.add("pedidosKit");
+  renderTodo();
+}
+
+function manejarSnapshotReservasDepi(snap) {
+  const items = [];
+  snap.forEach((d) => items.push(normalizarReservaDepi(d.id, d.data())));
+  items.sort((a, b) => (a.inicioMs ?? Infinity) - (b.inicioMs ?? Infinity));
+  fuentes.reservasDepi = { estado: "ok", error: null, fromCache: snap.metadata.fromCache, items };
   renderTodo();
 }
 
@@ -781,8 +517,18 @@ function manejarErrorFuente(fuenteId, err) {
     estado: "error", error: err?.code || err?.message || "error desconocido",
     fromCache: true, items: fuentes[fuenteId]?.items || [],
   };
-  fuentesEntradaListas.add(fuenteId);
   renderTodo();
+}
+
+function renderTodo() {
+  const ahoraMs = Date.now();
+  ultimaAgenda = construirAgenda(fuentes.reservas.items, fuentes.consultas.items);
+  renderReloj(ahoraMs);
+  renderConexion();
+  renderProximoTurno(ultimaAgenda, ahoraMs);
+  renderKitsTab();
+  renderDepiTab();
+  renderSesionesTab();
 }
 
 function reconciliar() { renderTodo(); }
@@ -842,27 +588,44 @@ function renderConexion() {
 function renderProximoTurno(agenda, ahoraMs) {
   const body = $("proximo-turno-body");
   const countdownEl = $("countdown");
+  const panel = document.querySelector(".status-panel");
   if (fuentes.reservas.estado === "cargando" || fuentes.consultas.estado === "cargando") {
     body.innerHTML = `<p class="proximo-turno-vacio">Cargando…</p>`;
     countdownEl.textContent = "--:--";
+    panel?.classList.remove("status-panel-urgente");
     return;
   }
   const prox = obtenerProximaReserva(agenda, ahoraMs);
   if (!prox) {
     body.innerHTML = `<p class="proximo-turno-vacio">No hay más turnos activos para hoy y mañana.</p>`;
     countdownEl.textContent = "—";
+    panel?.classList.remove("status-panel-urgente");
+    ultimaProxKeyVista = null;
     return;
   }
+
+  // Alarma inteligente: el turno en curso es la "alarma" (sin sonido, solo
+  // visual) hasta que se reconozca. Un turno nuevo (clave distinta) siempre
+  // empieza sin reconocer, aunque el anterior ya lo estuviera.
+  const key = `${prox.coleccion}_${prox.id}`;
+  if (key !== ultimaProxKeyVista) {
+    ultimaProxKeyVista = key;
+    alarmaReconocidaKey = null;
+  }
+
   const box = boxLabel(prox.box);
+  const faltaMs = prox.inicioMs - ahoraMs;
+  const urgente = faltaMs <= 0 && alarmaReconocidaKey !== key;
   body.innerHTML = `
     <div class="proximo-turno-nombre">${escapeHtml(prox.nombre || "Sin nombre registrado")}</div>
     <div class="proximo-turno-detalle">${escapeHtml(prox.fecha)} · ${escapeHtml(prox.hora || "—")} hs${prox.servicio ? " · " + escapeHtml(prox.servicio) : ""}</div>
     <div class="proximo-turno-pills">
       ${box ? `<span class="pill pill-box">${escapeHtml(box)}</span>` : `<span class="pill pill-on-dark">Box no asignado</span>`}
       ${!prox.telefono ? `<span class="pill pill-on-dark">Sin teléfono</span>` : ""}
-    </div>`;
+    </div>
+    ${urgente ? `<button class="button button-light btn-reconocer-alarma" type="button" data-reconocer-alarma="${escapeHtml(key)}">Reconocer aviso</button>` : ""}`;
+  panel?.classList.toggle("status-panel-urgente", urgente);
 
-  const faltaMs = prox.inicioMs - ahoraMs;
   if (faltaMs <= 0) {
     countdownEl.textContent = "En curso";
   } else {
@@ -873,63 +636,22 @@ function renderProximoTurno(agenda, ahoraMs) {
   }
 }
 
-// Plazo por defecto para marcar un contacto como "vencido" en pantalla.
-const PLAZO_CONTACTO_VENCIDO_MS = 60 * 60000;
+// Reconocer/silenciar la alarma: SOLO cambia esta variable en memoria y
+// vuelve a renderizar — nunca escribe en Firestore ni toca el turno. Se
+// resetea solo en cuanto cambia el próximo turno (ver renderProximoTurno).
+document.getElementById("proximo-turno-body")?.addEventListener("click", (ev) => {
+  const btn = ev.target.closest("[data-reconocer-alarma]");
+  if (!btn) return;
+  alarmaReconocidaKey = btn.getAttribute("data-reconocer-alarma");
+  renderProximoTurno(ultimaAgenda, Date.now());
+});
 
-function contactoDeItem(item, tipoMensaje = "confirmacion") {
-  return contactosPorId[idContactoParaItem(item, tipoMensaje)] || null;
-}
-
-function pillEstadoContacto(item, ahoraMs) {
-  const contacto = contactoDeItem(item);
-  const estado = estadoContacto(contacto);
-  const vencido = contactoVencido(item, contacto, PLAZO_CONTACTO_VENCIDO_MS, ahoraMs);
-  const clase = estado === "enviado" ? "pill-ok" : vencido ? "pill-warn" : "pill-muted";
-  const texto = estado === "enviado" ? "✓ Enviado" : estado === "preparado" ? "WhatsApp abierto" : estado === "no_enviado" ? "No enviado" : (vencido ? "⚠ Sin envío registrado" : "Pendiente de contacto");
-  return `<span class="pill ${clase}" title="${escapeHtml(etiquetaEstadoContacto(estado))}">${escapeHtml(texto)}</span>`;
-}
-
-function tarjetaHtml(item, { conMotivos, ahoraMs = Date.now() } = {}) {
-  const box = boxLabel(item.box);
-  const idAttr = `${item.coleccion}::${item.id}`;
-  const motivosHtml = conMotivos && item._revision
-    ? `<div class="item-motivos">${item._revision.motivos.map((m) => `<div class="item-motivo">${escapeHtml(m.texto)}</div>`).join("")}</div>`
-    : "";
-  return `
-  <div class="item-row" data-item="${idAttr}" data-revision="${conMotivos ? "true" : "false"}">
-    <div class="item-row-top">
-      <span class="item-time">${escapeHtml(item.hora || "—")}</span>
-      <span class="item-name">${escapeHtml(item.nombre || "Sin nombre registrado")}</span>
-    </div>
-    <div class="item-service">${escapeHtml(item.servicio || (item.coleccion === "consultas" ? "Consulta Inicial" : "Servicio sin registrar"))}</div>
-    <div class="item-pills">
-      ${box ? `<span class="pill pill-box">${escapeHtml(box)}</span>` : `<span class="pill pill-muted">Box no asignado</span>`}
-      ${item.telefono ? `<span class="pill pill-muted">📞 ${escapeHtml(item.telefono)}</span>` : `<span class="pill pill-warn">Sin teléfono</span>`}
-      <span class="pill pill-muted">${escapeHtml(item.estadoBruto || "sin estado")}</span>
-      ${pillEstadoContacto(item, ahoraMs)}
-    </div>
-    ${motivosHtml}
-    <div class="item-actions"><button class="button button-light" data-abrir="${idAttr}" type="button">Ver detalle</button></div>
-  </div>`;
-}
-
-// ── GlowUp: bandeja unificada de pendientes (punto 3) ────────────────────
 function formatoMomento(ms) {
   if (ms == null) return null;
   return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: ZONA_HORARIA }).format(ms);
 }
 
-function pendienteAccionPrincipalHtml(p) {
-  if (p.tipo === "cumpleanos") {
-    return `<button class="button button-primary" type="button" data-preparar-cumple="${escapeHtml(p.docId)}"><svg class="icon"><use href="#i-whatsapp"/></svg> Preparar saludo</button>`;
-  }
-  if (p.tipo === "recomendacion") {
-    return `<button class="button button-primary" type="button" data-abrir-recomendacion="${escapeHtml(p.docId)}"><svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp</button>`;
-  }
-  return `<button class="button button-primary" type="button" data-abrir="${escapeHtml(p.coleccion)}::${escapeHtml(p.docId)}">Ver detalle</button>`;
-}
-
-// ── "Avisar a la dueña" (nuevo pedido, punto 3) ──────────────────────────
+// ── "Avisar a la dueña" (nuevo pedido) — lo sigue usando Kits ────────────
 // Independiente de la tarea con la paciente (punto 2): un registro propio
 // en contactosWhatsApp, tipoMensaje "aviso_dueña", que nunca toca ni lee el
 // estado de contacto con la paciente. avisoDuenaRegistro guarda, por clave
@@ -952,266 +674,13 @@ function avisarDuenaBtnHtml(key, coleccion, docId, ocurrencia, texto, nombreEven
   return `<button class="button button-light" type="button" data-avisar-duena="${escapeHtml(key)}"><svg class="icon"><use href="#i-whatsapp"/></svg> Avisar a Gimena</button>`;
 }
 
-// Arma el texto correcto según el tipo de pendiente, buscando el detalle
-// completo en las fuentes ya cargadas en memoria (nunca inventa datos que
-// no estén ahí — si el kit/turno ya no está en caché, usa lo que trae el
-// propio pendiente, que siempre tiene al menos nombre y motivo).
-function avisarDuenaDesdePendiente(p) {
-  const key = `pend_${p.id}`;
-  let texto, ocurrencia = p.ocurrencia || null;
-  if (p.tipo === "kit_pendiente") {
-    const kit = fuentes.pedidosKit.items.find((k) => k.id === p.docId);
-    texto = kit ? construirTextoAvisoDuenaKit(kit) : construirTextoAvisoDuenaGenerico(p);
-  } else if (p.tipo === "cumpleanos") {
-    texto = construirTextoAvisoDuenaCumpleanosIndividual(p.nombre, false);
-  } else if (p.tipo === "confirmacion_turno" && p.coleccion === "consultas") {
-    const item = ultimaAgenda.find((it) => it.coleccion === "consultas" && it.id === p.docId);
-    const contactoConsulta = item ? contactosPorId[idContactoParaItem(item, "consulta")] : null;
-    const estConsulta = item ? etiquetaEstadoConsultaInicial(estadoConsultaInicial(item, contactoConsulta)) : "pendiente de enviar confirmación";
-    texto = item ? construirTextoAvisoDuenaConsulta(item, estConsulta) : construirTextoAvisoDuenaGenerico(p);
-  } else {
-    texto = construirTextoAvisoDuenaGenerico(p);
-  }
-  return avisarDuenaBtnHtml(key, p.coleccion, p.docId, ocurrencia, texto, p.nombre);
-}
-
-function pendienteTarjetaHtml(p) {
-  // Punto 16: "vence" sólo si hay un vencimiento real de negocio — la hora
-  // de un turno no es una expiración del aviso, así que confirmacion_turno
-  // usa la frase de fecha/franja en vez de "Vence a las X".
-  const momento = p.tipo === "confirmacion_turno"
-    ? textoTurnoConDia(p)
-    : p.venceMs != null
-      ? `Vence a las ${formatoMomento(p.venceMs)}`
-      : p.habilitadoDesdeMs != null
-        ? `Habilitada desde ${formatoMomento(p.habilitadoDesdeMs)}`
-        : "Sin vencimiento propio";
-  // Punto 3 + 6: un dato obligatorio faltante bloquea la acción y se marca
-  // en rojo, con el campo exacto — nunca se oculta ni se completa solo.
-  const bloqueoHtml = p.bloqueado
-    ? `<div class="pendiente-bloqueado">Pendiente: falta ${escapeHtml(p.campoFaltante === "telefono" ? "teléfono" : (p.campoFaltante || "un dato obligatorio"))} — no se puede continuar hasta corregirlo.</div>`
-    : "";
-  return `
-  <div class="item-row pend-row${p.bloqueado ? " pend-row-bloqueado" : ""}" data-pendiente="${escapeHtml(p.id)}">
-    <div class="item-row-top">
-      <span class="pill pill-pendiente-rojo">Pendiente</span>
-      <span class="pill pill-box">${escapeHtml(ETIQUETA_TIPO_PENDIENTE[p.tipo] || p.tipo)}</span>
-      <span class="item-name">${escapeHtml(p.nombre)}</span>
-    </div>
-    <div class="item-service">${escapeHtml(p.motivo)}</div>
-    ${bloqueoHtml}
-    <div class="item-pills"><span class="pill pill-muted">${escapeHtml(momento)}</span>${p.tipo !== "recomendacion" ? avisoDuenaPillHtml(p.coleccion, p.docId, p.ocurrencia) : ""}</div>
-    <div class="item-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-      ${pendienteAccionPrincipalHtml(p)}
-      ${p.tipo !== "recomendacion" ? avisarDuenaDesdePendiente(p) : ""}
-      <button class="button button-light" type="button" data-postergar-pendiente="${escapeHtml(p.id)}">Postergar</button>
-      <button class="button button-light" type="button" data-resolver-pendiente="${escapeHtml(p.id)}">${p.tipo === "recomendacion" ? "Descartar" : "Marcar resuelto"}</button>
-    </div>
-  </div>`;
-}
-
-// Un error de lectura NUNCA debe parecer "no hay pendientes" — compartido
-// entre la bandeja y el aviso de entrada para no anunciar "todo resuelto"
-// cuando en realidad una fuente no se pudo comprobar.
-function erroresFuentePendientes() {
-  const errores = [];
-  if (cumpleanosHoy?.estado === "error") errores.push(`Cumpleaños: no se pudo consultar (${cumpleanosHoy.detalle || "error desconocido"}).`);
-  if (fuentes.pedidosKit.estado === "error") errores.push(`Pedidos de kit: no se pudo consultar (${fuentes.pedidosKit.error || "error desconocido"}).`);
-  return errores;
-}
-
-function renderPendientesBandeja() {
-  const cont = $("lista-pendientes-bandeja");
-  if (!cont) return;
-  if (fuentes.reservas.estado === "cargando" || fuentes.consultas.estado === "cargando") {
-    cont.innerHTML = `<div class="loading-state">Cargando…</div>`;
-    return;
-  }
-  const ahoraMs = Date.now();
-  // ultimosPendientes conserva TODO lo que deriva la regla canónica (incluye
-  // postergados/resueltos) para que el handler de "Resolver"/"Descartar"
-  // pueda encontrar por id un pendiente aunque ya no esté vigente en
-  // pantalla. Lo que se cuenta y se muestra sale de `vigentes`.
-  ultimosPendientes = derivarPendientes({
-    agenda: ultimaAgenda, pedidosKitPendientes: fuentes.pedidosKit.items,
-    cumpleanosHoy, recomendaciones, contactosPorId,
-  }, ahoraMs);
-  const vigentes = pendientesVigentes(ultimosPendientes, pendienteEstados, ahoraMs);
-
-  const conteo = contarPendientesPorTipo(vigentes);
-  $("resumen-pendientes").textContent = String(conteo.confirmacion_turno);
-  if ($("resumen-revisar-turno")) $("resumen-revisar-turno").textContent = String(conteo.revisar_turno);
-  // "?" en vez de "0" cuando la fuente falló — un error de lectura nunca
-  // debe leerse como "no hay pendientes de ese tipo".
-  $("resumen-kits").textContent = fuentes.pedidosKit.estado === "error" ? "?" : String(conteo.kit_pendiente);
-  $("resumen-cumpleanos").textContent = cumpleanosHoy?.estado === "error" ? "?" : String(conteo.cumpleanos);
-  $("resumen-recomendaciones").textContent = String(conteo.recomendacion);
-
-  // Cumpleaños, kits y consultas iniciales ya tienen su propia sección
-  // dedicada (Cumpleaños/Kits/Consultas) — esta bandeja general queda para
-  // lo que no tiene sección propia todavía: turnos comunes (reservas) por
-  // confirmar, turnos a revisar y recomendaciones. Evita mostrar lo mismo
-  // duplicado en dos lugares distintos.
-  const bandejaVisible = vigentes.filter((p) => p.tipo !== "kit_pendiente" && p.tipo !== "cumpleanos" && !(p.tipo === "confirmacion_turno" && p.coleccion === "consultas"));
-  const visibles = filtroPendientesTipo === "todas" ? bandejaVisible : bandejaVisible.filter((p) => p.tipo === filtroPendientesTipo);
-  $("count-pendientes-bandeja").textContent = String(visibles.length);
-
-  // Se avisa aparte, arriba de la lista (que igual muestra lo que sí pudo cargar).
-  const erroresFuente = erroresFuentePendientes();
-  const avisoErrorHtml = erroresFuente.length ? `<div class="error-state">${erroresFuente.map(escapeHtml).join(" · ")}</div>` : "";
-
-  if (!visibles.length) {
-    cont.innerHTML = avisoErrorHtml + `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Sin pendientes${filtroPendientesTipo !== "todas" ? " en este filtro" : ""}</h3><p>Nada requiere atención en este momento.</p></div>`;
-  } else {
-    cont.innerHTML = avisoErrorHtml + pendientesAgrupadosHtml(visibles, ahoraMs);
-  }
-
-  const badge = $("nav-badge-pendientes");
-  if (badge) { if (bandejaVisible.length > 0) { badge.hidden = false; badge.textContent = String(bandejaVisible.length); } else badge.hidden = true; }
-}
-
-// Dentro de un mismo día, separa mañana/tarde SÓLO para confirmacion_turno
-// (punto 17) — separadores chicos, misma vista, nunca pantallas distintas.
-// El resto de los tipos (kit, recomendación, etc.) no tiene franja propia
-// y va después, sin separador.
-function pendientesConSeparadorFranjaHtml(lista) {
-  const manana = lista.filter((p) => p.tipo === "confirmacion_turno" && p.franja === "mañana");
-  const tarde = lista.filter((p) => p.tipo === "confirmacion_turno" && p.franja === "tarde");
-  const resto = lista.filter((p) => !(p.tipo === "confirmacion_turno" && (p.franja === "mañana" || p.franja === "tarde")));
-  let html = "";
-  if (manana.length) {
-    html += `<div class="franja-separador">🌙 Turnos por la mañana · enviar la noche anterior</div>` + manana.map(pendienteTarjetaHtml).join("");
-  }
-  if (tarde.length) {
-    html += `<div class="franja-separador">☀️ Turnos por la tarde · enviar al mediodía</div>` + tarde.map(pendienteTarjetaHtml).join("");
-  }
-  html += resto.map(pendienteTarjetaHtml).join("");
-  return html;
-}
-
-function pendientesAgrupadosHtml(visibles, ahoraMs) {
-  const g = agruparPendientesPorDia(visibles, ahoraMs);
-  let html = "";
-  const tituloFecha = (fechaISO) => {
-    if (!fechaISO) return "Sin fecha registrada";
-    const dia = diaSemanaLegible(new Date(`${fechaISO}T12:00:00-03:00`).getTime());
-    const legible = formatearFechaLocal(new Date(`${fechaISO}T12:00:00-03:00`).getTime());
-    return dia ? `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${legible}` : legible;
-  };
-  if (g.hoy.length) {
-    html += `<div class="day-header">Hoy — ${escapeHtml(tituloFecha(g.hoyISO))}</div>` + pendientesConSeparadorFranjaHtml(g.hoy);
-  }
-  if (g.manana.length) {
-    html += `<div class="day-header">Mañana — ${escapeHtml(tituloFecha(g.mananaISO))}</div>` + pendientesConSeparadorFranjaHtml(g.manana);
-  }
-  if (g.anterioresPorFecha.length) {
-    html += `<div class="day-header pend-dia-header-atrasado">Anteriores pendientes</div>`;
-    for (const [fecha, lista] of g.anterioresPorFecha) {
-      html += `<div class="pend-dia-subheader">${escapeHtml(tituloFecha(fecha === "sin_fecha" ? null : fecha))}</div>` + pendientesConSeparadorFranjaHtml(lista);
-    }
-  }
-  if (g.proximosPorFecha.length) {
-    html += `<div class="day-header">Próximos días</div>`;
-    for (const [fecha, lista] of g.proximosPorFecha) {
-      html += `<div class="pend-dia-subheader">${escapeHtml(tituloFecha(fecha))}</div>` + pendientesConSeparadorFranjaHtml(lista);
-    }
-  }
-  return html;
-}
-
-// ══════════════════════════════════════════════════════════════════════
-// Secciones nuevas: Cumpleaños / Consultas iniciales / Pedidos de kits
-// ══════════════════════════════════════════════════════════════════════
-
-function cumpleAccionHtml(clientId, saludado) {
-  return saludado
-    ? `<span class="pill pill-ok">✓ Saludado</span>`
-    : `<button class="button button-primary" type="button" data-preparar-cumple="${escapeHtml(clientId)}"><svg class="icon"><use href="#i-whatsapp"/></svg> Preparar saludo</button>`;
-}
-
-function renderCumpleanosTab() {
-  const contHoy = $("lista-cumple-hoy");
-  const contProx = $("lista-cumple-proximos");
-  if (!contHoy || !contProx) return;
-
-  if (cumpleanosHoy?.estado === "error") {
-    contHoy.innerHTML = `<div class="error-state">No se pudo consultar los cumpleaños de hoy (${escapeHtml(cumpleanosHoy.detalle || "error desconocido")}).</div>`;
-  } else if (cumpleanosHoy == null || cumpleanosHoy.estado === undefined) {
-    contHoy.innerHTML = `<div class="loading-state">Cargando…</div>`;
-  } else {
-    const personas = cumpleanosHoy.estado === "ok" ? (cumpleanosHoy.personas || []) : [];
-    if (!personas.length) {
-      contHoy.innerHTML = `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Hoy no hay cumpleaños</h3></div>`;
-    } else {
-      contHoy.innerHTML = personas.map((p) => {
-        const contactoSaludo = contactosPorId[`clients_${docIdVersionadoCumpleanos(p.clientId, cumpleanosHoy.fecha)}_cumpleanos`];
-        const saludado = estadoContacto(contactoSaludo) === "enviado";
-        const key = `cumple_${p.clientId}`;
-        return `
-        <div class="item-row">
-          <div class="item-row-top"><span class="pill pill-box">Cumpleaños</span><span class="item-name">${escapeHtml(p.nombre || "Paciente")}</span></div>
-          <div class="item-service">Hoy, ${escapeHtml(cumpleanosHoy.fecha)}</div>
-          <div class="item-pills"><span class="pill ${saludado ? "pill-ok" : "pill-muted"}">${saludado ? "✓ Saludo realizado" : "Saludo pendiente"}</span>${avisoDuenaPillHtml("clients", p.clientId, { fecha: cumpleanosHoy.fecha })}</div>
-          <div class="item-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-            ${cumpleAccionHtml(p.clientId, saludado)}
-            ${avisarDuenaBtnHtml(key, "clients", p.clientId, { fecha: cumpleanosHoy.fecha }, construirTextoAvisoDuenaCumpleanosIndividual(p.nombre, saludado), p.nombre)}
-          </div>
-        </div>`;
-      }).join("");
-    }
-  }
-
-  const hoyISO = fechaISOEnZona();
-  const proximos = cumpleanosProximos(clientesPorDni, hoyISO, 7);
-  contProx.innerHTML = !proximos.length
-    ? `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Sin cumpleaños en los próximos 7 días</h3></div>`
-    : proximos.map((p) => `
-      <div class="item-row">
-        <div class="item-row-top"><span class="pill pill-box">Cumpleaños</span><span class="item-name">${escapeHtml(p.nombre)}</span></div>
-        <div class="item-service">${escapeHtml(p.fecha)}</div>
-      </div>`).join("");
-
-  const badge = $("nav-badge-cumpleanos");
-  const conteoHoy = cumpleanosHoy?.estado === "ok" ? (cumpleanosHoy.personas || []).length : 0;
-  if (badge) { if (conteoHoy > 0) { badge.hidden = false; badge.textContent = String(conteoHoy); } else badge.hidden = true; }
-}
-
-function consultaTarjetaHtml(item) {
-  const contacto = contactosPorId[idContactoParaItem(item, "consulta")];
-  const estado = estadoConsultaInicial(item, contacto);
-  const etiqueta = etiquetaEstadoConsultaInicial(estado);
-  const claseEstado = estado === ESTADO_CONSULTA_CANCELADA ? "pill-warn" : estado === "confirmada" ? "pill-ok" : "pill-muted";
-  const key = `consulta_${item.id}`;
-  const puedeAvisar = estado !== ESTADO_CONSULTA_CANCELADA;
-  return `
-  <div class="item-row">
-    <div class="item-row-top"><span class="pill ${claseEstado}">${escapeHtml(etiqueta)}</span><span class="item-name">${escapeHtml(item.nombre || "Sin nombre registrado")}</span></div>
-    <div class="item-service">${escapeHtml(item.fecha || "—")} · ${escapeHtml(item.hora ? item.hora + " hs" : "—")}${item.servicio ? " · " + escapeHtml(item.servicio) : ""}</div>
-    <div class="item-pills">${item.telefono ? `<span class="pill pill-muted">📞 ${escapeHtml(item.telefono)}</span>` : `<span class="pill pill-warn">Sin teléfono</span>`}${puedeAvisar ? avisoDuenaPillHtml("consultas", item.id, { fecha: item.fecha, hora: item.hora }) : ""}</div>
-    <div class="item-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="button button-primary" type="button" data-abrir="consultas::${escapeHtml(item.id)}">Ver registro</button>
-      ${puedeAvisar ? avisarDuenaBtnHtml(key, "consultas", item.id, { fecha: item.fecha, hora: item.hora }, construirTextoAvisoDuenaConsulta(item, etiqueta), item.nombre) : ""}
-    </div>
-  </div>`;
-}
-
-function renderConsultasTab() {
-  const cont = $("lista-consultas");
-  if (!cont) return;
-  if (fuentes.consultas.estado === "cargando") { cont.innerHTML = `<div class="loading-state">Cargando…</div>`; return; }
-  // Todas las consultas en el rango cargado (hoy/mañana + ventana hacia
-  // atrás), activas o no — el pedido explícito es "contemplar
-  // reprogramaciones y cancelaciones", no solo las pendientes de acción.
-  const items = ultimaAgenda.filter((it) => it.coleccion === "consultas");
-  $("count-consultas").textContent = String(items.length);
-  cont.innerHTML = !items.length
-    ? `<div class="empty-state"><svg class="icon"><use href="#i-inbox"/></svg><h3>Sin consultas iniciales en este rango</h3></div>`
-    : items.map(consultaTarjetaHtml).join("");
-  const pendientesEnvio = items.filter((it) => it.activa && estadoConsultaInicial(it, contactosPorId[idContactoParaItem(it, "consulta")]) === "pendiente_enviar_confirmacion").length;
-  if ($("resumen-consultas-pend")) $("resumen-consultas-pend").textContent = String(pendientesEnvio);
-  const badge = $("nav-badge-consultas");
-  if (badge) { if (pendientesEnvio > 0) { badge.hidden = false; badge.textContent = String(pendientesEnvio); } else badge.hidden = true; }
-}
+// "Nuevo" se deriva por tiempo desde la creación del registro — nunca se
+// escribe nada a Firestore para marcarlo (ver mimar-inteligente-logic.js:
+// normalizarPedidoKit/normalizarReservaDepi). Es independiente del estado
+// real (pendiente/listo/entregado, o activa/cancelada): "leído" decae solo
+// con el tiempo, "atendido" es el campo real del documento.
+const VENTANA_NUEVO_MS = 6 * 3600000; // 6 horas
+const esReciente = (ms) => ms != null && (Date.now() - ms) < VENTANA_NUEVO_MS;
 
 function kitTarjetaHtml(kit) {
   const key = `kit_${kit.id}`;
@@ -1219,7 +688,10 @@ function kitTarjetaHtml(kit) {
   const claseEstado = estado === "entregado" ? "pill-ok" : estado === "listo" ? "pill-ok" : "pill-muted";
   return `
   <div class="item-row">
-    <div class="item-row-top"><span class="pill ${claseEstado}">${escapeHtml(estado)}</span><span class="item-name">${escapeHtml(kit.nombre)}</span></div>
+    <div class="item-row-top">
+      ${esReciente(kit.fechaPedidoMs) ? '<span class="pill pill-nuevo">Nuevo</span>' : ""}
+      <span class="pill ${claseEstado}">${escapeHtml(estado)}</span><span class="item-name">${escapeHtml(kit.nombre)}</span>
+    </div>
     <div class="item-service">${escapeHtml(kit.items ? kit.items.map((it) => `${it.cantidad}× ${it.nombre}`).join(", ") : (kit.productosResumen || []).join(", ") || "Sin detalle")}</div>
     <div class="item-pills"><span class="pill pill-muted">${escapeHtml(kit.totalTexto)}</span>${kit.fechaPedido ? `<span class="pill pill-muted">${escapeHtml(kit.fechaPedido)}</span>` : ""}${avisoDuenaPillHtml("pedidosKit", kit.id, null)}</div>
     <div class="item-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -1241,6 +713,76 @@ function renderKitsTab() {
     : items.map(kitTarjetaHtml).join("");
   const badge = $("nav-badge-kits");
   if (badge) { if (items.length > 0) { badge.hidden = false; badge.textContent = String(items.length); } else badge.hidden = true; }
+}
+
+// ── Nuevos turnos de depilación ──────────────────────────────────────────
+// Se muestran también las canceladas (pill "Cancelado"), nunca desaparecen
+// en silencio — así se refleja una cancelación real sin que el panel quede
+// mostrando datos desactualizados.
+function depiTarjetaHtml(r) {
+  return `
+  <div class="item-row">
+    <div class="item-row-top">
+      ${esReciente(r.creadoMs) ? '<span class="pill pill-nuevo">Nuevo</span>' : ""}
+      <span class="item-name">${escapeHtml(r.nombre)}</span>
+    </div>
+    <div class="item-service">${escapeHtml(r.servicio || "Servicio sin registrar")}</div>
+    <div class="item-pills">
+      <span class="pill pill-muted">${escapeHtml(r.fecha || "—")} · ${escapeHtml(r.hora || "—")} hs</span>
+      ${!r.activa ? '<span class="pill pill-warn">Cancelado</span>' : ""}
+    </div>
+    <div class="item-actions"><button class="button button-light" type="button" data-abrir="reservasDepi::${escapeHtml(r.id)}">Ver turno</button></div>
+  </div>`;
+}
+
+function renderDepiTab() {
+  const cont = $("lista-depi");
+  if (!cont) return;
+  if (fuentes.reservasDepi.estado === "cargando") { cont.innerHTML = `<div class="loading-state">Cargando…</div>`; return; }
+  if (fuentes.reservasDepi.estado === "error") { cont.innerHTML = `<div class="error-state">No se pudo consultar los turnos de depilación (${escapeHtml(fuentes.reservasDepi.error || "error desconocido")}).</div>`; return; }
+  const items = fuentes.reservasDepi.items;
+  $("count-depi").textContent = String(items.length);
+  cont.innerHTML = !items.length
+    ? `<div class="empty-state"><svg class="icon"><use href="#i-calendar"/></svg><h3>Sin turnos de depilación por ahora</h3></div>`
+    : items.map(depiTarjetaHtml).join("");
+}
+
+// ── Sesiones de hoy (cargar el detalle de lo que se hizo) ───────────────
+// Mismo campo que ya usa admin.html (detalleSesion/detalleSesion2) sobre el
+// mismo documento de reservas/consultas — cargarlo acá lo refleja de
+// inmediato en la agenda general, sin ninguna colección nueva.
+function sesionTarjetaHtml(it) {
+  const tieneNota = !!(it.detalleSesion && it.detalleSesion.trim());
+  const tieneNota2 = it.duo && !!(it.detalleSesion2 && it.detalleSesion2.trim());
+  const pillDetalle = it.duo
+    ? (tieneNota && tieneNota2 ? "Con detalle (2)" : tieneNota || tieneNota2 ? "Con detalle parcial" : "Sin detalle")
+    : (tieneNota ? "Con detalle" : "Sin detalle");
+  return `
+  <div class="item-row">
+    <div class="item-row-top">
+      <span class="pill ${tieneNota || tieneNota2 ? "pill-ok" : "pill-muted"}">${escapeHtml(pillDetalle)}</span>
+      ${it.duo ? '<span class="pill pill-box">Duo</span>' : ""}
+      ${!it.activa ? '<span class="pill pill-warn">Cancelado</span>' : ""}
+      <span class="item-name">${escapeHtml(it.nombre || "Sin nombre registrado")}</span>
+    </div>
+    <div class="item-service">${escapeHtml(it.hora || "—")} hs${it.servicio ? " · " + escapeHtml(it.servicio) : ""}</div>
+    <div class="item-actions"><button class="button button-light" type="button" data-abrir="${escapeHtml(it.coleccion)}::${escapeHtml(it.id)}">Cargar detalle</button></div>
+  </div>`;
+}
+
+function renderSesionesTab() {
+  const cont = $("lista-sesiones");
+  if (!cont) return;
+  if (fuentes.reservas.estado === "cargando" || fuentes.consultas.estado === "cargando") { cont.innerHTML = `<div class="loading-state">Cargando…</div>`; return; }
+  if (fuentes.reservas.estado === "error" && fuentes.consultas.estado === "error") {
+    cont.innerHTML = `<div class="error-state">No se pudo consultar las sesiones de hoy.</div>`;
+    return;
+  }
+  const items = ultimaAgenda.filter((it) => it.fecha === hoyISOActual);
+  $("count-sesiones").textContent = String(items.length);
+  cont.innerHTML = !items.length
+    ? `<div class="empty-state"><svg class="icon"><use href="#i-activity"/></svg><h3>Sin sesiones registradas para hoy</h3></div>`
+    : items.map(sesionTarjetaHtml).join("");
 }
 
 // ── Diálogo "Avisar a la dueña" ──────────────────────────────────────────
@@ -1349,418 +891,6 @@ document.addEventListener("click", (ev) => {
   abrirAvisoDuena(btn.getAttribute("data-avisar-duena"));
 });
 
-// ── Compartir resumen del día / cumpleaños de hoy (punto 4) ─────────────
-$("btn-compartir-resumen")?.addEventListener("click", async () => {
-  const ahoraMs = Date.now();
-  const vigentes = pendientesVigentes(ultimosPendientes, pendienteEstados, ahoraMs);
-  const conteo = contarPendientesPorTipo(vigentes);
-  const hoyISO = fechaISOEnZona(ahoraMs);
-  const texto = construirTextoResumenDia(conteo, fechaLindaHoy(hoyISO));
-  const resultado = await compartirOCopiar(texto);
-  if (resultado === "copiado") toast("Resumen copiado");
-  else if (!resultado) toast("No se pudo compartir ni copiar — reintentá.");
-});
-
-$("btn-compartir-cumpleanos")?.addEventListener("click", async () => {
-  const personas = cumpleanosHoy?.estado === "ok" ? (cumpleanosHoy.personas || []) : [];
-  const pendientes = personas.filter((p) => estadoContacto(contactosPorId[`clients_${docIdVersionadoCumpleanos(p.clientId, cumpleanosHoy.fecha)}_cumpleanos`]) !== "enviado").map((p) => p.nombre || "Paciente");
-  const texto = construirTextoAvisoDuenaCumpleanosDia(personas, pendientes);
-  const resultado = await compartirOCopiar(texto);
-  if (resultado === "copiado") toast("Cumpleaños de hoy copiados");
-  else if (!resultado) toast("No se pudo compartir ni copiar — reintentá.");
-});
-
-// ══════════════════════════════════════════════════════════════════════
-// Resumen de jornada — pacientes únicos, cambios de box e historial
-// ══════════════════════════════════════════════════════════════════════
-// Consulta Firestore de nuevo cada vez que se genera/actualiza (nunca
-// queda en vivo con onSnapshot) — el pedido pide "datos actuales al
-// generar", no un panel reactivo. Fuente única: reservas, mismo criterio
-// que window.renderGrilla en admin.html (la Grilla tampoco mezcla
-// consultas iniciales, que tienen su propio flujo de 30 min aparte).
-function _fechaLegibleResumenJornada(fechaISO) {
-  const ms = inicioTurnoMs(fechaISO, "00:00");
-  if (ms == null) return fechaISO;
-  // diaSemanaLegible/formatearFechaLocal resuelven contra un ms epoch con
-  // zona horaria explícita — a propósito NO se usa "new Date(y,m-1,d)"
-  // (como fechaLindaHoy) para este texto: ese patrón arma la fecha con el
-  // huso LOCAL del dispositivo y recién después la formatea con el huso
-  // del negocio, lo que puede correr el día de la semana si el teléfono
-  // tiene otro huso — exactamente el desplazamiento que el pedido pide
-  // evitar.
-  return `${diaSemanaLegible(ms)} ${formatearFechaLocal(ms)}`;
-}
-
-// Trae una colección completa paginando de a 500 (punto 1: "con
-// paginación si corresponde") — necesario acá porque hace falta el
-// historial COMPLETO de cada paciente (cualquier fecha), no solo
-// hoy/mañana como el resto del panel.
-async function _obtenerColeccionCompleta(nombreColeccion) {
-  const docs = [];
-  let cursor = null;
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    let q = query(collection(db, nombreColeccion), orderBy(documentId()), limit(500));
-    if (cursor) q = query(collection(db, nombreColeccion), orderBy(documentId()), startAfter(cursor), limit(500));
-    const snap = await getDocs(q);
-    if (snap.empty) break;
-    snap.forEach((d) => docs.push(d));
-    cursor = snap.docs[snap.docs.length - 1].id;
-    if (snap.docs.length < 500) break;
-  }
-  return docs;
-}
-
-// estado: 'idle' | 'cargando' | 'ok' | 'error'. Nunca se muestra un
-// resumen "ok" con datos parciales: un error de lectura queda marcado
-// como tal (punto 1: "diferenciá 'sin registros' de 'falló la
-// consulta'").
-let resumenJornada = { estado: "idle", fechaISO: null, texto: "", actualizadoMs: null, error: null };
-
-function renderResumenJornada() {
-  const estadoEl = $("resumen-jornada-estado");
-  const previewWrap = $("resumen-jornada-preview-wrap");
-  const textoEl = $("resumen-jornada-texto");
-  const waBtn = $("btn-resumen-jornada-whatsapp");
-  const btnGenerar = $("btn-generar-resumen-jornada");
-
-  if (btnGenerar) btnGenerar.disabled = resumenJornada.estado === "cargando";
-
-  if (estadoEl) {
-    if (resumenJornada.estado === "cargando") estadoEl.textContent = "Consultando Firestore…";
-    else if (resumenJornada.estado === "error") estadoEl.textContent = `⚠️ No se pudo generar el resumen: ${resumenJornada.error}. Esto es un error de conexión/lectura, no significa que no haya pacientes — reintentá.`;
-    else if (resumenJornada.estado === "ok") estadoEl.textContent = `Actualizado: ${formatoMomento(resumenJornada.actualizadoMs)} hs.`;
-    else estadoEl.textContent = "Todavía no se generó ningún resumen.";
-  }
-
-  if (previewWrap) previewWrap.hidden = resumenJornada.estado !== "ok";
-  if (resumenJornada.estado === "ok") {
-    if (textoEl && document.activeElement !== textoEl) textoEl.value = resumenJornada.texto;
-    if (waBtn) waBtn.hidden = !duenaTelefono;
-  }
-}
-
-// Filtra por identidad (pacienteMatchKey) y fecha ANTERIOR al día
-// seleccionado — el historial es obligatorio por paciente (punto 3), así
-// que un fallo acá se marca por-paciente, sin tirar abajo el resto del
-// resumen ni fingir "sin sesiones previas" (que significa algo distinto).
-function _historialDeBloque(bloque, todasActivas, fechaSeleccionadaISO) {
-  try {
-    const anteriores = todasActivas.filter((r) => r.fecha && r.fecha < fechaSeleccionadaISO && pacienteMatchKey(r) === bloque.pacienteKey);
-    return { estado: "ok", ...historialAnteriorPaciente(anteriores) };
-  } catch (e) {
-    return { estado: "error", error: e?.message || String(e) };
-  }
-}
-
-async function generarResumenJornada() {
-  const fechaISO = ($("resumen-jornada-fecha")?.value || "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaISO)) { toast("Elegí una fecha válida."); return; }
-
-  resumenJornada = { estado: "cargando", fechaISO, texto: "", actualizadoMs: null, error: null };
-  renderResumenJornada();
-
-  let docsReservas;
-  try {
-    docsReservas = await _obtenerColeccionCompleta("reservas");
-  } catch (e) {
-    resumenJornada = { estado: "error", fechaISO, texto: "", actualizadoMs: null, error: e?.code || e?.message || "error desconocido" };
-    renderResumenJornada();
-    return;
-  }
-
-  // Se normaliza con la MISMA función que el resto del panel — no
-  // reinterpreta estados a mano. clientesPorDni ya está cargado (login).
-  const todasLasReservas = docsReservas.map((d) => normalizarItemAgenda("reservas", d.id, d.data(), clientesPorDni));
-  const todasActivas = todasLasReservas.filter((r) => r.activa);
-  // Nota de alcance: no existe ningún estado de "ausente"/no-show en este
-  // modelo de datos (confirmado en el código real) — solo "cancelado" y
-  // "confirmado". No se inventa una categoría de ausencias que Firestore
-  // no registra; se excluyen únicamente cancelaciones/anuladas.
-  const reservasDelDia = todasActivas.filter((r) => r.fecha === fechaISO);
-
-  const bloques = agruparBloquesDelDia(reservasDelDia, corteMananaTarde);
-  const historialPorPaciente = new Map(bloques.map((b) => [b.pacienteKey, _historialDeBloque(b, todasActivas, fechaISO)]));
-
-  const boxLabelDe = (id) => boxLabel(id);
-  const texto = construirTextoResumenJornada({
-    fechaLegible: _fechaLegibleResumenJornada(fechaISO),
-    bloques, historialPorPaciente, boxLabelDe,
-  });
-
-  resumenJornada = { estado: "ok", fechaISO, texto, actualizadoMs: Date.now(), error: null };
-  renderResumenJornada();
-}
-
-$("btn-generar-resumen-jornada")?.addEventListener("click", () => { generarResumenJornada(); });
-
-// Default: hoy en la zona horaria del negocio (nunca la fecha local del
-// dispositivo, que puede diferir del huso de Buenos Aires).
-(function _inicializarFechaResumenJornada() {
-  const input = $("resumen-jornada-fecha");
-  if (input && !input.value) input.value = fechaISOEnZona();
-})();
-
-// Mismo registro honesto que "Avisar a Gimena": "preparado" al abrir
-// WhatsApp/copiar (nunca "enviado" solo por eso), "enviado" únicamente
-// con la confirmación manual explícita.
-function _idContactoResumenJornada() {
-  return { coleccion: "resumenesJornada", docId: resumenJornada.fechaISO, tipoMensaje: "resumen_jornada" };
-}
-
-$("btn-resumen-jornada-whatsapp")?.addEventListener("click", async () => {
-  if (resumenJornada.estado !== "ok" || !duenaTelefono) return;
-  const texto = $("resumen-jornada-texto")?.value || resumenJornada.texto;
-  try {
-    const operador = await operadorActual();
-    const { coleccion, docId, tipoMensaje } = _idContactoResumenJornada();
-    await registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion, docId, tipoMensaje, operador });
-  } catch (e) { console.warn("No se pudo registrar el resumen de jornada como preparado:", e); }
-  window.open(`https://wa.me/${normalizarTelefonoWA(duenaTelefono)}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
-});
-
-$("btn-resumen-jornada-copiar")?.addEventListener("click", async () => {
-  const texto = $("resumen-jornada-texto")?.value || "";
-  const envioEstado = $("resumen-jornada-envio-estado");
-  try {
-    await navigator.clipboard.writeText(texto);
-    toast("Resumen copiado");
-    if (resumenJornada.estado === "ok") {
-      try {
-        const operador = await operadorActual();
-        const { coleccion, docId, tipoMensaje } = _idContactoResumenJornada();
-        await registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion, docId, tipoMensaje, operador });
-      } catch (e) { console.warn("No se pudo registrar el resumen de jornada como preparado:", e); }
-    }
-  } catch (e) {
-    $("resumen-jornada-texto")?.select();
-    if (envioEstado) envioEstado.textContent = "No se pudo copiar automáticamente — el texto ya quedó seleccionado para copiar a mano.";
-  }
-});
-
-$("btn-resumen-jornada-confirmar")?.addEventListener("click", async () => {
-  if (resumenJornada.estado !== "ok") return;
-  const envioEstado = $("resumen-jornada-envio-estado");
-  try {
-    const operador = await operadorActual();
-    const { coleccion, docId, tipoMensaje } = _idContactoResumenJornada();
-    await registrarContactoManual({ setDoc, doc, serverTimestamp, db, coleccion, docId, tipoMensaje, operador, nota: "Resumen de jornada avisado a Gimena desde Mimar T Inteligente" });
-    toast("Registrado: ya avisaste a Gimena");
-    if (envioEstado) envioEstado.textContent = "Registrado como avisado.";
-  } catch (e) {
-    if (envioEstado) envioEstado.textContent = "No se pudo registrar el aviso: " + (e?.message || e);
-  }
-});
-
-function renderAgenda(agenda, hoyISO, mananaISO) {
-  const cont = $("lista-agenda");
-  if (fuentes.reservas.estado === "cargando" || fuentes.consultas.estado === "cargando") {
-    cont.innerHTML = `<div class="loading-state">Cargando…</div>`;
-    return;
-  }
-  // La agenda de Inicio muestra solo hoy/mañana — `agenda` ahora trae un
-  // rango más amplio (VENTANA_REVISAR_TURNO_DIAS hacia atrás) para que
-  // Pendientes pueda detectar turnos pasados sin revisar, pero esta tarjeta
-  // específica sigue acotada a lo inmediato.
-  const activos = agenda.filter((it) => it.activa && (it.fecha === hoyISO || it.fecha === mananaISO));
-  $("count-agenda").textContent = String(activos.length);
-  if (!activos.length) {
-    cont.innerHTML = `<div class="empty-state"><svg class="icon"><use href="#i-calendar"/></svg><h3>Una pausa en la agenda</h3><p>No hay reservas activas para hoy ni mañana.</p></div>`;
-    return;
-  }
-  const grupos = {};
-  activos.forEach((it) => { (grupos[it.fecha] = grupos[it.fecha] || []).push(it); });
-  const etiquetaDia = (iso) => iso === hoyISO ? `Hoy · ${iso}` : iso === mananaISO ? `Mañana · ${iso}` : iso;
-  let html = "";
-  Object.keys(grupos).sort().forEach((fecha) => {
-    html += `<div class="day-header">${escapeHtml(etiquetaDia(fecha))}</div>`;
-    html += grupos[fecha].map((it) => tarjetaHtml(it, { conMotivos: false })).join("");
-  });
-  cont.innerHTML = html;
-}
-
-// Preparar el saludo de cumpleaños de verdad necesita el teléfono REAL del
-// cliente — resumenesCumpleanos nunca lo guarda (solo un booleano
-// telefonoDisponible, a propósito, para no duplicar datos de contacto en
-// un resumen). Antes el código intentaba leer un campo "telefono" que ese
-// documento nunca tiene, así que el enlace de WhatsApp quedaba siempre sin
-// número real — se corrige yendo a buscarlo a clients/{clientId} recién al
-// momento de preparar el saludo (mismo principio de reverificación contra
-// el servidor que ya usa "Preparar WhatsApp" del detalle).
-async function prepararSaludoCumpleanos(clientId) {
-  let cliente;
-  try {
-    cliente = await getDocFromServer(doc(db, "clients", clientId));
-  } catch (e) {
-    toast("No se pudo verificar el teléfono con el servidor: " + (e?.message || e));
-    return;
-  }
-  if (!cliente.exists()) { toast("Esta paciente ya no existe en Firestore."); return; }
-  const data = cliente.data();
-  const telefono = data.phone || data.telefono;
-  const nombre = data.fullName || data.nombre || "Paciente";
-  if (!telefono) { toast("No hay teléfono registrado para esta paciente."); return; }
-  const numero = normalizarTelefonoWA(telefono);
-  const texto = construirTextoCumpleanos(nombre);
-  const anio = (cumpleanosHoy?.fecha || fechaISOEnZona()).slice(0, 4);
-  const docIdContacto = docIdVersionadoCumpleanos(clientId, cumpleanosHoy?.fecha || fechaISOEnZona());
-  try {
-    const operador = await operadorActual();
-    await registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion: "clients", docId: docIdContacto, tipoMensaje: "cumpleanos", operador });
-  } catch (e) { console.warn("No se pudo registrar el saludo de cumpleaños:", e); }
-  pendienteConfirmarEnvio = { coleccion: "clients", id: clientId, docIdContacto, tipoMensaje: "cumpleanos", nombre };
-  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
-}
-
-const ETIQUETA_TIPO_EVENTO = {
-  reservas: "Reserva", consultas: "Consulta", pedidosKit: "Kit", clients: "Paciente",
-  cursoMaquillaje: "Curso", reservasDepi: "Depilación",
-};
-
-function eventoTarjetaHtml(ev) {
-  const leido = !!(ev.leidoPor && ev.leidoPor[uidActual]);
-  const cuandoTxt = ev.timestampMs
-    ? new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: ZONA_HORARIA }).format(ev.timestampMs)
-    : "fecha no registrada";
-  const puedeAbrirDetalle = !!(ev.coleccion && ev.docId && ev.coleccion !== "clients");
-  return `
-  <div class="item-row ${leido ? "" : "item-no-leido"}" data-evento="${escapeHtml(ev.id)}">
-    <div class="item-row-top">
-      <span class="pill pill-muted">${escapeHtml(ETIQUETA_TIPO_EVENTO[ev.coleccion] || ev.coleccion)}</span>
-      <span class="item-time">${cuandoTxt}</span>
-    </div>
-    <div class="item-service">${escapeHtml(ev.resumen || "")}</div>
-    <div class="item-actions">
-      ${puedeAbrirDetalle ? `<button class="button button-light" data-abrir="${escapeHtml(ev.coleccion)}::${escapeHtml(ev.docId)}" type="button">Ver detalle</button>` : ""}
-      ${!ev.atendido ? `<button class="button button-light" data-atender="${escapeHtml(ev.id)}" type="button">Marcar atendido</button>` : `<span class="pill pill-ok">✓ Atendido</span>`}
-    </div>
-  </div>`;
-}
-
-function renderActividad() {
-  const contHoy = $("lista-actividad-hoy");
-  if (!contHoy) return;
-  const combinados = actividadRecientes.concat(actividadAntiguos);
-  const filtrados = combinados.filter((ev) => eventoCoincideFiltro(ev, filtroActividad));
-
-  $("filtros-activos-badge").hidden = filtroEsNeutro(filtroActividad);
-
-  const alcanceEl = $("actividad-alcance");
-  const totalCargado = combinados.length;
-  let alcanceTxt = `${totalCargado} evento${totalCargado === 1 ? "" : "s"} cargado${totalCargado === 1 ? "" : "s"} de la actividad más reciente`;
-  if (!filtroEsNeutro(filtroActividad)) alcanceTxt += ` · ${filtrados.length} coincide${filtrados.length === 1 ? "" : "n"} con el filtro`;
-  if (actividadHayMas) alcanceTxt += " · hay actividad más antigua sin cargar";
-  alcanceEl.textContent = alcanceTxt;
-
-  if (!filtrados.length) {
-    contHoy.innerHTML = `<div class="empty-state"><h3>${combinados.length ? "Nada coincide con el filtro" : "Sin actividad todavía"}</h3><p>${combinados.length ? "Probá restablecer los filtros." : "Acá van a aparecer las altas, bajas y cambios de Firestore a medida que ocurran."}</p></div>`;
-    $("grupo-ayer-wrap").hidden = true;
-    $("grupo-anteriores-wrap").hidden = true;
-    $("btn-cargar-mas").hidden = !actividadHayMas;
-    return;
-  }
-
-  const grupos = agruparPorDia(filtrados);
-  contHoy.innerHTML = grupos.hoy.length ? grupos.hoy.map(eventoTarjetaHtml).join("") : `<div class="empty-state"><h3>Sin actividad hoy</h3></div>`;
-
-  $("grupo-ayer-wrap").hidden = !grupos.ayer.length;
-  if (grupos.ayer.length) $("lista-actividad-ayer").innerHTML = grupos.ayer.map(eventoTarjetaHtml).join("");
-
-  $("grupo-anteriores-wrap").hidden = !grupos.anteriores.length;
-  if (grupos.anteriores.length) {
-    $("lista-actividad-anteriores").innerHTML = grupos.anteriores.map(eventoTarjetaHtml).join("");
-    $("conteo-anteriores").textContent = `(${grupos.anteriores.length})`;
-  }
-  $("btn-cargar-mas").hidden = !actividadHayMas;
-}
-
-function renderTodo() {
-  const ahoraMs = Date.now();
-  const hoyISO = fechaISOEnZona(ahoraMs);
-  const mananaISO = sumarDiasISO(hoyISO, 1);
-  ultimaAgenda = construirAgenda(fuentes.reservas.items, fuentes.consultas.items);
-  renderReloj(ahoraMs);
-  renderConexion();
-  renderProximoTurno(ultimaAgenda, ahoraMs);
-  renderPendientesBandeja(); // misma regla canónica que Inicio/Pendientes/el job horario — arma ultimosPendientes y el badge
-  renderAgenda(ultimaAgenda, hoyISO, mananaISO);
-  renderCumpleanosTab();
-  renderConsultasTab();
-  renderKitsTab();
-  evaluarEntradaLogica();
-}
-
-// ── Entrada automática y anuncio emergente (punto 6) ─────────────────────
-// "En cada apertura o nueva entrada de la app, después de autenticar y
-// comprobar los datos, si quedan pendientes actuales o bloqueados, llevame
-// a Pendientes y mostrame un resumen emergente." Se evalúa desde el mismo
-// tick de renderTodo (cada 1s) hasta que haya datos reales Y ninguna UI
-// bloqueante — así no hace falta orquestar un montón de callbacks async,
-// y de paso se evita el problema que describe el pedido ("varios eventos
-// de focus/resume/snapshots reabriéndolo"): una vez decidido, no se vuelve
-// a evaluar hasta la próxima entrada lógica.
-function hayUiBloqueante() {
-  return !!sheetAbierto
-    || !!(detalleDialog && detalleDialog.open)
-    || !!($("recomendacion-dialog")?.open)
-    || !($("confirm-envio-banner")?.hidden ?? true);
-}
-
-function evaluarEntradaLogica() {
-  if (entradaAvisoMostrado) return;
-  // Ninguna fuente aislada alcanza: hay que esperar a que las 7 hayan
-  // respondido al menos una vez (éxito o error) para no anunciar un resumen
-  // incompleto que subcuente categorías que todavía no llegaron.
-  if (!FUENTES_ENTRADA_REQUERIDAS.every((f) => fuentesEntradaListas.has(f))) return;
-  if (hayUiBloqueante()) return; // no interrumpir mientras se edita/confirma algo — se reintenta en el próximo tick
-  entradaAvisoMostrado = true; // se decide UNA vez por entrada, se muestre o no
-
-  const ahoraMs = Date.now();
-  const vigentes = pendientesVigentes(ultimosPendientes, pendienteEstados, ahoraMs);
-  const errores = erroresFuentePendientes();
-  if (!vigentes.length && !errores.length) return; // nada que avisar — se respeta el inicio habitual
-
-  mostrarTab("inicio"); // Resumen — punto 1: "al entrar debo entender qué pasó, a quién corresponde y qué falta"
-  mostrarEntradaAviso(vigentes, errores);
-}
-
-function mostrarEntradaAviso(vigentes, errores) {
-  const conteo = contarPendientesPorTipo(vigentes);
-  const texto = resumenTextoPendientes(vigentes)
-    || (errores.length ? "No se pudo comprobar si hay pendientes en todas las categorías." : "Tenés pendientes.");
-  $("entrada-aviso-texto").textContent = texto;
-  const catsHtml = TIPOS_PENDIENTE.filter((t) => conteo[t] > 0).map((t) => {
-    const bloqueados = vigentes.filter((p) => p.tipo === t && p.bloqueado).length;
-    const etiquetaBloqueo = bloqueados ? ` — ${bloqueados} bloqueado${bloqueados === 1 ? "" : "s"}` : "";
-    return `<div class="entrada-aviso-categoria-row${bloqueados ? " bloqueado" : ""}"><span>${escapeHtml(ETIQUETA_TIPO_PENDIENTE[t])}${escapeHtml(etiquetaBloqueo)}</span><span class="num">${conteo[t]}</span></div>`;
-  }).join("");
-  $("entrada-aviso-categorias").innerHTML = catsHtml
-    || (errores.length ? "" : `<p class="hint-text">Sin categorías con pendientes — revisá el detalle en Pendientes.</p>`);
-  // "Si la lectura está incompleta, mostrala como pendiente de comprobación;
-  // no anuncies que está todo resuelto." — mismo texto de error que ya usa
-  // la bandeja, no uno nuevo inventado acá.
-  const notaEl = $("entrada-aviso-cache-nota");
-  const desactualizado = fuentes.reservas.fromCache || fuentes.consultas.fromCache;
-  if (errores.length) { notaEl.hidden = false; notaEl.textContent = errores.join(" · "); }
-  else if (desactualizado) { notaEl.hidden = false; notaEl.textContent = "Estos datos pueden estar desactualizados — todavía no se confirmaron contra el servidor."; }
-  else { notaEl.hidden = true; }
-
-  const dlg = $("entrada-aviso-dialog");
-  entradaAvisoAbierto = true;
-  if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
-}
-
-function cerrarEntradaAviso() {
-  const dlg = $("entrada-aviso-dialog");
-  if (typeof dlg.close === "function" && dlg.open) dlg.close();
-  else dlg.removeAttribute("open");
-  entradaAvisoAbierto = false;
-}
-$("btn-cerrar-entrada-aviso").addEventListener("click", cerrarEntradaAviso);
-// "Atender ahora" no resuelve nada por sí solo — la pestaña Pendientes ya
-// está al fondo (evaluarEntradaLogica ya hizo mostrarTab); solo cierra el
-// aviso para dejarla ver, igual que la cruz.
-$("btn-entrada-aviso-atender").addEventListener("click", cerrarEntradaAviso);
 
 // ── Delegación de clicks para abrir el detalle ───────────────────────────
 document.addEventListener("click", (ev) => {
@@ -1820,17 +950,25 @@ async function resolverItemFueraDeCache(coleccion, id) {
     if (!snap.exists()) return { existe: false };
     const data = snap.data();
     if (coleccion === "pedidosKit") return { existe: true, item: normalizarPedidoKit(id, data) };
+    if (coleccion === "reservasDepi") return { existe: true, item: normalizarReservaDepi(id, data) };
     return { existe: true, item: normalizarItemAgenda(coleccion, id, data, clientesPorDni) };
   } catch (e) {
     return { existe: false, error: e?.message || String(e) };
   }
 }
 
+// Tres colecciones pueden abrirse acá: pedidosKit (con "Preparar
+// WhatsApp"), reservasDepi (solo lectura — ver nota en la rama esDepi) y
+// reservas/consultas (cargar detalle de la sesión — ver rama esSesion).
 async function abrirModal(idAttr) {
   const [coleccion, id] = idAttr.split("::");
   const esKit = coleccion === "pedidosKit";
+  const esDepi = coleccion === "reservasDepi";
+  const esSesion = coleccion === "reservas" || coleccion === "consultas";
   let item = esKit
     ? fuentes.pedidosKit.items.find((it) => it.id === id)
+    : esDepi
+    ? fuentes.reservasDepi.items.find((it) => it.id === id)
     : ultimaAgenda.find((it) => it.coleccion === coleccion && it.id === id);
   let eliminado = false;
   if (!item) {
@@ -1845,12 +983,11 @@ async function abrirModal(idAttr) {
     // vez de fingir que nunca pasó nada o dejar la pantalla en blanco.
     itemSeleccionado = null;
     $("detalle-titulo").textContent = "Registro eliminado";
-    $("detalle-eyebrow").textContent = esKit ? "PEDIDO DE KIT" : coleccion === "consultas" ? "CONSULTA INICIAL" : "RESERVA";
+    $("detalle-eyebrow").textContent = esKit ? "PEDIDO DE KIT" : esDepi ? "TURNO DE DEPILACIÓN" : "SESIÓN";
     $("detalle-status").className = "dialog-status";
     $("detalle-status").textContent = "";
     $("wa-preview-wrap").hidden = true;
     $("btn-preparar-wa").hidden = true;
-    $("btn-registrar-manual").hidden = true;
     $("detalle-body").innerHTML = `
       <p class="hint-text">Este registro ya no existe en Firestore — puede haber sido eliminado. Se conserva su historial de actividad a continuación.</p>
       <div class="detalle-subtitulo">Qué ocurrió (historial)</div>
@@ -1862,18 +999,57 @@ async function abrirModal(idAttr) {
     return;
   }
   scrollGuardadoPorTab[tabActual] = window.scrollY;
-  const tipoMensaje = esKit ? "kit" : coleccion === "consultas" ? "consulta" : "confirmacion";
+  const tipoMensaje = esKit ? "kit" : esDepi ? "depilacion" : "sesion";
   itemSeleccionado = { coleccion, id, tipoMensaje, fechaOriginal: item.fecha || null, horaOriginal: item.hora || null };
   $("detalle-titulo").textContent = item.nombre || "Sin nombre registrado";
-  $("detalle-eyebrow").textContent = esKit ? "PEDIDO DE KIT" : coleccion === "consultas" ? "CONSULTA INICIAL" : "RESERVA";
+  $("detalle-eyebrow").textContent = esKit ? "PEDIDO DE KIT" : esDepi ? "TURNO DE DEPILACIÓN" : "SESIÓN";
   const statusEl = $("detalle-status");
   statusEl.className = "dialog-status";
   statusEl.textContent = "";
   $("btn-preparar-wa").disabled = false;
   $("btn-preparar-wa").innerHTML = `<svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp`;
-  $("btn-registrar-manual").hidden = true;
 
-  if (esKit) {
+  if (esDepi) {
+    // Solo visibilidad + reflejo de estado — no se pide "Preparar WhatsApp"
+    // para depilación en esta versión (no fue parte del pedido, a
+    // diferencia de kits).
+    $("detalle-body").innerHTML = `
+      <div class="detalle-subtitulo">Datos del turno</div>
+      <div class="detail-row"><span>Fecha</span><span>${escapeHtml(item.fecha || "—")}</span></div>
+      <div class="detail-row"><span>Hora</span><span>${escapeHtml(item.hora || "—")}</span></div>
+      <div class="detail-row"><span>Servicio</span><span>${escapeHtml(item.servicio || "sin registrar")}</span></div>
+      <div class="detail-row"><span>Teléfono</span><span>${item.telefono ? escapeHtml(item.telefono) : "sin registrar"}</span></div>
+      <div class="detail-row"><span>Estado registrado</span><span>${escapeHtml(item.estadoBruto || "sin estado")}</span></div>
+      <div class="detail-row"><span>Activo</span><span>${item.activa ? "Sí" : "No — cancelado"}</span></div>
+      <div class="detalle-subtitulo">Qué ocurrió (historial)</div>
+      <div id="historial-detalle-body"><p class="hint-text">Cargando historial…</p></div>
+    `;
+    prepararWaPreview({ visible: false, texto: "" });
+  } else if (esSesion) {
+    // Cargar el detalle de la sesión (punto pedido explícitamente): el
+    // mismo campo detalleSesion/detalleSesion2 que ya lee/escribe
+    // admin.html sobre este mismo documento — guardarlo acá lo refleja de
+    // inmediato en la agenda general, sin ninguna colección nueva.
+    const duo = item.duo === true;
+    $("detalle-body").innerHTML = `
+      <div class="detalle-subtitulo">Datos del turno</div>
+      <div class="detail-row"><span>Fecha</span><span>${escapeHtml(item.fecha || "—")}</span></div>
+      <div class="detail-row"><span>Hora</span><span>${escapeHtml(item.hora || "—")}</span></div>
+      <div class="detail-row"><span>Servicio</span><span>${escapeHtml(item.servicio || "sin registrar")}</span></div>
+      <div class="detail-row"><span>Estado</span><span>${item.activa ? "Activo" : "Cancelado"}</span></div>
+      <div class="detalle-subtitulo">Detalle de la sesión${duo ? " — Paciente 1" : ""}</div>
+      <textarea id="detalle-sesion-texto" class="wa-preview-textarea" rows="5" placeholder="Qué se hizo en la sesión…">${escapeHtml(item.detalleSesion || "")}</textarea>
+      <button class="button button-primary" type="button" id="btn-guardar-detalle-sesion" data-guardar-sesion="${escapeHtml(coleccion)}::${escapeHtml(id)}">Guardar detalle</button>
+      ${duo ? `
+      <div class="detalle-subtitulo">Detalle — ${escapeHtml(item.duoNombre2 || "Paciente 2")}</div>
+      <textarea id="detalle-sesion2-texto" class="wa-preview-textarea" rows="5" placeholder="Qué se hizo en la sesión…">${escapeHtml(item.detalleSesion2 || "")}</textarea>
+      <button class="button button-light" type="button" id="btn-guardar-detalle-sesion2" data-guardar-sesion2="${escapeHtml(coleccion)}::${escapeHtml(id)}">Guardar detalle — Paciente 2</button>
+      ` : ""}
+      <div class="detalle-subtitulo">Qué ocurrió (historial)</div>
+      <div id="historial-detalle-body"><p class="hint-text">Cargando historial…</p></div>
+    `;
+    prepararWaPreview({ visible: false, texto: "" });
+  } else {
     const filasItems = item.items
       ? item.items.map((it) => `<div class="detail-row"><span>${escapeHtml(it.nombre)} ${it.cantidad > 1 ? `×${it.cantidad}` : ""}</span><span>${it.subtotalCompleto ? escapeHtml(formatearARS(it.subtotal)) : "No registrado"}</span></div>`).join("")
       : `<div class="detail-row"><span>Productos</span><span>${item.productosResumen ? escapeHtml(item.productosResumen.join(", ")) : "Sin detalle registrado"}</span></div>`;
@@ -1896,33 +1072,6 @@ async function abrirModal(idAttr) {
       <div id="historial-detalle-body"><p class="hint-text">Cargando historial…</p></div>
     `;
     prepararWaPreview({ visible: !!item.telefono, texto: item.telefono ? construirTextoKit(item.nombre) : "" });
-  } else {
-    const box = boxLabel(item.box);
-    const estTemporal = estadoTemporalTurno(item);
-    $("detalle-body").innerHTML = `
-      <div class="detalle-subtitulo">Estado actual</div>
-      <div class="detail-row"><span>Fecha</span><span>${escapeHtml(item.fecha || "—")}</span></div>
-      <div class="detail-row"><span>Hora</span><span>${escapeHtml(item.hora || "—")}</span></div>
-      <div class="detail-row"><span>Servicio</span><span>${escapeHtml(item.servicio || "sin registrar")}</span></div>
-      <div class="detail-row"><span>Duración</span><span>${item.duracionMinutos ? item.duracionMinutos + " min" : "estimada (60 min, no registrada)"}</span></div>
-      <div class="detail-row"><span>Box</span><span>${box ? escapeHtml(box) : "no asignado"}</span></div>
-      <div class="detail-row"><span>Teléfono</span><span>${item.telefono ? escapeHtml(item.telefono) : "sin registrar"}</span></div>
-      <div class="detail-row"><span>Estado registrado</span><span>${escapeHtml(item.estadoBruto || "sin estado")}</span></div>
-      <div class="detail-row"><span>Momento del turno</span><span>${escapeHtml(etiquetaEstadoTemporal(estTemporal))}</span></div>
-      <div class="detail-row"><span>Agenda</span><span>${item.coleccion === "consultas" ? "Consultas iniciales" : "Reservas"}</span></div>
-      <div class="detail-row"><span>Contacto WhatsApp</span><span id="detalle-estado-contacto">Pendiente de contacto</span></div>
-      ${item.detalleSesion ? `<div class="detalle-subtitulo">Detalle registrado de la sesión</div><p class="hint-text" style="white-space:pre-line;">${escapeHtml(item.detalleSesion)}</p>` : (estTemporal === "pasado" ? `<p class="hint-text" style="margin-top:10px;">Turno pasado — sin detalle de sesión registrado. No se lo marca como realizado solo por la fecha.</p>` : "")}
-      <div class="detalle-subtitulo">Qué ocurrió (historial)</div>
-      <div id="historial-detalle-body"><p class="hint-text">Cargando historial…</p></div>
-    `;
-    const contacto = contactoDeItem(item, tipoMensaje);
-    $("detalle-estado-contacto").textContent = etiquetaEstadoContacto(estadoContacto(contacto));
-    const esPreparable = item.activa && !!item.telefono;
-    prepararWaPreview({
-      visible: esPreparable,
-      texto: esPreparable ? (coleccion === "consultas" ? construirTextoConsulta(item) : construirTextoConfirmacion(item)) : "",
-    });
-    $("btn-registrar-manual").hidden = false;
   }
   cargarHistorialEnDetalle(coleccion, id);
   if (typeof detalleDialog.showModal === "function") detalleDialog.showModal();
@@ -1951,6 +1100,45 @@ async function operadorActual() {
   return u ? { uid: u.uid, email: u.email } : null;
 }
 
+// ── Guardar el detalle de la sesión (reservas/consultas) ─────────────────
+// Escribe directo sobre detalleSesion/detalleSesion2 del documento real —
+// el mismo campo que ya lee/escribe admin.html — así que no hace falta
+// ningún paso extra para que la agenda general lo vea: es el mismo
+// documento de Firestore.
+document.addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("[data-guardar-sesion]");
+  if (!btn) return;
+  const [coleccion, id] = btn.getAttribute("data-guardar-sesion").split("::");
+  const texto = ($("detalle-sesion-texto")?.value || "").trim();
+  btn.disabled = true;
+  try {
+    await updateDoc(doc(db, coleccion, id), { detalleSesion: texto });
+    mostrarModalStatus("Detalle guardado — ya se refleja en la agenda general.", "info");
+    toast("Detalle de la sesión guardado");
+  } catch (e) {
+    mostrarModalStatus("No se pudo guardar: " + (e?.message || e), "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("[data-guardar-sesion2]");
+  if (!btn) return;
+  const [coleccion, id] = btn.getAttribute("data-guardar-sesion2").split("::");
+  const texto = ($("detalle-sesion2-texto")?.value || "").trim();
+  btn.disabled = true;
+  try {
+    await updateDoc(doc(db, coleccion, id), { detalleSesion2: texto });
+    mostrarModalStatus("Detalle (paciente 2) guardado — ya se refleja en la agenda general.", "info");
+    toast("Detalle de paciente 2 guardado");
+  } catch (e) {
+    mostrarModalStatus("No se pudo guardar: " + (e?.message || e), "error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 $("btn-preparar-wa").addEventListener("click", async () => {
   if (!itemSeleccionado) return;
   const { coleccion, id, tipoMensaje } = itemSeleccionado;
@@ -1975,45 +1163,18 @@ $("btn-preparar-wa").addEventListener("click", async () => {
     return;
   }
 
-  let numero, texto, nombreDestino, docIdContacto;
-  if (coleccion === "pedidosKit") {
-    const data = snap.data();
-    if (!(data.telefono || data.phone)) {
-      mostrarModalStatus("No hay teléfono registrado para este pedido — no se puede abrir WhatsApp.", "error");
-      btn.disabled = false; btn.innerHTML = `<svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp`;
-      return;
-    }
-    nombreDestino = data.nombrePaciente || "Paciente";
-    numero = normalizarTelefonoWA(data.telefono || data.phone);
-    texto = ($("wa-preview-texto").value || "").trim() || construirTextoKit(nombreDestino);
-    docIdContacto = id;
-  } else {
-    const fresco = normalizarItemAgenda(coleccion, id, snap.data(), clientesPorDni);
-    if (!fresco.activa) {
-      mostrarModalStatus("Este registro fue cancelado. No se preparó ningún mensaje.", "error");
-      btn.disabled = true; btn.textContent = "Cancelado";
-      return;
-    }
-    if (!fresco.telefono) {
-      mostrarModalStatus("No hay teléfono registrado — no se puede abrir WhatsApp.", "error");
-      btn.disabled = false; btn.innerHTML = `<svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp`;
-      return;
-    }
-    // Solo se refresca (y se pisa la vista previa editada) si el turno de
-    // verdad cambió de fecha/hora entre que se abrió el detalle y se tocó
-    // este botón — una reprogramación real invalida cualquier texto editado
-    // sobre la fecha vieja. Si nada cambió, se respeta lo que la operadora
-    // haya editado en la vista previa.
-    const reprogramada = fresco.fecha !== itemSeleccionado.fechaOriginal || fresco.hora !== itemSeleccionado.horaOriginal;
-    if (reprogramada) abrirModal(`${coleccion}::${id}`);
-    nombreDestino = fresco.nombre;
-    numero = normalizarTelefonoWA(fresco.telefono);
-    texto = ($("wa-preview-texto").value || "").trim() || (coleccion === "consultas" ? construirTextoConsulta(fresco) : construirTextoConfirmacion(fresco));
-    // Versionado por la ocurrencia FRESCA (fecha/hora recién verificadas
-    // contra el servidor) — si se reprogramó, el contacto de esta
-    // confirmación pertenece a la fecha nueva, nunca a la vieja.
-    docIdContacto = docIdVersionadoContacto(id, tipoMensaje, fresco.fecha, fresco.hora);
+  // Solo pedidosKit llega acá — depilación nunca muestra este botón
+  // (prepararWaPreview visible:false en abrirModal).
+  const data = snap.data();
+  if (!(data.telefono || data.phone)) {
+    mostrarModalStatus("No hay teléfono registrado para este pedido — no se puede abrir WhatsApp.", "error");
+    btn.disabled = false; btn.innerHTML = `<svg class="icon"><use href="#i-whatsapp"/></svg> Preparar WhatsApp`;
+    return;
   }
+  const nombreDestino = data.nombrePaciente || "Paciente";
+  const numero = normalizarTelefonoWA(data.telefono || data.phone);
+  const texto = ($("wa-preview-texto").value || "").trim() || construirTextoKit(nombreDestino);
+  const docIdContacto = id;
 
   const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
 
@@ -2025,22 +1186,6 @@ $("btn-preparar-wa").addEventListener("click", async () => {
   pendienteConfirmarEnvio = { coleccion, id, docIdContacto, tipoMensaje, nombre: nombreDestino };
   mostrarModalStatus("Datos verificados con el servidor. Se abrió WhatsApp con el mensaje listo — vos decidís si lo enviás.", "info");
   window.open(url, "_blank", "noopener");
-});
-
-// Registro manual de un envío hecho por fuera de este flujo (WhatsApp Web,
-// otro teléfono, etc.). No lee WhatsApp ni infiere nada.
-$("btn-registrar-manual")?.addEventListener("click", async () => {
-  if (!itemSeleccionado) return;
-  const { coleccion, id, tipoMensaje, fechaOriginal, horaOriginal } = itemSeleccionado;
-  const docIdContacto = docIdVersionadoContacto(id, tipoMensaje, fechaOriginal, horaOriginal);
-  try {
-    const operador = await operadorActual();
-    await registrarContactoManual({ setDoc, doc, serverTimestamp, db, coleccion, docId: docIdContacto, tipoMensaje, operador, nota: "Registrado manualmente desde Mimar T Inteligente" });
-    mostrarModalStatus("Envío registrado manualmente.", "info");
-    toast("Confirmación marcada como enviada");
-  } catch (e) {
-    mostrarModalStatus("No se pudo registrar el envío manual.", "error");
-  }
 });
 
 // ── Prompt "¿Enviaste el mensaje?" — no bloqueante ───────────────────────
@@ -2082,183 +1227,8 @@ $("btn-confirmo-enviado")?.addEventListener("click", () => responderPromptEnvio(
 $("btn-confirmo-no-enviado")?.addEventListener("click", () => responderPromptEnvio("no_enviado"));
 $("btn-confirmo-mas-tarde")?.addEventListener("click", () => responderPromptEnvio("mas_tarde"));
 
-// ── Marcar novedad como atendida (bandeja de actividad) ──────────────────
-// Nunca toca la reserva/consulta original — solo el propio evento.
-document.addEventListener("click", async (ev) => {
-  const btn = ev.target.closest("[data-atender]");
-  if (!btn) return;
-  const eventId = btn.getAttribute("data-atender");
-  try {
-    const operador = await operadorActual();
-    await updateDoc(doc(db, "activityLog", eventId), {
-      atendido: true,
-      atendidoPor: operador?.email || operador?.uid || null,
-      atendidoAt: serverTimestamp(),
-    });
-  } catch (e) { toast("No se pudo marcar como atendido"); }
-});
-
-// Preparar saludo de cumpleaños — ver prepararSaludoCumpleanos() (busca el
-// teléfono real contra el servidor antes de armar el link).
-document.addEventListener("click", (ev) => {
-  const btn = ev.target.closest("[data-preparar-cumple]");
-  if (!btn) return;
-  prepararSaludoCumpleanos(btn.getAttribute("data-preparar-cumple"));
-});
-
-// ── Postergar / resolver un pendiente a mano ─────────────────────────────
-// "Postergar" y "Descartar/Marcar resuelto" son overrides EXPLÍCITOS por
-// pendienteId (ya incluye tipo + ocurrencia) — nunca resuelven otra tarea
-// del mismo registro ni un pendiente de otra ocurrencia.
-document.addEventListener("click", async (ev) => {
-  const btn = ev.target.closest("[data-postergar-pendiente]");
-  if (!btn) return;
-  const pendienteId = btn.getAttribute("data-postergar-pendiente");
-  const valor = window.prompt("Postergar hasta (formato AAAA-MM-DD HH:MM, hora de Argentina):");
-  if (!valor) return;
-  const ms = new Date(valor.trim().replace(" ", "T") + ":00-03:00").getTime();
-  if (Number.isNaN(ms)) { toast("Fecha/hora inválida — usá AAAA-MM-DD HH:MM."); return; }
-  try {
-    await setDoc(doc(db, "pendienteEstadoInteligente", pendienteId), { postergadoHastaMs: ms, updatedAt: serverTimestamp() }, { merge: true });
-    toast("Pendiente postergado.");
-  } catch (e) { toast("No se pudo postergar: " + (e?.message || e)); }
-});
-
-document.addEventListener("click", async (ev) => {
-  const btn = ev.target.closest("[data-resolver-pendiente]");
-  if (!btn) return;
-  const pendienteId = btn.getAttribute("data-resolver-pendiente");
-  const pendiente = ultimosPendientes.find((p) => p.id === pendienteId);
-  try {
-    if (pendiente?.tipo === "recomendacion") {
-      // Las recomendaciones tienen su propio campo de estado — "descartar"
-      // es distinto de "enviada" (que se registra al confirmar el envío
-      // real por WhatsApp), nunca se confunden.
-      await updateDoc(doc(db, "recomendacionesInteligente", pendiente.docId), { estado: "descartada", updatedAt: serverTimestamp() });
-      toast("Recomendación descartada.");
-    } else {
-      await setDoc(doc(db, "pendienteEstadoInteligente", pendienteId), { resuelto: true, resueltoPorEmail: (await operadorActual())?.email || null, updatedAt: serverTimestamp() }, { merge: true });
-      toast("Marcado como resuelto.");
-    }
-  } catch (e) { toast("No se pudo resolver: " + (e?.message || e)); }
-});
-
-// ── Recomendaciones (GlowUp, punto 3): crear, editar, preparar WhatsApp ──
-// Tarea 100% manual — texto editable y programación explícita, nunca se
-// autogenera un mensaje ni se inventan indicaciones de tratamiento.
-const recomendacionDialog = $("recomendacion-dialog");
-let recomendacionEnEdicionId = null; // null = creando una nueva
-
-function fechaLocalInputValue(ms) {
-  if (ms == null) return "";
-  const p = new Intl.DateTimeFormat("sv-SE", { timeZone: ZONA_HORARIA, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
-    .formatToParts(new Date(ms)).reduce((acc, x) => { acc[x.type] = x.value; return acc; }, {});
-  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
-}
-function msDesdeInputLocal(valor) {
-  if (!valor) return null;
-  const ms = new Date(valor + ":00-03:00").getTime();
-  return Number.isNaN(ms) ? null : ms;
-}
-
-function abrirRecomendacionDialog(rec) {
-  recomendacionEnEdicionId = rec ? rec.id : null;
-  $("recomendacion-dialog-titulo").textContent = rec ? "Recomendación" : "Nueva recomendación";
-  $("recomendacion-dialog-status").className = "dialog-status";
-  $("recomendacion-dialog-status").textContent = "";
-  $("rec-paciente").value = rec?.pacienteNombre || "";
-  $("rec-telefono").value = rec?.telefono || "";
-  $("rec-texto").value = rec?.texto || "";
-  $("rec-programado").value = fechaLocalInputValue(rec?.programadoParaMs);
-  $("btn-whatsapp-recomendacion").hidden = !rec; // solo tiene sentido sobre una ya guardada
-  if (typeof recomendacionDialog.showModal === "function") recomendacionDialog.showModal();
-  else recomendacionDialog.setAttribute("open", "");
-}
-function cerrarRecomendacionDialog() {
-  if (typeof recomendacionDialog.close === "function" && recomendacionDialog.open) recomendacionDialog.close();
-  else recomendacionDialog.removeAttribute("open");
-  recomendacionEnEdicionId = null;
-}
-$("btn-nueva-recomendacion").addEventListener("click", () => abrirRecomendacionDialog(null));
-$("btn-cerrar-recomendacion").addEventListener("click", cerrarRecomendacionDialog);
-$("btn-cancelar-recomendacion").addEventListener("click", cerrarRecomendacionDialog);
-recomendacionDialog.addEventListener("click", (ev) => { if (ev.target === recomendacionDialog) cerrarRecomendacionDialog(); });
-
-document.addEventListener("click", (ev) => {
-  const btn = ev.target.closest("[data-abrir-recomendacion]");
-  if (!btn) return;
-  const rec = recomendaciones.find((r) => r.id === btn.getAttribute("data-abrir-recomendacion"));
-  if (!rec) { toast("No se encontró esa recomendación."); return; }
-  abrirRecomendacionDialog(rec);
-});
-
-$("btn-guardar-recomendacion").addEventListener("click", async () => {
-  const statusEl = $("recomendacion-dialog-status");
-  const pacienteNombre = $("rec-paciente").value.trim();
-  const texto = $("rec-texto").value.trim();
-  const telefono = $("rec-telefono").value.trim() || null;
-  const programadoParaMs = msDesdeInputLocal($("rec-programado").value);
-  const validacion = recomendacionValida({ pacienteNombre, texto, programadoParaMs });
-  if (!validacion.ok) {
-    statusEl.className = "dialog-status mostrar error";
-    statusEl.textContent = validacion.motivo === "texto_vacio" ? "Escribí el texto de la recomendación." : validacion.motivo === "sin_paciente" ? "Ingresá el nombre de la paciente." : "Fecha de programación inválida.";
-    return;
-  }
-  try {
-    const operador = await operadorActual();
-    const id = recomendacionEnEdicionId || `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    await setDoc(doc(db, "recomendacionesInteligente", id), {
-      pacienteNombre, texto, telefono, programadoParaMs,
-      estado: "pendiente",
-      creadoPorEmail: operador?.email || null,
-      updatedAt: serverTimestamp(),
-      ...(recomendacionEnEdicionId ? {} : { creadoAt: serverTimestamp() }),
-    }, { merge: true });
-    toast(recomendacionEnEdicionId ? "Recomendación actualizada." : "Recomendación creada.");
-    cerrarRecomendacionDialog();
-  } catch (e) {
-    statusEl.className = "dialog-status mostrar error";
-    statusEl.textContent = "No se pudo guardar: " + (e?.message || e);
-  }
-});
-
-$("btn-whatsapp-recomendacion").addEventListener("click", async () => {
-  if (!recomendacionEnEdicionId) return;
-  const rec = recomendaciones.find((r) => r.id === recomendacionEnEdicionId);
-  if (!rec) return;
-  const telefono = $("rec-telefono").value.trim();
-  if (!telefono) { $("recomendacion-dialog-status").className = "dialog-status mostrar error"; $("recomendacion-dialog-status").textContent = "No hay teléfono cargado para esta recomendación."; return; }
-  const texto = $("rec-texto").value.trim() || rec.texto;
-  const numero = normalizarTelefonoWA(telefono);
-  try {
-    const operador = await operadorActual();
-    await registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion: "recomendacionesInteligente", docId: rec.id, tipoMensaje: "recomendacion", operador });
-    pendienteConfirmarEnvio = { coleccion: "recomendacionesInteligente", id: rec.id, docIdContacto: rec.id, tipoMensaje: "recomendacion", nombre: rec.pacienteNombre, esRecomendacion: true };
-    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
-  } catch (e) { toast("No se pudo preparar el envío: " + (e?.message || e)); }
-});
-
-// ── Preferencias del aviso horario (Más) ─────────────────────────────────
 function renderMas() {
-  const chk = $("avisos-activo");
-  if (chk) chk.checked = prefsAvisos.activo !== false;
-
-  const cont = $("avisos-categorias");
-  if (cont) {
-    cont.innerHTML = TIPOS_PENDIENTE.map((t) => `
-      <label class="avisos-toggle-row">
-        <span>${escapeHtml(ETIQUETA_TIPO_PENDIENTE[t])}</span>
-        <input type="checkbox" data-avisos-categoria="${t}" ${prefsAvisos.categorias.includes(t) ? "checked" : ""}>
-      </label>`).join("");
-  }
-
-  const pausaEstadoEl = $("avisos-pausa-estado");
-  const pausaVigente = prefsAvisos.pausadoHastaMs && prefsAvisos.pausadoHastaMs > Date.now();
-  if (pausaEstadoEl) pausaEstadoEl.textContent = pausaVigente ? `Pausado hasta ${formatoMomento(prefsAvisos.pausadoHastaMs)}` : "Sin pausa activa.";
-  if ($("btn-avisos-quitar-pausa")) $("btn-avisos-quitar-pausa").hidden = !pausaVigente;
-
-  if ($("avisos-descanso-inicio")) $("avisos-descanso-inicio").value = prefsAvisos.descansoInicioHora ?? "";
-  if ($("avisos-descanso-fin")) $("avisos-descanso-fin").value = prefsAvisos.descansoFinHora ?? "";
+  refrescarEstadoNotif();
 
   const nombreInput = $("duena-nombre-input");
   if (nombreInput && document.activeElement !== nombreInput) nombreInput.value = duenaNombre || "";
@@ -2274,15 +1244,6 @@ function renderMas() {
     } else {
       telEstado.textContent = `Sin configurar — "Avisar a Gimena" va a ofrecer compartir/copiar el mensaje para que elijas el chat vos misma.`;
     }
-  }
-
-  const corteInput = $("corte-manana-tarde-input");
-  if (corteInput && document.activeElement !== corteInput) corteInput.value = corteMananaTarde || CORTE_MANANA_TARDE_DEFECTO;
-  const corteEstado = $("corte-manana-tarde-estado");
-  if (corteEstado) {
-    corteEstado.textContent = corteMananaTardeConfigurado
-      ? `Configurado: a partir de las ${corteMananaTarde} un ingreso cuenta como "tarde".`
-      : `Usando el valor inicial (${CORTE_MANANA_TARDE_DEFECTO}) — todavía no se configuró uno propio.`;
   }
 }
 
@@ -2319,69 +1280,11 @@ $("btn-duena-telefono-guardar")?.addEventListener("click", async () => {
   } catch (e) { toast("No se pudo guardar: " + (e?.message || e)); }
 });
 
-// Corte mañana/tarde configurable (punto 2 del pedido de Resumen de
-// jornada) — mismo doc/reglas que duenaTelefono, sin cambios de seguridad.
-$("btn-corte-manana-tarde-guardar")?.addEventListener("click", async () => {
-  const valor = ($("corte-manana-tarde-input")?.value || "").trim();
-  const corteEstado = $("corte-manana-tarde-estado");
-  if (!/^\d{2}:\d{2}$/.test(valor)) {
-    if (corteEstado) corteEstado.textContent = "❌ Ingresá una hora válida (HH:MM, 24 horas).";
-    toast("Hora inválida — no se guardó nada.");
-    return;
-  }
-  try {
-    const operador = await operadorActual();
-    await setDoc(doc(db, "configuracion", "mimarInteligente"), {
-      corteMananaTarde: valor, actualizadoPorCorte: operador || "sistema", updatedAt: serverTimestamp(),
-    }, { merge: true });
-    toast(`Guardado: corte a las ${valor}`);
-  } catch (e) { toast("No se pudo guardar: " + (e?.message || e)); }
-});
-
-async function guardarPrefsAvisos(parcial) {
-  if (!uidActual) return;
-  try {
-    await setDoc(doc(db, "configNotificacionesInteligente", uidActual), { ...parcial, updatedAt: serverTimestamp() }, { merge: true });
-  } catch (e) { toast("No se pudo guardar la preferencia: " + (e?.message || e)); }
-}
-
-$("avisos-activo")?.addEventListener("change", (ev) => guardarPrefsAvisos({ activo: ev.target.checked }));
-
-document.addEventListener("change", (ev) => {
-  const chk = ev.target.closest("[data-avisos-categoria]");
-  if (!chk) return;
-  const tipo = chk.getAttribute("data-avisos-categoria");
-  const actuales = new Set(prefsAvisos.categorias);
-  if (chk.checked) actuales.add(tipo); else actuales.delete(tipo);
-  guardarPrefsAvisos({ categorias: [...actuales] });
-});
-
-$("btn-avisos-pausar")?.addEventListener("click", () => {
-  const ms = msDesdeInputLocal($("avisos-pausa").value);
-  if (ms == null) { toast("Elegí una fecha y hora para pausar."); return; }
-  guardarPrefsAvisos({ pausadoHastaMs: ms });
-});
-$("btn-avisos-quitar-pausa")?.addEventListener("click", () => guardarPrefsAvisos({ pausadoHastaMs: null }));
-
-$("btn-avisos-descanso-guardar")?.addEventListener("click", () => {
-  const ini = $("avisos-descanso-inicio").value === "" ? null : Number($("avisos-descanso-inicio").value);
-  const fin = $("avisos-descanso-fin").value === "" ? null : Number($("avisos-descanso-fin").value);
-  if ((ini != null && (ini < 0 || ini > 23)) || (fin != null && (fin < 0 || fin > 23))) { toast("La hora tiene que estar entre 0 y 23."); return; }
-  guardarPrefsAvisos({ descansoInicioHora: ini, descansoFinHora: fin });
-});
-$("btn-avisos-descanso-quitar")?.addEventListener("click", () => {
-  $("avisos-descanso-inicio").value = ""; $("avisos-descanso-fin").value = "";
-  guardarPrefsAvisos({ descansoInicioHora: null, descansoFinHora: null });
-});
-
 // ── Botón Atrás (solo dentro de la app Android) ──────────────────────────
-// Prioridad: 1) cerrar el aviso de entrada si está abierto  2) cerrar el
-// panel inferior  3) cerrar el modal  4) doble Atrás para salir.
+// Prioridad: 1) cerrar el modal  2) doble Atrás para salir.
 if (nativeApp && AppPlugin?.addListener) {
   let ultimoAtras = 0;
   AppPlugin.addListener("backButton", () => {
-    if (entradaAvisoAbierto) { cerrarEntradaAviso(); return; }
-    if (sheetAbierto) { cerrarSheet(); return; }
     if (detalleDialog.open) { cerrarModal(); return; }
     const ahora = Date.now();
     if (ahora - ultimoAtras < 2200) { AppPlugin.exitApp(); return; }
@@ -2389,19 +1292,11 @@ if (nativeApp && AppPlugin?.addListener) {
     toast("Tocá de nuevo Atrás para salir");
   });
 
-  // Un paso breve por WhatsApp (o por la bandeja de notificaciones) no debe
-  // reabrir el aviso de entrada — solo una vuelta real después de haber
-  // estado un rato afuera (>30s) cuenta como "nueva entrada" (punto 6:
-  // "evitando que varios eventos de focus, resume o snapshots lo reabran
-  // continuamente" vs. "al volver a abrir la app, reaparece si siguen
-  // pendientes").
   AppPlugin.addListener("appStateChange", ({ isActive }) => {
     if (isActive) {
-      if (ultimoBackgroundMs && (Date.now() - ultimoBackgroundMs > 30000)) entradaAvisoMostrado = false;
       reconciliar();
       mostrarPromptEnvio();
-    } else {
-      ultimoBackgroundMs = Date.now();
+      if (tabActual === "mas") refrescarEstadoNotif(); // por si volvió de los Ajustes nativos
     }
   });
 } else {

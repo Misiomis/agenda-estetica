@@ -73,10 +73,31 @@ async function esperar(fn, { intentos = 20, esperaMs = 500 } = {}) {
   eventos = await esperar(async () => { const e = await contarActivityLog('pedidosKit', k1.id); return e.length >= 1 ? e : null; }) || [];
   resultados.push(['pedidoKit create -> 1 evento "Nuevo pedido de kit"', eventos.length === 1 && /Nuevo pedido de kit/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
 
-  // 9) Reserva de depilación nueva -> debe generar evento
+  // 9) Reserva de depilación nueva -> debe generar evento. No hay emulador
+  // de FCM en el Local Emulator Suite, así que no se puede observar acá si
+  // notifyAndroidDevices() efectivamente mandó el push "depilacion_nueva" —
+  // esa parte queda cubierta por lectura de código (mismo patrón ya
+  // probado de onPedidoKitActividad) y por la prueba manual contra el
+  // emulador descripta en el plan. Lo que SÍ se puede verificar acá es que
+  // el trigger no se cae (activityLog se sigue escribiendo con normalidad)
+  // y que la regla "solo en altas" se respeta.
   const rd1 = await db.collection('reservasDepi').add({ nombre: 'Depi Testigo', fecha: '2099-08-08', hora: '14:00', estado: 'confirmado' });
   eventos = await esperar(async () => { const e = await contarActivityLog('reservasDepi', rd1.id); return e.length >= 1 ? e : null; }) || [];
   resultados.push(['reservaDepi create -> 1 evento "Nueva reserva de depilación"', eventos.length === 1 && /Nueva reserva de depilación/.test(eventos[0].resumen), JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 9b) Cambio irrelevante (sin estado/fecha/hora) -> NO debe generar evento nuevo
+  await rd1.update({ notas: 'nota interna sin relevancia' });
+  await new Promise(res => setTimeout(res, 3000));
+  eventos = await contarActivityLog('reservasDepi', rd1.id);
+  resultados.push(['reservaDepi cambio irrelevante -> sigue en 1 evento (sin ruido, sin push de "nueva")', eventos.length === 1, JSON.stringify(eventos.map(e=>e.resumen))]);
+
+  // 9c) Cancelación REAL tal como la hace admin-depi.html: estado:'cancelada'
+  // (femenino) — antes del fix esto NUNCA generaba el evento "cancelada"
+  // porque la función comparaba contra "cancelado" (masculino) a secas.
+  // Esta es la prueba de regresión del bug encontrado.
+  await rd1.update({ estado: 'cancelada', eliminado: true });
+  eventos = await esperar(async () => { const e = await contarActivityLog('reservasDepi', rd1.id); return e.length >= 2 ? e : null; }) || eventos;
+  resultados.push(['reservaDepi cancelada (estado:"cancelada", femenino) -> 2 eventos, el 2do "cancelada"', eventos.length === 2 && eventos.some(e => /Reserva de depilación cancelada/.test(e.resumen)), JSON.stringify(eventos.map(e=>e.resumen))]);
 
   // 10) Inscripción a curso de automaquillaje nueva -> debe generar evento
   const cm1 = await db.collection('cursoMaquillaje').add({ nombre: 'Curso Testigo' });

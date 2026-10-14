@@ -1,9 +1,7 @@
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
-const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
-const pendientesLogic = require("./pendientes-logic");
 // admin.firestore.FieldValue (API con namespace) devuelve undefined en
 // ciertos runtimes (confirmado con el emulador: TypeError real al llamar
 // FieldValue.serverTimestamp()) — se usa la API modular,
@@ -513,11 +511,9 @@ exports.onConsultaActividad = onDocumentWritten("consultas/{docId}", async (even
     const fecha = d.fecha || "fecha sin registrar";
     const hora = d.hora ? ` ${d.hora}` : "";
     let resumen = null;
-    let esNueva = false;
 
     if (tipo === "create") {
         resumen = `Nueva consulta inicial: ${nombre} — ${fecha}${hora}`;
-        esNueva = true;
     } else if (tipo === "delete") {
         resumen = `Consulta inicial eliminada: ${nombre}`;
     } else {
@@ -532,13 +528,11 @@ exports.onConsultaActividad = onDocumentWritten("consultas/{docId}", async (even
             return;
         }
     }
+    // Sin push: "nueva consulta" no es una de las 3 funciones de Mimar T
+    // Inteligente (próximo paciente, kits, depilación) — se sigue
+    // registrando en activityLog como auditoría general, igual que
+    // reservas/pagos/gastos, que tampoco notifican.
     await registrarEvento(event.id, { coleccion: "consultas", docId: event.params.docId, tipo, resumen });
-    if (esNueva) {
-        await notifyAndroidDevices("consultas", event.params.docId, {
-            appId: "inteligente",
-            extraData: { tipoAviso: "consulta_nueva", titulo: "Nueva consulta inicial", texto: `${nombre} — ${fecha}${hora}` }
-        });
-    }
 });
 
 // pedidosKit — además dispara push nativo en altas (punto 5) ─────────────
@@ -648,7 +642,20 @@ exports.onCursoMaquillajeActividad = onDocumentWritten("cursoMaquillaje/{docId}"
     await registrarEvento(event.id, { coleccion: "cursoMaquillaje", docId: event.params.docId, tipo, resumen });
 });
 
-// reservasDepi ───────────────────────────────────────────────────────────
+// reservasDepi — además dispara push nativo en altas válidas (Mimar T
+// Inteligente: aviso de "nuevo turno de depilación") ─────────────────────
+//
+// esCancelada(): admin-depi.html cancela escribiendo estado:'cancelada'
+// (femenino, ver su updateDoc de eliminar/cambiarEstado), mientras que esta
+// función comparaba antes contra "cancelado" (masculino) a secas — nunca
+// coincidía, así que una cancelación real de depilación nunca se registraba
+// como novedad. Mismo criterio robusto que ya usa esActiva() en
+// mimar-inteligente-logic.js y esReservaActiva() en depilacion.html: cubrir
+// ambas grafías en vez de una comparación exacta.
+function esCancelada(estado) {
+    return String(estado || "").toLowerCase().startsWith("cancelad");
+}
+
 exports.onReservaDepiActividad = onDocumentWritten("reservasDepi/{docId}", async (event) => {
     const before = event.data.before;
     const after = event.data.after;
@@ -659,16 +666,16 @@ exports.onReservaDepiActividad = onDocumentWritten("reservasDepi/{docId}", async
     const hora = d.hora ? ` ${d.hora}` : "";
     let resumen = null;
     let detalle = null;
+    let esNueva = false;
 
     if (tipo === "create") {
         resumen = `Nueva reserva de depilación: ${nombre} — ${fecha}${hora}`;
+        esNueva = true;
     } else if (tipo === "delete") {
         resumen = `Reserva de depilación eliminada: ${nombre}`;
     } else {
         const antes = before.data();
-        const estadoAntes = String(antes.estado || "").toLowerCase();
-        const estadoDespues = String(d.estado || "").toLowerCase();
-        if (estadoAntes !== "cancelado" && estadoDespues === "cancelado") {
+        if (!esCancelada(antes.estado) && esCancelada(d.estado)) {
             resumen = `Reserva de depilación cancelada: ${nombre}`;
         } else if (antes.fecha !== d.fecha || antes.hora !== d.hora) {
             resumen = `Reserva de depilación reprogramada: ${nombre} — ahora ${fecha}${hora}`;
@@ -678,6 +685,15 @@ exports.onReservaDepiActividad = onDocumentWritten("reservasDepi/{docId}", async
         }
     }
     await registrarEvento(event.id, { coleccion: "reservasDepi", docId: event.params.docId, tipo, resumen, detalle });
+    // Solo en altas y con fecha/hora reales — evita avisos de datos
+    // incompletos/basura ante un create malformado (la regla de Firestore
+    // permite create público en esta colección).
+    if (esNueva && d.fecha && d.hora) {
+        await notifyAndroidDevices("reservasDepi", event.params.docId, {
+            appId: "inteligente",
+            extraData: { tipoAviso: "depilacion_nueva", titulo: "Nuevo turno de depilación", texto: `${nombre} — ${fecha}${hora}` }
+        });
+    }
 });
 
 // prestaciones — precio acordado por sesión (punto 2 de facturación) ─────
@@ -765,306 +781,6 @@ exports.onGastoActividad = onDocumentWritten("gastos/{docId}", async (event) => 
     }
     await registrarEvento(event.id, { coleccion: "gastos", docId: event.params.docId, tipo, resumen });
 });
-
-// ── Resumen diario de cumpleaños (punto 4) ──────────────────────────────────
-//
-// clients.fechaNacimiento se guarda como string "YYYY-MM-DD" (ver
-// auditoría) — nunca Timestamp. cumpleMesDia ("MM-DD", mantenido por
-// onClienteEscrito más arriba) permite una query indexada en vez de
-// escanear toda la colección cada mañana. Alguien nacido el 29 de febrero
-// solo matchea en un año bisiesto real: es una decisión explícita, no se
-// inventa una regla para "observarlo" el 28 en años no bisiestos.
-//
-// "Horario configurable" sin necesitar un redeploy: la función corre cada
-// hora en punto y solo genera el resumen cuando la hora actual (zona
-// Argentina) coincide con configuracion/notificaciones.horaCumpleanos
-// (default 8) — así cambiar el horario es escribir un número en Firestore,
-// no tocar código.
-const ZONA_HORARIA_AR = "America/Argentina/Buenos_Aires";
-
-function partesFechaEnZona(date, timeZone, opciones) {
-    return new Intl.DateTimeFormat("en-CA", { timeZone, ...opciones })
-        .formatToParts(date)
-        .reduce((acc, p) => { if (p.type !== "literal") acc[p.type] = p.value; return acc; }, {});
-}
-
-function hoyISOEnZonaAR(date = new Date()) {
-    const p = partesFechaEnZona(date, ZONA_HORARIA_AR, { year: "numeric", month: "2-digit", day: "2-digit" });
-    return `${p.year}-${p.month}-${p.day}`;
-}
-
-function hoyMesDiaEnZonaAR(date = new Date()) {
-    const p = partesFechaEnZona(date, ZONA_HORARIA_AR, { month: "2-digit", day: "2-digit" });
-    return `${p.month}-${p.day}`;
-}
-
-function horaActualEnZonaAR(date = new Date()) {
-    const p = partesFechaEnZona(date, ZONA_HORARIA_AR, { hour: "2-digit", hour12: false });
-    const h = Number(p.hour);
-    return h === 24 ? 0 : h; // algunas implementaciones de Intl devuelven "24" para medianoche
-}
-
-exports.resumenCumpleanosDiario = onSchedule(
-    { schedule: "0 * * * *", timeZone: ZONA_HORARIA_AR, region: "us-central1" },
-    async () => {
-        let horaConfigurada = 8;
-        try {
-            const cfgSnap = await db.collection("configuracion").doc("notificaciones").get();
-            const cfg = cfgSnap.exists ? (cfgSnap.data() || {}) : {};
-            if (Number.isInteger(cfg.horaCumpleanos) && cfg.horaCumpleanos >= 0 && cfg.horaCumpleanos <= 23) {
-                horaConfigurada = cfg.horaCumpleanos;
-            }
-        } catch (_) { /* usa el default de las 8 */ }
-
-        if (horaActualEnZonaAR() !== horaConfigurada) return; // no es la hora configurada — no hace nada esta pasada
-
-        const fechaISO = hoyISOEnZonaAR();
-        const mesDia = hoyMesDiaEnZonaAR();
-        const docRef = db.collection("resumenesCumpleanos").doc(fechaISO); // set() por fecha → idempotente ante reintentos
-
-        try {
-            const snap = await db.collection("clients").where("cumpleMesDia", "==", mesDia).get();
-            const personas = [];
-            snap.forEach((d) => {
-                const c = d.data();
-                personas.push({
-                    clientId: d.id,
-                    nombre: c.fullName || c.nombre || "Paciente",
-                    telefonoDisponible: !!(c.phone || c.telefono)
-                });
-            });
-
-            await docRef.set({
-                fecha: fechaISO,
-                estado: "ok",
-                generadoAt: FieldValue.serverTimestamp(),
-                personas
-            });
-
-            if (personas.length) {
-                await notifyAndroidDevices("clients", fechaISO, {
-                    appId: "inteligente",
-                    extraData: {
-                        tipoAviso: "cumpleanos",
-                        titulo: personas.length === 1 ? "Hoy cumple años" : `Hoy cumplen años ${personas.length} pacientes`,
-                        texto: personas.map((p) => p.nombre).join(", ")
-                    }
-                });
-            }
-        } catch (error) {
-            logger.error("resumenCumpleanosDiario error:", error.message || error);
-            await docRef.set({
-                fecha: fechaISO,
-                estado: "error",
-                generadoAt: FieldValue.serverTimestamp(),
-                detalle: error.message || String(error)
-            }, { merge: true });
-        }
-    }
-);
-
-// ── GlowUp: aviso horario de pendientes (punto 4 del pedido) ────────────
-//
-// Corre cada hora en punto (mismo mecanismo que el resumen de cumpleaños:
-// Cloud Scheduler vía onSchedule Gen2 — la evaluación NO depende de que la
-// app/WebView esté abierta). Reglas de "qué es un pendiente" en
-// functions/pendientes-logic.js, espejo documentado de
-// mimar-inteligente-logic.js (mismo archivo no es posible: ESM vs
-// CommonJS — ver comentario en ese módulo).
-//
-// Fiabilidad: onSchedule puede reintentar o solaparse. Se identifica cada
-// ejecución por (uid, franja horaria lógica) usando event.scheduleTime —
-// NUNCA Date.now() — para que un reintento de la MISMA franja calcule la
-// MISMA clave. Un "reclamo" transaccional en avisosEnviadosInteligente
-// decide si esta franja ya se avisó para ese uid; el envío de FCM se hace
-// SIEMPRE fuera de la transacción (Firestore y FCM no son una transacción
-// conjunta). Ventana de incertidumbre documentada: si el proceso muere
-// después de confirmar el reclamo pero antes de que FCM devuelva una
-// respuesta, esa franja puede quedar sin aviso visible — se acepta esa
-// pérdida acotada a como mucho 1 hora (la próxima franja vuelve a evaluar
-// los mismos pendientes si siguen sin resolverse) en vez de arriesgar un
-// doble aviso. Mitigación adicional del lado Android: notificationId
-// estable por (uid, franja) en FCMService, así un reintento de FCM que sí
-// llegue a entregarse dos veces solo actualiza la misma notificación
-// visible, nunca la duplica.
-const ZONA_HORARIA_INTELIGENTE = pendientesLogic.ZONA_HORARIA;
-
-function franjaHorariaAR(ms) {
-    const p = partesFechaEnZona(new Date(ms), ZONA_HORARIA_INTELIGENTE, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false });
-    const hora = p.hour === "24" ? "00" : p.hour;
-    return `${p.year}-${p.month}-${p.day}T${hora}`;
-}
-
-async function construirPendientesGlobales(ahoraMs) {
-    const hoyISO = hoyISOEnZonaAR(new Date(ahoraMs));
-    const mananaDate = new Date(ahoraMs); mananaDate.setUTCDate(mananaDate.getUTCDate() + 1);
-    const mananaISO = hoyISOEnZonaAR(mananaDate);
-    // "Los pendientes de días anteriores no deben desaparecer porque la
-    // agenda solo consulte hoy y mañana" — se amplía hacia atrás de forma
-    // ACOTADA (VENTANA_REVISAR_TURNO_DIAS) e indexada: rango simple sobre
-    // un solo campo (fecha >= X y <= mañana), no requiere índice compuesto
-    // nuevo y no usa != / not-in (que excluirían documentos sin el campo).
-    const desdeDate = new Date(ahoraMs - pendientesLogic.VENTANA_REVISAR_TURNO_DIAS * 24 * 60 * 60 * 1000);
-    const desdeISO = hoyISOEnZonaAR(desdeDate);
-
-    const [reservasSnap, consultasSnap, kitsSnap, cumpleSnap, recSnap, clientesSnap] = await Promise.all([
-        db.collection("reservas").where("fecha", ">=", desdeISO).where("fecha", "<=", mananaISO).get(),
-        db.collection("consultas").where("fecha", ">=", desdeISO).where("fecha", "<=", mananaISO).get(),
-        db.collection("pedidosKit").where("estado", "==", "pendiente").get(),
-        db.collection("resumenesCumpleanos").doc(hoyISO).get(),
-        db.collection("recomendacionesInteligente").where("estado", "==", "pendiente").where("programadoParaMs", "<=", ahoraMs).get(),
-        db.collection("clients").get(),
-    ]);
-
-    const reservasRaw = reservasSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    const consultasRaw = consultasSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    const pedidosKitPendientesRaw = kitsSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    const recomendacionesRaw = recSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    const cumpleanosHoy = cumpleSnap.exists ? cumpleSnap.data() : null;
-    const clientesPorDni = {};
-    clientesSnap.docs.forEach((d) => { clientesPorDni[d.id] = d.data(); });
-
-    // Candidatos a "confirmación pendiente" (dentro de la ventana vigente) y
-    // a "cumpleaños hoy" son, como mucho, un puñado por hora — se resuelve
-    // su contacto con un multi-get ACOTADO a esos ids puntuales, nunca
-    // leyendo toda la colección contactosWhatsApp (que crece sin límite
-    // con los años).
-    const idsContactoCandidatos = new Set();
-    for (const r of reservasRaw) {
-        const item = pendientesLogic.normalizarItemAgenda("reservas", r.id, r.data, clientesPorDni);
-        if (pendientesLogic.calcularRevision(item, ahoraMs)) idsContactoCandidatos.add(pendientesLogic.idContactoParaItem(item, "confirmacion"));
-    }
-    for (const c of consultasRaw) {
-        const item = pendientesLogic.normalizarItemAgenda("consultas", c.id, c.data, clientesPorDni);
-        if (pendientesLogic.calcularRevision(item, ahoraMs)) idsContactoCandidatos.add(pendientesLogic.idContactoParaItem(item, "consulta"));
-    }
-    if (cumpleanosHoy?.estado === "ok") {
-        for (const persona of (cumpleanosHoy.personas || [])) {
-            idsContactoCandidatos.add(`clients_${pendientesLogic.docIdVersionadoCumpleanos(persona.clientId, cumpleanosHoy.fecha)}_cumpleanos`);
-        }
-    }
-
-    const contactosPorId = {};
-    if (idsContactoCandidatos.size) {
-        const refs = [...idsContactoCandidatos].map((id) => db.collection("contactosWhatsApp").doc(id));
-        const docs = await db.getAll(...refs);
-        docs.forEach((snap) => { if (snap.exists) contactosPorId[snap.id] = snap.data(); });
-    }
-
-    return pendientesLogic.derivarPendientes(
-        { reservasRaw, consultasRaw, pedidosKitPendientesRaw, cumpleanosHoy, recomendacionesRaw, contactosPorId, clientesPorDni },
-        ahoraMs
-    );
-}
-
-exports.recordatorioPendientesHoraria = onSchedule(
-    { schedule: "0 * * * *", timeZone: ZONA_HORARIA_INTELIGENTE, region: "us-central1" },
-    async (event) => {
-        const scheduleTimeMs = event?.scheduleTime ? new Date(event.scheduleTime).getTime() : Date.now();
-        // Reintentos disparados mucho después de su hora lógica no tienen
-        // sentido como "aviso de esta franja" — se descartan en vez de
-        // alertar tarde con datos posiblemente ya resueltos.
-        if (Date.now() - scheduleTimeMs > 30 * 60 * 1000) {
-            logger.warn("recordatorioPendientesHoraria: ejecución demasiado vieja, se descarta", { scheduleTimeMs });
-            return;
-        }
-        const franja = franjaHorariaAR(scheduleTimeMs);
-
-        const tokensSnap = await db.collection("deviceTokens").where("appId", "==", "inteligente").get();
-        if (tokensSnap.empty) return; // nadie tiene la app instalada con push activo
-
-        const porUid = new Map();
-        tokensSnap.forEach((d) => {
-            const t = d.data();
-            if (!t.uid || !t.token) return;
-            if (!porUid.has(t.uid)) porUid.set(t.uid, []);
-            porUid.get(t.uid).push({ ref: d.ref, token: t.token });
-        });
-
-        const pendientesGlobales = await construirPendientesGlobales(scheduleTimeMs);
-        if (!pendientesGlobales.length) return; // nada habilitado para nadie — nunca se avisa vacío
-
-        // Overrides (postergado/resuelto) SOLO de los pendientes que
-        // realmente existen esta hora — multi-get acotado, no toda la
-        // colección.
-        const overrideRefs = pendientesGlobales.map((p) => db.collection("pendienteEstadoInteligente").doc(p.id));
-        const overrideDocs = overrideRefs.length ? await db.getAll(...overrideRefs) : [];
-        const overridesPorId = {};
-        overrideDocs.forEach((snap) => { if (snap.exists) overridesPorId[snap.id] = snap.data(); });
-
-        for (const [uid, dispositivos] of porUid.entries()) {
-            let prefs = pendientesLogic.PREFS_AVISOS_DEFECTO;
-            try {
-                const prefsSnap = await db.collection("configNotificacionesInteligente").doc(uid).get();
-                if (prefsSnap.exists) prefs = { ...pendientesLogic.PREFS_AVISOS_DEFECTO, ...prefsSnap.data() };
-            } catch (_) { /* usa el default */ }
-
-            const elegibles = pendientesLogic.pendientesElegiblesParaAviso(pendientesGlobales, prefs, overridesPorId, scheduleTimeMs);
-            if (!elegibles.length) continue; // esta persona no tiene nada elegible esta hora (pausada, categorías, descanso, etc.)
-
-            const claveDedup = `${uid}_inteligente_${franja}`;
-            const claimRef = db.collection("avisosEnviadosInteligente").doc(claveDedup);
-            let yaReclamado = false;
-            await db.runTransaction(async (tx) => {
-                const snap = await tx.get(claimRef);
-                if (snap.exists) { yaReclamado = true; return; }
-                tx.set(claimRef, {
-                    uid, appId: "inteligente", franja, scheduleTimeMs,
-                    estado: "reclamado",
-                    cantidadPendientes: elegibles.length,
-                    conteoPorTipo: pendientesLogic.contarPendientesPorTipo(elegibles),
-                    creadoAt: FieldValue.serverTimestamp(),
-                });
-            });
-            if (yaReclamado) {
-                logger.info("recordatorioPendientesHoraria: franja ya reclamada, no se reenvía", { uid, franja });
-                continue;
-            }
-
-            const texto = pendientesLogic.resumenTextoPendientes(elegibles);
-            const tokens = dispositivos.map((d) => d.token);
-            try {
-                // FCM siempre fuera de la transacción de Firestore.
-                const resultado = await admin.messaging().sendEachForMulticast({
-                    tokens,
-                    data: {
-                        tipoAviso: "pendientes_resumen",
-                        titulo: "Pendientes de Mimar T Inteligente",
-                        texto,
-                        franja,
-                    },
-                    android: {
-                        priority: "high",
-                        // TTL corto: si el dispositivo estuvo offline más de
-                        // ~55 min, mejor que la próxima franja (que va a
-                        // recalcular con datos frescos) sea la que avise, no
-                        // una ráfaga de resúmenes viejos al reconectar.
-                        ttl: 55 * 60 * 1000,
-                        collapseKey: `pendientes_${uid}`,
-                    },
-                });
-                // Tokens inválidos se dan de baja según el ERROR REAL de
-                // cada respuesta individual — un fallo de payload/red no
-                // borra tokens que en realidad siguen sirviendo.
-                resultado.responses.forEach((r, i) => {
-                    if (r.success) return;
-                    const code = r.error?.code || "";
-                    if (code === "messaging/registration-token-not-registered" || code === "messaging/invalid-registration-token") {
-                        dispositivos[i].ref.delete().catch(() => {});
-                    }
-                });
-                await claimRef.set({
-                    estado: "enviado", exitos: resultado.successCount, fallos: resultado.failureCount,
-                    enviadoAt: FieldValue.serverTimestamp(),
-                }, { merge: true });
-                logger.info("recordatorioPendientesHoraria: enviado", { uid, franja, cantidad: elegibles.length, exitos: resultado.successCount, fallos: resultado.failureCount });
-            } catch (err) {
-                await claimRef.set({ estado: "error", detalle: err.message || String(err) }, { merge: true }).catch(() => {});
-                logger.error("recordatorioPendientesHoraria: fallo al enviar FCM", { uid, franja, error: err.message || String(err) });
-            }
-        }
-    }
-);
 
 // ══════════════════════════════════════════════════════════════════════
 // TEMPORAL — exportarContactosAdmin (solo lectura)
