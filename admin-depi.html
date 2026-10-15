@@ -807,10 +807,8 @@
             </div>
         </div>
 
-        <!-- ══ CIERRE DE JORNADA ══ -->
         <!-- ══ PREPARAR JORNADA ══ -->
         <div id="secPreparar" class="section">
-            <h2 class="sec-title no-print">Preparar jornada</h2>
             <div class="card no-print" style="margin-bottom:14px;">
                 <label style="display:block;margin-bottom:6px;font-size:12px;color:var(--texto-suave);">Elegir el día a preparar</label>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -2762,6 +2760,18 @@ ${bloques}
         return `${d}/${m}/${y}`;
     };
 
+    // Encabezado en lenguaje natural para "Preparar jornada" — nunca jerga
+    // técnica ("Preparar jornada", nombres de colección, etc.), es lo único
+    // que se ve al imprimir la hoja.
+    const _prepFechaBonita = (f) => {
+        if (!f) return '';
+        const [y, m, d] = f.split('-').map(Number);
+        const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        const dt = new Date(y, m - 1, d);
+        return `Jornada ${dias[dt.getDay()]} ${d} de ${meses[m - 1]}`;
+    };
+
     const _htmlCobroBlock = (id) =>
         `<div class="sp-block" id="sp-${id}">
             <div class="sp-header" onclick="window._toggleSP('${id}')">
@@ -3152,11 +3162,10 @@ Motivo: ${motivo}`);
                 return _prepFilaContinua(hora, rOrig);
             }).join('');
 
-            const fechaLeg = _fmtFechaLeg(fecha);
             const obs = obsSnap.exists() ? (obsSnap.data().observaciones || '') : '';
 
             cont.innerHTML = `
-                <h2 class="sec-title">Preparar jornada · ${fechaLeg}</h2>
+                <h2 class="sec-title">${_prepFechaBonita(fecha)}</h2>
                 <div class="pj-print-btn-row no-print">
                     <button class="btn-outline" style="font-size:12px;" onclick="window.print()">🖨 Imprimir</button>
                 </div>
