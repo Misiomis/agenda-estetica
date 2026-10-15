@@ -160,6 +160,12 @@ service cloud.firestore {
       allow read, write: if esAdminDepi();
     }
 
+    // Observaciones libres de "Preparar jornada" (depilación), por fecha —
+    // mismo criterio que cobrosSesionDepi/cierresJornadaDepi.
+    match /preparacionJornadaDepi/{fechaId} {
+      allow read, write: if esAdminDepi();
+    }
+
     // Control de consultas iniciales — solo admin Gimena
     match /control_consultas_iniciales/{docId} {
       allow read, write: if esAdmin();
