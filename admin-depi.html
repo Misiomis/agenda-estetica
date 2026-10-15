@@ -483,23 +483,16 @@
         .sp-hist-entry { font-size: 11px; color: var(--texto-suave); padding: 5px 0; border-top: 1px solid var(--borde); line-height: 1.5; }
 
         /* ── PREPARAR JORNADA: lista horizontal, solo horarios ocupados ──
-           Sin columnas de box vacías — una fila prolija por turno real. Los
-           campos de pago van con la etiqueta ARRIBA del recuadro (no al
-           lado) para que el texto nunca se corte ni se vea amontonado. */
+           Sin columnas de box vacías — una fila prolija por turno real, solo
+           nombre y servicio (sin recuadros de pago). */
         .pj-list { border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; }
         .pj-row { display: flex; align-items: flex-start; gap: 16px; padding: 12px 14px; border-bottom: 1px solid var(--borde); flex-wrap: wrap; }
         .pj-row:last-child { border-bottom: 0; }
-        .pj-row-hora { font-size: 13px; font-weight: 800; color: rgba(100,200,150,0.90); min-width: 50px; flex-shrink: 0; padding-top: 8px; }
-        .pj-row-pac { flex: 1 1 180px; min-width: 150px; padding-top: 4px; }
+        .pj-row-hora { font-size: 13px; font-weight: 800; color: rgba(100,200,150,0.90); min-width: 50px; flex-shrink: 0; padding-top: 2px; }
+        .pj-row-pac { flex: 1 1 180px; min-width: 150px; }
         .pj-pac-nombre { font-size: 13.5px; font-weight: 700; color: var(--texto); }
         .pj-pac-servicio { font-size: 11px; color: var(--texto-suave); margin-top: 2px; }
-        .pj-row-continua { color: var(--texto-suave); font-size: 12px; font-style: italic; opacity: .7; flex: 1; padding-top: 8px; }
-        .pj-pago-row { display: flex; gap: 10px; flex-wrap: wrap; flex: 1 1 280px; }
-        .pj-pago-field { display: flex; flex-direction: column; gap: 3px; background: rgba(255,255,255,0.04); border: 1px solid var(--borde); border-radius: 8px; padding: 6px 9px; flex: 1; min-width: 135px; }
-        .pj-pago-field label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--texto-suave); white-space: nowrap; }
-        .pj-pago-field input { width: 100%; min-width: 0; background: transparent; border: none; outline: none; color: var(--texto); font-size: 13px; font-weight: 600; font-family: inherit; padding: 1px 0; }
-        .pj-pago-field.pj-pago-ok { border-color: rgba(74,222,128,0.40); background: rgba(74,222,128,0.07); }
-        .pj-pago-field.pj-falta-set { border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.06); }
+        .pj-row-continua { color: var(--texto-suave); font-size: 12px; font-style: italic; opacity: .7; flex: 1; }
         .pj-obs-status { font-size: 11px; min-height: 16px; margin-top: 4px; }
         .pj-print-btn-row { display: flex; justify-content: flex-end; margin-bottom: 10px; }
         @media (max-width: 560px) { .pj-row { flex-direction: column; align-items: stretch; } .pj-row-hora { min-width: 0; padding-top: 0; } }
@@ -513,13 +506,11 @@
             .no-print { display: none !important; }
             body, #secPreparar, #secPreparar .card { background: #fff !important; }
             #secPreparar, #secPreparar .sec-title, #secPreparar .pj-pac-nombre { color: #111 !important; }
-            #secPreparar .pj-pac-servicio, #secPreparar .pj-row-continua, #secPreparar .pj-pago-field label, #secPreparar .sp-flabel { color: #444 !important; }
+            #secPreparar .pj-pac-servicio, #secPreparar .pj-row-continua, #secPreparar .sp-flabel { color: #444 !important; }
             #secPreparar .card { border: none !important; }
             #secPreparar .pj-list { border: 1px solid #999 !important; }
             #secPreparar .pj-row { border-bottom: 1px solid #ccc !important; page-break-inside: avoid; }
             #secPreparar .pj-row-hora { color: #111 !important; }
-            #secPreparar .pj-pago-field { background: transparent !important; border: none !important; border-bottom: 1px solid #333 !important; border-radius: 0 !important; padding: 2px 2px 4px !important; }
-            #secPreparar .pj-pago-field input { color: #111 !important; }
             #secPreparar textarea { border: 1px solid #999 !important; background: #fff !important; color: #111 !important; }
             @page { size: A4; margin: 14mm; }
         }
@@ -3061,14 +3052,11 @@ Motivo: ${motivo}`);
        ocupa más de un turno (ej. 60 min = 2 slots de 30) sigue mostrando a
        la misma paciente en el segundo horario como "(continúa)", nunca como
        libre — se detecta igual que en la Agenda, vía calendarExceptionsDepi
-       (tipo:'extension'). "Me pagó" y "Falta pagar" son dos campos de TEXTO
-       libre (no un monto forzado) — se guardan en el mismo documento de
-       cobrosSesionDepi de cada reserva, en campos propios (notaMePago /
-       notaFaltaPagar) que no tocan importe/medioPago/historial, así que
-       nunca interfieren con el bloque "💳 Cobro" de la Agenda. */
+       (tipo:'extension'). Solo nombre y servicio por fila — se sacaron los
+       recuadros de "Me pagó"/"Falta pagar" (a pedido: quedaban con datos
+       repetidos de un bug viejo de autocompletado del navegador y no hacían
+       falta acá, el cobro real ya se carga en el bloque de la Agenda). */
     let _prepFechaMostrada = null;
-    let _prepNotasPorReserva = {}; // reservaId -> { notaMePago, notaFaltaPagar }
-    let _prepReservasDelDia = [];
 
     window._verPrepFecha = (fecha) => {
         if (!fecha) return;
@@ -3082,31 +3070,12 @@ Motivo: ${motivo}`);
         window._verPrepFecha(hoy);
     };
 
-    const _prepFilaPago = (r) => {
-        const n = _prepNotasPorReserva[r._id] || {};
-        return `<div class="pj-pago-row">
-            <div class="pj-pago-field${n.notaMePago ? ' pj-pago-ok' : ''}">
-                <label>Me pagó</label>
-                <input type="text" placeholder="Efectivo" id="prep-pago-${r._id}" autocomplete="off" name="prep-pago-${r._id}"
-                    value="${escHtml(n.notaMePago || '')}"
-                    onblur="window._prepGuardarMePago('${r._id}')">
-            </div>
-            <div class="pj-pago-field${n.notaFaltaPagar ? ' pj-falta-set' : ''}">
-                <label>Falta pagar</label>
-                <input type="text" placeholder="$ 2000" id="prep-falta-${r._id}" autocomplete="off" name="prep-falta-${r._id}"
-                    value="${escHtml(n.notaFaltaPagar || '')}"
-                    onblur="window._prepGuardarFalta('${r._id}')">
-            </div>
-        </div>`;
-    };
-
     const _prepFilaReserva = (r) => `<div class="pj-row">
         <div class="pj-row-hora">${r.hora}</div>
         <div class="pj-row-pac">
             <div class="pj-pac-nombre">${escHtml(r.nombre || 'Sin nombre')}</div>
             <div class="pj-pac-servicio">${escHtml(r.servicio || '')}${r.estado && r.estado !== 'pendiente' ? ` · ${escHtml({confirmada:'Confirmada',cancelada:'Cancelada',realizada:'Realizada'}[r.estado]||r.estado)}` : ''}</div>
         </div>
-        ${_prepFilaPago(r)}
     </div>`;
 
     const _prepFilaContinua = (hora, r) => `<div class="pj-row">
@@ -3123,15 +3092,13 @@ Motivo: ${motivo}`);
         if (!cont) return;
         cont.innerHTML = '<div class="card"><p style="font-size:13px;color:var(--texto-suave);">Cargando…</p></div>';
         try {
-            const [snapR, snapEx, snapCobros, obsSnap] = await Promise.all([
+            const [snapR, snapEx, obsSnap] = await Promise.all([
                 getDocs(query(collection(db, COLECCION), where('fecha', '==', fecha))),
                 getDocs(query(collection(db, COLECCION_EX), where('fecha', '==', fecha))),
-                getDocs(query(collection(db, COLECCION_COBROS), where('jornada', '==', fecha))),
                 getDoc(doc(db, COLECCION_PREP_OBS, fecha)),
             ]);
             const reservas = [];
             snapR.forEach(d => { const dat = d.data(); if (!dat.eliminado) reservas.push({ _id: d.id, ...dat }); });
-            _prepReservasDelDia = reservas;
 
             // Slots "extension": el mismo horario del turno anterior sigue
             // ocupado porque el servicio dura más de 30 min — mismo criterio
@@ -3140,12 +3107,6 @@ Motivo: ${motivo}`);
             snapEx.forEach(d => {
                 const dat = d.data();
                 if (dat.tipo === 'extension' && dat.hora) extensiones[dat.hora] = dat.reservaId || null;
-            });
-
-            _prepNotasPorReserva = {};
-            snapCobros.forEach(d => {
-                const data = d.data();
-                if (data.operador === OPERADOR_ACTUAL) _prepNotasPorReserva[d.id] = { notaMePago: data.notaMePago || '', notaFaltaPagar: data.notaFaltaPagar || '' };
             });
 
             const reservasPorHora = {};
@@ -3183,50 +3144,6 @@ Motivo: ${motivo}`);
             console.error('renderPreparar:', e);
             cont.innerHTML = '<div class="card"><p style="color:rgba(248,113,113,0.8);font-size:13px;">Error al cargar la jornada.</p></div>';
         }
-    };
-
-    // notaMePago/notaFaltaPagar son campos de texto libre propios de esta
-    // sección, guardados con merge sobre el mismo documento por reserva de
-    // cobrosSesionDepi — nunca pisan importe/medioPago/historial, que son
-    // del bloque "💳 Cobro" de la Agenda.
-    window._prepGuardarMePago = async (id) => {
-        const input = document.getElementById('prep-pago-' + id);
-        if (!input) return;
-        const val = input.value.trim();
-        const existing = _prepNotasPorReserva[id] || {};
-        if ((existing.notaMePago || '') === val) return;
-        const reserva = _prepReservasDelDia.find(r => r._id === id) || {};
-        const docData = {
-            reservaId: id, fecha: reserva.fecha || _prepFechaMostrada, hora: reserva.hora || '',
-            nombre: reserva.nombre || '', servicio: reserva.servicio || '',
-            operador: OPERADOR_ACTUAL, jornada: _prepFechaMostrada,
-            notaMePago: val, updatedAt: serverTimestamp(),
-        };
-        try {
-            await setDoc(doc(db, COLECCION_COBROS, id), docData, { merge: true });
-            _prepNotasPorReserva[id] = { ...existing, notaMePago: val };
-            input.parentElement.classList.toggle('pj-pago-ok', !!val);
-        } catch (e) { console.error('prepGuardarMePago:', e); mostrarAvisoDepi('No se pudo guardar'); }
-    };
-
-    window._prepGuardarFalta = async (id) => {
-        const input = document.getElementById('prep-falta-' + id);
-        if (!input) return;
-        const val = input.value.trim();
-        const existing = _prepNotasPorReserva[id] || {};
-        if ((existing.notaFaltaPagar || '') === val) return;
-        const reserva = _prepReservasDelDia.find(r => r._id === id) || {};
-        const docData = {
-            reservaId: id, fecha: reserva.fecha || _prepFechaMostrada, hora: reserva.hora || '',
-            nombre: reserva.nombre || '', servicio: reserva.servicio || '',
-            operador: OPERADOR_ACTUAL, jornada: _prepFechaMostrada,
-            notaFaltaPagar: val, updatedAt: serverTimestamp(),
-        };
-        try {
-            await setDoc(doc(db, COLECCION_COBROS, id), docData, { merge: true });
-            _prepNotasPorReserva[id] = { ...existing, notaFaltaPagar: val };
-            input.parentElement.classList.toggle('pj-falta-set', !!val);
-        } catch (e) { console.error('prepGuardarFalta:', e); mostrarAvisoDepi('No se pudo guardar'); }
     };
 
     window._prepGuardarObs = async () => {
