@@ -483,24 +483,46 @@
         .sp-hist-entry { font-size: 11px; color: var(--texto-suave); padding: 5px 0; border-top: 1px solid var(--borde); line-height: 1.5; }
 
         /* ── PREPARAR JORNADA: lista horizontal, solo horarios ocupados ──
-           Sin columnas de box vacías — una fila prolija por turno real,
-           en horizontal (hora, paciente, y los dos campos de pago al lado). */
+           Sin columnas de box vacías — una fila prolija por turno real. Los
+           campos de pago van con la etiqueta ARRIBA del recuadro (no al
+           lado) para que el texto nunca se corte ni se vea amontonado. */
         .pj-list { border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; }
-        .pj-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--borde); flex-wrap: wrap; }
+        .pj-row { display: flex; align-items: flex-start; gap: 16px; padding: 12px 14px; border-bottom: 1px solid var(--borde); flex-wrap: wrap; }
         .pj-row:last-child { border-bottom: 0; }
-        .pj-row-hora { font-size: 13px; font-weight: 800; color: rgba(100,200,150,0.90); min-width: 50px; flex-shrink: 0; }
-        .pj-row-pac { flex: 1 1 160px; min-width: 140px; }
-        .pj-pac-nombre { font-size: 13px; font-weight: 700; color: var(--texto); }
-        .pj-pac-servicio { font-size: 11px; color: var(--texto-suave); margin-top: 1px; }
-        .pj-row-continua { color: var(--texto-suave); font-size: 12px; font-style: italic; opacity: .7; flex: 1; }
-        .pj-pago-row { display: flex; gap: 8px; flex-wrap: wrap; flex: 1 1 260px; }
-        .pj-pago-field { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.04); border: 1px solid var(--borde); border-radius: 7px; padding: 6px 8px; flex: 1; min-width: 120px; }
-        .pj-pago-field label { font-size: 10px; color: var(--texto-suave); white-space: nowrap; }
-        .pj-pago-field input { width: 100%; min-width: 0; background: transparent; border: none; outline: none; color: var(--texto); font-size: 12.5px; font-weight: 600; font-family: inherit; }
+        .pj-row-hora { font-size: 13px; font-weight: 800; color: rgba(100,200,150,0.90); min-width: 50px; flex-shrink: 0; padding-top: 8px; }
+        .pj-row-pac { flex: 1 1 180px; min-width: 150px; padding-top: 4px; }
+        .pj-pac-nombre { font-size: 13.5px; font-weight: 700; color: var(--texto); }
+        .pj-pac-servicio { font-size: 11px; color: var(--texto-suave); margin-top: 2px; }
+        .pj-row-continua { color: var(--texto-suave); font-size: 12px; font-style: italic; opacity: .7; flex: 1; padding-top: 8px; }
+        .pj-pago-row { display: flex; gap: 10px; flex-wrap: wrap; flex: 1 1 280px; }
+        .pj-pago-field { display: flex; flex-direction: column; gap: 3px; background: rgba(255,255,255,0.04); border: 1px solid var(--borde); border-radius: 8px; padding: 6px 9px; flex: 1; min-width: 135px; }
+        .pj-pago-field label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--texto-suave); white-space: nowrap; }
+        .pj-pago-field input { width: 100%; min-width: 0; background: transparent; border: none; outline: none; color: var(--texto); font-size: 13px; font-weight: 600; font-family: inherit; padding: 1px 0; }
         .pj-pago-field.pj-pago-ok { border-color: rgba(74,222,128,0.40); background: rgba(74,222,128,0.07); }
         .pj-pago-field.pj-falta-set { border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.06); }
         .pj-obs-status { font-size: 11px; min-height: 16px; margin-top: 4px; }
-        @media (max-width: 560px) { .pj-row { flex-direction: column; align-items: stretch; } .pj-row-hora { min-width: 0; } }
+        .pj-print-btn-row { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        @media (max-width: 560px) { .pj-row { flex-direction: column; align-items: stretch; } .pj-row-hora { min-width: 0; padding-top: 0; } }
+
+        /* ── Impresión: hoja A4 limpia, blanco y negro, solo el contenido
+              de Preparar jornada — nada de sidebar ni de controles. ── */
+        @media print {
+            body * { visibility: hidden; }
+            #secPreparar, #secPreparar * { visibility: visible; }
+            #secPreparar { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+            body, #secPreparar, #secPreparar .card { background: #fff !important; }
+            #secPreparar, #secPreparar .sec-title, #secPreparar .pj-pac-nombre { color: #111 !important; }
+            #secPreparar .pj-pac-servicio, #secPreparar .pj-row-continua, #secPreparar .pj-pago-field label, #secPreparar .sp-flabel { color: #444 !important; }
+            #secPreparar .card { border: none !important; }
+            #secPreparar .pj-list { border: 1px solid #999 !important; }
+            #secPreparar .pj-row { border-bottom: 1px solid #ccc !important; page-break-inside: avoid; }
+            #secPreparar .pj-row-hora { color: #111 !important; }
+            #secPreparar .pj-pago-field { background: transparent !important; border: none !important; border-bottom: 1px solid #333 !important; border-radius: 0 !important; padding: 2px 2px 4px !important; }
+            #secPreparar .pj-pago-field input { color: #111 !important; }
+            #secPreparar textarea { border: 1px solid #999 !important; background: #fff !important; color: #111 !important; }
+            @page { size: A4; margin: 14mm; }
+        }
 
         /* ── MODAL EDITAR COBRO ── */
         .mec-overlay { position: fixed; inset: 0; z-index: 9999; background: rgba(9,11,24,0.88); backdrop-filter: blur(12px); display: none; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; }
@@ -788,8 +810,8 @@
         <!-- ══ CIERRE DE JORNADA ══ -->
         <!-- ══ PREPARAR JORNADA ══ -->
         <div id="secPreparar" class="section">
-            <h2 class="sec-title">Preparar jornada</h2>
-            <div class="card" style="margin-bottom:14px;">
+            <h2 class="sec-title no-print">Preparar jornada</h2>
+            <div class="card no-print" style="margin-bottom:14px;">
                 <label style="display:block;margin-bottom:6px;font-size:12px;color:var(--texto-suave);">Elegir el día a preparar</label>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                     <input class="form-input" type="date" id="prepFechaPicker" style="flex:1;min-width:150px;" onchange="window._verPrepFecha(this.value)">
@@ -3055,13 +3077,13 @@ Motivo: ${motivo}`);
         return `<div class="pj-pago-row">
             <div class="pj-pago-field${n.notaMePago ? ' pj-pago-ok' : ''}">
                 <label>Me pagó</label>
-                <input type="text" placeholder="Efectivo / Transferencia..." id="prep-pago-${r._id}"
+                <input type="text" placeholder="Efectivo" id="prep-pago-${r._id}"
                     value="${escHtml(n.notaMePago || '')}"
                     onblur="window._prepGuardarMePago('${r._id}')">
             </div>
             <div class="pj-pago-field${n.notaFaltaPagar ? ' pj-falta-set' : ''}">
                 <label>Falta pagar</label>
-                <input type="text" placeholder="Ej: $2000" id="prep-falta-${r._id}"
+                <input type="text" placeholder="$ 2000" id="prep-falta-${r._id}"
                     value="${escHtml(n.notaFaltaPagar || '')}"
                     onblur="window._prepGuardarFalta('${r._id}')">
             </div>
@@ -3135,6 +3157,9 @@ Motivo: ${motivo}`);
 
             cont.innerHTML = `
                 <h2 class="sec-title">Preparar jornada · ${fechaLeg}</h2>
+                <div class="pj-print-btn-row no-print">
+                    <button class="btn-outline" style="font-size:12px;" onclick="window.print()">🖨 Imprimir</button>
+                </div>
                 <div class="card" style="padding:0;">
                     <div class="pj-list">
                         ${filas || '<div style="padding:16px;color:var(--texto-suave);font-size:13px;">Sin turnos para este día.</div>'}
