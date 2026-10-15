@@ -482,37 +482,25 @@
         .sp-hist-list { margin-top: 6px; display: flex; flex-direction: column; }
         .sp-hist-entry { font-size: 11px; color: var(--texto-suave); padding: 5px 0; border-top: 1px solid var(--borde); line-height: 1.5; }
 
-        /* ── PREPARAR JORNADA: grilla de boxes (punto nuevo) ──
-           Depilación usa un solo box real — las otras 3 columnas se pintan
-           vacías/atenuadas solo para que la grilla se vea completa, igual
-           que la del panel general. El espacio de esas columnas vacías no
-           se usa, así que el cobro va aparte en cada fila ocupada. */
-        .pj-grid-wrap { overflow-x: auto; border: 1px solid var(--borde); border-radius: 12px; }
-        .pj-grid { display: grid; grid-template-columns: 70px repeat(4, minmax(170px, 1fr)); min-width: 760px; }
-        .pj-head { background: rgba(255,255,255,0.045); color: var(--texto-suave); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 10px 8px; border-bottom: 1px solid var(--borde); position: sticky; top: 0; }
-        .pj-head-hora { text-align: center; }
-        .pj-row-hora { display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: rgba(100,200,150,0.85); border-bottom: 1px solid var(--borde); border-right: 1px solid var(--borde); padding: 8px 4px; }
-        .pj-cell { border-bottom: 1px solid var(--borde); border-right: 1px solid var(--borde); padding: 8px; min-height: 46px; }
-        .pj-cell:last-child { border-right: 0; }
-        .pj-cell-libre { color: var(--texto-suave); font-size: 11px; display: flex; align-items: center; opacity: .55; }
-        .pj-cell-vacia { background: repeating-linear-gradient(135deg, rgba(255,255,255,0.012) 0 8px, transparent 8px 16px); color: var(--texto-suave); font-size: 10px; display: flex; align-items: center; justify-content: center; opacity: .35; }
-        .pj-pac-nombre { font-size: 12.5px; font-weight: 700; color: var(--texto); }
-        .pj-pac-servicio { font-size: 10.5px; color: var(--texto-suave); margin-top: 1px; }
-        .pj-pago-row { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
-        .pj-pago-field { display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--borde); border-radius: 7px; padding: 4px 6px; flex: 1; min-width: 86px; }
-        .pj-pago-field label { font-size: 9.5px; color: var(--texto-suave); white-space: nowrap; }
-        .pj-pago-field input { width: 100%; min-width: 0; background: transparent; border: none; outline: none; color: var(--texto); font-size: 12px; font-weight: 700; font-family: inherit; -moz-appearance: textfield; }
-        .pj-pago-field input::-webkit-inner-spin-button, .pj-pago-field input::-webkit-outer-spin-button { -webkit-appearance: none; }
+        /* ── PREPARAR JORNADA: lista horizontal, solo horarios ocupados ──
+           Sin columnas de box vacías — una fila prolija por turno real,
+           en horizontal (hora, paciente, y los dos campos de pago al lado). */
+        .pj-list { border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; }
+        .pj-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--borde); flex-wrap: wrap; }
+        .pj-row:last-child { border-bottom: 0; }
+        .pj-row-hora { font-size: 13px; font-weight: 800; color: rgba(100,200,150,0.90); min-width: 50px; flex-shrink: 0; }
+        .pj-row-pac { flex: 1 1 160px; min-width: 140px; }
+        .pj-pac-nombre { font-size: 13px; font-weight: 700; color: var(--texto); }
+        .pj-pac-servicio { font-size: 11px; color: var(--texto-suave); margin-top: 1px; }
+        .pj-row-continua { color: var(--texto-suave); font-size: 12px; font-style: italic; opacity: .7; flex: 1; }
+        .pj-pago-row { display: flex; gap: 8px; flex-wrap: wrap; flex: 1 1 260px; }
+        .pj-pago-field { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.04); border: 1px solid var(--borde); border-radius: 7px; padding: 6px 8px; flex: 1; min-width: 120px; }
+        .pj-pago-field label { font-size: 10px; color: var(--texto-suave); white-space: nowrap; }
+        .pj-pago-field input { width: 100%; min-width: 0; background: transparent; border: none; outline: none; color: var(--texto); font-size: 12.5px; font-weight: 600; font-family: inherit; }
         .pj-pago-field.pj-pago-ok { border-color: rgba(74,222,128,0.40); background: rgba(74,222,128,0.07); }
         .pj-pago-field.pj-falta-set { border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.06); }
-        .pj-resumen-card { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .pj-resumen-tile { background: rgba(255,255,255,0.035); border: 1px solid var(--borde); border-radius: 10px; padding: 12px 14px; }
-        .pj-resumen-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-suave); }
-        .pj-resumen-valor { font-size: 20px; font-weight: 800; margin-top: 4px; font-variant-numeric: tabular-nums; }
-        .pj-resumen-valor.pj-cobrado { color: rgba(74,222,128,0.90); }
-        .pj-resumen-valor.pj-pendiente { color: rgba(248,113,113,0.85); }
         .pj-obs-status { font-size: 11px; min-height: 16px; margin-top: 4px; }
-        @media (max-width: 640px) { .pj-grid { grid-template-columns: 56px repeat(4, minmax(150px, 1fr)); } .pj-resumen-card { grid-template-columns: 1fr; } }
+        @media (max-width: 560px) { .pj-row { flex-direction: column; align-items: stretch; } .pj-row-hora { min-width: 0; } }
 
         /* ── MODAL EDITAR COBRO ── */
         .mec-overlay { position: fixed; inset: 0; z-index: 9999; background: rgba(9,11,24,0.88); backdrop-filter: blur(12px); display: none; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; }
@@ -3036,17 +3024,18 @@ Motivo: ${motivo}`);
     };
 
     /* ── PREPARAR JORNADA ──
-       Vista del día organizada como grilla (igual que la del panel general:
-       un horario por fila, un box por columna), para tener todo a mano
-       antes de empezar a atender. Depilación usa un solo box real — las
-       otras 3 columnas quedan vacías/atenuadas, solo para que la grilla se
-       vea completa. "Me pagó" lee y escribe el MISMO documento que ya usa
-       el bloque "💳 Cobro" de la Agenda (cobrosSesionDepi) — no es un
-       registro aparte, así que lo que se carga acá también aparece allá y
-       viceversa. "Falta pagar" es un campo nuevo (no existía en ningún
-       lado) que se guarda en ese mismo documento. */
+       Lista horizontal, prolija, con SOLO los horarios que tienen gente —
+       nada de filas "Libre" ni de columnas de box vacías. Un servicio que
+       ocupa más de un turno (ej. 60 min = 2 slots de 30) sigue mostrando a
+       la misma paciente en el segundo horario como "(continúa)", nunca como
+       libre — se detecta igual que en la Agenda, vía calendarExceptionsDepi
+       (tipo:'extension'). "Me pagó" y "Falta pagar" son dos campos de TEXTO
+       libre (no un monto forzado) — se guardan en el mismo documento de
+       cobrosSesionDepi de cada reserva, en campos propios (notaMePago /
+       notaFaltaPagar) que no tocan importe/medioPago/historial, así que
+       nunca interfieren con el bloque "💳 Cobro" de la Agenda. */
     let _prepFechaMostrada = null;
-    let _prepCobrosPorReserva = {}; // reservaId -> doc de cobrosSesionDepi (de la jornada que se está mostrando)
+    let _prepNotasPorReserva = {}; // reservaId -> { notaMePago, notaFaltaPagar }
     let _prepReservasDelDia = [];
 
     window._verPrepFecha = (fecha) => {
@@ -3061,45 +3050,37 @@ Motivo: ${motivo}`);
         window._verPrepFecha(hoy);
     };
 
-    const _prepSumar = (campo) =>
-        Object.values(_prepCobrosPorReserva).reduce((s, c) => s + (Number(c[campo]) || 0), 0);
-
-    const _prepActualizarResumen = () => {
-        const cobradoEl = document.getElementById('prepTotalCobrado');
-        const pendienteEl = document.getElementById('prepTotalPendiente');
-        if (cobradoEl) cobradoEl.textContent = _fmtMonto(_prepSumar('importe')) || '$ 0';
-        if (pendienteEl) pendienteEl.textContent = _fmtMonto(_prepSumar('faltaPagar')) || '$ 0';
-    };
-
-    const _prepCeldaPago = (r) => {
-        const c = _prepCobrosPorReserva[r._id] || {};
-        const tieneMePago = c.importe > 0;
-        const tieneFalta = c.faltaPagar > 0;
+    const _prepFilaPago = (r) => {
+        const n = _prepNotasPorReserva[r._id] || {};
         return `<div class="pj-pago-row">
-            <div class="pj-pago-field${tieneMePago ? ' pj-pago-ok' : ''}">
-                <label>Me pagó $</label>
-                <input type="number" min="0" step="100" placeholder="0" id="prep-pago-${r._id}"
-                    value="${tieneMePago ? Math.round(c.importe) : ''}"
+            <div class="pj-pago-field${n.notaMePago ? ' pj-pago-ok' : ''}">
+                <label>Me pagó</label>
+                <input type="text" placeholder="Efectivo / Transferencia..." id="prep-pago-${r._id}"
+                    value="${escHtml(n.notaMePago || '')}"
                     onblur="window._prepGuardarMePago('${r._id}')">
             </div>
-            <div class="pj-pago-field${tieneFalta ? ' pj-falta-set' : ''}">
-                <label>Falta $</label>
-                <input type="number" min="0" step="100" placeholder="0" id="prep-falta-${r._id}"
-                    value="${tieneFalta ? Math.round(c.faltaPagar) : ''}"
+            <div class="pj-pago-field${n.notaFaltaPagar ? ' pj-falta-set' : ''}">
+                <label>Falta pagar</label>
+                <input type="text" placeholder="Ej: $2000" id="prep-falta-${r._id}"
+                    value="${escHtml(n.notaFaltaPagar || '')}"
                     onblur="window._prepGuardarFalta('${r._id}')">
             </div>
         </div>`;
     };
 
-    const _prepCeldaBox1 = (hora, reservasPorHora) => {
-        const r = reservasPorHora[hora];
-        if (!r) return `<div class="pj-cell pj-cell-libre">Libre</div>`;
-        return `<div class="pj-cell">
+    const _prepFilaReserva = (r) => `<div class="pj-row">
+        <div class="pj-row-hora">${r.hora}</div>
+        <div class="pj-row-pac">
             <div class="pj-pac-nombre">${escHtml(r.nombre || 'Sin nombre')}</div>
             <div class="pj-pac-servicio">${escHtml(r.servicio || '')}${r.estado && r.estado !== 'pendiente' ? ` · ${escHtml({confirmada:'Confirmada',cancelada:'Cancelada',realizada:'Realizada'}[r.estado]||r.estado)}` : ''}</div>
-            ${_prepCeldaPago(r)}
-        </div>`;
-    };
+        </div>
+        ${_prepFilaPago(r)}
+    </div>`;
+
+    const _prepFilaContinua = (hora, r) => `<div class="pj-row">
+        <div class="pj-row-hora">${hora}</div>
+        <div class="pj-row-continua">↳ ${escHtml(r?.nombre || '')} (continúa)</div>
+    </div>`;
 
     window._renderPreparar = async () => {
         const fecha = _prepFechaMostrada || fmtFecha(new Date());
@@ -3110,32 +3091,44 @@ Motivo: ${motivo}`);
         if (!cont) return;
         cont.innerHTML = '<div class="card"><p style="font-size:13px;color:var(--texto-suave);">Cargando…</p></div>';
         try {
-            const [snapR, snapCobros, obsSnap] = await Promise.all([
+            const [snapR, snapEx, snapCobros, obsSnap] = await Promise.all([
                 getDocs(query(collection(db, COLECCION), where('fecha', '==', fecha))),
+                getDocs(query(collection(db, COLECCION_EX), where('fecha', '==', fecha))),
                 getDocs(query(collection(db, COLECCION_COBROS), where('jornada', '==', fecha))),
                 getDoc(doc(db, COLECCION_PREP_OBS, fecha)),
             ]);
             const reservas = [];
             snapR.forEach(d => { const dat = d.data(); if (!dat.eliminado) reservas.push({ _id: d.id, ...dat }); });
-            reservas.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
             _prepReservasDelDia = reservas;
 
-            _prepCobrosPorReserva = {};
+            // Slots "extension": el mismo horario del turno anterior sigue
+            // ocupado porque el servicio dura más de 30 min — mismo criterio
+            // que ya usa renderDiaDetalle en la Agenda.
+            const extensiones = {}; // hora -> reservaId
+            snapEx.forEach(d => {
+                const dat = d.data();
+                if (dat.tipo === 'extension' && dat.hora) extensiones[dat.hora] = dat.reservaId || null;
+            });
+
+            _prepNotasPorReserva = {};
             snapCobros.forEach(d => {
                 const data = d.data();
-                if (data.operador === OPERADOR_ACTUAL) _prepCobrosPorReserva[d.id] = data;
+                if (data.operador === OPERADOR_ACTUAL) _prepNotasPorReserva[d.id] = { notaMePago: data.notaMePago || '', notaFaltaPagar: data.notaFaltaPagar || '' };
             });
 
             const reservasPorHora = {};
             reservas.forEach(r => { reservasPorHora[r.hora] = r; });
 
-            const filas = TODOS_HORARIOS.map(hora => `
-                <div class="pj-row-hora">${hora}</div>
-                ${_prepCeldaBox1(hora, reservasPorHora)}
-                <div class="pj-cell pj-cell-vacia">Sin uso</div>
-                <div class="pj-cell pj-cell-vacia">Sin uso</div>
-                <div class="pj-cell pj-cell-vacia">Sin uso</div>
-            `).join('');
+            // Solo se listan los horarios ocupados (reserva real o
+            // continuación de una), nunca los libres.
+            const horasOcupadas = new Set([...Object.keys(reservasPorHora), ...Object.keys(extensiones)]);
+            const horasOrdenadas = [...horasOcupadas].sort((a, b) => a.localeCompare(b));
+
+            const filas = horasOrdenadas.map(hora => {
+                if (reservasPorHora[hora]) return _prepFilaReserva(reservasPorHora[hora]);
+                const rOrig = reservas.find(r => r._id === extensiones[hora]);
+                return _prepFilaContinua(hora, rOrig);
+            }).join('');
 
             const fechaLeg = _fmtFechaLeg(fecha);
             const obs = obsSnap.exists() ? (obsSnap.data().observaciones || '') : '';
@@ -3143,34 +3136,14 @@ Motivo: ${motivo}`);
             cont.innerHTML = `
                 <h2 class="sec-title">Preparar jornada · ${fechaLeg}</h2>
                 <div class="card" style="padding:0;">
-                    <div class="pj-grid-wrap">
-                        <div class="pj-grid">
-                            <div class="pj-head pj-head-hora">Hora</div>
-                            <div class="pj-head">Box 1</div>
-                            <div class="pj-head">Box 2</div>
-                            <div class="pj-head">Box 3</div>
-                            <div class="pj-head">Box 4</div>
-                            ${filas}
-                        </div>
+                    <div class="pj-list">
+                        ${filas || '<div style="padding:16px;color:var(--texto-suave);font-size:13px;">Sin turnos para este día.</div>'}
                     </div>
                 </div>
                 <div class="card">
-                    <h4 style="margin-bottom:10px;font-size:13px;">Cierre de la jornada</h4>
-                    <div class="pj-resumen-card">
-                        <div class="pj-resumen-tile">
-                            <div class="pj-resumen-label">Total cobrado</div>
-                            <div class="pj-resumen-valor pj-cobrado" id="prepTotalCobrado">${_fmtMonto(_prepSumar('importe')) || '$ 0'}</div>
-                        </div>
-                        <div class="pj-resumen-tile">
-                            <div class="pj-resumen-label">Total pendiente</div>
-                            <div class="pj-resumen-valor pj-pendiente" id="prepTotalPendiente">${_fmtMonto(_prepSumar('faltaPagar')) || '$ 0'}</div>
-                        </div>
-                    </div>
-                    <div style="margin-top:14px;">
-                        <label class="sp-flabel" style="display:block;margin-bottom:6px;">Observaciones</label>
-                        <textarea id="prepObs" rows="3" class="tc-textarea" placeholder="Notas generales del día..." onblur="window._prepGuardarObs()">${escHtml(obs)}</textarea>
-                        <div class="pj-obs-status" id="prepObsStatus"></div>
-                    </div>
+                    <label class="sp-flabel" style="display:block;margin-bottom:6px;">Observaciones</label>
+                    <textarea id="prepObs" rows="3" class="tc-textarea" placeholder="Notas generales del día..." onblur="window._prepGuardarObs()">${escHtml(obs)}</textarea>
+                    <div class="pj-obs-status" id="prepObsStatus"></div>
                 </div>`;
         } catch (e) {
             console.error('renderPreparar:', e);
@@ -3178,65 +3151,48 @@ Motivo: ${motivo}`);
         }
     };
 
-    // Mismo documento y misma forma de historial que _autoguardarCobro (el
-    // bloque "💳 Cobro" de la Agenda) — para que un cambio hecho acá se vea
-    // igual allá, nunca un registro paralelo inconsistente. Si ya existía
-    // un medioPago cargado desde la Agenda, se conserva tal cual.
+    // notaMePago/notaFaltaPagar son campos de texto libre propios de esta
+    // sección, guardados con merge sobre el mismo documento por reserva de
+    // cobrosSesionDepi — nunca pisan importe/medioPago/historial, que son
+    // del bloque "💳 Cobro" de la Agenda.
     window._prepGuardarMePago = async (id) => {
         const input = document.getElementById('prep-pago-' + id);
         if (!input) return;
-        const val = parseFloat(input.value);
-        if (!(val >= 0)) return;
-        const existing = _prepCobrosPorReserva[id];
-        if (existing && existing.importe === val) return;
+        const val = input.value.trim();
+        const existing = _prepNotasPorReserva[id] || {};
+        if ((existing.notaMePago || '') === val) return;
         const reserva = _prepReservasDelDia.find(r => r._id === id) || {};
-        const medio = existing?.medioPago || 'efectivo';
-        const historial = [...(existing?.historial || []), {
-            ts: new Date().toISOString(),
-            tipo: existing ? 'modificacion_auto' : 'registro',
-            importeAnterior: existing?.importe ?? null,
-            importeNuevo: val, medioPago: medio, motivo: null
-        }];
         const docData = {
             reservaId: id, fecha: reserva.fecha || _prepFechaMostrada, hora: reserva.hora || '',
             nombre: reserva.nombre || '', servicio: reserva.servicio || '',
             operador: OPERADOR_ACTUAL, jornada: _prepFechaMostrada,
-            importe: val, medioPago: medio,
-            comprobante: existing?.comprobante || '',
-            faltaPagar: existing?.faltaPagar ?? null,
-            jornadaCerrada: existing?.jornadaCerrada || false,
-            historial, updatedAt: serverTimestamp(),
+            notaMePago: val, updatedAt: serverTimestamp(),
         };
-        if (!existing) docData.createdAt = serverTimestamp();
         try {
-            await setDoc(doc(db, COLECCION_COBROS, id), docData);
-            _prepCobrosPorReserva[id] = { ...docData, historial };
-            input.parentElement.classList.toggle('pj-pago-ok', val > 0);
-            _prepActualizarResumen();
-        } catch (e) { console.error('prepGuardarMePago:', e); mostrarAvisoDepi('No se pudo guardar el pago'); }
+            await setDoc(doc(db, COLECCION_COBROS, id), docData, { merge: true });
+            _prepNotasPorReserva[id] = { ...existing, notaMePago: val };
+            input.parentElement.classList.toggle('pj-pago-ok', !!val);
+        } catch (e) { console.error('prepGuardarMePago:', e); mostrarAvisoDepi('No se pudo guardar'); }
     };
 
     window._prepGuardarFalta = async (id) => {
         const input = document.getElementById('prep-falta-' + id);
         if (!input) return;
-        const val = parseFloat(input.value);
-        const valOk = val >= 0 ? val : null;
-        const existing = _prepCobrosPorReserva[id];
-        if ((existing?.faltaPagar ?? null) === valOk) return;
+        const val = input.value.trim();
+        const existing = _prepNotasPorReserva[id] || {};
+        if ((existing.notaFaltaPagar || '') === val) return;
         const reserva = _prepReservasDelDia.find(r => r._id === id) || {};
         const docData = {
             reservaId: id, fecha: reserva.fecha || _prepFechaMostrada, hora: reserva.hora || '',
             nombre: reserva.nombre || '', servicio: reserva.servicio || '',
             operador: OPERADOR_ACTUAL, jornada: _prepFechaMostrada,
-            faltaPagar: valOk, updatedAt: serverTimestamp(),
+            notaFaltaPagar: val, updatedAt: serverTimestamp(),
         };
-        if (!existing) docData.createdAt = serverTimestamp();
         try {
             await setDoc(doc(db, COLECCION_COBROS, id), docData, { merge: true });
-            _prepCobrosPorReserva[id] = { ..._prepCobrosPorReserva[id], ...docData };
-            input.parentElement.classList.toggle('pj-falta-set', !!valOk);
-            _prepActualizarResumen();
-        } catch (e) { console.error('prepGuardarFalta:', e); mostrarAvisoDepi('No se pudo guardar el saldo pendiente'); }
+            _prepNotasPorReserva[id] = { ...existing, notaFaltaPagar: val };
+            input.parentElement.classList.toggle('pj-falta-set', !!val);
+        } catch (e) { console.error('prepGuardarFalta:', e); mostrarAvisoDepi('No se pudo guardar'); }
     };
 
     window._prepGuardarObs = async () => {
