@@ -268,5 +268,10 @@ dialog::backdrop { background: #0c251ecc; }
 .historial-evento-cuando { color: var(--muted); font-size: .78rem; }
 .historial-evento-cambio { margin-top: 4px; font-size: .82rem; color: var(--muted); background: #f0f1e9; border-radius: 8px; padding: 6px 9px; }
 .aviso-discrepancia { background: #f3ebd8; color: var(--amber); border: 1px solid #e4d3a8; border-radius: 10px; padding: 10px 12px; font-size: .82rem; margin: 8px 0; }
-.wa-preview-textarea { width: 100%; border: 1px solid #c9d0c3; border-radius: 10px; padding: 11px; background: #fffefb; color: var(--ink); font: inherit; font-size: 15px; resize: vertical; margin-bottom: 12px; }
+/* flex-shrink:0 — este textarea vive dentro de .dialog-body (flex column).
+   Sin esto, cuando el teclado achica el viewport (dvh del dialog recalcula
+   más chico), flexbox lo comprime a su alto mínimo intrínseco de una sola
+   línea en vez de dejar que .dialog-body scrollee (que ya tiene
+   overflow-y:auto para eso). Se veía "cortado" al tocar el campo. */
+.wa-preview-textarea { width: 100%; border: 1px solid #c9d0c3; border-radius: 10px; padding: 11px; background: #fffefb; color: var(--ink); font: inherit; font-size: 15px; resize: vertical; margin-bottom: 12px; flex-shrink: 0; }
 
