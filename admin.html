@@ -1721,7 +1721,7 @@
             <div id="sec-clientes" class="section">
                 <!-- Búsqueda, filtros y listado primero -->
                 <div style="position:relative; margin-bottom:10px">
-                    <input type="text" class="busc-input" id="inpBusPaciente" placeholder="Buscar paciente por nombre..." oninput="buscarPacienteNombreInput(); filtrarListadoClientesInput()" autocomplete="off" style="margin-bottom:0">
+                    <input type="text" class="busc-input" id="inpBusPaciente" placeholder="Buscar paciente por nombre o DNI..." oninput="buscarPacienteNombreInput(); filtrarListadoClientesInput()" autocomplete="off" style="margin-bottom:0">
                     <div id="sugerenciasPaciente" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-lg); z-index:200; max-height:220px; overflow-y:auto;"></div>
                 </div>
                 <div class="filtros-advanced" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom:12px;">
@@ -1856,7 +1856,7 @@
                         <div style="margin-bottom:10px;">
                             <label style="display:block;font-size:12px;font-weight:700;color:rgba(22,61,50,0.88);margin-bottom:5px;">Nombre de usuario</label>
                             <div style="position:relative;">
-                                <input type="text" id="kitAdminBusqueda" placeholder="Escribí el nombre del paciente..." autocomplete="off" oninput="buscarPacienteKitAdmin(this.value)" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;">
+                                <input type="text" id="kitAdminBusqueda" placeholder="Nombre o DNI del paciente..." autocomplete="off" oninput="buscarPacienteKitAdmin(this.value)" style="width:100%;padding:9px 10px;border:1.5px solid var(--border-strong);border-radius:10px;font-family:inherit;font-size:13px;color:rgba(36,51,43,0.95);background:var(--surface-2);outline:none;box-sizing:border-box;">
                                 <div id="kitAdminSugerencias" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:#132018;border:1px solid rgba(114,189,153,0.30);border-top:none;border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,0.35);"></div>
                             </div>
                         </div>
@@ -2349,10 +2349,11 @@
                     </div>
                     <div style="background:var(--sage-soft);border:1px solid var(--border-strong);border-radius:10px;padding:10px 12px;margin-bottom:18px;font-size:13px;color:var(--ink);font-weight:700;">Box 1 · General — siempre</div>
                     <div style="display:flex;flex-direction:column;gap:14px;">
-                        <div class="field" id="nc-nombre-field">
+                        <div class="field" id="nc-nombre-field" style="position:relative">
                             <label for="nc-nombre">Nombre completo *</label>
-                            <input id="nc-nombre" class="select-input" type="text" placeholder="Nombre y apellido" oninput="this.classList.remove('input-error');document.getElementById('nc-nombre-field').classList.remove('has-error')">
+                            <input id="nc-nombre" class="select-input" type="text" placeholder="Nombre y apellido (o DNI para buscar)" autocomplete="off" oninput="this.classList.remove('input-error');document.getElementById('nc-nombre-field').classList.remove('has-error');buscarPacienteConsultaInput()">
                             <div class="field-error-msg">El nombre es obligatorio</div>
+                            <div id="nc-sugerencias" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-lg); z-index:300; max-height:220px; overflow-y:auto;"></div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                             <div class="field" id="nc-fecha-field">
@@ -5273,37 +5274,35 @@
             _mreg_debounce = setTimeout(() => buscarPacientesPorNombre(q), 350);
         });
 
-        const buscarPacientesPorNombre = async (q) => {
+        // Busca en el listado ya cargado en memoria (todasLosPacientes, el
+        // mismo que usa toda la app) en vez de pedir la colección "clients"
+        // entera a Firestore en cada tecla: esa consulta repetida tardaba
+        // lo suficiente como para que, si la administradora llegaba a
+        // tocar un resultado justo cuando una respuesta tardía reemplazaba
+        // la lista, el click cayera sobre un elemento ya reemplazado y no
+        // pasara nada. Ahora es instantáneo y además busca por DNI, no
+        // solo por nombre.
+        const buscarPacientesPorNombre = (q) => {
             const resultadosEl = document.getElementById('mreg-resultados');
-            try {
-                const snap = await getDocs(collection(db, "clients"));
-                const matches = [];
-                snap.forEach(docSnap => {
-                    const d = docSnap.data();
-                    if (d.redirigidoA) return; // DNI migrado con "Cambiar ID" — no es un paciente seleccionable
-                    const nombre = (d.fullName || d.fullLname || d.nombre || d.name || '').toString().trim();
-                    if (nombre.toLowerCase().includes(q.toLowerCase())) {
-                        matches.push({ id: docSnap.id, nombre, phone: normalizarTelefono(d.phone || '') });
-                    }
-                });
-                if (matches.length === 0) {
-                    resultadosEl.innerHTML = '<div style="font-size:12px;color:#4C6759;padding:6px 0">Sin resultados</div>';
-                    return;
-                }
-                resultadosEl.innerHTML = matches.slice(0, 5).map(p => `
-                    <div class="mreg-paciente-item" data-dni="${escapeHtml(p.id)}" data-nombre="${escapeHtml(p.nombre)}" data-phone="${escapeHtml(p.phone)}"
-                         onclick="seleccionarPacienteRegistro(this)">
-                        <div class="mreg-paciente-avatar">${escapeHtml(p.nombre.charAt(0).toUpperCase())}</div>
-                        <div>
-                            <div class="mreg-paciente-nombre">${escapeHtml(p.nombre)}</div>
-                            <div class="mreg-paciente-tel">${escapeHtml(p.phone || 'Sin teléfono')}</div>
-                        </div>
-                    </div>
-                `).join('');
-            } catch(err) {
-                console.error(err);
-                resultadosEl.innerHTML = '<div style="font-size:12px;color:#A5433A;padding:6px 0">Error al buscar</div>';
+            const qTxt = (q || '').toLowerCase().trim();
+            const qDni = (q || '').replace(/\D/g, '');
+            const matches = todasLosPacientes.filter(p =>
+                (p.fullName || '').toLowerCase().includes(qTxt) || (qDni.length >= 3 && (p.dni || '').includes(qDni))
+            ).map(p => ({ id: p.dni, nombre: p.fullName, phone: normalizarTelefono(p.phone || '') }));
+            if (matches.length === 0) {
+                resultadosEl.innerHTML = '<div style="font-size:12px;color:#4C6759;padding:6px 0">Sin resultados</div>';
+                return;
             }
+            resultadosEl.innerHTML = matches.slice(0, 8).map(p => `
+                <div class="mreg-paciente-item" data-dni="${escapeHtml(p.id)}" data-nombre="${escapeHtml(p.nombre)}" data-phone="${escapeHtml(p.phone)}"
+                     onmousedown="seleccionarPacienteRegistro(this)">
+                    <div class="mreg-paciente-avatar">${escapeHtml((p.nombre || '?').charAt(0).toUpperCase())}</div>
+                    <div>
+                        <div class="mreg-paciente-nombre">${escapeHtml(p.nombre)}</div>
+                        <div class="mreg-paciente-tel">DNI ${escapeHtml(p.id)}${p.phone ? ' · ' + escapeHtml(p.phone) : ' · Sin teléfono'}</div>
+                    </div>
+                </div>
+            `).join('');
         };
 
         window.seleccionarPacienteRegistro = (el) => {
@@ -5914,13 +5913,21 @@
         window.buscarClientePorDniInput = debounce(() => window.buscarClientePorDni(false), 350);
         
         window.buscarPacienteNombreInput = debounce(() => {
-            const txt = (document.getElementById("inpBusPaciente").value || "").toLowerCase().trim();
+            const txtCrudo = (document.getElementById("inpBusPaciente").value || "").trim();
+            const txt = txtCrudo.toLowerCase();
+            const dniTxt = txtCrudo.replace(/\D/g, "");
             const cont = document.getElementById("sugerenciasPaciente");
             if (txt.length < 2) { cont.style.display = "none"; return; }
-            const coincidencias = todasLosPacientes.filter(p => (p.fullName || "").toLowerCase().includes(txt)).slice(0, 8);
+            const coincidencias = todasLosPacientes.filter(p =>
+                (p.fullName || "").toLowerCase().includes(txt) || (dniTxt.length >= 3 && (p.dni || "").includes(dniTxt))
+            ).slice(0, 8);
             if (!coincidencias.length) { cont.style.display = "none"; return; }
+            // onmousedown (no onclick): el click se puede perder si el
+            // input pierde foco antes de completarse (muy común en
+            // touch/tablet) — mousedown dispara antes de ese blur, mismo
+            // criterio ya usado en la búsqueda de "Cursos".
             cont.innerHTML = coincidencias.map(p =>
-                `<div onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni)}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f7f3; font-size:13px">
+                `<div onmousedown="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni)}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f7f3; font-size:13px">
                     <strong>${escapeHtml(p.fullName)}</strong> &nbsp;·&nbsp; DNI ${escapeHtml(p.dni)} &nbsp;·&nbsp; Tel. ${escapeHtml(p.phone || 'Sin tel')} &nbsp;·&nbsp; ${p.membershipActive ? 'Membresía' : 'Ocasional'}
                 </div>`
             ).join("");
@@ -6743,13 +6750,20 @@
         };
         
         window.buscarPorNombreFormInput = debounce(() => {
-            const txt = (document.getElementById("cliFullName").value || "").toLowerCase().trim();
+            const txtCrudo = (document.getElementById("cliFullName").value || "").trim();
+            const txt = txtCrudo.toLowerCase();
+            const dniTxt = txtCrudo.replace(/\D/g, "");
             const cont = document.getElementById("sugerenciasNombreForm");
             if (txt.length < 2) { cont.style.display = "none"; return; }
-            const coincidencias = todasLosPacientes.filter(p => (p.fullName || "").toLowerCase().includes(txt)).slice(0, 8);
+            const coincidencias = todasLosPacientes.filter(p =>
+                (p.fullName || "").toLowerCase().includes(txt) || (dniTxt.length >= 3 && (p.dni || "").includes(dniTxt))
+            ).slice(0, 8);
             if (!coincidencias.length) { cont.style.display = "none"; return; }
+            // onmousedown (no onclick): evita que el click se pierda si el
+            // campo pierde foco antes de completarse (mismo fix que en
+            // inpBusPaciente / Cursos).
             cont.innerHTML = coincidencias.map(p =>
-                `<div onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni)}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px; color:rgba(76,103,89,0.90);" onmouseover="this.style.background='rgba(53,122,92,0.14)'" onmouseout="this.style.background=''">
+                `<div onmousedown="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni)}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px; color:rgba(76,103,89,0.90);" onmouseover="this.style.background='rgba(53,122,92,0.14)'" onmouseout="this.style.background=''">
                     <strong>${escapeHtml(p.fullName)}</strong>&nbsp;·&nbsp;DNI ${escapeHtml(p.dni)}&nbsp;·&nbsp;Tel. ${escapeHtml(p.phone || 'Sin tel')}&nbsp;·&nbsp;${p.membershipActive ? 'Membresía' : 'Ocasional'}
                 </div>`
             ).join("");
@@ -9889,17 +9903,22 @@
         let _kitAdminPaciente = null;
 
         window.buscarPacienteKitAdmin = function(val) {
-            const q = val.trim().toLowerCase();
+            const qCrudo = val.trim();
+            const q = qCrudo.toLowerCase();
+            const dniQ = qCrudo.replace(/\D/g, '');
             const sug = document.getElementById('kitAdminSugerencias');
             if (!sug) return;
             if (q.length < 2) { sug.style.display = 'none'; return; }
             const matches = todasLosPacientes
-                .filter(p => (p.fullName || '').toLowerCase().includes(q) || (p.username || '').toLowerCase().includes(q))
+                .filter(p => (p.fullName || '').toLowerCase().includes(q) || (p.username || '').toLowerCase().includes(q) || (dniQ.length >= 3 && (p.dni || '').includes(dniQ)))
                 .slice(0, 8);
             if (!matches.length) { sug.style.display = 'none'; return; }
             sug.style.display = 'block';
+            // onmousedown (no onclick): el click se puede perder si el
+            // input pierde foco antes de completarse — mismo fix aplicado
+            // en el resto de los buscadores de paciente del panel.
             sug.innerHTML = matches.map(p => `
-                <div onclick="seleccionarPacienteKitAdmin('${escapeHtml(p.dni)}')" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;" onmouseover="this.style.background='rgba(53,122,92,0.20)'" onmouseout="this.style.background=''">
+                <div onmousedown="seleccionarPacienteKitAdmin('${escapeHtml(p.dni)}')" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;" onmouseover="this.style.background='rgba(53,122,92,0.20)'" onmouseout="this.style.background=''">
                     <span style="color:rgba(36,51,43,0.92);font-weight:600;">${escapeHtml(p.fullName || p.username || p.dni)}</span>
                     ${p.username ? `<span style="color:rgba(22,61,50,0.55);font-size:11px;margin-left:6px;">@${escapeHtml(p.username)}</span>` : ''}
                     <span style="color:rgba(22,61,50,0.40);font-size:11px;float:right;">DNI ${escapeHtml(p.dni)}</span>
@@ -10133,6 +10152,56 @@
             return `${DIAS_ES[f.getDay()]} ${String(d).padStart(2,'0')} de ${MESES_ES[m-1]} ${y}`;
         };
 
+        // Buscar por nombre O DNI mientras se escribe en "Nombre completo" —
+        // mismo criterio que el resto del panel: lista en memoria
+        // (todasLosPacientes, sin pedir nada a Firestore) y selección con
+        // onmousedown para que el click nunca se pierda si el campo pierde
+        // foco antes de completarse.
+        window.buscarPacienteConsultaInput = debounce(() => {
+            const txtCrudo = (document.getElementById('nc-nombre').value || '').trim();
+            const txt = txtCrudo.toLowerCase();
+            const dniTxt = txtCrudo.replace(/\D/g, '');
+            const cont = document.getElementById('nc-sugerencias');
+            if (txt.length < 2) { cont.style.display = 'none'; return; }
+            const coincidencias = todasLosPacientes.filter(p =>
+                (p.fullName || '').toLowerCase().includes(txt) || (dniTxt.length >= 3 && (p.dni || '').includes(dniTxt))
+            ).slice(0, 8);
+            if (!coincidencias.length) { cont.style.display = 'none'; return; }
+            cont.innerHTML = coincidencias.map(p =>
+                `<div onmousedown="seleccionarPacienteConsulta('${escapeHtml(p.dni)}')" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px;" onmouseover="this.style.background='rgba(53,122,92,0.14)'" onmouseout="this.style.background=''">
+                    <strong>${escapeHtml(p.fullName)}</strong>&nbsp;·&nbsp;DNI ${escapeHtml(p.dni)}${p.phone ? '&nbsp;·&nbsp;Tel. ' + escapeHtml(p.phone) : ''}
+                </div>`
+            ).join('');
+            cont.style.display = 'block';
+        }, 220);
+
+        window.seleccionarPacienteConsulta = (dni) => {
+            const p = todasLosPacientes.find(x => x.dni === dni);
+            const cont = document.getElementById('nc-sugerencias');
+            if (cont) { cont.style.display = 'none'; cont.innerHTML = ''; }
+            if (!p) return;
+            document.getElementById('nc-nombre').value = p.fullName || '';
+            document.getElementById('nc-dni').value = p.dni || '';
+            if (p.phone) document.getElementById('nc-telefono').value = p.phone;
+            if (p.fechaNacimiento) {
+                const hoy = new Date(); const nac = new Date(p.fechaNacimiento + 'T00:00:00');
+                let edad = hoy.getFullYear() - nac.getFullYear();
+                const m = hoy.getMonth() - nac.getMonth();
+                if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+                if (!Number.isNaN(edad)) document.getElementById('nc-edad').value = edad;
+            }
+            // Completa edad/domicilio desde una consulta previa si la hubiera
+            // (mismo criterio que ya usa buscarClienteNuevaConsulta al tipear el DNI).
+            window.buscarClienteNuevaConsulta();
+        };
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#nc-nombre') && !e.target.closest('#nc-sugerencias')) {
+                const cont = document.getElementById('nc-sugerencias');
+                if (cont) cont.style.display = 'none';
+            }
+        });
+
         window.buscarClienteNuevaConsulta = debounce(async () => {
             const dni = (document.getElementById('nc-dni').value || '').trim();
             const statusEl = document.getElementById('nc-dni-status');
@@ -10174,6 +10243,8 @@
             document.getElementById('nc-domicilio').value = '';
             const st = document.getElementById('nc-dni-status');
             if (st) { st.textContent = ''; st.style.color = '#526358'; }
+            const sug = document.getElementById('nc-sugerencias');
+            if (sug) { sug.style.display = 'none'; sug.innerHTML = ''; }
             document.getElementById('nc-fecha').value = fechaHoyISO();
             document.getElementById('nc-hora').value = '09:00';
             // Limpia cualquier estado de error que haya quedado de un intento anterior
@@ -13872,8 +13943,8 @@
             </div>
             <p class="mreg-title" id="mreg-title">Registrar turno</p>
             <p class="mreg-subtitle" id="mreg-fecha-label">—</p>
-            <label class="mreg-field-label" for="mreg-nombre-input">Buscar paciente por nombre</label>
-            <input type="text" class="mreg-input" id="mreg-nombre-input" placeholder="Empezá a escribir el nombre…" autocomplete="off">
+            <label class="mreg-field-label" for="mreg-nombre-input">Buscar paciente por nombre o DNI</label>
+            <input type="text" class="mreg-input" id="mreg-nombre-input" placeholder="Nombre o DNI…" autocomplete="off">
             <div class="mreg-resultados" id="mreg-resultados"></div>
             <div id="mreg-box-row" style="margin:4px 0 12px;">
                 <label class="mreg-field-label" style="margin-bottom:7px;">Box asignado *</label>
