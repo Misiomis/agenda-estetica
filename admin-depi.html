@@ -644,9 +644,10 @@
             <h2 class="sec-title">Nuevo Turno</h2>
             <div class="card">
                 <div class="form-grid">
-                    <div class="form-field full">
+                    <div class="form-field full" style="position:relative;">
                         <label class="form-label">DNI <span id="rDniStatus" style="font-size:11px;font-weight:600;margin-left:8px;transition:color .2s;"></span></label>
-                        <input class="form-input" type="text" id="rDni" placeholder="Sin puntos" inputmode="numeric" oninput="dniAutocomplete(this.value)" autocomplete="off">
+                        <input class="form-input" type="text" id="rDni" placeholder="Sin puntos (podés escribir el nombre para buscar)" inputmode="text" oninput="dniAutocomplete(this.value)" autocomplete="off">
+                        <div id="rDniSugerencias" style="display:none; position:absolute; top:100%; left:0; right:0; background:#0e1b13; border:1px solid var(--borde); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.45); z-index:300; max-height:220px; overflow-y:auto; margin-top:2px;"></div>
                     </div>
                     <div id="rClienteWrap" class="form-field full" style="display:none;padding:0;">
                         <div id="rClienteCard" style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.28);border-radius:10px;padding:11px 15px;font-size:12.5px;line-height:1.9;color:var(--texto);"></div>
@@ -920,6 +921,7 @@
     let _diaRegistroPrefill = null;
     let _clienteCargado = null;
     let _dniTimer = null;
+    let _clientsCacheDepi = null; // lista de "clients" en memoria, cargada una sola vez
 
     // ════════════════════════════════
     // LOGIN — Firebase Authentication real (antes: contraseña local fija
@@ -2011,6 +2013,8 @@
         document.getElementById('rDniStatus').style.color = '';
         document.getElementById('rClienteWrap').style.display = 'none';
         document.getElementById('rClienteCard').innerHTML = '';
+        const sug = document.getElementById('rDniSugerencias');
+        if (sug) { sug.style.display = 'none'; sug.innerHTML = ''; }
         document.getElementById('rNombre').value = '';
         document.getElementById('rTelefono').value = '';
         document.getElementById('rEdad').value = '';
@@ -2024,16 +2028,81 @@
         fb.textContent = '';
     };
 
+    // Edad a partir de la fecha de nacimiento guardada en "clients" (el doc
+    // no trae un campo "edad" propio — eso solo existía como nombre de
+    // campo equivocado acá, nunca en los datos reales).
+    function _edadDesdeFechaNac(fechaNacimiento) {
+        if (!fechaNacimiento) return null;
+        const hoy = new Date();
+        const nac = new Date(fechaNacimiento + 'T00:00:00');
+        if (Number.isNaN(nac.getTime())) return null;
+        let edad = hoy.getFullYear() - nac.getFullYear();
+        const m = hoy.getMonth() - nac.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+        return edad;
+    }
+
+    // Trae "clients" UNA sola vez y la deja en memoria — el resto de las
+    // búsquedas (parciales, por nombre o DNI) se resuelven instantáneo
+    // contra esta lista en vez de pedirle algo nuevo a Firestore en cada
+    // tecla (eso es lo que hacía lenta y propensa a perder clicks la
+    // búsqueda equivalente en admin.html antes de corregirla).
+    async function _asegurarClientsCacheDepi() {
+        if (_clientsCacheDepi) return _clientsCacheDepi;
+        const snap = await getDocs(collection(db, 'clients'));
+        _clientsCacheDepi = [];
+        snap.forEach(docSnap => {
+            const d = docSnap.data() || {};
+            if (d.redirigidoA) return; // DNI migrado con "Cambiar ID" — no es un paciente seleccionable
+            _clientsCacheDepi.push({
+                dni: docSnap.id,
+                nombre: d.fullName || d.fullLname || d.nombre || d.name || '',
+                telefono: d.phone || d.telefono || '',
+                fechaNacimiento: d.fechaNacimiento || '',
+                barrio: d.barrio || d.domicilio || '',
+                email: d.email || '',
+            });
+        });
+        return _clientsCacheDepi;
+    }
+
+    window.seleccionarPacienteDepi = (dni) => {
+        const sug = document.getElementById('rDniSugerencias');
+        if (sug) { sug.style.display = 'none'; sug.innerHTML = ''; }
+        const p = (_clientsCacheDepi || []).find(x => x.dni === dni);
+        if (!p) return;
+        const statusEl = document.getElementById('rDniStatus');
+        const wrapEl   = document.getElementById('rClienteWrap');
+        const cardEl   = document.getElementById('rClienteCard');
+        _clienteCargado = p;
+        document.getElementById('rDni').value = p.dni;
+        document.getElementById('rNombre').value = p.nombre || '';
+        document.getElementById('rTelefono').value = p.telefono || '';
+        const edad = _edadDesdeFechaNac(p.fechaNacimiento);
+        document.getElementById('rEdad').value = edad != null ? edad : '';
+        let partes = [];
+        if (p.fechaNacimiento) partes.push(`<b>Nac.:</b> ${escHtml(p.fechaNacimiento)}`);
+        if (edad != null)      partes.push(`<b>Edad:</b> ${escHtml(String(edad))} años`);
+        if (p.barrio)          partes.push(`<b>Barrio:</b> ${escHtml(p.barrio)}`);
+        if (p.email)           partes.push(`<b>Email:</b> ${escHtml(p.email)}`);
+        cardEl.innerHTML = `<span style="color:rgba(74,222,128,0.9);font-weight:700;">✓ Paciente encontrada</span>&ensp;${escHtml(p.nombre||'')}${partes.length ? '&ensp;—&ensp;' + partes.join('&ensp;·&ensp;') : ''}`;
+        wrapEl.style.display = '';
+        statusEl.textContent = '✓ encontrada';
+        statusEl.style.color = 'rgba(74,222,128,0.9)';
+    };
+
     window.dniAutocomplete = (val) => {
         const raw = val.replace(/[\.\s\-]/g, '');
         const statusEl = document.getElementById('rDniStatus');
         const wrapEl   = document.getElementById('rClienteWrap');
         const cardEl   = document.getElementById('rClienteCard');
+        const sugEl    = document.getElementById('rDniSugerencias');
         clearTimeout(_dniTimer);
-        if (raw.length < 6) {
+        if (raw.length < 2) {
             statusEl.textContent = '';
             statusEl.style.color = '';
             wrapEl.style.display = 'none';
+            if (sugEl) { sugEl.style.display = 'none'; sugEl.innerHTML = ''; }
             _clienteCargado = null;
             return;
         }
@@ -2041,35 +2110,59 @@
         statusEl.style.color = 'var(--texto-suave)';
         _dniTimer = setTimeout(async () => {
             try {
-                const snap = await getDoc(doc(db, 'clients', raw));
-                if (snap.exists()) {
-                    const d = snap.data();
-                    _clienteCargado = d;
-                    document.getElementById('rNombre').value   = d.nombre    || '';
-                    document.getElementById('rTelefono').value = d.telefono  || '';
-                    document.getElementById('rEdad').value     = d.edad != null ? d.edad : '';
-                    let partes = [];
-                    if (d.fechaNacimiento) partes.push(`<b>Nac.:</b> ${escHtml(d.fechaNacimiento)}`);
-                    if (d.edad)           partes.push(`<b>Edad:</b> ${escHtml(String(d.edad))} años`);
-                    if (d.barrio || d.domicilio) partes.push(`<b>Barrio:</b> ${escHtml(d.barrio||d.domicilio||'')}`);
-                    if (d.email)          partes.push(`<b>Email:</b> ${escHtml(d.email)}`);
-                    cardEl.innerHTML = `<span style="color:rgba(74,222,128,0.9);font-weight:700;">✓ Paciente encontrada</span>&ensp;${escHtml(d.nombre||'')}${partes.length ? '&ensp;—&ensp;' + partes.join('&ensp;·&ensp;') : ''}`;
-                    wrapEl.style.display = '';
-                    statusEl.textContent = '✓ encontrada';
-                    statusEl.style.color = 'rgba(74,222,128,0.9)';
-                } else {
+                const cache = await _asegurarClientsCacheDepi();
+                const txt = val.trim().toLowerCase();
+                const dniTxt = raw.replace(/\D/g, '');
+                const coincidencias = cache.filter(p =>
+                    (dniTxt.length >= 2 && (p.dni || '').includes(dniTxt)) || (txt.length >= 2 && (p.nombre || '').toLowerCase().includes(txt))
+                ).slice(0, 8);
+
+                // Lista seleccionable de coincidencias (nombre o DNI parcial).
+                // onmousedown, no onclick: dispara antes de que el campo
+                // pierda foco, así el click nunca se pierde.
+                if (sugEl) {
+                    if (coincidencias.length && raw !== coincidencias[0].dni) {
+                        sugEl.innerHTML = coincidencias.map(p => `
+                            <div onmousedown="seleccionarPacienteDepi('${escHtml(p.dni)}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--borde);font-size:13px;" onmouseover="this.style.background='rgba(74,222,128,0.10)'" onmouseout="this.style.background=''">
+                                <strong>${escHtml(p.nombre || 'Sin nombre')}</strong>&ensp;·&ensp;DNI ${escHtml(p.dni)}${p.telefono ? '&ensp;·&ensp;' + escHtml(p.telefono) : ''}
+                            </div>
+                        `).join('');
+                        sugEl.style.display = 'block';
+                    } else {
+                        sugEl.style.display = 'none';
+                        sugEl.innerHTML = '';
+                    }
+                }
+
+                // Autocompletar directo cuando el DNI tipeado coincide exacto
+                // con una sola paciente (comportamiento previo, conservado).
+                const exacto = cache.find(p => p.dni === raw);
+                if (exacto && dniTxt.length >= 6) {
+                    window.seleccionarPacienteDepi(exacto.dni);
+                    if (sugEl) { sugEl.style.display = 'none'; sugEl.innerHTML = ''; }
+                } else if (dniTxt.length >= 6) {
                     _clienteCargado = null;
                     wrapEl.style.display = 'none';
                     statusEl.textContent = 'paciente nuevo';
                     statusEl.style.color = 'var(--texto-suave)';
+                } else {
+                    statusEl.textContent = '';
+                    statusEl.style.color = '';
                 }
             } catch(e) {
                 console.warn('DNI lookup error:', e);
                 statusEl.textContent = '';
                 statusEl.style.color = '';
             }
-        }, 420);
+        }, 320);
     };
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#rDni') && !e.target.closest('#rDniSugerencias')) {
+            const sug = document.getElementById('rDniSugerencias');
+            if (sug) { sug.style.display = 'none'; sug.innerHTML = ''; }
+        }
+    });
 
     // Inicializar fecha del form
     document.getElementById('rFecha').value = hoyStr();
