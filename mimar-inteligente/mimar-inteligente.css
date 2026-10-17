@@ -139,7 +139,12 @@ input:not([type="checkbox"]) { border: 1px solid #c9d0c3; border-radius: 9px; pa
 /* ── Próximo turno en curso sin reconocer: extiende .status-panel (no lo
       reemplaza) con un acento de alerta hasta que se toque "Reconocer aviso" ── */
 .status-panel-urgente { box-shadow: 0 0 0 3px var(--amber) inset; }
-.btn-reconocer-alarma { margin-top: 10px; }
+/* .button-light no fija color propio (lo hereda de quien lo contenga); acá
+   vive dentro de .status-panel, que pone color:#fffef4 para su texto claro
+   sobre fondo oscuro — eso dejaba el botón con texto casi blanco sobre su
+   propio fondo claro (--surface), ilegible. Fuerza el color oscuro que
+   corresponde a su propio fondo, sin depender del contenedor. */
+.btn-reconocer-alarma { margin-top: 10px; color: var(--forest-deep); }
 
 /* ── Prompt "¿Enviaste el mensaje?" (no bloqueante) ── */
 .confirm-envio-banner {

@@ -10000,7 +10000,7 @@
             const seleccionados = _kitAdminProds.filter(p => p.sel);
             if (!seleccionados.length) { mostrarAviso('Seleccioná al menos un producto'); return; }
             const productos = seleccionados.map(p => p.nombre);
-            const productosDetalle = seleccionados.map(p => ({ precio: p.precio }));
+            const productosDetalle = seleccionados.map(p => ({ nombre: p.nombre, precio: p.precio }));
             const totalPedido = seleccionados.reduce((s, p) => s + (Number(p.precio) || 0), 0);
             try {
                 mostrarLoader(true);
