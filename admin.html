@@ -929,22 +929,18 @@
         }
         .gc-espera-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 800; color: #a3291c; background: rgba(192,57,43,0.14); border: 1px solid rgba(192,57,43,0.34); border-radius: 999px; padding: 1px 7px; margin-top: 2px; white-space: nowrap; }
 
-        /* ── Aviso "viene Cristina" — mismo mecanismo que "espera confirmación"
-             pero en amarillo, para marcar que Cristina va a estar en ese turno.
-             Si ambos avisos están activos a la vez, el rojo (espera
-             confirmación) manda en el fondo — es el más urgente de resolver —
-             pero la etiqueta amarilla se sigue mostrando igual, nada se pierde. ── */
-        .grilla-celda-ocupada.gc-cristina, .grilla-celda-ocupada.gc-bloque-cont.gc-cristina {
-            background: #fdf6e0 !important; border-left-color: #b8900a !important;
-            box-shadow: inset 0 0 0 1px rgba(184,144,10,0.30);
-        }
-        .grilla-celda-ocupada.gc-espera.gc-cristina, .grilla-celda-ocupada.gc-bloque-cont.gc-espera.gc-cristina {
-            background: #fdecea !important; border-left-color: #c0392b !important;
-            box-shadow: inset 0 0 0 1px rgba(192,57,43,0.28);
-        }
-        .gc-cristina-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 800; color: #8a6a08; background: rgba(184,144,10,0.16); border: 1px solid rgba(184,144,10,0.36); border-radius: 999px; padding: 1px 7px; margin-top: 2px; white-space: nowrap; }
+        /* ── Nota rápida por turno — texto libre (ej: "falta avisar"), separado
+             del aviso fijo de "espera confirmación". Se ven juntas si ambas
+             están cargadas, cada una con su propio color. ── */
+        .gc-nota-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; color: #2d4a3d; background: rgba(53,122,92,0.12); border: 1px solid rgba(53,122,92,0.30); border-radius: 999px; padding: 1px 7px; margin-top: 2px; white-space: normal; max-width: 100%; }
         .gc-menu-btn { position: absolute; top: 1px; right: 1px; width: 19px; height: 19px; border: none; background: transparent; color: rgba(22,61,50,0.40); font-size: 14px; font-weight: 900; line-height: 1; cursor: pointer; border-radius: 5px; display: flex; align-items: center; justify-content: center; z-index: 6; }
         .gc-menu-btn:hover { background: rgba(22,61,50,0.12); color: rgba(22,61,50,0.90); }
+
+        /* ── Aviso GENERAL del día "viene Cristina" — no es por paciente: vive
+             en la barra de herramientas de la Grilla y avisa para toda la
+             jornada que se está mirando. ── */
+        #btn-grilla-cristina.activo { background: #fdf6e0; border-color: #b8900a; color: #8a6a08; font-weight: 800; }
+        .grilla-banner-cristina { background: #fdf6e0; border: 1px solid rgba(184,144,10,0.35); color: #8a6a08; font-weight: 700; font-size: 13px; padding: 9px 14px; border-radius: 10px; margin: 8px 0 4px; display: flex; align-items: center; gap: 8px; }
         /* position:fixed, creado en <body> al vuelo (ver grillaToggleMenuEspera) —
            NUNCA anidado dentro de .grilla-celda-ocupada: esa celda tiene
            overflow:hidden (para el ellipsis del nombre/servicio largo) y
@@ -1662,7 +1658,9 @@
                     <button class="btn-mini" onclick="dmAbrir()">🗓️ Duplicar mes</button>
                     <button class="btn-mini" onclick="navegar('pendientes-reagendar')">Pendientes de reagendar <span class="dm-badge dm-badge-pend" style="display:none"></span></button>
                     <button class="btn-mini" onclick="grillaVistaClasica()" style="border-color:rgba(100,180,140,0.22);color:rgba(22,61,50,0.55);">📅 Vista clásica</button>
+                    <button class="btn-mini" id="btn-grilla-cristina" onclick="grillaToggleMenuCristina(event)">⋮ Cristina</button>
                 </div>
+                <div id="grilla-banner-cristina" class="grilla-banner-cristina" style="display:none;">🟡 Hoy viene Cristina</div>
                 <div class="grilla-scroll-wrap">
                     <table class="grilla-table" id="grilla-table">
                         <thead>
@@ -13144,6 +13142,7 @@
         let _grilla_fecha         = fechaHoyISO();
         let _grilla_adminBlocks   = new Map(); // `${hora}_${boxId}` → docId
         let _grilla_adminUnblocks = new Map(); // `${hora}_${boxId}` → docId (override de default)
+        let _grilla_vieneCristina = false; // aviso general del día (no por paciente), ver cargarAdminBlocks
         let _grilla_extraSlots    = false;     // mostrar slots fuera de horario comercial
         let _mreg_boxPresel       = null;
 
@@ -13174,8 +13173,14 @@
                 const snap = await getDocs(query(collection(db,'calendarExceptions'), where('fecha','==',fecha)));
                 _grilla_adminBlocks.clear();
                 _grilla_adminUnblocks.clear();
+                _grilla_vieneCristina = false;
                 snap.forEach(d => {
                     const data = d.data();
+                    // Aviso general del día "viene Cristina" — mismo doc que los
+                    // bloqueos de admin pero sin hora/boxId (no es un slot), así
+                    // que ni este loop ni fecha.html (que también lee esta
+                    // colección) lo confunden con un bloqueo real.
+                    if (data.tipo === 'viene_cristina') { _grilla_vieneCristina = data.activo === true; return; }
                     if (!data.hora || !data.boxId) return;
                     const key = `${data.hora}_${data.boxId}`;
                     if (data.source === 'admin')          _grilla_adminBlocks.set(key, d.id);
@@ -13429,18 +13434,17 @@
             }
         }
 
-        // ── Avisos manuales en la Grilla: "espera confirmación" (rojo) y
-        // "viene Cristina" (amarillo) ─────────────────────────────────────
-        // Dos campos propios (esperaConfirmacion, vieneCristina), sin relación
-        // con confirmacionManual (eso es otro circuito, el de la Agenda).
-        // Son independientes entre sí — se pueden prender/apagar por separado
-        // desde el mismo menú de 3 puntos.
-        window.grillaToggleMenuEspera = function(ev, reservaId, esperaActual, cristinaActual) {
+        // ── Avisos manuales por turno en la Grilla: "espera confirmación"
+        // (rojo, fijo) y nota rápida de texto libre (ej: "falta avisar"). Dos
+        // campos propios (esperaConfirmacion, notaRapida), sin relación con
+        // confirmacionManual (eso es otro circuito, el de la Agenda).
+        window.grillaToggleMenuEspera = function(ev, reservaId, esperaActual) {
             ev.stopPropagation();
             const previo = document.getElementById('gc-menu-flot');
             const eraDeEstaReserva = previo && previo.dataset.reserva === reservaId;
             if (previo) previo.remove();
             if (eraDeEstaReserva) return; // mismo botón: solo cerrar
+            const notaActual = ev.currentTarget.dataset.nota || '';
             const r = ev.currentTarget.getBoundingClientRect();
             const pop = document.createElement('div');
             pop.id = 'gc-menu-flot';
@@ -13453,9 +13457,8 @@
                 ${esperaActual
                     ? `<button type="button" onclick="grillaMarcarAviso('${reservaId}','esperaConfirmacion',false)">✓ Ya confirmó — quitar aviso</button>`
                     : `<button type="button" onclick="grillaMarcarAviso('${reservaId}','esperaConfirmacion',true)">🔴 Marcar: espera confirmación</button>`}
-                ${cristinaActual
-                    ? `<button type="button" onclick="grillaMarcarAviso('${reservaId}','vieneCristina',false)">✓ Quitar aviso de Cristina</button>`
-                    : `<button type="button" onclick="grillaMarcarAviso('${reservaId}','vieneCristina',true)">🟡 Marcar: viene Cristina</button>`}
+                <button type="button" onclick="grillaEditarNota('${reservaId}')">📝 ${notaActual ? 'Editar nota' : 'Agregar nota'}</button>
+                ${notaActual ? `<button type="button" onclick="grillaMarcarAviso('${reservaId}','notaRapida','')">🗑 Quitar nota</button>` : ''}
             `;
             pop.addEventListener('click', e => e.stopPropagation());
             document.body.appendChild(pop);
@@ -13478,11 +13481,62 @@
                 window.renderGrilla();
                 const msgs = {
                     esperaConfirmacion: valor ? '🔴 Marcado: espera confirmación' : '✓ Confirmación registrada',
-                    vieneCristina: valor ? '🟡 Marcado: viene Cristina' : '✓ Aviso de Cristina quitado',
+                    notaRapida: '🗑 Nota eliminada',
                 };
                 mostrarAviso(msgs[campo] || 'Actualizado');
             } catch (e) {
                 console.error('grillaMarcarAviso', e);
+                mostrarAviso('No se pudo actualizar el aviso');
+            }
+        };
+
+        // prompt() nativo: funciona igual en PC y celular sin tener que
+        // resolver posicionamiento propio para un campo de texto chiquito
+        // dentro de una celda de grilla.
+        window.grillaEditarNota = function(reservaId) {
+            const el = document.getElementById('gc-menu-flot');
+            if (el) el.remove();
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            const actual = (r && r.notaRapida) || '';
+            const texto = prompt('Nota rápida para este turno (ej: "falta avisar"):', actual);
+            if (texto === null) return; // canceló
+            window.grillaMarcarAviso(reservaId, 'notaRapida', texto.trim());
+        };
+
+        // ── Aviso GENERAL del día "viene Cristina" — no es por paciente: se
+        // guarda en calendarExceptions como un doc sin hora/boxId (por eso
+        // tanto cargarAdminBlocks acá como fecha.html lo ignoran como bloqueo
+        // real), uno por fecha, y se muestra como un banner en la Grilla. ──
+        window.grillaToggleMenuCristina = function(ev) {
+            ev.stopPropagation();
+            const previo = document.getElementById('gc-menu-flot');
+            if (previo) previo.remove();
+            const r = ev.currentTarget.getBoundingClientRect();
+            const pop = document.createElement('div');
+            pop.id = 'gc-menu-flot';
+            pop.className = 'gc-menu-pop';
+            const left = Math.max(4, Math.min(r.right - 210, window.innerWidth - 216));
+            pop.style.top = (r.bottom + 2) + 'px';
+            pop.style.left = left + 'px';
+            pop.innerHTML = _grilla_vieneCristina
+                ? `<button type="button" onclick="grillaMarcarCristina(false)">✓ Cristina no viene — quitar aviso</button>`
+                : `<button type="button" onclick="grillaMarcarCristina(true)">🟡 Marcar: viene Cristina hoy</button>`;
+            pop.addEventListener('click', e => e.stopPropagation());
+            document.body.appendChild(pop);
+        };
+
+        window.grillaMarcarCristina = async function(valor) {
+            const el = document.getElementById('gc-menu-flot');
+            if (el) el.remove();
+            try {
+                await setDoc(doc(db, 'calendarExceptions', `cristina_${_grilla_fecha}`), {
+                    fecha: _grilla_fecha, tipo: 'viene_cristina', activo: valor, updatedAt: serverTimestamp(),
+                }, { merge: true });
+                _grilla_vieneCristina = valor;
+                window.renderGrilla();
+                mostrarAviso(valor ? '🟡 Marcado: viene Cristina hoy' : '✓ Aviso de Cristina quitado');
+            } catch (e) {
+                console.error('grillaMarcarCristina', e);
                 mostrarAviso('No se pudo actualizar el aviso');
             }
         };
@@ -13663,6 +13717,12 @@
             const titulo = document.getElementById('grilla-fecha-titulo');
             if (titulo) titulo.textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
 
+            // Aviso general "viene Cristina" del día (ver cargarAdminBlocks)
+            const btnCristina = document.getElementById('btn-grilla-cristina');
+            if (btnCristina) btnCristina.classList.toggle('activo', _grilla_vieneCristina);
+            const bannerCristina = document.getElementById('grilla-banner-cristina');
+            if (bannerCristina) bannerCristina.style.display = _grilla_vieneCristina ? 'flex' : 'none';
+
             // Reservas del día
             const del_dia = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === _grilla_fecha);
 
@@ -13786,7 +13846,6 @@
                             end:   'border-radius:0 0 9px 9px;border-top:none;'
                         }[type];
                         const esperaCls = res.esperaConfirmacion ? ' gc-espera' : '';
-                        const cristinaCls = res.vieneCristina ? ' gc-cristina' : '';
                         if (type === 'start' || type === 'solo') {
                             let circHtml = '';
                             if (circ?.isTarget) circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
@@ -13794,18 +13853,19 @@
                                 const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
                                 circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                             }
-                            const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'},${res.vieneCristina ? 'true' : 'false'})" title="Más opciones">⋮</button>`;
-                            inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}${cristinaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
+                            const notaRapida = (res.notaRapida || '').trim();
+                            const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" data-nota="${escapeHtml(notaRapida)}" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>`;
+                            inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
                                 ${menuHtml}
                                 <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Ver últimas sesiones de ${nom}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaVerHistorialPaciente(event,'${res.id}')}">${nom}</span>
                                 <span class="grilla-paciente-servicio">${srv}</span>
                                 ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
-                                ${res.vieneCristina ? `<span class="gc-cristina-tag">🟡 Viene Cristina</span>` : ''}
+                                ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
                                 ${circHtml}
                             </div>`;
                         } else {
                             // Continuación: bloque sólido sin texto, clicable
-                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}${esperaCls}${cristinaCls}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — continúa (tocá para ver sus últimas sesiones)" style="--box-accent:${box.accent};${divRad}"></div>`;
+                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}${esperaCls}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — continúa (tocá para ver sus últimas sesiones)" style="--box-accent:${box.accent};${divRad}"></div>`;
                         }
                     } else if (adminBloq) {
                         inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
