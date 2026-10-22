@@ -5178,6 +5178,7 @@
         
         /* ── Estado del modal de registro ── */
         let _mreg_fecha = null, _mreg_hora = null, _mreg_clienteSeleccionado = null, _mreg_debounce = null, _mreg_boxesOcupados = new Set();
+        let _mreg_enviando = false; // evita doble/triple reserva si se toca "Registrar turno" varias veces mientras procesa
 
         /* ── Helper compartido: seleccionar chip ── */
         window.seleccionarChipServicio = (el, hiddenId) => {
@@ -5464,10 +5465,23 @@
         }
 
         window.confirmarRegistroManual = async () => {
+            // Guard contra doble/triple click (o doble-tap en touch): sin esto,
+            // dos clicks mientras la primera llamada todavía está verificando
+            // conflictos (awaits de por medio) corren la función dos veces en
+            // paralelo y las dos terminan creando su propia reserva — eso fue
+            // lo que generó reservas duplicadas reales en producción.
+            if (_mreg_enviando) return;
             if (!_mreg_clienteSeleccionado) { mostrarAviso("Seleccioná un paciente"); return; }
             const servicioIngresado = document.getElementById('mreg-servicio-hidden').value.trim();
             if (!servicioIngresado) { mostrarAviso("Seleccioná un servicio"); return; }
             if (!_mreg_boxPresel) { mostrarAviso("Seleccioná el box"); return; }
+
+            _mreg_enviando = true;
+            const _btnConfirmarEl = document.getElementById('mreg-btn-confirmar');
+            const _btnTextoOriginal = _btnConfirmarEl ? _btnConfirmarEl.textContent : '';
+            if (_btnConfirmarEl) { _btnConfirmarEl.disabled = true; _btnConfirmarEl.textContent = 'Registrando…'; }
+
+            try {
 
             const fechaSnap = _mreg_fecha, horaSnap = _mreg_hora;
 
@@ -5681,6 +5695,17 @@
             } finally {
                 mostrarLoader(false);
                 _mreg_clienteSeleccionado = null;
+            }
+
+            } finally {
+                _mreg_enviando = false;
+                if (_btnConfirmarEl && document.body.contains(_btnConfirmarEl)) {
+                    _btnConfirmarEl.textContent = _btnTextoOriginal || 'Registrar turno';
+                    // El disabled real lo vuelve a decidir seleccionarPacienteRegistro/
+                    // registrarReservaManual la próxima vez que se abra el modal — acá
+                    // solo evitamos dejarlo trabado en "Registrando…" para siempre.
+                    _btnConfirmarEl.disabled = !_mreg_clienteSeleccionado;
+                }
             }
         };
 
