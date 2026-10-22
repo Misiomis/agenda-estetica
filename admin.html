@@ -428,6 +428,8 @@
         }
         .mreg-paciente-nombre { font-size: 14px; font-weight: 700; color: var(--ink); }
         .mreg-paciente-tel { font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+        .mreg-nota-btn { flex-shrink: 0; width: 26px; height: 26px; min-height: 0; border: none; background: rgba(22,61,50,0.08); color: rgba(22,61,50,0.55); font-size: 15px; font-weight: 900; line-height: 1; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .mreg-nota-btn:hover { background: rgba(22,61,50,0.16); color: rgba(22,61,50,0.90); }
         .mreg-actions { display: flex; gap: 10px; margin-top: 4px; }
         .mreg-btn-cancel { flex: 1; padding: 12px; border: 1.5px solid var(--border); background: var(--surface); border-radius: var(--r-md); color: var(--ink-soft); font-weight: 700; font-size: 14px; cursor: pointer; }
         .mreg-btn-cancel:hover { background: var(--surface-2); }
@@ -926,6 +928,21 @@
             box-shadow: inset 0 0 0 1px rgba(192,57,43,0.28);
         }
         .gc-espera-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 800; color: #a3291c; background: rgba(192,57,43,0.14); border: 1px solid rgba(192,57,43,0.34); border-radius: 999px; padding: 1px 7px; margin-top: 2px; white-space: nowrap; }
+
+        /* ── Aviso "viene Cristina" — mismo mecanismo que "espera confirmación"
+             pero en amarillo, para marcar que Cristina va a estar en ese turno.
+             Si ambos avisos están activos a la vez, el rojo (espera
+             confirmación) manda en el fondo — es el más urgente de resolver —
+             pero la etiqueta amarilla se sigue mostrando igual, nada se pierde. ── */
+        .grilla-celda-ocupada.gc-cristina, .grilla-celda-ocupada.gc-bloque-cont.gc-cristina {
+            background: #fdf6e0 !important; border-left-color: #b8900a !important;
+            box-shadow: inset 0 0 0 1px rgba(184,144,10,0.30);
+        }
+        .grilla-celda-ocupada.gc-espera.gc-cristina, .grilla-celda-ocupada.gc-bloque-cont.gc-espera.gc-cristina {
+            background: #fdecea !important; border-left-color: #c0392b !important;
+            box-shadow: inset 0 0 0 1px rgba(192,57,43,0.28);
+        }
+        .gc-cristina-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 800; color: #8a6a08; background: rgba(184,144,10,0.16); border: 1px solid rgba(184,144,10,0.36); border-radius: 999px; padding: 1px 7px; margin-top: 2px; white-space: nowrap; }
         .gc-menu-btn { position: absolute; top: 1px; right: 1px; width: 19px; height: 19px; border: none; background: transparent; color: rgba(22,61,50,0.40); font-size: 14px; font-weight: 900; line-height: 1; cursor: pointer; border-radius: 5px; display: flex; align-items: center; justify-content: center; z-index: 6; }
         .gc-menu-btn:hover { background: rgba(22,61,50,0.12); color: rgba(22,61,50,0.90); }
         /* position:fixed, creado en <body> al vuelo (ver grillaToggleMenuEspera) —
@@ -1812,6 +1829,10 @@
                             <div class="field">
                                 <label for="cliUsername">Usuario <span class="field-opcional">(opcional)</span></label>
                                 <input id="cliUsername" class="select-input" type="text" placeholder="Nombre de usuario">
+                            </div>
+                            <div class="field full">
+                                <label for="cliNotas">Notas del paciente <span class="field-opcional">(días que puede, preferencias, etc.)</span></label>
+                                <textarea id="cliNotas" class="select-input" rows="2" style="width:100%; box-sizing:border-box; resize:vertical;" placeholder="Ej: Viernes a la mañana"></textarea>
                             </div>
                         </div>
                         <div class="cliente-checks">
@@ -3642,6 +3663,7 @@
                         email: c.email || "",
                         fechaNacimiento: c.fechaNacimiento || "",
                         username: c.username || "",
+                        notas: c.notas || "",
                         active: c.active !== false,
                         hoursBalance: c.hoursBalance ?? 0,
                         membershipActive: resolverMembresiaActiva(c),
@@ -5310,19 +5332,24 @@
             const qDni = (q || '').replace(/\D/g, '');
             const matches = todasLosPacientes.filter(p =>
                 (p.fullName || '').toLowerCase().includes(qTxt) || (qDni.length >= 3 && (p.dni || '').includes(qDni))
-            ).map(p => ({ id: p.dni, nombre: p.fullName, phone: normalizarTelefono(p.phone || '') }));
+            ).map(p => ({ id: p.dni, nombre: p.fullName, phone: normalizarTelefono(p.phone || ''), notas: (p.notas || '').trim() }));
             if (matches.length === 0) {
                 resultadosEl.innerHTML = '<div style="font-size:12px;color:#4C6759;padding:6px 0">Sin resultados</div>';
                 return;
             }
+            // El botón de notas (⋮) solo aparece si el paciente tiene algo
+            // cargado en "Notas del paciente" (ficha de Pacientes) — nunca
+            // inventa ni duplica ese dato en otro lado, solo lo muestra acá
+            // en el momento de agendar.
             resultadosEl.innerHTML = matches.slice(0, 8).map(p => `
-                <div class="mreg-paciente-item" data-dni="${escapeHtml(p.id)}" data-nombre="${escapeHtml(p.nombre)}" data-phone="${escapeHtml(p.phone)}"
+                <div class="mreg-paciente-item" data-dni="${escapeHtml(p.id)}" data-nombre="${escapeHtml(p.nombre)}" data-phone="${escapeHtml(p.phone)}" data-notas="${escapeHtml(p.notas)}"
                      onmousedown="seleccionarPacienteRegistro(this)">
                     <div class="mreg-paciente-avatar">${escapeHtml((p.nombre || '?').charAt(0).toUpperCase())}</div>
-                    <div>
+                    <div style="flex:1; min-width:0;">
                         <div class="mreg-paciente-nombre">${escapeHtml(p.nombre)}</div>
                         <div class="mreg-paciente-tel">DNI ${escapeHtml(p.id)}${p.phone ? ' · ' + escapeHtml(p.phone) : ' · Sin teléfono'}</div>
                     </div>
+                    ${p.notas ? `<button type="button" class="mreg-nota-btn" data-nota-id="${escapeHtml(p.id)}" data-nombre="${escapeHtml(p.nombre)}" data-notas="${escapeHtml(p.notas)}" onmousedown="event.stopPropagation()" onclick="mregMostrarNota(event)" title="Ver notas del paciente">⋮</button>` : ''}
                 </div>
             `).join('');
         };
@@ -5330,13 +5357,42 @@
         window.seleccionarPacienteRegistro = (el) => {
             _mreg_clienteSeleccionado = { dni: el.dataset.dni, nombre: el.dataset.nombre, phone: el.dataset.phone };
             document.getElementById('mreg-nombre-input').value = el.dataset.nombre;
+            const notas = el.dataset.notas || '';
+            const notaBtnHtml = notas ? `<button type="button" class="mreg-nota-btn" data-nota-id="sel-${escapeHtml(el.dataset.dni)}" data-nombre="${escapeHtml(el.dataset.nombre)}" data-notas="${escapeHtml(notas)}" onclick="mregMostrarNota(event)" title="Ver notas del paciente" style="margin-left:auto;">⋮</button>` : '';
             document.getElementById('mreg-resultados').innerHTML =
                 `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(74,222,128,0.10);border:1px solid rgba(74,222,128,0.28);font-size:13px;color:rgba(22,61,50,0.92);font-weight:600;">
                     <span style="font-size:16px;">✓</span> ${escapeHtml(el.dataset.nombre)}
                     <span style="font-size:11px;opacity:.6;margin-left:4px;">${escapeHtml(el.dataset.phone||'')}</span>
+                    ${notaBtnHtml}
                 </div>`;
             document.getElementById('mreg-btn-confirmar').disabled = false;
         };
+
+        // Popup de notas del paciente (⋮), portal en <body> — mismo motivo que
+        // el menú de avisos de la Grilla: el contenedor de resultados tiene
+        // scroll propio y recortaría cualquier popup anidado adentro.
+        window.mregMostrarNota = function(ev) {
+            ev.stopPropagation();
+            const btn = ev.currentTarget;
+            const previo = document.getElementById('mreg-nota-flot');
+            const eraDelMismoBoton = previo && previo.dataset.owner === btn.dataset.notaId;
+            if (previo) previo.remove();
+            if (eraDelMismoBoton) return;
+            const r = btn.getBoundingClientRect();
+            const pop = document.createElement('div');
+            pop.id = 'mreg-nota-flot';
+            pop.className = 'gc-menu-pop';
+            pop.dataset.owner = btn.dataset.notaId;
+            const left = Math.max(4, Math.min(r.right - 220, window.innerWidth - 226));
+            pop.style.cssText = `position:fixed; top:${r.bottom + 2}px; left:${left}px; min-width:200px; max-width:260px; padding:10px 12px; cursor:default;`;
+            pop.innerHTML = `<div style="font-size:10.5px; font-weight:800; color:rgba(22,61,50,0.55); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;">Notas — ${escapeHtml(btn.dataset.nombre)}</div><div style="font-size:12.5px; color:rgba(36,51,43,0.92); line-height:1.4; white-space:pre-wrap;">${escapeHtml(btn.dataset.notas)}</div>`;
+            pop.addEventListener('click', e => e.stopPropagation());
+            document.body.appendChild(pop);
+        };
+        document.addEventListener('click', () => {
+            const el = document.getElementById('mreg-nota-flot');
+            if (el) el.remove();
+        });
 
         // Regla del centro: el facial va como mínimo cada 15 días. Se avisa con un cartel
         // (nunca bloquea): la persona decide si agenda igual. Mira los turnos reales
@@ -5861,6 +5917,7 @@
             document.getElementById("cliHoursBalance").value = "1";
             document.getElementById("cliEmail").value = "";
             document.getElementById("cliUsername").value = "";
+            document.getElementById("cliNotas").value = "";
             document.getElementById("cliActivo").checked = true;
             document.getElementById("cliMembership").checked = false;
             document.getElementById("cliConsent").checked = true;
@@ -5918,6 +5975,7 @@
                 document.getElementById("cliHoursBalance").value = (c.hoursBalance ?? "").toString();
                 document.getElementById("cliEmail").value = c.email || "";
                 document.getElementById("cliUsername").value = c.username || "";
+                document.getElementById("cliNotas").value = c.notas || "";
                 document.getElementById("cliActivo").checked = c.active !== false;
                 document.getElementById("cliMembership").checked = c.membershipActive === true || c.membresia === true;
                 document.getElementById("cliConsent").checked = c.consentimientoAceptado !== false;
@@ -6859,6 +6917,7 @@
                 return;
             }
             const fechaNacimiento = (document.getElementById("cliFechaNacimiento").value || "").trim() || null;
+            const notas = (document.getElementById("cliNotas").value || "").trim();
             const payload = {
                 active: document.getElementById("cliActivo").checked,
                 consentimientoAceptado: document.getElementById("cliConsent").checked,
@@ -6868,6 +6927,7 @@
                 fullLname: fullName,
                 phone,
                 fechaNacimiento,
+                notas,
                 email,
                 username,
                 role: "client",
@@ -6897,6 +6957,7 @@
                     phone: payload.phone,
                     email,
                     username,
+                    notas,
                     active: payload.active,
                     hoursBalance,
                     membershipActive,
@@ -13368,12 +13429,13 @@
             }
         }
 
-        // ── Aviso "espera confirmación" en la Grilla ─────────────────────────
-        // Campo propio (esperaConfirmacion), sin relación con confirmacionManual
-        // (eso es otro circuito, el de la Agenda). Es una nota manual: la
-        // administradora la prende cuando agendó el turno pero la paciente
-        // todavía no avisó que viene, y la apaga apenas confirma.
-        window.grillaToggleMenuEspera = function(ev, reservaId, esperaActual) {
+        // ── Avisos manuales en la Grilla: "espera confirmación" (rojo) y
+        // "viene Cristina" (amarillo) ─────────────────────────────────────
+        // Dos campos propios (esperaConfirmacion, vieneCristina), sin relación
+        // con confirmacionManual (eso es otro circuito, el de la Agenda).
+        // Son independientes entre sí — se pueden prender/apagar por separado
+        // desde el mismo menú de 3 puntos.
+        window.grillaToggleMenuEspera = function(ev, reservaId, esperaActual, cristinaActual) {
             ev.stopPropagation();
             const previo = document.getElementById('gc-menu-flot');
             const eraDeEstaReserva = previo && previo.dataset.reserva === reservaId;
@@ -13387,9 +13449,14 @@
             const left = Math.max(4, Math.min(r.right - 190, window.innerWidth - 196));
             pop.style.top = (r.bottom + 2) + 'px';
             pop.style.left = left + 'px';
-            pop.innerHTML = esperaActual
-                ? `<button type="button" onclick="grillaMarcarEspera('${reservaId}', false)">✓ Ya confirmó — quitar aviso</button>`
-                : `<button type="button" onclick="grillaMarcarEspera('${reservaId}', true)">🔴 Marcar: espera confirmación</button>`;
+            pop.innerHTML = `
+                ${esperaActual
+                    ? `<button type="button" onclick="grillaMarcarAviso('${reservaId}','esperaConfirmacion',false)">✓ Ya confirmó — quitar aviso</button>`
+                    : `<button type="button" onclick="grillaMarcarAviso('${reservaId}','esperaConfirmacion',true)">🔴 Marcar: espera confirmación</button>`}
+                ${cristinaActual
+                    ? `<button type="button" onclick="grillaMarcarAviso('${reservaId}','vieneCristina',false)">✓ Quitar aviso de Cristina</button>`
+                    : `<button type="button" onclick="grillaMarcarAviso('${reservaId}','vieneCristina',true)">🟡 Marcar: viene Cristina</button>`}
+            `;
             pop.addEventListener('click', e => e.stopPropagation());
             document.body.appendChild(pop);
         };
@@ -13398,20 +13465,24 @@
             if (el) el.remove();
         });
 
-        window.grillaMarcarEspera = async function(reservaId, valor) {
+        window.grillaMarcarAviso = async function(reservaId, campo, valor) {
             const el = document.getElementById('gc-menu-flot');
             if (el) el.remove();
             try {
                 await updateDoc(doc(db, 'reservas', reservaId), {
-                    esperaConfirmacion: valor,
-                    esperaConfirmacionAt: valor ? serverTimestamp() : null,
+                    [campo]: valor,
+                    [campo + 'At']: valor ? serverTimestamp() : null,
                 });
                 const r = todasLasReservas.find(x => x.id === reservaId);
-                if (r) r.esperaConfirmacion = valor;
+                if (r) r[campo] = valor;
                 window.renderGrilla();
-                mostrarAviso(valor ? '🔴 Marcado: espera confirmación' : '✓ Confirmación registrada');
+                const msgs = {
+                    esperaConfirmacion: valor ? '🔴 Marcado: espera confirmación' : '✓ Confirmación registrada',
+                    vieneCristina: valor ? '🟡 Marcado: viene Cristina' : '✓ Aviso de Cristina quitado',
+                };
+                mostrarAviso(msgs[campo] || 'Actualizado');
             } catch (e) {
-                console.error('grillaMarcarEspera', e);
+                console.error('grillaMarcarAviso', e);
                 mostrarAviso('No se pudo actualizar el aviso');
             }
         };
@@ -13715,6 +13786,7 @@
                             end:   'border-radius:0 0 9px 9px;border-top:none;'
                         }[type];
                         const esperaCls = res.esperaConfirmacion ? ' gc-espera' : '';
+                        const cristinaCls = res.vieneCristina ? ' gc-cristina' : '';
                         if (type === 'start' || type === 'solo') {
                             let circHtml = '';
                             if (circ?.isTarget) circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
@@ -13722,17 +13794,18 @@
                                 const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
                                 circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                             }
-                            const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>`;
-                            inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
+                            const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'},${res.vieneCristina ? 'true' : 'false'})" title="Más opciones">⋮</button>`;
+                            inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}${cristinaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
                                 ${menuHtml}
                                 <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Ver últimas sesiones de ${nom}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaVerHistorialPaciente(event,'${res.id}')}">${nom}</span>
                                 <span class="grilla-paciente-servicio">${srv}</span>
                                 ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
+                                ${res.vieneCristina ? `<span class="gc-cristina-tag">🟡 Viene Cristina</span>` : ''}
                                 ${circHtml}
                             </div>`;
                         } else {
                             // Continuación: bloque sólido sin texto, clicable
-                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}${esperaCls}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — continúa (tocá para ver sus últimas sesiones)" style="--box-accent:${box.accent};${divRad}"></div>`;
+                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}${esperaCls}${cristinaCls}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — continúa (tocá para ver sus últimas sesiones)" style="--box-accent:${box.accent};${divRad}"></div>`;
                         }
                     } else if (adminBloq) {
                         inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
