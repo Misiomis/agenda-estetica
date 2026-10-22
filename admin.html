@@ -928,8 +928,14 @@
         .gc-espera-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 800; color: #a3291c; background: rgba(192,57,43,0.14); border: 1px solid rgba(192,57,43,0.34); border-radius: 999px; padding: 1px 7px; margin-top: 2px; white-space: nowrap; }
         .gc-menu-btn { position: absolute; top: 1px; right: 1px; width: 19px; height: 19px; border: none; background: transparent; color: rgba(22,61,50,0.40); font-size: 14px; font-weight: 900; line-height: 1; cursor: pointer; border-radius: 5px; display: flex; align-items: center; justify-content: center; z-index: 6; }
         .gc-menu-btn:hover { background: rgba(22,61,50,0.12); color: rgba(22,61,50,0.90); }
-        .gc-menu-pop { display: none; position: absolute; top: 19px; right: 1px; z-index: 60; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.20); padding: 4px; min-width: 190px; cursor: default; }
-        .gc-menu-pop.open { display: block; }
+        /* position:fixed, creado en <body> al vuelo (ver grillaToggleMenuEspera) —
+           NUNCA anidado dentro de .grilla-celda-ocupada: esa celda tiene
+           overflow:hidden (para el ellipsis del nombre/servicio largo) y
+           recortaría el popup casi invisible, con los botones ahí pero sin
+           poder tocarlos — mismo motivo por el que el historial de "Ver
+           últimas sesiones" ya es un portal aparte en vez de vivir adentro
+           de la celda. */
+        .gc-menu-pop { position: fixed; z-index: 100050; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.20); padding: 4px; min-width: 190px; cursor: default; }
         .gc-menu-pop button { display: block; width: 100%; text-align: left; padding: 8px 10px; border: none; background: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; color: rgba(36,51,43,0.92); white-space: nowrap; }
         .gc-menu-pop button:hover { background: rgba(53,122,92,0.12); }
         /* width:100% (no solo max-width) — dentro de .grilla-celda-ocupada
@@ -13367,20 +13373,34 @@
         // (eso es otro circuito, el de la Agenda). Es una nota manual: la
         // administradora la prende cuando agendó el turno pero la paciente
         // todavía no avisó que viene, y la apaga apenas confirma.
-        window.grillaToggleMenuEspera = function(ev, reservaId) {
+        window.grillaToggleMenuEspera = function(ev, reservaId, esperaActual) {
             ev.stopPropagation();
-            document.querySelectorAll('.gc-menu-pop.open').forEach(el => {
-                if (el.id !== 'gc-menu-' + reservaId) el.classList.remove('open');
-            });
-            const el = document.getElementById('gc-menu-' + reservaId);
-            if (el) el.classList.toggle('open');
+            const previo = document.getElementById('gc-menu-flot');
+            const eraDeEstaReserva = previo && previo.dataset.reserva === reservaId;
+            if (previo) previo.remove();
+            if (eraDeEstaReserva) return; // mismo botón: solo cerrar
+            const r = ev.currentTarget.getBoundingClientRect();
+            const pop = document.createElement('div');
+            pop.id = 'gc-menu-flot';
+            pop.className = 'gc-menu-pop';
+            pop.dataset.reserva = reservaId;
+            const left = Math.max(4, Math.min(r.right - 190, window.innerWidth - 196));
+            pop.style.top = (r.bottom + 2) + 'px';
+            pop.style.left = left + 'px';
+            pop.innerHTML = esperaActual
+                ? `<button type="button" onclick="grillaMarcarEspera('${reservaId}', false)">✓ Ya confirmó — quitar aviso</button>`
+                : `<button type="button" onclick="grillaMarcarEspera('${reservaId}', true)">🔴 Marcar: espera confirmación</button>`;
+            pop.addEventListener('click', e => e.stopPropagation());
+            document.body.appendChild(pop);
         };
         document.addEventListener('click', () => {
-            document.querySelectorAll('.gc-menu-pop.open').forEach(el => el.classList.remove('open'));
+            const el = document.getElementById('gc-menu-flot');
+            if (el) el.remove();
         });
 
         window.grillaMarcarEspera = async function(reservaId, valor) {
-            document.querySelectorAll('.gc-menu-pop.open').forEach(el => el.classList.remove('open'));
+            const el = document.getElementById('gc-menu-flot');
+            if (el) el.remove();
             try {
                 await updateDoc(doc(db, 'reservas', reservaId), {
                     esperaConfirmacion: valor,
@@ -13702,13 +13722,7 @@
                                 const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
                                 circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                             }
-                            const menuHtml = `
-                                <button type="button" class="gc-menu-btn" draggable="false" onclick="event.stopPropagation();grillaToggleMenuEspera(event,'${res.id}')" title="Más opciones">⋮</button>
-                                <div class="gc-menu-pop" id="gc-menu-${res.id}" draggable="false" onclick="event.stopPropagation()">
-                                    ${res.esperaConfirmacion
-                                        ? `<button type="button" onclick="grillaMarcarEspera('${res.id}', false)">✓ Ya confirmó — quitar aviso</button>`
-                                        : `<button type="button" onclick="grillaMarcarEspera('${res.id}', true)">🔴 Marcar: espera confirmación</button>`}
-                                </div>`;
+                            const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>`;
                             inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
                                 ${menuHtml}
                                 <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Ver últimas sesiones de ${nom}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaVerHistorialPaciente(event,'${res.id}')}">${nom}</span>
