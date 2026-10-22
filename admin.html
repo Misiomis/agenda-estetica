@@ -939,8 +939,15 @@
         /* ── Aviso GENERAL del día "viene Cristina" — no es por paciente: vive
              en la barra de herramientas de la Grilla y avisa para toda la
              jornada que se está mirando. ── */
-        #btn-grilla-cristina.activo { background: #fdf6e0; border-color: #b8900a; color: #8a6a08; font-weight: 800; }
-        .grilla-banner-cristina { background: #fdf6e0; border: 1px solid rgba(184,144,10,0.35); color: #8a6a08; font-weight: 700; font-size: 13px; padding: 9px 14px; border-radius: 10px; margin: 8px 0 4px; display: flex; align-items: center; gap: 8px; }
+        #btn-grilla-cristina.activo { background: #FFD93B; border-color: #D99A00; color: #5C4400; font-weight: 800; }
+        .grilla-banner-cristina { background: #FFD93B; border: 1px solid #D99A00; color: #5C4400; font-weight: 800; font-size: 13px; padding: 9px 14px; border-radius: 10px; margin: 8px 0 4px; display: flex; align-items: center; gap: 8px; }
+        /* Teñido real de la grilla (no solo el banner): se aplica por fila,
+           según si esa hora cae en la mañana o la tarde (misma frontera que
+           ya usa el separador "mañana/tarde" del propio render: 14:00).
+           !important porque cada celda ya trae su color de box inline
+           (style="background:...") — necesitamos pisarlo a propósito acá. */
+        tr.grilla-row-cristina td.grilla-td-box { background: #FFE066 !important; }
+        tr.grilla-row-cristina td.grilla-td-hora { background: #FFD93B !important; color: #5C4400 !important; }
         /* position:fixed, creado en <body> al vuelo (ver grillaToggleMenuEspera) —
            NUNCA anidado dentro de .grilla-celda-ocupada: esa celda tiene
            overflow:hidden (para el ellipsis del nombre/servicio largo) y
@@ -13142,7 +13149,8 @@
         let _grilla_fecha         = fechaHoyISO();
         let _grilla_adminBlocks   = new Map(); // `${hora}_${boxId}` → docId
         let _grilla_adminUnblocks = new Map(); // `${hora}_${boxId}` → docId (override de default)
-        let _grilla_vieneCristina = false; // aviso general del día (no por paciente), ver cargarAdminBlocks
+        let _grilla_cristinaManana = false; // aviso general del día, separado por mañana/tarde — ver cargarAdminBlocks
+        let _grilla_cristinaTarde  = false;
         let _grilla_extraSlots    = false;     // mostrar slots fuera de horario comercial
         let _mreg_boxPresel       = null;
 
@@ -13173,14 +13181,20 @@
                 const snap = await getDocs(query(collection(db,'calendarExceptions'), where('fecha','==',fecha)));
                 _grilla_adminBlocks.clear();
                 _grilla_adminUnblocks.clear();
-                _grilla_vieneCristina = false;
+                _grilla_cristinaManana = false;
+                _grilla_cristinaTarde = false;
                 snap.forEach(d => {
                     const data = d.data();
                     // Aviso general del día "viene Cristina" — mismo doc que los
                     // bloqueos de admin pero sin hora/boxId (no es un slot), así
                     // que ni este loop ni fecha.html (que también lee esta
-                    // colección) lo confunden con un bloqueo real.
-                    if (data.tipo === 'viene_cristina') { _grilla_vieneCristina = data.activo === true; return; }
+                    // colección) lo confunden con un bloqueo real. Separado por
+                    // mañana/tarde (ej: viernes a la tarde no viene).
+                    if (data.tipo === 'viene_cristina') {
+                        _grilla_cristinaManana = data.manana === true;
+                        _grilla_cristinaTarde  = data.tarde === true;
+                        return;
+                    }
                     if (!data.hora || !data.boxId) return;
                     const key = `${data.hora}_${data.boxId}`;
                     if (data.source === 'admin')          _grilla_adminBlocks.set(key, d.id);
@@ -13506,7 +13520,9 @@
         // ── Aviso GENERAL del día "viene Cristina" — no es por paciente: se
         // guarda en calendarExceptions como un doc sin hora/boxId (por eso
         // tanto cargarAdminBlocks acá como fecha.html lo ignoran como bloqueo
-        // real), uno por fecha, y se muestra como un banner en la Grilla. ──
+        // real), uno por fecha, separado en mañana/tarde (ej: viernes a la
+        // tarde no viene) — y tiñe toda la grilla de ese turno, no solo un
+        // banner. ──
         window.grillaToggleMenuCristina = function(ev) {
             ev.stopPropagation();
             const previo = document.getElementById('gc-menu-flot');
@@ -13515,26 +13531,33 @@
             const pop = document.createElement('div');
             pop.id = 'gc-menu-flot';
             pop.className = 'gc-menu-pop';
-            const left = Math.max(4, Math.min(r.right - 210, window.innerWidth - 216));
+            const left = Math.max(4, Math.min(r.right - 220, window.innerWidth - 226));
             pop.style.top = (r.bottom + 2) + 'px';
             pop.style.left = left + 'px';
-            pop.innerHTML = _grilla_vieneCristina
-                ? `<button type="button" onclick="grillaMarcarCristina(false)">✓ Cristina no viene — quitar aviso</button>`
-                : `<button type="button" onclick="grillaMarcarCristina(true)">🟡 Marcar: viene Cristina hoy</button>`;
+            pop.innerHTML = `
+                ${_grilla_cristinaManana
+                    ? `<button type="button" onclick="grillaMarcarCristina('manana',false)">✓ Mañana: Cristina no viene</button>`
+                    : `<button type="button" onclick="grillaMarcarCristina('manana',true)">🟡 Mañana: viene Cristina</button>`}
+                ${_grilla_cristinaTarde
+                    ? `<button type="button" onclick="grillaMarcarCristina('tarde',false)">✓ Tarde: Cristina no viene</button>`
+                    : `<button type="button" onclick="grillaMarcarCristina('tarde',true)">🟡 Tarde: viene Cristina</button>`}
+            `;
             pop.addEventListener('click', e => e.stopPropagation());
             document.body.appendChild(pop);
         };
 
-        window.grillaMarcarCristina = async function(valor) {
+        window.grillaMarcarCristina = async function(periodo, valor) {
             const el = document.getElementById('gc-menu-flot');
             if (el) el.remove();
             try {
                 await setDoc(doc(db, 'calendarExceptions', `cristina_${_grilla_fecha}`), {
-                    fecha: _grilla_fecha, tipo: 'viene_cristina', activo: valor, updatedAt: serverTimestamp(),
+                    fecha: _grilla_fecha, tipo: 'viene_cristina', [periodo]: valor, updatedAt: serverTimestamp(),
                 }, { merge: true });
-                _grilla_vieneCristina = valor;
+                if (periodo === 'manana') _grilla_cristinaManana = valor;
+                else _grilla_cristinaTarde = valor;
                 window.renderGrilla();
-                mostrarAviso(valor ? '🟡 Marcado: viene Cristina hoy' : '✓ Aviso de Cristina quitado');
+                const etiqueta = periodo === 'manana' ? 'mañana' : 'tarde';
+                mostrarAviso(valor ? `🟡 Marcado: viene Cristina (${etiqueta})` : `✓ Aviso de Cristina quitado (${etiqueta})`);
             } catch (e) {
                 console.error('grillaMarcarCristina', e);
                 mostrarAviso('No se pudo actualizar el aviso');
@@ -13717,11 +13740,24 @@
             const titulo = document.getElementById('grilla-fecha-titulo');
             if (titulo) titulo.textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
 
-            // Aviso general "viene Cristina" del día (ver cargarAdminBlocks)
+            // Aviso general "viene Cristina" del día, separado mañana/tarde (ver cargarAdminBlocks)
             const btnCristina = document.getElementById('btn-grilla-cristina');
-            if (btnCristina) btnCristina.classList.toggle('activo', _grilla_vieneCristina);
+            if (btnCristina) btnCristina.classList.toggle('activo', _grilla_cristinaManana || _grilla_cristinaTarde);
             const bannerCristina = document.getElementById('grilla-banner-cristina');
-            if (bannerCristina) bannerCristina.style.display = _grilla_vieneCristina ? 'flex' : 'none';
+            if (bannerCristina) {
+                if (_grilla_cristinaManana && _grilla_cristinaTarde) {
+                    bannerCristina.style.display = 'flex';
+                    bannerCristina.textContent = '🟡 Hoy viene Cristina (todo el día)';
+                } else if (_grilla_cristinaManana) {
+                    bannerCristina.style.display = 'flex';
+                    bannerCristina.textContent = '🟡 Hoy viene Cristina (mañana)';
+                } else if (_grilla_cristinaTarde) {
+                    bannerCristina.style.display = 'flex';
+                    bannerCristina.textContent = '🟡 Hoy viene Cristina (tarde)';
+                } else {
+                    bannerCristina.style.display = 'none';
+                }
+            }
 
             // Reservas del día
             const del_dia = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === _grilla_fecha);
@@ -13810,7 +13846,9 @@
                 }
                 lastHora = hora;
 
-                const rowCls = es30 ? 'grilla-row-30' : 'grilla-row-15';
+                const esHoraManana = hora < '14:00';
+                const cristinaEnEstaFila = esHoraManana ? _grilla_cristinaManana : _grilla_cristinaTarde;
+                const rowCls = (es30 ? 'grilla-row-30' : 'grilla-row-15') + (cristinaEnEstaFila ? ' grilla-row-cristina' : '');
                 const horaLabel = es30 ? `<strong>${hora}</strong>` : hora;
 
                 const celdas = GRILLA_BOXES.map(box => {
