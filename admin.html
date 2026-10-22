@@ -966,15 +966,25 @@
            span sí queda acotado al ancho real de la tarjeta y el ellipsis
            se aplica de verdad. */
         .grilla-paciente-nombre { display: block; width: 100%; box-sizing: border-box; font-size: 11px; font-weight: 700; color: var(--forest); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        /* Nombre con nota rápida cargada: latido suave + cambio de color,
-           para que se note sin gritar. transform-origin:left evita que el
-           "crecimiento" del latido empuje el texto hacia la derecha. */
-        @keyframes gc-latido-nota {
-            0%, 100% { transform: scale(1); color: var(--forest); }
-            50%      { transform: scale(1.045); color: #0f7a8c; }
+        /* Tarjeta con nota rápida cargada: latido suave en TODA la tarjeta
+           (no solo el texto) — leve escala + un resplandor que crece y se
+           apaga, con el borde virando a un celeste-verdoso. z-index propio
+           para que, en el pico de la escala, no quede tapada por la celda
+           vecina. Nunca interfiere con el rojo de "espera confirmación":
+           si las dos están activas, el borde rojo manda (ver gc-espera),
+           el latido solo agrega el resplandor y el movimiento. */
+        @keyframes gc-latido-tarjeta {
+            0%, 100% { transform: scale(1);     box-shadow: 0 0 0 0 rgba(15,122,140,0); }
+            50%      { transform: scale(1.025); box-shadow: 0 0 0 3px rgba(15,122,140,0.16), 0 6px 16px rgba(15,122,140,0.24); }
         }
-        .gc-nombre-con-nota { transform-origin: left center; animation: gc-latido-nota 2.4s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) { .gc-nombre-con-nota { animation: none; color: #0f7a8c; } }
+        .grilla-celda-ocupada.gc-con-nota {
+            position: relative; z-index: 3;
+            animation: gc-latido-tarjeta 2.6s ease-in-out infinite;
+        }
+        .grilla-celda-ocupada.gc-con-nota:not(.gc-espera) { border-left-color: #0f7a8c; }
+        @media (prefers-reduced-motion: reduce) {
+            .grilla-celda-ocupada.gc-con-nota { animation: none; box-shadow: 0 0 0 2px rgba(15,122,140,0.22); }
+        }
         /* El nombre es clickeable (ver "Últimas sesiones") sin cambiar su
            apariencia en reposo — solo gana un subrayado sutil al pasar el
            mouse/foco, para que se note que es interactivo sin competir
@@ -13922,6 +13932,8 @@
                             end:   'border-radius:0 0 9px 9px;border-top:none;'
                         }[type];
                         const esperaCls = res.esperaConfirmacion ? ' gc-espera' : '';
+                        const notaRapida = (res.notaRapida || '').trim();
+                        const notaCls = notaRapida ? ' gc-con-nota' : '';
                         if (type === 'start' || type === 'solo') {
                             let circHtml = '';
                             if (circ?.isTarget) circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
@@ -13929,11 +13941,10 @@
                                 const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
                                 circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                             }
-                            const notaRapida = (res.notaRapida || '').trim();
                             const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" data-nota="${escapeHtml(notaRapida)}" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>`;
-                            inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
+                            inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}${notaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
                                 ${menuHtml}
-                                <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable${notaRapida ? ' gc-nombre-con-nota' : ''}" role="button" tabindex="0" aria-haspopup="dialog" title="Ver últimas sesiones de ${nom}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaVerHistorialPaciente(event,'${res.id}')}">${nom}</span>
+                                <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Ver últimas sesiones de ${nom}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaVerHistorialPaciente(event,'${res.id}')}">${nom}</span>
                                 <span class="grilla-paciente-servicio">${srv}</span>
                                 ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
                                 ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
@@ -13941,7 +13952,7 @@
                             </div>`;
                         } else {
                             // Continuación: bloque sólido sin texto, clicable
-                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}${esperaCls}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — continúa (tocá para ver sus últimas sesiones)" style="--box-accent:${box.accent};${divRad}"></div>`;
+                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}${esperaCls}${notaCls}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — continúa (tocá para ver sus últimas sesiones)" style="--box-accent:${box.accent};${divRad}"></div>`;
                         }
                     } else if (adminBloq) {
                         inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
