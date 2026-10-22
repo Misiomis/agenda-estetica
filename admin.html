@@ -914,8 +914,24 @@
            inyectada inline por celda) — se distingue de una celda vacía a
            simple vista, y el color de acento queda concentrado en esa franja,
            no repetido en cada celda libre. */
-        .grilla-celda-ocupada { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 3px 7px 3px 9px; height: 100%; border-radius: 7px; background: var(--surface); border: 1px solid var(--border-strong); border-left: 3px solid var(--box-accent, var(--sage)); cursor: pointer; overflow: hidden; }
+        .grilla-celda-ocupada { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 3px 7px 3px 9px; height: 100%; border-radius: 7px; background: var(--surface); border: 1px solid var(--border-strong); border-left: 3px solid var(--box-accent, var(--sage)); cursor: pointer; overflow: hidden; }
         .grilla-celda-ocupada:hover { background: var(--sage-soft); }
+
+        /* ── Aviso "espera confirmación" — nota roja que la administradora
+             prende/apaga a mano desde el menú de 3 puntos de cada turno. No
+             tiene nada que ver con confirmacionManual (eso es otro circuito,
+             el de la Agenda) — esto es solo "¿la paciente avisó que viene?". ── */
+        .grilla-celda-ocupada.gc-espera, .grilla-celda-ocupada.gc-bloque-cont.gc-espera {
+            background: #fdecea !important; border-left-color: #c0392b !important;
+            box-shadow: inset 0 0 0 1px rgba(192,57,43,0.28);
+        }
+        .gc-espera-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 800; color: #a3291c; background: rgba(192,57,43,0.14); border: 1px solid rgba(192,57,43,0.34); border-radius: 999px; padding: 1px 7px; margin-top: 2px; white-space: nowrap; }
+        .gc-menu-btn { position: absolute; top: 1px; right: 1px; width: 19px; height: 19px; border: none; background: transparent; color: rgba(22,61,50,0.40); font-size: 14px; font-weight: 900; line-height: 1; cursor: pointer; border-radius: 5px; display: flex; align-items: center; justify-content: center; z-index: 6; }
+        .gc-menu-btn:hover { background: rgba(22,61,50,0.12); color: rgba(22,61,50,0.90); }
+        .gc-menu-pop { display: none; position: absolute; top: 19px; right: 1px; z-index: 60; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.20); padding: 4px; min-width: 190px; cursor: default; }
+        .gc-menu-pop.open { display: block; }
+        .gc-menu-pop button { display: block; width: 100%; text-align: left; padding: 8px 10px; border: none; background: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; color: rgba(36,51,43,0.92); white-space: nowrap; }
+        .gc-menu-pop button:hover { background: rgba(53,122,92,0.12); }
         /* width:100% (no solo max-width) — dentro de .grilla-celda-ocupada
            (flex column, align-items:flex-start) un hijo NO se estira solo al
            ancho del contenedor, así que max-width:100% no alcanzaba a fijar
@@ -13346,6 +13362,40 @@
             }
         }
 
+        // ── Aviso "espera confirmación" en la Grilla ─────────────────────────
+        // Campo propio (esperaConfirmacion), sin relación con confirmacionManual
+        // (eso es otro circuito, el de la Agenda). Es una nota manual: la
+        // administradora la prende cuando agendó el turno pero la paciente
+        // todavía no avisó que viene, y la apaga apenas confirma.
+        window.grillaToggleMenuEspera = function(ev, reservaId) {
+            ev.stopPropagation();
+            document.querySelectorAll('.gc-menu-pop.open').forEach(el => {
+                if (el.id !== 'gc-menu-' + reservaId) el.classList.remove('open');
+            });
+            const el = document.getElementById('gc-menu-' + reservaId);
+            if (el) el.classList.toggle('open');
+        };
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.gc-menu-pop.open').forEach(el => el.classList.remove('open'));
+        });
+
+        window.grillaMarcarEspera = async function(reservaId, valor) {
+            document.querySelectorAll('.gc-menu-pop.open').forEach(el => el.classList.remove('open'));
+            try {
+                await updateDoc(doc(db, 'reservas', reservaId), {
+                    esperaConfirmacion: valor,
+                    esperaConfirmacionAt: valor ? serverTimestamp() : null,
+                });
+                const r = todasLasReservas.find(x => x.id === reservaId);
+                if (r) r.esperaConfirmacion = valor;
+                window.renderGrilla();
+                mostrarAviso(valor ? '🔴 Marcado: espera confirmación' : '✓ Confirmación registrada');
+            } catch (e) {
+                console.error('grillaMarcarEspera', e);
+                mostrarAviso('No se pudo actualizar el aviso');
+            }
+        };
+
         // SIEMPRE un modal centrado (nunca un popover anclado a la celda) —
         // en escritorio, celular y tablet por igual. Se cuelga directo de
         // <body> (un "portal"), con su propio position:fixed: nunca queda
@@ -13644,6 +13694,7 @@
                             mid:   'border-radius:0;border-top:none;border-bottom:none;',
                             end:   'border-radius:0 0 9px 9px;border-top:none;'
                         }[type];
+                        const esperaCls = res.esperaConfirmacion ? ' gc-espera' : '';
                         if (type === 'start' || type === 'solo') {
                             let circHtml = '';
                             if (circ?.isTarget) circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
@@ -13651,14 +13702,23 @@
                                 const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
                                 circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                             }
-                            inner = `<div class="grilla-celda-ocupada${circCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
+                            const menuHtml = `
+                                <button type="button" class="gc-menu-btn" draggable="false" onclick="event.stopPropagation();grillaToggleMenuEspera(event,'${res.id}')" title="Más opciones">⋮</button>
+                                <div class="gc-menu-pop" id="gc-menu-${res.id}" draggable="false" onclick="event.stopPropagation()">
+                                    ${res.esperaConfirmacion
+                                        ? `<button type="button" onclick="grillaMarcarEspera('${res.id}', false)">✓ Ya confirmó — quitar aviso</button>`
+                                        : `<button type="button" onclick="grillaMarcarEspera('${res.id}', true)">🔴 Marcar: espera confirmación</button>`}
+                                </div>`;
+                            inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
+                                ${menuHtml}
                                 <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Ver últimas sesiones de ${nom}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaVerHistorialPaciente(event,'${res.id}')}">${nom}</span>
                                 <span class="grilla-paciente-servicio">${srv}</span>
+                                ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
                                 ${circHtml}
                             </div>`;
                         } else {
                             // Continuación: bloque sólido sin texto, clicable
-                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — continúa (tocá para ver sus últimas sesiones)" style="--box-accent:${box.accent};${divRad}"></div>`;
+                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}${esperaCls}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — continúa (tocá para ver sus últimas sesiones)" style="--box-accent:${box.accent};${divRad}"></div>`;
                         }
                     } else if (adminBloq) {
                         inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
