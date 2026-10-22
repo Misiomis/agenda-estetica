@@ -966,6 +966,15 @@
            span sí queda acotado al ancho real de la tarjeta y el ellipsis
            se aplica de verdad. */
         .grilla-paciente-nombre { display: block; width: 100%; box-sizing: border-box; font-size: 11px; font-weight: 700; color: var(--forest); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* Nombre con nota rápida cargada: latido suave + cambio de color,
+           para que se note sin gritar. transform-origin:left evita que el
+           "crecimiento" del latido empuje el texto hacia la derecha. */
+        @keyframes gc-latido-nota {
+            0%, 100% { transform: scale(1); color: var(--forest); }
+            50%      { transform: scale(1.045); color: #0f7a8c; }
+        }
+        .gc-nombre-con-nota { transform-origin: left center; animation: gc-latido-nota 2.4s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .gc-nombre-con-nota { animation: none; color: #0f7a8c; } }
         /* El nombre es clickeable (ver "Últimas sesiones") sin cambiar su
            apariencia en reposo — solo gana un subrayado sutil al pasar el
            mouse/foco, para que se note que es interactivo sin competir
@@ -13504,17 +13513,46 @@
             }
         };
 
-        // prompt() nativo: funciona igual en PC y celular sin tener que
-        // resolver posicionamiento propio para un campo de texto chiquito
-        // dentro de una celda de grilla.
+        // Modal propio (mismo estilo que el resto de los overlays de la
+        // Grilla, ej. "Box ocupado") — antes era un prompt() nativo del
+        // navegador, que desentonaba feo con el resto del panel.
         window.grillaEditarNota = function(reservaId) {
-            const el = document.getElementById('gc-menu-flot');
-            if (el) el.remove();
+            const menuPrevio = document.getElementById('gc-menu-flot');
+            if (menuPrevio) menuPrevio.remove();
             const r = todasLasReservas.find(x => x.id === reservaId);
+            const nombre = (r && (r.nombreLimpio || r.nombre)) || 'este turno';
             const actual = (r && r.notaRapida) || '';
-            const texto = prompt('Nota rápida para este turno (ej: "falta avisar"):', actual);
-            if (texto === null) return; // canceló
-            window.grillaMarcarAviso(reservaId, 'notaRapida', texto.trim());
+            const cerrar = () => { const ov = document.getElementById('_gc_nota_overlay'); if (ov) ov.remove(); };
+            const guardar = () => {
+                const input = document.getElementById('_gc_nota_input');
+                window.grillaMarcarAviso(reservaId, 'notaRapida', (input.value || '').trim());
+                cerrar();
+            };
+            const ov = document.createElement('div');
+            ov.id = '_gc_nota_overlay';
+            ov.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.62);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px';
+            ov.innerHTML = `
+                <div style="width:100%;max-width:380px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:26px 24px 22px">
+                    <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 4px">📝 Nota rápida</p>
+                    <p style="font-size:13px;color:#4C6759;text-align:center;margin:0 0 16px">${escapeHtml(nombre)}</p>
+                    <input id="_gc_nota_input" type="text" maxlength="60" placeholder="Ej: falta avisar" value="${escapeHtml(actual)}"
+                        style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid rgba(178,222,200,0.9);border-radius:12px;font-family:inherit;font-size:15px;font-weight:600;color:#2f4934;outline:none;margin-bottom:16px;">
+                    <div style="display:flex;gap:10px;">
+                        <button id="_gc_nota_cancelar" style="flex:1;padding:12px;background:rgba(53,122,92,0.08);border:1px solid rgba(53,122,92,0.20);border-radius:12px;color:#4C6759;font-weight:700;font-size:14px;cursor:pointer;">Cancelar</button>
+                        <button id="_gc_nota_guardar" style="flex:1;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.28);">Guardar</button>
+                    </div>
+                </div>`;
+            ov.addEventListener('mousedown', (e) => { if (e.target === ov) cerrar(); });
+            document.body.appendChild(ov);
+            document.getElementById('_gc_nota_cancelar').addEventListener('click', cerrar);
+            document.getElementById('_gc_nota_guardar').addEventListener('click', guardar);
+            const input = document.getElementById('_gc_nota_input');
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') guardar();
+                else if (e.key === 'Escape') cerrar();
+            });
+            input.focus();
+            input.select();
         };
 
         // ── Aviso GENERAL del día "viene Cristina" — no es por paciente: se
@@ -13895,7 +13933,7 @@
                             const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" data-nota="${escapeHtml(notaRapida)}" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>`;
                             inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
                                 ${menuHtml}
-                                <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Ver últimas sesiones de ${nom}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaVerHistorialPaciente(event,'${res.id}')}">${nom}</span>
+                                <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable${notaRapida ? ' gc-nombre-con-nota' : ''}" role="button" tabindex="0" aria-haspopup="dialog" title="Ver últimas sesiones de ${nom}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaVerHistorialPaciente(event,'${res.id}')}">${nom}</span>
                                 <span class="grilla-paciente-servicio">${srv}</span>
                                 ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
                                 ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
