@@ -1,4 +1,4 @@
-// Mimar T Cristina — pantalla única: quién se atiende hoy (tratamientos
+// Mimar T Administración — pantalla única: quién se atiende hoy (tratamientos
 // corporales/faciales y depilación juntos) + nota general de la paciente.
 // Comportamiento correcto dentro de la app Android (botón Atrás, retorno de
 // segundo plano, sin listeners duplicados) — mismo patrón que Mimar T
@@ -262,7 +262,7 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
   if (!esEmailAutorizado(user.email)) {
-    mostrarAcceso("Esta cuenta no tiene acceso a Mimar T Cristina.");
+    mostrarAcceso("Esta cuenta no tiene acceso a Mimar T Administración.");
     $("login-form").hidden = false;
     $("login-submit").disabled = false;
     await signOut(auth);

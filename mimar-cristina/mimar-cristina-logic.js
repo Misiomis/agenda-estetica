@@ -1,5 +1,5 @@
 // mimar-cristina-logic.js
-// Reglas determinísticas de "Mimar T Cristina" — sin DOM, sin Firestore,
+// Reglas determinísticas de "Mimar T Administración" — sin DOM, sin Firestore,
 // solo funciones puras sobre los datos ya traídos.
 //
 // No importa mimar-inteligente-logic.js a propósito: el webDir de esta app

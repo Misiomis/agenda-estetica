@@ -1046,6 +1046,13 @@
         .gh-fila b { color: var(--forest); }
         .gh-desc-larga { color: var(--ink-soft); }
         .gh-expandir { background: none; border: none; padding: 0; color: var(--forest); font-size: 11.5px; font-weight: 700; cursor: pointer; text-decoration: underline; margin-left: 4px; }
+        /* Botón opcional para desplegar las sesiones anteriores a las 5 que
+           se muestran por defecto (ver _ghRenderContenido) — estilo liviano
+           a propósito, distinto del .gh-reintentar (ese es recuperación de
+           un error, no una acción de navegación normal). */
+        .gh-vermas { margin-top: 2px; width: 100%; background: var(--surface-2); color: var(--forest); border: 1px solid var(--border-strong); border-radius: 8px; padding: 10px 14px; min-height: 40px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+        .gh-vermas:hover { background: var(--gold-soft); }
+        .gh-vermas:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
         .gh-estado { font-size: 12.5px; color: var(--ink-soft); padding: 6px 0; }
         .gh-reintentar { margin-top: 8px; background: var(--forest); color: #fff; border: none; border-radius: 8px; padding: 10px 14px; min-height: 40px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
         .grilla-paciente-servicio { display: block; width: 100%; box-sizing: border-box; font-size: 9px; color: var(--sage-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -13381,6 +13388,11 @@
         let _ghToken = 0;
         let _ghFocoPrevio = null;
         let _ghOnKeydown = null;
+        // Si están desplegadas las sesiones anteriores a las 5 que se
+        // muestran por defecto — se resetea a false cada vez que se abre el
+        // historial de una paciente (grillaVerHistorialPaciente), nunca
+        // queda "pegado" de una paciente a la siguiente.
+        let _ghMostrarTodas = false;
 
         function _ghSesionesEnMemoria(matchKey) {
             const ahora = Date.now();
@@ -13390,15 +13402,19 @@
                 !_esSesionPendiente(x, ahora)
             );
         }
-        function _ghOrdenarYLimitar(lista) {
+        // Antes limitaba acá a las últimas 3 — ahora el límite de cuántas se
+        // VEN por defecto (5) es cosa del render (_ghRenderContenido), que
+        // además deja desplegar el resto con un botón. Esta función solo
+        // ordena, nunca recorta, para que ese botón tenga de dónde sacar las
+        // sesiones anteriores sin otra consulta a Firestore.
+        function _ghOrdenar(lista) {
             return lista
                 .slice()
                 .sort((a, b) => {
                     const av = `${a.fecha || ''}T${normalizarHora(a.hora) || '00:00'}`;
                     const bv = `${b.fecha || ''}T${normalizarHora(b.hora) || '00:00'}`;
                     return bv < av ? -1 : bv > av ? 1 : 0;
-                })
-                .slice(0, 3);
+                });
         }
         function _ghFormatoFecha(fechaISO) {
             const p = (fechaISO || '').split('-');
@@ -13442,7 +13458,13 @@
             } else if (!filas.length) {
                 html = `<div class="gh-estado">Este paciente no tiene sesiones registradas.</div>`;
             } else {
-                html = '<div class="gh-lista">' + filas.map((r, i) => {
+                // Por defecto solo las últimas 5 — el resto queda disponible
+                // de un toque, sin volver a consultar Firestore (filas ya
+                // viene completa y ordenada desde _ghCargarYRenderizar).
+                const LIMITE_VISIBLE = 5;
+                const hayMas = filas.length > LIMITE_VISIBLE;
+                const visibles = (_ghMostrarTodas || !hayMas) ? filas : filas.slice(0, LIMITE_VISIBLE);
+                html = '<div class="gh-lista">' + visibles.map((r, i) => {
                     const fecha = escapeHtml(_ghFormatoFecha(r.fecha));
                     const trat = escapeHtml(r.servicio || '—');
                     const det = (r.detalleSesion || '').trim();
@@ -13454,10 +13476,21 @@
                         ? `<div class="gh-fila"><b>${fecha}</b> · ${trat} — <span class="gh-desc-larga" id="gh-desc-${i}" data-full="${detEsc.replace(/"/g, '&quot;')}" data-corta="${corta.replace(/"/g, '&quot;')}">${corta}</span><button type="button" class="gh-expandir" data-expandir="${i}">ver más</button></div>`
                         : `<div class="gh-fila"><b>${fecha}</b> · ${trat} — <span class="gh-desc-larga">${detEsc}</span></div>`;
                 }).join('') + '</div>';
+                if (hayMas) {
+                    const restantes = filas.length - LIMITE_VISIBLE;
+                    html += _ghMostrarTodas
+                        ? `<button type="button" class="gh-vermas" id="gh-btn-vermas">Ver menos</button>`
+                        : `<button type="button" class="gh-vermas" id="gh-btn-vermas">Ver ${restantes} ${restantes === 1 ? 'sesión anterior' : 'sesiones anteriores'}</button>`;
+                }
             }
             cuerpo.innerHTML = html;
             const btnReintentar = document.getElementById('gh-btn-reintentar');
             if (btnReintentar) btnReintentar.onclick = () => _ghCargarYRenderizar(nombre, dniParaReintentar, _ghMatchKeyActual);
+            const btnVerMas = document.getElementById('gh-btn-vermas');
+            if (btnVerMas) btnVerMas.onclick = () => {
+                _ghMostrarTodas = !_ghMostrarTodas;
+                _ghRenderContenido(estado, filas, nombre, dniParaReintentar);
+            };
             cuerpo.querySelectorAll('[data-expandir]').forEach(btn => {
                 btn.onclick = () => {
                     const span = document.getElementById('gh-desc-' + btn.dataset.expandir);
@@ -13471,7 +13504,7 @@
         let _ghMatchKeyActual = null;
         async function _ghCargarYRenderizar(nombre, dni, matchKey) {
             const miToken = ++_ghToken;
-            const enMemoria = _ghOrdenarYLimitar(_ghSesionesEnMemoria(matchKey));
+            const enMemoria = _ghOrdenar(_ghSesionesEnMemoria(matchKey));
             if (!dni) { _ghRenderContenido('ok', enMemoria, nombre, dni); return; }
             _ghRenderContenido('cargando', [], nombre, dni);
             try {
@@ -13480,7 +13513,7 @@
                 const porId = new Map();
                 enMemoria.forEach(r => porId.set(r.id, r));
                 remotas.forEach(r => porId.set(r.id, r));
-                const combinadas = _ghOrdenarYLimitar(
+                const combinadas = _ghOrdenar(
                     Array.from(porId.values()).filter(x => _pacienteMatchKey(x) === matchKey && esReservaActiva(x) && !_esSesionPendiente(x))
                 );
                 if (miToken !== _ghToken) return;
@@ -13647,6 +13680,7 @@
             const r = todasLasReservas.find(x => x.id === reservaId);
             if (!r) return;
             _ghCerrar();
+            _ghMostrarTodas = false;
             const trigger = ev ? ev.currentTarget : null;
             _ghFocoPrevio = trigger;
             const matchKey = _pacienteMatchKey(r);
