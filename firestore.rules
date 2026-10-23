@@ -34,6 +34,12 @@ service cloud.firestore {
       allow read:   if true;
       allow write:  if esAdmin();
       allow update: if noCambiaCamposAdmin();
+      // Mimar T Cristina (app aparte para depilación) deja una nota general
+      // en la ficha de la paciente. La mayoría ya tiene ficha (se actualiza
+      // por la regla de arriba, sin tocar campos protegidos), pero una
+      // paciente que solo vino por depilación puede no tener una todavía —
+      // esAdminDepi() ya es de confianza (mismo criterio que reservasDepi).
+      allow create: if esAdminDepi();
     }
 
     match /historias/{historiaId} {
