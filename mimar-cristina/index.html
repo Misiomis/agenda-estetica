@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173e33">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Mimar T Cristina — pacientes del día de Espacio Mimar T.">
+  <title>Mimar T Cristina</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./mimar-cristina.css">
+  <style>
+    /* Tarjeta de credenciales de Gimena — siempre visible, estilo suave */
+    .credencial-gimena {
+      border: 1px solid var(--blush-line); background: var(--blush); color: var(--blush-ink);
+      border-radius: 14px; padding: 12px 14px; font-size: .82rem; line-height: 1.4; margin-bottom: 14px;
+    }
+    .credencial-gimena strong { font: 600 .95rem var(--serif); display: block; margin-bottom: 2px; color: var(--blush-ink); }
+    .pill-depi { background: var(--blush); color: var(--blush-ink); border: 1px solid var(--blush-line); }
+    .pill-general { background: var(--sage); color: var(--sage-ink); border: 1px solid var(--sage-line); }
+    .item-row { cursor: pointer; }
+    .item-row:active { background: #f0ece0; }
+    .item-row-nota { font-size: .8rem; color: var(--forest); margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></symbol>
+      <symbol id="i-note" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h4"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="page-shell">
+    <header class="topbar">
+      <span class="brand" aria-hidden="false">
+        <span class="brand-mark">M</span>
+        <span class="brand-copy"><strong>Mimar T Cristina</strong><span>PACIENTES DEL DÍA</span></span>
+      </span>
+      <div class="header-actions">
+        <span class="connection" id="connection" role="status"><span class="status-dot"></span><span id="connection-text">Iniciando</span></span>
+        <button class="icon-button" type="button" id="btn-salir" aria-label="Cerrar sesión" hidden><svg class="icon"><use href="#i-logout"/></svg></button>
+      </div>
+    </header>
+
+    <!-- ══ LOGIN ══ -->
+    <section id="access-panel" class="access-panel" aria-labelledby="access-title">
+      <div class="access-heading">
+        <span class="eyebrow">PACIENTES DEL DÍA</span>
+        <h1 id="access-title">Hoy,<br><em>quién llega y cuándo.</em></h1>
+        <p id="access-message" role="status">Buscando tu sesión…</p>
+      </div>
+      <form id="login-form" class="login-card" hidden>
+        <h2>Ingresá con tu cuenta</h2>
+        <label for="login-email">Correo electrónico</label>
+        <input id="login-email" name="email" type="email" autocomplete="username" required>
+        <label for="login-password">Contraseña</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        <button class="button button-primary button-full" type="submit" id="login-submit">Ingresar <svg class="icon"><use href="#i-arrow"/></svg></button>
+        <p id="login-error" class="error-text" role="alert"></p>
+      </form>
+    </section>
+
+    <!-- ══ APP ══ -->
+    <main id="workspace" hidden>
+      <div class="workspace-heading">
+        <div><span class="eyebrow">AGENDA</span><h1 id="date-heading">Hoy</h1></div>
+      </div>
+
+      <div class="credencial-gimena">
+        <strong>Espacio Mimar T · Gimena Knack</strong>
+        Farmacéutica MP 1212 · Dermatocosmiatra RC 2319
+      </div>
+
+      <div class="notice warning-notice" id="fuentes-aviso" hidden></div>
+
+      <section class="section-block">
+        <div class="section-heading" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <h2 style="font:1.1rem var(--serif);color:var(--sage-ink);flex:1;">Pacientes de hoy</h2>
+          <span class="count-pill" id="count-hoy">0</span>
+        </div>
+        <div class="list-panel" id="lista-hoy"><div class="loading-state">Cargando…</div></div>
+      </section>
+
+      <footer class="page-footer">
+        <span id="version-footer">Mimar T Cristina</span>
+        <span id="last-sync">—</span>
+      </footer>
+    </main>
+  </div>
+
+  <!-- ══ MODAL: nota general de la paciente ══ -->
+  <dialog id="nota-dialog" aria-labelledby="nota-titulo">
+    <div class="dialog-heading">
+      <div><span class="eyebrow">NOTA DE LA PACIENTE</span><h2 id="nota-titulo">—</h2></div>
+      <button class="icon-button" type="button" id="btn-cerrar-nota" aria-label="Cerrar"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="dialog-status" id="nota-status"></div>
+    <div class="dialog-body">
+      <p class="hint-text" id="nota-turno-info">—</p>
+      <label for="nota-texto" class="hint-text" style="display:block;margin:10px 0 6px;">Nota general (queda guardada para cualquier visita futura)</label>
+      <textarea id="nota-texto" class="wa-preview-textarea" rows="6" placeholder="Ej: alérgica a..., prefiere tal horario, etc."></textarea>
+    </div>
+    <div class="dialog-actions">
+      <button class="button button-primary button-full" type="button" id="btn-guardar-nota">Guardar nota</button>
+      <button class="button button-light button-full" type="button" id="btn-cerrar-nota-2">Cerrar</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script type="module" src="./mimar-cristina.js"></script>
+</body>
+</html>
