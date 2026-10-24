@@ -4,7 +4,7 @@
 // de la app Android (botón Atrás, retorno de segundo plano, sin listeners
 // duplicados) — mismo patrón que Mimar T Inteligente.
 import {
-  db, auth, collection, query, where, onSnapshot, doc, getDoc, setDoc,
+  db, auth, collection, query, where, onSnapshot, doc, getDoc, setDoc, updateDoc,
   serverTimestamp, onAuthStateChanged, signInWithEmailAndPassword, signOut,
 } from "./firebase-web.js";
 import {
@@ -134,6 +134,7 @@ function renderDia() {
     const pillTxt = p.esDepi ? "Depilación" : escapeHtml(p.servicio || "Reserva");
     // Sin detalle cargado, la reserva se muestra igual — solo se omite esa línea.
     const detalleHtml = p.detalleSesion ? `<div class="item-detalle">${escapeHtml(p.detalleSesion)}</div>` : "";
+    const btnDetalleTxt = p.detalleSesion ? "✏️ Editar detalle" : "✏️ Cargar detalle de la sesión";
     return `
       <div class="item-row" data-id="${escapeHtml(p.id)}" data-coleccion="${escapeHtml(p.coleccion)}" data-dni="${escapeHtml(p.dni || "")}" data-nombre="${escapeHtml(nombreLindo)}">
         <div class="item-row-top">
@@ -142,6 +143,7 @@ function renderDia() {
         </div>
         <div class="item-pills"><span class="pill ${pillCls}">${pillTxt}</span></div>
         ${detalleHtml}
+        <button type="button" class="item-detalle-btn" data-abrir-detalle="${escapeHtml(p.id)}" data-coleccion="${escapeHtml(p.coleccion)}" data-nombre="${escapeHtml(nombreLindo)}" data-detalle="${escapeHtml(p.detalleSesion || "")}">${btnDetalleTxt}</button>
       </div>`;
   }).join("");
 }
@@ -271,12 +273,74 @@ $("btn-guardar-nota").addEventListener("click", async () => {
 });
 
 $("lista-dia").addEventListener("click", (ev) => {
+  const btnDetalle = ev.target.closest("[data-abrir-detalle]");
+  if (btnDetalle) {
+    abrirDetalle(btnDetalle.dataset.abrirDetalle, btnDetalle.dataset.coleccion, btnDetalle.dataset.nombre, btnDetalle.dataset.detalle);
+    return;
+  }
   const fila = ev.target.closest(".item-row");
   if (!fila) return;
   const dni = fila.dataset.dni;
   const nombre = fila.dataset.nombre;
   if (!dni) { toast("Sin DNI identificable — no se puede cargar una nota para esta paciente."); return; }
   abrirNota(dni, nombre, null, null);
+});
+
+// ── Detalle de ESTA sesión puntual (reservas.detalleSesion / reservasDepi.notasSesion) ──
+const detalleDialog = $("detalle-dialog");
+let detalleIdActual = null;
+let detalleColeccionActual = null;
+
+function detalleEstado(msg, tipo) {
+  const el = $("detalle-status");
+  if (!msg) { el.className = "dialog-status"; el.textContent = ""; return; }
+  el.className = `dialog-status mostrar ${tipo || "info"}`;
+  el.textContent = msg;
+}
+
+function abrirDetalle(id, coleccion, nombre, detalleActual) {
+  detalleIdActual = id;
+  detalleColeccionActual = coleccion;
+  $("detalle-titulo").textContent = nombre;
+  $("detalle-turno-info").textContent = "";
+  $("detalle-texto").value = detalleActual || "";
+  detalleEstado("", "info");
+  detalleDialog.showModal();
+}
+
+function cerrarDetalle() { detalleDialog.close(); detalleIdActual = null; detalleColeccionActual = null; }
+
+$("btn-cerrar-detalle").addEventListener("click", cerrarDetalle);
+$("btn-cerrar-detalle-2").addEventListener("click", cerrarDetalle);
+detalleDialog.addEventListener("cancel", (ev) => { ev.preventDefault(); cerrarDetalle(); });
+
+$("btn-guardar-detalle").addEventListener("click", async () => {
+  if (!detalleIdActual || !detalleColeccionActual) return;
+  const boton = $("btn-guardar-detalle");
+  boton.disabled = true;
+  detalleEstado("Guardando…", "info");
+  try {
+    const texto = $("detalle-texto").value.trim();
+    if (detalleColeccionActual === "reservasDepi") {
+      // Mismo campo que ya usa admin-depi.html — Cristina ya tiene permiso
+      // completo sobre reservasDepi (esAdminDepi), no hace falta nada nuevo.
+      await updateDoc(doc(db, "reservasDepi", detalleIdActual), { notasSesion: texto, notaUpdatedAt: serverTimestamp() });
+    } else {
+      // reservas: permiso acotado SOLO a este campo (ver firestore.rules) —
+      // nunca puede tocar servicio/box/horario/estado desde acá.
+      await updateDoc(doc(db, "reservas", detalleIdActual), {
+        detalleSesion: texto,
+        detalleSesionActualizadoPorEmail: auth.currentUser?.email || "",
+        detalleSesionActualizadoAt: serverTimestamp(),
+      });
+    }
+    toast("Detalle guardado");
+    cerrarDetalle();
+  } catch (e) {
+    detalleEstado("No se pudo guardar: " + (e?.message || e), "error");
+  } finally {
+    boton.disabled = false;
+  }
 });
 
 // ── Login ────────────────────────────────────────────────────────────────
@@ -352,6 +416,7 @@ onAuthStateChanged(auth, async (user) => {
 if (nativeApp && AppPlugin?.addListener) {
   let ultimoAtras = 0;
   AppPlugin.addListener("backButton", () => {
+    if (detalleDialog.open) { cerrarDetalle(); return; }
     if (notaDialog.open) { cerrarNota(); return; }
     const ahora = Date.now();
     if (ahora - ultimoAtras < 2200) { AppPlugin.exitApp(); return; }
