@@ -1,15 +1,17 @@
-// Mimar T Administración — pantalla única: quién se atiende hoy (tratamientos
-// corporales/faciales y depilación juntos) + nota general de la paciente.
-// Comportamiento correcto dentro de la app Android (botón Atrás, retorno de
-// segundo plano, sin listeners duplicados) — mismo patrón que Mimar T
-// Inteligente.
+// Mimar T Administración — agenda del mes actual en adelante (tratamientos
+// corporales/faciales y depilación juntos, con el detalle de la sesión si
+// se cargó) + nota general de la paciente. Comportamiento correcto dentro
+// de la app Android (botón Atrás, retorno de segundo plano, sin listeners
+// duplicados) — mismo patrón que Mimar T Inteligente.
 import {
   db, auth, collection, query, where, onSnapshot, doc, getDoc, setDoc,
   serverTimestamp, onAuthStateChanged, signInWithEmailAndPassword, signOut,
 } from "./firebase-web.js";
 import {
   fechaISOEnZona, formatearFechaLocal, diaSemanaLegible,
-  normalizarPacienteHoy, construirListaHoy,
+  normalizarPaciente, agruparPorFecha,
+  inicioMesISO, mesDeFechaISO, sumarMeses, nombreMes, construirGrillaMes, tituloDia,
+  formatearNombre,
 } from "./mimar-cristina-logic.js";
 
 // Mismos emails ya habilitados como esAdminDepi() en las reglas de
@@ -42,12 +44,16 @@ function setConexion(estado, texto) {
   $("connection-text").textContent = texto;
 }
 
-// ── Suscripciones del día ────────────────────────────────────────────────
+// ── Estado y suscripciones (mes actual en adelante, sin límite superior) ──
 let hoyISO = fechaISOEnZona(Date.now());
+let mesSuscripcionISO = mesDeFechaISO(inicioMesISO());   // mes desde el que se consulta Firestore
+let mesVisibleISO = mesSuscripcionISO;                    // mes que se ve en el calendario
+let fechaSeleccionada = hoyISO;                           // día cuya agenda se ve abajo
 let unsubReservas = null;
 let unsubReservasDepi = null;
 let itemsReservas = [];
 let itemsReservasDepi = [];
+let agrupado = new Map();
 let fuenteReservasOk = false;
 let fuenteReservasDepiOk = false;
 let fuenteReservasError = false;
@@ -65,29 +71,77 @@ function actualizarConexion() {
   setConexion("warning", "Sincronizando…");
 }
 
-function render() {
-  const lista = construirListaHoy(itemsReservas, itemsReservasDepi);
-  $("count-hoy").textContent = String(lista.length);
-  const cont = $("lista-hoy");
+// ── Calendario ─────────────────────────────────────────────────────────
+function renderCalendario() {
+  $("cal-mes-titulo").textContent = nombreMes(mesVisibleISO);
+  $("btn-mes-prev").disabled = mesVisibleISO === mesSuscripcionISO;
+
+  const semanas = construirGrillaMes(mesVisibleISO);
+  $("cal-grid").innerHTML = semanas.flat().map((fecha) => {
+    if (!fecha) return `<button type="button" class="cal-dia cal-dia-vacia" tabindex="-1" aria-hidden="true"></button>`;
+    const diaNum = Number(fecha.slice(8, 10));
+    const esHoy = fecha === hoyISO;
+    const esSel = fecha === fechaSeleccionada;
+    const tieneTurnos = agrupado.has(fecha);
+    const clases = ["cal-dia"];
+    if (esHoy) clases.push("cal-dia-hoy");
+    if (esSel) clases.push("cal-dia-sel");
+    return `<button type="button" class="${clases.join(" ")}" data-fecha="${fecha}">${diaNum}${tieneTurnos ? '<span class="cal-dia-punto"></span>' : ""}</button>`;
+  }).join("");
+}
+
+$("btn-mes-prev").addEventListener("click", () => {
+  if (mesVisibleISO === mesSuscripcionISO) return;
+  mesVisibleISO = sumarMeses(mesVisibleISO, -1);
+  renderCalendario();
+});
+$("btn-mes-next").addEventListener("click", () => {
+  mesVisibleISO = sumarMeses(mesVisibleISO, 1);
+  renderCalendario();
+});
+$("btn-ir-hoy").addEventListener("click", () => {
+  mesVisibleISO = mesDeFechaISO(hoyISO);
+  fechaSeleccionada = hoyISO;
+  renderCalendario();
+  renderDia();
+});
+$("cal-grid").addEventListener("click", (ev) => {
+  const btn = ev.target.closest(".cal-dia[data-fecha]");
+  if (!btn) return;
+  fechaSeleccionada = btn.dataset.fecha;
+  renderCalendario();
+  renderDia();
+});
+
+// ── Agenda del día seleccionado ───────────────────────────────────────────
+function renderDia() {
+  $("dia-titulo").textContent = tituloDia(fechaSeleccionada, hoyISO);
+  const lista = agrupado.get(fechaSeleccionada) || [];
+  $("count-dia").textContent = String(lista.length);
+  const cont = $("lista-dia");
   if (!fuenteReservasOk || !fuenteReservasDepiOk) {
     cont.innerHTML = `<div class="loading-state">Cargando…</div>`;
     return;
   }
   if (!lista.length) {
-    cont.innerHTML = `<div class="empty-state"><h3>Sin pacientes para hoy</h3><p>Todavía no hay turnos ni depilaciones cargadas para la fecha de hoy.</p></div>`;
+    cont.innerHTML = `<div class="empty-state"><h3>Sin pacientes</h3><p>No hay turnos ni depilaciones cargadas para este día.</p></div>`;
     return;
   }
   cont.innerHTML = lista.map((p) => {
     const hora = p.hora || "—";
+    const nombreLindo = formatearNombre(p.nombre);
     const pillCls = p.esDepi ? "pill-depi" : "pill-general";
     const pillTxt = p.esDepi ? "Depilación" : escapeHtml(p.servicio || "Reserva");
+    // Sin detalle cargado, la reserva se muestra igual — solo se omite esa línea.
+    const detalleHtml = p.detalleSesion ? `<div class="item-detalle">${escapeHtml(p.detalleSesion)}</div>` : "";
     return `
-      <div class="item-row" data-id="${escapeHtml(p.id)}" data-coleccion="${escapeHtml(p.coleccion)}" data-dni="${escapeHtml(p.dni || "")}" data-nombre="${escapeHtml(p.nombre)}">
+      <div class="item-row" data-id="${escapeHtml(p.id)}" data-coleccion="${escapeHtml(p.coleccion)}" data-dni="${escapeHtml(p.dni || "")}" data-nombre="${escapeHtml(nombreLindo)}">
         <div class="item-row-top">
           <span class="item-time">${escapeHtml(hora)}</span>
-          <span class="item-name">${escapeHtml(p.nombre)}</span>
+          <span class="item-name">${escapeHtml(nombreLindo)}</span>
         </div>
         <div class="item-pills"><span class="pill ${pillCls}">${pillTxt}</span></div>
+        ${detalleHtml}
       </div>`;
   }).join("");
 }
@@ -96,48 +150,61 @@ function iniciarSuscripciones() {
   detenerSuscripciones();
   fuenteReservasOk = false; fuenteReservasDepiOk = false;
   fuenteReservasError = false; fuenteReservasDepiError = false;
-  render();
+  renderDia();
+
+  const desdeISO = `${mesSuscripcionISO}-01`;
 
   unsubReservas = onSnapshot(
-    query(collection(db, "reservas"), where("fecha", "==", hoyISO)),
+    query(collection(db, "reservas"), where("fecha", ">=", desdeISO)),
     (snap) => {
       itemsReservas = [];
-      snap.forEach((d) => itemsReservas.push(normalizarPacienteHoy("reservas", d.id, d.data())));
+      snap.forEach((d) => itemsReservas.push(normalizarPaciente("reservas", d.id, d.data())));
+      agrupado = agruparPorFecha(itemsReservas, itemsReservasDepi);
       fuenteReservasOk = true; fuenteReservasError = false;
-      actualizarConexion(); render();
+      actualizarConexion(); renderCalendario(); renderDia();
     },
-    (err) => { console.error("reservas:", err); fuenteReservasError = true; actualizarConexion(); render(); }
+    (err) => { console.error("reservas:", err); fuenteReservasError = true; actualizarConexion(); renderDia(); }
   );
 
   unsubReservasDepi = onSnapshot(
-    query(collection(db, "reservasDepi"), where("fecha", "==", hoyISO)),
+    query(collection(db, "reservasDepi"), where("fecha", ">=", desdeISO)),
     (snap) => {
       itemsReservasDepi = [];
-      snap.forEach((d) => itemsReservasDepi.push(normalizarPacienteHoy("reservasDepi", d.id, d.data())));
+      snap.forEach((d) => itemsReservasDepi.push(normalizarPaciente("reservasDepi", d.id, d.data())));
+      agrupado = agruparPorFecha(itemsReservas, itemsReservasDepi);
       fuenteReservasDepiOk = true; fuenteReservasDepiError = false;
-      actualizarConexion(); render();
+      actualizarConexion(); renderCalendario(); renderDia();
     },
-    (err) => { console.error("reservasDepi:", err); fuenteReservasDepiError = true; actualizarConexion(); render(); }
+    (err) => { console.error("reservasDepi:", err); fuenteReservasDepiError = true; actualizarConexion(); renderDia(); }
   );
 
-  $("last-sync").textContent = `Fecha: ${hoyISO}`;
+  $("last-sync").textContent = `Desde: ${desdeISO}`;
 }
 
 function detenerSuscripciones() {
   if (unsubReservas) { unsubReservas(); unsubReservas = null; }
   if (unsubReservasDepi) { unsubReservasDepi(); unsubReservasDepi = null; }
-  itemsReservas = []; itemsReservasDepi = [];
+  itemsReservas = []; itemsReservasDepi = []; agrupado = new Map();
 }
 
 // Si la app queda abierta y cruza la medianoche (o vuelve de segundo plano
-// otro día), la lista de "hoy" tiene que seguir siendo HOY, no el día en que
-// se abrió la app.
+// otro día), "hoy" en el calendario tiene que seguir siendo el día real. Si
+// encima cambió el mes, hay que volver a suscribirse (la consulta arranca
+// desde el inicio del mes actual, nunca antes) — en ese caso se lleva la
+// vista a hoy, igual que al entrar.
 function reconciliarFecha() {
   const actual = fechaISOEnZona(Date.now());
   renderCabeceraFecha();
-  if (actual !== hoyISO) {
-    hoyISO = actual;
+  if (actual === hoyISO) return;
+  const cruzoDeMes = mesDeFechaISO(actual) !== mesDeFechaISO(hoyISO);
+  hoyISO = actual;
+  if (cruzoDeMes) {
+    mesSuscripcionISO = mesDeFechaISO(inicioMesISO());
+    mesVisibleISO = mesSuscripcionISO;
+    fechaSeleccionada = hoyISO;
     iniciarSuscripciones();
+  } else {
+    renderCalendario();
   }
 }
 
@@ -203,7 +270,7 @@ $("btn-guardar-nota").addEventListener("click", async () => {
   }
 });
 
-$("lista-hoy").addEventListener("click", (ev) => {
+$("lista-dia").addEventListener("click", (ev) => {
   const fila = ev.target.closest(".item-row");
   if (!fila) return;
   const dni = fila.dataset.dni;
@@ -273,7 +340,11 @@ onAuthStateChanged(auth, async (user) => {
   $("workspace").hidden = false;
   $("btn-salir").hidden = false;
   hoyISO = fechaISOEnZona(Date.now());
+  mesSuscripcionISO = mesDeFechaISO(inicioMesISO());
+  mesVisibleISO = mesSuscripcionISO;
+  fechaSeleccionada = hoyISO;
   renderCabeceraFecha();
+  renderCalendario();
   iniciarSuscripciones();
 });
 

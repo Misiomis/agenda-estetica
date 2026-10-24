@@ -56,6 +56,17 @@ export function diaSemanaLegible(ms = Date.now()) {
   return DIAS_SEMANA_LEGIBLE[new Date(Date.UTC(+o.year, +o.month - 1, +o.day, 12)).getUTCDay()];
 }
 
+// Solo para MOSTRAR — nunca se guarda así, el campo "nombre" crudo de
+// Firestore no se toca. Muchas reservas vienen cargadas en minúsculas
+// ("gabriela k") y se ven poco prolijas en una agenda; esto es puro
+// formato visual, capitaliza cada palabra sin inventar ni corregir nada
+// del dato real.
+export function formatearNombre(nombre) {
+  const limpio = (nombre || "").toString().trim().replace(/\s+/g, " ");
+  if (!limpio) return "";
+  return limpio.toLowerCase().replace(/(^|[\s-])\S/g, (c) => c.toUpperCase());
+}
+
 // Un bloqueo de agenda (horario cerrado por admin) no es una paciente —
 // mismo criterio que ya usa admin.html/los informes de auditoría.
 export function esBloqueoAdministrativo(d) {
@@ -66,10 +77,12 @@ export function esBloqueoAdministrativo(d) {
 }
 
 // Normaliza un documento crudo de "reservas" o "reservasDepi" a la forma
-// común que necesita esta app: solo lo que hace falta para la lista del día
-// y para poder cargar/editar la nota general de la paciente (requiere DNI).
+// común que necesita esta app: lo que hace falta para mostrarla en la
+// agenda (incluido el detalle de la sesión, si se cargó — si no hay,
+// queda null y la reserva se muestra igual, nunca se oculta por eso) y
+// para poder cargar/editar la nota general de la paciente (requiere DNI).
 // No inventa nada: si no hay DNI no se puede notar, y queda null.
-export function normalizarPacienteHoy(coleccion, id, data) {
+export function normalizarPaciente(coleccion, id, data) {
   const d = data || {};
   const esDepi = coleccion === "reservasDepi";
   const dni = (d.dni || d.clienteDni || "").toString().trim() || null;
@@ -83,6 +96,7 @@ export function normalizarPacienteHoy(coleccion, id, data) {
   // PRIMERO en vez de al final. Se pide la hora explícitamente antes de
   // confiar en ese cálculo.
   const horaValida = /^\d{1,2}:\d{2}$/.test((hora || "").toString().trim());
+  const detalleCrudo = (d.detalleSesion || "").toString().trim();
   return {
     coleccion,
     id,
@@ -90,6 +104,7 @@ export function normalizarPacienteHoy(coleccion, id, data) {
     nombre,
     telefono: d.phone || d.telefono || null,
     servicio: esDepi ? (d.combo || d.servicio || "Depilación") : (d.servicio || "Reserva"),
+    detalleSesion: detalleCrudo || null,
     esDepi,
     fecha,
     hora,
@@ -99,16 +114,84 @@ export function normalizarPacienteHoy(coleccion, id, data) {
   };
 }
 
-// Arma la lista final del día: solo activas, sin bloqueos administrativos,
-// ordenada por hora (sin hora definida va al final) y luego por nombre.
-export function construirListaHoy(itemsReservas, itemsReservasDepi) {
-  const todas = [...(itemsReservas || []), ...(itemsReservasDepi || [])]
-    .filter((p) => p.activa && !p.bloqueo);
-  todas.sort((a, b) => {
+function ordenarDia(lista) {
+  return lista.slice().sort((a, b) => {
     if (a.inicioMs === null && b.inicioMs === null) return a.nombre.localeCompare(b.nombre, "es");
     if (a.inicioMs === null) return 1;
     if (b.inicioMs === null) return -1;
     return a.inicioMs - b.inicioMs;
   });
-  return todas;
+}
+
+// Agrupa todas las reservas (ya traídas por la consulta — desde el inicio
+// del mes actual en adelante, sin límite superior) por fecha ISO, solo
+// activas y sin bloqueos administrativos, cada día ordenado por hora. Una
+// reserva sin "fecha" no puede ubicarse en ningún día del calendario y
+// queda afuera (no es un descarte arbitrario: no hay dónde mostrarla).
+export function agruparPorFecha(itemsReservas, itemsReservasDepi) {
+  const todas = [...(itemsReservas || []), ...(itemsReservasDepi || [])]
+    .filter((p) => p.activa && !p.bloqueo && p.fecha);
+  const mapa = new Map();
+  todas.forEach((p) => {
+    if (!mapa.has(p.fecha)) mapa.set(p.fecha, []);
+    mapa.get(p.fecha).push(p);
+  });
+  mapa.forEach((lista, fecha) => mapa.set(fecha, ordenarDia(lista)));
+  return mapa;
+}
+
+// ── Calendario (mes actual en adelante — nunca antes) ────────────────────
+export function inicioMesISO(ms = Date.now()) {
+  return fechaISOEnZona(ms).slice(0, 7) + "-01";
+}
+
+export function mesDeFechaISO(fechaISO) {
+  return (fechaISO || "").slice(0, 7);
+}
+
+// mesISO: "YYYY-MM". delta puede ser negativo.
+export function sumarMeses(mesISO, delta) {
+  const [y, m] = mesISO.split("-").map(Number);
+  const total = y * 12 + (m - 1) + delta;
+  const ny = Math.floor(total / 12);
+  const nm = (total % 12) + 1;
+  return `${ny}-${String(nm).padStart(2, "0")}`;
+}
+
+export function nombreMes(mesISO) {
+  const [y, m] = mesISO.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1, 1, 12));
+  const nombre = new Intl.DateTimeFormat("es-AR", { month: "long", timeZone: "UTC" }).format(d);
+  return `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${y}`;
+}
+
+// Grilla semanal (lunes primero) de un mes: array de semanas, cada una un
+// array de 7 strings "YYYY-MM-DD" (o null para relleno fuera de mes — no
+// se muestran días de otro mes, solo huecos para alinear la grilla).
+export function construirGrillaMes(mesISO) {
+  const [y, m] = mesISO.split("-").map(Number);
+  const primerDia = new Date(Date.UTC(y, m - 1, 1, 12));
+  const diaSemanaISO = (primerDia.getUTCDay() + 6) % 7; // 0=lunes … 6=domingo
+  const diasEnMes = new Date(Date.UTC(y, m, 0, 12)).getUTCDate();
+  const celdas = [];
+  for (let i = 0; i < diaSemanaISO; i++) celdas.push(null);
+  for (let dia = 1; dia <= diasEnMes; dia++) {
+    celdas.push(`${y}-${String(m).padStart(2, "0")}-${String(dia).padStart(2, "0")}`);
+  }
+  while (celdas.length % 7 !== 0) celdas.push(null);
+  const semanas = [];
+  for (let i = 0; i < celdas.length; i += 7) semanas.push(celdas.slice(i, i + 7));
+  return semanas;
+}
+
+// "Hoy, viernes 24/10" para el día actual; "Viernes 24/10" para cualquier
+// otro — siempre con el nombre del día, nunca solo la fecha pelada.
+export function tituloDia(fechaISO, hoyISO) {
+  const ms = inicioTurnoMs(fechaISO, "12:00");
+  if (ms === null) return fechaISO || "—";
+  const dia = diaSemanaLegible(ms);
+  const diaCap = dia.charAt(0).toUpperCase() + dia.slice(1);
+  const [, mm, dd] = fechaISO.split("-");
+  const fechaCorta = `${dd}/${mm}`;
+  return fechaISO === hoyISO ? `Hoy, ${dia} ${fechaCorta}` : `${diaCap} ${fechaCorta}`;
 }
