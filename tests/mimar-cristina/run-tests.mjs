@@ -49,6 +49,10 @@ check("depilación activa con servicio por defecto", () => {
   assert.strictEqual(p.esDepi, true);
   assert.strictEqual(p.servicio, "Depilación");
 });
+check("depilación lee el detalle de notasSesion, no de detalleSesion", () => {
+  const p = normalizarPaciente("reservasDepi", "d2", { dni: "114", nombre: "Noe", fecha: "2026-10-23", hora: "09:30", estado: "confirmado", notasSesion: "Axilas, 3er sesión", detalleSesion: "esto no debería leerse" });
+  assert.strictEqual(p.detalleSesion, "Axilas, 3er sesión");
+});
 check("sin DNI queda null, nunca inventado", () => {
   const p = normalizarPaciente("reservas", "r3", { nombre: "Dana", fecha: "2026-10-23", hora: "12:00", estado: "confirmado" });
   assert.strictEqual(p.dni, null);

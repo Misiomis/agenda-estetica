@@ -24,6 +24,12 @@
     .item-row:active { background: #f0ece0; }
     .item-row-nota { font-size: .8rem; color: var(--forest); margin-top: 6px; }
     .item-detalle { font-size: .8rem; color: var(--ink); margin-top: 5px; overflow-wrap: anywhere; line-height: 1.4; }
+    .item-detalle-btn {
+      display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 6px 10px;
+      border-radius: 999px; border: 1px solid var(--sage-line); background: var(--sage); color: var(--sage-ink);
+      font-size: .76rem; font-weight: 700;
+    }
+    .item-detalle-btn:active { background: #dfe9dc; }
 
     /* ── Calendario (mes actual en adelante) ── */
     .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; }
@@ -138,6 +144,24 @@
     <div class="dialog-actions">
       <button class="button button-primary button-full" type="button" id="btn-guardar-nota">Guardar nota</button>
       <button class="button button-light button-full" type="button" id="btn-cerrar-nota-2">Cerrar</button>
+    </div>
+  </dialog>
+
+  <!-- ══ MODAL: detalle de ESTA sesión (reservas/{id}.detalleSesion) ══ -->
+  <dialog id="detalle-dialog" aria-labelledby="detalle-titulo">
+    <div class="dialog-heading">
+      <div><span class="eyebrow">DETALLE DE LA SESIÓN</span><h2 id="detalle-titulo">—</h2></div>
+      <button class="icon-button" type="button" id="btn-cerrar-detalle" aria-label="Cerrar"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="dialog-status" id="detalle-status"></div>
+    <div class="dialog-body">
+      <p class="hint-text" id="detalle-turno-info">—</p>
+      <label for="detalle-texto" class="hint-text" style="display:block;margin:10px 0 6px;">Qué se hizo en este turno puntual (no es la nota general de la paciente)</label>
+      <textarea id="detalle-texto" class="wa-preview-textarea" rows="6" placeholder="Ej: HiFu Abdomen (13-9-6-4.5) 808 disparos"></textarea>
+    </div>
+    <div class="dialog-actions">
+      <button class="button button-primary button-full" type="button" id="btn-guardar-detalle">Guardar detalle</button>
+      <button class="button button-light button-full" type="button" id="btn-cerrar-detalle-2">Cerrar</button>
     </div>
   </dialog>
 

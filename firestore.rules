@@ -51,6 +51,12 @@ service cloud.firestore {
       allow read:   if true;
       allow create: if true;
       allow update, delete: if esAdmin();
+      // Mimar T Administración (Cristina, esAdminDepi) puede cargar/editar el
+      // detalle de la sesión de un turno — nunca el resto de la reserva
+      // (servicio, box, horario, estado, etc.), mismo patrón de campo
+      // acotado que noCambiaCamposAdmin() más arriba.
+      allow update: if esAdminDepi() && request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['detalleSesion', 'detalleSesionActualizadoPorEmail', 'detalleSesionActualizadoAt']);
     }
 
     // Control atomico anti-solapamiento de turnos

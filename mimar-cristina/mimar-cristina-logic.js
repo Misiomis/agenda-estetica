@@ -96,7 +96,10 @@ export function normalizarPaciente(coleccion, id, data) {
   // PRIMERO en vez de al final. Se pide la hora explícitamente antes de
   // confiar en ese cálculo.
   const horaValida = /^\d{1,2}:\d{2}$/.test((hora || "").toString().trim());
-  const detalleCrudo = (d.detalleSesion || "").toString().trim();
+  // reservas usa "detalleSesion"; reservasDepi usa "notasSesion" (mismo
+  // campo que ya lee/escribe admin-depi.html) — nombres distintos, mismo
+  // propósito: qué se hizo en ESTA sesión puntual.
+  const detalleCrudo = ((esDepi ? d.notasSesion : d.detalleSesion) || "").toString().trim();
   return {
     coleccion,
     id,
