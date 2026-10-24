@@ -5275,9 +5275,21 @@
             const horaNormalizada = normalizarHora(hora);
             if (!horaNormalizada) { mostrarAviso("Hora inválida"); return; }
 
-            // Verificación box-aware: solo bloquear si todos los boxes están tomados
+            // Verificación box-aware: solo bloquear si todos los boxes están tomados.
+            // _inferirBoxes devuelve qué boxes PUEDE usar un servicio (ej. "Corporal"
+            // → [2,4], porque hay dos boxes donde cabe) — no cuál ocupa esta reserva
+            // puntual. Usarlo acá con flatMap sumaba boxes de más: una sola reserva
+            // Corporal en el Box 2 contaba como si también tuviera tomado el Box 4,
+            // y alcanzaba con 3 reservas de tipos distintos para que la unión de sus
+            // boxes "posibles" cubriera 1-2-3-4 y el aviso dijera que estaba todo
+            // ocupado con boxes realmente libres. _grilla_boxDeReserva(r) da el box
+            // REAL de cada reserva (el campo guardado, o una única inferencia de
+            // respaldo si no lo tiene) — mismo criterio que ya usa la Grilla.
             const reservasEnHora = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === fecha && normalizarHora(r.hora) === horaNormalizada);
-            _mreg_boxesOcupados = new Set(reservasEnHora.flatMap(r => _inferirBoxes(r.servicio, r.tipo)));
+            const _numDeBoxId = { b1: 1, b2: 2, b3: 3, b4: 4 };
+            _mreg_boxesOcupados = new Set(
+                reservasEnHora.map(r => _numDeBoxId[_grilla_boxDeReserva(r)]).filter(Boolean)
+            );
             if (_mreg_boxesOcupados.has(1) && _mreg_boxesOcupados.has(2) && _mreg_boxesOcupados.has(3) && _mreg_boxesOcupados.has(4)) {
                 mostrarAviso("Ese horario está completamente ocupado (todos los boxes bloqueados)");
                 return;
