@@ -29,6 +29,30 @@ const $ = (id) => document.getElementById(id);
 const nativeApp = !!(window.Capacitor?.isNativePlatform?.());
 const AppPlugin = window.Capacitor?.Plugins?.App;
 
+// Modal propio para "¿descartar lo que escribiste?" — reemplaza confirm()
+// nativo del navegador (se ve genérico, gris, en inglés, no pega con el
+// resto de la app) por algo con el mismo estilo que el resto de los
+// diálogos. Devuelve una Promise<boolean>: true si confirmó descartar.
+function confirmarDescarte(mensaje) {
+  return new Promise((resolve) => {
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:300000;background:rgba(12,37,30,.62);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:16px";
+    ov.innerHTML = `
+      <div style="width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 44px rgba(16,30,22,.3);padding:22px 20px 18px">
+        <p style="font:1.1rem var(--serif);color:var(--forest);margin:0 0 8px;text-align:center;">¿Descartar lo escrito?</p>
+        <p style="font-size:.85rem;color:var(--muted);margin:0 0 18px;text-align:center;line-height:1.4;">${escapeHtml(mensaje)}</p>
+        <div style="display:flex;gap:10px;">
+          <button type="button" id="_cd_cancelar" style="flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2,#eeeee5);color:var(--ink);font-weight:700;font-size:.85rem;">Seguir editando</button>
+          <button type="button" id="_cd_ok" style="flex:1;min-height:44px;border-radius:10px;border:none;background:var(--forest);color:#fffef4;font-weight:700;font-size:.85rem;">Descartar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const cerrar = (resultado) => { ov.remove(); resolve(resultado); };
+    ov.querySelector("#_cd_cancelar").addEventListener("click", () => cerrar(false));
+    ov.querySelector("#_cd_ok").addEventListener("click", () => cerrar(true));
+  });
+}
+
 let toastTimer = null;
 function toast(msg) {
   const el = $("toast");
@@ -223,6 +247,8 @@ function notaEstado(msg, tipo) {
   el.textContent = msg;
 }
 
+let notaValorOriginal = "";
+
 async function abrirNota(dni, nombre, telefono, infoTurno) {
   notaDniActual = dni;
   notaNombreActual = nombre;
@@ -230,18 +256,29 @@ async function abrirNota(dni, nombre, telefono, infoTurno) {
   $("nota-titulo").textContent = nombre;
   $("nota-turno-info").textContent = infoTurno || "";
   $("nota-texto").value = "";
+  notaValorOriginal = "";
   notaEstado("Cargando nota guardada…", "info");
   notaDialog.showModal();
   try {
     const snap = await getDoc(doc(db, "clients", dni));
-    $("nota-texto").value = snap.exists() ? (snap.data().notas || "") : "";
+    const valor = snap.exists() ? (snap.data().notas || "") : "";
+    $("nota-texto").value = valor;
+    notaValorOriginal = valor;
     notaEstado("", "info");
   } catch (e) {
     notaEstado("No se pudo cargar la nota guardada (podés escribir y guardar igual).", "error");
   }
 }
 
-function cerrarNota() { notaDialog.close(); notaDniActual = null; }
+// Segunda red de seguridad (además del fix del botón Atrás): si hay texto
+// escrito sin guardar y se intenta cerrar por cualquier otra vía (X,
+// Cerrar), confirma antes de descartarlo — nunca se pierde en silencio.
+async function cerrarNota() {
+  const actual = $("nota-texto").value;
+  if (actual !== notaValorOriginal && !(await confirmarDescarte("Hay texto sin guardar en esta nota."))) return;
+  notaDialog.close();
+  notaDniActual = null;
+}
 
 $("btn-cerrar-nota").addEventListener("click", cerrarNota);
 $("btn-cerrar-nota-2").addEventListener("click", cerrarNota);
@@ -298,17 +335,27 @@ function detalleEstado(msg, tipo) {
   el.textContent = msg;
 }
 
+let detalleValorOriginal = "";
+
 function abrirDetalle(id, coleccion, nombre, detalleActual) {
   detalleIdActual = id;
   detalleColeccionActual = coleccion;
   $("detalle-titulo").textContent = nombre;
   $("detalle-turno-info").textContent = "";
   $("detalle-texto").value = detalleActual || "";
+  detalleValorOriginal = detalleActual || "";
   detalleEstado("", "info");
   detalleDialog.showModal();
 }
 
-function cerrarDetalle() { detalleDialog.close(); detalleIdActual = null; detalleColeccionActual = null; }
+// Misma red de seguridad que cerrarNota(): nunca descarta texto sin avisar.
+async function cerrarDetalle() {
+  const actual = $("detalle-texto").value;
+  if (actual !== detalleValorOriginal && !(await confirmarDescarte("Hay texto sin guardar en este detalle."))) return;
+  detalleDialog.close();
+  detalleIdActual = null;
+  detalleColeccionActual = null;
+}
 
 $("btn-cerrar-detalle").addEventListener("click", cerrarDetalle);
 $("btn-cerrar-detalle-2").addEventListener("click", cerrarDetalle);
@@ -413,9 +460,22 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // ── Botón Atrás (solo dentro de la app Android) ──────────────────────────
+// BUG REAL encontrado en producción (24/10): con un diálogo abierto y el
+// teclado en pantalla, Atrás cerraba TODO el diálogo de una — en Android el
+// botón físico/gesto de Atrás primero debería bajar el teclado, pero acá
+// el plugin de Capacitor intercepta el evento antes de que el WebView lo
+// use para eso. Resultado: alguien escribe el detalle de la sesión, toca
+// Atrás por costumbre (para bajar el teclado, no para salir) y pierde todo
+// lo que escribió sin ningún aviso — nunca llegó a tocar Firestore, no hay
+// nada que recuperar. Ahora el primer Atrás con un campo de texto enfocado
+// solo le saca el foco (baja el teclado) y el diálogo queda abierto con el
+// texto intacto; recién un Atrás SIGUIENTE (sin teclado) cierra el diálogo.
 if (nativeApp && AppPlugin?.addListener) {
   let ultimoAtras = 0;
   AppPlugin.addListener("backButton", () => {
+    const campoEnfocado = document.activeElement;
+    const hayTecladoAbierto = campoEnfocado && (campoEnfocado.tagName === "TEXTAREA" || campoEnfocado.tagName === "INPUT");
+    if (hayTecladoAbierto && (detalleDialog.open || notaDialog.open)) { campoEnfocado.blur(); return; }
     if (detalleDialog.open) { cerrarDetalle(); return; }
     if (notaDialog.open) { cerrarNota(); return; }
     const ahora = Date.now();
