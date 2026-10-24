@@ -933,6 +933,13 @@
              del aviso fijo de "espera confirmación". Se ven juntas si ambas
              están cargadas, cada una con su propio color. ── */
         .gc-nota-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; color: #2d4a3d; background: rgba(53,122,92,0.12); border: 1px solid rgba(53,122,92,0.30); border-radius: 999px; padding: 1px 7px; margin-top: 2px; white-space: normal; max-width: 100%; }
+
+        /* ── Nota GENERAL de la paciente (clients/{dni}.notas) — distinta de la
+             nota rápida del turno de arriba: esta es la ficha del paciente (la
+             carga Cristina desde Mimar T Administración, o se carga acá mismo
+             en Pacientes), vale para cualquier turno futuro, no solo este. Color
+             propio para no confundirla con la nota rápida si ambas están. ── */
+        .gc-nota-pac-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; color: #6d3c85; background: rgba(156,95,176,0.14); border: 1px solid rgba(156,95,176,0.32); border-radius: 999px; padding: 1px 7px; margin-top: 2px; white-space: normal; max-width: 100%; }
         .gc-menu-btn { position: absolute; top: 1px; right: 1px; width: 19px; height: 19px; border: none; background: transparent; color: rgba(22,61,50,0.40); font-size: 14px; font-weight: 900; line-height: 1; cursor: pointer; border-radius: 5px; display: flex; align-items: center; justify-content: center; z-index: 6; }
         .gc-menu-btn:hover { background: rgba(22,61,50,0.12); color: rgba(22,61,50,0.90); }
 
@@ -2478,7 +2485,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
     <script type="module">
-        import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit, runTransaction, writeBatch, storage, ref, uploadBytes, getDownloadURL } from "/js/firebase-web.js";
+        import { auth, db, signInWithEmailAndPassword, onAuthStateChanged, signOut, collection, getDocs, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit, runTransaction, writeBatch, storage, ref, uploadBytes, getDownloadURL, onSnapshot } from "/js/firebase-web.js";
         import {
             MONEDA_CANONICA, ESCALA_CANONICA, ETIQUETA_UNIDAD, parsearImporte, formatearImporte, validarPrecio, validarMontoPago,
             totalRecibido, saldoPendiente, estadoCuenta, ETIQUETA_ESTADO, tieneEscalaConfirmada, construirInstantaneaRecibo,
@@ -2839,6 +2846,7 @@
                     mostrarPanelAdmin();
                     await cargarTodo();
                     cargarTemaAdmin();
+                    iniciarListenerNotasPacientes();
                 } catch (error) {
                     console.error(error);
                     setLoginError("No se pudo validar permisos admin");
@@ -3000,6 +3008,57 @@
         };
         let todasLasHistorias = [];
         let todasLosPacientes = [];
+        // Todo el resto de los datos de este panel (reservas, historias,
+        // consultas, la propia lista de pacientes) se cargan una sola vez con
+        // getDocs — cargarTodo()/_cargarDatosSecundarios() hay que volver a
+        // llamarlos a mano para refrescar. Eso significa que si Cristina carga
+        // una nota desde Mimar T Administración (clients/{dni}.notas) con esta
+        // pantalla ya abierta, nunca aparecía: no había ningún refresco
+        // automático, ni un lugar donde esa nota se mostrara en la Grilla. Esto
+        // sí queda en vivo con onSnapshot, acotado a "clients" nada más — la
+        // única colección en la que escribe esa app — para no tener que
+        // convertir todo el resto del panel (reservas, historias, consultas)
+        // a listeners en vivo de una sola vez, que es un cambio mucho más
+        // grande y arriesgado que no fue lo que se pidió acá.
+        let _unsubNotasPacientes = null;
+        function iniciarListenerNotasPacientes() {
+            if (_unsubNotasPacientes) return; // ya corriendo, no duplicar
+            _unsubNotasPacientes = onSnapshot(collection(db, 'clients'), (snap) => {
+                let huboCambios = false;
+                snap.docChanges().forEach((cambio) => {
+                    const data = cambio.doc.data() || {};
+                    const dni = cambio.doc.id;
+                    if (data.redirigidoA) return; // redirección de "Cambiar ID", no es una ficha real
+                    const notasNuevas = (data.notas || '').trim();
+                    const idx = todasLosPacientes.findIndex(p => p.dni === dni);
+                    if (idx >= 0) {
+                        if (todasLosPacientes[idx].notas !== notasNuevas) {
+                            todasLosPacientes[idx].notas = notasNuevas;
+                            huboCambios = true;
+                        }
+                    } else if (cambio.type !== 'removed') {
+                        // Paciente nueva (ej. alta hecha desde Mimar T Administración
+                        // al cargarle la primera nota a alguien que solo vino por
+                        // depilación) — todavía no estaba en memoria.
+                        todasLosPacientes.push({
+                            dni,
+                            fullName: toTitleCase(data.fullName || data.fullLname || data.nombre || data.name || ''),
+                            phone: data.phone || data.telefono || '',
+                            email: data.email || '',
+                            fechaNacimiento: data.fechaNacimiento || '',
+                            username: data.username || '',
+                            notas: notasNuevas,
+                            active: data.active !== false,
+                            hoursBalance: data.hoursBalance ?? 0,
+                            membershipActive: resolverMembresiaActiva(data),
+                            planificacion: data.planificacion && typeof data.planificacion === 'object' ? data.planificacion : null,
+                        });
+                        huboCambios = true;
+                    }
+                });
+                if (huboCambios && typeof window.renderGrilla === 'function') window.renderGrilla();
+            }, (err) => console.error('Listener de notas de pacientes (en vivo):', err));
+        }
         // "Cambiar ID" (corregir el DNI de un paciente) no reescribe el DNI en
         // cada reserva/pago/consulta vieja uno por uno — en vez de eso, el doc
         // viejo de clients/{dniViejo} queda como una redirección hacia el nuevo
@@ -14004,7 +14063,14 @@
                         }[type];
                         const esperaCls = res.esperaConfirmacion ? ' gc-espera' : '';
                         const notaRapida = (res.notaRapida || '').trim();
-                        const notaCls = notaRapida ? ' gc-con-nota' : '';
+                        // Nota GENERAL de la paciente (clients/{dni}.notas) — la carga
+                        // Cristina desde Mimar T Administración (o acá, en Pacientes).
+                        // Sin esto, esa nota quedaba invisible en la Grilla: solo se veía
+                        // si alguien buscaba a esa paciente a mano en otra pantalla.
+                        const _dniRes = normalizarDNI(res.dni ?? res.clienteDni ?? res.documento ?? res.document ?? '');
+                        const _pacRes = _dniRes ? todasLosPacientes.find(p => p.dni === _dniRes) : null;
+                        const notaPaciente = (_pacRes?.notas || '').trim();
+                        const notaCls = (notaRapida || notaPaciente) ? ' gc-con-nota' : '';
                         if (type === 'start' || type === 'solo') {
                             let circHtml = '';
                             if (circ?.isTarget) circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
@@ -14019,6 +14085,7 @@
                                 <span class="grilla-paciente-servicio">${srv}</span>
                                 ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
                                 ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
+                                ${notaPaciente ? `<span class="gc-nota-pac-tag" title="Nota general de la paciente">🗒️ ${escapeHtml(notaPaciente)}</span>` : ''}
                                 ${circHtml}
                             </div>`;
                         } else {
