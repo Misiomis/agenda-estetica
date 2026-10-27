@@ -5954,11 +5954,11 @@
 
         function _dictadoDetener() {
             if (!_dictado) return;
-            const { recognition, btnId } = _dictado;
-            _dictado.detenerManual = true;
-            try { recognition.stop(); } catch (_) {}
+            const estado = _dictado;
+            estado.detenerManual = true;
+            try { estado.recognition.stop(); } catch (_) {}
             _dictado = null;
-            _dictadoUIEscuchando(btnId, false, '');
+            _dictadoUIEscuchando(estado.btnId, false, '');
         }
 
         // Se llama al cambiar de paciente/sesión, cerrar un editor, guardar,
@@ -5968,42 +5968,29 @@
             if (_dictado && (!textareaId || _dictado.textareaId === textareaId)) _dictadoDetener();
         };
 
-        function _dictadoIniciar(textareaId, btnId, idioma) {
-            if (!_SpeechRecognitionCtor) {
-                mostrarAviso('Este navegador no tiene dictado por voz disponible — probá con Chrome.');
-                return;
-            }
-            const ta = document.getElementById(textareaId);
-            if (!ta) return;
-            idioma = idioma || 'es-AR';
-
-            // Un solo dictado a la vez: apaga cualquier otro que estuviera activo.
-            if (_dictado) _dictadoDetener();
-
+        // Arranca (o reinicia) una tanda de reconocimiento. SIEMPRE crea una
+        // instancia nueva de SpeechRecognition, nunca reusa la anterior: en
+        // Chrome para Android, llamar start() de nuevo sobre la MISMA
+        // instancia después de un 'end' no reinicia su results[] interno —
+        // sigue arrastrando los resultados ya finalizados de la tanda previa
+        // y el motor los vuelve a sumar, duplicando palabras y frases cada
+        // vez más largas. Con una instancia nueva ese arrastre es imposible
+        // porque el results[] es propio de cada objeto.
+        function _dictadoCrearYArrancarInstancia(estado) {
             const recognition = new _SpeechRecognitionCtor();
-            recognition.lang = idioma;
+            recognition.lang = estado.idioma;
             recognition.continuous = true;
             recognition.interimResults = true;
+            estado.recognition = recognition;
 
-            const estado = {
-                // baseTexto: texto ya confirmado antes de la tanda de reconocimiento
-                // actual (incluye lo que había antes de dictar + lo ya consolidado
-                // de tandas previas de este mismo dictado, ver onend).
-                // corridaFinal: texto final de la tanda EN CURSO, recalculado
-                // completo en cada evento (nunca se le hace += ) para no
-                // depender de ev.resultIndex, que en Chrome para Android repite
-                // segmentos ya finalizados y duplica palabras si se acumula.
-                recognition, textareaId, btnId, idioma,
-                baseTexto: ta.value, corridaFinal: '', ultimoValor: ta.value, detenerManual: false,
-            };
-            _dictado = estado;
-
-            recognition.onstart = () => _dictadoUIEscuchando(btnId, true, 'Escuchando…');
+            recognition.onstart = () => _dictadoUIEscuchando(estado.btnId, true, 'Escuchando…');
 
             recognition.onresult = (ev) => {
                 // Descarta resultados tardíos de un reconocedor que ya no es
                 // el activo (se cambió de campo, se guardó, se canceló, etc.)
                 if (_dictado !== estado) return;
+                const ta = document.getElementById(estado.textareaId);
+                if (!ta) return;
                 // Si el texto del campo cambió por una edición manual mientras
                 // se dictaba, se respeta: se toma como nueva base y se sigue
                 // sumando el dictado a partir de ahí, sin pisar lo escrito a mano.
@@ -6027,45 +6014,82 @@
                 estado.ultimoValor = nuevoValor;
             };
 
+            // onerror NUNCA decide por sí solo si el dictado sigue o se corta:
+            // eso es responsabilidad única de onend (que siempre llega
+            // después de un error). Antes, onerror también apagaba
+            // _dictado — un 'no-speech' en una pausa normal del habla
+            // mataba la sesión antes de que onend pudiera reiniciarla,
+            // cortando el dictado solo sin que el usuario lo pidiera.
             recognition.onerror = (ev) => {
                 if (_dictado !== estado) return;
-                if (ev.error === 'language-not-supported' && idioma === 'es-AR') {
+                if (ev.error === 'language-not-supported' && estado.idioma === 'es-AR') {
                     mostrarAviso('Tu navegador no tiene español argentino para dictado — usando español general.');
-                    _dictado = null;
-                    _dictadoIniciar(textareaId, btnId, 'es-ES');
+                    estado.idioma = 'es-ES';
                     return;
                 }
                 if (ev.error === 'not-allowed' || ev.error === 'permission-denied' || ev.error === 'service-not-allowed') {
                     mostrarAviso('No se pudo activar el micrófono — revisá el permiso del navegador para este sitio.');
-                } else if (ev.error !== 'no-speech' && ev.error !== 'aborted') {
-                    mostrarAviso('El dictado se interrumpió (' + ev.error + ').');
+                    estado.detenerManual = true; // error fatal: no tiene sentido reintentar
+                    return;
                 }
-                if (_dictado === estado) { _dictado = null; _dictadoUIEscuchando(btnId, false, ''); }
+                if (ev.error === 'no-speech' || ev.error === 'aborted') return; // pausa normal, no es un corte real
+                mostrarAviso('El dictado se interrumpió (' + ev.error + ').');
             };
 
             recognition.onend = () => {
                 if (_dictado !== estado) return; // ya se detuvo/reemplazó a propósito
-                // Se consolida el final de esta tanda en la base: al reiniciar,
-                // el navegador arranca una tanda nueva con su propio results[]
-                // desde cero, así que lo ya reconocido tiene que quedar fijado
-                // acá para no perderlo ni volver a procesarlo.
+                // Se consolida el final de esta tanda en la base antes de
+                // reiniciar con una instancia nueva, para no perderlo ni
+                // volver a procesarlo.
+                const ta = document.getElementById(estado.textareaId);
                 const sep = estado.baseTexto && !/\s$/.test(estado.baseTexto) && estado.corridaFinal ? ' ' : '';
                 estado.baseTexto = estado.baseTexto + sep + estado.corridaFinal;
                 estado.corridaFinal = '';
-                ta.value = estado.baseTexto;
+                if (ta) ta.value = estado.baseTexto;
                 estado.ultimoValor = estado.baseTexto;
                 // El navegador puede cortar solo por un silencio largo — si no
                 // fue un "Detener" manual, se reinicia para que el dictado
                 // continuo no se corte a mitad de una frase.
                 if (!estado.detenerManual) {
-                    try { recognition.start(); } catch (_) { _dictado = null; _dictadoUIEscuchando(btnId, false, ''); }
+                    _dictadoCrearYArrancarInstancia(estado);
                 } else {
                     _dictado = null;
-                    _dictadoUIEscuchando(btnId, false, '');
+                    _dictadoUIEscuchando(estado.btnId, false, '');
                 }
             };
 
-            try { recognition.start(); } catch (_) { _dictado = null; }
+            try {
+                recognition.start();
+            } catch (_) {
+                if (_dictado === estado) { _dictado = null; _dictadoUIEscuchando(estado.btnId, false, ''); }
+            }
+        }
+
+        function _dictadoIniciar(textareaId, btnId, idioma) {
+            if (!_SpeechRecognitionCtor) {
+                mostrarAviso('Este navegador no tiene dictado por voz disponible — probá con Chrome.');
+                return;
+            }
+            const ta = document.getElementById(textareaId);
+            if (!ta) return;
+
+            // Un solo dictado a la vez: apaga cualquier otro que estuviera activo.
+            if (_dictado) _dictadoDetener();
+
+            const estado = {
+                // baseTexto: texto ya confirmado antes de la tanda de reconocimiento
+                // actual (incluye lo que había antes de dictar + lo ya consolidado
+                // de tandas previas de este mismo dictado, ver onend).
+                // corridaFinal: texto final de la tanda EN CURSO, recalculado
+                // completo en cada evento (nunca se le hace += ) para no
+                // depender de ev.resultIndex, que en Chrome para Android repite
+                // segmentos ya finalizados y duplica palabras si se acumula.
+                textareaId, btnId, idioma: idioma || 'es-AR',
+                baseTexto: ta.value, corridaFinal: '', ultimoValor: ta.value, detenerManual: false,
+                recognition: null,
+            };
+            _dictado = estado;
+            _dictadoCrearYArrancarInstancia(estado);
         }
 
         window.toggleDictado = function(textareaId, btnId) {
