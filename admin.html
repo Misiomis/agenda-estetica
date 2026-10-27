@@ -5938,7 +5938,7 @@
         // descarta comparando contra este estado, nunca se escribe en un
         // campo que ya no es el que se está dictando.
         const _SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let _dictado = null; // { recognition, textareaId, btnId, idioma, baseTexto, finalAcum, ultimoValor, detenerManual }
+        let _dictado = null; // { recognition, textareaId, btnId, idioma, baseTexto, corridaFinal, ultimoValor, detenerManual }
 
         function _dictadoUIEscuchando(btnId, escuchando, textoEstado) {
             const btn = document.getElementById(btnId);
@@ -5986,8 +5986,15 @@
             recognition.interimResults = true;
 
             const estado = {
+                // baseTexto: texto ya confirmado antes de la tanda de reconocimiento
+                // actual (incluye lo que había antes de dictar + lo ya consolidado
+                // de tandas previas de este mismo dictado, ver onend).
+                // corridaFinal: texto final de la tanda EN CURSO, recalculado
+                // completo en cada evento (nunca se le hace += ) para no
+                // depender de ev.resultIndex, que en Chrome para Android repite
+                // segmentos ya finalizados y duplica palabras si se acumula.
                 recognition, textareaId, btnId, idioma,
-                baseTexto: ta.value, finalAcum: '', ultimoValor: ta.value, detenerManual: false,
+                baseTexto: ta.value, corridaFinal: '', ultimoValor: ta.value, detenerManual: false,
             };
             _dictado = estado;
 
@@ -6002,16 +6009,18 @@
                 // sumando el dictado a partir de ahí, sin pisar lo escrito a mano.
                 if (ta.value !== estado.ultimoValor) {
                     estado.baseTexto = ta.value;
-                    estado.finalAcum = '';
+                    estado.corridaFinal = '';
                 }
+                let final = '';
                 let interim = '';
-                for (let i = ev.resultIndex; i < ev.results.length; i++) {
+                for (let i = 0; i < ev.results.length; i++) {
                     const res = ev.results[i];
-                    if (res.isFinal) estado.finalAcum += (estado.finalAcum ? ' ' : '') + res[0].transcript.trim();
-                    else interim += res[0].transcript;
+                    if (res.isFinal) final += (final ? ' ' : '') + res[0].transcript.trim();
+                    else interim += (interim ? ' ' : '') + res[0].transcript.trim();
                 }
-                const sep1 = estado.baseTexto && !/\s$/.test(estado.baseTexto) && estado.finalAcum ? ' ' : '';
-                const cuerpo = estado.baseTexto + sep1 + estado.finalAcum;
+                estado.corridaFinal = final;
+                const sep1 = estado.baseTexto && !/\s$/.test(estado.baseTexto) && final ? ' ' : '';
+                const cuerpo = estado.baseTexto + sep1 + final;
                 const sep2 = cuerpo && interim && !/\s$/.test(cuerpo) ? ' ' : '';
                 const nuevoValor = cuerpo + sep2 + interim;
                 ta.value = nuevoValor;
@@ -6036,6 +6045,15 @@
 
             recognition.onend = () => {
                 if (_dictado !== estado) return; // ya se detuvo/reemplazó a propósito
+                // Se consolida el final de esta tanda en la base: al reiniciar,
+                // el navegador arranca una tanda nueva con su propio results[]
+                // desde cero, así que lo ya reconocido tiene que quedar fijado
+                // acá para no perderlo ni volver a procesarlo.
+                const sep = estado.baseTexto && !/\s$/.test(estado.baseTexto) && estado.corridaFinal ? ' ' : '';
+                estado.baseTexto = estado.baseTexto + sep + estado.corridaFinal;
+                estado.corridaFinal = '';
+                ta.value = estado.baseTexto;
+                estado.ultimoValor = estado.baseTexto;
                 // El navegador puede cortar solo por un silencio largo — si no
                 // fue un "Detener" manual, se reinicia para que el dictado
                 // continuo no se corte a mitad de una frase.
