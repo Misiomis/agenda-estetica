@@ -314,6 +314,18 @@
         .btn-mini:disabled, .btn-mini-primary:disabled { opacity: 0.55; cursor: not-allowed; filter: none; }
         .btn-mini.alerta { border-color: #DEB9B5; color: var(--danger); background: var(--danger-soft); }
         .btn-mini.alerta:hover { background: #F3D9D5; border-color: var(--danger); }
+
+        /* ── Dictado por voz (Web Speech API, sin servicios externos) ───────── */
+        .dictado-barra { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+        .btn-dictado { display: inline-flex; align-items: center; gap: 6px; }
+        .btn-dictado.dictando { border-color: #DEB9B5; color: var(--danger); background: var(--danger-soft); }
+        .btn-dictado.dictando .dictado-punto {
+            display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--danger);
+            animation: dictadoPulso 1.1s ease-in-out infinite;
+        }
+        @keyframes dictadoPulso { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+        .dictado-estado { font-size: 11.5px; color: var(--ink-soft); font-style: italic; }
+        @media (prefers-reduced-motion: reduce) { .btn-dictado.dictando .dictado-punto { animation: none; } }
         .cliente-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); margin-top: var(--sp-2); }
         .cliente-form-grid .full { grid-column: span 2; }
         .field label { display: block; font-size: 14px; font-weight: 700; color: var(--ink-soft); margin-bottom: 5px; letter-spacing: 0.02em; }
@@ -3242,6 +3254,7 @@
         window.guardarN2 = async function(id) {
             const el = document.getElementById('n2-' + id);
             if (!el) return;
+            window.detenerDictadoSiActivo('n2-' + id);
             const nota = el.value.trim();
             try {
                 await updateDoc(doc(db, 'reservas', id), { detalleSesion2: nota });
@@ -3259,6 +3272,7 @@
         };
 
         window.cancelarEdicion2Admin = function(id) {
+            window.detenerDictadoSiActivo('n2-' + id);
             const nd = document.getElementById('nd2-' + id);
             const ne = document.getElementById('ne2-' + id);
             if (nd) nd.style.display = 'block';
@@ -3887,6 +3901,7 @@
         };
         
         window.verTurnos = (f, el) => {
+            window.detenerDictadoSiActivo();
             fechaSeleccionada = f;
             document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
             if(el) el.classList.add('selected');
@@ -3940,12 +3955,14 @@
                     <div id="nd-${r.id}" style="margin-top:8px; background:rgba(53,122,92,0.12); border:1px solid rgba(114,189,153,0.22); border-radius:10px; padding:10px 34px 10px 10px; font-size:13px; color:rgba(22,61,50,0.92); white-space:pre-wrap; position:relative">${escapeHtml(r.detalleSesion)}<button title="Editar" onclick="activarEdicionNotaAdmin('${r.id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:12px; color:rgba(22,61,50,0.80)">Editar</button></div>
                     <div id="ne-${r.id}" style="display:none">
                         <textarea id="n-${r.id}" style="width:100%; box-sizing:border-box; margin-top:6px">${escapeHtml(r.detalleSesion)}</textarea>
+                        ${_dictadoBotonHtml('n-'+r.id)}
                         <div style="display:flex; gap:6px; margin-top:4px">
                             <button class="btn-save" onclick="guardarN('${r.id}')">Guardar</button>
                             <button onclick="cancelarEdicionAdmin('${r.id}')" style="border:1px solid var(--border); background:var(--surface-2); border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px; color:rgba(22,61,50,0.85)">Cancelar</button>
                         </div>
                     </div>` : `
-                    <textarea id="n-${r.id}" placeholder="${esDuo ? 'Nota paciente 1...' : 'Detalle de la sesion...'}" style="width:100%; box-sizing:border-box; margin-top:6px"></textarea>`;
+                    <textarea id="n-${r.id}" placeholder="${esDuo ? 'Nota paciente 1...' : 'Detalle de la sesion...'}" style="width:100%; box-sizing:border-box; margin-top:6px"></textarea>
+                    ${_dictadoBotonHtml('n-'+r.id)}`;
 
                 // Nota para paciente 2 (solo en Duo)
                 const notaDisplay2 = esDuo ? (tieneNota2 ? `
@@ -3953,6 +3970,7 @@
                     <div id="nd2-${r.id}" style="margin-top:6px; background:rgba(60,100,200,0.10); border:1px solid rgba(70,120,210,0.22); border-radius:10px; padding:10px 34px 10px 10px; font-size:13px; color:rgba(61,92,134,0.92); white-space:pre-wrap; position:relative">${escapeHtml(r.detalleSesion2)}<button title="Editar" onclick="activarEdicionNota2Admin('${r.id}')" style="position:absolute; top:6px; right:8px; background:none; border:none; cursor:pointer; font-size:12px; color:rgba(61,92,134,0.80)">Editar</button></div>
                     <div id="ne2-${r.id}" style="display:none">
                         <textarea id="n2-${r.id}" style="width:100%; box-sizing:border-box; margin-top:6px">${escapeHtml(r.detalleSesion2)}</textarea>
+                        ${_dictadoBotonHtml('n2-'+r.id)}
                         <div style="display:flex; gap:6px; margin-top:4px">
                             <button class="btn-save" onclick="guardarN2('${r.id}')">Guardar</button>
                             <button onclick="cancelarEdicion2Admin('${r.id}')" style="border:1px solid var(--border); background:var(--surface-2); border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12px; color:rgba(22,61,50,0.85)">Cancelar</button>
@@ -3960,6 +3978,7 @@
                     </div>` : `
                     <div style="font-size:11px;font-weight:700;color:rgba(61,92,134,0.88);text-transform:uppercase;letter-spacing:.06em;margin-top:12px;">Nota paciente 2 — ${escapeHtml(r.duoNombre2 || 'Paciente 2')}</div>
                     <textarea id="n2-${r.id}" placeholder="Nota paciente 2..." style="width:100%; box-sizing:border-box; margin-top:6px"></textarea>
+                    ${_dictadoBotonHtml('n2-'+r.id)}
                     <button class="btn-save" onclick="guardarN2('${r.id}')">Guardar nota paciente 2</button>`)
                     : '';
 
@@ -4154,12 +4173,14 @@
                     <div id="ndnc-${c.id}" style="margin-top:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.22);border-radius:10px;padding:10px 34px 10px 10px;font-size:13px;color:rgba(138,106,34,0.90);white-space:pre-wrap;position:relative">${escapeHtml(c.detalleSesion)}<button title="Editar" onclick="activarEdicionNotaConsulta('${c.id}')" style="position:absolute;top:6px;right:8px;background:none;border:none;cursor:pointer;font-size:12px;color:rgba(138,106,34,0.80)">Editar</button></div>
                     <div id="nenc-${c.id}" style="display:none">
                         <textarea id="nc-${c.id}" style="width:100%;box-sizing:border-box;margin-top:6px">${escapeHtml(c.detalleSesion)}</textarea>
+                        ${_dictadoBotonHtml('nc-'+c.id)}
                         <div style="display:flex;gap:6px;margin-top:4px">
                             <button class="btn-save" onclick="guardarNotaConsulta('${c.id}')">Guardar</button>
                             <button onclick="cancelarEdicionNotaConsulta('${c.id}')" style="border:1px solid var(--border);background:var(--surface-2);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;color:rgba(22,61,50,0.85)">Cancelar</button>
                         </div>
                     </div>` : `
                     <textarea id="nc-${c.id}" placeholder="Nota de la sesión..." style="width:100%;box-sizing:border-box;margin-top:8px"></textarea>
+                    ${_dictadoBotonHtml('nc-'+c.id)}
                     <button class="btn-save" onclick="guardarNotaConsulta('${c.id}')">Guardar nota</button>`;
                 const _html = `
                 <div class="detalle-dia-card" style="border-left:3px solid rgba(251,191,36,0.50);">
@@ -5908,9 +5929,141 @@
             }
         };
 
+        // ══ Dictado por voz para notas de sesión (Web Speech API nativa del
+        // navegador — sin APIs de pago, sin claves, sin tokens) ═══════════════
+        // Un solo dictado activo a la vez: arrancar uno nuevo apaga el anterior.
+        // El reconocedor queda guardado junto con el id del textarea al que
+        // pertenece — cualquier resultado que llegue tarde (después de
+        // detenerlo, de guardar/cancelar, o de haber arrancado otro) se
+        // descarta comparando contra este estado, nunca se escribe en un
+        // campo que ya no es el que se está dictando.
+        const _SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let _dictado = null; // { recognition, textareaId, btnId, idioma, baseTexto, finalAcum, ultimoValor, detenerManual }
+
+        function _dictadoUIEscuchando(btnId, escuchando, textoEstado) {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.classList.toggle('dictando', escuchando);
+                btn.innerHTML = escuchando
+                    ? '<span class="dictado-punto"></span> Detener'
+                    : '🎙 Dictar';
+            }
+            const estado = document.getElementById(btnId + '-estado');
+            if (estado) estado.textContent = textoEstado || '';
+        }
+
+        function _dictadoDetener() {
+            if (!_dictado) return;
+            const { recognition, btnId } = _dictado;
+            _dictado.detenerManual = true;
+            try { recognition.stop(); } catch (_) {}
+            _dictado = null;
+            _dictadoUIEscuchando(btnId, false, '');
+        }
+
+        // Se llama al cambiar de paciente/sesión, cerrar un editor, guardar,
+        // cancelar o navegar a otra pantalla — nunca debe quedar un
+        // reconocedor escuchando de fondo sin que se vea en ningún lado.
+        window.detenerDictadoSiActivo = function(textareaId) {
+            if (_dictado && (!textareaId || _dictado.textareaId === textareaId)) _dictadoDetener();
+        };
+
+        function _dictadoIniciar(textareaId, btnId, idioma) {
+            if (!_SpeechRecognitionCtor) {
+                mostrarAviso('Este navegador no tiene dictado por voz disponible — probá con Chrome.');
+                return;
+            }
+            const ta = document.getElementById(textareaId);
+            if (!ta) return;
+            idioma = idioma || 'es-AR';
+
+            // Un solo dictado a la vez: apaga cualquier otro que estuviera activo.
+            if (_dictado) _dictadoDetener();
+
+            const recognition = new _SpeechRecognitionCtor();
+            recognition.lang = idioma;
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            const estado = {
+                recognition, textareaId, btnId, idioma,
+                baseTexto: ta.value, finalAcum: '', ultimoValor: ta.value, detenerManual: false,
+            };
+            _dictado = estado;
+
+            recognition.onstart = () => _dictadoUIEscuchando(btnId, true, 'Escuchando…');
+
+            recognition.onresult = (ev) => {
+                // Descarta resultados tardíos de un reconocedor que ya no es
+                // el activo (se cambió de campo, se guardó, se canceló, etc.)
+                if (_dictado !== estado) return;
+                // Si el texto del campo cambió por una edición manual mientras
+                // se dictaba, se respeta: se toma como nueva base y se sigue
+                // sumando el dictado a partir de ahí, sin pisar lo escrito a mano.
+                if (ta.value !== estado.ultimoValor) {
+                    estado.baseTexto = ta.value;
+                    estado.finalAcum = '';
+                }
+                let interim = '';
+                for (let i = ev.resultIndex; i < ev.results.length; i++) {
+                    const res = ev.results[i];
+                    if (res.isFinal) estado.finalAcum += (estado.finalAcum ? ' ' : '') + res[0].transcript.trim();
+                    else interim += res[0].transcript;
+                }
+                const sep1 = estado.baseTexto && !/\s$/.test(estado.baseTexto) && estado.finalAcum ? ' ' : '';
+                const cuerpo = estado.baseTexto + sep1 + estado.finalAcum;
+                const sep2 = cuerpo && interim && !/\s$/.test(cuerpo) ? ' ' : '';
+                const nuevoValor = cuerpo + sep2 + interim;
+                ta.value = nuevoValor;
+                estado.ultimoValor = nuevoValor;
+            };
+
+            recognition.onerror = (ev) => {
+                if (_dictado !== estado) return;
+                if (ev.error === 'language-not-supported' && idioma === 'es-AR') {
+                    mostrarAviso('Tu navegador no tiene español argentino para dictado — usando español general.');
+                    _dictado = null;
+                    _dictadoIniciar(textareaId, btnId, 'es-ES');
+                    return;
+                }
+                if (ev.error === 'not-allowed' || ev.error === 'permission-denied' || ev.error === 'service-not-allowed') {
+                    mostrarAviso('No se pudo activar el micrófono — revisá el permiso del navegador para este sitio.');
+                } else if (ev.error !== 'no-speech' && ev.error !== 'aborted') {
+                    mostrarAviso('El dictado se interrumpió (' + ev.error + ').');
+                }
+                if (_dictado === estado) { _dictado = null; _dictadoUIEscuchando(btnId, false, ''); }
+            };
+
+            recognition.onend = () => {
+                if (_dictado !== estado) return; // ya se detuvo/reemplazó a propósito
+                // El navegador puede cortar solo por un silencio largo — si no
+                // fue un "Detener" manual, se reinicia para que el dictado
+                // continuo no se corte a mitad de una frase.
+                if (!estado.detenerManual) {
+                    try { recognition.start(); } catch (_) { _dictado = null; _dictadoUIEscuchando(btnId, false, ''); }
+                } else {
+                    _dictado = null;
+                    _dictadoUIEscuchando(btnId, false, '');
+                }
+            };
+
+            try { recognition.start(); } catch (_) { _dictado = null; }
+        }
+
+        window.toggleDictado = function(textareaId, btnId) {
+            if (_dictado && _dictado.textareaId === textareaId) { _dictadoDetener(); return; }
+            _dictadoIniciar(textareaId, btnId);
+        };
+
+        function _dictadoBotonHtml(textareaId) {
+            const btnId = 'dict-' + textareaId;
+            return `<div class="dictado-barra"><button type="button" id="${btnId}" class="btn-mini btn-dictado" onclick="toggleDictado('${textareaId}','${btnId}')">🎙 Dictar</button><span class="dictado-estado" id="${btnId}-estado"></span></div>`;
+        }
+
         window.guardarN = async (id) => {
             const el = document.getElementById(`n-${id}`);
             if (!el) return;
+            window.detenerDictadoSiActivo(`n-${id}`);
             const nota = el.value.trim();
             try {
                 mostrarLoader(true);
@@ -5935,6 +6088,7 @@
         };
         
         window.cancelarEdicionAdmin = (id) => {
+            window.detenerDictadoSiActivo(`n-${id}`);
             document.getElementById(`nd-${id}`).style.display = "block";
             document.getElementById(`ne-${id}`).style.display = "none";
         };
@@ -5942,6 +6096,7 @@
         window.guardarNotaConsulta = async (id) => {
             const el = document.getElementById(`nc-${id}`);
             if (!el) return;
+            window.detenerDictadoSiActivo(`nc-${id}`);
             const nota = el.value.trim();
             try {
                 mostrarLoader(true);
@@ -5963,6 +6118,7 @@
         };
 
         window.cancelarEdicionNotaConsulta = (id) => {
+            window.detenerDictadoSiActivo(`nc-${id}`);
             document.getElementById(`nenc-${id}`).style.display = 'none';
             document.getElementById(`ndnc-${id}`).style.display = 'block';
         };
@@ -10876,6 +11032,7 @@
         };
 
         window.navegar = (s) => {
+            window.detenerDictadoSiActivo();
             document.querySelectorAll('.section, .btn-nav').forEach(x => x.classList.remove('active'));
             document.getElementById(`sec-${s}`)?.classList.add('active');
             document.getElementById(`btn-${s}`)?.classList.add('active');
