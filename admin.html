@@ -5938,7 +5938,23 @@
         // descarta comparando contra este estado, nunca se escribe en un
         // campo que ya no es el que se está dictando.
         const _SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let _dictado = null; // { recognition, textareaId, btnId, idioma, baseTexto, corridaFinal, ultimoValor, detenerManual }
+        let _dictado = null; // { recognition, textareaId, btnId, idioma, baseTexto, corridaFinal, ultimoValor, detenerManual, offsetEcoInstancia, firmaUltimoFinalAceptado, tsUltimoFinalAceptado }
+
+        // Normaliza un fragmento para comparar "firmas" de contenido entre
+        // tandas de dictado (ignora mayúsculas, acentos y puntuación).
+        function _dictadoFirma(s) {
+            return (s || '')
+                .toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/[^\p{L}\p{N}\s]/gu, '')
+                .trim().replace(/\s+/g, ' ');
+        }
+        // Contención por PALABRAS completas (no substring crudo): evita que
+        // una firma corta como "en" se confunda con parte de "entonces".
+        function _dictadoFirmaContenida(firmaChica, firmaGrande) {
+            if (!firmaChica || !firmaGrande) return false;
+            return (' ' + firmaGrande + ' ').includes(' ' + firmaChica + ' ');
+        }
 
         function _dictadoUIEscuchando(btnId, escuchando, textoEstado) {
             const btn = document.getElementById(btnId);
@@ -5950,6 +5966,19 @@
             }
             const estado = document.getElementById(btnId + '-estado');
             if (estado) estado.textContent = textoEstado || '';
+        }
+
+        // Aviso visual breve y pasajero junto al botón cuando se descarta un
+        // eco: sirve para diagnosticar en el celular mismo, sin devtools,
+        // si el guard de deduplicación está actuando y con qué texto.
+        function _dictadoMostrarEcoDescartado(btnId, fragmento) {
+            const span = document.getElementById(btnId + '-estado');
+            if (!span) return;
+            span.textContent = '(eco descartado: "' + fragmento + '")';
+            clearTimeout(span._dictadoEcoTimeout);
+            span._dictadoEcoTimeout = setTimeout(() => {
+                if (span.textContent.indexOf('eco descartado') !== -1) span.textContent = 'Escuchando…';
+            }, 2000);
         }
 
         function _dictadoDetener() {
@@ -5982,6 +6011,7 @@
             recognition.continuous = true;
             recognition.interimResults = true;
             estado.recognition = recognition;
+            estado.offsetEcoInstancia = 0; // por instancia: no se arrastra entre tandas
 
             recognition.onstart = () => _dictadoUIEscuchando(estado.btnId, true, 'Escuchando…');
 
@@ -6005,7 +6035,59 @@
                     if (res.isFinal) final += (final ? ' ' : '') + res[0].transcript.trim();
                     else interim += (interim ? ' ' : '') + res[0].transcript.trim();
                 }
-                estado.corridaFinal = final;
+
+                // Defensa extra contra ecos nativos de Android: el motor de
+                // voz del sistema (Google Voice Typing) a veces reinyecta el
+                // último bloque ya reconocido como si fuera un resultado
+                // nuevo al reconectar el stream de audio, sin importar que
+                // ya se haya creado una instancia nueva de SpeechRecognition
+                // más arriba. Se detecta por firma de contenido + ventana de
+                // tiempo (3.5s), no por índice ni instancia.
+                //
+                // Como "final" se reconstruye ENTERO desde ev.results en
+                // cada evento (para blindarse contra el resultIndex poco
+                // confiable de Android), descartar un fragmento solo acá no
+                // alcanza — el próximo evento lo volvería a traer del mismo
+                // ev.results. Por eso el descarte se guarda como un offset
+                // persistente por instancia: una vez marcado, se recorta de
+                // raíz en cada reconstrucción futura de esta misma tanda.
+                const finalUtil = estado.offsetEcoInstancia > 0
+                    ? final.slice(estado.offsetEcoInstancia).replace(/^\s+/, '')
+                    : final;
+                let fragmentoNuevo = finalUtil;
+                if (finalUtil && estado.corridaFinal && finalUtil.startsWith(estado.corridaFinal)) {
+                    fragmentoNuevo = finalUtil.slice(estado.corridaFinal.length).trim();
+                }
+                if (fragmentoNuevo) {
+                    const firmaNueva = _dictadoFirma(fragmentoNuevo);
+                    const dt = Date.now() - estado.tsUltimoFinalAceptado;
+                    // Solo se considera eco cuando lo NUEVO ya está 100%
+                    // contenido en lo último aceptado (nada que de verdad se
+                    // haya agregado) — no al revés, para no comerse una
+                    // frase real que simplemente empieza repitiendo una
+                    // palabra ya dicha.
+                    const esEco = firmaNueva && estado.firmaUltimoFinalAceptado && dt < 3500
+                        && _dictadoFirmaContenida(firmaNueva, estado.firmaUltimoFinalAceptado);
+                    if (window.console && console.warn) {
+                        console.warn('[dictado] fragmento:', JSON.stringify(fragmentoNuevo), '| firma:', firmaNueva, '| dt:', dt, '| eco:', !!esEco);
+                    }
+                    if (esEco) {
+                        // Eco descartado de raíz: todo lo reconstruido hasta
+                        // ahora en esta tanda queda marcado como ya resuelto,
+                        // para que ni este ni los próximos eventos lo vuelvan
+                        // a traer de ev.results.
+                        estado.offsetEcoInstancia = final.length;
+                        _dictadoMostrarEcoDescartado(estado.btnId, fragmentoNuevo);
+                    } else {
+                        estado.corridaFinal = finalUtil;
+                        estado.firmaUltimoFinalAceptado = firmaNueva;
+                        estado.tsUltimoFinalAceptado = Date.now();
+                    }
+                } else {
+                    estado.corridaFinal = finalUtil;
+                }
+                final = estado.corridaFinal;
+
                 const sep1 = estado.baseTexto && !/\s$/.test(estado.baseTexto) && final ? ' ' : '';
                 const cuerpo = estado.baseTexto + sep1 + final;
                 const sep2 = cuerpo && interim && !/\s$/.test(cuerpo) ? ' ' : '';
@@ -6087,6 +6169,9 @@
                 textareaId, btnId, idioma: idioma || 'es-AR',
                 baseTexto: ta.value, corridaFinal: '', ultimoValor: ta.value, detenerManual: false,
                 recognition: null,
+                // Firma del último fragmento final aceptado + cuándo, para
+                // descartar ecos nativos de Android sin importar la instancia.
+                firmaUltimoFinalAceptado: '', tsUltimoFinalAceptado: 0, offsetEcoInstancia: 0,
             };
             _dictado = estado;
             _dictadoCrearYArrancarInstancia(estado);
