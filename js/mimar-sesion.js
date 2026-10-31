@@ -11,9 +11,8 @@ import { db, doc, getDoc, getDocs, collection, query, where } from "/js/firebase
 
 const K_DNI = "mimar_paciente_dni";
 const K_NOMBRE = "mimar_paciente_nombre";
-const WA_NUMERO = "5493764291807";
-// Los pedidos de reprogramación van a este WhatsApp y se gestionan a mano
-const WA_REPROGRAMAR = "5493757512496";
+// Todo lo que envía la paciente (consultas y reprogramaciones) va a administración
+const WA_NUMERO = "5493757512496";
 // Misma regla que figura en las preguntas frecuentes de index.html
 const HORAS_ANTICIPACION_CANCELACION = 48;
 const DURACION_TURNO_MS = 60 * 60 * 1000;
@@ -424,7 +423,7 @@ const conAnticipacion = (r) => {
     const ini = inicioTurno(r);
     return ini ? (ini.getTime() - Date.now()) >= HORAS_ANTICIPACION_CANCELACION * 3600 * 1000 : false;
 };
-const linkWa = (txt, numero = WA_NUMERO) => `https://wa.me/${numero}?text=${encodeURIComponent(txt)}`;
+const linkWa = (txt) => `https://wa.me/${WA_NUMERO}?text=${encodeURIComponent(txt)}`;
 
 function abrirPanel() {
     const s = obtener();
@@ -573,7 +572,7 @@ function htmlPendientes() {
             ${cd ? `<div class="mm-card-cd${cd.urg ? " mm-urg" : ""}">⏱ ${cd.txt}</div>` : ""}
             <div class="mm-card-actions">
                 <button type="button" class="mm-btn mm-sec mm-sm" data-accion="reprogramar" data-i="${i}">Reprogramar</button>
-                <a class="mm-btn mm-wa mm-sm" target="_blank" rel="noopener" href="${linkWa(`Hola Gime! Te escribo por mi turno de ${r.servicio || "tratamiento"} del ${formatFecha(r.fecha)} a las ${String(r.hora || "").slice(0, 5)} hs.`)}">Consultar por WhatsApp</a>
+                <a class="mm-btn mm-wa mm-sm" target="_blank" rel="noopener" href="${linkWa(`Hola! Te escribo por mi turno de ${r.servicio || "tratamiento"} del ${formatFecha(r.fecha)} a las ${String(r.hora || "").slice(0, 5)} hs.`)}">Consultar por WhatsApp</a>
             </div>
             ${aTiempo ? "" : `<div class="mm-card-note">Faltan menos de ${HORAS_ANTICIPACION_CANCELACION} hs: podés pedir la reprogramación, pero según nuestra política el turno puede considerarse utilizado.</div>`}
         </article>`;
@@ -650,7 +649,7 @@ function pedirReprogramacion(r) {
         if (motivo.length < 3) { ta.classList.remove("mm-err"); void ta.offsetWidth; ta.classList.add("mm-err"); ta.focus(); return; }
         const pref = _reproOv.querySelector("#mmPreferencia").value.trim();
         const msg = `Hola! Necesito reprogramar mi turno.\n\nPaciente: ${s.nombre || "—"} (DNI ${s.dni})\nTurno: ${r.servicio || "Tratamiento"}\nFecha: ${formatFecha(r.fecha)} · ${String(r.hora || "").slice(0, 5)} hs\n\nMotivo: ${motivo}${pref ? `\nDisponibilidad: ${pref}` : ""}`;
-        const url = linkWa(msg, WA_REPROGRAMAR);
+        const url = linkWa(msg);
         window.open(url, "_blank");
         const box = _reproOv.querySelector("#mmReproMsg");
         box.innerHTML = `<p style="color:var(--mm-ink);">Listo, abrimos WhatsApp con tu pedido. Solo falta tocar <strong>Enviar</strong>. Tu turno sigue reservado hasta que te confirmemos el cambio.</p>

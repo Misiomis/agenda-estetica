@@ -147,7 +147,7 @@
                 <p style="font-family:'Cormorant Garamond',Georgia,serif; font-size:1.15rem; font-style:italic; color:rgba(255,255,255,0.88); margin:0;">Estética avanzada con criterio profesional.</p>
                 <p style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.45); margin:0;">Comandante Andresito · Misiones · Argentina</p>
                 <div style="font-size:0.7rem; color:rgba(255,255,255,0.45); line-height:1.8;">Gimena Knack · Farmacéutica MP 1212 · Dermatocosmiatra RC 2319</div>
-                <a href="https://wa.me/5493764291807" target="_blank" rel="noopener" style="font-size:0.82rem; color:#3cb371; text-decoration:none;">WhatsApp → +54 9 3764 29-1807</a>
+                <a href="https://wa.me/5493757512496" target="_blank" rel="noopener" style="font-size:0.82rem; color:#3cb371; text-decoration:none;">WhatsApp → +54 9 3757 51-2496</a>
             </div>
             <p class="shared-site-footer__text">
                 <span>&copy; 2026</span>
