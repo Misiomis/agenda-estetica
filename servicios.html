@@ -185,91 +185,6 @@
         .modal-card h2 { color: var(--text-primary); margin-bottom: 16px; font-family: 'DM Serif Display', serif; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 
-        .input-dni {
-            width: 100%; padding: 14px; border-radius: var(--radius-md);
-            border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.04);
-            color: var(--text-primary); font-family: 'Jost', sans-serif; font-size: 1rem;
-            text-align: center; margin: 15px 0; outline: none;
-            transition: border-color var(--transition-fast), background var(--transition-fast);
-        }
-        .input-dni:focus { border-color: var(--border-strong); background: rgba(201,169,110,0.04); }
-        .btn-buscar {
-            background: linear-gradient(135deg, #3cb371, #2d8f5e);
-            color: #ffffff; border: none; padding: 14px;
-            width: 100%; border-radius: var(--radius-pill);
-            font-family: 'Jost', sans-serif; font-weight: 500; font-size: 0.82rem;
-            letter-spacing: 0.08em; text-transform: uppercase;
-            cursor: pointer; box-shadow: var(--shadow-button);
-        }
-
-        /* ── TURNO CARDS ── */
-        .turno-section-label {
-            font-family: 'Jost', sans-serif; font-size: 0.65rem; font-weight: 600;
-            color: var(--sage-light); text-transform: uppercase; letter-spacing: 0.12em;
-            margin: 18px 0 8px; padding: 0 2px; display: flex; align-items: center; gap: 6px;
-        }
-        .turno-section-label:first-child { margin-top: 4px; }
-        .turno-section-label .sec-count {
-            background: var(--gold-glow); color: var(--gold-mid);
-            font-size: 0.62rem; padding: 1px 7px; border-radius: 20px; font-weight: 600;
-        }
-        .turno-card {
-            text-align: left; border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px;
-            background: var(--bg-card); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            transition: box-shadow var(--transition-fast);
-        }
-        .turno-card:hover { box-shadow: var(--shadow-gold); }
-        .turno-card.card-cancelada { background: rgba(192,80,80,0.08); border-color: rgba(192,80,80,0.20); opacity: 0.85; }
-        .turno-card.card-realizada { background: rgba(138,171,142,0.06); border-color: rgba(138,171,142,0.16); }
-        .turno-card-servicio { font-weight: 500; color: var(--text-primary); font-size: 0.88rem; margin-bottom: 5px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-family: 'Jost', sans-serif; }
-        .turno-card-meta { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px; font-family: 'Jost', sans-serif; }
-        .turno-badge { display: inline-flex; align-items: center; font-size: 0.68rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; font-family: 'Jost', sans-serif; }
-        .turno-badge.badge-realizada { background: var(--sage-glow); color: var(--sage-light); border: 1px solid rgba(93,132,100,0.25); }
-        .turno-badge.badge-proximo { background: var(--gold-glow); color: var(--gold-mid); border: 1px solid rgba(201,169,110,0.25); }
-        .turno-badge.badge-cancelada { background: rgba(200,80,80,0.12); color: rgba(240,160,160,0.90); border: 1px solid rgba(200,80,80,0.22); }
-        .turno-countdown { font-family: 'Jost', sans-serif; font-size: 0.72rem; font-weight: 600; color: var(--gold-mid); margin: 4px 0 8px; display: flex; align-items: center; gap: 5px; animation: pulsoContador 2.4s ease-in-out infinite; }
-        .turno-countdown.urgente { color: rgba(220,100,60,0.95); animation-duration: 1s; }
-        .turno-countdown.en-curso { color: var(--sage-light); animation: none; }
-        @keyframes pulsoContador { 0%,100%{opacity:1} 50%{opacity:0.55} }
-        .turno-card-motivo {
-            font-size: 0.75rem; color: rgba(240,180,180,0.80);
-            background: rgba(200,80,80,0.08); border-left: 3px solid rgba(200,80,80,0.35);
-            border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 7px 10px;
-            margin: 4px 0 10px; line-height: 1.5; font-family: 'Jost', sans-serif;
-        }
-        .turno-card-motivo em { font-style: normal; }
-        .btn-cancelar-turno {
-            width: 100%; padding: 11px; border-radius: var(--radius-md);
-            border: 1.5px solid rgba(200,80,80,0.30); background: rgba(200,80,80,0.08);
-            color: rgba(240,160,160,0.90); font-family: 'Jost', sans-serif;
-            font-weight: 500; font-size: 0.78rem; cursor: pointer; transition: background var(--transition-fast);
-        }
-        .btn-cancelar-turno:hover { background: rgba(200,80,80,0.15); }
-
-        #modalCancelacion { z-index: 10000; }
-        .cancel-textarea {
-            width: 100%; box-sizing: border-box; padding: 14px;
-            border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
-            font-family: 'Jost', sans-serif; font-size: 0.88rem;
-            color: var(--text-primary); background: rgba(255,255,255,0.04);
-            outline: none; resize: vertical; min-height: 100px; margin: 10px 0 18px;
-        }
-        .cancel-textarea.error { border-color: rgba(200,80,80,0.55); }
-        .btn-confirmar-cancel {
-            width: 100%; padding: 14px; border-radius: var(--radius-pill); border: none;
-            background: linear-gradient(135deg, #c94040, #a02828);
-            color: white; font-family: 'Jost', sans-serif; font-weight: 500;
-            font-size: 0.82rem; letter-spacing: 0.06em; text-transform: uppercase;
-            cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,0.30); margin-bottom: 10px;
-        }
-        .btn-volver-cancel {
-            width: 100%; padding: 13px; border-radius: var(--radius-pill);
-            border: 1px solid var(--border-subtle); background: transparent;
-            color: var(--text-secondary); font-family: 'Jost', sans-serif;
-            font-weight: 500; font-size: 0.82rem; cursor: pointer;
-        }
-
         /* ── FOOTER ── */
         .site-footer { background: #080f0b; border-top: 1px solid var(--border-subtle); padding: clamp(56px, 8vw, 96px) clamp(24px, 5vw, 80px) 0; margin-top: 40px; }
         .footer-inner {
@@ -347,52 +262,19 @@
         <img src="img/logo.png" class="logo" alt="Espacio Mimar T">
 
         <button class="btn-mis-citas" id="btnAbrirBusqueda">
-            <span>📅</span> Mis Próximos Turnos
+            <span>📅</span> Mis Sesiones
         </button>
 
         <div id="noClienteMsg" style="display:none; background:var(--bg-card); border:1px solid var(--border-mid); border-radius:var(--radius-lg); padding:32px 24px; text-align:center; margin:20px auto; max-width:480px; box-shadow:var(--shadow-card);">
             <div style="font-size:38px; margin-bottom:14px;">🌿</div>
             <h2 style="font-family:'DM Serif Display',serif; color:var(--text-primary); margin:0 0 10px; font-size:1.6rem;">Espacio exclusivo para pacientes</h2>
             <p style="color:var(--text-secondary); font-family:'Jost',sans-serif; font-size:0.88rem; line-height:1.65; margin:0 0 20px;">Los servicios de Espacio Mimar T son personalizados y exclusivos para pacientes registrados.</p>
+            <button type="button" id="btnIngresarDni" class="btn-reservar" style="margin:0 0 12px;">Ingresar con mi DNI</button>
             <a href="https://wa.me/5493764291807?text=Hola%20Gime%2C%20quisiera%20registrarme%20en%20Espacio%20Mimar%20T" style="display:inline-block; background:linear-gradient(135deg,#25D366,#128c3e); color:white; text-decoration:none; padding:13px 24px; border-radius:var(--radius-pill); font-family:'Jost',sans-serif; font-weight:500; font-size:0.82rem; letter-spacing:0.06em; text-transform:uppercase; box-shadow:0 8px 20px rgba(0,0,0,0.28);">💬 Hablar con Gimena</a>
         </div>
 
         <div id="loading">Cargando experiencias...</div>
         <div class="servicios" id="listaServicios"></div>
-    </div>
-
-    <!-- Modal: buscar por DNI -->
-    <div id="modalBusquedaDNI" class="modal-overlay">
-        <div class="modal-card">
-            <h2>Consultar Turnos</h2>
-            <input type="number" id="inputDNI" class="input-dni" placeholder="Ingresá tu DNI" inputmode="numeric">
-            <button class="btn-buscar" id="btnRealizarBusqueda">Buscar</button>
-            <button onclick="document.getElementById('modalBusquedaDNI').style.display='none'" style="background:none; border:none; color:var(--text-muted); margin-top:20px; cursor:pointer; font-family:'Jost',sans-serif;">Cerrar</button>
-        </div>
-    </div>
-
-    <!-- Modal: lista de turnos -->
-    <div id="modalCitasCliente" class="modal-overlay">
-        <div class="modal-card">
-            <h2 style="font-family:'DM Serif Display',serif; margin:0 0 6px">Tus Turnos</h2>
-            <p style="font-family:'Jost',sans-serif; font-size:0.8rem; color:var(--text-secondary); margin:0 0 20px">Podés cancelar un turno próximo si ya no podés asistir.</p>
-            <div id="listaResultadosCitas"></div>
-            <button onclick="document.getElementById('modalCitasCliente').style.display='none'" class="btn-buscar" style="margin-top:16px;">Cerrar</button>
-        </div>
-    </div>
-
-    <!-- Modal: justificación de cancelación -->
-    <div id="modalCancelacion" class="modal-overlay">
-        <div class="modal-card">
-            <img src="img/logo.png" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border-mid);margin-bottom:14px;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.40))" onerror="this.style.display='none'" alt="">
-            <h2 style="font-family:'DM Serif Display',serif; margin:0 0 4px; font-size:1.3rem">Cancelar turno</h2>
-            <p id="cancelacion-info" style="font-family:'Jost',sans-serif; font-size:0.8rem; color:var(--text-secondary); font-weight:500; margin:0 0 20px"></p>
-            <label style="display:block; text-align:left; font-family:'Jost',sans-serif; font-size:0.65rem; font-weight:600; color:var(--sage-light); text-transform:uppercase; letter-spacing:.1em; margin-bottom:6px">Motivo de cancelación *</label>
-            <textarea id="cancelacion-motivo" class="cancel-textarea" placeholder="Contanos por qué cancelás (ej: no puedo ese día, me surgió algo...)"></textarea>
-            <p style="font-family:'Jost',sans-serif; font-size:0.72rem; color:var(--text-muted); margin: -10px 0 18px; text-align:left">Se devolverá 1 hora a tu saldo automáticamente.</p>
-            <button class="btn-confirmar-cancel" id="btnConfirmarCancelacion">Confirmar cancelación</button>
-            <button class="btn-volver-cancel" id="btnVolverCancelacion">Volver</button>
-        </div>
     </div>
 
     <div id="modalKitNoCliente" class="modal-overlay">
@@ -436,20 +318,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, getDoc, doc, query, where, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBc5435tsDnJ_yJqO1ppwSjxSpCIhpjgew",
-            authDomain: "estetica-8d067.firebaseapp.com",
-            projectId: "estetica-8d067",
-            storageBucket: "estetica-8d067.firebasestorage.app",
-            messagingSenderId: "501220214938",
-            appId: "1:501220214938:web:af6e262c23d9a7ea853723"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db, collection, getDocs } from "/js/firebase-web.js";
+        import "/js/mimar-sesion.js";
 
         new Swiper(".mySwiper", {
             loop: true,
@@ -458,16 +328,6 @@
             effect: "fade",
             fadeEffect: { crossFade: true }
         });
-
-        const _fmtFechaLarga = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-        const formatFecha = (fechaStr) => {
-            if (!fechaStr) return "—";
-            const [y, m, d] = fechaStr.split("-").map(Number);
-            const dt = new Date(y, m - 1, d);
-            if (isNaN(dt.getTime())) return fechaStr;
-            const s = _fmtFechaLarga.format(dt).replace(/,\s*/, " ");
-            return s.charAt(0).toUpperCase() + s.slice(1);
-        };
 
         // Descripciones de referencia: se usan para agregar servicios faltantes
         // Y también para actualizar la descripción/duración de los que ya están en Firestore
@@ -518,7 +378,7 @@
 
         const dniSesion = localStorage.getItem("clienteDNI");
         const nombreSesion = localStorage.getItem("clienteNombre");
-        const esCliente = !!(dniSesion && dniSesion !== "null" && nombreSesion);
+        let esCliente = !!(dniSesion && dniSesion !== "null" && nombreSesion);
 
         if (!esCliente) {
             document.getElementById("loading").style.display = "none";
@@ -648,118 +508,23 @@
             });
         }
 
-        document.getElementById("btnAbrirBusqueda").onclick = () => {
-            if (esCliente) consultarTurnos(dniSesion);
-            else document.getElementById("modalBusquedaDNI").style.display = "flex";
-        };
+        // Panel "Mis Sesiones" compartido (js/mimar-sesion.js): pide el DNI
+        // si hace falta y muestra pendientes / realizadas / canceladas.
+        document.getElementById("btnAbrirBusqueda").onclick = () => window.MimarSesion.abrirPanel();
+        document.getElementById("btnIngresarDni").onclick = () => window.MimarSesion.abrirLogin({ forzarModulo: true });
+        // Al ingresar se muestra el catálogo exclusivo sin recargar (así el
+        // panel recién abierto no se cierra); al salir se recarga la página.
+        window.addEventListener("mimar:sesion", (e) => {
+            if (e.detail && !esCliente) {
+                esCliente = true;
+                document.getElementById("noClienteMsg").style.display = "none";
+                document.getElementById("loading").style.display = "block";
+                cargarServicios();
+            } else if (!e.detail && esCliente) {
+                window.location.reload();
+            }
+        });
 
-        document.getElementById("btnRealizarBusqueda").onclick = () => {
-            const dni = document.getElementById("inputDNI").value.trim();
-            if (dni) consultarTurnos(dni);
-        };
-
-        async function consultarTurnos(dni) {
-            const lista = document.getElementById("listaResultadosCitas");
-            document.getElementById("modalBusquedaDNI").style.display = "none";
-            document.getElementById("modalCitasCliente").style.display = "flex";
-            lista.innerHTML = '<p style="color:var(--text-secondary);padding:16px 0">Buscando...</p>';
-
-            try {
-                const q = query(collection(db, "reservas"), where("dni", "==", dni));
-                const snap = await getDocs(q);
-                const todos = [];
-                snap.forEach(docSnap => { todos.push({ id: docSnap.id, ...docSnap.data() }); });
-
-                if (todos.length === 0) { lista.innerHTML = '<p style="color:var(--text-muted); padding:16px 0">No tenés turnos registrados.</p>'; return; }
-
-                const esCancelado = r => (r.status || r.estado || "").toLowerCase() === "cancelado";
-                const finTurno = r => { if (!r.fecha || !r.hora) return null; const dt = new Date(`${r.fecha}T${r.hora}:00-03:00`); if (isNaN(dt.getTime())) return null; return new Date(dt.getTime() + 60 * 60 * 1000); };
-                const esFinalizado = r => { const f = finTurno(r); return f ? Date.now() >= f.getTime() : true; };
-                const cuentaRegresiva = r => {
-                    const f = finTurno(r); if (!f) return null;
-                    const inicio = new Date(f.getTime() - 60 * 60 * 1000);
-                    const diff = inicio.getTime() - Date.now();
-                    if (diff <= 0) { const enCurso = (Date.now() - inicio.getTime()) < 60 * 60 * 1000; return enCurso ? { texto: "🟢 Turno en curso", tipo: "en-curso" } : null; }
-                    const min = Math.floor(diff / 60000);
-                    if (min < 60) return { texto: "⚠️ Falta menos de 1 hora — ¡asegurate de llegar a tiempo!", tipo: "urgente" };
-                    const hs = Math.floor(min / 60);
-                    if (hs < 48) return { texto: `⏱ Faltan ${hs} hora${hs !== 1 ? "s" : ""}`, tipo: "" };
-                    const dias = Math.floor(hs / 24);
-                    return { texto: `⏱ Faltan ${dias} día${dias !== 1 ? "s" : ""}`, tipo: "" };
-                };
-
-                const proximas = todos.filter(r => !esCancelado(r) && !esFinalizado(r)).sort((a, b) => (a.fecha || "").localeCompare(b.fecha || "") || (a.hora || "").localeCompare(b.hora || ""));
-                const realizadas = todos.filter(r => !esCancelado(r) && esFinalizado(r)).sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
-                const canceladas = todos.filter(r => esCancelado(r)).sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
-
-                lista.innerHTML = "";
-
-                function renderSeccion(label, emoji, items, tipo) {
-                    if (!items.length) return;
-                    const sec = document.createElement("div"); sec.className = "turno-section-label";
-                    sec.innerHTML = `${emoji} ${label} <span class="sec-count">${items.length}</span>`;
-                    lista.appendChild(sec); items.forEach(r => renderCard(r, tipo));
-                }
-
-                function renderCard(r, tipo) {
-                    const cancelado = esCancelado(r); const fechaFmt = formatFecha(r.fecha);
-                    let badge = "";
-                    if (tipo === "cancelada") badge = `<span class="turno-badge badge-cancelada">✕ Cancelada</span>`;
-                    else if (tipo === "proxima") badge = `<span class="turno-badge badge-proximo">● Pendiente</span>`;
-                    else badge = `<span class="turno-badge badge-realizada">✓ Realizada</span>`;
-                    const motivoHTML = (cancelado && r.motivoCancelacion) ? `<div class="turno-card-motivo">📝 Motivo: <em>${escapeHtml(r.motivoCancelacion)}</em></div>` : "";
-                    let countdownHTML = "";
-                    if (tipo === "proxima") { const cnt = cuentaRegresiva(r); if (cnt) countdownHTML = `<div class="turno-countdown ${cnt.tipo}">${cnt.texto}</div>`; }
-                    const btnCancelar = (tipo === "proxima") ? `<button class="btn-cancelar-turno" data-id="${r.id}" data-servicio="${escapeHtml(r.servicio || '')}" data-fecha="${escapeHtml(r.fecha || '')}" data-hora="${escapeHtml(r.hora || '')}" data-dni="${escapeHtml(dni)}">Cancelar este turno</button>` : "";
-                    const card = document.createElement("div");
-                    card.className = `turno-card${tipo === "cancelada" ? " card-cancelada" : tipo === "realizada" ? " card-realizada" : ""}`;
-                    card.innerHTML = `<div class="turno-card-servicio">${escapeHtml(r.servicio || "Tratamiento")} ${badge}</div><div class="turno-card-meta">📅 ${fechaFmt} &nbsp;·&nbsp; 🕒 ${escapeHtml(r.hora || "—")} hs</div>${countdownHTML}${motivoHTML}${btnCancelar}`;
-                    lista.appendChild(card);
-                }
-
-                renderSeccion("Próximos turnos", "📅", proximas, "proxima");
-                renderSeccion("Sesiones realizadas", "✅", realizadas, "realizada");
-                renderSeccion("Turnos cancelados", "❌", canceladas, "cancelada");
-
-                lista.querySelectorAll('.btn-cancelar-turno').forEach(btn => { btn.onclick = () => abrirModalCancelacion(btn.dataset); });
-            } catch (e) { console.error(e); lista.innerHTML = '<p style="color:#ef4444; padding:16px 0">Error al buscar turnos.</p>'; }
-        }
-
-        let _cancelData = null;
-        function abrirModalCancelacion(data) {
-            _cancelData = data;
-            document.getElementById("cancelacion-info").textContent = `${data.servicio || "Tratamiento"} · ${formatFecha(data.fecha)} · ${data.hora || "—"} hs`;
-            document.getElementById("cancelacion-motivo").value = "";
-            document.getElementById("cancelacion-motivo").classList.remove("error");
-            document.getElementById("modalCancelacion").style.display = "flex";
-        }
-
-        document.getElementById("btnVolverCancelacion").onclick = () => { document.getElementById("modalCancelacion").style.display = "none"; _cancelData = null; };
-
-        document.getElementById("btnConfirmarCancelacion").onclick = async () => {
-            const motivo = document.getElementById("cancelacion-motivo").value.trim();
-            if (!motivo) { document.getElementById("cancelacion-motivo").classList.add("error"); return; }
-            const btn = document.getElementById("btnConfirmarCancelacion");
-            btn.disabled = true; btn.textContent = "Cancelando...";
-            try {
-                const { id, servicio, fecha, hora, dni } = _cancelData;
-                await updateDoc(doc(db, "reservas", id), { status: "cancelado", estado: "cancelado", canceladoPor: "cliente", motivoCancelacion: motivo, canceladoAt: new Date() });
-                await updateDoc(doc(db, "clients", dni), { hoursBalance: increment(1) });
-                const fechaFmt = formatFecha(fecha);
-                const pacNombre = encodeURIComponent(nombreSesion || dni);
-                const servEnc = encodeURIComponent(servicio || "Tratamiento");
-                const motivoEnc = encodeURIComponent(motivo);
-                const msg = `🔔 *Turno cancelado por el paciente*%0A%0A👤 Paciente: *${pacNombre}*%0A📅 Fecha: *${fechaFmt}*%0A🕒 Hora: *${encodeURIComponent(hora || "—")} hs*%0A✨ Servicio: *${servEnc}*%0A%0A📝 Motivo:%0A${motivoEnc}%0A%0ASe devolvió 1 hora a su saldo automáticamente.`;
-                window.open(`https://wa.me/5493764291807?text=${msg}`, '_blank');
-                document.getElementById("modalCancelacion").style.display = "none";
-                document.getElementById("modalCitasCliente").style.display = "none";
-                _cancelData = null;
-                setTimeout(() => consultarTurnos(dni), 400);
-            } catch (e) { console.error(e); alert("No se pudo cancelar el turno. Intentá de nuevo o escribile a Gimena."); }
-            finally { btn.disabled = false; btn.textContent = "Confirmar cancelación"; }
-        };
-
-        function escapeHtml(str) { return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
     </script>
 </body>
 </html>

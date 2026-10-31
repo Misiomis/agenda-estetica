@@ -1457,12 +1457,12 @@ document.getElementById("reservarBtn").onclick=()=>{
 document.getElementById("btnMesSiguiente").onclick= async ()=>{
     const y=fechaActual.getFullYear(), m=fechaActual.getMonth();
     if(y > 2026 || (y === 2026 && m >= 11)) return;
-    fechaActual.setMonth(m+1);
+    fechaActual=new Date(y,m+1,1);
     await cargarReservasMes();
     renderCalendario();
 };
 document.getElementById("btnMesAnterior").onclick= async ()=>{
-    fechaActual.setMonth(fechaActual.getMonth()-1);
+    fechaActual=new Date(fechaActual.getFullYear(),fechaActual.getMonth()-1,1);
     await cargarReservasMes();
     renderCalendario();
 };
