@@ -1307,7 +1307,7 @@ img, video { max-width: 100%; height: auto; }
             <button class="modal-close" aria-label="Cerrar">✕</button>
             <img src="img/logo.png" alt="Espacio Mimar T" class="modal-logo">
             <h2 class="modal-title">Espacio Mimar T</h2>
-            <p class="modal-subtitle">Completá tus datos para acceder a tu cuenta y gestionar tus turnos.</p>
+            <p class="modal-subtitle">Ingresá tu DNI para ver tus sesiones.</p>
             <div id="installWidget" class="install-widget" aria-live="polite">
                 <div class="install-widget-inner">
                     <p class="install-title">Descargar app</p>
@@ -1320,15 +1320,11 @@ img, video { max-width: 100%; height: auto; }
             </div>
             <form id="loginForm" class="login-form">
                 <div class="form-field">
-                    <label for="nombre" class="form-label">Nombre + inicial de apellido</label>
-                    <input id="nombre" class="form-input" placeholder="Ej: María G" autocomplete="name">
-                </div>
-                <div class="form-field">
                     <label for="dni" class="form-label">DNI</label>
-                    <input id="dni" class="form-input" placeholder="Sin puntos" inputmode="numeric">
+                    <input id="dni" class="form-input" placeholder="Sin puntos" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="12">
                 </div>
-                <button id="btnIngresar" class="btn-primary modal-submit" type="submit">Iniciar sesión</button>
-                <div id="error" class="error"></div>
+                <button id="btnIngresar" class="btn-primary modal-submit" type="submit">Ver mis sesiones</button>
+                <div id="error" class="error" role="alert"></div>
             </form>
             <div class="modal-divider"><span>¿Sos nueva?</span></div>
             <a href="/fecha.html" class="modal-wa-link" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;">
@@ -1351,6 +1347,7 @@ img, video { max-width: 100%; height: auto; }
     <!-- ── FIREBASE LOGIN ── -->
     <script type="module">
         import { db, doc, getDoc } from "/js/firebase-web.js";
+        import "/js/mimar-sesion.js";
         const JORNADA_CONFIG_DOC = "jornadaEspecial";
         const getIngresoErrorMessage = (error) => {
             switch (error?.code) {
@@ -1377,42 +1374,37 @@ img, video { max-width: 100%; height: auto; }
         };
         await cargarContextoJornada();
 
-        document.getElementById("dni").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ""); });
+        document.getElementById("dni").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^\d.\s-]/g, ""); document.getElementById("error").style.display = "none"; });
 
+        // Ingreso solo con DNI: misma consulta a clients/{dni} que usa Kit
+        // Facial, a través del módulo de sesión compartido (js/mimar-sesion.js)
         const btnIngresar = document.getElementById("btnIngresar");
         const loginForm = document.getElementById("loginForm");
         const manejarIngreso = async (event) => {
             event?.preventDefault();
-            const nombreIngresado = document.getElementById("nombre").value.trim().toLowerCase();
-            const dniIngresado = document.getElementById("dni").value.trim();
+            const { normalizarDni, dniValido, buscarPaciente, guardar } = window.MimarSesion;
+            const dniIngresado = normalizarDni(document.getElementById("dni").value);
             const errorDiv = document.getElementById("error");
-            if (!nombreIngresado || !dniIngresado) { errorDiv.innerText = "Por favor, completá ambos campos."; errorDiv.style.display = "block"; return; }
-            btnIngresar.disabled = true; btnIngresar.innerText = "Verificando...";
+            errorDiv.style.display = "none";
+            if (!dniValido(dniIngresado)) { errorDiv.innerText = "El DNI debe tener 7 u 8 números."; errorDiv.style.display = "block"; return; }
+            btnIngresar.disabled = true; btnIngresar.innerText = "Buscando tu ficha...";
             try {
-                const docRef = doc(db, "clients", dniIngresado);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const cliente = docSnap.data();
-                    const normNombre = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9\s]/g, "").trim();
-                    const nombreCandidato = normNombre(cliente.fullName || cliente.fullLname || cliente.nombre || cliente.name || cliente.username || "");
-                    const nombreTipado = normNombre(nombreIngresado);
-                    const palabrasTipadas = nombreTipado.split(/\s+/).filter(Boolean);
-                    const palabrasGuardadas = nombreCandidato.split(/\s+/).filter(Boolean);
-                    const nombreValido = nombreCandidato === nombreTipado || palabrasTipadas.every(pt => palabrasGuardadas.some(pg => pg.startsWith(pt)));
-                    if (nombreValido && palabrasTipadas.length > 0) {
-                        localStorage.setItem("clienteDNI", dniIngresado);
-                        localStorage.setItem("clienteNombre", cliente.fullName);
-                        if (jornadaLoginRedirect) { localStorage.setItem("jornadaSource", "jornada_especial_login"); window.location.href = jornadaLoginRedirect; return; }
-                        localStorage.setItem("jornadaModo", "0");
-                        localStorage.removeItem("jornadaSource"); localStorage.removeItem("jornadaAllowedDates"); localStorage.removeItem("jornadaAllowedMonth"); localStorage.removeItem("jornadaSlots");
-                        if (!cliente.politicaAceptada) { window.location.href = "politica.html"; }
-                        else if (cliente.consultaNutricionalRespondida !== true) { window.location.href = "servicioincluido.html"; }
-                        else if (!cliente.historiaCompletada && !cliente.historiaCompleta) { window.location.href = "historia.html"; }
-                        else { const esMiembro = cliente.membershipActive === true || cliente.membresia === true; localStorage.setItem("esMiembro", esMiembro ? "1" : "0"); window.location.href = "servicios.html"; }
-                    } else { errorDiv.innerText = "El nombre no coincide con el DNI."; errorDiv.style.display = "block"; }
-                } else { errorDiv.innerText = "Paciente no encontrado."; errorDiv.style.display = "block"; }
+                const cliente = await buscarPaciente(dniIngresado);
+                if (cliente) {
+                    guardar(dniIngresado, cliente);
+                    if (jornadaLoginRedirect) { localStorage.setItem("jornadaSource", "jornada_especial_login"); window.location.href = jornadaLoginRedirect; return; }
+                    localStorage.setItem("jornadaModo", "0");
+                    localStorage.removeItem("jornadaSource"); localStorage.removeItem("jornadaAllowedDates"); localStorage.removeItem("jornadaAllowedMonth"); localStorage.removeItem("jornadaSlots");
+                    // Con el DNI alcanza: se muestran directamente sus sesiones
+                    document.getElementById("loginModal").classList.remove("open");
+                    document.getElementById("dni").value = "";
+                    window.MimarSesion.abrirPanel();
+                } else {
+                    errorDiv.innerHTML = `Todavía no encontramos una ficha con ese DNI. Si es tu primera vez, empezá por la Consulta Inicial 🌿<br><a href="/fecha.html" style="display:inline-block;margin-top:8px;color:#2ECC71;font-weight:600;">Agendar Consulta Inicial →</a>`;
+                    errorDiv.style.display = "block";
+                }
             } catch (error) { console.error("Error al ingresar:", error); errorDiv.innerText = getIngresoErrorMessage(error); errorDiv.style.display = "block"; }
-            finally { btnIngresar.disabled = false; btnIngresar.innerText = "Iniciar sesión"; }
+            finally { btnIngresar.disabled = false; btnIngresar.innerText = "Ver mis sesiones"; }
         };
         loginForm?.addEventListener("submit", manejarIngreso);
 
@@ -1557,10 +1549,17 @@ img, video { max-width: 100%; height: auto; }
     (function() {
         const modal = document.getElementById('loginModal');
         if (!modal) return;
-        const openModal = () => { modal.classList.add('open'); document.body.style.overflow = 'hidden'; };
+        const openModal = () => { modal.classList.add('open'); document.body.style.overflow = 'hidden'; setTimeout(() => document.getElementById('dni')?.focus(), 80); };
         const closeModal = () => { modal.classList.remove('open'); document.body.style.overflow = ''; };
+        // El indicador de cuenta del header (js/mimar-sesion.js) usa este modal
+        window.mimarAbrirLoginPagina = openModal;
         document.querySelectorAll('[data-modal="login"]').forEach(el => {
-            el.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                // Con sesión iniciada, "Mis turnos" abre directamente el panel Mis Sesiones
+                if (window.MimarSesion?.obtener()) window.MimarSesion.abrirPanel();
+                else openModal();
+            });
         });
         modal.querySelector('.modal-close')?.addEventListener('click', closeModal);
         modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });

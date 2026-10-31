@@ -172,7 +172,12 @@
         .combo-select-grid{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
         .combo-opt{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(60,179,113,0.16);border-radius:12px;cursor:pointer;transition:all .2s;}
         .combo-opt:hover{border-color:rgba(168,85,247,0.40);background:rgba(168,85,247,0.06);}
-        .combo-opt.selected{border-color:#a855f7;background:rgba(168,85,247,0.12);}
+        .combo-opt{position:relative;}
+        .combo-opt.selected{border-color:#2ECC71;background:rgba(46,204,113,0.10);box-shadow:0 0 0 3px rgba(46,204,113,0.15);padding-right:44px;}
+        .combo-opt.selected::after{content:"✓";position:absolute;right:12px;top:50%;width:22px;height:22px;margin-top:-11px;border-radius:50%;background:#2ECC71;color:#06130c;font-size:12px;font-weight:800;display:grid;place-items:center;animation:comboCheck .35s cubic-bezier(.2,1.6,.4,1);}
+        @keyframes comboCheck{from{transform:scale(0) rotate(-45deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+        .combo-opt:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(46,204,113,0.35);}
+        .mc-field:focus{border-color:#2ECC71 !important;box-shadow:0 0 0 3px rgba(46,204,113,0.2);}
         .combo-opt-nombre{font-size:12.5px;font-weight:700;color:rgba(220,242,232,0.90);}
         .combo-opt-detalle{font-size:11px;color:rgba(165,205,188,0.50);margin-top:1px;}
         .combo-opt-precio{font-size:13px;font-weight:700;color:#c084fc;white-space:nowrap;margin-left:12px;}
@@ -470,6 +475,7 @@
         </div>
     </div>
 
+    <div data-mm-pasos="Fecha y horario|Tus datos y zona|Pago y confirmación"></div>
     <p class="instruccion">Elegí el día y el horario de tu sesión</p>
 
     <!-- Calendario -->
@@ -743,7 +749,7 @@ window.toggleAbrDetalles = function() {
 
             <input class="mc-field" type="text" id="mcNombre" placeholder="Por favor respetá el orden: Nombre Apellido *" autocomplete="name">
             <p style="font-size:11px;color:rgba(165,205,188,0.38);margin:-4px 0 9px 2px;">Ej: <strong style="color:rgba(165,205,188,0.55)">María López</strong> — primero el nombre, luego el apellido</p>
-            <input class="mc-field" type="text" id="mcDni" placeholder="DNI *" inputmode="numeric">
+            <input class="mc-field" type="text" id="mcDni" placeholder="DNI *" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="12">
             <label class="mc-label" style="margin-top:2px;">Fecha de nacimiento *</label>
             <div class="drum-outer" id="drumPicker">
                 <div class="drum-lbl-row"><div>Día</div><div>Mes</div><div>Año</div></div>
@@ -817,6 +823,7 @@ window.toggleAbrDetalles = function() {
 
 <script type="module">
 import { auth, db, onAuthStateChanged, collection, getDocs, doc, addDoc, setDoc, getDoc, query, where, serverTimestamp, onSnapshot } from "/js/firebase-web.js";
+import "/js/mimar-sesion.js";
 
 // Horario universal — todos los días tienen los mismos slots disponibles
 const TODOS_HORARIOS = ['07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00',
@@ -914,7 +921,7 @@ function buildComboGrid() {
         </div>
         <div id="comboGrupo_${g.id}" style="display:none;flex-direction:column;gap:6px;padding:2px 2px 6px;">
             ${g.combos.map(c => `
-                <div class="combo-opt" id="comboOpt_${c.id}" onclick="seleccionarCombo('${c.id}','${g.grupo}','${c.nombre}','${c.detalle}','${_comboPreciosConfig[c.id]||c.precio}')">
+                <div class="combo-opt" id="comboOpt_${c.id}" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" onclick="seleccionarCombo('${c.id}','${g.grupo}','${c.nombre}','${c.detalle}','${_comboPreciosConfig[c.id]||c.precio}')">
                     <div><div class="combo-opt-nombre">${c.nombre}</div><div class="combo-opt-detalle">${c.detalle}</div></div>
                     <div class="combo-opt-precio">${_comboPreciosConfig[c.id]||c.precio}</div>
                 </div>`).join('')}
@@ -936,6 +943,8 @@ window.seleccionarCombo = (id, grupo, nombre, detalle, precio) => {
     document.querySelectorAll(".combo-opt").forEach(el => el.classList.remove("selected"));
     document.getElementById("comboOpt_" + id)?.classList.add("selected");
     comboSeleccionado = {id, grupo, nombre, detalle, precio};
+    // Lleva suavemente al siguiente paso una vez elegida la zona
+    setTimeout(() => document.getElementById("mcBtnPaso2")?.scrollIntoView({behavior:"smooth", block:"center"}), 180);
 };
 
 // ── Drum Date Picker ──
@@ -1052,7 +1061,7 @@ function renderCalendario(){
     document.getElementById("mes").innerText=`${mesNombres[m]} ${y}`;
     // Mes máximo habilitado para reservas públicas (ajustar cuando se habilite el siguiente mes)
     const MAX_MES_ACTIVO_ANIO = 2026;
-    const MAX_MES_ACTIVO_MES  = 9; // 0=ene … 9=oct
+    const MAX_MES_ACTIVO_MES  = 11; // 0=ene … 11=dic
     const mesKey=`${y}-${String(m+1).padStart(2,"0")}`;
     const bloqueado=mesesBloqueados.has(mesKey)||y>MAX_MES_ACTIVO_ANIO||(y===MAX_MES_ACTIVO_ANIO&&m>MAX_MES_ACTIVO_MES);
     const btnSig=document.getElementById("btnMesSiguiente");
@@ -1112,8 +1121,8 @@ function mostrarAviso(titulo,msg){
     document.getElementById("modalMimar").style.display="flex";
 }
 document.getElementById("btnFinalizarModal").onclick=()=>document.getElementById("modalMimar").style.display="none";
-document.getElementById("btnMesSiguiente").onclick=async()=>{const y=fechaActual.getFullYear(),m=fechaActual.getMonth();if(y>2026||(y===2026&&m>=11))return;fechaActual.setMonth(m+1);await cargarReservasMes();renderCalendario();};
-document.getElementById("btnMesAnterior").onclick=async()=>{fechaActual.setMonth(fechaActual.getMonth()-1);await cargarReservasMes();renderCalendario();};
+document.getElementById("btnMesSiguiente").onclick=async()=>{const y=fechaActual.getFullYear(),m=fechaActual.getMonth();if(y>2026||(y===2026&&m>=11))return;fechaActual=new Date(y,m+1,1);await cargarReservasMes();renderCalendario();};
+document.getElementById("btnMesAnterior").onclick=async()=>{fechaActual=new Date(fechaActual.getFullYear(),fechaActual.getMonth()-1,1);await cargarReservasMes();renderCalendario();};
 (function(){const grid=document.getElementById("dias");if(!grid)return;let sx=0;grid.addEventListener("touchstart",e=>{sx=e.touches[0].clientX;},{passive:true});grid.addEventListener("touchend",e=>{const diff=sx-e.changedTouches[0].clientX;if(Math.abs(diff)>60){if(diff>0)document.getElementById("btnMesSiguiente").click();else document.getElementById("btnMesAnterior").click();}},{passive:true});})();
 
 const _abrirModalDepi=()=>{
