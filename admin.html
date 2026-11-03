@@ -1487,6 +1487,11 @@
         .p360-box-chip small { font-size: 10.5px; color: var(--ink-soft); }
         .p360-box-chip.sel { background: var(--forest-soft); border-color: var(--forest); box-shadow: 0 0 0 2px rgba(45,74,50,.18); }
         .p360-box-chip:disabled { opacity: .45; cursor: not-allowed; }
+        .ses-meses-lista { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+        .ses-mes-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 13.5px; color: var(--ink); }
+        .ses-mes-item:has(input:checked) { background: var(--forest-soft); border-color: var(--forest); }
+        .ses-mes-item span { flex: 1; font-weight: 700; }
+        .ses-mes-item small { color: var(--ink-soft); font-size: 12px; }
 
         /* Ficha 360° (drawer) */
         #f360-fondo { position: fixed; inset: 0; z-index: 98999; background: rgba(22,32,27,0.38); opacity: 0; pointer-events: none; transition: opacity .2s; }
@@ -7736,6 +7741,131 @@
         
         // ── Modal de resumen de sesiones para copiar/enviar ──
         window._sesMsgDB = [];
+        // ── Listas de sesiones para WhatsApp (Sesiones → buscador) ──
+        // Sin saludo: arranca con el nombre de la paciente. "Próximas" NO dice
+        // qué tratamiento se hará (a pedido); "realizadas" SÍ lo dice. Si la
+        // lista abarca varios meses, se separa con el nombre de cada mes. El
+        // año solo aparece si no es el año en curso.
+        var _SES_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        var _SES_DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+        var _sesOrdenar = function(a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : (a.hora||'') < (b.hora||'') ? -1 : 1; };
+        var _sesNombreMes = function(ym, conAnio) {
+            var p = ym.split('-');
+            var m = _SES_MESES[+p[1]-1] || ym;
+            return (conAnio || +p[0] !== new Date().getFullYear()) ? m + ' ' + p[0] : m;
+        };
+        var _sesTratamiento = function(r) {
+            var s = (r.servicio || '').toString().trim();
+            // "Reservar turno sin tratamiento específico" es el texto del turno
+            // genérico de la web, no un tratamiento: no le dice nada a la paciente.
+            return !s || /sin tratamiento espec/i.test(s) ? 'Sesión' : s;
+        };
+        function _sesListaTexto(lista, encabezado, conTratamiento) {
+            var orden = lista.filter(function(r) { return !esEstadoCancelado(r.estado || r.status); }).sort(_sesOrdenar);
+            var meses = [];
+            orden.forEach(function(r) { var ym = (r.fecha||'').slice(0,7); if (meses.indexOf(ym) < 0) meses.push(ym); });
+            var anioActual = new Date().getFullYear();
+            var n = 1, cuerpo = '', mesPrevio = null;
+            orden.forEach(function(r) {
+                var fp = (r.fecha||'').split('-');
+                var ym = (r.fecha||'').slice(0,7);
+                if (meses.length > 1 && ym !== mesPrevio) {
+                    var nm = _sesNombreMes(ym);
+                    cuerpo += '\n_' + nm.charAt(0).toUpperCase() + nm.slice(1) + '_\n';
+                    mesPrevio = ym;
+                }
+                var dt = fp[0] && fp[1] && fp[2] ? new Date(+fp[0], +fp[1]-1, +fp[2]) : null;
+                var dia = dt ? _SES_DIAS[dt.getDay()] : '';
+                var anio = fp[0] && +fp[0] !== anioActual ? ' de ' + fp[0] : '';
+                cuerpo += '\n*' + (n++) + '. ' + dia + ' ' + (fp[2] ? parseInt(fp[2], 10) : '') + ' de ' + (_SES_MESES[+fp[1]-1] || '') + anio + '*\n'
+                    + (normalizarHora(r.hora) || r.hora || '--') + ' hs\n'
+                    + (conTratamiento ? _sesTratamiento(r) + '\n' : '');
+            });
+            var total = orden.length;
+            return encabezado + cuerpo + '\n*Total: ' + total + ' sesion' + (total !== 1 ? 'es' : '') + '*\n\nEspacio Mimar T';
+        }
+        var _sesListaMeses = function(yms) {
+            var nombres = yms.slice().sort().map(function(ym) { return _sesNombreMes(ym); });
+            return nombres.length > 1 ? nombres.slice(0, -1).join(', ') + ' y ' + nombres[nombres.length - 1] : (nombres[0] || '');
+        };
+        // Mensaje de sesiones realizadas de los meses elegidos (yms vacío = todas).
+        window._sesMsgRealizadas = function(exportIdx, yms) {
+            var g = (window._sesExportDB || [])[exportIdx];
+            if (!g) return;
+            var todas = !yms || !yms.length;
+            var lista = todas ? g.completadas : g.completadas.filter(function(r) { return yms.indexOf((r.fecha||'').slice(0,7)) >= 0; });
+            if (!lista.length) { mostrarAviso('No hay sesiones realizadas en ese período'); return; }
+            var periodo = todas ? 'ya realizadas' : 'realizadas en ' + _sesListaMeses(yms);
+            var idx = window._sesMsgDB.length;
+            window._sesMsgDB.push({
+                texto: _sesListaTexto(lista, g.nombre + '\n\nEstas son tus sesiones ' + periodo + ' en Espacio Mimar T:\n', true),
+                phone: g.phone,
+                titulo: 'Sesiones realizadas' + (todas ? ' — todas' : ' — ' + _sesListaMeses(yms)),
+            });
+            window._sesMsgShow(idx);
+        };
+        // Selector de meses: atajos (mes actual, últimos 3, todo) + casillas por mes.
+        window._sesElegirMeses = function(exportIdx) {
+            var g = (window._sesExportDB || [])[exportIdx];
+            if (!g) return;
+            var porMes = {};
+            g.completadas.forEach(function(r) {
+                if (esEstadoCancelado(r.estado || r.status)) return;
+                var ym = (r.fecha||'').slice(0,7);
+                porMes[ym] = (porMes[ym] || 0) + 1;
+            });
+            var yms = Object.keys(porMes).sort().reverse();
+            var hoy = new Date();
+            var ymHoy = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0');
+            var ov = document.createElement('div');
+            ov.className = 'p360-modal-ov';
+            ov.innerHTML = "<div class='p360-modal' role='dialog' aria-modal='true' aria-label='Elegir meses'>" +
+                "<p class='p360-modal-t'>📅 Sesiones realizadas por mes</p>" +
+                "<p class='p360-modal-s'>" + escapeHtml(g.nombre) + " · elegí qué meses enviar</p>" +
+                "<div class='p360-acc' style='margin-bottom:10px;'>" +
+                    "<button type='button' class='p360-btn' data-atajo='actual'>Mes actual</button>" +
+                    "<button type='button' class='p360-btn' data-atajo='3'>Últimos 3 meses</button>" +
+                    "<button type='button' class='p360-btn' data-atajo='todo'>Todo</button>" +
+                    "<button type='button' class='p360-btn' data-atajo='nada'>Ninguno</button>" +
+                "</div>" +
+                "<div class='ses-meses-lista'>" + yms.map(function(ym) {
+                    var nm = _sesNombreMes(ym, true);
+                    return "<label class='ses-mes-item'><input type='checkbox' value='" + ym + "'" + (ym === ymHoy ? ' checked' : '') + "> <span>" + nm.charAt(0).toUpperCase() + nm.slice(1) + "</span><small>" + porMes[ym] + " sesion" + (porMes[ym] !== 1 ? 'es' : '') + "</small></label>";
+                }).join('') + "</div>" +
+                "<p class='p360-ayuda' id='_ses_meses_res'></p>" +
+                "<div class='p360-modal-acc'><button type='button' class='btn-mini' data-accion='cancelar'>Cancelar</button><button type='button' class='p360-btn-pri' data-accion='ver'>Ver mensaje</button></div>" +
+                "</div>";
+            document.body.appendChild(ov);
+            var checks = Array.prototype.slice.call(ov.querySelectorAll('input[type=checkbox]'));
+            var elegidos = function() { return checks.filter(function(c) { return c.checked; }).map(function(c) { return c.value; }); };
+            var actualizar = function() {
+                var sel = elegidos();
+                var n = sel.reduce(function(t, ym) { return t + porMes[ym]; }, 0);
+                ov.querySelector('#_ses_meses_res').textContent = sel.length ? (n + ' sesion' + (n !== 1 ? 'es' : '') + ' en ' + sel.length + ' mes' + (sel.length !== 1 ? 'es' : '')) : 'Elegí al menos un mes.';
+                ov.querySelector('[data-accion=ver]').disabled = !sel.length;
+            };
+            if (!elegidos().length && checks[0]) checks[0].checked = true; // sin sesiones este mes: el más reciente
+            checks.forEach(function(c) { c.onchange = actualizar; });
+            Array.prototype.forEach.call(ov.querySelectorAll('[data-atajo]'), function(b) {
+                b.onclick = function() {
+                    var a = b.dataset.atajo;
+                    checks.forEach(function(c, i) {
+                        c.checked = a === 'todo' ? true : a === 'nada' ? false : a === '3' ? i < 3 : c.value === ymHoy;
+                    });
+                    actualizar();
+                };
+            });
+            var cerrar = function() { ov.remove(); };
+            ov.addEventListener('mousedown', function(e) { if (e.target === ov) cerrar(); });
+            ov.querySelector('[data-accion=cancelar]').onclick = cerrar;
+            ov.querySelector('[data-accion=ver]').onclick = function() {
+                var sel = elegidos();
+                cerrar();
+                window._sesMsgRealizadas(exportIdx, sel.length === yms.length ? [] : sel);
+            };
+            actualizar();
+        };
+
         window._sesMsgShow = function(idx) {
             var d = window._sesMsgDB[idx];
             if (!d) return;
@@ -10353,35 +10483,18 @@
                 var _msgAvisoIdx = window._sesMsgDB.length;
                 window._sesMsgDB.push({ texto: _mkMsgAviso(), phone: phoneWA, titulo: 'Aviso previo de horarios' });
 
-                // ── Formateador de lista de sesiones (pendientes o realizadas) ──
-                // A propósito NO incluye el box: a la paciente solo le interesa qué
-                // tratamiento y cuándo, no en qué cabina física va a estar.
-                var _mkMsgLista = function(lista, hdrTxt) {
-                    var sorted = lista.slice().sort(function(a,b){return a.fecha<b.fecha?-1:a.fecha>b.fecha?1:(a.hora||'')<(b.hora||'')?-1:1;});
-                    var n = 1, cuerpo = '', total = 0;
-                    sorted.forEach(function(r) {
-                        if ((r.estado||r.status||'').toLowerCase()==='cancelado') return;
-                        total++;
-                        var fp = (r.fecha||'').split('-');
-                        var dt = fp[0]&&fp[1]&&fp[2] ? new Date(+fp[0],+fp[1]-1,+fp[2]) : null;
-                        var diaFull = dt ? _diasFull[dt.getDay()] : '';
-                        var dN = fp[2] ? parseInt(fp[2]) : '';
-                        var mesNom = fp[1] ? (_mesFull[+fp[1]-1]||'') : '';
-                        cuerpo += '\n*' + n++ + '. ' + diaFull + ' ' + dN + ' de ' + mesNom + '*\n' + (r.hora||'--') + ' hs\n' + (r.servicio||'Sesion') + '\n';
-                    });
-                    return hdrTxt + cuerpo + '\nTotal: ' + total + ' sesion' + (total!==1?'es':'') + '\nEspacio Mimar T';
-                };
+                // Listas de sesiones para WhatsApp: ver _sesListaTexto (sin box, sin
+                // saludo; "próximas" sin tratamiento, "realizadas" con tratamiento).
 
+                // Próximas: sin saludo y SIN tratamiento (solo día y hora).
                 var _msgPendIdx = window._sesMsgDB.length;
                 window._sesMsgDB.push({
-                    texto: pendientes.length ? _mkMsgLista(pendientes, 'Hola ' + grupo.nombre + '\n\nTe recuerdo tus pr\u00f3ximas sesiones en Espacio Mimar T:\n') : '(Sin sesiones pendientes)',
+                    texto: pendientes.length ? _sesListaTexto(pendientes, grupo.nombre + '\n\nTe recuerdo tus pr\u00f3ximas sesiones en Espacio Mimar T:\n', false) : '(Sin sesiones pendientes)',
                     phone: phoneWA, titulo: 'Sesiones pendientes'
                 });
-                var _msgRealIdx = window._sesMsgDB.length;
-                window._sesMsgDB.push({
-                    texto: completadas.length ? _mkMsgLista(completadas, 'Hola ' + grupo.nombre + '\n\nEstas son las sesiones ya realizadas en Espacio Mimar T:\n') : '(Sin sesiones realizadas)',
-                    phone: phoneWA, titulo: 'Sesiones realizadas'
-                });
+                // Realizadas: por mes (mes actual directo, o elegir meses); con tratamiento.
+                var _ymHoySes = (function() { var h = new Date(); return h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0'); })();
+                var _realMesActual = completadas.filter(function(r) { return (r.fecha||'').slice(0,7) === _ymHoySes && !esEstadoCancelado(r.estado || r.status); }).length;
 
                 // ── Header paciente ──
                 var pacHeader = "<div style='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;'>" +
@@ -10395,7 +10508,12 @@
                     "<div style='margin-bottom:6px;'><button onclick='window._sesMsgShow("+_msgAvisoIdx+")' style='width:100%;padding:10px 16px;background:rgba(59,130,180,0.07);border:1px solid rgba(100,160,210,0.22);border-radius:10px;color:rgba(61,92,134,0.85);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.03em;font-family:inherit;'>Avisar antes de enviar horarios</button></div>" +
                     "<div style='display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;'>" +
                     (pendientes.length ? "<button onclick='window._sesMsgShow("+_msgPendIdx+")' style='flex:1;min-width:140px;padding:10px 14px;background:rgba(200,160,30,0.07);border:1px solid rgba(245,200,50,0.22);border-radius:10px;color:rgba(138,106,34,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>Enviar sesiones pendientes ("+pendientes.length+")</button>" : "<div style='flex:1;min-width:140px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:rgba(22,61,50,0.28);font-size:12px;text-align:center;'>Sin pendientes</div>") +
-                    (completadas.length ? "<button onclick='window._sesMsgShow("+_msgRealIdx+")' style='flex:1;min-width:140px;padding:10px 14px;background:rgba(53,122,92,0.07);border:1px solid rgba(114,189,153,0.22);border-radius:10px;color:rgba(22,61,50,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>Enviar sesiones realizadas ("+completadas.length+")</button>" : "<div style='flex:1;min-width:140px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:rgba(22,61,50,0.28);font-size:12px;text-align:center;'>Sin realizadas</div>") +
+                    (completadas.length
+                        ? (_realMesActual
+                            ? "<button onclick='window._sesMsgRealizadas("+_exportIdx+",[\""+_ymHoySes+"\"])' style='flex:1;min-width:140px;padding:10px 14px;background:rgba(53,122,92,0.07);border:1px solid rgba(114,189,153,0.22);border-radius:10px;color:rgba(22,61,50,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>Enviar realizadas de " + _sesNombreMes(_ymHoySes) + " ("+_realMesActual+")</button>"
+                            : "<div style='flex:1;min-width:140px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:rgba(22,61,50,0.45);font-size:12px;text-align:center;'>Sin realizadas en " + _sesNombreMes(_ymHoySes) + "</div>")
+                          + "<button onclick='window._sesElegirMeses("+_exportIdx+")' style='flex:1;min-width:140px;padding:10px 14px;background:var(--surface);border:1px solid rgba(114,189,153,0.35);border-radius:10px;color:rgba(22,61,50,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>📅 Elegir meses… ("+completadas.length+" en total)</button>"
+                        : "<div style='flex:1;min-width:140px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:rgba(22,61,50,0.28);font-size:12px;text-align:center;'>Sin realizadas</div>") +
                     "</div>" +
                     "<div style='margin-bottom:14px;'><button onclick='window.exportarHistorialPDF("+_exportIdx+",this)' style='width:100%;padding:10px 16px;background:rgba(80,40,130,0.08);border:1px solid rgba(160,110,220,0.28);border-radius:10px;color:rgba(61,92,134,0.90);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.02em;font-family:inherit;'>📄 Exportar historial completo PDF (" + (pendientes.length+completadas.length+canceladas.length) + " sesiones)</button></div>";
 
@@ -15383,8 +15501,8 @@
             const pila = _pacienteNombreDisplay(r).split(' ')[0];
             const hora = normalizarHora(r.hora);
             const cuando = r.fecha === fechaHoyISO() ? 'hoy' : r.fecha === _sumarDiasISO(fechaHoyISO(), 1) ? 'mañana' : `el ${formatoFechaISO(r.fecha)}`;
-            const box = GRILLA_BOXES.find(b => b.id === _grilla_boxDeReserva(r));
-            const texto = `Hola ${pila}, te recordamos tu turno en Espacio MimarT ${cuando} (${formatoFechaISO(r.fecha)}) a las ${hora} hs: ${r.servicio || 'tratamiento'}${box ? ` en ${box.title} · ${box.sub}` : ''}. ¿Nos confirmás tu asistencia? ¡Te esperamos! 🌿`;
+            // Solo día y hora: el recordatorio nunca dice qué tratamiento ni box (a pedido).
+            const texto = `Hola ${pila}, te recordamos tu turno en Espacio MimarT ${cuando} (${formatoFechaISO(r.fecha)}) a las ${hora} hs. ¿Nos confirmás tu asistencia? ¡Te esperamos! 🌿`;
             registrarContactoWA(r.id, 'recordatorio', pila);
             window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, '_blank');
             recRenderTurnos();

@@ -49,6 +49,8 @@ set('clients/27666555', { fullName: 'Ana Díaz', phone: '3764666555', membership
 set('clients/26555444', { fullName: 'Rosa Paz', phone: '3764555444', membershipActive: false, hoursBalance: 0 });
 const R = (id, d) => set('reservas/' + id, { estado: 'confirmado', ...d });
 R('p-hoy', { dni: '30111222', nombre: 'Paula Gómez', fecha: HOY, hora: '10:00', servicio: 'Limpieza Facial Profunda', box: 'b3', duracionMinutos: 60, phone: '3764111222' });
+// Turno futuro fijo: la prueba no depende de la hora en que corre.
+R('p-fut', { dni: '30111222', nombre: 'Paula Gómez', fecha: dia(4), hora: '10:00', servicio: 'Limpieza Facial Profunda', box: 'b3', duracionMinutos: 60 });
 R('p-prev', { dni: '30111222', nombre: 'Paula Gómez', fecha: dia(-21), hora: '15:00', servicio: 'Hi-Fu Facial', box: 'b3', duracionMinutos: 60, detalleSesion: 'Se trabajó óvalo facial y papada con 300 disparos. Piel con buena respuesta, leve eritema.' });
 R('l-hoy', { dni: '30999888', nombre: 'Laura Ruiz', fecha: HOY, hora: '11:00', servicio: 'Criolipolisis', box: 'b2', duracionMinutos: 30, phone: '3764999888' });
 R('l-man', { dni: '30999888', nombre: 'Laura Ruiz', fecha: dia(1), hora: '09:00', servicio: 'Criolipolisis', box: 'b2', duracionMinutos: 30, phone: '3764999888' });
@@ -61,6 +63,15 @@ set('historias/30111222', { nombre: 'Paula Gómez', alergias: 'Penicilina', medi
 set('pedidosKit/k1', { dni: '30111222', nombrePaciente: 'Paula Gómez', productos: ['Leche de limpieza', 'Tónico calmante'], estado: 'pendiente', totalPedido: 30000, createdAt: new Date().toISOString() });
 set('contactosWhatsApp/clients_27666555_retorno', { coleccion: 'clients', docId: '27666555', tipoMensaje: 'retorno', estado: 'enviado', enviadoAt: { seconds: Math.floor((Date.now() - 2 * 86400000) / 1000) } });
 set('configuracion/serviciosBox', { assignments: { Criolipolisis: ['b2', 'b1'] }, defaults: {} });
+// Yanina: sesiones realizadas en 3 meses distintos + 2 próximas (buscador de Sesiones)
+const mesRel = (delta, d) => { const x = new Date(); x.setDate(1); x.setMonth(x.getMonth() + delta); x.setDate(d); return iso(x); };
+const YM_HOY = HOY.slice(0, 7), YM_ANT = mesRel(-1, 5).slice(0, 7);
+R('y1', { dni: '25444333', nombre: 'Yanina W', fecha: mesRel(-2, 7), hora: '19:00', servicio: 'Tratamientos Corporales', phone: '3764444333' });
+R('y2', { dni: '25444333', nombre: 'Yanina W', fecha: mesRel(-1, 5), hora: '19:00', servicio: 'Reservar turno sin tratamiento específico', phone: '3764444333' });
+R('y3', { dni: '25444333', nombre: 'Yanina W', fecha: mesRel(-1, 27), hora: '08:00', servicio: 'Hi-Fu Corporal', phone: '3764444333' });
+R('y4', { dni: '25444333', nombre: 'Yanina W', fecha: dia(-1) < HOY.slice(0, 8) + '01' ? mesRel(0, 1) : dia(-1), hora: '18:00', servicio: 'Tratamiento Detox Drenante', phone: '3764444333' });
+R('y5', { dni: '25444333', nombre: 'Yanina W', fecha: dia(2), hora: '18:15', servicio: 'Tratamientos Corporales', phone: '3764444333' });
+R('y6', { dni: '25444333', nombre: 'Yanina W', fecha: dia(9), hora: '19:45', servicio: 'Hi-Fu Corporal', phone: '3764444333' });
 
 await import(pathToFileURL(gen).href);
 fs.unlinkSync(gen);
@@ -101,10 +112,12 @@ check('se abre el drawer sin cambiar de sección', $('f360-drawer').classList.co
 check('abre en "Historial de sesiones"', w.document.querySelector('#f360-tabs .activo')?.dataset.tab === 'historial');
 const hist = $('f360-cuerpo').textContent;
 check('historial con observación completa sin truncar', hist.includes('Piel con buena respuesta, leve eritema.'));
-check('historial con box y próximos turnos', hist.includes('Box 3') && hist.includes('Próximos turnos (1)'));
+check('historial con box y próximos turnos', hist.includes('Box 3') && /Próximos turnos \([12]\)/.test(hist));
 w.f360Tab('resumen'); await tick();
 const res = $('f360-cuerpo').textContent;
-check('resumen: saldo de horas (2,5 h vigente, 1 h agendada, 1,5 h libres)', res.includes('2,5 h') && res.includes('1 h') && res.includes('1,5 h'), res.slice(0, 400));
+// p-hoy cuenta como agendada solo si todavía no terminó → 1 h o 2 h agendadas
+check('resumen: saldo de horas (2,5 h vigente, agendadas y libres)', res.includes('2,5 h') && res.includes('Ya agendadas')
+  && ((res.includes('1 h') && res.includes('1,5 h')) || (res.includes('2 h') && res.includes('0,5 h'))), res.slice(0, 400));
 check('resumen: estado de planificación', /Planificación y disponibilidad/.test(res));
 check('resumen: alerta clínica visible (Alergias: Penicilina)', res.includes('Alergias: Penicilina'));
 check('header con DNI, teléfono y WhatsApp directo', $('f360-datos').textContent.includes('30111222') && $('f360-acciones').innerHTML.includes('wa.me/5493764111222'));
@@ -137,7 +150,9 @@ const rt = $('rec-turnos').textContent;
 check('lista los turnos de hoy con tratamiento y box', rt.includes('Paula Gómez') && rt.includes('Laura Ruiz') && rt.includes('Box 3'));
 check('sin aviso previo → "Pendiente de avisar"', rt.includes('Pendiente de avisar'));
 w.recRecordar('p-hoy'); await tick(20);
-check('Recordar abre WhatsApp con día, hora y tratamiento', abiertas.some(u => u.includes('wa.me/5493764111222') && decodeURIComponent(u).includes('10:00') && decodeURIComponent(u).includes('Limpieza Facial Profunda')));
+const msgRec = abiertas.map(decodeURIComponent).find(u => u.includes('wa.me/5493764111222')) || '';
+check('Recordar abre WhatsApp con día y hora', msgRec.includes('10:00') && msgRec.includes('hoy'));
+check('el recordatorio NO dice tratamiento ni box', !msgRec.includes('Limpieza') && !/Box \d/.test(msgRec), msgRec);
 check('queda registrado en contactosWhatsApp (preparado)', fb.calls.store.get('contactosWhatsApp/reservas_p-hoy_recordatorio')?.estado === 'preparado');
 check('la fila pasa a "Preparado"', $('rec-turnos').textContent.includes('Preparado'));
 w.recSetDia(1); await tick();
@@ -170,6 +185,41 @@ w.abrirFicha360Dni('30111222', 'kit'); await tick(30);
 check('la ficha muestra la recomendación en el seguimiento', $('f360-cuerpo').textContent.includes('Recomendación · Criolipólisis'));
 w.cerrarFicha360();
 
+console.log('\n=== Sesiones: próximas y realizadas por mes ===');
+w.navegar('buscador-sesiones'); await tick();
+$('inpBuscadorSesiones').value = 'yanina';
+w.buscarSesionesPorNombreInput(); await new Promise(r => setTimeout(r, 400)); await tick();
+const ses = $('contenedorSesionesBuscadas').innerHTML;
+check('buscador muestra a Yanina con botón de realizadas del mes actual y "Elegir meses"', /_sesMsgRealizadas\(/.test(ses) && /_sesElegirMeses\(/.test(ses), ses.slice(0, 300));
+const ultimoMsg = () => w._sesMsgDB[w._sesMsgDB.length - 1].texto;
+// jsdom no ejecuta onclick inline: se lee el mensaje que arma el buscador para ese botón.
+check('botón "Enviar sesiones pendientes (2)"', /Enviar sesiones pendientes \(2\)/.test($('contenedorSesionesBuscadas').textContent));
+const pend = w._sesMsgDB.filter(d => d.titulo === 'Sesiones pendientes').pop().texto;
+check('próximas: sin saludo, empieza con el nombre', pend.startsWith('Yanina W\n\nTe recuerdo tus próximas sesiones'), pend.slice(0, 80));
+check('próximas: solo día y hora, sin tratamiento', /18:15 hs/.test(pend) && !/Tratamientos Corporales|Hi-Fu/.test(pend), pend);
+check('próximas: total en negrita', /\*Total: 2 sesiones\*/.test(pend));
+w.document.querySelectorAll('div[style*="position:fixed"]').forEach(x => x.remove());
+const exportIdx = w._sesExportDB.length - 1;
+w._sesElegirMeses(exportIdx); await tick();
+const checksMes = [...w.document.querySelectorAll('.ses-mes-item input')];
+check('selector lista los 3 meses con sesiones realizadas', checksMes.length === 3, checksMes.map(c => c.value));
+check('por defecto viene marcado solo el mes actual', checksMes.filter(c => c.checked).map(c => c.value).join() === YM_HOY);
+w.document.querySelector('[data-atajo="nada"]').click();
+checksMes.find(c => c.value === YM_ANT).checked = true; checksMes.find(c => c.value === YM_ANT).dispatchEvent(new w.Event('change'));
+w.document.querySelector('[data-accion="ver"]').click(); await tick();
+const real = ultimoMsg();
+check('realizadas del mes elegido: sin saludo y con el mes en el encabezado', real.startsWith('Yanina W\n\nEstas son tus sesiones realizadas en ') && !/^Hola/.test(real), real.slice(0, 90));
+check('realizadas: incluye el tratamiento', real.includes('Hi-Fu Corporal'));
+check('realizadas: "sin tratamiento específico" se muestra como "Sesión"', !/sin tratamiento/i.test(real) && /\nSesión\n/.test(real));
+check('realizadas: solo ese mes (2 sesiones, no las de otros meses)', /\*Total: 2 sesiones\*/.test(real) && !real.includes('Tratamientos Corporales') && !real.includes('Detox'), real);
+w.document.querySelectorAll('div[style*="position:fixed"]').forEach(x => x.remove());
+w._sesMsgRealizadas(exportIdx, [YM_HOY]); await tick();
+check('botón directo del mes actual: solo la sesión de este mes', /\*Total: 1 sesion\*/.test(ultimoMsg()) && ultimoMsg().includes('Detox'));
+w.document.querySelectorAll('div[style*="position:fixed"]').forEach(x => x.remove());
+w._sesMsgRealizadas(exportIdx, []); await tick();
+check('"Todo": las 4 realizadas separadas por mes', /\*Total: 4 sesiones\*/.test(ultimoMsg()) && (ultimoMsg().match(/\n_[A-ZÁÉÍÓÚ][^_]+_\n/g) || []).length === 3, ultimoMsg());
+w.document.querySelectorAll('div[style*="position:fixed"]').forEach(x => x.remove());
+
 console.log('\n=== Directorio de pacientes ===');
 w.navegar('clientes'); await tick(30);
 $('inpBusPaciente').value = '3764999'; w.filtrarListadoClientes(); await tick();
@@ -178,7 +228,7 @@ $('inpBusPaciente').value = 'radiofrec'; w.filtrarListadoClientes(); await tick(
 check('busca por tratamiento habitual', $('contenedorClientes').textContent.includes('Rosa Paz'));
 $('inpBusPaciente').value = 'gomez'; w.filtrarListadoClientes(); await tick();
 const card = $('contenedorClientes').innerHTML;
-check('busca sin tildes y muestra indicadores (próximo turno, última sesión)', card.includes('Paula') && /Próximo:/.test(card) && /Última sesión hace 21 d/.test(card));
+check('busca sin tildes y muestra indicadores (próximo turno, última sesión)', card.includes('Paula') && /Próximo:/.test(card) && /Última sesión hace (0|21) d/.test(card));
 check('botón Ficha 360° en la tarjeta', card.includes('abrirFicha360Dni'));
 
 check('sin errores de JavaScript durante la prueba', errores.length === 0, errores.join(' | '));
