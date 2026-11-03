@@ -1384,6 +1384,168 @@
             #sec-cursos .cm-tab { min-width: 100%; }
             #sec-cursos .cm-datos-grid { grid-template-columns: 1fr 1fr; }
         }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           PANEL 360° — Grilla enriquecida, Ficha 360°, Recordatorios y
+           Recomendación post-sesión. Usa los tokens de color del panel
+           (--ink, --forest, --success, --warning, --danger, --info…), con
+           badges semánticos: siempre texto + color, nunca solo un punto.
+           ═══════════════════════════════════════════════════════════════════ */
+        .grilla-table thead th { z-index: 10; }
+        .grilla-table thead th.grilla-th-hora { z-index: 11; }
+        .grilla-tools-sep { flex: 1 1 auto; min-width: 8px; }
+        #btn-grilla-ahora.activo { border-color: #C2185B; color: #9C1450; }
+        .grilla-resumen-dia { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); margin: 6px 0 10px; line-height: 1.6; }
+        .grilla-resumen-dia b { color: var(--ink); }
+        .grilla-compacta tr.grilla-row-15:not(.gr-con-inicio) { display: none; }
+        tr.grilla-row-ahora > td { box-shadow: inset 0 2px 0 #D81B60; }
+        tr.grilla-row-ahora > td.grilla-td-hora { color: #9C1450 !important; }
+        .grilla-ahora-pill { display: block; font-size: 8.5px; font-weight: 800; color: #fff; background: #D81B60; border-radius: 999px; padding: 0 4px; margin-top: 1px; line-height: 1.5; white-space: nowrap; }
+        .gc-ctx { display: flex; gap: 3px; width: 100%; overflow: hidden; margin-top: 2px; white-space: nowrap; }
+        .gc-ctx-ultima { display: block; font-size: 8.5px; font-weight: 600; color: var(--info); text-overflow: ellipsis; }
+        .gc-chip { display: inline-flex; align-items: center; font-size: 8.5px; font-weight: 800; border-radius: 999px; padding: 0 6px; line-height: 1.6; border: 1px solid transparent; flex-shrink: 0; }
+        .gc-chip-ok { background: var(--success-soft); color: var(--success); border-color: #BFDBC9; }
+        .gc-chip-warn { background: var(--warning-soft); color: var(--warning); border-color: #E0C989; }
+        .gc-chip-err { background: var(--danger-soft); color: var(--danger); border-color: #E2C2BE; }
+        .gc-chip-neutro { background: var(--surface-2); color: var(--ink-soft); border-color: var(--border); }
+        .gc-chip-memb { background: #EFE6F7; color: #5B3F86; border-color: #D7C6EA; }
+        .gc-bloque-cont-info { justify-content: center !important; padding: 0 6px 0 9px !important; }
+        .gc-menu-sep { height: 1px; background: var(--border); margin: 4px 2px; }
+
+        /* Badges y piezas compartidas */
+        .p360-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; line-height: 1.5; }
+        .p360-badge.ok { background: var(--success-soft); color: var(--success); border-color: #BFDBC9; }
+        .p360-badge.warn { background: var(--warning-soft); color: var(--warning); border-color: #E0C989; }
+        .p360-badge.err { background: var(--danger-soft); color: var(--danger); border-color: #E2C2BE; }
+        .p360-badge.info { background: var(--info-soft); color: var(--info); border-color: #C9D6E8; }
+        .p360-badge.neutro { background: var(--surface-2); color: var(--ink-soft); border-color: var(--border); }
+        .p360-badge.memb { background: #EFE6F7; color: #5B3F86; border-color: #D7C6EA; }
+        .p360-muted { color: var(--ink-soft); font-size: 12px; }
+        .p360-ayuda { color: var(--ink-soft); font-size: 11.5px; line-height: 1.5; margin: 6px 0; }
+        .p360-alerta { font-size: 12.5px; font-weight: 600; padding: 9px 12px; border-radius: 10px; margin: 8px 0; }
+        .p360-alerta.warn { background: var(--warning-soft); color: var(--warning); border: 1px solid #E0C989; }
+        .p360-alerta.err { background: var(--danger-soft); color: var(--danger); border: 1px solid #E2C2BE; }
+        .p360-vacio { border: 1px dashed var(--border-strong); border-radius: 12px; padding: 16px; text-align: center; color: var(--ink-soft); font-size: 13px; margin: 6px 0 12px; }
+        .p360-cargando, .p360-cargando-inline { color: var(--ink-soft); font-size: 12.5px; }
+        .p360-cargando { padding: 14px; text-align: center; }
+        .p360-cargando::before, .p360-cargando-inline::before { content: ''; display: inline-block; width: 12px; height: 12px; margin-right: 7px; vertical-align: -2px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--forest); animation: p360-gira .8s linear infinite; }
+        @keyframes p360-gira { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .p360-cargando::before, .p360-cargando-inline::before { animation: none; } }
+        .p360-btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; min-height: 34px; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; text-decoration: none; white-space: nowrap; }
+        .p360-btn:hover { background: var(--surface-2); }
+        .p360-btn.pri { background: var(--forest); border-color: var(--forest); color: #fff; }
+        .p360-btn.pri:hover { background: var(--forest-deep); }
+        .p360-btn.wa { background: #E7F5EC; border-color: #A9D8BC; color: var(--whatsapp); }
+        .p360-btn:focus-visible, .p360-btn-pri:focus-visible, .p360-link:focus-visible { outline: 2px solid var(--forest); outline-offset: 2px; }
+        .p360-btn-pri { padding: 10px 16px; min-height: 40px; border-radius: 10px; border: none; background: var(--forest); color: #fff; font-weight: 700; font-size: 13px; font-family: inherit; cursor: pointer; }
+        .p360-btn-pri:hover:not(:disabled) { background: var(--forest-deep); }
+        .p360-btn-pri.wa { background: var(--whatsapp); }
+        .p360-btn-pri:disabled { opacity: .45; cursor: not-allowed; }
+        .p360-link { background: none; border: none; padding: 0; font: inherit; font-weight: 700; color: var(--forest); cursor: pointer; text-align: left; text-decoration: underline; text-decoration-color: rgba(45,74,50,.35); text-underline-offset: 3px; }
+        .p360-acc { display: flex; gap: 6px; flex-wrap: wrap; }
+        .p360-tabla-wrap { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); margin: 4px 0 12px; }
+        .p360-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .p360-tabla th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-soft); padding: 9px 11px; background: var(--surface-2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .p360-tabla td { padding: 9px 11px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--ink); }
+        .p360-tabla tr:last-child td { border-bottom: 0; }
+        .p360-tabla tr.hecho td { background: #F7FBF8; }
+        .p360-hora { font-weight: 800; color: var(--forest); white-space: nowrap; }
+        @media (max-width: 720px) {
+            .p360-tabla, .p360-tabla tbody, .p360-tabla tr, .p360-tabla td { display: block; width: 100%; }
+            .p360-tabla thead { display: none; }
+            .p360-tabla tr { padding: 8px 0; border-bottom: 1px solid var(--border); }
+            .p360-tabla td { border: 0; padding: 3px 12px; }
+            .p360-tabla td[data-l]::before { content: attr(data-l); display: block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
+        }
+
+        /* Recordatorios */
+        .p360-sec-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+        .p360-sec-title { font-family: 'Playfair Display', serif; font-size: 1.35em; margin: 0; color: var(--ink); }
+        .p360-sec-sub { margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); max-width: 720px; line-height: 1.5; }
+        .p360-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px 18px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+        .p360-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        .p360-card-head h4 { margin: 0; font-size: 15px; color: var(--ink); }
+        .p360-seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; flex-wrap: wrap; }
+        .p360-seg button { padding: 8px 13px; border: none; background: var(--surface); color: var(--ink-soft); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+        .p360-seg button + button { border-left: 1px solid var(--border); }
+        .p360-seg button.activo { background: var(--forest); color: #fff; }
+        .p360-filtros { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .p360-filtros .select-input { width: auto; min-width: 170px; margin: 0; }
+        .p360-check { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--ink); cursor: pointer; }
+
+        /* Modales (mover turno, recomendación) */
+        .p360-modal-ov { position: fixed; inset: 0; z-index: 100010; background: rgba(22,32,27,0.50); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .p360-modal { width: 100%; max-width: 460px; max-height: calc(100vh - 32px); overflow-y: auto; background: var(--surface); border-radius: 18px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); padding: 22px 22px 18px; }
+        .p360-modal-ancho { max-width: 640px; }
+        .p360-modal-t { font-family: 'Playfair Display', serif; font-size: 19px; color: var(--ink); margin: 0 0 4px; }
+        .p360-modal-s { font-size: 13px; color: var(--ink-soft); margin: 0 0 14px; }
+        .p360-lbl { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); margin: 12px 0 6px; }
+        .p360-textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 13px; line-height: 1.5; color: var(--ink); resize: vertical; }
+        .p360-modal-acc { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 16px; }
+        .p360-box-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .p360-box-chip { text-align: left; padding: 9px 11px; border-radius: 10px; border: 1.5px solid var(--border-strong); border-left: 4px solid var(--acc); background: var(--surface); cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 2px; color: var(--ink); }
+        .p360-box-chip small { font-size: 10.5px; color: var(--ink-soft); }
+        .p360-box-chip.sel { background: var(--forest-soft); border-color: var(--forest); box-shadow: 0 0 0 2px rgba(45,74,50,.18); }
+        .p360-box-chip:disabled { opacity: .45; cursor: not-allowed; }
+
+        /* Ficha 360° (drawer) */
+        #f360-fondo { position: fixed; inset: 0; z-index: 98999; background: rgba(22,32,27,0.38); opacity: 0; pointer-events: none; transition: opacity .2s; }
+        #f360-fondo.visible { opacity: 1; pointer-events: auto; }
+        #f360-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(680px, 100vw); z-index: 99000; background: var(--bg); border-left: 1px solid var(--border-strong); box-shadow: -18px 0 50px rgba(22,61,50,0.18); display: flex; flex-direction: column; transform: translateX(100%); transition: transform .24s cubic-bezier(.22,.82,.44,1); }
+        #f360-drawer.visible { transform: translateX(0); }
+        @media (prefers-reduced-motion: reduce) { #f360-drawer, #f360-fondo { transition: none; } }
+        .f360-head { display: flex; gap: 12px; align-items: flex-start; padding: 18px 20px 12px; background: var(--surface); border-bottom: 1px solid var(--border); }
+        .f360-head-txt { flex: 1; min-width: 0; }
+        .f360-eyebrow { margin: 0; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--sage-ink); }
+        #f360-nombre { font-family: 'Playfair Display', serif; font-size: 1.45em; margin: 2px 0 4px; color: var(--ink); line-height: 1.2; }
+        .f360-datos { font-size: 12.5px; color: var(--ink-soft); line-height: 1.9; }
+        .f360-datos b { color: var(--ink); }
+        .f360-acciones { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .f360-cerrar { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 22px; line-height: 1; color: var(--ink); cursor: pointer; }
+        .f360-cerrar:hover { background: var(--surface-2); }
+        .f360-tabs { display: flex; gap: 2px; padding: 0 12px; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+        .f360-tabs button { flex-shrink: 0; padding: 11px 12px; border: none; border-bottom: 3px solid transparent; background: none; color: var(--ink-soft); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .f360-tabs button.activo { color: var(--forest); border-bottom-color: var(--forest); }
+        .f360-cuerpo { flex: 1; overflow-y: auto; padding: 16px 20px 40px; }
+        .f360-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+        .f360-kpis > div { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+        .f360-kpis b { display: block; font-size: 22px; color: var(--ink); font-variant-numeric: tabular-nums; }
+        .f360-kpis small { font-size: 10.5px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .05em; }
+        .f360-alertas { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+        .f360-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 13px 15px; margin-bottom: 12px; }
+        .f360-card-t { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .f360-texto { margin: 4px 0; font-size: 13px; line-height: 1.6; color: var(--ink); }
+        .f360-saldo-bar { height: 10px; border-radius: 999px; background: var(--success-soft); border: 1px solid #BFDBC9; overflow: hidden; }
+        .f360-saldo-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--sage), var(--forest)); }
+        .f360-saldo-num { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+        .f360-saldo-num b { display: block; font-size: 17px; color: var(--ink); }
+        .f360-saldo-num b.txt-warn { color: var(--warning); }
+        .f360-saldo-num small { font-size: 11px; color: var(--ink-soft); }
+        .f360-nota { white-space: pre-wrap; font-size: 13px; line-height: 1.55; background: var(--sage-soft); border-left: 3px solid var(--sage); padding: 8px 11px; border-radius: 0 9px 9px 0; margin-top: 6px; color: var(--ink); }
+        .f360-nota small { display: block; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--sage-ink); margin-bottom: 2px; white-space: normal; }
+        .f360-sec-t { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); margin: 16px 0 8px; }
+        .f360-sec-t:first-child { margin-top: 0; }
+        .f360-ses { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--success); border-radius: 12px; padding: 11px 13px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 5px; }
+        .f360-ses.proxima { border-left-color: var(--info); }
+        .f360-ses.cancelada { border-left-color: var(--danger); opacity: .75; }
+        .f360-ses.resaltada { box-shadow: 0 0 0 3px rgba(61,92,134,.25); }
+        .f360-ses-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .f360-ses-f { font-weight: 800; font-size: 13px; color: var(--forest); }
+        .f360-ses-svc { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+        .f360-ses-acc { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+        .f360-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .f360-campo { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+        .f360-campo > span { font-weight: 700; color: var(--ink-soft); }
+        .f360-campo input, .f360-campo textarea, .f360-campo select { width: 100%; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: 9px; padding: 8px 10px; font: inherit; font-size: 13px; color: var(--ink); background: var(--surface); margin: 0; }
+        .f360-campo:has(textarea) { grid-column: 1 / -1; }
+        .f360-acc-fija { position: sticky; bottom: -40px; display: flex; gap: 10px; align-items: center; padding: 10px 0; background: var(--bg); }
+        @media (max-width: 560px) {
+            .f360-head { padding: 14px 14px 10px; }
+            .f360-cuerpo { padding: 14px 14px 40px; }
+            .f360-form, .p360-box-grid { grid-template-columns: 1fr; }
+            .f360-kpis b { font-size: 18px; }
+            .gc-ctx, .gc-ctx-ultima { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -1553,6 +1715,11 @@
             <div class="sidebar-group">
                 <span class="sidebar-group-label">Atención</span>
                 <div class="sidebar-group-items">
+                    <button class="btn-nav" id="btn-recordatorios" onclick="navegar('recordatorios')">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.2a4.6 4.6 0 0 0-4.6 4.6v2.6L3 12.2h12l-1.4-2.8V6.8A4.6 4.6 0 0 0 9 2.2Z" stroke-linejoin="round"/><path d="M7.2 14.6a1.9 1.9 0 0 0 3.6 0" stroke-linecap="round"/></svg>
+                        Recordatorios
+                        <span id="rec-badge" class="nav-badge-dot" style="display:none"></span>
+                    </button>
                     <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="6" r="2.6"/><path d="M2.3 15.5c.5-3 2.2-4.6 4.7-4.6s4.2 1.6 4.7 4.6"/><circle cx="13.2" cy="5.6" r="2"/><path d="M12.2 10.8c1.9.2 3.1 1.7 3.5 4.1"/></svg>
                         Pacientes
@@ -1657,6 +1824,7 @@
             <div class="bsh-divider"></div>
             <div class="bsh-section">
                 <span class="bsh-label">Atención</span>
+                <button class="bsh-item" onclick="navegar('recordatorios');cerrarBottomSheet()">🔔 Recordatorios y retorno</button>
                 <button class="bsh-item" onclick="navegar('historias');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 2.2h6.1L14 5.6v10.2a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1Z"/><path d="M10.4 2.2V5.6H14"/><path d="M5.7 9h5.5M5.7 11.5h5.5M5.7 14h3.5" stroke-linecap="round"/></svg> Historias</button>
                 <button class="bsh-item" onclick="navegar('consultas');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.3 4.6a1.6 1.6 0 0 1 1.6-1.6h9.2a1.6 1.6 0 0 1 1.6 1.6v6.3a1.6 1.6 0 0 1-1.6 1.6H7.8l-3.3 2.9v-2.9H3.9a1.6 1.6 0 0 1-1.6-1.6Z"/></svg> Consultas</button>
                 <button class="bsh-item" onclick="navegar('control-consultas');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="2.5" width="11" height="13.5" rx="1.6"/><path d="M6.5 1.6h5a1 1 0 0 1 1 1v1.3h-7V2.6a1 1 0 0 1 1-1Z"/><path d="m6.3 9.6 1.4 1.4 3.2-3.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Control consultas</button>
@@ -1702,10 +1870,15 @@
                 <div class="grilla-tools">
                     <button class="btn-mini" id="btn-grilla-extra" onclick="grillaToggleExtra()">+ Horario extra</button>
                     <button class="btn-mini" onclick="dmAbrir()">🗓️ Duplicar mes</button>
-                    <button class="btn-mini" onclick="navegar('pendientes-reagendar')">Pendientes de reagendar <span class="dm-badge dm-badge-pend" style="display:none"></span></button>
+                    <!-- "Pendientes de reagendar" se sacó de esta barra (no se usaba
+                         desde la Grilla); sigue disponible en Agenda → acciones rápidas. -->
                     <button class="btn-mini" onclick="grillaVistaClasica()" style="border-color:rgba(100,180,140,0.22);color:rgba(22,61,50,0.55);">📅 Vista clásica</button>
                     <button class="btn-mini" id="btn-grilla-cristina" onclick="grillaToggleMenuCristina(event)">⋮ Cristina</button>
+                    <span class="grilla-tools-sep" aria-hidden="true"></span>
+                    <button class="btn-mini" id="btn-grilla-ahora" onclick="grillaIrHoraActual()" title="Ir al horario actual de hoy">🕒 Hora actual</button>
+                    <button class="btn-mini" id="btn-grilla-densidad" onclick="grillaToggleDensidad()" title="Alternar entre ver cada 15 min o solo cada 30 min">Vista compacta · 30 min</button>
                 </div>
+                <div class="grilla-resumen-dia" id="grilla-resumen-dia" aria-live="polite"></div>
                 <div id="grilla-banner-cristina" class="grilla-banner-cristina" style="display:none;">🟡 Hoy viene Cristina</div>
                 <div class="grilla-scroll-wrap">
                     <table class="grilla-table" id="grilla-table">
@@ -1724,6 +1897,47 @@
                     </table>
                 </div>
             </div><!-- /sec-grilla -->
+
+            <!-- ════════════ RECORDATORIOS Y RETORNO DEL DÍA ════════════ -->
+            <div id="sec-recordatorios" class="section">
+                <div class="p360-sec-head">
+                    <div>
+                        <h3 class="p360-sec-title">Recordatorios y retorno del día</h3>
+                        <p class="p360-sec-sub">Confirmá turnos de hoy y mañana, y avisá a quienes ya cumplieron su ciclo. El estado de cada aviso sale del registro de WhatsApp del panel (contactosWhatsApp).</p>
+                    </div>
+                    <button class="btn-mini" onclick="recRefrescar()">↻ Actualizar avisos</button>
+                </div>
+
+                <div class="p360-card">
+                    <div class="p360-card-head">
+                        <h4>📅 Confirmación de turnos</h4>
+                        <div class="p360-seg" id="rec-dia-seg" role="tablist" aria-label="Día">
+                            <button type="button" data-d="0" class="activo" onclick="recSetDia(0)">Hoy</button>
+                            <button type="button" data-d="1" onclick="recSetDia(1)">Mañana (24 hs)</button>
+                            <button type="button" data-d="2" onclick="recSetDia(2)">Pasado mañana (48 hs)</button>
+                        </div>
+                    </div>
+                    <div id="rec-turnos"></div>
+                </div>
+
+                <div class="p360-card">
+                    <div class="p360-card-head">
+                        <h4>🔁 Control de retorno</h4>
+                        <div class="p360-filtros">
+                            <select class="select-input" id="ret-rango" onchange="recRenderRetorno()" aria-label="Días desde la última sesión">
+                                <option value="15-25">Entre 15 y 25 días</option>
+                                <option value="30+">30 días o más</option>
+                                <option value="15+">15 días o más</option>
+                            </select>
+                            <select class="select-input" id="ret-trat" onchange="recRenderRetorno()" aria-label="Tratamiento de la última sesión">
+                                <option value="">Cualquier tratamiento</option>
+                            </select>
+                            <label class="p360-check"><input type="checkbox" id="ret-ocultar" checked onchange="recRenderRetorno()"> Ocultar ya avisadas (últimos 7 días)</label>
+                        </div>
+                    </div>
+                    <div id="rec-retorno"></div>
+                </div>
+            </div>
 
             <div id="sec-buscador-sesiones" class="section">
                 <div class="detalle-dia-card buscador-sesiones-card" style="margin-bottom:18px; box-shadow:0 6px 24px rgba(63,143,111,0.13); border-radius:22px; border-top:6px solid var(--accento);">
@@ -1804,7 +2018,7 @@
             <div id="sec-clientes" class="section">
                 <!-- Búsqueda, filtros y listado primero -->
                 <div style="position:relative; margin-bottom:10px">
-                    <input type="text" class="busc-input" id="inpBusPaciente" placeholder="Buscar paciente por nombre o DNI..." oninput="buscarPacienteNombreInput(); filtrarListadoClientesInput()" autocomplete="off" style="margin-bottom:0">
+                    <input type="text" class="busc-input" id="inpBusPaciente" placeholder="Buscar por nombre, apellido, DNI, teléfono o tratamiento…" oninput="buscarPacienteNombreInput(); filtrarListadoClientesInput()" autocomplete="off" style="margin-bottom:0">
                     <div id="sugerenciasPaciente" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-lg); z-index:200; max-height:220px; overflow-y:auto;"></div>
                 </div>
                 <div class="filtros-advanced" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom:12px;">
@@ -2499,6 +2713,11 @@
         } from "/js/precio-pagos.js";
         import { registrarContactoPreparado, registrarContactoEstado } from "/js/contact-tracking.js";
         import { construirMensajeHifu, ORDEN_PLANTILLAS_HIFU, PLANTILLAS_HIFU } from "/js/recomendaciones-hifu.js";
+        import { PLANTILLAS_POST_SESION, CATEGORIAS as REC_CATEGORIAS, construirRecomendacion, sugerirPlantillas } from "/js/recomendaciones-post-sesion.js";
+        import {
+            diasEntre, indexarSesiones, ultimaSesionAntes, ultimaRealizada, minutosAgendados, tratamientoDe, enRangoRetorno,
+            TRATAMIENTOS_RETORNO, estadoContacto, avisadoEnUltimosDias, haceTexto, estadoPagoCorto, resumenSaldoHoras,
+        } from "/js/seguimiento-pacientes.js";
         import {
             DIAS as PLAN_DIAS, ETIQUETA_DIA as PLAN_ETIQUETA_DIA, MODOS as PLAN_MODOS, ALCANCES as PLAN_ALCANCES, TRATAMIENTOS as PLAN_TRATAMIENTOS, FACIAL_INTERVALO_MIN_DIAS,
             ETIQUETA_ESTADO_PLAN, planVacia, normalizarPlanificacion, validarPlanificacion,
@@ -2543,6 +2762,7 @@
         // de "pendientes de contacto" refleje lo que pasa acá también.
         let _pendienteConfirmarEnvioAdmin = null;
         async function registrarContactoWA(reservaId, tipoMensaje, nombre) {
+            try { _ctMarcarLocal("reservas", reservaId, tipoMensaje); } catch (_) {}
             try {
                 const operador = auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null;
                 await registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion: "reservas", docId: reservaId, tipoMensaje, operador });
@@ -2560,6 +2780,8 @@
                     const operador = auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null;
                     await registrarContactoEstado({ setDoc, doc, serverTimestamp, db, coleccion, docId, tipoMensaje, estado: enviado ? "enviado" : "no_enviado", operador });
                     mostrarAviso(enviado ? "Confirmación marcada como enviada" : "Registrado: no se envió todavía");
+                    // Recordatorios / Ficha 360° muestran el nuevo estado sin releer Firestore
+                    try { _ctMarcarLocal(coleccion, docId, tipoMensaje, enviado ? "enviado" : "no_enviado"); window._p360DatosActualizados?.(); } catch (_) {}
                 } catch (e) { console.warn("No se pudo registrar el estado del envío:", e); }
             }, 400); // pequeña demora para no competir con el propio evento de foco
         });
@@ -3820,6 +4042,8 @@
                     renderCalendario();
                     actualizarKPIs();
                     poblarServiciosFiltro();
+                    // Grilla / Ficha 360° / Recordatorios: ya hay historial completo
+                    window._p360DatosActualizados?.();
                 }).catch(e => console.warn("limpiarDuplicadas F2:", e));
 
                 // ── Historias ────────────────────────────────────────────────────
@@ -5937,11 +6161,22 @@
         // detenerlo, de guardar/cancelar, o de haber arrancado otro) se
         // descarta comparando contra este estado, nunca se escribe en un
         // campo que ya no es el que se está dictando.
+        //
+        // Cómo se evita la duplicación de texto en celulares: en Chrome para
+        // Android (y Safari iOS) el modo continuous=true es defectuoso — el
+        // motor reinyecta en ev.results frases ya finalizadas, y concatenarlas
+        // repite palabras y frases enteras. Ahí se usa continuous=false: cada
+        // instancia reconoce UNA sola frase, se consolida en onend y se crea
+        // una instancia nueva. Así nunca hay resultados de frases anteriores
+        // que puedan volver a sumarse. En escritorio continuous=true funciona
+        // bien y evita los cortes entre frases.
         const _SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let _dictado = null; // { recognition, textareaId, btnId, idioma, baseTexto, corridaFinal, ultimoValor, detenerManual, offsetEcoInstancia, firmaUltimoFinalAceptado, tsUltimoFinalAceptado }
+        const _dictadoEsMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
+            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS se presenta como Mac
+        let _dictado = null; // { recognition, textareaId, btnId, idioma, baseTexto, ultimoValor, detenerManual, textoTanda, absorbido, tsInicioTanda, huboResultados, firmaUltimoCommit, fallosSeguidos }
 
-        // Normaliza un fragmento para comparar "firmas" de contenido entre
-        // tandas de dictado (ignora mayúsculas, acentos y puntuación).
+        // Normaliza un fragmento para comparar frases (ignora mayúsculas,
+        // acentos y puntuación).
         function _dictadoFirma(s) {
             return (s || '')
                 .toLowerCase()
@@ -5949,11 +6184,11 @@
                 .replace(/[^\p{L}\p{N}\s]/gu, '')
                 .trim().replace(/\s+/g, ' ');
         }
-        // Contención por PALABRAS completas (no substring crudo): evita que
-        // una firma corta como "en" se confunda con parte de "entonces".
-        function _dictadoFirmaContenida(firmaChica, firmaGrande) {
-            if (!firmaChica || !firmaGrande) return false;
-            return (' ' + firmaGrande + ' ').includes(' ' + firmaChica + ' ');
+
+        function _dictadoUnir(a, b) {
+            if (!a) return b || '';
+            if (!b) return a;
+            return a + (/\s$/.test(a) ? '' : ' ') + b;
         }
 
         function _dictadoUIEscuchando(btnId, escuchando, textoEstado) {
@@ -5968,25 +6203,12 @@
             if (estado) estado.textContent = textoEstado || '';
         }
 
-        // Aviso visual breve y pasajero junto al botón cuando se descarta un
-        // eco: sirve para diagnosticar en el celular mismo, sin devtools,
-        // si el guard de deduplicación está actuando y con qué texto.
-        function _dictadoMostrarEcoDescartado(btnId, fragmento) {
-            const span = document.getElementById(btnId + '-estado');
-            if (!span) return;
-            span.textContent = '(eco descartado: "' + fragmento + '")';
-            clearTimeout(span._dictadoEcoTimeout);
-            span._dictadoEcoTimeout = setTimeout(() => {
-                if (span.textContent.indexOf('eco descartado') !== -1) span.textContent = 'Escuchando…';
-            }, 2000);
-        }
-
         function _dictadoDetener() {
             if (!_dictado) return;
             const estado = _dictado;
             estado.detenerManual = true;
-            try { estado.recognition.stop(); } catch (_) {}
-            _dictado = null;
+            _dictado = null; // antes de stop(): el onend que llegue ya no reinicia
+            try { estado.recognition && estado.recognition.stop(); } catch (_) {}
             _dictadoUIEscuchando(estado.btnId, false, '');
         }
 
@@ -5997,141 +6219,114 @@
             if (_dictado && (!textareaId || _dictado.textareaId === textareaId)) _dictadoDetener();
         };
 
-        // Arranca (o reinicia) una tanda de reconocimiento. SIEMPRE crea una
-        // instancia nueva de SpeechRecognition, nunca reusa la anterior: en
-        // Chrome para Android, llamar start() de nuevo sobre la MISMA
-        // instancia después de un 'end' no reinicia su results[] interno —
-        // sigue arrastrando los resultados ya finalizados de la tanda previa
-        // y el motor los vuelve a sumar, duplicando palabras y frases cada
-        // vez más largas. Con una instancia nueva ese arrastre es imposible
-        // porque el results[] es propio de cada objeto.
+        // Texto reconocido por la instancia actual. Con continuous=false hay
+        // un solo resultado; en escritorio (continuous=true) cada resultado es
+        // un segmento distinto, así que concatenarlos es correcto.
+        function _dictadoTextoDeEvento(ev) {
+            let texto = '';
+            for (let i = 0; i < ev.results.length; i++) {
+                texto = _dictadoUnir(texto, (ev.results[i][0].transcript || '').trim());
+            }
+            return texto;
+        }
+
+        // Arranca una tanda de reconocimiento. SIEMPRE crea una instancia
+        // nueva de SpeechRecognition: reusar la misma después de un 'end'
+        // arrastra su results[] interno en Android.
         function _dictadoCrearYArrancarInstancia(estado) {
             const recognition = new _SpeechRecognitionCtor();
             recognition.lang = estado.idioma;
-            recognition.continuous = true;
+            recognition.continuous = !_dictadoEsMovil;
             recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
             estado.recognition = recognition;
-            estado.offsetEcoInstancia = 0; // por instancia: no se arrastra entre tandas
+            estado.textoTanda = '';
+            estado.absorbido = '';
+            estado.huboResultados = false;
+            estado.tsInicioTanda = Date.now();
 
-            recognition.onstart = () => _dictadoUIEscuchando(estado.btnId, true, 'Escuchando…');
+            recognition.onstart = () => {
+                if (_dictado === estado) _dictadoUIEscuchando(estado.btnId, true, 'Escuchando…');
+            };
 
             recognition.onresult = (ev) => {
-                // Descarta resultados tardíos de un reconocedor que ya no es
-                // el activo (se cambió de campo, se guardó, se canceló, etc.)
-                if (_dictado !== estado) return;
+                if (_dictado !== estado || estado.recognition !== recognition) return;
                 const ta = document.getElementById(estado.textareaId);
                 if (!ta) return;
-                // Si el texto del campo cambió por una edición manual mientras
-                // se dictaba, se respeta: se toma como nueva base y se sigue
-                // sumando el dictado a partir de ahí, sin pisar lo escrito a mano.
+                // Edición manual mientras se dictaba: se respeta lo escrito a
+                // mano como nueva base, y lo que esta tanda ya había volcado
+                // queda "absorbido" para no volver a sumarlo.
                 if (ta.value !== estado.ultimoValor) {
                     estado.baseTexto = ta.value;
-                    estado.corridaFinal = '';
+                    estado.absorbido = estado.textoTanda;
                 }
-                let final = '';
-                let interim = '';
-                for (let i = 0; i < ev.results.length; i++) {
-                    const res = ev.results[i];
-                    if (res.isFinal) final += (final ? ' ' : '') + res[0].transcript.trim();
-                    else interim += (interim ? ' ' : '') + res[0].transcript.trim();
+                let texto = _dictadoTextoDeEvento(ev);
+                if (estado.absorbido) {
+                    texto = texto.startsWith(estado.absorbido) ? texto.slice(estado.absorbido.length).trim() : '';
                 }
-
-                // Defensa extra contra ecos nativos de Android: el motor de
-                // voz del sistema (Google Voice Typing) a veces reinyecta el
-                // último bloque ya reconocido como si fuera un resultado
-                // nuevo al reconectar el stream de audio, sin importar que
-                // ya se haya creado una instancia nueva de SpeechRecognition
-                // más arriba. Se detecta por firma de contenido + ventana de
-                // tiempo (3.5s), no por índice ni instancia.
-                //
-                // Como "final" se reconstruye ENTERO desde ev.results en
-                // cada evento (para blindarse contra el resultIndex poco
-                // confiable de Android), descartar un fragmento solo acá no
-                // alcanza — el próximo evento lo volvería a traer del mismo
-                // ev.results. Por eso el descarte se guarda como un offset
-                // persistente por instancia: una vez marcado, se recorta de
-                // raíz en cada reconstrucción futura de esta misma tanda.
-                const finalUtil = estado.offsetEcoInstancia > 0
-                    ? final.slice(estado.offsetEcoInstancia).replace(/^\s+/, '')
-                    : final;
-                let fragmentoNuevo = finalUtil;
-                if (finalUtil && estado.corridaFinal && finalUtil.startsWith(estado.corridaFinal)) {
-                    fragmentoNuevo = finalUtil.slice(estado.corridaFinal.length).trim();
-                }
-                if (fragmentoNuevo) {
-                    const firmaNueva = _dictadoFirma(fragmentoNuevo);
-                    const dt = Date.now() - estado.tsUltimoFinalAceptado;
-                    // Solo se considera eco cuando lo NUEVO ya está 100%
-                    // contenido en lo último aceptado (nada que de verdad se
-                    // haya agregado) — no al revés, para no comerse una
-                    // frase real que simplemente empieza repitiendo una
-                    // palabra ya dicha.
-                    const esEco = firmaNueva && estado.firmaUltimoFinalAceptado && dt < 3500
-                        && _dictadoFirmaContenida(firmaNueva, estado.firmaUltimoFinalAceptado);
-                    if (window.console && console.warn) {
-                        console.warn('[dictado] fragmento:', JSON.stringify(fragmentoNuevo), '| firma:', firmaNueva, '| dt:', dt, '| eco:', !!esEco);
-                    }
-                    if (esEco) {
-                        // Eco descartado de raíz: todo lo reconstruido hasta
-                        // ahora en esta tanda queda marcado como ya resuelto,
-                        // para que ni este ni los próximos eventos lo vuelvan
-                        // a traer de ev.results.
-                        estado.offsetEcoInstancia = final.length;
-                        _dictadoMostrarEcoDescartado(estado.btnId, fragmentoNuevo);
-                    } else {
-                        estado.corridaFinal = finalUtil;
-                        estado.firmaUltimoFinalAceptado = firmaNueva;
-                        estado.tsUltimoFinalAceptado = Date.now();
-                    }
-                } else {
-                    estado.corridaFinal = finalUtil;
-                }
-                final = estado.corridaFinal;
-
-                const sep1 = estado.baseTexto && !/\s$/.test(estado.baseTexto) && final ? ' ' : '';
-                const cuerpo = estado.baseTexto + sep1 + final;
-                const sep2 = cuerpo && interim && !/\s$/.test(cuerpo) ? ' ' : '';
-                const nuevoValor = cuerpo + sep2 + interim;
+                estado.huboResultados = true;
+                estado.textoTanda = estado.absorbido ? _dictadoUnir(estado.absorbido, texto) : texto;
+                const nuevoValor = _dictadoUnir(estado.baseTexto, texto);
                 ta.value = nuevoValor;
                 estado.ultimoValor = nuevoValor;
             };
 
-            // onerror NUNCA decide por sí solo si el dictado sigue o se corta:
-            // eso es responsabilidad única de onend (que siempre llega
-            // después de un error). Antes, onerror también apagaba
-            // _dictado — un 'no-speech' en una pausa normal del habla
-            // mataba la sesión antes de que onend pudiera reiniciarla,
-            // cortando el dictado solo sin que el usuario lo pidiera.
+            // onerror NUNCA reinicia ni corta por sí solo: eso lo decide onend
+            // (que siempre llega después). Acá solo se marcan los errores
+            // fatales para que onend no reintente.
             recognition.onerror = (ev) => {
-                if (_dictado !== estado) return;
+                if (_dictado !== estado || estado.recognition !== recognition) return;
                 if (ev.error === 'language-not-supported' && estado.idioma === 'es-AR') {
-                    mostrarAviso('Tu navegador no tiene español argentino para dictado — usando español general.');
-                    estado.idioma = 'es-ES';
+                    estado.idioma = 'es-ES'; // onend reintenta con español general
                     return;
                 }
                 if (ev.error === 'not-allowed' || ev.error === 'permission-denied' || ev.error === 'service-not-allowed') {
-                    mostrarAviso('No se pudo activar el micrófono — revisá el permiso del navegador para este sitio.');
-                    estado.detenerManual = true; // error fatal: no tiene sentido reintentar
+                    mostrarAviso('No se pudo activar el micrófono — revisá el permiso del navegador para este sitio (tiene que estar en https).');
+                    estado.detenerManual = true;
                     return;
                 }
-                if (ev.error === 'no-speech' || ev.error === 'aborted') return; // pausa normal, no es un corte real
-                mostrarAviso('El dictado se interrumpió (' + ev.error + ').');
+                if (ev.error === 'audio-capture') {
+                    mostrarAviso('No se encontró un micrófono disponible.');
+                    estado.detenerManual = true;
+                    return;
+                }
+                if (ev.error === 'network') {
+                    mostrarAviso('El dictado necesita conexión a internet.');
+                    estado.detenerManual = true;
+                    return;
+                }
+                // 'no-speech' y 'aborted' son pausas normales: onend reinicia.
             };
 
             recognition.onend = () => {
-                if (_dictado !== estado) return; // ya se detuvo/reemplazó a propósito
-                // Se consolida el final de esta tanda en la base antes de
-                // reiniciar con una instancia nueva, para no perderlo ni
-                // volver a procesarlo.
+                if (_dictado !== estado || estado.recognition !== recognition) return;
                 const ta = document.getElementById(estado.textareaId);
-                const sep = estado.baseTexto && !/\s$/.test(estado.baseTexto) && estado.corridaFinal ? ' ' : '';
-                estado.baseTexto = estado.baseTexto + sep + estado.corridaFinal;
-                estado.corridaFinal = '';
+                // Consolida la frase de esta tanda en la base (aunque no haya
+                // llegado marcada como final — Android a veces corta sin
+                // isFinal). Si es idéntica a la frase anterior y llegó apenas
+                // arrancada la tanda, es un eco del motor y se descarta.
+                let nuevo = estado.textoTanda;
+                if (estado.absorbido) nuevo = nuevo.slice(estado.absorbido.length).trim();
+                const firma = _dictadoFirma(nuevo);
+                const esEco = _dictadoEsMovil && firma && firma === estado.firmaUltimoCommit
+                    && (Date.now() - estado.tsInicioTanda) < 1500;
+                if (nuevo && !esEco) {
+                    estado.baseTexto = _dictadoUnir(estado.baseTexto, nuevo);
+                    estado.firmaUltimoCommit = firma;
+                }
                 if (ta) ta.value = estado.baseTexto;
                 estado.ultimoValor = estado.baseTexto;
-                // El navegador puede cortar solo por un silencio largo — si no
-                // fue un "Detener" manual, se reinicia para que el dictado
-                // continuo no se corte a mitad de una frase.
+
+                // Cortafuegos: si el navegador termina instantáneamente una y
+                // otra vez sin reconocer nada, se frena en vez de quedar en un
+                // bucle de reinicios.
+                if (!estado.huboResultados && Date.now() - estado.tsInicioTanda < 1000) estado.fallosSeguidos++;
+                else estado.fallosSeguidos = 0;
+                if (estado.fallosSeguidos >= 5) {
+                    mostrarAviso('El dictado no logra escuchar — probá de nuevo o revisá el micrófono.');
+                    estado.detenerManual = true;
+                }
+
                 if (!estado.detenerManual) {
                     _dictadoCrearYArrancarInstancia(estado);
                 } else {
@@ -6142,7 +6337,8 @@
 
             try {
                 recognition.start();
-            } catch (_) {
+            } catch (e) {
+                console.error('[dictado] start:', e);
                 if (_dictado === estado) { _dictado = null; _dictadoUIEscuchando(estado.btnId, false, ''); }
             }
         }
@@ -6159,21 +6355,15 @@
             if (_dictado) _dictadoDetener();
 
             const estado = {
-                // baseTexto: texto ya confirmado antes de la tanda de reconocimiento
-                // actual (incluye lo que había antes de dictar + lo ya consolidado
-                // de tandas previas de este mismo dictado, ver onend).
-                // corridaFinal: texto final de la tanda EN CURSO, recalculado
-                // completo en cada evento (nunca se le hace += ) para no
-                // depender de ev.resultIndex, que en Chrome para Android repite
-                // segmentos ya finalizados y duplica palabras si se acumula.
                 textareaId, btnId, idioma: idioma || 'es-AR',
-                baseTexto: ta.value, corridaFinal: '', ultimoValor: ta.value, detenerManual: false,
-                recognition: null,
-                // Firma del último fragmento final aceptado + cuándo, para
-                // descartar ecos nativos de Android sin importar la instancia.
-                firmaUltimoFinalAceptado: '', tsUltimoFinalAceptado: 0, offsetEcoInstancia: 0,
+                // baseTexto: texto ya confirmado (lo que había antes de dictar
+                // + las frases ya consolidadas en tandas previas, ver onend).
+                baseTexto: ta.value, ultimoValor: ta.value, detenerManual: false,
+                recognition: null, textoTanda: '', absorbido: '', tsInicioTanda: 0,
+                huboResultados: false, firmaUltimoCommit: '', fallosSeguidos: 0,
             };
             _dictado = estado;
+            _dictadoUIEscuchando(btnId, true, 'Activando micrófono…');
             _dictadoCrearYArrancarInstancia(estado);
         }
 
@@ -6483,8 +6673,20 @@
                 return;
             }
 
+            // Búsqueda en vivo por nombre, apellido, DNI, teléfono o tratamiento
+            // habitual (servicios de sus turnos), sin distinguir tildes.
+            const _idx360 = _p360Indice();
+            const _txtN = _normTxt360(txt);
+            const _txtDig = txt.replace(/\D/g, '');
+            const _coincideBusqueda = (p) => {
+                if (!txt) return true;
+                if (_normTxt360(p.fullName).includes(_txtN)) return true;
+                if (_txtDig.length >= 3 && (normalizarDNI(p.dni).includes(_txtDig) || (p.phone || '').replace(/\D/g, '').includes(_txtDig))) return true;
+                const e = _idx360.get(_p360ClaveDePaciente(p));
+                return !!e && e.todas.some(r => _normTxt360(r.servicio).includes(_txtN));
+            };
             const filtrados = todasLosPacientes.filter((p) => {
-                const okNombre = !txt || (p.fullName || "").toLowerCase().includes(txt);
+                const okNombre = _coincideBusqueda(p);
                 const esMembresia = p.membershipActive === true;
                 const okTipo = tipo === "todos"
                     || (tipo === "membresia" && esMembresia)
@@ -6540,8 +6742,10 @@
                         <span class="pill ${p.membershipActive ? 'disponible' : 'bloqueado'}">${p.membershipActive ? 'Membresía activa' : 'Ocasional'}</span>
                         <span class="pill reservado">Horas: ${escapeHtml((p.hoursBalance ?? 0).toString())}</span>
                         ${pillClasif}${pillCursos}
+                        ${_pillsSeguimiento360(p, _idx360)}
                     </div>
                     <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                        <button onclick="abrirFicha360Dni('${escapeHtml(p.dni || '')}','resumen')" class="p360-btn pri" style="font-size:11px;padding:5px 12px;">📇 Ficha 360°</button>
                         <button onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni || '')}')"
                             style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid #b5cce8;background:#f3f8ff;cursor:pointer;color:#2e61b1;font-weight:700;">
                             ✏️ Editar
@@ -6557,6 +6761,23 @@
         };
 
         window.filtrarListadoClientesInput = debounce(() => window.filtrarListadoClientes(), 180);
+
+        // Indicadores rápidos de seguimiento en cada tarjeta del directorio.
+        function _pillsSeguimiento360(p, idx) {
+            const e = idx.get(_p360ClaveDePaciente(p));
+            const hoy = fechaHoyISO();
+            const pills = [];
+            if (p.membershipActive && (Number(p.hoursBalance) || 0) <= 1) pills.push('<span class="p360-badge warn">Saldo bajo (≤ 1 h)</span>');
+            if (!e || !e.proximas.length) pills.push('<span class="p360-badge neutro">Sin turno futuro</span>');
+            else pills.push(`<span class="p360-badge info">Próximo: ${escapeHtml(_ghFormatoFecha(e.proximas[0].fecha))}</span>`);
+            const pasadas = e ? e.realizadas.filter(r => r.fecha <= hoy) : [];
+            const u = pasadas[pasadas.length - 1];
+            if (u) {
+                const d = diasEntre(u.fecha, hoy);
+                pills.push(`<span class="p360-badge ${d > 25 ? 'err' : d >= 15 ? 'warn' : 'ok'}" title="Última: ${escapeHtml(u.servicio || '')}">Última sesión hace ${d} d</span>`);
+            } else pills.push('<span class="p360-badge neutro">Sin sesiones</span>');
+            return pills.join('');
+        }
 
         // ══════════════════════════════════════════════════════════════════
         // Disponibilidad y planificación por paciente (etapa 1: cargar,
@@ -11186,6 +11407,7 @@
             if (s === 'cursos') window.cargarCursos();
             if (s === 'preparar-jornada') window.cargarPreparaJornada();
             if (s === 'resumen-mensual') window.cargarResumenMensual();
+            if (s === 'recordatorios') window.recRender?.();
         };
 
         // ═══ DROPDOWNS DE HEADER ═══
@@ -13552,6 +13774,9 @@
         let _grilla_cristinaManana = false; // aviso general del día, separado por mañana/tarde — ver cargarAdminBlocks
         let _grilla_cristinaTarde  = false;
         let _grilla_extraSlots    = false;     // mostrar slots fuera de horario comercial
+        // Vista compacta (solo filas :00/:30, salvo que un turno empiece en :15/:45).
+        let _grilla_compacta      = (() => { try { return localStorage.getItem('mimar_grilla_compacta') === '1'; } catch (_) { return false; } })();
+        let _grilla_pagos         = { fecha: null, porReserva: new Map(), cargando: false }; // estado de pago por turno del día
         let _mreg_boxPresel       = null;
 
         const _grilla_slots = (() => {
@@ -13894,6 +14119,11 @@
             pop.style.top = (r.bottom + 2) + 'px';
             pop.style.left = left + 'px';
             pop.innerHTML = `
+                <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();abrirFicha360DeReserva('${reservaId}','resumen')">📇 Ficha 360°</button>
+                <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();grillaAbrirMover('${reservaId}')">↔ Mover de box / horario</button>
+                <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();abrirRecomendacionPostSesion('${reservaId}')">✨ Enviar recomendación post-sesión</button>
+                <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();grillaVerHistorialPaciente(null,'${reservaId}')">🕘 Últimas sesiones (rápido)</button>
+                <div class="gc-menu-sep"></div>
                 ${esperaActual
                     ? `<button type="button" onclick="grillaMarcarAviso('${reservaId}','esperaConfirmacion',false)">✓ Ya confirmó — quitar aviso</button>`
                     : `<button type="button" onclick="grillaMarcarAviso('${reservaId}','esperaConfirmacion',true)">🔴 Marcar: espera confirmación</button>`}
@@ -14116,13 +14346,19 @@
             _gDrag = null;
             window._gDrag = null;
             if (!reservaId) return;
+            return _grillaMoverReserva(reservaId, nuevoBoxId, hora);
+        };
+
+        // Núcleo de "mover un turno" — lo usan el arrastre (grillaDrop) y el
+        // selector rápido del menú ⋮ (grillaAbrirMover). Devuelve true si se movió.
+        const _grillaMoverReserva = async (reservaId, nuevoBoxId, hora) => {
             const r = todasLasReservas.find(x => x.id === reservaId);
-            if (!r) return;
+            if (!r) return false;
             const boxActual = _grilla_boxDeReserva(r);
             const horaActual = normalizarHora(r.hora);
             const horaNueva = normalizarHora(hora);
             // Nada cambió
-            if (boxActual === nuevoBoxId && horaActual === horaNueva) return;
+            if (boxActual === nuevoBoxId && horaActual === horaNueva) return false;
             // Verificar conflicto en el destino (box + hora destino)
             const conflicto = todasLasReservas.find(x =>
                 esReservaActiva(x) &&
@@ -14134,7 +14370,7 @@
             if (conflicto) {
                 const nom = (conflicto.nombreLimpio || conflicto.nombre || 'Paciente').split(' ')[0];
                 mostrarAviso(`Slot ocupado · ${nom} ya está en ese horario`);
-                return;
+                return false;
             }
             try {
                 mostrarLoader(true);
@@ -14176,9 +14412,11 @@
                 if (updates.servicio) toastMsg += ` · ${updates.servicio}`;
                 else if (_boxSinPredeterminado) toastMsg += ` · sin predeterminado configurado para ese box (Servicios → Grilla de Servicios)`;
                 mostrarAviso(toastMsg);
+                return true;
             } catch(e) {
                 console.error(e);
                 mostrarAviso("No se pudo mover la reserva");
+                return false;
             } finally {
                 mostrarLoader(false);
             }
@@ -14271,7 +14509,7 @@
                             const t = covered.length === 1 ? 'solo'
                                     : idx === 0            ? 'start'
                                     : idx === covered.length - 1 ? 'end' : 'mid';
-                            m.set(h, { type: t, res: r });
+                            m.set(h, { type: t, res: r, idx });
                         });
                     });
                 boxSlotInfo.set(box.id, m);
@@ -14307,6 +14545,7 @@
                 const rowCls = (es30 ? 'grilla-row-30' : 'grilla-row-15') + (cristinaEnEstaFila ? ' grilla-row-cristina' : '');
                 const horaLabel = es30 ? `<strong>${hora}</strong>` : hora;
 
+                let filaConInicio = false;
                 const celdas = GRILLA_BOXES.map(box => {
                     const slotData    = boxSlotInfo.get(box.id)?.get(hora);
                     const key         = `${hora}_${box.id}`;
@@ -14317,7 +14556,9 @@
                     // Estilos de <td> para bordes fusionados entre slots de un mismo turno
                     let tdExtra = '';
                     if (slotData) {
-                        const { type, res } = slotData;
+                        const { type, res, idx: idxBloque } = slotData;
+                        if (type === 'start' || type === 'solo') filaConInicio = true;
+                        const ctx = _grillaContextoTurno(res);
                         const nom  = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
                         // Antes se cortaba a 22 caracteres a mano (sin "…"), lo que
                         // partía nombres de servicio largos a mitad de palabra
@@ -14357,17 +14598,24 @@
                                 circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                             }
                             const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" data-nota="${escapeHtml(notaRapida)}" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>`;
-                            inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}${notaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — ${srv} (tocá para ver sus últimas sesiones · arrastrá para cambiar de box)" style="--box-accent:${box.accent};${divRad}">
+                            // Tocar la tarjeta abre la Ficha 360° en la pestaña de
+                            // historial (antes: el modal "Últimas sesiones", que
+                            // sigue disponible desde el menú ⋮ del turno).
+                            inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}${notaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaAbrirFichaTurno(event,'${res.id}')" title="${escapeHtml(ctx.tooltip)}" style="--box-accent:${box.accent};${divRad}">
                                 ${menuHtml}
-                                <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Ver últimas sesiones de ${nom}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaVerHistorialPaciente(event,'${res.id}')}">${nom}</span>
+                                <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Abrir ficha de ${nom}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaAbrirFichaTurno(event,'${res.id}')}">${nom}</span>
                                 <span class="grilla-paciente-servicio">${srv}</span>
+                                ${ctx.chipsHtml ? `<span class="gc-ctx">${ctx.chipsHtml}</span>` : ''}
+                                ${type === 'solo' && ctx.ultimaHtml ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : ''}
                                 ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
                                 ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
                                 ${circHtml}
                             </div>`;
                         } else {
-                            // Continuación: bloque sólido sin texto, clicable
-                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${circCls}${esperaCls}${notaCls}" onclick="grillaVerHistorialPaciente(event,'${res.id}')" title="${nom} — continúa (tocá para ver sus últimas sesiones)" style="--box-accent:${box.accent};${divRad}"></div>`;
+                            // Continuación: la primera celda de continuación muestra
+                            // la última sesión de la paciente (antes iba vacía).
+                            const contTxt = idxBloque === 1 && ctx.ultimaHtml ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : '';
+                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${contTxt ? ' gc-bloque-cont-info' : ''}${circCls}${esperaCls}${notaCls}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" title="${escapeHtml(ctx.tooltip)}" style="--box-accent:${box.accent};${divRad}">${contTxt}</div>`;
                         }
                     } else if (adminBloq) {
                         inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
@@ -14386,13 +14634,858 @@
                     return `<td class="grilla-td-box" style="background:${box.bg};border-color:${box.border}${tdExtra}" ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
                 }).join('');
 
-                rows.push(`<tr class="${rowCls}"><td class="grilla-td-hora">${horaLabel}</td>${celdas}</tr>`);
+                rows.push(`<tr class="${rowCls}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora">${horaLabel}</td>${celdas}</tr>`);
             }
             tbody.innerHTML = rows.length
                 ? rows.join('')
                 : `<tr><td colspan="${COLS}" style="text-align:center;padding:40px;color:rgba(22,61,50,0.35);font-size:13px;">Sin turnos · hacé click en + para agregar</td></tr>`;
 
+            document.getElementById('grilla-table')?.classList.toggle('grilla-compacta', _grilla_compacta);
+            _grillaRenderResumenDia(del_dia);
+            _grillaMarcarAhora();
+            _grillaAsegurarPagos(_grilla_fecha, del_dia);
         };
+
+        /* ════════════════════════════════════════════════════════════════════
+           PANEL 360° — contexto en la Grilla, Ficha 360° de la paciente,
+           Recordatorios / Control de retorno y Recomendación post-sesión.
+
+           Todo sale de datos que el panel ya tiene en memoria (todasLasReservas,
+           todasLosPacientes, todasLasHistorias — completas después de la Fase 2)
+           más tres lecturas puntuales y acotadas: prestaciones/pagos de los
+           turnos del día que muestra la Grilla, pedidosKit y contactosWhatsApp
+           (estas dos, una sola vez y solo al abrir la ficha o Recordatorios).
+           La identidad de la paciente es SIEMPRE _pacienteMatchKey (DNI con la
+           cadena de "Cambiar ID"; nombre normalizado si no hay DNI), la misma
+           que usa el resto del panel. Lógica pura en js/seguimiento-pacientes.js.
+           ════════════════════════════════════════════════════════════════════ */
+        const _jsArg = (s) => encodeURIComponent((s ?? '').toString()).replace(/'/g, '%27');
+        const _normTxt360 = (s) => (s ?? '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+        const _fmtHoras = (h) => `${(Math.round((Number(h) || 0) * 100) / 100).toString().replace('.', ',')} h`;
+        const _duracionDe = (r) => Number(r.duracionMinutos) || _svDurMap.get(r.servicio) || 60;
+        const _boxLabel = (r) => { const b = GRILLA_BOXES.find(x => x.id === _grilla_boxDeReserva(r)); return b ? `${b.icon} ${b.title}` : 'Sin box'; };
+        const _fechaLarga360 = (f) => { const d = parsearFecha(f); return d ? d.toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : (f || '—'); };
+        const _sumarDiasISO = (f, n) => { const [y, m, d] = f.split('-').map(Number); const dt = new Date(y, m - 1, d + n); return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`; };
+        const _horaAhoraHHMM = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+
+        // ── Índice de sesiones por paciente (memo; se rehace si cambian las reservas) ──
+        let _p360IdxCache = { ref: null, len: -1, ts: 0, idx: new Map() };
+        function _p360Indice() {
+            const c = _p360IdxCache;
+            if (c.ref === todasLasReservas && c.len === todasLasReservas.length && Date.now() - c.ts < 60000) return c.idx;
+            const hoy = fechaHoyISO();
+            const ahora = Date.now();
+            const idx = indexarSesiones(todasLasReservas, {
+                claveDe: _pacienteMatchKey,
+                esActiva: esReservaActiva,
+                // "realizada" = su horario ya terminó (mismo criterio que "Últimas sesiones")
+                yaTermino: (r) => r.fecha < hoy || (r.fecha === hoy && !_esSesionPendiente(r, ahora)),
+                hoyISO: hoy,
+            });
+            _p360IdxCache = { ref: todasLasReservas, len: todasLasReservas.length, ts: Date.now(), idx };
+            return idx;
+        }
+        function _p360Invalidar() { _p360IdxCache.ts = 0; }
+        function _p360Paciente(clave) {
+            if (!clave || !clave.startsWith('dni:')) return null;
+            const dni = clave.slice(4);
+            return todasLosPacientes.find(p => _resolverDniFinal(normalizarDNI(p.dni)) === dni) || null;
+        }
+        function _p360ClaveDePaciente(p) { return 'dni:' + _resolverDniFinal(normalizarDNI(p.dni)); }
+        const _vacio360 = { realizadas: [], proximas: [], canceladas: [], todas: [] };
+
+        // ── Contactos por WhatsApp (contactosWhatsApp) — una lectura, en memoria ──
+        let _ctCache = { cargado: false, cargando: null, lista: [], error: null };
+        function _ctAsegurar(forzar) {
+            if (_ctCache.cargado && !forzar) return Promise.resolve();
+            if (_ctCache.cargando) return _ctCache.cargando;
+            _ctCache.cargando = getDocs(collection(db, 'contactosWhatsApp')).then((snap) => {
+                const lista = [];
+                snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+                _ctCache = { cargado: true, cargando: null, lista, error: null };
+            }).catch((e) => {
+                console.warn('contactosWhatsApp:', e);
+                _ctCache.cargando = null; _ctCache.error = e;
+            });
+            return _ctCache.cargando;
+        }
+        function _ctDe(coleccion, docId) { return _ctCache.lista.filter(c => c.coleccion === coleccion && c.docId === docId); }
+        // Refleja al instante (sin releer Firestore) lo que se acaba de registrar.
+        function _ctMarcarLocal(coleccion, docId, tipoMensaje, estado = 'preparado') {
+            const id = `${coleccion}_${docId}_${tipoMensaje}`;
+            const ahora = Date.now();
+            const previo = _ctCache.lista.find(c => c.id === id);
+            const datos = { id, coleccion, docId, tipoMensaje, estado, updatedAt: ahora,
+                ...(estado === 'preparado' ? { preparadoAt: ahora } : estado === 'enviado' ? { enviadoAt: ahora } : {}) };
+            if (previo) Object.assign(previo, datos); else _ctCache.lista.push(datos);
+        }
+        const _ETIQUETA_TIPO_MSG = { recordatorio: 'Recordatorio de turno', confirmacion: 'Confirmación de turno', aviso_cancelacion: 'Aviso de cancelación', retorno: 'Aviso de retorno' };
+        function _etiquetaTipoMsg(t) {
+            if (!t) return 'Mensaje';
+            if (_ETIQUETA_TIPO_MSG[t]) return _ETIQUETA_TIPO_MSG[t];
+            if (t.startsWith('rec_')) return 'Recomendación · ' + (PLANTILLAS_POST_SESION[t.slice(4)]?.titulo || t.slice(4));
+            if (t.startsWith('hifu_')) return 'Recomendación · ' + (PLANTILLAS_POST_SESION[t]?.titulo || t);
+            return t;
+        }
+        function _badgeContacto(e, sinTexto) {
+            const hace = haceTexto(e.ms, Date.now());
+            if (e.estado === 'enviado') return `<span class="p360-badge ok">✅ ${sinTexto || 'Avisado'} ${hace}</span>`;
+            if (e.estado === 'preparado') return `<span class="p360-badge warn" title="Se abrió WhatsApp con el mensaje; falta confirmar que se envió">🟡 Preparado ${hace}</span>`;
+            if (e.estado === 'no_enviado') return '<span class="p360-badge err">⚠ No se envió</span>';
+            return '<span class="p360-badge neutro">⏳ Pendiente de avisar</span>';
+        }
+
+        /* ── GRILLA: contexto de cada turno (membresía / pago / última sesión) ── */
+        function _grillaContextoTurno(res) {
+            const clave = _pacienteMatchKey(res);
+            const pac = _p360Paciente(clave);
+            const prev = ultimaSesionAntes(_p360Indice().get(clave), res);
+            const pago = _grilla_pagos.fecha === res.fecha ? _grilla_pagos.porReserva.get(res.id) : null;
+            const chips = [];
+            const lineas = [`${_pacienteNombreDisplay(res)} — ${res.servicio || 'Sin servicio'}`];
+            if (pac?.membershipActive) {
+                const h = Number(pac.hoursBalance) || 0;
+                chips.push(`<span class="gc-chip ${h <= 1 ? 'gc-chip-warn' : 'gc-chip-memb'}">⭐ ${_fmtHoras(h)} disp.</span>`);
+                lineas.push(`Membresía activa · saldo ${_fmtHoras(h)}`);
+            } else if (pac) {
+                lineas.push('Atención ocasional');
+            }
+            if (pago) {
+                chips.push(`<span class="gc-chip gc-chip-${pago.tono}">💳 ${pago.etiqueta}</span>`);
+                lineas.push(`Pago: ${pago.etiqueta}`);
+            }
+            let ultimaHtml = '';
+            if (prev) {
+                const d = diasEntre(prev.fecha, res.fecha);
+                ultimaHtml = `↺ ${escapeHtml(_ghFormatoFecha(prev.fecha))} · ${escapeHtml(prev.servicio || '—')} · hace ${d} d`;
+                lineas.push(`Última sesión: ${_ghFormatoFecha(prev.fecha)} · ${prev.servicio || '—'} (hace ${d} días)`);
+                const det = (prev.detalleSesion || '').trim();
+                if (det) lineas.push('Qué se hizo: ' + (det.length > 180 ? det.slice(0, 180) + '…' : det));
+            } else {
+                ultimaHtml = '🆕 Primera sesión';
+                lineas.push('Sin sesiones anteriores registradas');
+            }
+            lineas.push('Tocá para abrir la ficha · arrastrá para cambiar de box');
+            return { chipsHtml: chips.join(''), ultimaHtml, tooltip: lineas.join('\n') };
+        }
+
+        // Estado de pago (prestaciones + pagos) de los turnos del día visible —
+        // una lectura por día, nunca por tarjeta. Mismo cálculo que "Precio y pagos".
+        async function _grillaAsegurarPagos(fecha, delDia) {
+            if (_grilla_pagos.fecha === fecha || _grilla_pagos.cargando === fecha) return;
+            _grilla_pagos.cargando = fecha;
+            const ids = (delDia || []).map(r => r.id);
+            const porReserva = new Map();
+            try {
+                const prest = await Promise.all(ids.map(id => getDoc(doc(db, 'prestaciones', id)).catch(() => null)));
+                const pagos = [];
+                for (let i = 0; i < ids.length; i += 30) {
+                    const snap = await getDocs(query(collection(db, 'pagos'), where('prestacionId', 'in', ids.slice(i, i + 30))));
+                    snap.forEach(d => pagos.push(d.data()));
+                }
+                prest.forEach((snap, i) => {
+                    if (!snap || !snap.exists()) return;
+                    const p = snap.data() || {};
+                    const recibido = totalRecibido(pagos.filter(x => x.prestacionId === ids[i]));
+                    const e = estadoCuenta({ precio: p.sinCargo ? null : p.precioAcordado, sinCargo: !!p.sinCargo, recibido });
+                    const corto = estadoPagoCorto(e, p.anulada);
+                    if (corto) porReserva.set(ids[i], corto);
+                });
+            } catch (e) { console.warn('Grilla — estado de pagos del día:', e); }
+            if (_grilla_pagos.cargando !== fecha) return; // se cambió de día mientras tanto
+            _grilla_pagos = { fecha, porReserva, cargando: false };
+            if (_grilla_fecha === fecha) window.renderGrilla();
+        }
+        // Al cerrar "Precio y pagos", el estado del día se vuelve a leer.
+        const _ppCerrarOriginal = window._ppCerrar;
+        window._ppCerrar = function () {
+            _ppCerrarOriginal?.apply(this, arguments);
+            _grilla_pagos = { fecha: null, porReserva: new Map(), cargando: false };
+            if (document.getElementById('sec-grilla')?.classList.contains('active')) window.renderGrilla();
+            if (_f360.clave) _f360Render();
+        };
+
+        function _grillaRenderResumenDia(delDia) {
+            const el = document.getElementById('grilla-resumen-dia');
+            if (!el) return;
+            const btnD = document.getElementById('btn-grilla-densidad');
+            if (btnD) btnD.textContent = _grilla_compacta ? 'Vista detallada · 15 min' : 'Vista compacta · 30 min';
+            if (!delDia.length) { el.innerHTML = '<span class="p360-muted">Sin turnos para este día.</span>'; return; }
+            const pacientes = new Set(delDia.map(_pacienteMatchKey));
+            const conMemb = [...pacientes].filter(k => _p360Paciente(k)?.membershipActive).length;
+            const cuenta = { Pagado: 0, Señado: 0, Pendiente: 0 };
+            if (_grilla_pagos.fecha === _grilla_fecha) _grilla_pagos.porReserva.forEach(v => { if (cuenta[v.etiqueta] != null) cuenta[v.etiqueta]++; });
+            const porBox = GRILLA_BOXES.map(b => `${b.icon} ${delDia.filter(r => _grilla_boxDeReserva(r) === b.id).length}`).join(' · ');
+            const pagosTxt = _grilla_pagos.fecha === _grilla_fecha
+                ? `<span class="p360-badge ok">💳 ${cuenta.Pagado} pagados</span><span class="p360-badge warn">${cuenta.Señado} señados</span><span class="p360-badge err">${cuenta.Pendiente} pendientes</span>`
+                : '<span class="p360-muted">Cargando pagos…</span>';
+            el.innerHTML = `<b>${delDia.length}</b> turno${delDia.length !== 1 ? 's' : ''} · ${pacientes.size} paciente${pacientes.size !== 1 ? 's' : ''} · ⭐ ${conMemb} con membresía · ${porBox} ${pagosTxt}`;
+        }
+
+        // ── Línea de hora actual (solo si la Grilla muestra hoy) ──
+        function _grillaMarcarAhora() {
+            document.querySelectorAll('#grilla-tbody tr.grilla-row-ahora').forEach(tr => tr.classList.remove('grilla-row-ahora'));
+            document.querySelectorAll('#grilla-tbody .grilla-ahora-pill').forEach(x => x.remove());
+            const btn = document.getElementById('btn-grilla-ahora');
+            const esHoy = _grilla_fecha === fechaHoyISO();
+            if (btn) btn.classList.toggle('activo', esHoy);
+            if (!esHoy) return null;
+            const ahora = _horaAhoraHHMM();
+            let elegida = null;
+            document.querySelectorAll('#grilla-tbody tr[data-hora]').forEach(tr => {
+                const h = tr.dataset.hora;
+                if (h === '00:00' || h > ahora) return;
+                if (_grilla_compacta && tr.classList.contains('grilla-row-15') && !tr.classList.contains('gr-con-inicio')) return;
+                elegida = tr;
+            });
+            if (!elegida) return null;
+            elegida.classList.add('grilla-row-ahora');
+            const td = elegida.querySelector('.grilla-td-hora');
+            if (td) td.insertAdjacentHTML('beforeend', `<span class="grilla-ahora-pill" aria-label="Hora actual">● ${ahora}</span>`);
+            return elegida;
+        }
+        if (!window._grillaAhoraTimer) window._grillaAhoraTimer = setInterval(() => {
+            if (document.getElementById('sec-grilla')?.classList.contains('active')) _grillaMarcarAhora();
+        }, 60000);
+
+        window.grillaIrHoraActual = async () => {
+            if (_grilla_fecha !== fechaHoyISO()) { _grilla_fecha = fechaHoyISO(); await cargarAdminBlocks(_grilla_fecha); }
+            const tr = _grillaMarcarAhora();
+            if (tr) tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            else mostrarAviso('La hora actual está fuera del horario que muestra la Grilla');
+        };
+        window.grillaToggleDensidad = () => {
+            _grilla_compacta = !_grilla_compacta;
+            try { localStorage.setItem('mimar_grilla_compacta', _grilla_compacta ? '1' : '0'); } catch (_) {}
+            window.renderGrilla();
+        };
+        window.grillaAbrirFichaTurno = (ev, reservaId) => {
+            if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+            if (_gDrag) return;
+            abrirFicha360DeReserva(reservaId, 'historial');
+        };
+
+        // ── Mover un turno de box / horario sin borrarlo (menú ⋮) ──
+        window.grillaAbrirMover = (reservaId) => {
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            const toMin = (h) => { const [hh, mm] = (h || '00:00').split(':').map(Number); return hh * 60 + mm; };
+            const boxActual = _grilla_boxDeReserva(r);
+            const horaActual = normalizarHora(r.hora);
+            const dur = r.duracionMinutos > 15 ? r.duracionMinutos : 15;
+            const asignados = (() => { const v = _svBoxMap.get(r.servicio); return Array.isArray(v) ? v : (v ? [v] : []); })();
+            let selBox = boxActual, selHora = horaActual;
+            const horas = _grilla_slots.map(s => s.hora).filter(h => _esHoraComercial(h) || _grilla_extraSlots);
+            const ocupado = (boxId, hora) => {
+                const ini = toMin(hora), fin = ini + dur;
+                return todasLasReservas.find(x => x.id !== r.id && esReservaActiva(x) && x.fecha === r.fecha && _grilla_boxDeReserva(x) === boxId && (() => {
+                    const xi = toMin(normalizarHora(x.hora)), xf = xi + (x.duracionMinutos > 15 ? x.duracionMinutos : 15);
+                    return ini < xf && xi < fin;
+                })());
+            };
+            const ov = document.createElement('div');
+            ov.id = '_grilla_mover_ov';
+            ov.className = 'p360-modal-ov';
+            const cerrar = () => ov.remove();
+            const render = () => {
+                const chips = GRILLA_BOXES.map(b => {
+                    const habilitado = !asignados.length || asignados.includes(b.id);
+                    const viaDefault = !habilitado && _svBoxDefaultMap.has(b.id);
+                    const nota = habilitado ? '' : viaDefault ? `pasa a ${_svBoxDefaultMap.get(b.id)}` : 'no habilitado para este servicio';
+                    return `<button type="button" class="p360-box-chip${selBox === b.id ? ' sel' : ''}" data-box="${b.id}" ${!habilitado && !viaDefault ? 'disabled' : ''} style="--acc:${b.accent}">
+                        <b>${b.icon} ${escapeHtml(b.title)}</b><small>${escapeHtml(b.sub)}${nota ? ' · ' + escapeHtml(nota) : ''}</small></button>`;
+                }).join('');
+                const opts = horas.map(h => {
+                    const occ = ocupado(selBox, h);
+                    const nom = occ ? (occ.nombreLimpio || occ.nombre || 'otro turno').split(' ')[0] : '';
+                    return `<option value="${h}" ${h === selHora ? 'selected' : ''} ${occ ? 'disabled' : ''}>${h}${occ ? ` — ocupado (${escapeHtml(nom)})` : h === horaActual && selBox === boxActual ? ' — actual' : ''}</option>`;
+                }).join('');
+                const sinCambios = selBox === boxActual && selHora === horaActual;
+                ov.innerHTML = `<div class="p360-modal" role="dialog" aria-modal="true" aria-label="Mover turno">
+                    <p class="p360-modal-t">↔ Mover turno</p>
+                    <p class="p360-modal-s">${escapeHtml(_pacienteNombreDisplay(r))} · ${escapeHtml(r.servicio || '')} · ${escapeHtml(_ghFormatoFecha(r.fecha))} · ${dur} min</p>
+                    <label class="p360-lbl">Box</label>
+                    <div class="p360-box-grid">${chips}</div>
+                    ${asignados.length ? `<p class="p360-ayuda">Boxes habilitados para «${escapeHtml(r.servicio)}» según Servicios → Grilla de Servicios.</p>` : ''}
+                    <label class="p360-lbl" for="_mov_hora">Horario (mismo día)</label>
+                    <select id="_mov_hora" class="select-input">${opts}</select>
+                    <div class="p360-modal-acc">
+                        <button type="button" class="btn-mini" id="_mov_cancel">Cancelar</button>
+                        <button type="button" class="p360-btn-pri" id="_mov_ok" ${sinCambios ? 'disabled' : ''}>Mover turno</button>
+                    </div></div>`;
+                ov.querySelectorAll('.p360-box-chip').forEach(b => b.onclick = () => { selBox = b.dataset.box; render(); });
+                ov.querySelector('#_mov_hora').onchange = (e) => { selHora = e.target.value; render(); };
+                ov.querySelector('#_mov_cancel').onclick = cerrar;
+                ov.querySelector('#_mov_ok').onclick = async (e) => {
+                    e.target.disabled = true;
+                    if (ocupado(selBox, selHora)) { mostrarAviso('Ese horario se superpone con otro turno del box'); e.target.disabled = false; return; }
+                    const ok = await _grillaMoverReserva(r.id, selBox, selHora);
+                    if (ok) { cerrar(); _p360Invalidar(); } else e.target.disabled = false;
+                };
+            };
+            ov.addEventListener('mousedown', (e) => { if (e.target === ov) cerrar(); });
+            document.body.appendChild(ov);
+            render();
+        };
+
+        /* ════════════════════════════════════════════════════════════════════
+           FICHA 360° — drawer lateral con 4 pestañas
+           ════════════════════════════════════════════════════════════════════ */
+        let _f360 = { clave: null, tab: 'resumen', resaltar: null, verCanceladas: false };
+        let _kitCache = { cargado: false, cargando: null, lista: [], error: null };
+        function _kitAsegurar(forzar) {
+            if (_kitCache.cargado && !forzar) return Promise.resolve();
+            if (_kitCache.cargando) return _kitCache.cargando;
+            _kitCache.cargando = getDocs(collection(db, 'pedidosKit')).then((snap) => {
+                const lista = [];
+                snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+                _kitCache = { cargado: true, cargando: null, lista, error: null };
+            }).catch((e) => { _kitCache.cargando = null; _kitCache.error = e; });
+            return _kitCache.cargando;
+        }
+
+        window.abrirFicha360DeReserva = (reservaId, tab) => {
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            abrirFicha360(_pacienteMatchKey(r), tab || 'historial', reservaId);
+        };
+        window.abrirFicha360Dni = (dni, tab) => abrirFicha360('dni:' + _resolverDniFinal(normalizarDNI(dni)), tab || 'resumen');
+        window.abrirFicha360Enc = (claveEnc, tab) => abrirFicha360(decodeURIComponent(claveEnc), tab || 'resumen');
+        window.abrirFicha360 = (clave, tab = 'resumen', resaltar = null) => {
+            if (!clave) return;
+            _f360 = { clave, tab, resaltar, verCanceladas: false };
+            _f360Render();
+            const dr = document.getElementById('f360-drawer');
+            document.getElementById('f360-fondo')?.classList.add('visible');
+            dr?.classList.add('visible');
+            dr?.setAttribute('aria-hidden', 'false');
+            setTimeout(() => dr?.querySelector('.f360-cerrar')?.focus({ preventScroll: true }), 60);
+            if (tab === 'kit' || tab === 'historial') Promise.all([_kitAsegurar(), _ctAsegurar()]).then(() => { if (_f360.clave === clave) _f360Render(); });
+        };
+        window.cerrarFicha360 = () => {
+            _f360.clave = null;
+            document.getElementById('f360-fondo')?.classList.remove('visible');
+            const dr = document.getElementById('f360-drawer');
+            dr?.classList.remove('visible');
+            dr?.setAttribute('aria-hidden', 'true');
+        };
+        window.f360Tab = (tab) => {
+            _f360.tab = tab; _f360.resaltar = null;
+            _f360Render();
+            document.getElementById('f360-cuerpo').scrollTop = 0;
+            if (tab === 'kit') Promise.all([_kitAsegurar(), _ctAsegurar()]).then(() => { if (_f360.tab === 'kit') _f360Render(); });
+        };
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && _f360.clave && !document.querySelector('.p360-modal-ov')) window.cerrarFicha360(); });
+
+        function _f360Datos(clave) {
+            const entrada = _p360Indice().get(clave) || _vacio360;
+            const pac = _p360Paciente(clave);
+            const ref = entrada.todas[entrada.todas.length - 1] || null;
+            const dni = pac?.dni ? normalizarDNI(pac.dni) : (clave.startsWith('dni:') ? clave.slice(4) : '');
+            const nombre = pac?.fullName || (ref ? _pacienteNombreDisplay(ref) : 'Paciente');
+            const phone = pac?.phone || ref?.phone || '';
+            const historia = dni ? todasLasHistorias.find(h => normalizarDNI(h.id) === dni) || null : null;
+            const hoy = fechaHoyISO();
+            const realizadasHastaHoy = entrada.realizadas.filter(r => r.fecha <= hoy);
+            const ultima = realizadasHastaHoy[realizadasHastaHoy.length - 1] || null;
+            return { clave, entrada, pac, dni, nombre, phone, historia, ultima, dias: ultima ? diasEntre(ultima.fecha, hoy) : null };
+        }
+
+        function _f360Render() {
+            if (!_f360.clave) return;
+            const d = _f360Datos(_f360.clave);
+            const num = formatearTelefonoWhatsApp(d.phone);
+            document.getElementById('f360-nombre').textContent = d.nombre;
+            document.getElementById('f360-datos').innerHTML = [
+                d.dni ? `DNI <b>${escapeHtml(d.dni)}</b>` : '<span class="p360-badge warn">Sin DNI</span>',
+                d.phone ? `Tel. <b>${escapeHtml(d.phone)}</b>` : '<span class="p360-badge warn">Sin teléfono</span>',
+                d.pac ? (d.pac.membershipActive ? `<span class="p360-badge memb">⭐ Membresía · ${_fmtHoras(d.pac.hoursBalance)}</span>` : '<span class="p360-badge neutro">Ocasional</span>') : '<span class="p360-badge neutro">Sin ficha en Pacientes</span>',
+            ].join(' · ');
+            document.getElementById('f360-acciones').innerHTML = `
+                ${num ? `<a class="p360-btn wa" href="https://wa.me/${num}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
+                ${d.dni ? `<button class="p360-btn" onclick="f360EditarFicha('${escapeHtml(d.dni)}')">✏️ Editar ficha</button>
+                <button class="p360-btn" onclick="f360EditarDni('${escapeHtml(d.dni)}')" title="Corrige el DNI con «Cambiar ID»: migra la ficha, no la duplica">🪪 Editar DNI</button>` : ''}
+                ${d.ultima ? `<button class="p360-btn pri" onclick="abrirRecomendacionPostSesion('${d.ultima.id}')">✨ Recomendación post-sesión</button>` : ''}`;
+            document.querySelectorAll('#f360-tabs [data-tab]').forEach(b => {
+                const on = b.dataset.tab === _f360.tab;
+                b.classList.toggle('activo', on);
+                b.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            const cuerpo = document.getElementById('f360-cuerpo');
+            cuerpo.innerHTML = _f360.tab === 'historial' ? _f360Historial(d)
+                : _f360.tab === 'clinica' ? _f360Clinica(d)
+                : _f360.tab === 'kit' ? _f360Kit(d)
+                : _f360Resumen(d);
+            if (_f360.resaltar) {
+                const el = document.getElementById('f360-ses-' + _f360.resaltar);
+                if (el) { el.classList.add('resaltada'); setTimeout(() => el.scrollIntoView({ block: 'center' }), 60); }
+            }
+        }
+
+        function _f360Resumen(d) {
+            const hoy = fechaHoyISO();
+            const prox = d.entrada.proximas[0];
+            let memb = '';
+            if (d.pac?.membershipActive) {
+                const s = resumenSaldoHoras(d.pac.hoursBalance, minutosAgendados(d.entrada, _duracionDe));
+                memb = `<div class="f360-card">
+                    <div class="f360-card-t">⭐ Membresía activa — saldo de horas</div>
+                    <div class="f360-saldo">
+                        <div class="f360-saldo-bar" role="img" aria-label="${s.agendadas} de ${s.saldo} horas ya agendadas"><span style="width:${s.pctAgendado}%"></span></div>
+                        <div class="f360-saldo-num">
+                            <div><b>${_fmtHoras(s.saldo)}</b><small>Saldo vigente</small></div>
+                            <div><b>${_fmtHoras(s.agendadas)}</b><small>Ya agendadas</small></div>
+                            <div><b class="${s.libres <= 1 ? 'txt-warn' : ''}">${_fmtHoras(s.libres)}</b><small>Libres para agendar</small></div>
+                        </div>
+                    </div>
+                    ${s.bajo ? '<p class="p360-alerta warn">Saldo bajo (≤ 1 h): conviene avisarle para renovar.</p>' : ''}
+                    <p class="p360-ayuda">Saldo = horas cargadas en la ficha (hoursBalance). Las horas agendadas son los turnos futuros ya reservados; no se descuentan solas del saldo.</p>
+                </div>`;
+            } else if (d.pac) {
+                memb = `<div class="f360-card"><div class="f360-card-t">Atención ocasional</div><p class="p360-ayuda">Sin membresía activa. El estado de pago de cada sesión está en «Historial» → 💳 Precio y pagos.</p></div>`;
+            }
+            const plan = d.pac ? (() => {
+                const est = estadoPlanificacion(d.pac.planificacion);
+                const tono = est === 'configurada' ? 'ok' : est === 'incompleta' ? 'warn' : 'neutro';
+                const res = resumenPlanificacion(d.pac.planificacion, { completo: true });
+                return `<div class="f360-card">
+                    <div class="f360-card-t">🗓 Planificación y disponibilidad <span class="p360-badge ${tono}">${escapeHtml(ETIQUETA_ESTADO_PLAN[est] || est)}</span></div>
+                    <p class="f360-texto">${res ? escapeHtml(res) : 'Todavía no hay disponibilidad ni tratamiento planificado cargados.'}</p>
+                    <button class="p360-btn" onclick="f360EditarFicha('${escapeHtml(d.dni)}')">Editar planificación en Pacientes</button>
+                </div>`;
+            })() : '';
+            const notas = (d.pac?.notas || '').trim();
+            const edad = d.pac?.fechaNacimiento ? (() => { const n = parsearFecha(d.pac.fechaNacimiento); if (!n) return ''; const h = new Date(); let e = h.getFullYear() - n.getFullYear(); if (h < new Date(h.getFullYear(), n.getMonth(), n.getDate())) e--; return ` · ${e} años`; })() : '';
+            const alertasClinicas = _f360AlertasClinicas(d.historia);
+            return `
+                <div class="f360-kpis">
+                    <div><b>${d.entrada.realizadas.length}</b><small>Sesiones realizadas</small></div>
+                    <div><b>${d.dias == null ? '—' : d.dias}</b><small>Días desde la última</small></div>
+                    <div><b>${d.entrada.proximas.length}</b><small>Turnos próximos</small></div>
+                </div>
+                ${alertasClinicas}
+                <div class="f360-card">
+                    <div class="f360-card-t">Seguimiento</div>
+                    <p class="f360-texto">${d.ultima
+                        ? `Última sesión: <b>${_fechaLarga360(d.ultima.fecha)}</b> · ${escapeHtml(d.ultima.servicio || '—')} · ${_boxLabel(d.ultima)} (hace ${d.dias} día${d.dias !== 1 ? 's' : ''})`
+                        : 'Sin sesiones realizadas registradas.'}</p>
+                    <p class="f360-texto">${prox
+                        ? `Próximo turno: <b>${_fechaLarga360(prox.fecha)} ${escapeHtml(normalizarHora(prox.hora) || '')}</b> · ${escapeHtml(prox.servicio || '—')} · ${_boxLabel(prox)}`
+                        : `<span class="p360-badge warn">Sin turno futuro agendado</span>${d.dias != null && d.dias >= 15 ? ' — ya cumplió 15 días o más desde su última sesión.' : ''}`}</p>
+                </div>
+                ${memb}
+                ${plan}
+                <div class="f360-card">
+                    <div class="f360-card-t">Datos personales</div>
+                    <p class="f360-texto">${d.pac?.email ? `Email: ${escapeHtml(d.pac.email)}<br>` : ''}${d.pac?.fechaNacimiento ? `Nacimiento: ${escapeHtml(formatoFechaVisible(d.pac.fechaNacimiento))}${edad}<br>` : ''}${!d.pac ? 'Esta paciente no tiene ficha en Pacientes (solo turnos).' : ''}</p>
+                    ${notas ? `<div class="f360-nota"><small>Notas de la paciente</small>${escapeHtml(notas)}</div>` : ''}
+                </div>`;
+        }
+
+        function _f360Sesion(r, tipo) {
+            const det = (r.detalleSesion || '').trim();
+            const det2 = (r.detalleSesion2 || '').trim();
+            const badge = tipo === 'proxima' ? '<span class="p360-badge info">Próximo</span>'
+                : tipo === 'cancelada' ? '<span class="p360-badge err">Cancelado</span>'
+                : '<span class="p360-badge ok">Realizada</span>';
+            return `<div class="f360-ses ${tipo}" id="f360-ses-${r.id}">
+                <div class="f360-ses-top">
+                    <span class="f360-ses-f">${_fechaLarga360(r.fecha)} · ${escapeHtml(normalizarHora(r.hora) || '—')}</span>
+                    <span>${badge}${r.confirmacionManual ? ' <span class="p360-badge ok">✓ Confirmó</span>' : ''}${r.esperaConfirmacion ? ' <span class="p360-badge err">Espera confirmación</span>' : ''}</span>
+                </div>
+                <div class="f360-ses-svc">${escapeHtml(r.servicio || 'Sin servicio')} <span class="p360-muted">· ${_boxLabel(r)} · ${_duracionDe(r)} min</span></div>
+                ${det ? `<div class="f360-nota"><small>Detalle de la sesión${r.duo ? ' — paciente 1' : ''}</small>${escapeHtml(det)}</div>` : (tipo === 'realizada' ? '<p class="p360-muted">Sin detalle de sesión cargado (se carga desde Agenda → tarjeta del turno).</p>' : '')}
+                ${det2 ? `<div class="f360-nota"><small>Detalle — ${escapeHtml(r.duoNombre2 || 'paciente 2')}</small>${escapeHtml(det2)}</div>` : ''}
+                ${r.notaRapida ? `<div class="p360-muted">📝 ${escapeHtml(r.notaRapida)}</div>` : ''}
+                <div class="f360-ses-acc">
+                    <button class="p360-btn" onclick="f360VerEnGrilla('${r.fecha}')">Ver en Grilla</button>
+                    ${tipo !== 'cancelada' ? `<button class="p360-btn" onclick="f360PrecioPagos('${r.id}')">💳 Precio y pagos</button>` : ''}
+                    ${tipo === 'realizada' ? `<button class="p360-btn pri" onclick="abrirRecomendacionPostSesion('${r.id}')">✨ Recomendación</button>` : ''}
+                </div>
+            </div>`;
+        }
+
+        function _f360Historial(d) {
+            const e = d.entrada;
+            const realizadas = [...e.realizadas].reverse();
+            return `
+                <div class="f360-sec-t">Próximos turnos (${e.proximas.length})</div>
+                ${e.proximas.length ? e.proximas.map(r => _f360Sesion(r, 'proxima')).join('') : '<div class="p360-vacio">Sin turnos futuros agendados.</div>'}
+                <div class="f360-sec-t">Sesiones realizadas (${realizadas.length}) — de la más reciente a la más antigua</div>
+                ${realizadas.length ? realizadas.map(r => _f360Sesion(r, 'realizada')).join('') : '<div class="p360-vacio">Todavía no hay sesiones realizadas.</div>'}
+                ${e.canceladas.length ? `<button class="p360-btn" onclick="f360ToggleCanceladas()">${_f360.verCanceladas ? 'Ocultar' : 'Ver'} ${e.canceladas.length} turno${e.canceladas.length !== 1 ? 's' : ''} cancelado${e.canceladas.length !== 1 ? 's' : ''}</button>
+                    ${_f360.verCanceladas ? [...e.canceladas].reverse().map(r => _f360Sesion(r, 'cancelada')).join('') : ''}` : ''}`;
+        }
+
+        // ── Historia clínica y estética (historias/{dni}, mismos campos que historia.html) ──
+        const _F360_CAMPOS_CLINICOS = [
+            ['alergias', 'Alergias'], ['medicacion', 'Medicación'], ['enfermedad', 'Enfermedades'], ['embarazo', 'Embarazo'],
+        ];
+        const _esNo = (v) => { const t = _normTxt360(v); return !t || t === 'no' || t === 'ninguna' || t === 'ninguno'; };
+        function _f360AlertasClinicas(h) {
+            if (!h) return '';
+            const alertas = _F360_CAMPOS_CLINICOS.filter(([k]) => !_esNo(h[k])).map(([k, l]) => `<span class="p360-badge err">⚠ ${l}: ${escapeHtml(h[k])}</span>`);
+            return alertas.length ? `<div class="f360-alertas" role="note">${alertas.join(' ')}</div>` : '';
+        }
+        function _f360Clinica(d) {
+            if (!d.dni) return '<div class="p360-vacio">La historia clínica se guarda por DNI y esta paciente no tiene DNI cargado. Cargalo desde Pacientes para poder registrarla.</div>';
+            const h = d.historia || {};
+            const campo = (k, label, tipo = 'input', opciones) => {
+                const v = h[k] ?? '';
+                if (tipo === 'textarea') return `<label class="f360-campo"><span>${label}</span><textarea id="hc-${k}" rows="3">${escapeHtml(v)}</textarea></label>`;
+                if (tipo === 'select') return `<label class="f360-campo"><span>${label}</span><select id="hc-${k}" class="select-input">${['', ...opciones].map(o => `<option value="${escapeHtml(o)}" ${String(v) === o ? 'selected' : ''}>${o || '—'}</option>`).join('')}${v && !opciones.includes(String(v)) ? `<option selected>${escapeHtml(v)}</option>` : ''}</select></label>`;
+                return `<label class="f360-campo"><span>${label}</span><input id="hc-${k}" type="text" value="${escapeHtml(v)}"></label>`;
+            };
+            return `
+                ${d.historia ? _f360AlertasClinicas(d.historia) : '<p class="p360-alerta warn">Todavía no completó la historia clínica (historia.html). Podés cargarla acá.</p>'}
+                <div class="f360-card">
+                    <div class="f360-card-t">Antecedentes</div>
+                    <div class="f360-form">
+                        ${campo('alergias', 'Alergias (“No” si no tiene)')}
+                        ${campo('medicacion', 'Medicación (“No” si no toma)')}
+                        ${campo('enfermedad', 'Enfermedades (“No” si no tiene)')}
+                        ${campo('embarazo', 'Embarazo', 'select', ['No', 'Sí', 'Lactancia'])}
+                        ${campo('hijos', 'Hijos')}
+                        ${campo('edad', 'Edad')}
+                    </div>
+                </div>
+                <div class="f360-card">
+                    <div class="f360-card-t">Perfil estético</div>
+                    <div class="f360-form">
+                        ${campo('biotipoCutaneo', 'Biotipo cutáneo', 'select', ['Normal', 'Seca', 'Grasa', 'Mixta', 'Sensible'])}
+                        ${campo('zona', 'Zona principal (formulario)')}
+                        ${campo('zonasTratamiento', 'Zonas de tratamiento')}
+                        ${campo('objetivo', 'Objetivo estético', 'textarea')}
+                        ${campo('observacionesClinicas', 'Observaciones clínicas', 'textarea')}
+                    </div>
+                </div>
+                <div class="f360-acc-fija">
+                    <button class="p360-btn-pri" id="hc-guardar" onclick="f360GuardarHistoria('${escapeHtml(d.dni)}')">💾 Guardar historia clínica</button>
+                    <span id="hc-estado" class="p360-muted" role="status"></span>
+                </div>`;
+        }
+        window.f360GuardarHistoria = async (dni) => {
+            const campos = ['alergias', 'medicacion', 'enfermedad', 'embarazo', 'hijos', 'edad', 'biotipoCutaneo', 'zona', 'zonasTratamiento', 'objetivo', 'observacionesClinicas'];
+            const datos = {};
+            campos.forEach(k => { const el = document.getElementById('hc-' + k); if (el) datos[k] = el.value.trim(); });
+            const btn = document.getElementById('hc-guardar'), est = document.getElementById('hc-estado');
+            btn.disabled = true; est.textContent = 'Guardando…';
+            try {
+                const existe = todasLasHistorias.some(h => normalizarDNI(h.id) === dni);
+                const d = _f360Datos(_f360.clave);
+                const payload = { ...datos, actualizadoPorAdminAt: serverTimestamp(), actualizadoPorAdminEmail: auth.currentUser?.email || null };
+                if (!existe) { payload.nombre = d.nombre; payload.telefono = d.phone || ''; payload.cargadaPorAdmin = true; }
+                await setDoc(doc(db, 'historias', dni), payload, { merge: true });
+                if (!existe) updateDoc(doc(db, 'clients', dni), { historiaCompletada: true }).catch(() => {});
+                const idx = todasLasHistorias.findIndex(h => normalizarDNI(h.id) === dni);
+                if (idx >= 0) Object.assign(todasLasHistorias[idx], datos);
+                else todasLasHistorias.push({ id: dni, ...datos, nombre: d.nombre, nombreLimpio: d.nombre });
+                mostrarAviso('✓ Historia clínica guardada');
+                _f360Render();
+            } catch (e) {
+                console.error('Guardar historia clínica:', e);
+                btn.disabled = false;
+                est.textContent = 'No se pudo guardar: ' + (e?.code || e?.message || 'sin conexión');
+            }
+        };
+
+        // ── Kit domiciliario y seguimiento de avisos ──
+        function _f360Kit(d) {
+            const cargando = !_kitCache.cargado || !_ctCache.cargado;
+            const nomN = _normTxt360(d.nombre);
+            const pedidos = _kitCache.lista.filter(p => (d.dni && normalizarDNI(p.dni) === d.dni) || (!p.dni && _normTxt360(p.nombrePaciente) === nomN))
+                .sort((a, b) => (b.createdAt || b.fecha || '').toString().localeCompare((a.createdAt || a.fecha || '').toString()));
+            const ids = new Set(d.entrada.todas.map(r => r.id));
+            const contactos = _ctCache.lista.filter(c => (c.coleccion === 'reservas' && ids.has(c.docId)) || (c.coleccion === 'clients' && (c.docId === d.dni || c.docId === d.clave)))
+                .map(c => ({ ...c, ms: estadoContacto([c], null).ms }))
+                .sort((a, b) => b.ms - a.ms);
+            const ultimaFacial = [...d.entrada.realizadas].reverse()[0];
+            const kitHtml = pedidos.length ? pedidos.map(p => {
+                const prods = Array.isArray(p.productos) ? p.productos : (p.productos ? [p.productos] : []);
+                const est = p.estado === 'entregado' ? '<span class="p360-badge ok">✓ Entregado</span>' : p.estado === 'listo' ? '<span class="p360-badge info">Listo para entregar</span>' : '<span class="p360-badge warn">Pendiente</span>';
+                return `<div class="f360-ses"><div class="f360-ses-top"><span class="f360-ses-f">${escapeHtml(formatoFechaVisible(p.createdAt || p.fecha || '') || '—')}</span>${est}</div>
+                    <div class="f360-texto">${prods.map(x => '• ' + escapeHtml(x)).join('<br>') || 'Sin productos detallados'}</div>
+                    ${p.totalPedido != null ? `<div class="p360-muted">Total: $${Number(p.totalPedido).toLocaleString('es-AR')}${p.origen ? ' · origen ' + escapeHtml(p.origen) : ''}</div>` : ''}</div>`;
+            }).join('') : '<div class="p360-vacio">Sin pedidos de Kit Facial registrados.</div>';
+            const ctHtml = contactos.length ? `<div class="p360-tabla-wrap"><table class="p360-tabla"><thead><tr><th>Fecha</th><th>Mensaje</th><th>Estado</th></tr></thead><tbody>${contactos.map(c => `
+                <tr><td data-l="Fecha">${c.ms ? new Date(c.ms).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                <td data-l="Mensaje">${escapeHtml(_etiquetaTipoMsg(c.tipoMensaje))}</td>
+                <td data-l="Estado">${_badgeContacto(estadoContacto([c], null), 'Enviado')}</td></tr>`).join('')}</tbody></table></div>`
+                : '<div class="p360-vacio">Todavía no hay avisos ni recomendaciones registrados para esta paciente.</div>';
+            return `
+                ${cargando ? '<div class="p360-cargando">Cargando kit y avisos…</div>' : ''}
+                ${_kitCache.error || _ctCache.error ? `<p class="p360-alerta err">No se pudo leer ${_kitCache.error ? 'pedidosKit' : 'contactosWhatsApp'}. <button class="p360-btn" onclick="f360ReintentarKit()">Reintentar</button></p>` : ''}
+                <div class="f360-sec-t">🧴 Kit Facial domiciliario</div>
+                ${kitHtml}
+                <div class="f360-ses-acc">
+                    ${d.dni ? `<button class="p360-btn" onclick="f360NuevoKit('${escapeHtml(d.dni)}')">➕ Nuevo pedido de kit</button>` : ''}
+                    ${ultimaFacial ? `<button class="p360-btn pri" onclick="abrirRecomendacionPostSesion('${ultimaFacial.id}','kit_facial')">Enviar rutina de uso del kit</button>` : ''}
+                </div>
+                <div class="f360-sec-t">💬 Avisos y recomendaciones enviados por WhatsApp</div>
+                <p class="p360-ayuda">“Preparado” = se abrió WhatsApp con el texto; “Enviado” = la operadora confirmó que lo mandó.</p>
+                ${ctHtml}`;
+        }
+
+        window.f360ToggleCanceladas = () => { _f360.verCanceladas = !_f360.verCanceladas; _f360Render(); };
+        window.f360ReintentarKit = () => Promise.all([_kitAsegurar(true), _ctAsegurar(true)]).then(_f360Render);
+        window.f360PrecioPagos = (reservaId) => {
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (r) window.abrirPrecioPagos(r.id, _pacienteMatchKey(r), _pacienteNombreDisplay(r), r.servicio || '');
+        };
+        window.f360VerEnGrilla = (fecha) => { window.cerrarFicha360(); _grilla_fecha = fecha; navegar('grilla'); cargarAdminBlocks(fecha); };
+        window.f360EditarFicha = (dni) => {
+            window.cerrarFicha360(); navegar('clientes');
+            setTimeout(() => { window.cargarPacienteDesdeBusqueda(dni); const det = document.getElementById('detCliForm'); if (det) { det.open = true; det.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, 80);
+        };
+        // DNI: nunca se edita a mano (crearía un duplicado) — se usa «Cambiar ID»,
+        // que migra la ficha y deja la redirección del DNI viejo.
+        window.f360EditarDni = (dni) => {
+            window.f360EditarFicha(dni);
+            setTimeout(() => {
+                const tools = document.querySelector('.cliente-admin-tools');
+                if (tools) tools.open = true;
+                const inp = document.getElementById('cliNuevoDni');
+                if (inp) { inp.focus(); inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                mostrarAviso('Escribí el DNI correcto y tocá «Cambiar ID»');
+            }, 260);
+        };
+        window.f360NuevoKit = async (dni) => {
+            window.cerrarFicha360(); navegar('pedidos-kit');
+            try { await window.abrirFormularioKitAdmin(); window.seleccionarPacienteKitAdmin(dni); } catch (e) { console.warn(e); }
+        };
+
+        /* ════════════════════════════════════════════════════════════════════
+           RECOMENDACIÓN POST-SESIÓN (Grilla y Ficha 360°)
+           Plantilla preseleccionada según el servicio del turno, texto
+           editable, y registro en contactosWhatsApp (preparado → la
+           operadora confirma si lo envió, igual que el resto del panel).
+           ════════════════════════════════════════════════════════════════════ */
+        const _tipoMsgRec = (clave) => clave.startsWith('hifu_') ? clave : 'rec_' + clave;
+        window.abrirRecomendacionPostSesion = (reservaId, claveForzada) => {
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            const nombre = (r.nombreLimpio || '').toString().trim();
+            const num = formatearTelefonoWhatsApp(r.phone || r.telefono);
+            const sugeridas = sugerirPlantillas(r.servicio);
+            let clave = claveForzada && PLANTILLAS_POST_SESION[claveForzada] ? claveForzada : sugeridas[0];
+            const porCat = {};
+            Object.entries(PLANTILLAS_POST_SESION).forEach(([k, p]) => { if (!sugeridas.includes(k)) (porCat[p.categoria] = porCat[p.categoria] || []).push(k); });
+            const opt = (k) => `<option value="${k}">${PLANTILLAS_POST_SESION[k].icono} ${escapeHtml(PLANTILLAS_POST_SESION[k].titulo)}</option>`;
+            const ov = document.createElement('div');
+            ov.className = 'p360-modal-ov';
+            ov.id = '_recps_ov';
+            const enviadasHtml = () => {
+                const prev = _ctDe('reservas', r.id).filter(c => /^(rec_|hifu_)/.test(c.tipoMensaje || ''));
+                return prev.length ? `<div class="p360-ayuda">Ya registradas para este turno: ${prev.map(c => `${escapeHtml(_etiquetaTipoMsg(c.tipoMensaje).replace('Recomendación · ', ''))} ${_badgeContacto(estadoContacto([c], null), 'Enviado')}`).join(' · ')}</div>` : '';
+            };
+            ov.innerHTML = `<div class="p360-modal p360-modal-ancho" role="dialog" aria-modal="true" aria-labelledby="_recps_t">
+                <p class="p360-modal-t" id="_recps_t">✨ Recomendación post-sesión</p>
+                <p class="p360-modal-s">${escapeHtml(nombre || 'Paciente')} · ${escapeHtml(r.servicio || '')} · ${escapeHtml(_ghFormatoFecha(r.fecha))}</p>
+                <label class="p360-lbl" for="_recps_sel">Plantilla</label>
+                <select id="_recps_sel" class="select-input">
+                    <optgroup label="Sugeridas para «${escapeHtml(r.servicio || 'este turno')}»">${sugeridas.map(opt).join('')}</optgroup>
+                    ${Object.entries(porCat).map(([cat, ks]) => `<optgroup label="${escapeHtml(REC_CATEGORIAS[cat] || cat)}">${ks.map(opt).join('')}</optgroup>`).join('')}
+                </select>
+                <label class="p360-lbl" for="_recps_txt">Texto (podés ajustarlo antes de enviar)</label>
+                <textarea id="_recps_txt" class="p360-textarea" rows="13"></textarea>
+                <div id="_recps_prev"></div>
+                ${num ? '' : `<p class="p360-alerta err">Falta un teléfono válido${nombre ? ' para ' + escapeHtml(nombre) : ''}. Corregilo en la ficha de la paciente para poder abrir WhatsApp.</p>`}
+                <div class="p360-modal-acc">
+                    <button type="button" class="btn-mini" id="_recps_cancel">Cancelar</button>
+                    <button type="button" class="btn-mini" id="_recps_copiar">📋 Copiar texto</button>
+                    <button type="button" class="p360-btn-pri wa" id="_recps_wa" ${num ? '' : 'disabled'}>💬 Abrir en WhatsApp</button>
+                </div></div>`;
+            document.body.appendChild(ov);
+            const sel = ov.querySelector('#_recps_sel'), txt = ov.querySelector('#_recps_txt');
+            const cargar = () => { txt.value = construirRecomendacion(clave, nombre); ov.querySelector('#_recps_prev').innerHTML = enviadasHtml(); };
+            sel.value = clave; cargar();
+            _ctAsegurar().then(() => { if (document.body.contains(ov)) ov.querySelector('#_recps_prev').innerHTML = enviadasHtml(); });
+            sel.onchange = () => { clave = sel.value; cargar(); };
+            const cerrar = () => ov.remove();
+            ov.addEventListener('mousedown', (e) => { if (e.target === ov) cerrar(); });
+            ov.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); cerrar(); } });
+            ov.querySelector('#_recps_cancel').onclick = cerrar;
+            ov.querySelector('#_recps_copiar').onclick = async () => {
+                try { await navigator.clipboard.writeText(txt.value); mostrarAviso('Texto copiado'); }
+                catch (_) { txt.select(); document.execCommand('copy'); mostrarAviso('Texto copiado'); }
+            };
+            ov.querySelector('#_recps_wa').onclick = () => {
+                if (!num) return;
+                const tipo = _tipoMsgRec(clave);
+                registrarContactoWA(r.id, tipo, nombre.split(' ')[0] || nombre);
+                _ctMarcarLocal('reservas', r.id, tipo);
+                window.open(`https://wa.me/${num}?text=${encodeURIComponent(txt.value)}`, '_blank');
+                cerrar();
+                if (_f360.clave) _f360Render();
+            };
+            setTimeout(() => sel.focus(), 50);
+        };
+
+        /* ════════════════════════════════════════════════════════════════════
+           RECORDATORIOS Y RETORNO DEL DÍA
+           ════════════════════════════════════════════════════════════════════ */
+        let _recDia = 0;
+        window.recSetDia = (d) => {
+            _recDia = d;
+            document.querySelectorAll('#rec-dia-seg button').forEach(b => b.classList.toggle('activo', Number(b.dataset.d) === d));
+            recRenderTurnos();
+        };
+        window.recRender = () => {
+            const sel = document.getElementById('ret-trat');
+            if (sel && sel.options.length <= 1) sel.insertAdjacentHTML('beforeend', TRATAMIENTOS_RETORNO.map(t => `<option value="${t.clave}">${escapeHtml(t.etiqueta)}</option>`).join(''));
+            recRenderTurnos();
+            recRenderRetorno();
+            _ctAsegurar().then(() => {
+                if (!document.getElementById('sec-recordatorios')?.classList.contains('active')) return;
+                recRenderTurnos(); recRenderRetorno();
+            });
+        };
+        window.recRefrescar = async () => { await _ctAsegurar(true); window.recRender(); mostrarAviso('Avisos actualizados'); };
+
+        function recRenderTurnos() {
+            const cont = document.getElementById('rec-turnos');
+            if (!cont) return;
+            const fecha = _sumarDiasISO(fechaHoyISO(), _recDia);
+            const turnos = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === fecha)
+                .sort((a, b) => (normalizarHora(a.hora) || '').localeCompare(normalizarHora(b.hora) || ''));
+            const pendientes = turnos.filter(r => !r.confirmacionManual && estadoContacto(_ctDe('reservas', r.id), ['recordatorio', 'confirmacion']).estado !== 'enviado');
+            if (_recDia <= 1) _recActualizarBadge();
+            const titulo = `<p class="p360-muted" style="margin:0 0 8px">${_fechaLarga360(fecha)} · ${turnos.length} turno${turnos.length !== 1 ? 's' : ''} · <b>${pendientes.length}</b> sin confirmar ni recordar${!_ctCache.cargado ? ' · <span class="p360-cargando-inline">cargando avisos…</span>' : ''}</p>`;
+            if (!turnos.length) { cont.innerHTML = titulo + '<div class="p360-vacio">No hay turnos agendados para ese día.</div>'; return; }
+            cont.innerHTML = titulo + `<div class="p360-tabla-wrap"><table class="p360-tabla"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento · Box</th><th>Aviso</th><th></th></tr></thead><tbody>${turnos.map(r => {
+                const e = estadoContacto(_ctDe('reservas', r.id), ['recordatorio', 'confirmacion']);
+                const num = formatearTelefonoWhatsApp(r.phone);
+                return `<tr class="${r.confirmacionManual || e.estado === 'enviado' ? 'hecho' : ''}">
+                    <td data-l="Hora" class="p360-hora">${escapeHtml(normalizarHora(r.hora) || '—')}</td>
+                    <td data-l="Paciente"><button class="p360-link" onclick="abrirFicha360DeReserva('${r.id}','resumen')">${escapeHtml(_pacienteNombreDisplay(r))}</button>${!num ? '<div><span class="p360-badge warn">Sin teléfono</span></div>' : ''}</td>
+                    <td data-l="Tratamiento · Box">${escapeHtml(r.servicio || '—')}<div class="p360-muted">${_boxLabel(r)}</div></td>
+                    <td data-l="Aviso">${r.confirmacionManual ? '<span class="p360-badge ok">✓ Confirmó</span> ' : ''}${_badgeContacto(e, 'Recordado')}</td>
+                    <td data-l="Acciones"><div class="p360-acc">
+                        ${num ? `<button class="p360-btn wa" onclick="recRecordar('${r.id}')">💬 Recordar</button>` : ''}
+                        ${r.confirmacionManual ? '' : `<button class="p360-btn" onclick="recMarcarConfirmo('${r.id}')">✓ Confirmó</button>`}
+                    </div></td></tr>`;
+            }).join('')}</tbody></table></div>`;
+        }
+        function _recActualizarBadge() {
+            const badge = document.getElementById('rec-badge');
+            if (!badge || !_ctCache.cargado) return;
+            const hoy = fechaHoyISO(), man = _sumarDiasISO(hoy, 1);
+            const n = todasLasReservas.filter(r => esReservaActiva(r) && (r.fecha === hoy || r.fecha === man) && !r.confirmacionManual
+                && estadoContacto(_ctDe('reservas', r.id), ['recordatorio', 'confirmacion']).estado !== 'enviado').length;
+            badge.style.display = n ? '' : 'none';
+            badge.title = `${n} turno(s) de hoy y mañana sin confirmar`;
+        }
+        window.recRecordar = (reservaId) => {
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            const num = formatearTelefonoWhatsApp(r.phone);
+            if (!num) { mostrarAviso('Sin teléfono registrado'); return; }
+            const pila = _pacienteNombreDisplay(r).split(' ')[0];
+            const hora = normalizarHora(r.hora);
+            const cuando = r.fecha === fechaHoyISO() ? 'hoy' : r.fecha === _sumarDiasISO(fechaHoyISO(), 1) ? 'mañana' : `el ${formatoFechaISO(r.fecha)}`;
+            const box = GRILLA_BOXES.find(b => b.id === _grilla_boxDeReserva(r));
+            const texto = `Hola ${pila}, te recordamos tu turno en Espacio MimarT ${cuando} (${formatoFechaISO(r.fecha)}) a las ${hora} hs: ${r.servicio || 'tratamiento'}${box ? ` en ${box.title} · ${box.sub}` : ''}. ¿Nos confirmás tu asistencia? ¡Te esperamos! 🌿`;
+            registrarContactoWA(r.id, 'recordatorio', pila);
+            window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, '_blank');
+            recRenderTurnos();
+        };
+        window.recMarcarConfirmo = async (reservaId) => {
+            try {
+                await updateDoc(doc(db, 'reservas', reservaId), { confirmacionManual: true, confirmacionManualAt: serverTimestamp() });
+                const r = todasLasReservas.find(x => x.id === reservaId);
+                if (r) r.confirmacionManual = true;
+                mostrarAviso('Turno marcado como confirmado');
+                recRenderTurnos();
+            } catch (e) { console.error(e); mostrarAviso('No se pudo marcar la confirmación'); }
+        };
+
+        function _recCandidatosRetorno() {
+            const rango = document.getElementById('ret-rango')?.value || '15-25';
+            const trat = document.getElementById('ret-trat')?.value || '';
+            const ocultar = !!document.getElementById('ret-ocultar')?.checked;
+            const hoy = fechaHoyISO(), ahora = Date.now();
+            const membresia = [], ciclo = [];
+            _p360Indice().forEach((entrada, clave) => {
+                if (entrada.proximas.length) return; // ya tiene turno: no hace falta avisar
+                const pasadas = entrada.realizadas.filter(r => r.fecha <= hoy);
+                const u = pasadas[pasadas.length - 1];
+                if (!u) return;
+                const dias = diasEntre(u.fecha, hoy);
+                const pac = _p360Paciente(clave);
+                if (trat && tratamientoDe(u.servicio) !== trat) return;
+                const docId = pac?.dni ? normalizarDNI(pac.dni) : clave;
+                const regs = _ctDe('clients', docId);
+                if (ocultar && avisadoEnUltimosDias(regs, ['retorno'], 7, ahora)) return;
+                const item = { clave, u, dias, pac, docId, aviso: estadoContacto(regs, ['retorno']) };
+                if (pac?.membershipActive && Number(pac.hoursBalance) > 0) membresia.push(item);
+                else if (enRangoRetorno(dias, rango)) ciclo.push(item);
+            });
+            const orden = (a, b) => b.dias - a.dias;
+            return { membresia: membresia.sort(orden), ciclo: ciclo.sort(orden) };
+        }
+        window.recRenderRetorno = () => {
+            const cont = document.getElementById('rec-retorno');
+            if (!cont) return;
+            if (!todasLosPacientes.length && !todasLasReservas.length) { cont.innerHTML = '<div class="p360-cargando">Cargando pacientes…</div>'; return; }
+            const { membresia, ciclo } = _recCandidatosRetorno();
+            const fila = (it) => {
+                const nombre = it.pac?.fullName || _pacienteNombreDisplay(it.u);
+                const tel = it.pac?.phone || it.u.phone || '';
+                const num = formatearTelefonoWhatsApp(tel);
+                return `<tr>
+                    <td data-l="Paciente"><button class="p360-link" onclick="abrirFicha360Enc('${_jsArg(it.clave)}','resumen')">${escapeHtml(nombre)}</button>
+                        <div class="p360-muted">${it.pac?.dni ? 'DNI ' + escapeHtml(it.pac.dni) : 'Sin ficha'}${tel ? ' · ' + escapeHtml(tel) : ''}</div></td>
+                    <td data-l="Última sesión">${escapeHtml(_ghFormatoFecha(it.u.fecha))} · ${escapeHtml(it.u.servicio || '—')}<div><span class="p360-badge ${it.dias > 25 ? 'err' : it.dias >= 15 ? 'warn' : 'neutro'}">Hace ${it.dias} día${it.dias !== 1 ? 's' : ''}</span></div></td>
+                    <td data-l="Membresía">${it.pac?.membershipActive ? `<span class="p360-badge memb">⭐ ${_fmtHoras(it.pac.hoursBalance)} a favor</span>` : '<span class="p360-muted">Ocasional</span>'}</td>
+                    <td data-l="Aviso">${_badgeContacto(it.aviso)}</td>
+                    <td data-l="Acciones"><div class="p360-acc">
+                        ${num ? `<button class="p360-btn wa" onclick="recAvisarRetorno('${_jsArg(it.clave)}')">💬 Avisar</button>` : '<span class="p360-badge warn">Sin teléfono</span>'}
+                        <button class="p360-btn" onclick="abrirFicha360Enc('${_jsArg(it.clave)}','historial')">📇 Ficha</button>
+                    </div></td></tr>`;
+            };
+            const tabla = (items, vacio) => items.length
+                ? `<div class="p360-tabla-wrap"><table class="p360-tabla"><thead><tr><th>Paciente</th><th>Última sesión</th><th>Membresía</th><th>Aviso</th><th></th></tr></thead><tbody>${items.map(fila).join('')}</tbody></table></div>`
+                : `<div class="p360-vacio">${vacio}</div>`;
+            cont.innerHTML = `
+                <div class="f360-sec-t">⭐ Membresía con saldo a favor y sin turno agendado (${membresia.length})</div>
+                ${tabla(membresia, 'Todas las pacientes con membresía y saldo ya tienen un turno futuro.')}
+                <div class="f360-sec-t">🔁 Ciclo cumplido desde la última sesión (${ciclo.length})</div>
+                ${tabla(ciclo, 'Nadie en esa ventana de días sin turno agendado.')}
+                <p class="p360-ayuda">Solo se listan pacientes SIN turnos futuros. Los días se cuentan desde su última sesión realizada hasta hoy.</p>`;
+        };
+        window.recAvisarRetorno = (claveEnc) => {
+            const clave = decodeURIComponent(claveEnc);
+            const entrada = _p360Indice().get(clave);
+            const pac = _p360Paciente(clave);
+            const hoy = fechaHoyISO();
+            const u = entrada ? entrada.realizadas.filter(r => r.fecha <= hoy).slice(-1)[0] : null;
+            if (!u) return;
+            const nombre = pac?.fullName || _pacienteNombreDisplay(u);
+            const num = formatearTelefonoWhatsApp(pac?.phone || u.phone);
+            if (!num) { mostrarAviso('Sin teléfono registrado'); return; }
+            const dias = diasEntre(u.fecha, hoy);
+            const pila = nombre.split(' ')[0];
+            const saldo = pac?.membershipActive && Number(pac.hoursBalance) > 0 ? ` Además, todavía tenés ${_fmtHoras(pac.hoursBalance)} disponibles en tu membresía.` : '';
+            const texto = `Hola ${pila} 💚 ¿Cómo estás? Te escribimos de Espacio MimarT. Ya pasaron ${dias} días desde tu última sesión de ${u.servicio || 'tratamiento'}, y es un buen momento para continuar y sostener los resultados.${saldo}\n\n¿Te reservamos un turno? Respondé este mensaje y coordinamos el día y horario que mejor te queden 🌿\nEspacio MimarT`;
+            const docId = pac?.dni ? normalizarDNI(pac.dni) : clave;
+            const operador = auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null;
+            registrarContactoPreparado({ setDoc, doc, serverTimestamp, db, coleccion: 'clients', docId, tipoMensaje: 'retorno', operador })
+                .then(() => { _pendienteConfirmarEnvioAdmin = { coleccion: 'clients', docId, tipoMensaje: 'retorno', nombre: pila }; })
+                .catch(e => console.warn('No se pudo registrar el aviso de retorno:', e));
+            _ctMarcarLocal('clients', docId, 'retorno');
+            window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, '_blank');
+            recRenderRetorno();
+        };
+
+        // Fase 2 completa (reservas/pacientes/historias): refrescar lo que depende de eso.
+        window._p360DatosActualizados = () => {
+            _p360Invalidar();
+            if (document.getElementById('sec-grilla')?.classList.contains('active')) window.renderGrilla();
+            if (document.getElementById('sec-recordatorios')?.classList.contains('active')) window.recRender();
+            if (_f360.clave) _f360Render();
+            _ctAsegurar().then(_recActualizarBadge);
+        };
+
         // Limpiar SVG de flechas si quedó de versión anterior
         document.getElementById('_gfx_flechas')?.remove();
         // ══ FIN GRILLA ══
@@ -14723,6 +15816,28 @@
             <div id="mer-body">Cargando…</div>
         </div>
     </div>
+
+    <!-- Ficha 360° de la paciente — drawer lateral; se abre encima de la
+         pantalla actual sin cambiar de sección, fecha, filtros ni scroll. -->
+    <div id="f360-fondo" onclick="cerrarFicha360()"></div>
+    <aside id="f360-drawer" role="dialog" aria-modal="true" aria-labelledby="f360-nombre" aria-hidden="true">
+        <div class="f360-head">
+            <div class="f360-head-txt">
+                <p class="f360-eyebrow">Ficha 360° de la paciente</p>
+                <h2 id="f360-nombre">—</h2>
+                <div id="f360-datos" class="f360-datos"></div>
+                <div id="f360-acciones" class="f360-acciones"></div>
+            </div>
+            <button type="button" class="f360-cerrar" onclick="cerrarFicha360()" aria-label="Cerrar ficha">×</button>
+        </div>
+        <div class="f360-tabs" id="f360-tabs" role="tablist" aria-label="Secciones de la ficha">
+            <button type="button" role="tab" data-tab="resumen" onclick="f360Tab('resumen')">Resumen y planificación</button>
+            <button type="button" role="tab" data-tab="historial" onclick="f360Tab('historial')">Historial de sesiones</button>
+            <button type="button" role="tab" data-tab="clinica" onclick="f360Tab('clinica')">Historia clínica</button>
+            <button type="button" role="tab" data-tab="kit" onclick="f360Tab('kit')">Kit y seguimiento</button>
+        </div>
+        <div class="f360-cuerpo" id="f360-cuerpo" role="tabpanel"></div>
+    </aside>
 
     <script src="/js/shared-footer.js"></script>
 </body>

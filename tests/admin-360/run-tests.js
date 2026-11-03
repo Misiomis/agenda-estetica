@@ -1,0 +1,186 @@
+// node tests/admin-360/run-tests.js — integración de admin.html real en jsdom con Firebase simulado (datos 100% ficticios).
+// Datos 100% ficticios. Recorre: Grilla enriquecida, Ficha 360°, mover turno,
+// Recordatorios / retorno, Recomendación post-sesión y directorio.
+import fs from 'fs';
+import path from 'path';
+import { JSDOM, VirtualConsole } from 'jsdom';
+import { fileURLToPath, pathToFileURL } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ESPEJO = path.join(__dirname, '..', '..');
+let fails = 0;
+const check = (d, c, extra) => { console.log((c ? '  OK  ' : '  FAIL ') + d); if (!c) { fails++; if (extra !== undefined) console.log('       →', String(extra).slice(0, 300)); } };
+
+const html = fs.readFileSync(path.join(ESPEJO, 'admin.html'), 'utf8');
+const vc = new VirtualConsole();
+const errores = [];
+vc.on('jsdomError', (e) => { if (!/Could not parse CSS|Not implemented/.test(e.message)) errores.push(e.message); });
+vc.on('error', (...a) => errores.push(a.join(' ')));
+const dom = new JSDOM(html.replace(/<script[\s\S]*?<\/script>/g, ''), { url: 'http://localhost/admin.html', pretendToBeVisual: true, virtualConsole: vc });
+const w = dom.window;
+for (const k of ['window', 'document', 'navigator', 'localStorage', 'HTMLElement', 'Node', 'getComputedStyle', 'requestAnimationFrame', 'CustomEvent', 'Event', 'KeyboardEvent', 'MutationObserver', 'ResizeObserver', 'location', 'history', 'Blob', 'URL'])
+  try { Object.defineProperty(globalThis, k, { value: w[k] ?? globalThis[k], configurable: true, writable: true }); } catch (_) {}
+globalThis.window = w; globalThis.document = w.document;
+// Como en un navegador real: los identificadores sueltos (ej. recargarJornadaStatus()) se resuelven contra window.
+try { Object.setPrototypeOf(globalThis, w); } catch (e) { console.log("no se pudo encadenar global→window", e.message); }
+const abiertas = [];
+w.open = (u) => { abiertas.push(u); return null; };
+w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = function () {};
+w.confirm = () => true; w.alert = () => {};
+globalThis.confirm = w.confirm; globalThis.alert = w.alert;
+
+let src = html.match(/<script type="module">([\s\S]*?)<\/script>/)[1];
+src = src.replace('from "/js/firebase-web.js"', `from "${pathToFileURL(path.join(__dirname, 'fake-firebase-admin.js')).href}"`)
+         .replace(/from "\/js\/([\w-]+\.js)"/g, (_, f) => `from "${pathToFileURL(path.join(ESPEJO, 'js', f)).href}"`);
+const gen = path.join(__dirname, '_admin.generated.mjs');
+fs.writeFileSync(gen, src);
+const fb = await import('./fake-firebase-admin.js');
+
+const pad = (n) => String(n).padStart(2, '0');
+const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const dia = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); };
+const HOY = dia(0);
+const set = (p, d) => fb.calls.store.set(p, d);
+
+set('clients/30111222', { fullName: 'Paula Gómez', phone: '3764111222', membershipActive: true, hoursBalance: 2.5, planificacion: null });
+set('clients/30999888', { fullName: 'Laura Ruiz', phone: '3764999888', membershipActive: false, hoursBalance: 0 });
+set('clients/28777666', { fullName: 'Marta Sosa', phone: '3764777666', membershipActive: true, hoursBalance: 3 });
+set('clients/27666555', { fullName: 'Ana Díaz', phone: '3764666555', membershipActive: false, hoursBalance: 0 });
+set('clients/26555444', { fullName: 'Rosa Paz', phone: '3764555444', membershipActive: false, hoursBalance: 0 });
+const R = (id, d) => set('reservas/' + id, { estado: 'confirmado', ...d });
+R('p-hoy', { dni: '30111222', nombre: 'Paula Gómez', fecha: HOY, hora: '10:00', servicio: 'Limpieza Facial Profunda', box: 'b3', duracionMinutos: 60, phone: '3764111222' });
+R('p-prev', { dni: '30111222', nombre: 'Paula Gómez', fecha: dia(-21), hora: '15:00', servicio: 'Hi-Fu Facial', box: 'b3', duracionMinutos: 60, detalleSesion: 'Se trabajó óvalo facial y papada con 300 disparos. Piel con buena respuesta, leve eritema.' });
+R('l-hoy', { dni: '30999888', nombre: 'Laura Ruiz', fecha: HOY, hora: '11:00', servicio: 'Criolipolisis', box: 'b2', duracionMinutos: 30, phone: '3764999888' });
+R('l-man', { dni: '30999888', nombre: 'Laura Ruiz', fecha: dia(1), hora: '09:00', servicio: 'Criolipolisis', box: 'b2', duracionMinutos: 30, phone: '3764999888' });
+R('m-prev', { dni: '28777666', nombre: 'Marta Sosa', fecha: dia(-18), hora: '09:00', servicio: 'Drenaje linfático', box: 'b4', duracionMinutos: 60 });
+R('a-prev', { dni: '27666555', nombre: 'Ana Díaz', fecha: dia(-20), hora: '12:00', servicio: 'Limpieza facial', box: 'b3', duracionMinutos: 60 });
+R('r-prev', { dni: '26555444', nombre: 'Rosa Paz', fecha: dia(-17), hora: '12:00', servicio: 'Radiofrecuencia corporal', box: 'b2', duracionMinutos: 60 });
+set('prestaciones/p-hoy', { precioAcordado: 45, sinCargo: false });
+set('pagos/pg1', { prestacionId: 'p-hoy', monto: 20, tipo: 'cobro' });
+set('historias/30111222', { nombre: 'Paula Gómez', alergias: 'Penicilina', medicacion: 'No', enfermedad: 'No', embarazo: 'No', zona: 'Rostro', objetivo: 'Mejorar textura' });
+set('pedidosKit/k1', { dni: '30111222', nombrePaciente: 'Paula Gómez', productos: ['Leche de limpieza', 'Tónico calmante'], estado: 'pendiente', totalPedido: 30000, createdAt: new Date().toISOString() });
+set('contactosWhatsApp/clients_27666555_retorno', { coleccion: 'clients', docId: '27666555', tipoMensaje: 'retorno', estado: 'enviado', enviadoAt: { seconds: Math.floor((Date.now() - 2 * 86400000) / 1000) } });
+set('configuracion/serviciosBox', { assignments: { Criolipolisis: ['b2', 'b1'] }, defaults: {} });
+
+await import(pathToFileURL(gen).href);
+fs.unlinkSync(gen);
+for (const k of Object.keys(w)) if (typeof w[k] === 'function' && !(k in globalThis)) globalThis[k] = w[k];
+const $ = (id) => w.document.getElementById(id);
+const tick = async (n = 15) => { for (let i = 0; i < n; i++) await new Promise((r) => setTimeout(r, 0)); };
+
+await fb.calls.authCallback({ uid: 'u1', email: 'espaciomimart36@gmail.com', getIdTokenResult: async () => ({ claims: { email: 'espaciomimart36@gmail.com' } }) });
+await tick(40);
+await new Promise(r => setTimeout(r, 400)); await tick(40);
+
+console.log('\n=== Grilla: barra de herramientas ===');
+const tools = w.document.querySelector('.grilla-tools').textContent;
+check('"Pendientes de reagendar" ya no está en la barra de la Grilla', !/Pendientes de reagendar/.test(tools));
+check('siguen + Horario extra, Duplicar mes, Vista clásica y Cristina', /Horario extra/.test(tools) && /Duplicar mes/.test(tools) && /Vista clásica/.test(tools) && !!$('btn-grilla-cristina'));
+check('hay "Hora actual" y selector de densidad', !!$('btn-grilla-ahora') && !!$('btn-grilla-densidad'));
+check('Pendientes de reagendar sigue accesible desde Agenda', /Pendientes de reagendar/.test($('sec-agenda').textContent));
+
+console.log('\n=== Grilla: tarjetas enriquecidas ===');
+w.grillaIrHoy(); await tick(40); await new Promise(r => setTimeout(r, 300)); await tick(40);
+const tb = $('grilla-tbody').innerHTML;
+check('la Grilla muestra los turnos reales de hoy', tb.includes('Paula Gómez') && tb.includes('Laura Ruiz'), tb.slice(0, 200));
+check('muestra membresía con saldo de horas (⭐ 2,5 h disp.)', tb.includes('2,5 h disp.'));
+check('muestra estado de pago real (💳 Señado: precio 45, cobrado 20)', tb.includes('💳 Señado'));
+check('muestra la última sesión (Hi-Fu Facial, hace 21 d)', tb.includes('Hi-Fu Facial · hace 21 d'));
+check('Laura sin sesiones previas → "Primera sesión"', tb.includes('Primera sesión'));
+check('resumen del día con conteo de pagos', /1 señados/.test($('grilla-resumen-dia').textContent), $('grilla-resumen-dia').textContent);
+const filas15 = () => [...w.document.querySelectorAll('#grilla-tbody tr.grilla-row-15')];
+w.grillaToggleDensidad(); await tick();
+check('vista compacta activa la clase y oculta filas :15/:45 sin turnos', $('grilla-table').classList.contains('grilla-compacta') && filas15().some(tr => !tr.classList.contains('gr-con-inicio')));
+check('el botón cambia a "Vista detallada · 15 min"', /detallada/.test($('btn-grilla-densidad').textContent));
+w.grillaToggleDensidad(); await tick();
+check('encabezado sticky con z-index 10 en el CSS', /\.grilla-table thead th \{ z-index: 10; \}/.test(html));
+
+console.log('\n=== Ficha 360° desde la Grilla ===');
+w.grillaAbrirFichaTurno(null, 'p-hoy'); await tick(30);
+check('se abre el drawer sin cambiar de sección', $('f360-drawer').classList.contains('visible') && $('sec-grilla').classList.contains('active'));
+check('abre en "Historial de sesiones"', w.document.querySelector('#f360-tabs .activo')?.dataset.tab === 'historial');
+const hist = $('f360-cuerpo').textContent;
+check('historial con observación completa sin truncar', hist.includes('Piel con buena respuesta, leve eritema.'));
+check('historial con box y próximos turnos', hist.includes('Box 3') && hist.includes('Próximos turnos (1)'));
+w.f360Tab('resumen'); await tick();
+const res = $('f360-cuerpo').textContent;
+check('resumen: saldo de horas (2,5 h vigente, 1 h agendada, 1,5 h libres)', res.includes('2,5 h') && res.includes('1 h') && res.includes('1,5 h'), res.slice(0, 400));
+check('resumen: estado de planificación', /Planificación y disponibilidad/.test(res));
+check('resumen: alerta clínica visible (Alergias: Penicilina)', res.includes('Alergias: Penicilina'));
+check('header con DNI, teléfono y WhatsApp directo', $('f360-datos').textContent.includes('30111222') && $('f360-acciones').innerHTML.includes('wa.me/5493764111222'));
+w.f360Tab('clinica'); await tick();
+check('historia clínica editable con campos reales', $('hc-alergias')?.value === 'Penicilina' && $('hc-objetivo')?.value === 'Mejorar textura');
+$('hc-biotipoCutaneo').value = 'Mixta';
+await w.f360GuardarHistoria('30111222'); await tick();
+const hc = fb.calls.store.get('historias/30111222');
+check('guardar historia: merge en historias/{dni} sin perder datos', hc.biotipoCutaneo === 'Mixta' && hc.alergias === 'Penicilina' && hc.nombre === 'Paula Gómez');
+w.f360Tab('kit'); await tick(30); await new Promise(r => setTimeout(r, 50)); await tick(20);
+const kit = $('f360-cuerpo').textContent;
+check('kit: pedido de Kit Facial de la paciente con productos', kit.includes('Tónico calmante') && kit.includes('Pendiente'));
+w.cerrarFicha360(); await tick();
+check('la ficha se cierra', !$('f360-drawer').classList.contains('visible'));
+
+console.log('\n=== Mover turno de box / horario ===');
+w.grillaAbrirMover('l-hoy'); await tick();
+const chips = [...w.document.querySelectorAll('.p360-box-chip')];
+check('respeta boxesPorServicio: b1 y b2 habilitados, b3 y b4 no', !chips.find(c => c.dataset.box === 'b1').disabled && chips.find(c => c.dataset.box === 'b3').disabled && chips.find(c => c.dataset.box === 'b4').disabled);
+chips.find(c => c.dataset.box === 'b1').click(); await tick();
+const sel = $('_mov_hora'); sel.value = '12:00'; sel.dispatchEvent(new w.Event('change')); await tick();
+$('_mov_ok').click(); await tick(30);
+const lr = fb.calls.store.get('reservas/l-hoy');
+check('el turno se movió sin borrarlo (box b1, 12:00, mismo id)', lr.box === 'b1' && lr.hora === '12:00');
+check('el modal se cierra', !$('_grilla_mover_ov'));
+
+console.log('\n=== Recordatorios y retorno ===');
+w.navegar('recordatorios'); await tick(30); await new Promise(r => setTimeout(r, 50)); await tick(20);
+const rt = $('rec-turnos').textContent;
+check('lista los turnos de hoy con tratamiento y box', rt.includes('Paula Gómez') && rt.includes('Laura Ruiz') && rt.includes('Box 3'));
+check('sin aviso previo → "Pendiente de avisar"', rt.includes('Pendiente de avisar'));
+w.recRecordar('p-hoy'); await tick(20);
+check('Recordar abre WhatsApp con día, hora y tratamiento', abiertas.some(u => u.includes('wa.me/5493764111222') && decodeURIComponent(u).includes('10:00') && decodeURIComponent(u).includes('Limpieza Facial Profunda')));
+check('queda registrado en contactosWhatsApp (preparado)', fb.calls.store.get('contactosWhatsApp/reservas_p-hoy_recordatorio')?.estado === 'preparado');
+check('la fila pasa a "Preparado"', $('rec-turnos').textContent.includes('Preparado'));
+w.recSetDia(1); await tick();
+check('pestaña Mañana (24 hs) muestra el turno de Laura', $('rec-turnos').textContent.includes('Laura Ruiz') && !$('rec-turnos').textContent.includes('Paula Gómez'));
+const ret = $('rec-retorno').textContent;
+check('retorno: membresía con saldo y sin turno (Marta)', ret.includes('Marta Sosa'));
+check('retorno: ciclo cumplido 15–25 días (Rosa, 17 días)', ret.includes('Rosa Paz') && ret.includes('Hace 17 días'));
+check('retorno: Ana avisada hace 2 días queda oculta', !ret.includes('Ana Díaz'));
+check('retorno: Paula (tiene turno futuro) no aparece', !ret.includes('Paula Gómez'));
+$('ret-ocultar').checked = false; w.recRenderRetorno(); await tick();
+check('desmarcando "Ocultar ya avisadas" aparece Ana con su aviso', $('rec-retorno').textContent.includes('Ana Díaz') && $('rec-retorno').textContent.includes('Avisado'));
+$('ret-trat').value = 'radiofrecuencia'; w.recRenderRetorno(); await tick();
+check('filtro por tratamiento (Radiofrecuencia) deja solo a Rosa', $('rec-retorno').textContent.includes('Rosa Paz') && !$('rec-retorno').textContent.includes('Ana Díaz'));
+$('ret-trat').value = ''; $('ret-ocultar').checked = true;
+w.recAvisarRetorno(encodeURIComponent('dni:26555444')); await tick(20);
+check('Avisar retorno: WhatsApp personalizado + registro en contactosWhatsApp', abiertas.some(u => u.includes('wa.me/5493764555444') && decodeURIComponent(u).includes('17 días')) && fb.calls.store.get('contactosWhatsApp/clients_26555444_retorno')?.estado === 'preparado');
+check('tras avisar, Rosa queda oculta (ya avisada)', !$('rec-retorno').textContent.includes('Rosa Paz'));
+
+console.log('\n=== Recomendación post-sesión ===');
+w.abrirRecomendacionPostSesion('p-hoy'); await tick(20);
+check('preselecciona la plantilla según el servicio (Limpieza → limpieza_peeling)', $('_recps_sel').value === 'limpieza_peeling');
+check('texto personalizado y editable', $('_recps_txt').value.startsWith('Recomendaciones para Paula Gómez') && !$('_recps_txt').readOnly);
+$('_recps_sel').value = 'criolipolisis'; $('_recps_sel').dispatchEvent(new w.Event('change'));
+check('cambiar plantilla actualiza el texto', /Criolipólisis/.test($('_recps_txt').value));
+$('_recps_txt').value += '\n\nNota extra de Gimena.';
+$('_recps_wa').click(); await tick(20);
+check('abre WhatsApp con el texto ajustado', abiertas.some(u => decodeURIComponent(u).includes('Nota extra de Gimena.')));
+check('deja asentado qué recomendación se envió', fb.calls.store.get('contactosWhatsApp/reservas_p-hoy_rec_criolipolisis')?.estado === 'preparado');
+w.abrirFicha360Dni('30111222', 'kit'); await tick(30);
+check('la ficha muestra la recomendación en el seguimiento', $('f360-cuerpo').textContent.includes('Recomendación · Criolipólisis'));
+w.cerrarFicha360();
+
+console.log('\n=== Directorio de pacientes ===');
+w.navegar('clientes'); await tick(30);
+$('inpBusPaciente').value = '3764999'; w.filtrarListadoClientes(); await tick();
+check('busca por teléfono', $('contenedorClientes').textContent.includes('Laura Ruiz') && !$('contenedorClientes').textContent.includes('Paula Gómez'));
+$('inpBusPaciente').value = 'radiofrec'; w.filtrarListadoClientes(); await tick();
+check('busca por tratamiento habitual', $('contenedorClientes').textContent.includes('Rosa Paz'));
+$('inpBusPaciente').value = 'gomez'; w.filtrarListadoClientes(); await tick();
+const card = $('contenedorClientes').innerHTML;
+check('busca sin tildes y muestra indicadores (próximo turno, última sesión)', card.includes('Paula') && /Próximo:/.test(card) && /Última sesión hace 21 d/.test(card));
+check('botón Ficha 360° en la tarjeta', card.includes('abrirFicha360Dni'));
+
+check('sin errores de JavaScript durante la prueba', errores.length === 0, errores.join(' | '));
+console.log('\n' + (fails ? `${fails} FALLA(S)` : 'TODOS LOS FLUJOS DE ADMIN OK'));
+process.exit(fails ? 1 : 0);
