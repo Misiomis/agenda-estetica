@@ -2,7 +2,7 @@
 export const db = {};
 export const storage = {};
 export const auth = { currentUser: null };
-export const calls = { authCallback: null, store: new Map(), setDocCalls: [], updateDocCalls: [] };
+export const calls = { authCallback: null, store: new Map(), setDocCalls: [], updateDocCalls: [], lecturas: [] };
 let seq = 0;
 const k = (ref) => `${ref.path}/${ref.id}`;
 export function collection(_db, path) { return { __type: 'collection', path }; }
@@ -17,7 +17,7 @@ export function doc(a, b, c) {
 }
 export function serverTimestamp() { return { __type: 'ts', seconds: Math.floor(Date.now() / 1000), toMillis: () => Date.now() }; }
 const snapDoc = (id, data, path) => ({ id, exists: () => !!data, data: () => data, ref: { __type: 'doc', path, id } });
-export async function getDoc(ref) { return snapDoc(ref.id, calls.store.get(k(ref)) || null, ref.path); }
+export async function getDoc(ref) { calls.lecturas.push(ref.path); return snapDoc(ref.id, calls.store.get(k(ref)) || null, ref.path); }
 export const getDocFromServer = getDoc;
 const pasa = (data, c) => {
   if (c.__type !== 'where') return true;
@@ -31,6 +31,7 @@ const pasa = (data, c) => {
   }
 };
 export async function getDocs(q) {
+  calls.lecturas.push(q.path);
   const docs = [];
   for (const [key, data] of calls.store.entries()) {
     const i = key.lastIndexOf('/');

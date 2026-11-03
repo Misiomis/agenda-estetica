@@ -42,9 +42,11 @@ const dia = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return is
 const HOY = dia(0);
 const set = (p, d) => fb.calls.store.set(p, d);
 
-set('clients/30111222', { fullName: 'Paula Gómez', phone: '3764111222', membershipActive: true, hoursBalance: 2.5, planificacion: null });
-set('clients/30999888', { fullName: 'Laura Ruiz', phone: '3764999888', membershipActive: false, hoursBalance: 0 });
-set('clients/28777666', { fullName: 'Marta Sosa', phone: '3764777666', membershipActive: true, hoursBalance: 3 });
+set('clients/30111222', { fullName: 'Paula Gómez', phone: '3764111222', membershipActive: true, hoursBalance: 2.5, planificacion: null, disponibilidadTexto: 'Puede jueves a la mañana' });
+// Laura: disponibilidad cargada solo en la planificación estructurada (sin texto libre)
+set('clients/30999888', { fullName: 'Laura Ruiz', phone: '3764999888', membershipActive: false, hoursBalance: 0,
+  planificacion: { version: 1, disponibilidad: { modo: 'preferida', dias: { martes: [{ desde: '16:00', hasta: '19:00' }] } } } });
+set('clients/28777666', { fullName: 'Marta Sosa', phone: '3764777666', membershipActive: true, hoursBalance: 3, disponibilidadTexto: 'Todos los días por la tarde de 14 a 18' });
 set('clients/27666555', { fullName: 'Ana Díaz', phone: '3764666555', membershipActive: false, hoursBalance: 0 });
 set('clients/26555444', { fullName: 'Rosa Paz', phone: '3764555444', membershipActive: false, hoursBalance: 0 });
 const R = (id, d) => set('reservas/' + id, { estado: 'confirmado', ...d });
@@ -88,17 +90,20 @@ const tools = w.document.querySelector('.grilla-tools').textContent;
 check('"Pendientes de reagendar" ya no está en la barra de la Grilla', !/Pendientes de reagendar/.test(tools));
 check('siguen + Horario extra, Duplicar mes, Vista clásica y Cristina', /Horario extra/.test(tools) && /Duplicar mes/.test(tools) && /Vista clásica/.test(tools) && !!$('btn-grilla-cristina'));
 check('hay "Hora actual" y selector de densidad', !!$('btn-grilla-ahora') && !!$('btn-grilla-densidad'));
-check('Pendientes de reagendar sigue accesible desde Agenda', /Pendientes de reagendar/.test($('sec-agenda').textContent));
+check('"Pendientes de reagendar" tampoco aparece como botón en Agenda', ![...w.document.querySelectorAll('button')].some(b => /Pendientes de reagendar/.test(b.textContent)));
 
-console.log('\n=== Grilla: tarjetas enriquecidas ===');
+console.log('\n=== Grilla: disponibilidad y última sesión, sin datos financieros ===');
 w.grillaIrHoy(); await tick(40); await new Promise(r => setTimeout(r, 300)); await tick(40);
 const tb = $('grilla-tbody').innerHTML;
 check('la Grilla muestra los turnos reales de hoy', tb.includes('Paula Gómez') && tb.includes('Laura Ruiz'), tb.slice(0, 200));
-check('muestra membresía con saldo de horas (⭐ 2,5 h disp.)', tb.includes('2,5 h disp.'));
-check('muestra estado de pago real (💳 Señado: precio 45, cobrado 20)', tb.includes('💳 Señado'));
+check('muestra el texto exacto de disponibilidad de la ficha (🗓️ Puede jueves a la mañana)', tb.includes('🗓️ Puede jueves a la mañana'));
+check('muestra la disponibilidad estructurada de la planificación (Laura: martes 16 a 19)', /🗓️ Martes[^<]*16:00/.test(tb), tb.match(/gc-ctx-dispo[^<]*/g));
 check('muestra la última sesión (Hi-Fu Facial, hace 21 d)', tb.includes('Hi-Fu Facial · hace 21 d'));
 check('Laura sin sesiones previas → "Primera sesión"', tb.includes('Primera sesión'));
-check('resumen del día con conteo de pagos', /1 señados/.test($('grilla-resumen-dia').textContent), $('grilla-resumen-dia').textContent);
+// ("No disp." es la etiqueta de horario bloqueado de siempre, no un saldo.)
+check('NO muestra pagos ni saldo de horas en la Grilla', !/💳|Señado|Pagado|Pendiente de pago|\d h disp\.|⭐|saldo/i.test(tb + $('grilla-resumen-dia').innerHTML));
+check('NO consulta prestaciones ni pagos al dibujar la Grilla', !fb.calls.lecturas.some(p => p === 'pagos' || p === 'prestaciones'), fb.calls.lecturas.join(','));
+check('resumen del día solo con turnos, pacientes y boxes', /2<\/b> turnos/.test($('grilla-resumen-dia').innerHTML) && /Box 3: 1/.test($('grilla-resumen-dia').textContent), $('grilla-resumen-dia').textContent);
 const filas15 = () => [...w.document.querySelectorAll('#grilla-tbody tr.grilla-row-15')];
 w.grillaToggleDensidad(); await tick();
 check('vista compacta activa la clase y oculta filas :15/:45 sin turnos', $('grilla-table').classList.contains('grilla-compacta') && filas15().some(tr => !tr.classList.contains('gr-con-inicio')));
@@ -137,6 +142,7 @@ console.log('\n=== Mover turno de box / horario ===');
 w.grillaAbrirMover('l-hoy'); await tick();
 const chips = [...w.document.querySelectorAll('.p360-box-chip')];
 check('respeta boxesPorServicio: b1 y b2 habilitados, b3 y b4 no', !chips.find(c => c.dataset.box === 'b1').disabled && chips.find(c => c.dataset.box === 'b3').disabled && chips.find(c => c.dataset.box === 'b4').disabled);
+check('mover turno muestra la disponibilidad de la paciente arriba', /Disponibilidad según su ficha/.test(w.document.querySelector('.p360-ctx-agendar')?.textContent || '') && /Martes/.test(w.document.querySelector('.p360-ctx-agendar')?.textContent || ''));
 chips.find(c => c.dataset.box === 'b1').click(); await tick();
 const sel = $('_mov_hora'); sel.value = '12:00'; sel.dispatchEvent(new w.Event('change')); await tick();
 $('_mov_ok').click(); await tick(30);
@@ -158,7 +164,9 @@ check('la fila pasa a "Preparado"', $('rec-turnos').textContent.includes('Prepar
 w.recSetDia(1); await tick();
 check('pestaña Mañana (24 hs) muestra el turno de Laura', $('rec-turnos').textContent.includes('Laura Ruiz') && !$('rec-turnos').textContent.includes('Paula Gómez'));
 const ret = $('rec-retorno').textContent;
-check('retorno: membresía con saldo y sin turno (Marta)', ret.includes('Marta Sosa'));
+check('retorno: Marta (18 días) aparece en la lista', ret.includes('Marta Sosa') && ret.includes('Hace 18 días'));
+check('retorno: muestra qué días puede según la ficha (📌)', ret.includes('📌 Todos los días por la tarde de 14 a 18'));
+check('retorno: sin saldo de horas ni membresía en la tabla', !/a favor|⭐/.test($('rec-retorno').innerHTML));
 check('retorno: ciclo cumplido 15–25 días (Rosa, 17 días)', ret.includes('Rosa Paz') && ret.includes('Hace 17 días'));
 check('retorno: Ana avisada hace 2 días queda oculta', !ret.includes('Ana Díaz'));
 check('retorno: Paula (tiene turno futuro) no aparece', !ret.includes('Paula Gómez'));
@@ -228,8 +236,56 @@ $('inpBusPaciente').value = 'radiofrec'; w.filtrarListadoClientes(); await tick(
 check('busca por tratamiento habitual', $('contenedorClientes').textContent.includes('Rosa Paz'));
 $('inpBusPaciente').value = 'gomez'; w.filtrarListadoClientes(); await tick();
 const card = $('contenedorClientes').innerHTML;
-check('busca sin tildes y muestra indicadores (próximo turno, última sesión)', card.includes('Paula') && /Próximo:/.test(card) && /Última sesión hace (0|21) d/.test(card));
+check('busca sin tildes y muestra próximo turno, disponibilidad y última sesión', card.includes('Paula') && /Próximo turno:/.test(card) && card.includes('🗓️ Puede jueves a la mañana') && /Última sesión: <b>/.test(card));
+check('la tarjeta no muestra "Saldo bajo" (sin ruido de horas)', !/Saldo bajo/.test(card));
 check('botón Ficha 360° en la tarjeta', card.includes('abrirFicha360Dni'));
+
+console.log('\n=== Disponibilidad: editar en la ficha → Firestore, Grilla y directorio al instante ===');
+w.navegar('grilla'); w.grillaIrHoy(); await tick(30);
+w.abrirFicha360Dni('30111222', 'resumen'); await tick();
+check('la ficha arranca con la disponibilidad editable arriba', $('f360-cuerpo').firstElementChild?.classList.contains('f360-dispo') && $('f360-dispo-txt')?.value === 'Puede jueves a la mañana');
+$('f360-dispo-txt').value = 'Puede martes y jueves de 9 a 12';
+await w.f360GuardarDispo('30111222'); await tick(20);
+check('se guarda en clients/{dni}.disponibilidadTexto', fb.calls.store.get('clients/30111222').disponibilidadTexto === 'Puede martes y jueves de 9 a 12');
+check('la Grilla se actualiza al instante', $('grilla-tbody').innerHTML.includes('🗓️ Puede martes y jueves de 9 a 12'));
+w.cerrarFicha360();
+w.navegar('clientes'); await tick(20);
+$('inpBusPaciente').value = 'martes y jueves'; w.filtrarListadoClientes(); await tick();
+check('el directorio busca por disponibilidad y la muestra en la tarjeta', $('contenedorClientes').textContent.includes('Paula Gómez') && $('contenedorClientes').textContent.includes('Puede martes y jueves de 9 a 12'));
+$('inpBusPaciente').value = 'rosa'; w.filtrarListadoClientes(); await tick();
+check('sin disponibilidad cargada → botón para agregarla con 1 clic', /Agregar días y horarios que puede/.test($('contenedorClientes').textContent));
+w.editarDisponibilidad('26555444'); await tick();
+$('_dispo_txt').value = 'Puede viernes por la tarde'; $('_dispo_ok').click(); await tick(20);
+check('edición rápida guarda y refresca el directorio', fb.calls.store.get('clients/26555444').disponibilidadTexto === 'Puede viernes por la tarde' && $('contenedorClientes').textContent.includes('Puede viernes por la tarde'));
+check('la tarjeta muestra última sesión con fecha, box y tratamiento', /Última sesión: .*Box 2.*Radiofrecuencia corporal/.test($('contenedorClientes').textContent));
+
+console.log('\n=== Registrar turno: recuadro de disponibilidad y últimas sesiones ===');
+const elPac = w.document.createElement('div');
+Object.assign(elPac.dataset, { dni: '30111222', nombre: 'Paula Gómez', phone: '3764111222', notas: '' });
+w.seleccionarPacienteRegistro(elPac); await tick();
+const ctxReg = $('mreg-resultados').textContent;
+check('al elegir la paciente se ve su disponibilidad', ctxReg.includes('Disponibilidad según su ficha') && ctxReg.includes('Puede martes y jueves de 9 a 12'));
+check('y sus últimas sesiones con box y tratamiento', ctxReg.includes('Hi-Fu Facial') && ctxReg.includes('Box 3'));
+
+console.log('\n=== Navegación en 5 bloques con pestañas internas ===');
+check('el sidebar tiene los 5 bloques', ['jornada', 'pacientes', 'seguimiento', 'recursos', 'gestion'].every(g => $('btn-g-' + g)));
+check('ninguna sección quedó sin acceso', ['grilla', 'agenda', 'preparar-jornada', 'clientes', 'historias', 'buscador-sesiones', 'recordatorios', 'recomendaciones', 'consultas', 'control-consultas', 'agenda-ci', 'servicios', 'pedidos-kit', 'calculadora', 'cursos', 'resumen-mensual', 'export'].every(s => $('btn-' + s)));
+w.navegar('control-consultas'); await tick(20);
+const bar = $('subtabs-bar');
+check('la sección muestra las pestañas de su bloque', !bar.hidden && /Recordatorios y retorno/.test(bar.textContent) && /Consultas web/.test(bar.textContent) && bar.querySelector('.subtab.activo')?.textContent.includes('Control de consultas'));
+check('el bloque activo queda desplegado en el sidebar', w.document.querySelector('.nav-grupo-wrap[data-grupo="seguimiento"]').classList.contains('abierto') && $('btn-control-consultas').classList.contains('active'));
+w.navegarGrupo('jornada'); await tick();
+check('volver a un bloque recuerda su última pantalla (Grilla)', $('sec-grilla').classList.contains('active'));
+w.navegarGrupo('seguimiento'); await tick(20);
+check('… y al volver a Seguimiento abre Control de consultas', $('sec-control-consultas').classList.contains('active'));
+check('el menú inferior del celular marca el bloque activo', w.document.querySelector('.bni[data-grupo="seguimiento"]').classList.contains('active'));
+
+console.log('\n=== Recomendaciones post-sesión (pestaña) ===');
+w.navegar('recomendaciones'); await tick(30);
+const rp = $('recpost-lista').textContent;
+check('lista las sesiones del día con la plantilla sugerida', rp.includes('Paula Gómez') && rp.includes('Limpieza profunda / Peeling / Dermaplaning'));
+check('marca la ya enviada (Criolipólisis a Paula)', /Preparado|Enviada/.test(rp));
+check('la biblioteca agrupa por tipo de tratamiento', ['Facial', 'Radiofrecuencia / Tensado', 'HIFU / Lifting sin cirugía', 'Criolipólisis', 'Drenaje / Masajes / Detox', 'Kit domiciliario'].every(c => $('recpost-biblioteca').textContent.includes(c)));
 
 check('sin errores de JavaScript durante la prueba', errores.length === 0, errores.join(' | '));
 console.log('\n' + (fails ? `${fails} FALLA(S)` : 'TODOS LOS FLUJOS DE ADMIN OK'));

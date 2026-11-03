@@ -1403,12 +1403,7 @@
         .grilla-ahora-pill { display: block; font-size: 8.5px; font-weight: 800; color: #fff; background: #D81B60; border-radius: 999px; padding: 0 4px; margin-top: 1px; line-height: 1.5; white-space: nowrap; }
         .gc-ctx { display: flex; gap: 3px; width: 100%; overflow: hidden; margin-top: 2px; white-space: nowrap; }
         .gc-ctx-ultima { display: block; font-size: 8.5px; font-weight: 600; color: var(--info); text-overflow: ellipsis; }
-        .gc-chip { display: inline-flex; align-items: center; font-size: 8.5px; font-weight: 800; border-radius: 999px; padding: 0 6px; line-height: 1.6; border: 1px solid transparent; flex-shrink: 0; }
-        .gc-chip-ok { background: var(--success-soft); color: var(--success); border-color: #BFDBC9; }
-        .gc-chip-warn { background: var(--warning-soft); color: var(--warning); border-color: #E0C989; }
-        .gc-chip-err { background: var(--danger-soft); color: var(--danger); border-color: #E2C2BE; }
-        .gc-chip-neutro { background: var(--surface-2); color: var(--ink-soft); border-color: var(--border); }
-        .gc-chip-memb { background: #EFE6F7; color: #5B3F86; border-color: #D7C6EA; }
+        .gc-ctx-dispo { display: block; font-size: 9px; font-weight: 700; color: #6B4B10; background: #FBF3DF; border: 1px solid #EAD7A6; border-radius: 6px; padding: 0 5px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 100%; box-sizing: border-box; }
         .gc-bloque-cont-info { justify-content: center !important; padding: 0 6px 0 9px !important; }
         .gc-menu-sep { height: 1px; background: var(--border); margin: 4px 2px; }
 
@@ -1544,6 +1539,51 @@
         .f360-campo input, .f360-campo textarea, .f360-campo select { width: 100%; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: 9px; padding: 8px 10px; font: inherit; font-size: 13px; color: var(--ink); background: var(--surface); margin: 0; }
         .f360-campo:has(textarea) { grid-column: 1 / -1; }
         .f360-acc-fija { position: sticky; bottom: -40px; display: flex; gap: 10px; align-items: center; padding: 10px 0; background: var(--bg); }
+        /* ── Layout: aprovechar todo el ancho en escritorio (antes max 1180px) ── */
+        @media (min-width: 769px) {
+            .container { max-width: none; margin-left: var(--sidebar-w); padding: 22px clamp(18px, 2.4vw, 36px) 60px; }
+        }
+
+        /* ── Navegación en 5 bloques (sidebar) ── */
+        .nav-grupo-wrap { margin-bottom: 3px; }
+        .sidebar .btn-nav.nav-grupo { color: var(--ink); font-weight: 700; }
+        .nav-grupo-txt { flex: 1; min-width: 0; }
+        .nav-grupo-chev { font-size: 10px; opacity: .6; transition: transform .15s; }
+        .nav-grupo-wrap.abierto .nav-grupo-chev { transform: rotate(90deg); }
+        .nav-subs { display: none; flex-direction: column; gap: 1px; margin: 2px 0 8px 21px; padding-left: 8px; border-left: 2px solid var(--border); }
+        .nav-grupo-wrap.abierto .nav-subs { display: flex; }
+        .sidebar .btn-nav.nav-sub { min-height: 34px; padding: 6px 10px; font-size: 12.5px; }
+        .sidebar .btn-nav.nav-sub .nav-ico { width: 15px; font-size: 13px; opacity: .7; }
+        .sidebar .btn-nav.nav-sub.active { background: var(--forest-soft); color: var(--forest); font-weight: 800; }
+        .nav-grupo-wrap:not(.abierto):has(.nav-badge-dot:not([style*="none"])) .nav-grupo-txt::after { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--danger); margin-left: 6px; vertical-align: 1px; }
+
+        /* ── Pestañas internas del bloque activo ── */
+        .subtabs-bar { display: flex; gap: 6px; align-items: center; overflow-x: auto; scrollbar-width: none; padding: 2px 0 12px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .subtabs-bar[hidden] { display: none; }
+        .subtabs-bar::-webkit-scrollbar { display: none; }
+        .subtabs-titulo { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--ink); white-space: nowrap; margin-right: 6px; }
+        .subtab { flex-shrink: 0; padding: 8px 14px; min-height: 36px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-soft); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s, border-color .15s; }
+        .subtab:hover { border-color: var(--border-strong); color: var(--ink); }
+        .subtab.activo { background: var(--forest); border-color: var(--forest); color: #fff; }
+        .subtab:focus-visible { outline: 2px solid var(--forest); outline-offset: 2px; }
+        @media (max-width: 768px) { .subtabs-titulo { display: none; } .subtabs-bar { margin: 0 -10px 12px; padding: 2px 10px 10px; } }
+
+        /* ── Disponibilidad (directorio, ficha, agendar, retorno) ── */
+        .dir360 { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+        .dir360-dispo { font-size: 13px; font-weight: 700; color: #5C3F08; background: #FBF3DF; border: 1px solid #EAD7A6; border-radius: 10px; padding: 7px 11px; line-height: 1.5; }
+        .dir360-dispo-vacia { align-self: flex-start; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--forest); background: var(--surface); border: 1.5px dashed var(--border-strong); border-radius: 10px; padding: 7px 12px; cursor: pointer; }
+        .dir360-dispo-vacia:hover { border-color: var(--forest); background: var(--forest-soft); }
+        .dir360-ultima { font-size: 12.5px; color: var(--ink); }
+        .p360-wa-link { color: var(--whatsapp); font-weight: 700; text-decoration: none; }
+        .p360-ctx-agendar { background: #FBF3DF; border: 1px solid #EAD7A6; border-radius: 12px; padding: 10px 12px; margin: 8px 0 12px; text-align: left; }
+        .p360-ctx-t { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: #6B4B10; margin-bottom: 3px; }
+        .p360-ctx-dispo { font-size: 13px; font-weight: 700; color: #3F2C06; line-height: 1.45; }
+        .p360-ctx-ses { font-size: 12.5px; color: var(--ink); line-height: 1.5; }
+        .p360-dispo-linea { font-size: 12.5px; font-weight: 600; color: #5C3F08; line-height: 1.45; }
+        .f360-dispo { border-color: #EAD7A6; background: #FFFBF1; }
+        .recpost-cat { margin-bottom: 6px; }
+        .recpost-items { display: flex; flex-wrap: wrap; gap: 6px; }
+
         @media (max-width: 560px) {
             .f360-head { padding: 14px 14px 10px; }
             .f360-cuerpo { padding: 14px 14px 40px; }
@@ -1700,94 +1740,121 @@
                 <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5.2"/><path d="M15.5 15.5 12 12" stroke-linecap="round"/></svg>
                 Buscar
             </button>
-            <div class="sidebar-group">
-                <span class="sidebar-group-label">Jornada y agenda</span>
-                <div class="sidebar-group-items">
-                    <button class="btn-nav active" id="btn-grilla" onclick="navegar('grilla')">
+            <!-- Navegación en 5 bloques. Cada bloque se despliega con sus pantallas
+                 (mismos id="btn-*" y onclick="navegar(...)" de siempre); la vista
+                 activa además las muestra arriba como pestañas internas. -->
+            <div class="nav-grupo-wrap" data-grupo="jornada">
+                <button class="btn-nav nav-grupo" id="btn-g-jornada" onclick="navegarGrupo('jornada')" aria-expanded="false">
+                    <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="14" height="14" rx="2"/><path d="M2 9h14M9 2v14"/></svg>
+                    <span class="nav-grupo-txt">Grilla y Jornada</span><span class="nav-grupo-chev" aria-hidden="true">▸</span>
+                </button>
+                <div class="nav-subs">
+                    <button class="btn-nav nav-sub" id="btn-grilla" onclick="navegar('grilla')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="14" height="14" rx="2"/><path d="M2 9h14M9 2v14"/></svg>
                         Grilla
                     </button>
-                    <button class="btn-nav" id="btn-agenda" onclick="navegar('agenda')">
+                    <button class="btn-nav nav-sub" id="btn-agenda" onclick="navegar('agenda')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3.2" width="14" height="12.3" rx="2"/><path d="M2 7h14M6 1.5v3M12 1.5v3" stroke-linecap="round"/></svg>
                         Agenda
                     </button>
-                    <button class="btn-nav" id="btn-preparar-jornada" onclick="navegar('preparar-jornada')">
+                    <button class="btn-nav nav-sub" id="btn-preparar-jornada" onclick="navegar('preparar-jornada')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="2.5" width="11" height="13.5" rx="1.6"/><path d="M6.5 1.6h5a1 1 0 0 1 1 1v1.3h-7V2.6a1 1 0 0 1 1-1Z"/><path d="M6 8.5h6M6 11.3h6M6 5.8h3" stroke-linecap="round"/></svg>
                         Preparar jornada
                     </button>
                 </div>
             </div>
-            <div class="sidebar-group">
-                <span class="sidebar-group-label">Atención</span>
-                <div class="sidebar-group-items">
-                    <button class="btn-nav" id="btn-recordatorios" onclick="navegar('recordatorios')">
+            <div class="nav-grupo-wrap" data-grupo="pacientes">
+                <button class="btn-nav nav-grupo" id="btn-g-pacientes" onclick="navegarGrupo('pacientes')" aria-expanded="false">
+                    <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="6" r="2.6"/><path d="M2.3 15.5c.5-3 2.2-4.6 4.7-4.6s4.2 1.6 4.7 4.6"/><circle cx="13.2" cy="5.6" r="2"/><path d="M12.2 10.8c1.9.2 3.1 1.7 3.5 4.1"/></svg>
+                    <span class="nav-grupo-txt">Pacientes y Fichas</span><span class="nav-grupo-chev" aria-hidden="true">▸</span>
+                </button>
+                <div class="nav-subs">
+                    <button class="btn-nav nav-sub" id="btn-clientes" onclick="navegar('clientes')">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="6" r="2.6"/><path d="M2.3 15.5c.5-3 2.2-4.6 4.7-4.6s4.2 1.6 4.7 4.6"/><circle cx="13.2" cy="5.6" r="2"/><path d="M12.2 10.8c1.9.2 3.1 1.7 3.5 4.1"/></svg>
+                        Pacientes
+                    </button>
+                    <button class="btn-nav nav-sub" id="btn-historias" onclick="navegar('historias')">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 2.2h6.1L14 5.6v10.2a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1Z"/><path d="M10.4 2.2V5.6H14"/><path d="M5.7 9h5.5M5.7 11.5h5.5M5.7 14h3.5" stroke-linecap="round"/></svg>
+                        Historias
+                    </button>
+                    <button class="btn-nav nav-sub" id="btn-buscador-sesiones" onclick="navegar('buscador-sesiones')">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7.8" cy="7.8" r="5"/><path d="M15.3 15.3 11.5 11.5" stroke-linecap="round"/></svg>
+                        Sesiones
+                    </button>
+                </div>
+            </div>
+            <div class="nav-grupo-wrap" data-grupo="seguimiento">
+                <button class="btn-nav nav-grupo" id="btn-g-seguimiento" onclick="navegarGrupo('seguimiento')" aria-expanded="false">
+                    <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.2a4.6 4.6 0 0 0-4.6 4.6v2.6L3 12.2h12l-1.4-2.8V6.8A4.6 4.6 0 0 0 9 2.2Z" stroke-linejoin="round"/><path d="M7.2 14.6a1.9 1.9 0 0 0 3.6 0" stroke-linecap="round"/></svg>
+                    <span class="nav-grupo-txt">Seguimiento y Consultas</span><span class="nav-grupo-chev" aria-hidden="true">▸</span>
+                </button>
+                <div class="nav-subs">
+                    <button class="btn-nav nav-sub" id="btn-recordatorios" onclick="navegar('recordatorios')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.2a4.6 4.6 0 0 0-4.6 4.6v2.6L3 12.2h12l-1.4-2.8V6.8A4.6 4.6 0 0 0 9 2.2Z" stroke-linejoin="round"/><path d="M7.2 14.6a1.9 1.9 0 0 0 3.6 0" stroke-linecap="round"/></svg>
                         Recordatorios
                         <span id="rec-badge" class="nav-badge-dot" style="display:none"></span>
                     </button>
-                    <button class="btn-nav" id="btn-clientes" onclick="navegar('clientes')">
-                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="6" r="2.6"/><path d="M2.3 15.5c.5-3 2.2-4.6 4.7-4.6s4.2 1.6 4.7 4.6"/><circle cx="13.2" cy="5.6" r="2"/><path d="M12.2 10.8c1.9.2 3.1 1.7 3.5 4.1"/></svg>
-                        Pacientes
+                    <button class="btn-nav nav-sub" id="btn-recomendaciones" onclick="navegar('recomendaciones')">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.5l1.6 3.9 4 .4-3 2.7.9 4L9 11.4l-3.5 2.1.9-4-3-2.7 4-.4Z" stroke-linejoin="round"/></svg>
+                        Recomendaciones
                     </button>
-                    <button class="btn-nav" id="btn-historias" onclick="navegar('historias')">
-                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 2.2h6.1L14 5.6v10.2a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1Z"/><path d="M10.4 2.2V5.6H14"/><path d="M5.7 9h5.5M5.7 11.5h5.5M5.7 14h3.5" stroke-linecap="round"/></svg>
-                        Historias
-                    </button>
-                    <button class="btn-nav" id="btn-buscador-sesiones" onclick="navegar('buscador-sesiones')">
-                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7.8" cy="7.8" r="5"/><path d="M15.3 15.3 11.5 11.5" stroke-linecap="round"/></svg>
-                        Sesiones
-                    </button>
-                    <button class="btn-nav" id="btn-consultas" onclick="navegar('consultas')" style="position:relative">
+                    <button class="btn-nav nav-sub" id="btn-consultas" onclick="navegar('consultas')" style="position:relative">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.3 4.6a1.6 1.6 0 0 1 1.6-1.6h9.2a1.6 1.6 0 0 1 1.6 1.6v6.3a1.6 1.6 0 0 1-1.6 1.6H7.8l-3.3 2.9v-2.9H3.9a1.6 1.6 0 0 1-1.6-1.6Z"/></svg>
                         Consultas
                         <span id="consultas-badge" class="nav-badge-dot" style="display:none"></span>
                     </button>
-                    <button class="btn-nav" id="btn-control-consultas" onclick="navegar('control-consultas')">
+                    <button class="btn-nav nav-sub" id="btn-control-consultas" onclick="navegar('control-consultas')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="2.5" width="11" height="13.5" rx="1.6"/><path d="M6.5 1.6h5a1 1 0 0 1 1 1v1.3h-7V2.6a1 1 0 0 1 1-1Z"/><path d="m6.3 9.6 1.4 1.4 3.2-3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         Control de consultas
                     </button>
-                    <button class="btn-nav" id="btn-agenda-ci" onclick="navegar('agenda-ci')">
+                    <button class="btn-nav nav-sub" id="btn-agenda-ci" onclick="navegar('agenda-ci')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3.2" width="14" height="12.3" rx="2"/><path d="M2 7h14M6 1.5v3M12 1.5v3" stroke-linecap="round"/><path d="m6.3 11 1.4 1.4 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         Agenda CI
                     </button>
                 </div>
             </div>
-            <div class="sidebar-group">
-                <span class="sidebar-group-label">Recursos</span>
-                <div class="sidebar-group-items">
-                    <button class="btn-nav" id="btn-servicios" onclick="navegar('servicios')">
+            <div class="nav-grupo-wrap" data-grupo="recursos">
+                <button class="btn-nav nav-grupo" id="btn-g-recursos" onclick="navegarGrupo('recursos')" aria-expanded="false">
+                    <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 5.6 9 2.3l6.5 3.3-6.5 3.3-6.5-3.3Z"/><path d="M2.5 5.6v6.6L9 15.7l6.5-3.5V5.6M9 8.9v6.8"/></svg>
+                    <span class="nav-grupo-txt">Recursos del Espacio</span><span class="nav-grupo-chev" aria-hidden="true">▸</span>
+                </button>
+                <div class="nav-subs">
+                    <button class="btn-nav nav-sub" id="btn-servicios" onclick="navegar('servicios')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.8 4.5h12.4M2.8 9h12.4M2.8 13.5h7.4" stroke-linecap="round"/></svg>
                         Servicios
                     </button>
-                    <button class="btn-nav" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">
+                    <button class="btn-nav nav-sub" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 5.6 9 2.3l6.5 3.3-6.5 3.3-6.5-3.3Z"/><path d="M2.5 5.6v6.6L9 15.7l6.5-3.5V5.6M9 8.9v6.8"/></svg>
                         Kit
                     </button>
-                    <button class="btn-nav" id="btn-calculadora" onclick="navegar('calculadora')">
+                    <button class="btn-nav nav-sub" id="btn-calculadora" onclick="navegar('calculadora')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="1.8" width="12" height="14.4" rx="1.8"/><path d="M5.2 4.6h7.6" stroke-linecap="round"/><circle cx="5.6" cy="8.2" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="8.2" r=".9" fill="currentColor" stroke="none"/><circle cx="12.4" cy="8.2" r=".9" fill="currentColor" stroke="none"/><circle cx="5.6" cy="11.4" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="11.4" r=".9" fill="currentColor" stroke="none"/><circle cx="12.4" cy="11.4" r=".9" fill="currentColor" stroke="none"/></svg>
                         Calculadora
                     </button>
-                    <button class="btn-nav" id="btn-cursos" onclick="navegar('cursos')" style="position:relative">
+                    <button class="btn-nav nav-sub" id="btn-cursos" onclick="navegar('cursos')" style="position:relative">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.5 6.2 9 2.5l7.5 3.7L9 9.9 1.5 6.2Z"/><path d="M4.6 7.7v3.4c0 1.2 1.9 2.2 4.4 2.2s4.4-1 4.4-2.2V7.7M16.5 6.2v4.6" stroke-linecap="round"/></svg>
                         Mis Cursos
                         <span id="cursos-badge" class="nav-badge-dot" style="display:none"></span>
                     </button>
                 </div>
             </div>
-            <div class="sidebar-group">
-                <span class="sidebar-group-label">Gestión</span>
-                <div class="sidebar-group-items">
-                    <button class="btn-nav" id="btn-ultimos-movimientos" onclick="mostrarUltimosMovimientos()">
-                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="9" r="6.5"/><path d="M9 5.2V9l2.8 1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        Movimientos
+            <div class="nav-grupo-wrap" data-grupo="gestion">
+                <button class="btn-nav nav-grupo" id="btn-g-gestion" onclick="navegarGrupo('gestion')" aria-expanded="false">
+                    <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2.2" width="14" height="13.6" rx="1.8"/><path d="M5.5 11.2v2M9 8.6v4.6M12.5 6v7.2" stroke-linecap="round"/></svg>
+                    <span class="nav-grupo-txt">Gestión y Cierre</span><span class="nav-grupo-chev" aria-hidden="true">▸</span>
+                </button>
+                <div class="nav-subs">
+                    <button class="btn-nav nav-sub" id="btn-resumen-mensual" onclick="navegar('resumen-mensual')">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2.2" width="14" height="13.6" rx="1.8"/><path d="M5.5 11.2v2M9 8.6v4.6M12.5 6v7.2" stroke-linecap="round"/></svg>
+                        Resumen mensual
                     </button>
-                    <button class="btn-nav" id="btn-export" onclick="navegar('export')">
+                    <button class="btn-nav nav-sub" id="btn-export" onclick="navegar('export')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.3v8.6M5.6 7.5 9 10.9l3.4-3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.8 12.5v2a1.4 1.4 0 0 0 1.4 1.4h9.6a1.4 1.4 0 0 0 1.4-1.4v-2" stroke-linecap="round"/></svg>
                         Exportar
                     </button>
-                    <button class="btn-nav" id="btn-resumen-mensual" onclick="navegar('resumen-mensual')">
-                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2.2" width="14" height="13.6" rx="1.8"/><path d="M5.5 11.2v2M9 8.6v4.6M12.5 6v7.2" stroke-linecap="round"/></svg>
-                        Resumen mensual
+                    <button class="btn-nav nav-sub" id="btn-ultimos-movimientos" onclick="mostrarUltimosMovimientos()">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="9" r="6.5"/><path d="M9 5.2V9l2.8 1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Movimientos
                     </button>
                 </div>
             </div>
@@ -1795,17 +1862,19 @@
 
         <!-- ═══ BOTTOM NAV (móvil solamente) ═══ -->
         <nav class="bottom-nav" id="bottom-nav" aria-label="Navegación principal">
-            <button class="bni active" data-section="grilla" onclick="navegar('grilla')">
-                <span class="bni-ico">📊</span><span class="bni-lbl">Grilla</span>
+            <!-- Mismos bloques que el sidebar; dentro de cada uno, las pestañas
+                 internas de arriba llevan a cada pantalla. -->
+            <button class="bni active" data-grupo="jornada" onclick="navegarGrupo('jornada')">
+                <span class="bni-ico">📅</span><span class="bni-lbl">Jornada</span>
             </button>
-            <button class="bni" data-section="agenda" onclick="navegar('agenda')">
-                <span class="bni-ico">📅</span><span class="bni-lbl">Agenda</span>
+            <button class="bni" data-grupo="pacientes" onclick="navegarGrupo('pacientes')">
+                <span class="bni-ico">👥</span><span class="bni-lbl">Pacientes</span>
             </button>
-            <button class="bni" data-section="clientes" onclick="navegar('clientes')">
-                <span class="bni-ico">👤</span><span class="bni-lbl">Pacientes</span>
+            <button class="bni" data-grupo="seguimiento" onclick="navegarGrupo('seguimiento')">
+                <span class="bni-ico">📲</span><span class="bni-lbl">Seguimiento</span>
             </button>
-            <button class="bni" data-section="buscador-sesiones" onclick="navegar('buscador-sesiones')">
-                <span class="bni-ico">📋</span><span class="bni-lbl">Sesiones</span>
+            <button class="bni" data-grupo="recursos" onclick="navegarGrupo('recursos')">
+                <span class="bni-ico">✨</span><span class="bni-lbl">Recursos</span>
             </button>
             <button class="bni" id="bni-mas" onclick="toggleBottomSheet()">
                 <span class="bni-ico">≡</span><span class="bni-lbl">Más</span>
@@ -1830,6 +1899,7 @@
             <div class="bsh-section">
                 <span class="bsh-label">Atención</span>
                 <button class="bsh-item" onclick="navegar('recordatorios');cerrarBottomSheet()">🔔 Recordatorios y retorno</button>
+                <button class="bsh-item" onclick="navegar('recomendaciones');cerrarBottomSheet()">✨ Recomendaciones post-sesión</button>
                 <button class="bsh-item" onclick="navegar('historias');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 2.2h6.1L14 5.6v10.2a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1Z"/><path d="M10.4 2.2V5.6H14"/><path d="M5.7 9h5.5M5.7 11.5h5.5M5.7 14h3.5" stroke-linecap="round"/></svg> Historias</button>
                 <button class="bsh-item" onclick="navegar('consultas');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.3 4.6a1.6 1.6 0 0 1 1.6-1.6h9.2a1.6 1.6 0 0 1 1.6 1.6v6.3a1.6 1.6 0 0 1-1.6 1.6H7.8l-3.3 2.9v-2.9H3.9a1.6 1.6 0 0 1-1.6-1.6Z"/></svg> Consultas</button>
                 <button class="bsh-item" onclick="navegar('control-consultas');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="2.5" width="11" height="13.5" rx="1.6"/><path d="M6.5 1.6h5a1 1 0 0 1 1 1v1.3h-7V2.6a1 1 0 0 1 1-1Z"/><path d="m6.3 9.6 1.4 1.4 3.2-3.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Control consultas</button>
@@ -1848,6 +1918,7 @@
                 <span class="bsh-label">Gestión</span>
                 <button class="bsh-item" onclick="mostrarUltimosMovimientos();cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="9" r="6.5"/><path d="M9 5.2V9l2.8 1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Movimientos</button>
                 <button class="bsh-item" onclick="navegar('export');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.3v8.6M5.6 7.5 9 10.9l3.4-3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.8 12.5v2a1.4 1.4 0 0 0 1.4 1.4h9.6a1.4 1.4 0 0 0 1.4-1.4v-2" stroke-linecap="round"/></svg> Exportar</button>
+                <button class="bsh-item" onclick="navegar('resumen-mensual');cerrarBottomSheet()">📊 Resumen mensual</button>
             </div>
             <div class="bsh-divider"></div>
             <div class="bsh-section">
@@ -1863,6 +1934,8 @@
         </div>
 
         <div class="container">
+            <!-- Pestañas internas del bloque activo (las arma navegar()) -->
+            <nav id="subtabs-bar" class="subtabs-bar" aria-label="Pantallas de esta sección" hidden></nav>
 
             <!-- ════════════ GRILLA DE BOXES ════════════ -->
             <div id="sec-grilla" class="section active">
@@ -1944,6 +2017,27 @@
                 </div>
             </div>
 
+            <!-- ════════════ RECOMENDACIONES POST-SESIÓN ════════════ -->
+            <div id="sec-recomendaciones" class="section">
+                <div class="p360-sec-head">
+                    <div>
+                        <h3 class="p360-sec-title">Recomendaciones post-sesión</h3>
+                        <p class="p360-sec-sub">Las sesiones del día con la plantilla sugerida según el tratamiento. Abrís, ajustás el texto si hace falta y se envía por WhatsApp; queda registrado qué se le mandó.</p>
+                    </div>
+                    <div class="p360-acc">
+                        <button class="btn-mini" onclick="recPostMoverDia(-1)" aria-label="Día anterior">←</button>
+                        <input type="date" class="select-input" id="recpost-fecha" onchange="recPostSetFecha(this.value)" style="width:auto;margin:0;">
+                        <button class="btn-mini" onclick="recPostMoverDia(1)" aria-label="Día siguiente">→</button>
+                        <button class="btn-mini" onclick="recPostSetFecha()">Hoy</button>
+                    </div>
+                </div>
+                <div class="p360-card"><div id="recpost-lista"></div></div>
+                <div class="p360-card">
+                    <div class="p360-card-head"><h4>📚 Biblioteca de plantillas</h4></div>
+                    <div id="recpost-biblioteca"></div>
+                </div>
+            </div>
+
             <div id="sec-buscador-sesiones" class="section">
                 <div class="detalle-dia-card buscador-sesiones-card" style="margin-bottom:18px; box-shadow:0 6px 24px rgba(63,143,111,0.13); border-radius:22px; border-top:6px solid var(--accento);">
                     <h3 style="margin-top:0; color:var(--accento-oscuro); font-family:'Playfair Display',serif; font-size:1.35em; letter-spacing:0.01em;">Buscador de sesiones</h3>
@@ -1973,7 +2067,6 @@
                     <button class="btn-mini" onclick="verProximos7()">Próximos 7 días</button>
                     <button class="btn-mini" onclick="limpiarPanelDia()">Limpiar panel</button>
                     <button class="btn-mini" onclick="dmAbrir()">🗓️ Duplicar mes</button>
-                    <button class="btn-mini" onclick="navegar('pendientes-reagendar')">Pendientes de reagendar <span class="dm-badge dm-badge-pend" style="display:none"></span></button>
                 </div>
                 <div class="calendar-container">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -2721,7 +2814,7 @@
         import { PLANTILLAS_POST_SESION, CATEGORIAS as REC_CATEGORIAS, construirRecomendacion, sugerirPlantillas } from "/js/recomendaciones-post-sesion.js";
         import {
             diasEntre, indexarSesiones, ultimaSesionAntes, ultimaRealizada, minutosAgendados, tratamientoDe, enRangoRetorno,
-            TRATAMIENTOS_RETORNO, estadoContacto, avisadoEnUltimosDias, haceTexto, estadoPagoCorto, resumenSaldoHoras,
+            TRATAMIENTOS_RETORNO, estadoContacto, avisadoEnUltimosDias, haceTexto, resumenSaldoHoras,
         } from "/js/seguimiento-pacientes.js";
         import {
             DIAS as PLAN_DIAS, ETIQUETA_DIA as PLAN_ETIQUETA_DIA, MODOS as PLAN_MODOS, ALCANCES as PLAN_ALCANCES, TRATAMIENTOS as PLAN_TRATAMIENTOS, FACIAL_INTERVALO_MIN_DIAS,
@@ -3264,9 +3357,15 @@
                     if (data.redirigidoA) return; // redirección de "Cambiar ID", no es una ficha real
                     const notasNuevas = (data.notas || '').trim();
                     const idx = todasLosPacientes.findIndex(p => p.dni === dni);
+                    const dispoNueva = typeof data.disponibilidadTexto === 'string' ? data.disponibilidadTexto : '';
                     if (idx >= 0) {
                         if (todasLosPacientes[idx].notas !== notasNuevas) {
                             todasLosPacientes[idx].notas = notasNuevas;
+                            huboCambios = true;
+                        }
+                        // Disponibilidad editada en otra pestaña/dispositivo → Grilla al día
+                        if ((todasLosPacientes[idx].disponibilidadTexto || '') !== dispoNueva) {
+                            todasLosPacientes[idx].disponibilidadTexto = dispoNueva;
                             huboCambios = true;
                         }
                     } else if (cambio.type !== 'removed') {
@@ -3285,11 +3384,13 @@
                             hoursBalance: data.hoursBalance ?? 0,
                             membershipActive: resolverMembresiaActiva(data),
                             planificacion: data.planificacion && typeof data.planificacion === 'object' ? data.planificacion : null,
+                            disponibilidadTexto: dispoNueva,
                         });
                         huboCambios = true;
                     }
                 });
                 if (huboCambios && typeof window.renderGrilla === 'function') window.renderGrilla();
+                if (huboCambios) window._p360RefrescarPaciente?.();
             }, (err) => console.error('Listener de notas de pacientes (en vivo):', err));
         }
         // "Cambiar ID" (corregir el DNI de un paciente) no reescribe el DNI en
@@ -3994,7 +4095,9 @@
                         membershipActive: resolverMembresiaActiva(c),
                         // Disponibilidad y planificación (etapa 1): solo se lee tal cual
                         // está guardada, nunca se completa a partir de reservas viejas.
-                        planificacion: c.planificacion && typeof c.planificacion === 'object' ? c.planificacion : null
+                        planificacion: c.planificacion && typeof c.planificacion === 'object' ? c.planificacion : null,
+                        // Texto libre de días/horarios que puede (Ficha 360° / directorio)
+                        disponibilidadTexto: typeof c.disponibilidadTexto === 'string' ? c.disponibilidadTexto : ''
                     };
                 }).filter(p => {
                     const d = (p.dni || "").toString();
@@ -6687,6 +6790,8 @@
                 if (!txt) return true;
                 if (_normTxt360(p.fullName).includes(_txtN)) return true;
                 if (_txtDig.length >= 3 && (normalizarDNI(p.dni).includes(_txtDig) || (p.phone || '').replace(/\D/g, '').includes(_txtDig))) return true;
+                // Disponibilidad: buscar "jueves" o "tarde" encuentra quién puede en ese rango.
+                if (_dispoTodo(p).some(l => _normTxt360(l).includes(_txtN))) return true;
                 const e = _idx360.get(_p360ClaveDePaciente(p));
                 return !!e && e.todas.some(r => _normTxt360(r.servicio).includes(_txtN));
             };
@@ -6742,7 +6847,9 @@
                     </div>
                     <div style="margin-top:4px; font-size:13px; color:#4b6d5f;">
                         DNI ${escapeHtml(p.dni || '-')} · Tel. <span class="dato-sensible" onclick="revelarDato(this)" title="Clic para revelar">${escapeHtml(p.phone || 'Sin tel')}</span>
+                        ${formatearTelefonoWhatsApp(p.phone) && (p.phone || '').replace(/\D/g, '').length >= 8 ? ` · <a class="p360-wa-link" href="https://wa.me/${formatearTelefonoWhatsApp(p.phone)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
                     </div>
+                    ${_dirBloque360(p, _idx360)}
                     <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
                         <span class="pill ${p.membershipActive ? 'disponible' : 'bloqueado'}">${p.membershipActive ? 'Membresía activa' : 'Ocasional'}</span>
                         <span class="pill reservado">Horas: ${escapeHtml((p.hoursBalance ?? 0).toString())}</span>
@@ -6770,18 +6877,25 @@
         // Indicadores rápidos de seguimiento en cada tarjeta del directorio.
         function _pillsSeguimiento360(p, idx) {
             const e = idx.get(_p360ClaveDePaciente(p));
+            if (!e || !e.proximas.length) return '<span class="p360-badge neutro">Sin turno futuro</span>';
+            return `<span class="p360-badge info">Próximo turno: ${escapeHtml(_ghFormatoFecha(e.proximas[0].fecha))}</span>`;
+        }
+        // Bloque protagonista de cada tarjeta: días/horarios que puede (o cargarlo
+        // con 1 clic) y última sesión realizada (fecha, box y tratamiento).
+        function _dirBloque360(p, idx) {
+            const dispo = _dispoTodo(p);
+            const e = idx.get(_p360ClaveDePaciente(p));
             const hoy = fechaHoyISO();
-            const pills = [];
-            if (p.membershipActive && (Number(p.hoursBalance) || 0) <= 1) pills.push('<span class="p360-badge warn">Saldo bajo (≤ 1 h)</span>');
-            if (!e || !e.proximas.length) pills.push('<span class="p360-badge neutro">Sin turno futuro</span>');
-            else pills.push(`<span class="p360-badge info">Próximo: ${escapeHtml(_ghFormatoFecha(e.proximas[0].fecha))}</span>`);
             const pasadas = e ? e.realizadas.filter(r => r.fecha <= hoy) : [];
             const u = pasadas[pasadas.length - 1];
-            if (u) {
-                const d = diasEntre(u.fecha, hoy);
-                pills.push(`<span class="p360-badge ${d > 25 ? 'err' : d >= 15 ? 'warn' : 'ok'}" title="Última: ${escapeHtml(u.servicio || '')}">Última sesión hace ${d} d</span>`);
-            } else pills.push('<span class="p360-badge neutro">Sin sesiones</span>');
-            return pills.join('');
+            const dni = escapeHtml(p.dni || '');
+            const dispoHtml = dispo.length
+                ? `<div class="dir360-dispo">🗓️ ${dispo.map(l => escapeHtml(l)).join(' <span aria-hidden="true">·</span> ')} <button type="button" class="p360-link" onclick="editarDisponibilidad('${dni}')">Editar</button></div>`
+                : `<button type="button" class="dir360-dispo-vacia" onclick="editarDisponibilidad('${dni}')">＋ Agregar días y horarios que puede</button>`;
+            const ultHtml = u
+                ? `<div class="dir360-ultima">↺ Última sesión: <b>${escapeHtml(_ghFormatoFecha(u.fecha))}</b> · ${_boxLabel(u)} · ${escapeHtml(u.servicio || '—')} <span class="p360-muted">(hace ${diasEntre(u.fecha, hoy)} días)</span></div>`
+                : '<div class="dir360-ultima p360-muted">Sin sesiones realizadas todavía.</div>';
+            return `<div class="dir360">${dispoHtml}${ultHtml}</div>`;
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -10501,7 +10615,8 @@
                     "<div><span style='font-size:15px;font-weight:800;color:rgba(76,103,89,0.96);'>" + nombreDisplay + "</span>" +
                     (phoneWA ? "<span style='margin-left:8px;font-size:12px;color:rgba(22,61,50,0.60);'>· " + escapeHtml(phoneWA) + "</span>" : " <span style='font-size:11px;color:rgba(165,67,58,0.70);'>⚠ Sin teléfono</span>") +
                     "</div>" +
-                    "<span style='font-size:12px;color:rgba(22,61,50,0.45);'>" + sesiones.length + " turno" + (sesiones.length!==1?'s':'') + " total</span>" +
+                    "<span style='display:inline-flex;align-items:center;gap:8px;'><span style='font-size:12px;color:rgba(22,61,50,0.45);'>" + sesiones.length + " turno" + (sesiones.length!==1?'s':'') + " total</span>" +
+                    "<button type='button' class='p360-btn pri' onclick=\"abrirFicha360Enc('" + _jsArg(gKey) + "','historial')\">📇 Ficha</button></span>" +
                     "</div>";
 
                 var botonesWA =
@@ -11497,6 +11612,44 @@
             } catch(e) { console.error('cc corregir:', e); alert('Error: ' + e.message); }
         };
 
+        // ═══ Navegación en 5 bloques con pestañas internas ═══
+        // Ninguna sección se quitó: cada una vive dentro de un bloque. El
+        // sidebar despliega el bloque activo y la barra #subtabs-bar muestra
+        // sus pantallas como pestañas. Cada bloque recuerda la última abierta.
+        const NAV_GRUPOS = [
+            { id: 'jornada', label: 'Grilla y Jornada', items: [['grilla', '📅 Grilla de boxes'], ['agenda', '🗓 Agenda mensual'], ['preparar-jornada', '📋 Preparar jornada']] },
+            { id: 'pacientes', label: 'Pacientes y Fichas', items: [['clientes', '👥 Directorio'], ['historias', '📄 Historias clínicas'], ['buscador-sesiones', '🔎 Sesiones'], ['buscar', '🔍 Buscar turnos']] },
+            { id: 'seguimiento', label: 'Seguimiento y Consultas', items: [['recordatorios', '🔔 Recordatorios y retorno'], ['recomendaciones', '✨ Recomendaciones'], ['consultas', '💬 Consultas web'], ['control-consultas', '✅ Control de consultas'], ['agenda-ci', '🗓 Agenda CI']] },
+            { id: 'recursos', label: 'Recursos del Espacio', items: [['servicios', '🧩 Servicios y boxes'], ['pedidos-kit', '🧴 Pedidos de kit'], ['calculadora', '⏱ Calculadora'], ['cursos', '🎓 Mis cursos']] },
+            { id: 'gestion', label: 'Gestión y Cierre', items: [['resumen-mensual', '📊 Resumen mensual'], ['export', '⬇ Exportar / Jornadas'], ['@movimientos', '🕘 Movimientos']] },
+        ];
+        const _navUltima = {};
+        const _grupoDeSeccion = (s) => NAV_GRUPOS.find(g => g.items.some(([id]) => id === s)) || null;
+        function _navRenderGrupo(s) {
+            const g = _grupoDeSeccion(s);
+            if (g) _navUltima[g.id] = s;
+            document.querySelectorAll('.nav-grupo-wrap').forEach(w => {
+                const on = !!g && w.dataset.grupo === g.id;
+                w.classList.toggle('abierto', on);
+                w.querySelector('.nav-grupo')?.classList.toggle('active', on);
+                w.querySelector('.nav-grupo')?.setAttribute('aria-expanded', on ? 'true' : 'false');
+            });
+            document.querySelectorAll('.bni[data-grupo]').forEach(b => b.classList.toggle('active', !!g && b.dataset.grupo === g.id));
+            const bar = document.getElementById('subtabs-bar');
+            if (!bar) return;
+            if (!g) { bar.hidden = true; bar.innerHTML = ''; return; }
+            bar.hidden = false;
+            bar.innerHTML = `<span class="subtabs-titulo">${escapeHtml(g.label)}</span>` + g.items.map(([id, label]) =>
+                id.startsWith('@')
+                    ? `<button type="button" class="subtab" onclick="mostrarUltimosMovimientos()">${label}</button>`
+                    : `<button type="button" class="subtab${id === s ? ' activo' : ''}" ${id === s ? 'aria-current="page"' : ''} onclick="navegar('${id}')">${label}</button>`
+            ).join('');
+        }
+        window.navegarGrupo = (gid) => {
+            const g = NAV_GRUPOS.find(x => x.id === gid);
+            if (g) window.navegar(_navUltima[gid] || g.items[0][0]);
+        };
+
         window.navegar = (s) => {
             window.detenerDictadoSiActivo();
             document.querySelectorAll('.section, .btn-nav').forEach(x => x.classList.remove('active'));
@@ -11526,7 +11679,11 @@
             if (s === 'preparar-jornada') window.cargarPreparaJornada();
             if (s === 'resumen-mensual') window.cargarResumenMensual();
             if (s === 'recordatorios') window.recRender?.();
+            if (s === 'recomendaciones') window.recPostRender?.();
+            _navRenderGrupo(s);
         };
+        // Estado inicial: la Grilla es la vista activa al cargar.
+        _navRenderGrupo('grilla');
 
         // ═══ DROPDOWNS DE HEADER ═══
         const _hdrDropIds = { 'mas': 'mas-drop', 'user': 'user-drop', 'user-mob': 'user-mob-drop' };
@@ -13894,7 +14051,6 @@
         let _grilla_extraSlots    = false;     // mostrar slots fuera de horario comercial
         // Vista compacta (solo filas :00/:30, salvo que un turno empiece en :15/:45).
         let _grilla_compacta      = (() => { try { return localStorage.getItem('mimar_grilla_compacta') === '1'; } catch (_) { return false; } })();
-        let _grilla_pagos         = { fecha: null, porReserva: new Map(), cargando: false }; // estado de pago por turno del día
         let _mreg_boxPresel       = null;
 
         const _grilla_slots = (() => {
@@ -14723,8 +14879,8 @@
                                 ${menuHtml}
                                 <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Abrir ficha de ${nom}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaAbrirFichaTurno(event,'${res.id}')}">${nom}</span>
                                 <span class="grilla-paciente-servicio">${srv}</span>
-                                ${ctx.chipsHtml ? `<span class="gc-ctx">${ctx.chipsHtml}</span>` : ''}
-                                ${type === 'solo' && ctx.ultimaHtml ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : ''}
+                                ${ctx.dispoHtml ? `<span class="gc-ctx gc-ctx-dispo">${ctx.dispoHtml}</span>` : ''}
+                                ${type === 'solo' && !ctx.dispoHtml && ctx.ultimaHtml ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : ''}
                                 ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
                                 ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
                                 ${circHtml}
@@ -14761,7 +14917,6 @@
             document.getElementById('grilla-table')?.classList.toggle('grilla-compacta', _grilla_compacta);
             _grillaRenderResumenDia(del_dia);
             _grillaMarcarAhora();
-            _grillaAsegurarPagos(_grilla_fecha, del_dia);
         };
 
         /* ════════════════════════════════════════════════════════════════════
@@ -14853,25 +15008,48 @@
             return '<span class="p360-badge neutro">⏳ Pendiente de avisar</span>';
         }
 
-        /* ── GRILLA: contexto de cada turno (membresía / pago / última sesión) ── */
+        /* ── DISPONIBILIDAD DE LA PACIENTE (lo que figura en su ficha) ──
+           Fuentes, en este orden y sin inventar nada:
+             1. clients/{dni}.disponibilidadTexto — texto libre editable desde la
+                Ficha 360° y el directorio ("Puede jueves a la mañana").
+             2. clients/{dni}.planificacion — días/horarios cargados en
+                "Disponibilidad y planificación" (resumenPlanificacion), las
+                preferencias por tratamiento con su frase original «…»
+                (lineasPreferencias) y las observaciones de la planificación.
+           disponibilidadTexto vive FUERA de planificacion a propósito: el
+           editor de planificación reescribe ese objeto entero al guardar y
+           borraría un campo que no conoce. */
+        function _dispoLineas(pac) {
+            if (!pac) return { texto: '', estructurada: [] };
+            const plan = pac.planificacion || null;
+            const estructurada = [];
+            const res = resumenPlanificacion(plan);
+            if (res) estructurada.push(res);
+            lineasPreferencias(plan && plan.preferencias).forEach(l => { if (!/^(Frecuencia total|Continuidad):/.test(l)) estructurada.push(l); });
+            const obs = (plan && typeof plan.observaciones === 'string') ? plan.observaciones.trim() : '';
+            if (obs) estructurada.push('Obs.: ' + obs);
+            return { texto: (pac.disponibilidadTexto || '').trim(), estructurada };
+        }
+        function _dispoCorta(pac) {
+            const d = _dispoLineas(pac);
+            return d.texto || d.estructurada[0] || '';
+        }
+        function _dispoTodo(pac) {
+            const d = _dispoLineas(pac);
+            return [d.texto, ...d.estructurada].filter(Boolean);
+        }
+
+        /* ── GRILLA: contexto de cada turno — disponibilidad según su ficha y
+           última sesión. A pedido: NADA de pagos, saldo de horas, estados de
+           asistencia ni alertas médicas en las tarjetas de la Grilla. ── */
         function _grillaContextoTurno(res) {
             const clave = _pacienteMatchKey(res);
             const pac = _p360Paciente(clave);
             const prev = ultimaSesionAntes(_p360Indice().get(clave), res);
-            const pago = _grilla_pagos.fecha === res.fecha ? _grilla_pagos.porReserva.get(res.id) : null;
-            const chips = [];
             const lineas = [`${_pacienteNombreDisplay(res)} — ${res.servicio || 'Sin servicio'}`];
-            if (pac?.membershipActive) {
-                const h = Number(pac.hoursBalance) || 0;
-                chips.push(`<span class="gc-chip ${h <= 1 ? 'gc-chip-warn' : 'gc-chip-memb'}">⭐ ${_fmtHoras(h)} disp.</span>`);
-                lineas.push(`Membresía activa · saldo ${_fmtHoras(h)}`);
-            } else if (pac) {
-                lineas.push('Atención ocasional');
-            }
-            if (pago) {
-                chips.push(`<span class="gc-chip gc-chip-${pago.tono}">💳 ${pago.etiqueta}</span>`);
-                lineas.push(`Pago: ${pago.etiqueta}`);
-            }
+            const dispo = _dispoCorta(pac);
+            const dispoTodo = _dispoTodo(pac);
+            if (dispoTodo.length) lineas.push('Puede: ' + dispoTodo.join(' | '));
             let ultimaHtml = '';
             if (prev) {
                 const d = diasEntre(prev.fecha, res.fecha);
@@ -14884,44 +15062,8 @@
                 lineas.push('Sin sesiones anteriores registradas');
             }
             lineas.push('Tocá para abrir la ficha · arrastrá para cambiar de box');
-            return { chipsHtml: chips.join(''), ultimaHtml, tooltip: lineas.join('\n') };
+            return { dispoHtml: dispo ? `🗓️ ${escapeHtml(dispo)}` : '', ultimaHtml, tooltip: lineas.join('\n') };
         }
-
-        // Estado de pago (prestaciones + pagos) de los turnos del día visible —
-        // una lectura por día, nunca por tarjeta. Mismo cálculo que "Precio y pagos".
-        async function _grillaAsegurarPagos(fecha, delDia) {
-            if (_grilla_pagos.fecha === fecha || _grilla_pagos.cargando === fecha) return;
-            _grilla_pagos.cargando = fecha;
-            const ids = (delDia || []).map(r => r.id);
-            const porReserva = new Map();
-            try {
-                const prest = await Promise.all(ids.map(id => getDoc(doc(db, 'prestaciones', id)).catch(() => null)));
-                const pagos = [];
-                for (let i = 0; i < ids.length; i += 30) {
-                    const snap = await getDocs(query(collection(db, 'pagos'), where('prestacionId', 'in', ids.slice(i, i + 30))));
-                    snap.forEach(d => pagos.push(d.data()));
-                }
-                prest.forEach((snap, i) => {
-                    if (!snap || !snap.exists()) return;
-                    const p = snap.data() || {};
-                    const recibido = totalRecibido(pagos.filter(x => x.prestacionId === ids[i]));
-                    const e = estadoCuenta({ precio: p.sinCargo ? null : p.precioAcordado, sinCargo: !!p.sinCargo, recibido });
-                    const corto = estadoPagoCorto(e, p.anulada);
-                    if (corto) porReserva.set(ids[i], corto);
-                });
-            } catch (e) { console.warn('Grilla — estado de pagos del día:', e); }
-            if (_grilla_pagos.cargando !== fecha) return; // se cambió de día mientras tanto
-            _grilla_pagos = { fecha, porReserva, cargando: false };
-            if (_grilla_fecha === fecha) window.renderGrilla();
-        }
-        // Al cerrar "Precio y pagos", el estado del día se vuelve a leer.
-        const _ppCerrarOriginal = window._ppCerrar;
-        window._ppCerrar = function () {
-            _ppCerrarOriginal?.apply(this, arguments);
-            _grilla_pagos = { fecha: null, porReserva: new Map(), cargando: false };
-            if (document.getElementById('sec-grilla')?.classList.contains('active')) window.renderGrilla();
-            if (_f360.clave) _f360Render();
-        };
 
         function _grillaRenderResumenDia(delDia) {
             const el = document.getElementById('grilla-resumen-dia');
@@ -14930,14 +15072,8 @@
             if (btnD) btnD.textContent = _grilla_compacta ? 'Vista detallada · 15 min' : 'Vista compacta · 30 min';
             if (!delDia.length) { el.innerHTML = '<span class="p360-muted">Sin turnos para este día.</span>'; return; }
             const pacientes = new Set(delDia.map(_pacienteMatchKey));
-            const conMemb = [...pacientes].filter(k => _p360Paciente(k)?.membershipActive).length;
-            const cuenta = { Pagado: 0, Señado: 0, Pendiente: 0 };
-            if (_grilla_pagos.fecha === _grilla_fecha) _grilla_pagos.porReserva.forEach(v => { if (cuenta[v.etiqueta] != null) cuenta[v.etiqueta]++; });
-            const porBox = GRILLA_BOXES.map(b => `${b.icon} ${delDia.filter(r => _grilla_boxDeReserva(r) === b.id).length}`).join(' · ');
-            const pagosTxt = _grilla_pagos.fecha === _grilla_fecha
-                ? `<span class="p360-badge ok">💳 ${cuenta.Pagado} pagados</span><span class="p360-badge warn">${cuenta.Señado} señados</span><span class="p360-badge err">${cuenta.Pendiente} pendientes</span>`
-                : '<span class="p360-muted">Cargando pagos…</span>';
-            el.innerHTML = `<b>${delDia.length}</b> turno${delDia.length !== 1 ? 's' : ''} · ${pacientes.size} paciente${pacientes.size !== 1 ? 's' : ''} · ⭐ ${conMemb} con membresía · ${porBox} ${pagosTxt}`;
+            const porBox = GRILLA_BOXES.map(b => `${b.icon} ${b.title}: ${delDia.filter(r => _grilla_boxDeReserva(r) === b.id).length}`).join(' · ');
+            el.innerHTML = `<b>${delDia.length}</b> turno${delDia.length !== 1 ? 's' : ''} · ${pacientes.size} paciente${pacientes.size !== 1 ? 's' : ''} · ${porBox}`;
         }
 
         // ── Línea de hora actual (solo si la Grilla muestra hoy) ──
@@ -15022,6 +15158,7 @@
                 ov.innerHTML = `<div class="p360-modal" role="dialog" aria-modal="true" aria-label="Mover turno">
                     <p class="p360-modal-t">↔ Mover turno</p>
                     <p class="p360-modal-s">${escapeHtml(_pacienteNombreDisplay(r))} · ${escapeHtml(r.servicio || '')} · ${escapeHtml(_ghFormatoFecha(r.fecha))} · ${dur} min</p>
+                    ${_htmlContextoAgendar(_pacienteMatchKey(r))}
                     <label class="p360-lbl">Box</label>
                     <div class="p360-box-grid">${chips}</div>
                     ${asignados.length ? `<p class="p360-ayuda">Boxes habilitados para «${escapeHtml(r.servicio)}» según Servicios → Grilla de Servicios.</p>` : ''}
@@ -15044,6 +15181,81 @@
             ov.addEventListener('mousedown', (e) => { if (e.target === ov) cerrar(); });
             document.body.appendChild(ov);
             render();
+        };
+
+        /* ── Disponibilidad: guardado, edición rápida y recuadro de contexto ── */
+        function _pacientePorDni(dni) {
+            const d = _resolverDniFinal(normalizarDNI(dni));
+            return todasLosPacientes.find(p => _resolverDniFinal(normalizarDNI(p.dni)) === d) || null;
+        }
+        // Se guarda en clients/{dni}.disponibilidadTexto y se refleja al instante
+        // en la Grilla, el directorio, Recordatorios y la ficha abierta.
+        async function _guardarDisponibilidad(dni, texto) {
+            const pac = _pacientePorDni(dni);
+            if (!pac) throw new Error('Paciente sin ficha');
+            const limpio = (texto || '').trim();
+            await updateDoc(doc(db, 'clients', pac.dni), { disponibilidadTexto: limpio, disponibilidadTextoAt: serverTimestamp() });
+            pac.disponibilidadTexto = limpio;
+            window._p360RefrescarPaciente();
+            if (document.getElementById('sec-grilla')?.classList.contains('active')) window.renderGrilla();
+            mostrarAviso(limpio ? '✓ Disponibilidad guardada' : 'Disponibilidad borrada');
+        }
+        window._p360RefrescarPaciente = () => {
+            if (document.getElementById('sec-clientes')?.classList.contains('active')) window.filtrarListadoClientes();
+            if (document.getElementById('sec-recordatorios')?.classList.contains('active')) window.recRenderRetorno?.();
+            if (_f360.clave) _f360Render();
+        };
+        // Edición rápida (1 clic) desde el directorio o la Grilla.
+        window.editarDisponibilidad = (dni) => {
+            const pac = _pacientePorDni(dni);
+            if (!pac) { mostrarAviso('Esta paciente no tiene ficha en Pacientes'); return; }
+            const est = _dispoLineas(pac).estructurada;
+            const ov = document.createElement('div');
+            ov.className = 'p360-modal-ov';
+            ov.id = '_dispo_ov';
+            ov.innerHTML = `<div class="p360-modal" role="dialog" aria-modal="true" aria-labelledby="_dispo_t">
+                <p class="p360-modal-t" id="_dispo_t">🗓️ Días y horarios que puede</p>
+                <p class="p360-modal-s">${escapeHtml(pac.fullName || '')} · DNI ${escapeHtml(pac.dni)}</p>
+                <label class="p360-lbl" for="_dispo_txt">Disponibilidad (tal cual querés verla en la Grilla)</label>
+                <textarea id="_dispo_txt" class="p360-textarea" rows="3" maxlength="240" placeholder="Ej: Puede jueves a la mañana · Todos los días por la tarde de 16 a 19 hs">${escapeHtml(pac.disponibilidadTexto || '')}</textarea>
+                ${est.length ? `<p class="p360-ayuda">También cargado en su planificación:<br>${est.map(l => '• ' + escapeHtml(l)).join('<br>')}</p>` : ''}
+                <div class="p360-modal-acc">
+                    <button type="button" class="btn-mini" id="_dispo_cancel">Cancelar</button>
+                    <button type="button" class="p360-btn-pri" id="_dispo_ok">Guardar</button>
+                </div></div>`;
+            document.body.appendChild(ov);
+            const cerrar = () => ov.remove();
+            ov.addEventListener('mousedown', (e) => { if (e.target === ov) cerrar(); });
+            ov.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); cerrar(); } });
+            ov.querySelector('#_dispo_cancel').onclick = cerrar;
+            ov.querySelector('#_dispo_ok').onclick = async (e) => {
+                e.target.disabled = true;
+                try { await _guardarDisponibilidad(pac.dni, ov.querySelector('#_dispo_txt').value); cerrar(); }
+                catch (err) { console.error(err); e.target.disabled = false; mostrarAviso('No se pudo guardar: ' + (err?.code || err?.message || 'sin conexión')); }
+            };
+            setTimeout(() => ov.querySelector('#_dispo_txt').focus(), 50);
+        };
+        // Recuadro "Disponibilidad + últimas sesiones" (registrar y mover turno).
+        function _htmlContextoAgendar(clave) {
+            const pac = _p360Paciente(clave);
+            const entrada = _p360Indice().get(clave) || _vacio360;
+            const hoy = fechaHoyISO();
+            const ultimas = entrada.realizadas.filter(r => r.fecha <= hoy).slice(-3).reverse();
+            const dispo = _dispoTodo(pac);
+            return `<div class="p360-ctx-agendar">
+                <div class="p360-ctx-t">🗓️ Disponibilidad según su ficha</div>
+                ${dispo.length ? dispo.map(l => `<div class="p360-ctx-dispo">${escapeHtml(l)}</div>`).join('') : `<div class="p360-muted">Sin días ni horarios cargados.${pac ? ` <button type="button" class="p360-link" onclick="editarDisponibilidad('${escapeHtml(pac.dni)}')">Agregar</button>` : ''}</div>`}
+                <div class="p360-ctx-t" style="margin-top:8px">↺ Últimas sesiones</div>
+                ${ultimas.length ? ultimas.map(r => `<div class="p360-ctx-ses"><b>${escapeHtml(_ghFormatoFecha(r.fecha))}</b> · ${escapeHtml(r.servicio || '—')} · ${_boxLabel(r)}</div>`).join('') : '<div class="p360-muted">Sin sesiones anteriores.</div>'}
+            </div>`;
+        }
+        // Al elegir paciente en "Registrar turno", se muestra el recuadro arriba.
+        const _seleccionarPacienteRegistroOriginal = window.seleccionarPacienteRegistro;
+        window.seleccionarPacienteRegistro = (el) => {
+            _seleccionarPacienteRegistroOriginal(el);
+            const cont = document.getElementById('mreg-resultados');
+            if (!cont || !el?.dataset?.dni) return;
+            cont.insertAdjacentHTML('beforeend', _htmlContextoAgendar('dni:' + _resolverDniFinal(normalizarDNI(el.dataset.dni))));
         };
 
         /* ════════════════════════════════════════════════════════════════════
@@ -15175,7 +15387,18 @@
             const notas = (d.pac?.notas || '').trim();
             const edad = d.pac?.fechaNacimiento ? (() => { const n = parsearFecha(d.pac.fechaNacimiento); if (!n) return ''; const h = new Date(); let e = h.getFullYear() - n.getFullYear(); if (h < new Date(h.getFullYear(), n.getMonth(), n.getDate())) e--; return ` · ${e} años`; })() : '';
             const alertasClinicas = _f360AlertasClinicas(d.historia);
+            const dispo = _dispoLineas(d.pac);
+            const dispoCard = d.pac ? `<div class="f360-card f360-dispo">
+                    <div class="f360-card-t">🗓️ Disponibilidad y preferencias de días / horarios</div>
+                    <textarea id="f360-dispo-txt" class="p360-textarea" rows="2" maxlength="240" placeholder="Ej: Puede jueves a la mañana · Todos los días por la tarde de 16 a 19 hs">${escapeHtml(dispo.texto)}</textarea>
+                    <div class="f360-ses-acc">
+                        <button class="p360-btn pri" id="f360-dispo-ok" onclick="f360GuardarDispo('${escapeHtml(d.pac.dni)}')">💾 Guardar disponibilidad</button>
+                        <span class="p360-muted">Se ve en la Grilla, en Pacientes y en el Control de retorno.</span>
+                    </div>
+                    ${dispo.estructurada.length ? `<div class="f360-nota"><small>Cargado en su planificación</small>${dispo.estructurada.map(l => escapeHtml(l)).join('\n')}</div>` : ''}
+                </div>` : '<p class="p360-alerta warn">Sin ficha en Pacientes: la disponibilidad se guarda en la ficha, primero hay que darla de alta.</p>';
             return `
+                ${dispoCard}
                 <div class="f360-kpis">
                     <div><b>${d.entrada.realizadas.length}</b><small>Sesiones realizadas</small></div>
                     <div><b>${d.dias == null ? '—' : d.dias}</b><small>Días desde la última</small></div>
@@ -15339,11 +15562,24 @@
                     ${d.dni ? `<button class="p360-btn" onclick="f360NuevoKit('${escapeHtml(d.dni)}')">➕ Nuevo pedido de kit</button>` : ''}
                     ${ultimaFacial ? `<button class="p360-btn pri" onclick="abrirRecomendacionPostSesion('${ultimaFacial.id}','kit_facial')">Enviar rutina de uso del kit</button>` : ''}
                 </div>
-                <div class="f360-sec-t">💬 Avisos y recomendaciones enviados por WhatsApp</div>
+                <div class="f360-sec-t">💬 Acciones de WhatsApp</div>
+                <div class="f360-ses-acc">
+                    ${d.entrada.proximas[0] ? `<button class="p360-btn wa" onclick="recRecordar('${d.entrada.proximas[0].id}')">💬 Recordar próximo turno (${escapeHtml(_ghFormatoFecha(d.entrada.proximas[0].fecha))} ${escapeHtml(normalizarHora(d.entrada.proximas[0].hora) || '')})</button>` : '<span class="p360-muted">Sin turno próximo para recordar.</span>'}
+                    ${ultimaFacial ? `<button class="p360-btn pri" onclick="abrirRecomendacionPostSesion('${ultimaFacial.id}')">✨ Enviar recomendación</button>` : ''}
+                </div>
+                <div class="f360-sec-t">📜 Avisos y recomendaciones enviados</div>
                 <p class="p360-ayuda">“Preparado” = se abrió WhatsApp con el texto; “Enviado” = la operadora confirmó que lo mandó.</p>
                 ${ctHtml}`;
         }
 
+        window.f360GuardarDispo = async (dni) => {
+            const btn = document.getElementById('f360-dispo-ok');
+            const txt = document.getElementById('f360-dispo-txt');
+            if (!txt) return;
+            if (btn) btn.disabled = true;
+            try { await _guardarDisponibilidad(dni, txt.value); }
+            catch (e) { console.error(e); mostrarAviso('No se pudo guardar: ' + (e?.code || e?.message || 'sin conexión')); if (btn) btn.disabled = false; }
+        };
         window.f360ToggleCanceladas = () => { _f360.verCanceladas = !_f360.verCanceladas; _f360Render(); };
         window.f360ReintentarKit = () => Promise.all([_kitAsegurar(true), _ctAsegurar(true)]).then(_f360Render);
         window.f360PrecioPagos = (reservaId) => {
@@ -15435,6 +15671,7 @@
                 window.open(`https://wa.me/${num}?text=${encodeURIComponent(txt.value)}`, '_blank');
                 cerrar();
                 if (_f360.clave) _f360Render();
+                if (document.getElementById('sec-recomendaciones')?.classList.contains('active')) window.recPostRender();
             };
             setTimeout(() => sel.focus(), 50);
         };
@@ -15459,6 +15696,51 @@
             });
         };
         window.recRefrescar = async () => { await _ctAsegurar(true); window.recRender(); mostrarAviso('Avisos actualizados'); };
+
+        /* ── RECOMENDACIONES POST-SESIÓN (pestaña de Seguimiento) ──
+           Las sesiones del día con la plantilla sugerida según el tratamiento
+           y si ya se le envió alguna recomendación por ese turno. */
+        let _recPostFecha = null;
+        window.recPostSetFecha = (f) => { _recPostFecha = f || fechaHoyISO(); window.recPostRender(); };
+        window.recPostMoverDia = (n) => window.recPostSetFecha(_sumarDiasISO(_recPostFecha || fechaHoyISO(), n));
+        window.recPostRender = () => {
+            const fecha = _recPostFecha || fechaHoyISO();
+            _recPostFecha = fecha;
+            const inp = document.getElementById('recpost-fecha'); if (inp) inp.value = fecha;
+            const cont = document.getElementById('recpost-lista');
+            if (!cont) return;
+            const turnos = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === fecha)
+                .sort((a, b) => (normalizarHora(a.hora) || '').localeCompare(normalizarHora(b.hora) || ''));
+            const ahora = Date.now();
+            cont.innerHTML = `<p class="p360-muted" style="margin:0 0 8px">${_fechaLarga360(fecha)} · ${turnos.length} sesion${turnos.length !== 1 ? 'es' : ''}${!_ctCache.cargado ? ' · <span class="p360-cargando-inline">cargando envíos…</span>' : ''}</p>` + (turnos.length
+                ? `<div class="p360-tabla-wrap"><table class="p360-tabla"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Plantilla sugerida</th><th>Enviada</th><th></th></tr></thead><tbody>${turnos.map(r => {
+                    const sug = sugerirPlantillas(r.servicio)[0];
+                    const env = _ctDe('reservas', r.id).filter(c => /^(rec_|hifu_)/.test(c.tipoMensaje || ''));
+                    const termino = !_esSesionPendiente(r, ahora);
+                    return `<tr class="${env.length ? 'hecho' : ''}">
+                        <td data-l="Hora" class="p360-hora">${escapeHtml(normalizarHora(r.hora) || '—')}</td>
+                        <td data-l="Paciente"><button class="p360-link" onclick="abrirFicha360DeReserva('${r.id}','historial')">${escapeHtml(_pacienteNombreDisplay(r))}</button></td>
+                        <td data-l="Tratamiento">${escapeHtml(r.servicio || '—')}<div class="p360-muted">${_boxLabel(r)}${termino ? '' : ' · todavía no terminó'}</div></td>
+                        <td data-l="Plantilla sugerida">${PLANTILLAS_POST_SESION[sug].icono} ${escapeHtml(PLANTILLAS_POST_SESION[sug].titulo)}</td>
+                        <td data-l="Enviada">${env.length ? env.map(c => _badgeContacto(estadoContacto([c], null), 'Enviada')).join(' ') : '<span class="p360-badge neutro">Sin enviar</span>'}</td>
+                        <td data-l="Acciones"><button class="p360-btn pri" onclick="abrirRecomendacionPostSesion('${r.id}')">✨ Enviar recomendación</button></td>
+                    </tr>`;
+                }).join('')}</tbody></table></div>`
+                : '<div class="p360-vacio">No hay sesiones agendadas ese día.</div>');
+            const bib = document.getElementById('recpost-biblioteca');
+            if (bib && !bib.dataset.listo) {
+                const porCat = {};
+                Object.entries(PLANTILLAS_POST_SESION).forEach(([k, p]) => (porCat[p.categoria] = porCat[p.categoria] || []).push([k, p]));
+                bib.innerHTML = Object.entries(porCat).map(([cat, items]) => `<div class="recpost-cat"><div class="f360-sec-t">${escapeHtml(REC_CATEGORIAS[cat] || cat)}</div>
+                    <div class="recpost-items">${items.map(([k, p]) => `<span class="p360-badge neutro">${p.icono} ${escapeHtml(p.titulo)}</span>`).join('')}</div></div>`).join('')
+                    + '<p class="p360-ayuda">Para enviar una, tocá «✨ Enviar recomendación» en la sesión: se preselecciona la plantilla del tratamiento y podés elegir cualquier otra de la biblioteca.</p>';
+                bib.dataset.listo = '1';
+            }
+            // Una sola relectura cuando todavía no estaban los envíos en memoria.
+            if (!_ctCache.cargado) _ctAsegurar().then(() => {
+                if (_ctCache.cargado && document.getElementById('sec-recomendaciones')?.classList.contains('active')) window.recPostRender();
+            });
+        };
 
         function recRenderTurnos() {
             const cont = document.getElementById('rec-turnos');
@@ -15506,6 +15788,7 @@
             registrarContactoWA(r.id, 'recordatorio', pila);
             window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, '_blank');
             recRenderTurnos();
+            if (_f360.clave) _f360Render();
         };
         window.recMarcarConfirmo = async (reservaId) => {
             try {
@@ -15522,7 +15805,7 @@
             const trat = document.getElementById('ret-trat')?.value || '';
             const ocultar = !!document.getElementById('ret-ocultar')?.checked;
             const hoy = fechaHoyISO(), ahora = Date.now();
-            const membresia = [], ciclo = [];
+            const ciclo = [];
             _p360Indice().forEach((entrada, clave) => {
                 if (entrada.proximas.length) return; // ya tiene turno: no hace falta avisar
                 const pasadas = entrada.realizadas.filter(r => r.fecha <= hoy);
@@ -15535,17 +15818,16 @@
                 const regs = _ctDe('clients', docId);
                 if (ocultar && avisadoEnUltimosDias(regs, ['retorno'], 7, ahora)) return;
                 const item = { clave, u, dias, pac, docId, aviso: estadoContacto(regs, ['retorno']) };
-                if (pac?.membershipActive && Number(pac.hoursBalance) > 0) membresia.push(item);
-                else if (enRangoRetorno(dias, rango)) ciclo.push(item);
+                if (enRangoRetorno(dias, rango)) ciclo.push(item);
             });
             const orden = (a, b) => b.dias - a.dias;
-            return { membresia: membresia.sort(orden), ciclo: ciclo.sort(orden) };
+            return { ciclo: ciclo.sort(orden) };
         }
         window.recRenderRetorno = () => {
             const cont = document.getElementById('rec-retorno');
             if (!cont) return;
             if (!todasLosPacientes.length && !todasLasReservas.length) { cont.innerHTML = '<div class="p360-cargando">Cargando pacientes…</div>'; return; }
-            const { membresia, ciclo } = _recCandidatosRetorno();
+            const { ciclo } = _recCandidatosRetorno();
             const fila = (it) => {
                 const nombre = it.pac?.fullName || _pacienteNombreDisplay(it.u);
                 const tel = it.pac?.phone || it.u.phone || '';
@@ -15554,7 +15836,11 @@
                     <td data-l="Paciente"><button class="p360-link" onclick="abrirFicha360Enc('${_jsArg(it.clave)}','resumen')">${escapeHtml(nombre)}</button>
                         <div class="p360-muted">${it.pac?.dni ? 'DNI ' + escapeHtml(it.pac.dni) : 'Sin ficha'}${tel ? ' · ' + escapeHtml(tel) : ''}</div></td>
                     <td data-l="Última sesión">${escapeHtml(_ghFormatoFecha(it.u.fecha))} · ${escapeHtml(it.u.servicio || '—')}<div><span class="p360-badge ${it.dias > 25 ? 'err' : it.dias >= 15 ? 'warn' : 'neutro'}">Hace ${it.dias} día${it.dias !== 1 ? 's' : ''}</span></div></td>
-                    <td data-l="Membresía">${it.pac?.membershipActive ? `<span class="p360-badge memb">⭐ ${_fmtHoras(it.pac.hoursBalance)} a favor</span>` : '<span class="p360-muted">Ocasional</span>'}</td>
+                    <td data-l="Puede (según su ficha)">${(() => {
+                        const dl = _dispoTodo(it.pac);
+                        if (dl.length) return dl.map(l => `<div class="p360-dispo-linea">📌 ${escapeHtml(l)}</div>`).join('');
+                        return it.pac ? `<button class="p360-link" onclick="editarDisponibilidad('${escapeHtml(it.pac.dni)}')">＋ Cargar disponibilidad</button>` : '<span class="p360-muted">Sin ficha</span>';
+                    })()}</td>
                     <td data-l="Aviso">${_badgeContacto(it.aviso)}</td>
                     <td data-l="Acciones"><div class="p360-acc">
                         ${num ? `<button class="p360-btn wa" onclick="recAvisarRetorno('${_jsArg(it.clave)}')">💬 Avisar</button>` : '<span class="p360-badge warn">Sin teléfono</span>'}
@@ -15562,12 +15848,10 @@
                     </div></td></tr>`;
             };
             const tabla = (items, vacio) => items.length
-                ? `<div class="p360-tabla-wrap"><table class="p360-tabla"><thead><tr><th>Paciente</th><th>Última sesión</th><th>Membresía</th><th>Aviso</th><th></th></tr></thead><tbody>${items.map(fila).join('')}</tbody></table></div>`
+                ? `<div class="p360-tabla-wrap"><table class="p360-tabla"><thead><tr><th>Paciente</th><th>Última sesión</th><th>Puede (según su ficha)</th><th>Aviso</th><th></th></tr></thead><tbody>${items.map(fila).join('')}</tbody></table></div>`
                 : `<div class="p360-vacio">${vacio}</div>`;
             cont.innerHTML = `
-                <div class="f360-sec-t">⭐ Membresía con saldo a favor y sin turno agendado (${membresia.length})</div>
-                ${tabla(membresia, 'Todas las pacientes con membresía y saldo ya tienen un turno futuro.')}
-                <div class="f360-sec-t">🔁 Ciclo cumplido desde la última sesión (${ciclo.length})</div>
+                <div class="f360-sec-t">🔁 Pacientes para volver a citar (${ciclo.length})</div>
                 ${tabla(ciclo, 'Nadie en esa ventana de días sin turno agendado.')}
                 <p class="p360-ayuda">Solo se listan pacientes SIN turnos futuros. Los días se cuentan desde su última sesión realizada hasta hoy.</p>`;
         };
@@ -15949,7 +16233,7 @@
             <button type="button" class="f360-cerrar" onclick="cerrarFicha360()" aria-label="Cerrar ficha">×</button>
         </div>
         <div class="f360-tabs" id="f360-tabs" role="tablist" aria-label="Secciones de la ficha">
-            <button type="button" role="tab" data-tab="resumen" onclick="f360Tab('resumen')">Resumen y planificación</button>
+            <button type="button" role="tab" data-tab="resumen" onclick="f360Tab('resumen')">Disponibilidad y resumen</button>
             <button type="button" role="tab" data-tab="historial" onclick="f360Tab('historial')">Historial de sesiones</button>
             <button type="button" role="tab" data-tab="clinica" onclick="f360Tab('clinica')">Historia clínica</button>
             <button type="button" role="tab" data-tab="kit" onclick="f360Tab('kit')">Kit y seguimiento</button>
