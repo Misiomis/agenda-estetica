@@ -1584,6 +1584,42 @@
         .recpost-cat { margin-bottom: 6px; }
         .recpost-items { display: flex; flex-wrap: wrap; gap: 6px; }
 
+        /* ── Ajustes visuales verificados con capturas (PC 1440 px / celular 390 px) ── */
+        /* Bloque activo del sidebar: texto blanco sobre el verde (antes quedaba
+           texto oscuro sobre fondo oscuro, ilegible). */
+        .sidebar .btn-nav.nav-grupo.active { color: #fff; }
+        .sidebar .btn-nav.nav-sub.active { border-color: transparent; }
+        /* Resumen del día: texto corrido (como flex, el número quedaba solo en una línea) */
+        .grilla-resumen-dia { display: block; line-height: 1.8; }
+        .grilla-resumen-dia .p360-badge { margin-right: 4px; }
+        .f360-cerrar:focus:not(:focus-visible) { outline: none; }
+        /* Aviso de Recordatorios: punto (no lleva número, era un círculo de 17 px vacío) */
+        .sidebar .btn-nav #rec-badge { min-width: 9px; width: 9px; height: 9px; padding: 0; }
+        @media (max-width: 768px) {
+            /* Herramientas de la Grilla: una sola fila deslizable y botones
+               compactos (mobile-fixes.css fuerza 48 px de alto a todo botón). */
+            .grilla-tools { flex-wrap: nowrap; overflow-x: auto; gap: 6px; padding: 0 2px 10px; scrollbar-width: none; }
+            .grilla-tools::-webkit-scrollbar { display: none; }
+            .grilla-tools .btn-mini { flex-shrink: 0; min-height: 36px; padding: 7px 12px; font-size: 12px; white-space: nowrap; }
+            .grilla-tools-sep { display: none; }
+            .grilla-nav { gap: 6px; padding: 8px 2px 8px; flex-wrap: nowrap; }
+            .grilla-nav .btn-mini { min-height: 38px; flex-shrink: 0; }
+            .grilla-fecha-titulo { font-size: 1em; line-height: 1.25; }
+            .grilla-resumen-dia { font-size: 11.5px; margin: 2px 2px 8px; }
+        }
+        @media (max-width: 560px) {
+            /* mobile-fixes.css pone "table { display:block }" para todas las
+               tablas: en la Grilla eso anula table-layout:fixed y cada columna
+               crecía según su contenido (solo entraban ~2 boxes de 4). Acá la
+               Grilla vuelve a ser tabla y los 4 boxes se reparten el ancho. */
+            .grilla-table { display: table !important; width: 100%; min-width: 0; }
+            .grilla-th-box { min-width: 0; padding: 8px 2px; }
+            .grilla-th-box .gth-full { display: none; }
+            .grilla-th-box .gth-short { display: inline; }
+            .grilla-celda-ocupada { padding: 3px 4px 3px 6px; }
+            .gc-menu-btn { width: 17px; height: 17px; font-size: 13px; }
+        }
+
         @media (max-width: 560px) {
             .f360-head { padding: 14px 14px 10px; }
             .f360-cuerpo { padding: 14px 14px 40px; }

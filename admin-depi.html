@@ -695,17 +695,41 @@
         .agenda-layout.vista-semana .agenda-cal, .agenda-layout.vista-semana #diaDetalle, .agenda-layout.vista-mes #diaDetalle { display: none !important; }
 
         /* Celdas del calendario con cantidad de turnos y cobros */
-        .cal-day { aspect-ratio: auto; min-height: 58px; padding: 6px 4px; justify-content: flex-start; gap: 3px; }
-        .cal-num { font-size: 13px; font-weight: 800; }
-        .cal-info { font-size: 9.5px; font-weight: 700; line-height: 1.25; text-align: center; color: rgba(190,240,210,0.92); }
-        .cal-info .ci-cob { color: var(--ok); display: block; }
-        .cal-info .ci-blq { color: var(--err); display: block; }
+        /* minmax(0,1fr): sin esto cada columna medía al menos lo que su texto
+           más largo, y el sábado se salía de la tarjeta (y de la pantalla). */
+        .cal-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        .cal-day { aspect-ratio: auto; min-width: 0; min-height: 54px; padding: 6px 2px 5px; justify-content: flex-start; gap: 2px; overflow: hidden; position: relative; }
+        .cal-num { font-size: 13.5px; font-weight: 800; line-height: 1.2; }
+        .cal-info { display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 10px; font-weight: 700; line-height: 1.2; color: rgba(190,240,210,0.95); max-width: 100%; }
+        .cal-info .ci-turnos b { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 999px; background: rgba(74,222,128,0.18); color: #bbf7d0; font-size: 10.5px; }
+        .cal-info .ci-cob { color: var(--ok); font-size: 9.5px; }
+        .cal-info .ci-largo { display: none; }
+        .cal-info .ci-blq { color: rgba(248,113,113,0.85); font-size: 10px; }
+        .ci-lock { position: absolute; top: 3px; right: 4px; font-size: 9px; opacity: .55; line-height: 1; }
+        .cal-day.cal-bloq:not(.tiene-reservas) { background: rgba(255,255,255,0.015); }
+        .cal-day.cal-bloq:not(.tiene-reservas) .cal-num { color: rgba(160,210,182,0.55); }
         .cal-day.tiene-reservas::after { display: none; }
-        .cal-day.tiene-reservas { background: rgba(30,122,78,0.16); border-color: var(--acento-borde); }
-        .agenda-layout.vista-mes .cal-day { min-height: 96px; align-items: stretch; padding: 8px; }
-        .agenda-layout.vista-mes .cal-num { text-align: left; }
-        .agenda-layout.vista-mes .cal-info { font-size: 11px; text-align: left; }
-        @media (max-width: 480px) { .cal-day { min-height: 46px; } .cal-info { font-size: 8.5px; } .agenda-layout.vista-mes .cal-day { min-height: 70px; padding: 4px; } }
+        .cal-day.tiene-reservas { background: rgba(30,122,78,0.18); border-color: var(--acento-borde); }
+        .cal-day.hoy { box-shadow: inset 0 0 0 1.5px rgba(110,210,160,0.85); }
+        .cal-day.seleccionado { background: rgba(30,122,78,0.38); border-color: #4ade80; }
+        .cal-day.pasado .cal-num { opacity: .85; }
+        /* Vista Mes (ancha): texto completo, alineado a la izquierda */
+        .agenda-layout.vista-mes .cal-day { min-height: 92px; align-items: stretch; padding: 8px 8px 6px; }
+        .agenda-layout.vista-mes .cal-num { text-align: left; font-size: 15px; }
+        .agenda-layout.vista-mes .cal-info { align-items: flex-start; font-size: 11.5px; }
+        .agenda-layout.vista-mes .cal-info .ci-largo { display: inline; }
+        /* el 🔒 de la esquina ya lo dice: sin texto rojo repetido en cada día */
+        .agenda-layout.vista-mes .cal-info .ci-blq { display: none; }
+        .agenda-layout.vista-mes .cal-info .ci-turnos b { background: none; padding: 0; min-width: 0; font-size: 11.5px; }
+        .agenda-layout.vista-mes .ci-lock { top: 7px; right: 8px; font-size: 11px; }
+        @media (max-width: 640px) {
+            .agenda-layout.vista-mes .cal-day { min-height: 62px; padding: 5px 3px; }
+            .agenda-layout.vista-mes .cal-info { align-items: center; font-size: 10px; }
+            .agenda-layout.vista-mes .cal-num { text-align: center; font-size: 13px; }
+            .agenda-layout.vista-mes .cal-info .ci-largo { display: none; }
+            .agenda-layout.vista-mes .cal-info .ci-turnos b { min-width: 18px; padding: 0 5px; background: rgba(74,222,128,0.18); }
+        }
+        @media (max-width: 480px) { .cal-day { min-height: 48px; padding: 5px 1px 4px; } .cal-num { font-size: 12.5px; } .ci-lock { font-size: 8px; top: 2px; right: 2px; } }
 
         /* Contexto de la paciente dentro del turno */
         .ctx-ultima { font-size: 12px; line-height: 1.55; background: rgba(96,165,250,0.06); border: 1px solid rgba(96,165,250,0.20); border-radius: 10px; padding: 8px 11px; color: var(--texto); }
@@ -786,6 +810,134 @@
             .main-content { padding: 12px 14px 30px; }
             .tb-btn { padding: 9px 11px; font-size: 12px; }
         }
+
+        /* ══════════════════════════════════════════════════════════════
+           AJUSTE VISUAL PC + CELULAR (verificado con capturas 1440 px y 390 px)
+           ══════════════════════════════════════════════════════════════ */
+        .topbar-acciones { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .nb-corto, .solo-cel { display: none; }
+        .nav-btn .nb-ico { margin-right: 6px; }
+        @media (max-width: 640px) { .solo-cel { display: inline-flex; align-items: center; } .nav-btn .nb-ico { margin-right: 0; } }
+        .mini-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+        /* Cabecera de la jornada: acciones del día + menú "⋯ Bloqueos" */
+        .dia-acciones { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .mas-acciones { position: relative; }
+        .mas-acciones > summary { list-style: none; }
+        .mas-acciones > summary::-webkit-details-marker { display: none; }
+        .mas-acciones[open] > summary { border-color: var(--acento-borde); background: var(--acento-suave); color: var(--texto); }
+        .mas-acciones-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 50; display: flex; flex-direction: column; gap: 6px; padding: 8px; min-width: 190px; background: #0c1a12; border: 1px solid var(--acento-borde); border-radius: 12px; box-shadow: 0 14px 34px rgba(0,0,0,0.55); }
+        .mas-acciones-menu .mini-btn { justify-content: flex-start; }
+        .aviso-dia-bloq { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 9px 12px; margin-bottom: 10px; border-radius: 10px; font-size: 12.5px; color: rgba(254,202,202,0.92); background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.22); }
+        .aviso-dia-bloq b { color: #fca5a5; }
+
+        /* Horarios bloqueados: uno solo o un tramo agrupado */
+        .slot-row.slot-bloq { border-color: rgba(248,113,113,0.18); background: rgba(248,113,113,0.035); }
+        .slot-row.slot-bloq .slot-bloqueado-label { font-weight: 600; }
+        .slot-hasta { font-size: 11px; font-weight: 700; color: var(--texto-suave); margin-left: 4px; white-space: nowrap; }
+        .slot-row.slot-tramo .slot-hora { min-width: 104px; }
+
+        /* Tarjeta de turno: botones Confirmar / Recordar / Avisar más sobrios
+           (antes: bloques enormes con degradés saturados que tapaban la info) */
+        .tc-row-primary { gap: 8px; }
+        .tc-btn-confirm, .tc-btn-recordar { padding: 9px 0; border-radius: 9px; font-size: 12.5px; }
+        .tc-btn-confirm { background: rgba(74,222,128,0.14); color: #86efac; border: 1px solid rgba(74,222,128,0.35); }
+        .tc-btn-confirm:hover:not(:disabled) { background: rgba(74,222,128,0.22); }
+        .tc-btn-confirm.tc-btn-confirm--done { background: rgba(74,222,128,0.05); color: rgba(134,239,172,0.45); border-color: rgba(74,222,128,0.15); }
+        .tc-btn-recordar { background: rgba(96,165,250,0.14); color: #bfdbfe; border: 1px solid rgba(96,165,250,0.38); }
+        .tc-btn-recordar:hover { background: rgba(96,165,250,0.22); }
+        .tc-btn-recordar.tc-btn-disabled { background: transparent; color: var(--texto-suave); border-color: var(--borde); }
+        .tc-btn-avisar { padding: 8px 0; border-radius: 9px; font-size: 12px; background: rgba(251,191,36,0.10); color: #fde68a; border: 1px solid rgba(251,191,36,0.32); }
+        .tc-btn-avisar:hover { background: rgba(251,191,36,0.18); }
+        .reserva-item { border-radius: 14px; }
+
+        /* Formularios: ningún campo puede ensanchar la grilla (los <select>
+           con nombres de combo largos empujaban "Nuevo turno" a 531 px). */
+        .form-grid > * { min-width: 0; }
+        .form-input, .form-select, .form-textarea { width: 100%; min-width: 0; max-width: 100%; }
+        .tb-select { max-width: 100%; text-overflow: ellipsis; }
+
+        /* Vista semana: los badges largos no se salen de la tarjeta */
+        .sem-turno { min-width: 0; overflow: hidden; }
+        .sem-turno .badge { white-space: normal; font-size: 10px; padding: 2px 7px; line-height: 1.3; }
+        .sem-turno .turno-badges { gap: 4px; }
+
+        .filtros-det { margin-bottom: 14px; }
+        .filtros-det > summary { list-style: none; display: none; }
+        .filtros-det > summary::-webkit-details-marker { display: none; }
+        .filtros-det .filtros { margin-bottom: 0; }
+
+        /* ── Celular / tablet angosta ── */
+        @media (max-width: 760px) {
+            .solo-pc { display: none !important; }
+            .filtros-det > summary { display: inline-flex; margin-bottom: 8px; }
+            .filtros-det[open] > summary { border-color: var(--acento-borde); background: var(--acento-suave); color: var(--texto); }
+            .filtros-det .filtros { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; align-items: center; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 12px; }
+            .filtros-det .filtros > label:last-child { grid-column: 1 / -1; }
+            .filtros-det .filtros .tb-select { width: 100%; }
+            #secPacientes .filtros { flex-direction: column; align-items: stretch; }
+            #secPacientes .filtros .form-input { min-width: 0 !important; }
+            .sec-head { align-items: stretch; }
+            .sec-head .agenda-toolbar { width: 100%; }
+            .agenda-toolbar { gap: 6px; }
+            .agenda-toolbar .fecha-input { flex: 1 1 140px; min-width: 0; }
+            .agenda-toolbar .seg { width: 100%; }
+            .agenda-toolbar .seg button { flex: 1; }
+            .agenda-layout { gap: 12px; }
+            .agenda-cal { padding: 12px 10px; }
+            .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .kpi { padding: 12px 13px; }
+            .kpi-val { font-size: 21px; margin: 4px 0 2px; }
+            .kpi-sub { font-size: 11px; }
+            .alertas-head { align-items: flex-start; }
+            .card { padding: 14px 12px; border-radius: 14px; }
+            .dia-acciones { width: 100%; }
+            .mas-acciones-menu { right: auto; left: 0; }
+            .slot-row { flex-wrap: wrap; }
+            .slot-row.slot-tramo .slot-hora { min-width: 0; }
+            /* Filtros de Pacientes: 2×2 en vez de una fila que se salía */
+            #pacSeg { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+            #pacSeg button { border-left: none !important; border-top: 1px solid var(--borde); padding: 9px 6px; white-space: normal; line-height: 1.25; }
+            #pacSeg button:nth-child(-n+2) { border-top: none; }
+            #pacSeg button:nth-child(even) { border-left: 1px solid var(--borde) !important; }
+        }
+
+        /* ── Celular: menú como barra fija inferior (antes ocupaba ~270 px
+              arriba de todo) y barra superior compacta ── */
+        @media (max-width: 640px) {
+            body { padding-bottom: 66px; }
+            #appWrapper { flex-direction: column; }
+            .sidebar {
+                position: fixed; top: auto; bottom: 0; left: 0; right: 0; z-index: 600;
+                width: 100%; height: auto; min-height: 0; flex-direction: row; flex-wrap: nowrap;
+                gap: 2px; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); overflow-x: auto;
+                background: rgba(8,19,13,0.97); backdrop-filter: blur(10px);
+                border-right: none; border-top: 1px solid var(--acento-borde); border-bottom: none;
+                scrollbar-width: none;
+            }
+            .sidebar::-webkit-scrollbar { display: none; }
+            /* 5 ítems iguales con ícono arriba; "Volver a Admin" y "Cerrar
+               sesión" pasan a la fila de acciones de arriba (solo-cel). */
+            .sidebar { overflow-x: visible; justify-content: space-around; }
+            .sidebar a.nav-btn, .sidebar .nav-exit { display: none; }
+            .sidebar .nav-btn { flex: 1 1 0; min-width: 0; width: auto; margin: 0; padding: 6px 2px 5px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; border-radius: 10px; border-left: none; }
+            .sidebar .nav-btn .nb-ico { font-size: 18px; line-height: 1.1; }
+            .sidebar .nav-btn .nb-lbl { display: none; }
+            .sidebar .nav-btn .nb-corto { display: block; font-size: 10.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+            .sidebar .nav-btn.active { border-left: none; padding-left: 2px; background: var(--acento-suave); box-shadow: inset 0 2px 0 var(--acento); }
+            .topbar { gap: 8px; padding: 2px 0 10px; }
+            .gsearch { flex: 1 1 100%; min-width: 0; }
+            .topbar-acciones { width: 100%; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+            .topbar-acciones::-webkit-scrollbar { display: none; }
+            .topbar-acciones > * { flex-shrink: 0; }
+            .topbar-acciones .tb-select { max-width: 170px; }
+            .sync-estado { font-size: 10px; }
+            .sec-title { font-size: 1.3em; }
+            #avisoDepi { bottom: 80px; }
+            #drawerPac { width: 100vw; }
+            .dr-head { padding: 14px 14px 10px; }
+            .dr-body { padding: 12px 14px 30px; }
+        }
     </style>
 </head>
 <body>
@@ -815,11 +967,12 @@
     <nav class="sidebar">
         <div class="sidebar-brand">Espacio Mimar T</div>
         <div class="sidebar-sub">Depilación</div>
-        <button class="nav-btn active" id="navInicio" onclick="irA('inicio')">🏠 Inicio</button>
-        <button class="nav-btn" id="navAgenda" onclick="irA('agenda')">📅 Agenda</button>
-        <button class="nav-btn" id="navPacientes" onclick="irA('pacientes')">👥 Pacientes</button>
-        <button class="nav-btn" id="navCierre" onclick="irA('cierre')">💰 Cierre / Caja</button>
-        <button class="nav-btn" id="navConfig" onclick="irA('config')">⚙️ Configuración</button>
+        <!-- nb-lbl: etiqueta completa (PC) · nb-corto: etiqueta de la barra inferior (celular) -->
+        <button class="nav-btn active" id="navInicio" onclick="irA('inicio')"><span class="nb-ico" aria-hidden="true">🏠</span><span class="nb-lbl">Inicio</span><span class="nb-corto" aria-hidden="true">Inicio</span></button>
+        <button class="nav-btn" id="navAgenda" onclick="irA('agenda')"><span class="nb-ico" aria-hidden="true">📅</span><span class="nb-lbl">Agenda</span><span class="nb-corto" aria-hidden="true">Agenda</span></button>
+        <button class="nav-btn" id="navPacientes" onclick="irA('pacientes')"><span class="nb-ico" aria-hidden="true">👥</span><span class="nb-lbl">Pacientes</span><span class="nb-corto" aria-hidden="true">Pacientes</span></button>
+        <button class="nav-btn" id="navCierre" onclick="irA('cierre')"><span class="nb-ico" aria-hidden="true">💰</span><span class="nb-lbl">Cierre / Caja</span><span class="nb-corto" aria-hidden="true">Caja</span></button>
+        <button class="nav-btn" id="navConfig" onclick="irA('config')"><span class="nb-ico" aria-hidden="true">⚙️</span><span class="nb-lbl">Configuración</span><span class="nb-corto" aria-hidden="true">Config.</span></button>
         <div class="nav-divider"></div>
         <a class="nav-btn" href="/admin.html" style="text-decoration:none;color:var(--texto-suave);font-size:12px;">← Volver a Admin</a>
         <button class="nav-exit" onclick="cerrarSesionDepi()">Cerrar sesión</button>
@@ -835,6 +988,7 @@
                     oninput="window._gBuscar(this.value)" onkeydown="window._gBuscarTecla(event)" onfocus="window._gBuscar(this.value)">
                 <div class="gsearch-res" id="gBusqRes"></div>
             </div>
+            <div class="topbar-acciones">
             <select class="tb-select" id="opFiltro" onchange="window._setOperador(this.value)" title="Qué registros de cobro y cierre ver">
                 <option value="todos">Todos los operadores</option>
                 <option value="becker">Yeisy Cristina Becker</option>
@@ -845,6 +999,9 @@
             <button class="tb-btn" onclick="irA('exportar')">🖨 Exportar</button>
             <button class="tb-btn sutil" onclick="window._refrescarTodo()" title="Volver a leer los datos de Firestore">↺</button>
             <span class="sync-estado" id="syncEstado"></span>
+            <a class="tb-btn sutil solo-cel" href="/admin.html" style="text-decoration:none;">← Admin</a>
+            <button class="tb-btn sutil solo-cel" onclick="cerrarSesionDepi()">Salir</button>
+            </div>
         </div>
 
         <!-- ══ INICIO / RESUMEN OPERATIVO ══ -->
@@ -905,9 +1062,11 @@
                     <input type="date" class="fecha-input" id="agendaFecha" onchange="window._agendaIrFecha(this.value)">
                     <button class="tb-btn sutil" onclick="window._agendaMover(1)" aria-label="Siguiente">›</button>
                     <button class="tb-btn" onclick="window._agendaIrFecha()">Hoy</button>
-                    <button class="tb-btn primario" onclick="irARegistrarDia()">➕ Nuevo turno</button>
+                    <button class="tb-btn primario solo-pc" onclick="irARegistrarDia()">➕ Nuevo turno</button>
                 </div>
             </div>
+            <details class="filtros-det" id="filtrosAgenda">
+            <summary class="mini-btn">⚙ Filtros <span class="t-muted" id="filtrosActivosLbl"></span></summary>
             <div class="filtros">
                 <label for="fEstado">Estado</label>
                 <select class="tb-select" id="fEstado" onchange="window._aplicarFiltrosAgenda()">
@@ -930,6 +1089,7 @@
                     <input type="checkbox" id="fLibres" onchange="window._aplicarFiltrosAgenda()"> Mostrar horarios libres y bloqueados
                 </label>
             </div>
+            </details>
             <div class="agenda-layout vista-dia" id="agendaLayout">
                 <div class="card agenda-cal" style="margin-bottom:0;">
                     <div class="cal-nav">
@@ -952,12 +1112,18 @@
                                 <h4 style="margin-bottom:4px;" id="diaDetalleTitle">Turnos del día</h4>
                                 <div class="t-muted" id="diaDetalleResumen"></div>
                             </div>
-                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                <button class="btn-outline" onclick="irARegistrarDia()">+ Agregar turno</button>
-                                <button class="btn-outline" onclick="window._irACierreFecha()">💰 Ver caja del día</button>
-                                <button class="btn-outline" style="border-color:rgba(248,113,113,0.35);color:rgba(248,113,113,0.75);background:rgba(248,113,113,0.06);" onclick="bloquearDiaDepi()">🔒 Bloquear día</button>
-                                <button class="btn-outline" style="border-color:rgba(248,113,113,0.25);color:rgba(248,113,113,0.60);background:rgba(248,113,113,0.04);font-size:11px;" onclick="bloquearSemanaDepi()">🗓 Bloquear semana</button>
-                                <button class="btn-outline" style="border-color:rgba(234,179,8,0.35);color:rgba(234,179,8,0.75);background:rgba(234,179,8,0.05);font-size:11px;" onclick="limpiarReservasDia()">🗑 Limpiar reservas</button>
+                            <div class="dia-acciones">
+                                <button class="mini-btn ok" onclick="irARegistrarDia()">＋ Agregar turno</button>
+                                <button class="mini-btn" onclick="window._irACierreFecha()">💰 Caja del día</button>
+                                <!-- Acciones de bloqueo/limpieza: menos frecuentes, agrupadas -->
+                                <details class="mas-acciones">
+                                    <summary class="mini-btn">⋯ Bloqueos</summary>
+                                    <div class="mas-acciones-menu">
+                                        <button class="mini-btn err" onclick="bloquearDiaDepi()">🔒 Bloquear día</button>
+                                        <button class="mini-btn err" onclick="bloquearSemanaDepi()">🗓 Bloquear semana</button>
+                                        <button class="mini-btn" style="color:var(--warn);border-color:rgba(251,191,36,0.35);" onclick="limpiarReservasDia()">🗑 Limpiar reservas</button>
+                                    </div>
+                                </details>
                             </div>
                         </div>
                         <div id="diaDetalleContenido">
@@ -1517,13 +1683,20 @@
             if (fecha < hoy) cls += ' pasado';
             // Cantidad de turnos + sesiones realizadas + cobrado, en texto
             // (antes era solo un puntito verde sin información).
+            // Celda compacta: número, cantidad de turnos y cobrado. El bloqueo
+            // es un 🔒 discreto (antes "Día bloqueado" en rojo en cada celda:
+            // con todo el mes bloqueado era puro ruido y desbordaba la grilla).
+            // La vista Mes, más ancha, muestra además el texto completo.
             const info = [];
-            if (res) info.push(`${res.turnos} turno${res.turnos !== 1 ? 's' : ''}${res.realizadas ? ` · ${res.realizadas} realiz.` : ''}`);
+            if (res) info.push(`<span class="ci-turnos"><b>${res.turnos}</b><span class="ci-largo"> turno${res.turnos !== 1 ? 's' : ''}${res.realizadas ? ` · ${res.realizadas} realiz.` : ''}</span></span>`);
             if (cobrado > 0) info.push(`<span class="ci-cob">${_fmtMontoCorto(cobrado)}</span>`);
-            if (diasBloqueados.has(fecha)) info.push('<span class="ci-blq">Día bloqueado</span>');
-            else if (!tieneLibre && fecha >= hoy) info.push('<span class="ci-blq">Sin cupo</span>');
-            const aria = `${d} de ${MESES[_calMes]}${res ? `, ${res.turnos} turnos` : ''}${cobrado ? `, cobrado ${_fmtMonto(cobrado)}` : ''}`;
-            celdas += `<button class="${cls}" data-fecha="${fecha}" aria-label="${aria}" onclick="window._clickDiaCal('${fecha}')"><span class="cal-num">${d}</span>${info.length ? `<span class="cal-info">${info.join('<br>')}</span>` : ''}</button>`;
+            const bloqueo = diasBloqueados.has(fecha) ? 'Día bloqueado' : (!tieneLibre && fecha >= hoy) ? 'Sin cupo' : '';
+            if (bloqueo) {
+                cls += ' cal-bloq';
+                info.push(`<span class="ci-blq"><span class="ci-largo">${bloqueo}</span></span>`);
+            }
+            const aria = `${d} de ${MESES[_calMes]}${res ? `, ${res.turnos} turnos` : ''}${cobrado ? `, cobrado ${_fmtMonto(cobrado)}` : ''}${bloqueo ? `, ${bloqueo.toLowerCase()}` : ''}`;
+            celdas += `<button class="${cls}" data-fecha="${fecha}" aria-label="${aria}" title="${aria}" onclick="window._clickDiaCal('${fecha}')">${bloqueo ? '<span class="ci-lock" aria-hidden="true">🔒</span>' : ''}<span class="cal-num">${d}</span>${info.length ? `<span class="cal-info">${info.join('')}</span>` : ''}</button>`;
         }
         grid.innerHTML = dowHeaders + celdas;
     };
@@ -1756,9 +1929,9 @@
         }
 
         if (exInfo.diaBloqueado) {
-            cont.innerHTML = `<div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);border-radius:10px;padding:13px 16px;color:rgba(248,113,113,0.80);font-size:13px;font-weight:600;margin-bottom:12px;">
-                🔒 Día bloqueado
-                <button class="btn-icono" style="margin-left:12px;font-size:11px;" onclick="desbloquearDiaDepi('${fecha}')">Desbloquear</button>
+            cont.innerHTML = `<div class="aviso-dia-bloq">
+                <span>🔒 <b>Día bloqueado</b> para reservas desde la web. Los turnos cargados se ven igual.</span>
+                <button class="mini-btn" onclick="desbloquearDiaDepi('${fecha}')">Desbloquear día</button>
             </div>`;
         }
 
@@ -1806,11 +1979,8 @@
                         <button class="btn-icono" style="font-size:11px;opacity:0.5;" onclick="desbloquearSlotDepi('${slotInfo.id}','${fecha}')">Desbloquear</button>
                     </div>`;
                 }
-                return `<div class="slot-row" style="border-color:rgba(248,113,113,0.20);background:rgba(248,113,113,0.04);">
-                    <div class="slot-hora">${hora}</div>
-                    <div class="slot-bloqueado-label">🔒 Bloqueado</div>
-                    <button class="btn-icono" style="font-size:11px;" onclick="desbloquearSlotDepi('${slotInfo.id}','${fecha}')">Desbloquear</button>
-                </div>`;
+                // Marcador: los bloqueos consecutivos se agrupan en una sola fila (ver abajo).
+                return `\u0000BLQ|${hora}|${slotInfo.id}`;
             } else if (esSlotTardio) {
                 const esHabilitadoTardio = !!exInfo.tardiosHabilitados?.[hora];
                 if (esHabilitadoTardio) {
@@ -1844,16 +2014,47 @@
             }
         });
 
+        // Horarios bloqueados consecutivos → una sola fila (antes, con el día
+        // entero bloqueado, eran 30 renglones idénticos de "Bloqueado").
+        const filas = [];
+        let tramo = [];
+        const cerrarTramo = () => {
+            if (!tramo.length) return;
+            if (tramo.length === 1) {
+                const t = tramo[0];
+                filas.push(`<div class="slot-row slot-bloq">
+                    <div class="slot-hora">${t.hora}</div>
+                    <div class="slot-bloqueado-label">🔒 Bloqueado</div>
+                    <button class="mini-btn" onclick="desbloquearSlotDepi('${t.id}','${fecha}')">Desbloquear</button>
+                </div>`);
+            } else {
+                const ids = tramo.map(t => t.id).join(',');
+                filas.push(`<div class="slot-row slot-bloq slot-tramo">
+                    <div class="slot-hora">${tramo[0].hora}<span class="slot-hasta">– ${tramo[tramo.length - 1].hora}</span></div>
+                    <div class="slot-bloqueado-label">🔒 ${tramo.length} horarios bloqueados</div>
+                    <button class="mini-btn" onclick="desbloquearSlotsDepi('${fecha}','${ids}')">Desbloquear los ${tramo.length}</button>
+                </div>`);
+            }
+            tramo = [];
+        };
+        rows.forEach(x => {
+            if (x.startsWith('\u0000BLQ|')) { const [, hora, id] = x.split('|'); tramo.push({ hora, id }); return; }
+            if (!x) return;
+            cerrarTramo();
+            filas.push(x);
+        });
+        cerrarTramo();
+
         const avisosPrevios = (exInfo.diaBloqueado || esFechaInvalida) ? cont.innerHTML : '';
         let vacio = '';
-        if (!rows.join('')) {
+        if (!filas.length) {
             vacio = ocultosPorFiltro
                 ? `<div class="estado-ui vacio">Ningún turno de este día coincide con los filtros (${ocultosPorFiltro} oculto${ocultosPorFiltro !== 1 ? 's' : ''}). <br><button class="tb-btn" onclick="window._limpiarFiltrosAgenda()">Quitar filtros</button></div>`
                 : `<div class="estado-ui vacio">Sin turnos registrados para este día.${verGrilla ? '' : `<br><button class="tb-btn" onclick="window._mostrarGrillaCompleta()">Ver horarios libres para agendar</button>`}</div>`;
         } else if (ocultosPorFiltro) {
             vacio = `<div class="t-muted" style="margin-top:8px;">${ocultosPorFiltro} turno${ocultosPorFiltro !== 1 ? 's' : ''} oculto${ocultosPorFiltro !== 1 ? 's' : ''} por los filtros.</div>`;
         }
-        cont.innerHTML = avisosPrevios + rows.join('') + vacio;
+        cont.innerHTML = avisosPrevios + filas.join('') + vacio;
         _renderResumenDia(fecha, reservas);
         if (reservas && reservas.length) { _reservasCargadas = reservas; _cargarCierreYCobros(fecha, reservas); }
     };
@@ -2038,6 +2239,25 @@
             mostrarAvisoDepi('Slot desbloqueado');
             await verDia(fecha);
         } catch(e) { console.error(e); mostrarAvisoDepi('Error al desbloquear slot'); }
+    };
+
+    // Desbloquea de una vez un tramo de horarios bloqueados consecutivos.
+    window.desbloquearSlotsDepi = (fecha, idsCsv) => {
+        const ids = (idsCsv || '').split(',').filter(Boolean);
+        if (!ids.length) return;
+        mostrarConfirmDepi({
+            icono: '🔓',
+            titulo: `Desbloquear ${ids.length} horarios`,
+            texto: `¿Desbloquear los ${ids.length} horarios de este tramo del ${_fmtFechaLeg(fecha)}? Van a quedar disponibles para reservar.`,
+            labelSi: 'Sí, desbloquear',
+            onSi: async () => {
+                try {
+                    for (let i = 0; i < ids.length; i += 50) await Promise.all(ids.slice(i, i + 50).map(id => deleteDoc(doc(db, COLECCION_EX, id))));
+                    mostrarAvisoDepi(`${ids.length} horarios desbloqueados`);
+                    await Promise.all([verDia(fecha), cargarCalendario()]);
+                } catch (e) { console.error(e); mostrarAvisoDepi(_mensajeErrorDepi(e, 'desbloquear los horarios')); }
+            }
+        });
     };
 
     window.habilitarSlotTardio = async (hora, fecha) => {
@@ -3909,6 +4129,7 @@ Motivo: ${motivo}`);
         const op = document.getElementById('opFiltro'); if (op) op.value = _opFiltro;
         const ra = document.getElementById('alertaRango'); if (ra && p.rango) ra.value = p.rango;
         const fl = document.getElementById('fLibres'); if (fl) fl.checked = !!p.libres;
+        _sincFiltrosUI();
     };
 
     window._setOperador = (v) => {
@@ -4161,7 +4382,20 @@ Motivo: ${motivo}`);
         if (f.operador && f.operador !== 'web' && r.operador !== f.operador) return false;
         return true;
     };
+    // Filtros: siempre visibles en PC; en celular, plegados en "⚙ Filtros"
+    // con la cantidad de filtros activos a la vista.
+    const _sincFiltrosUI = () => {
+        const det = document.getElementById('filtrosAgenda');
+        const esPC = window.matchMedia ? window.matchMedia('(min-width: 761px)').matches : (window.innerWidth || 1024) > 760;
+        if (det && esPC) det.open = true;
+        const f = _filtrosAgenda();
+        const n = ['estado', 'servicio', 'operador'].filter(k => f[k]).length + (f.libres ? 1 : 0);
+        const lbl = document.getElementById('filtrosActivosLbl');
+        if (lbl) lbl.textContent = n ? `(${n} activo${n !== 1 ? 's' : ''})` : '';
+    };
+    window.addEventListener('resize', _sincFiltrosUI);
     window._aplicarFiltrosAgenda = () => {
+        _sincFiltrosUI();
         _guardarPreferencias();
         if (_diaSeleccionado && _reservasDia[_diaSeleccionado]) renderDiaDetalle(_diaSeleccionado, _reservasDia[_diaSeleccionado], _excepcionesDia[_diaSeleccionado] || { slots: {} });
         if (_vistaAgenda === 'semana') _renderSemana();
