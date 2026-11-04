@@ -1406,6 +1406,8 @@
         .gc-ctx-dispo { display: block; font-size: 9px; font-weight: 700; color: #6B4B10; background: #FBF3DF; border: 1px solid #EAD7A6; border-radius: 6px; padding: 0 5px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 100%; box-sizing: border-box; }
         .gc-bloque-cont-info { justify-content: center !important; padding: 0 6px 0 9px !important; }
         .gc-menu-sep { height: 1px; background: var(--border); margin: 4px 2px; }
+        .gc-menu-pop button.gc-menu-peligro { color: var(--danger); font-weight: 700; }
+        .gc-menu-pop button.gc-menu-peligro:hover { background: var(--danger-soft); }
 
         /* Badges y piezas compartidas */
         .p360-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; line-height: 1.5; }
@@ -14439,6 +14441,8 @@
                     : `<button type="button" onclick="grillaMarcarAviso('${reservaId}','esperaConfirmacion',true)">🔴 Marcar: espera confirmación</button>`}
                 <button type="button" onclick="grillaEditarNota('${reservaId}')">📝 ${notaActual ? 'Editar nota' : 'Agregar nota'}</button>
                 ${notaActual ? `<button type="button" onclick="grillaMarcarAviso('${reservaId}','notaRapida','')">🗑 Quitar nota</button>` : ''}
+                <div class="gc-menu-sep"></div>
+                <button type="button" class="gc-menu-peligro" onclick="grillaEliminarReserva('${reservaId}')">🗑 Eliminar reserva</button>
             `;
             pop.addEventListener('click', e => e.stopPropagation());
             document.body.appendChild(pop);
@@ -14447,6 +14451,18 @@
             const el = document.getElementById('gc-menu-flot');
             if (el) el.remove();
         });
+
+        // "Eliminar reserva" desde el menú ⋮ de la Grilla: usa el mismo borrado
+        // que la Agenda (borrarReserva: confirmación, deleteDoc en Firestore,
+        // auditoría y liberación de los bloqueos en calendarExceptions) y
+        // después redibuja la Grilla para que el turno desaparezca al instante.
+        window.grillaEliminarReserva = async function(reservaId) {
+            document.getElementById('gc-menu-flot')?.remove();
+            await window.borrarReserva(reservaId);
+            if (todasLasReservas.some(x => x.id === reservaId)) return; // canceló o falló
+            window._p360DatosActualizados?.();
+            window.renderGrilla();
+        };
 
         window.grillaMarcarAviso = async function(reservaId, campo, valor) {
             const el = document.getElementById('gc-menu-flot');

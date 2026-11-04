@@ -287,6 +287,21 @@ check('lista las sesiones del día con la plantilla sugerida', rp.includes('Paul
 check('marca la ya enviada (Criolipólisis a Paula)', /Preparado|Enviada/.test(rp));
 check('la biblioteca agrupa por tipo de tratamiento', ['Facial', 'Radiofrecuencia / Tensado', 'HIFU / Lifting sin cirugía', 'Criolipólisis', 'Drenaje / Masajes / Detox', 'Kit domiciliario'].every(c => $('recpost-biblioteca').textContent.includes(c)));
 
+console.log('\n=== Grilla: "Eliminar reserva" desde el menú ⋮ ===');
+w.navegar('grilla'); w.grillaIrHoy(); await tick(30);
+check('el turno de Laura está en la Grilla antes de eliminar', $('grilla-tbody').innerHTML.includes('Laura Ruiz'));
+// Cancelar: no borra nada
+let pendiente = w.grillaEliminarReserva('l-hoy'); await tick();
+// (el modal escribe con innerText, que jsdom guarda como propiedad sin pasarlo a textContent)
+check('pide confirmación antes de borrar', $('confirm-delete-modal').style.display === 'flex' && /Laura Ruiz/.test($('confirm-delete-text-1').innerText || $('confirm-delete-text-1').textContent));
+w.cerrarModalBorradoReserva(false); await pendiente; await tick();
+check('cancelar no borra la reserva', fb.calls.store.has('reservas/l-hoy') && $('grilla-tbody').innerHTML.includes('Laura Ruiz'));
+// Confirmar: se borra de Firestore y desaparece de la Grilla
+pendiente = w.grillaEliminarReserva('l-hoy'); await tick();
+w.cerrarModalBorradoReserva(true); await pendiente; await tick(20);
+check('confirmar borra el documento de Firestore (reservas/l-hoy)', !fb.calls.store.has('reservas/l-hoy'));
+check('el turno desaparece de la Grilla al instante', !$('grilla-tbody').innerHTML.includes('Laura Ruiz'));
+
 check('sin errores de JavaScript durante la prueba', errores.length === 0, errores.join(' | '));
 console.log('\n' + (fails ? `${fails} FALLA(S)` : 'TODOS LOS FLUJOS DE ADMIN OK'));
 process.exit(fails ? 1 : 0);
