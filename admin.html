@@ -16518,70 +16518,117 @@
                 + (res.pacientes.length > LIM ? `<p class="p360-ayuda">Se muestran ${LIM} de ${res.pacientes.length}; el PDF incluye todos.</p>` : '');
         }
 
-        // ── PDF del resumen: solo lo que coincide con el filtro, nada más ──
+        // ── PDF del resumen: compacto, solo números (A4 vertical, normalmente 1 hoja) ──
+        // Sin listado de pacientes ni detalle de sesiones: totales, mes a mes y
+        // una tabla servicio × mes. Solo lo que coincide con el filtro.
         function _baGenerarPdf(cfg, res, t, nombreArchivo) {
             const tools = getPdfTools();
             if (!tools) return false;
             const { jsPDF, runAutoTable } = tools;
-            const docPdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-            const verde = [47, 90, 71];
-            const estilos = { font: 'helvetica', fontSize: 8.6, textColor: verde, lineColor: [207, 233, 221], lineWidth: 0.15, cellPadding: 2.2, overflow: 'linebreak', valign: 'top' };
-            const cab = { fillColor: verde, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.6 };
-            docPdf.setTextColor(...verde);
-            docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(15);
-            docPdf.text(limpiarTextoPdf(t.titulo), 12, 14);
-            docPdf.setFont('helvetica', 'normal'); docPdf.setFontSize(9);
-            const filtros = [
-                `Relación con el servicio: ${MODOS[cfg.modo]}`,
-                `Servicios: ${cfg.servicios.length ? cfg.servicios.join(', ') : 'todos'}`,
-                `Período: ${t.periodo}${cfg.futuros ? ' (incluye turnos futuros)' : ' (solo sesiones hasta hoy)'}`,
-                `Estado del paciente: ${({ todos: 'todos', activo: 'activos', inactivo: 'inactivos', cursos: 'de cursos' })[cfg.estado] || cfg.estado}`,
-            ];
-            docPdf.text(docPdf.splitTextToSize('Filtros aplicados — ' + filtros.join(' · '), 272), 12, 20);
-            docPdf.text(`Generado el ${formatFechaLargaExport(fechaHoyISO())} · Espacio Mimar T`, 12, 30);
+            const docPdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const M = 10, ANCHO = 210 - 2 * M;
+            const verde = [47, 90, 71], suave = [234, 246, 239], gris = [96, 110, 102];
+            const estilos = { font: 'helvetica', fontSize: 7.6, textColor: [36, 51, 43], lineColor: [207, 233, 221], lineWidth: 0.12, cellPadding: { top: 1.1, bottom: 1.1, left: 1.6, right: 1.6 }, overflow: 'linebreak', valign: 'middle' };
+            const cab = { fillColor: verde, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.4, halign: 'center' };
+            const pie = { fillColor: suave, textColor: verde, fontStyle: 'bold', halign: 'center' };
+            const TOT = { content: 'Total', styles: { halign: 'left' } };
+            const conImporte = res.importe != null;
+            const imp = (n) => (n == null ? '—' : formatearImporte(n));
+            const yFin = (y) => (docPdf.lastAutoTable ? docPdf.lastAutoTable.finalY : y);
 
-            // Cuadro de resumen general
-            runAutoTable(docPdf, {
-                startY: 34, theme: 'grid', styles: estilos, headStyles: cab, margin: { left: 12, right: 12 },
-                head: [['Resumen general', '']],
-                body: [
-                    ['Total de sesiones', String(res.totalSesiones)],
-                    ['Pacientes únicos', `${res.pacientes.length} (activos ${res.porEstado.activo} · inactivos ${res.porEstado.inactivo}${res.porEstado.cursos ? ` · de cursos ${res.porEstado.cursos}` : ''})`],
-                    ['Nuevos en el período', String(res.nuevos.length)],
-                    ['Importe acordado (miles de $)', res.importe == null ? 'Sin datos de precio' : `${formatearImporte(res.importe)} (${res.sesionesConPrecio} de ${res.totalSesiones} sesiones con precio)`],
-                ],
-                columnStyles: { 0: { cellWidth: 70, fontStyle: 'bold' } },
+            // Encabezado
+            docPdf.setTextColor(...verde);
+            docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(12.5);
+            docPdf.text(limpiarTextoPdf(t.titulo), M, 13);
+            docPdf.setFont('helvetica', 'normal'); docPdf.setFontSize(7.6); docPdf.setTextColor(...gris);
+            const filtros = [
+                MODOS[cfg.modo],
+                `Período: ${t.periodo}${cfg.futuros ? ' (incluye turnos futuros)' : ''}`,
+                `Pacientes: ${({ todos: 'todos', activo: 'activos', inactivo: 'inactivos', cursos: 'de cursos' })[cfg.estado] || cfg.estado}`,
+                `Servicios: ${cfg.servicios.length ? cfg.servicios.join(', ') : 'todos'}`,
+            ];
+            const lineas = docPdf.splitTextToSize(limpiarTextoPdf(filtros.join('  ·  ')), ANCHO);
+            docPdf.text(lineas, M, 18);
+            let y = 18 + lineas.length * 3.2;
+            docPdf.text(`Generado el ${formatFechaLargaExport(fechaHoyISO())} · Espacio Mimar T`, M, y);
+            y += 3;
+
+            // Recuadros con los números principales
+            const kpis = [
+                ['SESIONES', String(res.totalSesiones), ''],
+                ['PACIENTES ÚNICOS', String(res.pacientes.length), `${res.porEstado.activo} activos · ${res.porEstado.inactivo} inactivos${res.porEstado.cursos ? ` · ${res.porEstado.cursos} cursos` : ''}`],
+                ['NUEVOS EN EL PERÍODO', String(res.nuevos.length), '1.ª sesión en el período'],
+                ['IMPORTE ACORDADO', conImporte ? `$ ${formatearImporte(res.importe)}` : 'Sin datos', conImporte ? `miles de $ · ${res.sesionesConPrecio}/${res.totalSesiones} con precio` : ''],
+            ];
+            const gap = 3, kw = (ANCHO - gap * 3) / 4, kh = 17;
+            kpis.forEach(([lbl, val, det], i) => {
+                const x = M + i * (kw + gap);
+                docPdf.setFillColor(...suave); docPdf.setDrawColor(207, 233, 221); docPdf.setLineWidth(0.2);
+                docPdf.roundedRect(x, y, kw, kh, 2, 2, 'FD');
+                docPdf.setTextColor(...gris); docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(6.4);
+                docPdf.text(limpiarTextoPdf(lbl), x + 3, y + 4.6);
+                docPdf.setTextColor(...verde); docPdf.setFontSize(13.5);
+                docPdf.text(limpiarTextoPdf(val), x + 3, y + 11);
+                if (det) { docPdf.setFont('helvetica', 'normal'); docPdf.setFontSize(6.2); docPdf.setTextColor(...gris); docPdf.text(limpiarTextoPdf(det), x + 3, y + 14.8); }
             });
-            const y1 = docPdf.lastAutoTable ? docPdf.lastAutoTable.finalY + 4 : 70;
-            runAutoTable(docPdf, {
-                startY: y1, theme: 'grid', styles: estilos, headStyles: cab, margin: { left: 12, right: 152 },
-                head: [['Mes', 'Sesiones']],
-                body: res.porMes.length ? res.porMes.map(([ym, n]) => [nombreMesBA(ym, true), String(n)]) : [['—', '0']],
+            y += kh + 5;
+
+            // Mes a mes: sesiones, pacientes, nuevos e importe de cada mes
+            const meses = res.porMes.map(([ym]) => ym);
+            const porMes = new Map(meses.map(ym => [ym, { ses: 0, pac: new Set(), nuevos: new Set(), imp: 0, conP: 0 }]));
+            const matriz = new Map(); // servicio → Map(ym → n)
+            res.sesiones.forEach(({ r, p }) => {
+                const ym = r.fecha.slice(0, 7), e = porMes.get(ym);
+                e.ses++; e.pac.add(p.clave);
+                if (p.nuevo && p.primera === r) e.nuevos.add(p.clave);
+                const pr = _baPrecioDe(r); if (pr != null) { e.imp += pr; e.conP++; }
+                const s = r.servicio || 'Sin especificar';
+                if (!matriz.has(s)) matriz.set(s, new Map());
+                matriz.get(s).set(ym, (matriz.get(s).get(ym) || 0) + 1);
             });
+            const headMes = ['Mes', 'Sesiones', 'Pacientes', 'Nuevos'].concat(conImporte ? ['Importe (miles $)'] : []);
+            const filaMes = (nombre, e) => [nombre, String(e.ses), String(e.pac.size), String(e.nuevos.size)].concat(conImporte ? [e.conP ? formatearImporte(e.imp) : '—'] : []);
+            docPdf.setTextColor(...verde); docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(9);
+            docPdf.text('Mes a mes', M, y); y += 1.5;
             runAutoTable(docPdf, {
-                startY: y1, theme: 'grid', styles: estilos, headStyles: cab, margin: { left: 152, right: 12 },
-                head: [['Servicio', 'Sesiones', 'Importe (miles de $)']],
-                body: res.porServicio.length ? res.porServicio.map(([s, e]) => [limpiarTextoPdf(s), String(e.sesiones), e.conPrecio ? formatearImporte(e.importe) : '—']) : [['—', '0', '—']],
+                startY: y, theme: 'grid', styles: estilos, headStyles: cab, footStyles: pie, margin: { left: M, right: M },
+                head: [headMes],
+                body: meses.length ? meses.map(ym => filaMes(nombreMesBA(ym, true), porMes.get(ym))) : [['Sin sesiones', '0', '0', '0'].concat(conImporte ? ['—'] : [])],
+                foot: meses.length > 1 ? [[TOT, String(res.totalSesiones), String(res.pacientes.length), String(res.nuevos.length)].concat(conImporte ? [imp(res.importe)] : [])] : undefined,
+                columnStyles: { 0: { halign: 'left', cellWidth: 46 }, 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'center' }, 4: { halign: 'right' } },
             });
-            const y2 = (docPdf.lastAutoTable ? docPdf.lastAutoTable.finalY : y1) + 6;
-            // Pacientes
+            y = yFin(y) + 6;
+
+            // Servicio × mes (cuántas sesiones de cada servicio hubo cada mes)
+            const MAX_COL = 12;
+            const colMeses = meses.length <= MAX_COL ? meses : [];
+            const servicios = res.porServicio.map(([s]) => s);
+            docPdf.setTextColor(...verde); docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(9);
+            docPdf.text(colMeses.length > 1 ? 'Sesiones por servicio y por mes' : 'Sesiones por servicio', M, y); y += 1.5;
+            const corto = (ym) => nombreMesBA(ym, false).slice(0, 3) + ' ' + ym.slice(2, 4);
+            const head = ['Servicio'].concat(colMeses.length > 1 ? colMeses.map(corto) : [], ['Total']).concat(conImporte ? ['Importe'] : []);
+            const body = servicios.map(s => {
+                const e = res.porServicio.find(x => x[0] === s)[1];
+                const celdas = colMeses.length > 1 ? colMeses.map(ym => String(matriz.get(s)?.get(ym) || '')) : [];
+                return [limpiarTextoPdf(s)].concat(celdas, [String(e.sesiones)]).concat(conImporte ? [e.conPrecio ? formatearImporte(e.importe) : '—'] : []);
+            });
+            const foot = [TOT].concat(colMeses.length > 1 ? colMeses.map(ym => String(porMes.get(ym).ses)) : [], [String(res.totalSesiones)]).concat(conImporte ? [imp(res.importe)] : []);
+            const colStyles = { 0: { halign: 'left', cellWidth: colMeses.length > 6 ? 46 : 70 } };
+            for (let i = 1; i < head.length; i++) colStyles[i] = { halign: conImporte && i === head.length - 1 ? 'right' : 'center' };
+            colStyles[head.length - (conImporte ? 2 : 1)] = { halign: 'center', fontStyle: 'bold' };
             runAutoTable(docPdf, {
-                startY: y2, theme: 'grid', styles: estilos, headStyles: cab, margin: { left: 12, right: 12 },
-                head: [['Paciente', 'DNI', 'Estado', 'Sesiones', 'Servicios en el período', 'Alta (1.ª sesión)']],
-                body: res.pacientes.map(p => [limpiarTextoPdf(p.nombre), p.dni || '—', ETIQUETA_ESTADO_CLASIFICACION[p.estado] || p.estado, String(p.sesiones.length),
-                    limpiarTextoPdf([...new Set(p.sesiones.map(r => r.servicio))].join(', ')), `${formatoFechaVisible(p.primera.fecha)} · ${limpiarTextoPdf(p.primera.servicio || '')}${p.nuevo ? ' (nuevo)' : ''}`]),
-                columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 24 }, 2: { cellWidth: 22 }, 3: { cellWidth: 18, halign: 'center' }, 5: { cellWidth: 55 } },
+                startY: y, theme: 'grid', styles: { ...estilos, fontSize: colMeses.length > 8 ? 6.8 : 7.6 }, headStyles: { ...cab, fontSize: colMeses.length > 8 ? 6.6 : 7.4 }, footStyles: pie,
+                margin: { left: M, right: M },
+                head: [head], body: body.length ? body : [['Sin sesiones'].concat(head.slice(1).map(() => ''))],
+                foot: servicios.length > 1 ? [foot] : undefined,
+                columnStyles: colStyles,
             });
-            // Detalle de sesiones
-            const y3 = (docPdf.lastAutoTable ? docPdf.lastAutoTable.finalY : y2) + 6;
-            runAutoTable(docPdf, {
-                startY: y3, theme: 'grid', styles: estilos, headStyles: cab, margin: { left: 12, right: 12 },
-                head: [['Fecha', 'Hora', 'Paciente', 'Estado', 'Servicio realizado', 'Box']],
-                body: res.sesiones.map(({ r, p }) => [formatoFechaVisible(r.fecha), normalizarHora(r.hora) || '—', limpiarTextoPdf(p.nombre), ETIQUETA_ESTADO_CLASIFICACION[p.estado] || p.estado, limpiarTextoPdf(r.servicio || '—'), _baBox(r)]),
-                columnStyles: { 0: { cellWidth: 30 }, 1: { cellWidth: 16, halign: 'center' }, 2: { cellWidth: 60 }, 3: { cellWidth: 22 } },
-            });
+
             const paginas = docPdf.getNumberOfPages();
-            for (let i = 1; i <= paginas; i++) { docPdf.setPage(i); docPdf.setFontSize(7.5); docPdf.text(`${limpiarTextoPdf(t.titulo)} · página ${i} de ${paginas}`, 12, 205); }
+            for (let i = 1; i <= paginas; i++) {
+                docPdf.setPage(i); docPdf.setFont('helvetica', 'normal'); docPdf.setFontSize(6.5); docPdf.setTextColor(...gris);
+                docPdf.text(`${limpiarTextoPdf(t.titulo)} · página ${i} de ${paginas}`, M, 290);
+            }
             docPdf.save(nombreArchivo);
             return true;
         }

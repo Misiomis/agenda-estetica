@@ -329,14 +329,16 @@ check('«Exclusivo» de Criolipolisis: solo Laura', /Reporte Exclusivo: Criolipo
 const pdfs = [];
 w.jspdf = { jsPDF: class { constructor() { this.textos = []; this.tablas = []; this.lastAutoTable = { finalY: 40 }; this.pag = 1; pdfs.push(this); }
   setTextColor() {} setFont() {} setFontSize() {} setPage() {} getNumberOfPages() { return 1; }
+  setFillColor() {} setDrawColor() {} setLineWidth() {} roundedRect() {}
   text(t) { this.textos.push([].concat(t).join(' ')); } splitTextToSize(t) { return [t]; }
   autoTable(o) { this.tablas.push(o); } save(n) { this.archivo = n; } } };
 await w.baDescargarPdf(); await tick();
 const pdf = pdfs[0];
 check('PDF generado con el título exacto del filtro', pdf && pdf.textos[0] === 'Reporte Exclusivo: Criolipolisis' && /reporte_exclusivo_criolipolisis_/.test(pdf.archivo), pdf && pdf.textos[0]);
-check('PDF: resumen, por mes, por servicio, pacientes y detalle', pdf && pdf.tablas.length === 5);
-const detalle = pdf ? pdf.tablas[4].body : [];
-check('PDF no mezcla servicios ni pacientes', detalle.length >= 1 && detalle.every(f => f[4] === 'Criolipolisis' && /Laura Ruiz/.test(f[2])), JSON.stringify(detalle));
+check('PDF compacto: solo números (mes a mes + servicio × mes), sin listados de pacientes ni detalle', pdf && pdf.tablas.length === 2 && !pdf.tablas.some(t => t.head[0].includes('Paciente')) && !pdf.textos.some(x => /Laura Ruiz/.test(x)));
+check('PDF con recuadros de totales', pdf && pdf.textos.includes('SESIONES') && pdf.textos.includes('PACIENTES ÚNICOS'));
+const porSvc = pdf ? pdf.tablas[1].body : [];
+check('PDF no mezcla servicios (solo Criolipolisis, 1 sesión)', porSvc.length === 1 && porSvc[0][0] === 'Criolipolisis' && porSvc[0].includes('1'), JSON.stringify(porSvc));
 // Exportar / Jornadas
 w.navegar('export'); await tick(20);
 const chks = [...w.document.querySelectorAll('#expDepiServicios input')];
@@ -345,7 +347,7 @@ $('expDepiDesde').value = '2000-01-01'; $('expDepiHasta').value = '2100-12-31';
 check('Exportar tiene el botón Descargar Resumen en PDF', /Descargar Resumen en PDF/.test($('expResumenPdfBtn').textContent));
 await w.expResumenPDF(); await tick();
 const pdf2 = pdfs[1];
-check('PDF de Exportar respeta servicios tildados y fechas', pdf2 && /Hi-Fu Corporal/.test(pdf2.textos[0]) && pdf2.tablas[4].body.length === 2 && pdf2.tablas[4].body.every(f => f[4] === 'Hi-Fu Corporal'), pdf2 && JSON.stringify(pdf2.tablas[4].body));
+check('PDF de Exportar respeta servicios tildados y fechas', pdf2 && /Hi-Fu Corporal/.test(pdf2.textos[0]) && pdf2.tablas[1].body.length === 1 && pdf2.tablas[1].body[0][0] === 'Hi-Fu Corporal' && pdf2.tablas[0].body.reduce((a, f) => a + Number(f[1]), 0) === 2, pdf2 && JSON.stringify(pdf2.tablas.map(t => t.body)));
 
 console.log('\n=== Directorio: fichas duplicadas ===');
 w.navegar('clientes'); await tick(20);
