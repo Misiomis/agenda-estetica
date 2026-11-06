@@ -1629,6 +1629,49 @@
             .f360-kpis b { font-size: 18px; }
             .gc-ctx, .gc-ctx-ultima { display: none; }
         }
+
+        /* ── Buscador avanzado + duplicados ── */
+        .ba-filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .ba-col { min-width: 0; }
+        .ba-lbl { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); margin-bottom: 6px; }
+        .ba-mini-lbl { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); }
+        .ba-mini-lbl .select-input { width: auto; margin: 0; }
+        .ba-svc-list { max-height: 230px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 4px; background: var(--surface); }
+        .ba-svc { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .ba-svc span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+        .ba-svc small { color: var(--ink-soft); font-weight: 700; }
+        .ba-svc:hover { background: var(--success-soft, #EAF6EF); }
+        .ba-svc.sel { background: var(--success-soft, #EAF6EF); font-weight: 700; }
+        .ba-modos { display: grid; gap: 6px; }
+        .ba-modos label { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 13px; }
+        .ba-modos label input { grid-row: span 2; margin-top: 3px; }
+        .ba-modos label small { color: var(--ink-soft); font-size: 11.5px; }
+        .ba-modos label:has(input:checked) { border-color: var(--forest); background: var(--success-soft, #EAF6EF); }
+        .ba-meses { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 8px; }
+        .ba-mes { display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); font: inherit; font-size: 12.5px; font-weight: 700; color: var(--ink); cursor: pointer; }
+        .ba-mes small { font-size: 10.5px; color: var(--ink-soft); font-weight: 600; }
+        .ba-mes.sel { background: var(--forest); border-color: var(--forest); color: #fff; }
+        .ba-mes.sel small { color: rgba(255,255,255,.8); }
+        .ba-titulo { margin: 14px 0 8px; }
+        .ba-titulo b { display: block; font-family: 'Playfair Display', serif; font-size: 19px; color: var(--forest); }
+        .ba-titulo span { font-size: 12.5px; color: var(--ink-soft); }
+        .ba-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+        .ba-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-width: 0; }
+        .ba-kpi-lbl { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); }
+        .ba-kpi-val { font-size: 26px; font-weight: 800; color: var(--forest); line-height: 1.2; }
+        .ba-kpi-det { font-size: 12px; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+        .ba-chip { display: inline-block; font-size: 11.5px; padding: 2px 8px; border-radius: 999px; background: var(--success-soft, #EAF6EF); border: 1px solid var(--border); white-space: nowrap; }
+        #btn-dup.active { background: var(--forest); color: #fff; }
+        #dup-panel { margin: 10px 0; }
+        .dup-grupo { border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-top: 10px; }
+        .dup-motivos { font-size: 12px; margin-bottom: 8px; color: var(--ink-soft); }
+        .dup-miembros { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+        .dup-ficha { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px; font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+        .dup-cifras { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0; font-size: 12.5px; }
+        .dup-svcs { display: flex; flex-wrap: wrap; gap: 4px; }
+        @media (max-width: 900px) { .ba-kpis { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 760px) { .ba-filtros { grid-template-columns: 1fr; } }
+        @media (max-width: 420px) { .ba-meses { grid-template-columns: repeat(4, 1fr); } .ba-kpis { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -1815,6 +1858,10 @@
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 2.2h6.1L14 5.6v10.2a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1Z"/><path d="M10.4 2.2V5.6H14"/><path d="M5.7 9h5.5M5.7 11.5h5.5M5.7 14h3.5" stroke-linecap="round"/></svg>
                         Historias
                     </button>
+                    <button class="btn-nav nav-sub" id="btn-buscador-avanzado" onclick="navegar('buscador-avanzado')">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 3.5h13l-5 6v4.5l-3 1.5v-6Z" stroke-linejoin="round"/></svg>
+                        Buscador avanzado
+                    </button>
                     <button class="btn-nav nav-sub" id="btn-buscador-sesiones" onclick="navegar('buscador-sesiones')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7.8" cy="7.8" r="5"/><path d="M15.3 15.3 11.5 11.5" stroke-linecap="round"/></svg>
                         Sesiones
@@ -1936,6 +1983,7 @@
             <div class="bsh-divider"></div>
             <div class="bsh-section">
                 <span class="bsh-label">Atención</span>
+                <button class="bsh-item" onclick="navegar('buscador-avanzado');cerrarBottomSheet()">🎯 Buscador avanzado</button>
                 <button class="bsh-item" onclick="navegar('recordatorios');cerrarBottomSheet()">🔔 Recordatorios y retorno</button>
                 <button class="bsh-item" onclick="navegar('recomendaciones');cerrarBottomSheet()">✨ Recomendaciones post-sesión</button>
                 <button class="bsh-item" onclick="navegar('historias');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 2.2h6.1L14 5.6v10.2a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1Z"/><path d="M10.4 2.2V5.6H14"/><path d="M5.7 9h5.5M5.7 11.5h5.5M5.7 14h3.5" stroke-linecap="round"/></svg> Historias</button>
@@ -2084,6 +2132,70 @@
                     <div class="cliente-help" style="margin-top:14px; font-size:13px; background:rgba(53,122,92,0.10); border-radius:10px; padding:8px 12px;">Buscá por cualquier parte del nombre: "miriam", "sedof", "adriana c". Muestra todos sus turnos con box, servicio y resumen mensual.</div>
                 </div>
             </div>
+            <!-- ════════════ BUSCADOR AVANZADO (servicio · período · estado) ════════════ -->
+            <div id="sec-buscador-avanzado" class="section">
+                <div class="p360-sec-head">
+                    <div>
+                        <h3 class="p360-sec-title">Buscador avanzado</h3>
+                        <p class="p360-sec-sub">Cruzá servicio, período y estado del paciente. Los contadores y el PDF usan exactamente estos filtros, sin mezclar otros servicios ni pacientes.</p>
+                    </div>
+                    <div class="p360-acc">
+                        <button class="btn-mini" onclick="baRecargar()" title="Volver a leer las reservas de Firestore">↻ Actualizar datos</button>
+                        <button class="p360-btn pri" id="ba-pdf-btn" onclick="baDescargarPdf()">⬇ Descargar Resumen en PDF (.pdf)</button>
+                    </div>
+                </div>
+                <div class="p360-card ba-filtros">
+                    <div class="ba-col">
+                        <div class="ba-lbl">1 · Servicio / tratamiento</div>
+                        <input type="search" id="ba-svc-busq" class="select-input" placeholder="Filtrar la lista de servicios…" oninput="baRenderServicios()" style="margin:0 0 6px;">
+                        <div class="ba-svc-list" id="ba-svc-list"><div class="p360-cargando">Cargando servicios…</div></div>
+                        <div class="p360-acc" style="margin-top:6px;">
+                            <button type="button" class="p360-btn" onclick="baSvcTodos(false)">Ninguno (= todos los servicios)</button>
+                            <span class="p360-muted" id="ba-svc-sel"></span>
+                        </div>
+                        <div class="ba-lbl" style="margin-top:12px;">Relación con el servicio</div>
+                        <div class="ba-modos" role="radiogroup" aria-label="Relación con el servicio">
+                            <label><input type="radio" name="ba-modo" value="realizo" checked onchange="baAplicar()"> <b>Realizó el servicio</b><small>al menos una vez en el período</small></label>
+                            <label><input type="radio" name="ba-modo" value="exclusivo" onchange="baAplicar()"> <b>Exclusivo de este servicio</b><small>pacientes que SOLO se atienden en el/los servicio(s) elegido(s)</small></label>
+                            <label><input type="radio" name="ba-modo" value="ingreso" onchange="baAplicar()"> <b>Ingresó con este servicio</b><small>su 1.ª sesión (alta) fue en el período y con ese servicio</small></label>
+                        </div>
+                    </div>
+                    <div class="ba-col">
+                        <div class="ba-lbl">2 · Período</div>
+                        <div class="p360-acc">
+                            <label class="ba-mini-lbl">Desde <input type="date" id="ba-desde" class="select-input" onchange="baLimpiarMeses();baAplicar()"></label>
+                            <label class="ba-mini-lbl">Hasta <input type="date" id="ba-hasta" class="select-input" onchange="baLimpiarMeses();baAplicar()"></label>
+                        </div>
+                        <div class="p360-acc" style="margin-top:8px;align-items:center;">
+                            <span class="ba-mini-lbl">O meses de</span>
+                            <select id="ba-anio" class="select-input" style="width:auto;margin:0;" onchange="baRenderMeses()"></select>
+                            <button type="button" class="p360-btn" onclick="baLimpiarMeses();baAplicar()">Usar rango de fechas</button>
+                        </div>
+                        <div class="ba-meses" id="ba-meses"></div>
+                        <label class="p360-check" style="margin-top:8px;"><input type="checkbox" id="ba-futuros" onchange="baAplicar()"> Incluir turnos futuros (todavía no realizados)</label>
+                        <div class="ba-lbl" style="margin-top:12px;">3 · Estado del paciente</div>
+                        <div class="p360-seg" id="ba-estado-seg">
+                            <button type="button" data-e="todos" class="activo" onclick="baSetEstado('todos')">Todos</button>
+                            <button type="button" data-e="activo" onclick="baSetEstado('activo')">Activos</button>
+                            <button type="button" data-e="inactivo" onclick="baSetEstado('inactivo')">Inactivos</button>
+                            <button type="button" data-e="cursos" onclick="baSetEstado('cursos')">De cursos</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="ba-titulo" class="ba-titulo"></div>
+                <div id="ba-kpis" class="ba-kpis"></div>
+                <div class="p360-card">
+                    <div class="p360-card-head">
+                        <h4 id="ba-res-titulo">Resultados</h4>
+                        <div class="p360-seg" id="ba-vista-seg">
+                            <button type="button" data-v="pacientes" class="activo" onclick="baSetVista('pacientes')">Por paciente</button>
+                            <button type="button" data-v="sesiones" onclick="baSetVista('sesiones')">Por sesión</button>
+                        </div>
+                    </div>
+                    <div id="ba-resultados"><div class="p360-cargando">Cargando reservas…</div></div>
+                </div>
+            </div>
+
             <div id="sec-pendientes-reagendar" class="section">
                 <h3 style="font-family:'Playfair Display';margin:0 0 4px">Pendientes de reagendar</h3>
                 <p class="plan-ayuda">Turnos que la duplicación de un mes no pudo ubicar, con el motivo. Un pendiente no ocupa ningún box.</p>
@@ -2177,8 +2289,11 @@
                         <option value="configurada">Planificación configurada</option>
                     </select>
                     <button class="btn-mini" onclick="limpiarFiltrosClientes()">Limpiar filtros</button>
+                    <button class="btn-mini" id="btn-dup" onclick="dupToggle()" title="Detecta fichas repetidas por nombre (sin tildes ni orden), DNI o teléfono">👥 Nombres duplicados</button>
                 </div>
                 <div id="resumenClientes" class="result-summary"></div>
+                <!-- Detector de duplicados (se muestra con "👥 Nombres duplicados") -->
+                <div id="dup-panel" class="p360-card" style="display:none;"></div>
 
                 <!-- Alta / actualización — acceso claro, no domina la pantalla;
                      se ubica antes del listado para que sea alcanzable sin
@@ -2372,6 +2487,8 @@
                     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
                         <button class="btn-mini" onclick="expDepiVista()" style="flex:1;padding:11px;font-size:13px;">👁 Vista previa</button>
                         <button class="btn-mini" onclick="expDepiCSV()" style="flex:1;padding:11px;font-size:13px;background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.35);color:rgba(61,92,134,0.95);">⬇ Descargar CSV</button>
+                        <!-- Mismo filtro (fechas + servicios tildados): PDF solo con eso, sin mezclar -->
+                        <button class="btn-mini" id="expResumenPdfBtn" onclick="expResumenPDF()" style="flex:1;padding:11px;font-size:13px;background:rgba(45,74,50,0.12);border-color:rgba(45,74,50,0.40);color:#2D4A32;font-weight:700;">⬇ Descargar Resumen en PDF (.pdf)</button>
                     </div>
                     <div id="expDepiPreview" style="margin-top:14px;overflow-x:auto;"></div>
                 </div>
@@ -2861,6 +2978,7 @@
             esServicioFacial, evaluarIntervaloFacial, textoConflictoFacial
         } from "/js/planificacion-paciente.js";
         import { initDuplicarMes } from "/js/duplicar-mes-ui.js";
+        import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
         import { normalizarServiciosBox, serializarServiciosBox, serviciosDelBox, resolverServicioAlArrastrar } from "/js/grilla-servicio-box.js";
         import {
             PREF_TRATAMIENTOS, PREF_ESTADOS, PREF_FRANJAS, PREF_PERIODOS, PREF_DIAS,
@@ -11656,7 +11774,7 @@
         // sus pantallas como pestañas. Cada bloque recuerda la última abierta.
         const NAV_GRUPOS = [
             { id: 'jornada', label: 'Grilla y Jornada', items: [['grilla', '📅 Grilla de boxes'], ['agenda', '🗓 Agenda mensual'], ['preparar-jornada', '📋 Preparar jornada']] },
-            { id: 'pacientes', label: 'Pacientes y Fichas', items: [['clientes', '👥 Directorio'], ['historias', '📄 Historias clínicas'], ['buscador-sesiones', '🔎 Sesiones'], ['buscar', '🔍 Buscar turnos']] },
+            { id: 'pacientes', label: 'Pacientes y Fichas', items: [['clientes', '👥 Directorio'], ['buscador-avanzado', '🎯 Buscador avanzado'], ['historias', '📄 Historias clínicas'], ['buscador-sesiones', '🔎 Sesiones'], ['buscar', '🔍 Buscar turnos']] },
             { id: 'seguimiento', label: 'Seguimiento y Consultas', items: [['recordatorios', '🔔 Recordatorios y retorno'], ['recomendaciones', '✨ Recomendaciones'], ['consultas', '💬 Consultas web'], ['control-consultas', '✅ Control de consultas'], ['agenda-ci', '🗓 Agenda CI']] },
             { id: 'recursos', label: 'Recursos del Espacio', items: [['servicios', '🧩 Servicios y boxes'], ['pedidos-kit', '🧴 Pedidos de kit'], ['calculadora', '⏱ Calculadora'], ['cursos', '🎓 Mis cursos']] },
             { id: 'gestion', label: 'Gestión y Cierre', items: [['resumen-mensual', '📊 Resumen mensual'], ['export', '⬇ Exportar / Jornadas'], ['@movimientos', '🕘 Movimientos']] },
@@ -11718,6 +11836,7 @@
             if (s === 'resumen-mensual') window.cargarResumenMensual();
             if (s === 'recordatorios') window.recRender?.();
             if (s === 'recomendaciones') window.recPostRender?.();
+            if (s === 'buscador-avanzado') window.baAbrir?.();
             _navRenderGrupo(s);
         };
         // Estado inicial: la Grilla es la vista activa al cargar.
@@ -16178,6 +16297,454 @@
                 _renderConsI(fecha);
             } catch(e) { console.error('toggleSlotConsI', e); }
         };
+
+        /* ════════════════════════════════════════════════════════════════════
+           BUSCADOR AVANZADO (servicio · período · estado) + RESUMEN EN PDF
+           Fuente: la colección COMPLETA de reservas (_fetchReservasCompletasParaExport,
+           la misma de los otros PDF) — nunca el caché mensual. Importes: precio
+           acordado de "prestaciones" (en miles de pesos, como el resto del panel).
+           Estado del paciente: la misma clasificación activo/inactivo/cursos de
+           Pacientes, calculada sobre los datos completos. Lógica en
+           js/buscador-avanzado.js.
+           ════════════════════════════════════════════════════════════════════ */
+        const _ba = {
+            datos: null, cargando: null, error: null,
+            servicios: new Set(), meses: new Set(), estado: 'todos', vista: 'pacientes', iniciado: false, ultimo: null,
+        };
+        const _baHoy = () => _hoyISOZona(ZONA_HORARIA_NEGOCIO);
+        const _baPad = (n) => String(n).padStart(2, '0');
+
+        function _baCargar(forzar) {
+            if (_ba.datos && !forzar) return Promise.resolve(_ba.datos);
+            if (_ba.cargando) return _ba.cargando;
+            _ba.error = null;
+            _ba.cargando = (async () => {
+                const fuente = await _fetchReservasCompletasParaExport();
+                const activas = fuente.filter(esReservaExportablePdf);
+                const prest = new Map();
+                try { (await getDocs(collection(db, 'prestaciones'))).forEach(d => prest.set(d.id, d.data())); }
+                catch (e) { console.warn('Buscador avanzado: sin importes (prestaciones):', e); }
+                let cursos = _cursosCache && _cursosCache.length ? _cursosCache : [];
+                if (!cursos.length) {
+                    try { cursos = (await getDocs(collection(db, 'cursoMaquillaje'))).docs.map(d => ({ id: d.id, ...d.data() })); }
+                    catch (_) { cursos = []; }
+                }
+                const indices = _construirIndicesClasificacionPacientes(fuente, todasLasConsultas, cursos);
+                _ba.datos = { activas, prest, indices, cargadoAt: new Date() };
+                return _ba.datos;
+            })().catch((e) => { _ba.error = e; throw e; }).finally(() => { _ba.cargando = null; });
+            return _ba.cargando;
+        }
+
+        // Estado actual del paciente (misma regla que Pacientes); sin DNI, por sus sesiones.
+        function _baEstadoDe(clave) {
+            const d = _ba.datos, hoy = _baHoy();
+            if (clave.startsWith('dni:')) return _clasificarPaciente(clave.slice(4), d.indices, hoy).estado;
+            const limite = _restarMesesCalendarioISO(hoy, MESES_ACTIVIDAD_PACIENTE);
+            const fechas = d.activas.filter(r => _pacienteMatchKey(r) === clave).map(r => r.fecha);
+            return fechas.some(f => f >= limite) ? 'activo' : 'inactivo';
+        }
+        // Precio acordado de la sesión (miles de $); null si no hay dato.
+        function _baPrecioDe(r) {
+            const p = _ba.datos.prest.get(r.id);
+            if (!p || p.anulada) return null;
+            if (p.sinCargo) return 0;
+            return Number.isFinite(Number(p.precioAcordado)) && p.precioAcordado !== null && p.precioAcordado !== '' ? Number(p.precioAcordado) : null;
+        }
+        const _baImporteTxt = (n) => n == null ? 'sin datos' : `$ ${formatearImporte(n)} mil`;
+
+        function _baConfig() {
+            const modo = document.querySelector('input[name="ba-modo"]:checked')?.value || 'realizo';
+            const meses = [..._ba.meses].sort();
+            const periodo = meses.length ? { meses } : { desde: document.getElementById('ba-desde')?.value || '', hasta: document.getElementById('ba-hasta')?.value || '' };
+            return { servicios: [..._ba.servicios].sort((a, b) => a.localeCompare(b, 'es')), modo, periodo, estado: _ba.estado, futuros: !!document.getElementById('ba-futuros')?.checked };
+        }
+        function _baCalcular(cfg) {
+            return calcularBusqueda({
+                reservas: _ba.datos.activas, claveDe: _pacienteMatchKey, hoy: _baHoy(),
+                servicios: cfg.servicios, modo: cfg.modo, periodo: cfg.periodo, futuros: cfg.futuros, estado: cfg.estado,
+                estadoDe: _baEstadoDe, precioDe: _baPrecioDe,
+            });
+        }
+
+        window.baAbrir = async () => {
+            if (!_ba.iniciado) {
+                _ba.iniciado = true;
+                _ba.meses = new Set([_baHoy().slice(0, 7)]); // por defecto: el mes en curso
+            }
+            const res = document.getElementById('ba-resultados');
+            if (!_ba.datos) {
+                if (res) res.innerHTML = '<div class="p360-cargando">Leyendo todas las reservas, precios y estado de pacientes…</div>';
+                try { await _baCargar(); }
+                catch (e) {
+                    if (res) res.innerHTML = `<p class="p360-alerta err">No se pudo leer el listado completo de reservas (${escapeHtml(e?.code || e?.message || 'sin conexión')}). <button class="p360-btn" onclick="baRecargar()">Reintentar</button></p>`;
+                    return;
+                }
+            }
+            _baPrepararAnios();
+            window.baRenderServicios();
+            window.baRenderMeses();
+            window.baAplicar();
+        };
+        window.baRecargar = async () => {
+            _ba.datos = null;
+            await window.baAbrir();
+            mostrarAviso('Datos actualizados');
+        };
+        function _baPrepararAnios() {
+            const sel = document.getElementById('ba-anio');
+            if (!sel || sel.options.length) return;
+            const anios = [...new Set(_ba.datos.activas.map(r => (r.fecha || '').slice(0, 4)).filter(a => /^\d{4}$/.test(a)))].sort().reverse();
+            const actual = _baHoy().slice(0, 4);
+            if (!anios.includes(actual)) anios.unshift(actual);
+            sel.innerHTML = anios.map(a => `<option value="${a}">${a}</option>`).join('');
+            sel.value = actual;
+        }
+
+        window.baRenderServicios = () => {
+            const cont = document.getElementById('ba-svc-list');
+            if (!cont || !_ba.datos) return;
+            const cuenta = new Map();
+            _ba.datos.activas.forEach(r => { const s = (r.servicio || '').trim(); if (s) cuenta.set(s, (cuenta.get(s) || 0) + 1); });
+            const q = _normTxt360(document.getElementById('ba-svc-busq')?.value || '');
+            const lista = [...cuenta.entries()].filter(([s]) => !q || _normTxt360(s).includes(q)).sort((a, b) => a[0].localeCompare(b[0], 'es'));
+            cont.innerHTML = lista.length ? lista.map(([s, n]) => `<label class="ba-svc${_ba.servicios.has(s) ? ' sel' : ''}"><input type="checkbox" data-svc="${escapeHtml(s)}" ${_ba.servicios.has(s) ? 'checked' : ''} onchange="baToggleSvc(this)"> <span>${escapeHtml(s)}</span><small>${n}</small></label>`).join('')
+                : '<div class="p360-muted">Ningún servicio coincide.</div>';
+            const lbl = document.getElementById('ba-svc-sel');
+            if (lbl) lbl.textContent = _ba.servicios.size ? `${_ba.servicios.size} elegido${_ba.servicios.size !== 1 ? 's' : ''}` : 'Todos los servicios';
+        };
+        window.baToggleSvc = (el) => {
+            const s = el.dataset.svc;
+            if (el.checked) _ba.servicios.add(s); else _ba.servicios.delete(s);
+            el.closest('.ba-svc')?.classList.toggle('sel', el.checked);
+            const lbl = document.getElementById('ba-svc-sel');
+            if (lbl) lbl.textContent = _ba.servicios.size ? `${_ba.servicios.size} elegido${_ba.servicios.size !== 1 ? 's' : ''}` : 'Todos los servicios';
+            window.baRenderMeses();
+            window.baAplicar();
+        };
+        window.baSvcTodos = () => { _ba.servicios.clear(); window.baRenderServicios(); window.baRenderMeses(); window.baAplicar(); };
+
+        // Chips de meses del año elegido, con la cantidad de sesiones del/los servicio(s).
+        window.baRenderMeses = () => {
+            const cont = document.getElementById('ba-meses');
+            if (!cont || !_ba.datos) return;
+            const anio = document.getElementById('ba-anio')?.value || _baHoy().slice(0, 4);
+            const svc = _ba.servicios;
+            const futuros = !!document.getElementById('ba-futuros')?.checked, hoy = _baHoy();
+            const cuenta = new Map();
+            _ba.datos.activas.forEach(r => {
+                if (!r.fecha || !r.fecha.startsWith(anio)) return;
+                if (svc.size && !svc.has(r.servicio)) return;
+                if (!futuros && r.fecha > hoy) return;
+                const ym = r.fecha.slice(0, 7); cuenta.set(ym, (cuenta.get(ym) || 0) + 1);
+            });
+            cont.innerHTML = Array.from({ length: 12 }, (_, i) => {
+                const ym = `${anio}-${_baPad(i + 1)}`;
+                const on = _ba.meses.has(ym);
+                return `<button type="button" class="ba-mes${on ? ' sel' : ''}" aria-pressed="${on}" onclick="baToggleMes('${ym}')">${nombreMesBA(ym, false).slice(0, 3)}<small>${cuenta.get(ym) || 0}</small></button>`;
+            }).join('');
+        };
+        const nombreMesBA = (ym, conAnio) => { const n = nombreMes(ym, conAnio); return n.charAt(0).toUpperCase() + n.slice(1); };
+        window.baToggleMes = (ym) => {
+            if (_ba.meses.has(ym)) _ba.meses.delete(ym); else _ba.meses.add(ym);
+            window.baRenderMeses(); window.baAplicar();
+        };
+        window.baLimpiarMeses = () => { _ba.meses.clear(); window.baRenderMeses(); };
+        window.baSetEstado = (e) => {
+            _ba.estado = e;
+            document.querySelectorAll('#ba-estado-seg button').forEach(b => b.classList.toggle('activo', b.dataset.e === e));
+            window.baAplicar();
+        };
+        window.baSetVista = (v) => {
+            _ba.vista = v;
+            document.querySelectorAll('#ba-vista-seg button').forEach(b => b.classList.toggle('activo', b.dataset.v === v));
+            if (_ba.ultimo) _baRenderResultados(_ba.ultimo.res);
+        };
+
+        window.baAplicar = () => {
+            if (!_ba.datos) return;
+            const cfg = _baConfig();
+            const res = _baCalcular(cfg);
+            const t = tituloBusqueda(cfg);
+            _ba.ultimo = { cfg, res, t };
+            document.getElementById('ba-titulo').innerHTML = `<b>${escapeHtml(t.titulo)}</b><span>${escapeHtml(t.subtitulo)}${cfg.futuros ? ' · incluye turnos futuros' : ''}</span>`
+                + (cfg.modo === 'exclusivo' && !cfg.servicios.length ? '<span class="p360-alerta warn" style="display:block;margin-top:6px;">Para «Exclusivo» elegí al menos un servicio.</span>' : '');
+            const meses = res.porMes.map(([ym, n]) => `<span class="ba-chip">${escapeHtml(nombreMesBA(ym, cfg.periodo.meses ? cfg.periodo.meses.some(m => m.slice(0, 4) !== _baHoy().slice(0, 4)) : true))}: <b>${n}</b></span>`).join('');
+            const svcs = res.porServicio.slice(0, 6).map(([s, e]) => `<span class="ba-chip">${escapeHtml(s)}: <b>${e.sesiones}</b></span>`).join('') + (res.porServicio.length > 6 ? `<span class="ba-chip">+${res.porServicio.length - 6} más</span>` : '');
+            document.getElementById('ba-kpis').innerHTML = `
+                <div class="ba-kpi"><div class="ba-kpi-lbl">Sesiones en el período</div><div class="ba-kpi-val">${res.totalSesiones}</div>
+                    <div class="ba-kpi-det">${meses || '<span class="p360-muted">—</span>'}</div>
+                    <div class="ba-kpi-det">Importe acordado: <b>${_baImporteTxt(res.importe)}</b>${res.importe != null ? ` <span class="p360-muted">(${res.sesionesConPrecio} de ${res.totalSesiones} sesiones con precio · en miles de pesos)</span>` : ''}</div></div>
+                <div class="ba-kpi"><div class="ba-kpi-lbl">Pacientes únicos</div><div class="ba-kpi-val">${res.pacientes.length}</div>
+                    <div class="ba-kpi-det"><span class="p360-badge ok">${res.porEstado.activo} activos</span> <span class="p360-badge warn">${res.porEstado.inactivo} inactivos</span>${res.porEstado.cursos ? ` <span class="p360-badge info">${res.porEstado.cursos} de cursos</span>` : ''}</div></div>
+                <div class="ba-kpi"><div class="ba-kpi-lbl">Nuevos en el período</div><div class="ba-kpi-val">${res.nuevos.length}</div>
+                    <div class="ba-kpi-det p360-muted">Su 1.ª sesión fue en este período${cfg.servicios.length ? ' y con el/los servicio(s) filtrado(s)' : ''}.</div></div>
+                <div class="ba-kpi"><div class="ba-kpi-lbl">Por servicio</div><div class="ba-kpi-det">${svcs || '<span class="p360-muted">—</span>'}</div></div>`;
+            _baRenderResultados(res);
+        };
+
+        function _baBox(r) { const b = GRILLA_BOXES.find(x => x.id === _grilla_boxDeReserva(r)); return b ? `${b.title} · ${b.sub}` : '—'; }
+        const _baEstadoBadge = (e) => `<span class="p360-badge ${e === 'activo' ? 'ok' : e === 'cursos' ? 'info' : 'warn'}">${escapeHtml(ETIQUETA_ESTADO_CLASIFICACION[e] || e)}</span>`;
+        function _baRenderResultados(res) {
+            const cont = document.getElementById('ba-resultados');
+            const tit = document.getElementById('ba-res-titulo');
+            if (!cont) return;
+            if (tit) tit.textContent = `Resultados · ${res.pacientes.length} paciente${res.pacientes.length !== 1 ? 's' : ''} · ${res.totalSesiones} sesion${res.totalSesiones !== 1 ? 'es' : ''}`;
+            if (!res.totalSesiones) { cont.innerHTML = '<div class="p360-vacio">Ningún paciente ni sesión coincide con estos filtros.</div>'; return; }
+            const LIM = 400;
+            if (_ba.vista === 'sesiones') {
+                const filas = res.sesiones.slice(0, LIM).map(({ r, p }) => `<tr>
+                    <td data-l="Fecha">${escapeHtml(formatoFechaVisible(r.fecha))}</td>
+                    <td data-l="Hora" class="p360-hora">${escapeHtml(normalizarHora(r.hora) || '—')}</td>
+                    <td data-l="Paciente"><button class="p360-link" onclick="abrirFicha360Enc('${_jsArg(p.clave)}','historial')">${escapeHtml(p.nombre)}</button></td>
+                    <td data-l="Estado">${_baEstadoBadge(p.estado)}</td>
+                    <td data-l="Servicio">${escapeHtml(r.servicio || '—')}</td>
+                    <td data-l="Box">${escapeHtml(_baBox(r))}</td></tr>`).join('');
+                cont.innerHTML = `<div class="p360-tabla-wrap"><table class="p360-tabla"><thead><tr><th>Fecha</th><th>Hora</th><th>Paciente</th><th>Estado</th><th>Servicio</th><th>Box</th></tr></thead><tbody>${filas}</tbody></table></div>`
+                    + (res.sesiones.length > LIM ? `<p class="p360-ayuda">Se muestran ${LIM} de ${res.sesiones.length}; el PDF incluye todas.</p>` : '');
+                return;
+            }
+            const filas = res.pacientes.slice(0, LIM).map(p => {
+                const ult = p.sesiones[p.sesiones.length - 1];
+                return `<tr>
+                    <td data-l="Paciente"><button class="p360-link" onclick="abrirFicha360Enc('${_jsArg(p.clave)}','historial')">${escapeHtml(p.nombre)}</button><div class="p360-muted">${p.dni ? 'DNI ' + escapeHtml(p.dni) : 'Sin DNI'}</div></td>
+                    <td data-l="Estado">${_baEstadoBadge(p.estado)}${p.nuevo ? ' <span class="p360-badge info">Nuevo</span>' : ''}</td>
+                    <td data-l="Sesiones" class="p360-hora">${p.sesiones.length}</td>
+                    <td data-l="Servicios en el período">${escapeHtml([...new Set(p.sesiones.map(r => r.servicio))].join(', '))}</td>
+                    <td data-l="Última del período">${escapeHtml(formatoFechaVisible(ult.fecha))}</td>
+                    <td data-l="Alta (1.ª sesión)">${escapeHtml(formatoFechaVisible(p.primera.fecha))}<div class="p360-muted">${escapeHtml(p.primera.servicio || '')}</div></td></tr>`;
+            }).join('');
+            cont.innerHTML = `<div class="p360-tabla-wrap"><table class="p360-tabla"><thead><tr><th>Paciente</th><th>Estado</th><th>Sesiones</th><th>Servicios en el período</th><th>Última del período</th><th>Alta (1.ª sesión)</th></tr></thead><tbody>${filas}</tbody></table></div>`
+                + (res.pacientes.length > LIM ? `<p class="p360-ayuda">Se muestran ${LIM} de ${res.pacientes.length}; el PDF incluye todos.</p>` : '');
+        }
+
+        // ── PDF del resumen: solo lo que coincide con el filtro, nada más ──
+        function _baGenerarPdf(cfg, res, t, nombreArchivo) {
+            const tools = getPdfTools();
+            if (!tools) return false;
+            const { jsPDF, runAutoTable } = tools;
+            const docPdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const verde = [47, 90, 71];
+            const estilos = { font: 'helvetica', fontSize: 8.6, textColor: verde, lineColor: [207, 233, 221], lineWidth: 0.15, cellPadding: 2.2, overflow: 'linebreak', valign: 'top' };
+            const cab = { fillColor: verde, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.6 };
+            docPdf.setTextColor(...verde);
+            docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(15);
+            docPdf.text(limpiarTextoPdf(t.titulo), 12, 14);
+            docPdf.setFont('helvetica', 'normal'); docPdf.setFontSize(9);
+            const filtros = [
+                `Relación con el servicio: ${MODOS[cfg.modo]}`,
+                `Servicios: ${cfg.servicios.length ? cfg.servicios.join(', ') : 'todos'}`,
+                `Período: ${t.periodo}${cfg.futuros ? ' (incluye turnos futuros)' : ' (solo sesiones hasta hoy)'}`,
+                `Estado del paciente: ${({ todos: 'todos', activo: 'activos', inactivo: 'inactivos', cursos: 'de cursos' })[cfg.estado] || cfg.estado}`,
+            ];
+            docPdf.text(docPdf.splitTextToSize('Filtros aplicados — ' + filtros.join(' · '), 272), 12, 20);
+            docPdf.text(`Generado el ${formatFechaLargaExport(fechaHoyISO())} · Espacio Mimar T`, 12, 30);
+
+            // Cuadro de resumen general
+            runAutoTable(docPdf, {
+                startY: 34, theme: 'grid', styles: estilos, headStyles: cab, margin: { left: 12, right: 12 },
+                head: [['Resumen general', '']],
+                body: [
+                    ['Total de sesiones', String(res.totalSesiones)],
+                    ['Pacientes únicos', `${res.pacientes.length} (activos ${res.porEstado.activo} · inactivos ${res.porEstado.inactivo}${res.porEstado.cursos ? ` · de cursos ${res.porEstado.cursos}` : ''})`],
+                    ['Nuevos en el período', String(res.nuevos.length)],
+                    ['Importe acordado (miles de $)', res.importe == null ? 'Sin datos de precio' : `${formatearImporte(res.importe)} (${res.sesionesConPrecio} de ${res.totalSesiones} sesiones con precio)`],
+                ],
+                columnStyles: { 0: { cellWidth: 70, fontStyle: 'bold' } },
+            });
+            const y1 = docPdf.lastAutoTable ? docPdf.lastAutoTable.finalY + 4 : 70;
+            runAutoTable(docPdf, {
+                startY: y1, theme: 'grid', styles: estilos, headStyles: cab, margin: { left: 12, right: 152 },
+                head: [['Mes', 'Sesiones']],
+                body: res.porMes.length ? res.porMes.map(([ym, n]) => [nombreMesBA(ym, true), String(n)]) : [['—', '0']],
+            });
+            runAutoTable(docPdf, {
+                startY: y1, theme: 'grid', styles: estilos, headStyles: cab, margin: { left: 152, right: 12 },
+                head: [['Servicio', 'Sesiones', 'Importe (miles de $)']],
+                body: res.porServicio.length ? res.porServicio.map(([s, e]) => [limpiarTextoPdf(s), String(e.sesiones), e.conPrecio ? formatearImporte(e.importe) : '—']) : [['—', '0', '—']],
+            });
+            const y2 = (docPdf.lastAutoTable ? docPdf.lastAutoTable.finalY : y1) + 6;
+            // Pacientes
+            runAutoTable(docPdf, {
+                startY: y2, theme: 'grid', styles: estilos, headStyles: cab, margin: { left: 12, right: 12 },
+                head: [['Paciente', 'DNI', 'Estado', 'Sesiones', 'Servicios en el período', 'Alta (1.ª sesión)']],
+                body: res.pacientes.map(p => [limpiarTextoPdf(p.nombre), p.dni || '—', ETIQUETA_ESTADO_CLASIFICACION[p.estado] || p.estado, String(p.sesiones.length),
+                    limpiarTextoPdf([...new Set(p.sesiones.map(r => r.servicio))].join(', ')), `${formatoFechaVisible(p.primera.fecha)} · ${limpiarTextoPdf(p.primera.servicio || '')}${p.nuevo ? ' (nuevo)' : ''}`]),
+                columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 24 }, 2: { cellWidth: 22 }, 3: { cellWidth: 18, halign: 'center' }, 5: { cellWidth: 55 } },
+            });
+            // Detalle de sesiones
+            const y3 = (docPdf.lastAutoTable ? docPdf.lastAutoTable.finalY : y2) + 6;
+            runAutoTable(docPdf, {
+                startY: y3, theme: 'grid', styles: estilos, headStyles: cab, margin: { left: 12, right: 12 },
+                head: [['Fecha', 'Hora', 'Paciente', 'Estado', 'Servicio realizado', 'Box']],
+                body: res.sesiones.map(({ r, p }) => [formatoFechaVisible(r.fecha), normalizarHora(r.hora) || '—', limpiarTextoPdf(p.nombre), ETIQUETA_ESTADO_CLASIFICACION[p.estado] || p.estado, limpiarTextoPdf(r.servicio || '—'), _baBox(r)]),
+                columnStyles: { 0: { cellWidth: 30 }, 1: { cellWidth: 16, halign: 'center' }, 2: { cellWidth: 60 }, 3: { cellWidth: 22 } },
+            });
+            const paginas = docPdf.getNumberOfPages();
+            for (let i = 1; i <= paginas; i++) { docPdf.setPage(i); docPdf.setFontSize(7.5); docPdf.text(`${limpiarTextoPdf(t.titulo)} · página ${i} de ${paginas}`, 12, 205); }
+            docPdf.save(nombreArchivo);
+            return true;
+        }
+        const _baArchivo = (t) => (t.titulo || 'resumen').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '').toLowerCase().slice(0, 70) + `_${fechaHoyISO()}.pdf`;
+
+        window.baDescargarPdf = async () => {
+            const btn = document.getElementById('ba-pdf-btn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
+            try {
+                await _baCargar();
+                const cfg = _baConfig();
+                const res = _baCalcular(cfg);
+                const t = tituloBusqueda(cfg);
+                if (_baGenerarPdf(cfg, res, t, _baArchivo(t))) mostrarAviso('PDF generado con ' + res.totalSesiones + ' sesiones');
+            } catch (e) { console.error(e); mostrarAviso('No se pudo generar el PDF (' + (e?.message || 'sin conexión') + ')'); }
+            finally { if (btn) { btn.disabled = false; btn.textContent = '⬇ Descargar Resumen en PDF (.pdf)'; } }
+        };
+
+        // Exportar / Jornadas: mismas fechas y servicios tildados del bloque de exportación.
+        window.expResumenPDF = async () => {
+            expDepiInit();
+            const desde = document.getElementById('expDepiDesde')?.value || '';
+            const hasta = document.getElementById('expDepiHasta')?.value || '';
+            const checks = [...document.querySelectorAll('#expDepiServicios input[type=checkbox]')];
+            const marcados = checks.filter(c => c.checked).map(c => c.value);
+            if (!marcados.length) { mostrarAviso('Tildá al menos un servicio'); return; }
+            const btn = document.getElementById('expResumenPdfBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
+            try {
+                await _baCargar();
+                const cfg = { servicios: marcados.length === checks.length ? [] : marcados, modo: 'realizo', periodo: { desde, hasta }, estado: 'todos', futuros: true };
+                const res = _baCalcular(cfg);
+                const t = tituloBusqueda(cfg);
+                if (_baGenerarPdf(cfg, res, t, _baArchivo(t))) mostrarAviso('PDF generado con ' + res.totalSesiones + ' sesiones');
+            } catch (e) { console.error(e); mostrarAviso('No se pudo generar el PDF (' + (e?.message || 'sin conexión') + ')'); }
+            finally { if (btn) { btn.disabled = false; btn.textContent = '⬇ Descargar Resumen en PDF (.pdf)'; } }
+        };
+
+        /* ════════════════════════════════════════════════════════════════════
+           DETECTOR DE FICHAS DUPLICADAS (Pacientes → Directorio)
+           Agrupa por nombre normalizado (sin tildes/mayúsculas/espacios dobles,
+           en cualquier orden), DNI o teléfono. "Unificar" sigue el criterio de
+           "Cambiar ID": pasa turnos, consultas y pedidos de kit al DNI principal
+           y deja la ficha duplicada como redirección (no aparece más en el
+           padrón, y pagos/recibos viejos que la referencian siguen encontrando
+           a la paciente principal). Nada del historial se borra.
+           ════════════════════════════════════════════════════════════════════ */
+        let _dupAbierto = false;
+        window.dupToggle = () => {
+            _dupAbierto = !_dupAbierto;
+            const panel = document.getElementById('dup-panel');
+            document.getElementById('btn-dup')?.classList.toggle('active', _dupAbierto);
+            if (!panel) return;
+            panel.style.display = _dupAbierto ? '' : 'none';
+            if (_dupAbierto) window.dupRender();
+        };
+        let _dupGrupos = [];
+        window.dupRender = () => {
+            const panel = document.getElementById('dup-panel');
+            if (!panel) return;
+            _dupGrupos = agruparDuplicados(todasLosPacientes);
+            const idx = _p360Indice();
+            const btn = document.getElementById('btn-dup');
+            if (btn) btn.textContent = `👥 Nombres duplicados (${_dupGrupos.length})`;
+            if (!_dupGrupos.length) { panel.innerHTML = '<div class="p360-card-head"><h4>👥 Fichas duplicadas</h4><button class="p360-btn" onclick="dupToggle()">Cerrar</button></div><div class="p360-vacio">No se encontraron fichas duplicadas por nombre, DNI ni teléfono. 🎉</div>'; return; }
+            panel.innerHTML = `<div class="p360-card-head"><h4>👥 Fichas duplicadas · ${_dupGrupos.length} grupo${_dupGrupos.length !== 1 ? 's' : ''}</h4><button class="p360-btn" onclick="dupToggle()">Cerrar</button></div>
+                <p class="p360-ayuda">Elegí en cada grupo la ficha <b>principal</b> y tocá «Unificar aquí»: los turnos, consultas y pedidos de las otras pasan a esa ficha y las duplicadas dejan de aparecer en el padrón (quedan como redirección, sin perder historial).</p>`
+                + _dupGrupos.map((g, gi) => `<div class="dup-grupo">
+                    <div class="dup-motivos">Coinciden por: ${[...g.motivos].map(m => `<span class="p360-badge warn">${escapeHtml(m)}</span>`).join(' ')}</div>
+                    <div class="dup-miembros">${g.miembros.map(p => {
+                        const e = idx.get(_p360ClaveDePaciente(p)) || _vacio360;
+                        const svcs = {};
+                        e.todas.filter(esReservaActiva).forEach(r => { const s = r.servicio || 'Sin especificar'; svcs[s] = (svcs[s] || 0) + 1; });
+                        const ult = e.realizadas[e.realizadas.length - 1];
+                        return `<div class="dup-ficha">
+                            <b>${escapeHtml(p.fullName || 'Sin nombre')}</b>
+                            <div class="p360-muted">DNI ${escapeHtml(p.dni)} · Tel. ${escapeHtml(p.phone || '—')}</div>
+                            <div class="dup-cifras"><span>Turnos: <b>${e.todas.filter(esReservaActiva).length}</b></span><span>Realizadas: <b>${e.realizadas.length}</b></span>${p.membershipActive ? '<span class="p360-badge memb">Membresía</span>' : ''}</div>
+                            <div class="dup-svcs">${Object.entries(svcs).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s, n]) => `<span class="ba-chip">${escapeHtml(s)}: <b>${n}</b></span>`).join('') || '<span class="p360-muted">Sin turnos</span>'}</div>
+                            ${ult ? `<div class="p360-muted">Última: ${escapeHtml(formatoFechaVisible(ult.fecha))}</div>` : ''}
+                            <div class="p360-acc" style="margin-top:8px;">
+                                <button class="p360-btn pri" onclick="dupUnificar(${gi},'${_jsArg(p.dni)}')">⭐ Unificar aquí</button>
+                                <button class="p360-btn" onclick="f360EditarFicha('${_jsArg(p.dni)}')">✏️ Editar</button>
+                                <button class="p360-btn" onclick="abrirFicha360Dni('${_jsArg(p.dni)}','historial')">📇 Ficha</button>
+                            </div></div>`;
+                    }).join('')}</div></div>`).join('');
+        };
+
+        window.dupUnificar = (gi, principalDni) => {
+            const g = _dupGrupos[gi];
+            if (!g) return;
+            const principal = g.miembros.find(p => p.dni === principalDni);
+            const otros = g.miembros.filter(p => p.dni !== principalDni);
+            const ov = document.createElement('div');
+            ov.className = 'p360-modal-ov';
+            ov.innerHTML = `<div class="p360-modal" role="dialog" aria-modal="true" aria-labelledby="_dup_t">
+                <p class="p360-modal-t" id="_dup_t">⭐ Unificar fichas</p>
+                <p class="p360-modal-s">Ficha principal: <b>${escapeHtml(principal.fullName)}</b> · DNI ${escapeHtml(principal.dni)}</p>
+                <p class="f360-texto">Se pasan a la principal todos los turnos, consultas y pedidos de kit de:</p>
+                ${otros.map(p => `<div class="f360-texto">• <b>${escapeHtml(p.fullName)}</b> · DNI ${escapeHtml(p.dni)}</div>`).join('')}
+                <p class="p360-ayuda">Los datos que le falten a la principal (teléfono, email, nacimiento, disponibilidad) se completan con los de la duplicada; las notas se suman. La ficha duplicada queda como redirección: no aparece más en Pacientes y no se pierde historial. La membresía y el saldo de horas de la principal no se tocan.</p>
+                <div class="p360-modal-acc">
+                    <button type="button" class="btn-mini" id="_dup_cancel">Cancelar</button>
+                    <button type="button" class="p360-btn-pri" id="_dup_ok">Unificar ${otros.length} ficha${otros.length !== 1 ? 's' : ''}</button>
+                </div></div>`;
+            document.body.appendChild(ov);
+            const cerrar = () => ov.remove();
+            ov.addEventListener('mousedown', (e) => { if (e.target === ov) cerrar(); });
+            ov.querySelector('#_dup_cancel').onclick = cerrar;
+            ov.querySelector('#_dup_ok').onclick = async (e) => {
+                e.target.disabled = true; e.target.textContent = 'Unificando…';
+                try {
+                    let movidos = 0;
+                    for (const p of otros) movidos += await _dupFusionar(principal.dni, p.dni);
+                    cerrar();
+                    mostrarAviso(`✓ Fichas unificadas · ${movidos} registro${movidos !== 1 ? 's' : ''} pasados a ${principal.fullName}`);
+                    todasLosPacientes = todasLosPacientes.filter(x => !otros.some(o => o.dni === x.dni));
+                    _ba.datos = null;
+                    window.dupRender(); window.filtrarListadoClientes();
+                    _cargarDatosSecundarios().then(() => { if (_dupAbierto) window.dupRender(); }).catch(err => console.warn('Refresco tras unificar:', err));
+                } catch (err) {
+                    console.error('Unificar fichas:', err);
+                    e.target.disabled = false; e.target.textContent = 'Reintentar';
+                    mostrarAviso('No se pudo unificar: ' + (err?.code || err?.message || 'sin conexión') + '. Lo ya movido queda en la principal; podés reintentar.');
+                }
+            };
+        };
+
+        // Pasa a principalDni todo lo que referencia a dupDni y deja la ficha
+        // duplicada como redirección (mismo formato que "Cambiar ID").
+        async function _dupFusionar(principalDni, dupDni) {
+            let movidos = 0;
+            const mover = async (coleccion, campo) => {
+                const snap = await getDocs(query(collection(db, coleccion), where(campo, '==', dupDni)));
+                for (const d of snap.docs) {
+                    await updateDoc(doc(db, coleccion, d.id), { [campo]: principalDni, unificadoDesdeDni: dupDni });
+                    movidos++;
+                }
+            };
+            await mover('reservas', 'dni');
+            await mover('reservas', 'clienteDni');
+            await mover('consultas', 'dni');
+            await mover('pedidosKit', 'dni');
+            // Historia clínica: si la principal no tiene, se copia la de la duplicada.
+            const [hPri, hDup] = await Promise.all([getDoc(doc(db, 'historias', principalDni)), getDoc(doc(db, 'historias', dupDni))]);
+            if (hDup.exists() && !hPri.exists()) await setDoc(doc(db, 'historias', principalDni), { ...hDup.data(), unificadoDesdeDni: dupDni });
+            // Ficha: completar en la principal lo que le falte; la duplicada → redirección.
+            const [cPri, cDup] = await Promise.all([getDoc(doc(db, 'clients', principalDni)), getDoc(doc(db, 'clients', dupDni))]);
+            const pri = cPri.exists() ? cPri.data() : {};
+            const dup = cDup.exists() ? cDup.data() : {};
+            const parche = {};
+            ['phone', 'telefono', 'email', 'fechaNacimiento', 'disponibilidadTexto', 'domicilio', 'barrio'].forEach(k => { if (!pri[k] && dup[k]) parche[k] = dup[k]; });
+            if ((dup.notas || '').trim()) parche.notas = [(pri.notas || '').trim(), `[Unificado desde DNI ${dupDni}] ${dup.notas.trim()}`].filter(Boolean).join('\n');
+            if (Object.keys(parche).length) await setDoc(doc(db, 'clients', principalDni), { ...parche, updatedAt: serverTimestamp() }, { merge: true });
+            await setDoc(doc(db, 'clients', dupDni), {
+                redirigidoA: principalDni, dniAnterior: dupDni,
+                fullName: dup.fullName || dup.fullLname || '',
+                migradoEn: serverTimestamp(), migradoPor: (auth.currentUser && auth.currentUser.email) || null,
+                motivo: 'unificacion_duplicado',
+            });
+            _redirectDNI.set(dupDni, principalDni);
+            return movidos;
+        }
 
     </script>
     <!-- Modal: Registrar turno manualmente -->

@@ -48,6 +48,7 @@ set('clients/30999888', { fullName: 'Laura Ruiz', phone: '3764999888', membershi
   planificacion: { version: 1, disponibilidad: { modo: 'preferida', dias: { martes: [{ desde: '16:00', hasta: '19:00' }] } } } });
 set('clients/28777666', { fullName: 'Marta Sosa', phone: '3764777666', membershipActive: true, hoursBalance: 3, disponibilidadTexto: 'Todos los días por la tarde de 14 a 18' });
 set('clients/27666555', { fullName: 'Ana Díaz', phone: '3764666555', membershipActive: false, hoursBalance: 0 });
+set('clients/99000111', { fullName: 'GOMEZ   paula', phone: '', membershipActive: false, hoursBalance: 0, email: 'paula@ejemplo.test', notas: 'Ficha cargada dos veces' });
 set('clients/26555444', { fullName: 'Rosa Paz', phone: '3764555444', membershipActive: false, hoursBalance: 0 });
 const R = (id, d) => set('reservas/' + id, { estado: 'confirmado', ...d });
 R('p-hoy', { dni: '30111222', nombre: 'Paula Gómez', fecha: HOY, hora: '10:00', servicio: 'Limpieza Facial Profunda', box: 'b3', duracionMinutos: 60, phone: '3764111222' });
@@ -56,6 +57,8 @@ R('p-fut', { dni: '30111222', nombre: 'Paula Gómez', fecha: dia(4), hora: '10:0
 R('p-prev', { dni: '30111222', nombre: 'Paula Gómez', fecha: dia(-21), hora: '15:00', servicio: 'Hi-Fu Facial', box: 'b3', duracionMinutos: 60, detalleSesion: 'Se trabajó óvalo facial y papada con 300 disparos. Piel con buena respuesta, leve eritema.' });
 R('l-hoy', { dni: '30999888', nombre: 'Laura Ruiz', fecha: HOY, hora: '11:00', servicio: 'Criolipolisis', box: 'b2', duracionMinutos: 30, phone: '3764999888' });
 R('l-man', { dni: '30999888', nombre: 'Laura Ruiz', fecha: dia(1), hora: '09:00', servicio: 'Criolipolisis', box: 'b2', duracionMinutos: 30, phone: '3764999888' });
+R('dup1', { dni: '99000111', nombre: 'Paula Gomez', fecha: dia(-60), hora: '10:00', servicio: 'Limpieza Facial Profunda', box: 'b3', duracionMinutos: 60 });
+set('prestaciones/y3', { precioAcordado: 50, sinCargo: false });
 R('m-prev', { dni: '28777666', nombre: 'Marta Sosa', fecha: dia(-18), hora: '09:00', servicio: 'Drenaje linfático', box: 'b4', duracionMinutos: 60 });
 R('a-prev', { dni: '27666555', nombre: 'Ana Díaz', fecha: dia(-20), hora: '12:00', servicio: 'Limpieza facial', box: 'b3', duracionMinutos: 60 });
 R('r-prev', { dni: '26555444', nombre: 'Rosa Paz', fecha: dia(-17), hora: '12:00', servicio: 'Radiofrecuencia corporal', box: 'b2', duracionMinutos: 60 });
@@ -301,6 +304,64 @@ pendiente = w.grillaEliminarReserva('l-hoy'); await tick();
 w.cerrarModalBorradoReserva(true); await pendiente; await tick(20);
 check('confirmar borra el documento de Firestore (reservas/l-hoy)', !fb.calls.store.has('reservas/l-hoy'));
 check('el turno desaparece de la Grilla al instante', !$('grilla-tbody').innerHTML.includes('Laura Ruiz'));
+
+console.log('\n=== Buscador avanzado (servicio · período · estado) ===');
+w.navegar('buscador-avanzado'); await tick(40); await new Promise(r => setTimeout(r, 100)); await tick(40);
+check('la sección abre dentro de Pacientes y Fichas', $('sec-buscador-avanzado').classList.contains('active') && /Buscador avanzado/.test($('subtabs-bar').textContent));
+check('lista los servicios existentes con su cantidad', /Hi-Fu Corporal/.test($('ba-svc-list').textContent) && /Criolipolisis/.test($('ba-svc-list').textContent));
+check('muestra KPIs del mes en curso', /Sesiones en el período/.test($('ba-kpis').textContent) && /Pacientes únicos/.test($('ba-kpis').textContent));
+// Hi-Fu Corporal, todo el historial hasta hoy
+w.baLimpiarMeses(); $('ba-desde').value = '2000-01-01'; $('ba-hasta').value = '2100-12-31';
+const tildar = (svc, on = true) => { const c = [...$('ba-svc-list').querySelectorAll('input')].find(i => i.dataset.svc === svc); c.checked = on; w.baToggleSvc(c); };
+tildar('Hi-Fu Corporal'); await tick();
+const kpiVal = (i) => $('ba-kpis').querySelectorAll('.ba-kpi-val')[i]?.textContent;
+check('Hi-Fu Corporal realizado: 1 sesión (la futura no cuenta)', kpiVal(0) === '1', $('ba-kpis').textContent);
+check('importe de la sesión con precio ($ 50 mil)', /\$ 50 mil/.test($('ba-kpis').textContent), $('ba-kpis').textContent);
+w.baSetVista('sesiones'); await tick();
+check('detalle por sesión sin mezclar servicios', /Yanina W/.test($('ba-resultados').textContent) && !/Tratamientos Corporales|Detox/.test($('ba-resultados').textContent));
+$('ba-futuros').checked = true; w.baAplicar(); await tick();
+check('con turnos futuros: 2 sesiones', kpiVal(0) === '2');
+// Exclusivo: Criolipolisis → solo Laura
+tildar('Hi-Fu Corporal', false); tildar('Criolipolisis');
+w.document.querySelector('input[name="ba-modo"][value="exclusivo"]').checked = true; w.baAplicar(); await tick();
+check('«Exclusivo» de Criolipolisis: solo Laura', /Reporte Exclusivo: Criolipolisis/.test($('ba-titulo').textContent) && /Laura Ruiz/.test($('ba-resultados').textContent) && !/Paula|Yanina/.test($('ba-resultados').textContent));
+// PDF con jsPDF simulado
+const pdfs = [];
+w.jspdf = { jsPDF: class { constructor() { this.textos = []; this.tablas = []; this.lastAutoTable = { finalY: 40 }; this.pag = 1; pdfs.push(this); }
+  setTextColor() {} setFont() {} setFontSize() {} setPage() {} getNumberOfPages() { return 1; }
+  text(t) { this.textos.push([].concat(t).join(' ')); } splitTextToSize(t) { return [t]; }
+  autoTable(o) { this.tablas.push(o); } save(n) { this.archivo = n; } } };
+await w.baDescargarPdf(); await tick();
+const pdf = pdfs[0];
+check('PDF generado con el título exacto del filtro', pdf && pdf.textos[0] === 'Reporte Exclusivo: Criolipolisis' && /reporte_exclusivo_criolipolisis_/.test(pdf.archivo), pdf && pdf.textos[0]);
+check('PDF: resumen, por mes, por servicio, pacientes y detalle', pdf && pdf.tablas.length === 5);
+const detalle = pdf ? pdf.tablas[4].body : [];
+check('PDF no mezcla servicios ni pacientes', detalle.length >= 1 && detalle.every(f => f[4] === 'Criolipolisis' && /Laura Ruiz/.test(f[2])), JSON.stringify(detalle));
+// Exportar / Jornadas
+w.navegar('export'); await tick(20);
+const chks = [...w.document.querySelectorAll('#expDepiServicios input')];
+chks.forEach(c => { c.checked = c.value === 'Hi-Fu Corporal'; });
+$('expDepiDesde').value = '2000-01-01'; $('expDepiHasta').value = '2100-12-31';
+check('Exportar tiene el botón Descargar Resumen en PDF', /Descargar Resumen en PDF/.test($('expResumenPdfBtn').textContent));
+await w.expResumenPDF(); await tick();
+const pdf2 = pdfs[1];
+check('PDF de Exportar respeta servicios tildados y fechas', pdf2 && /Hi-Fu Corporal/.test(pdf2.textos[0]) && pdf2.tablas[4].body.length === 2 && pdf2.tablas[4].body.every(f => f[4] === 'Hi-Fu Corporal'), pdf2 && JSON.stringify(pdf2.tablas[4].body));
+
+console.log('\n=== Directorio: fichas duplicadas ===');
+w.navegar('clientes'); await tick(20);
+w.dupToggle(); await tick();
+const dp = $('dup-panel').textContent;
+check('detecta "GOMEZ paula" como duplicado de "Paula Gómez"', /1 grupo/.test(dp) && /Gomez\s+Paula/i.test(dp) && /Paula Gómez/.test(dp), [/1 grupo/.test(dp), /Gomez Paula/i.test(dp), /Paula Gómez/.test(dp)].join());
+check('muestra servicios y cantidad de turnos por ficha', /Limpieza Facial Profunda/.test(dp) && /Turnos/.test(dp));
+w.dupUnificar(0, '30111222'); await tick();
+const okBtn = $('_dup_ok');
+check('pide confirmación antes de unificar', !!okBtn);
+okBtn.onclick({ target: okBtn }); await tick(60);
+check('el turno de la duplicada pasa a la principal', fb.calls.store.get('reservas/dup1')?.dni === '30111222' && fb.calls.store.get('reservas/dup1')?.unificadoDesdeDni === '99000111');
+check('la duplicada queda como redirección (no se borra)', fb.calls.store.get('clients/99000111')?.redirigidoA === '30111222');
+check('la principal recibe el email faltante y las notas', fb.calls.store.get('clients/30111222')?.email === 'paula@ejemplo.test' && /Unificado desde DNI 99000111/.test(fb.calls.store.get('clients/30111222')?.notas || ''));
+check('la principal conserva su membresía', fb.calls.store.get('clients/30111222')?.membershipActive === true);
+check('ya no quedan duplicados en el panel', /No se encontraron fichas duplicadas/.test($('dup-panel').textContent));
 
 check('sin errores de JavaScript durante la prueba', errores.length === 0, errores.join(' | '));
 console.log('\n' + (fails ? `${fails} FALLA(S)` : 'TODOS LOS FLUJOS DE ADMIN OK'));
