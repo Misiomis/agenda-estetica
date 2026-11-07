@@ -46,6 +46,38 @@ export function parsearPesos(texto) {
   return { ok: true, vacio: false, pesos, miles: pesos / 1000, pareceMiles: pesos > 0 && pesos < 1000 };
 }
 
+// ── Normalización inteligente de escala ──
+// Firestore guarda miles (150 = $150.000), pero hay sesiones donde se escribió
+// el precio en pesos completos (21000 por $21.000) y la lectura en miles lo
+// inflaba a $21.000.000. Regla: un monto individual <= 2000 está en miles; si
+// es > 2000 ya está en pesos completos y se pasa a miles SIN tocar el dato
+// guardado (solo se corrige al leer/calcular). Devuelve MILES.
+export const UMBRAL_MILES_ARS = 2000;
+export function normalizarMontoARS(valor) {
+  if (valor === null || valor === undefined || valor === '') return valor;
+  const n = Number(valor);
+  if (!Number.isFinite(n)) return valor;
+  if (Math.abs(n) <= UMBRAL_MILES_ARS) return n;
+  return Math.round(n) / 1000;
+}
+// Copia de un doc de prestaciones / pagos / gastos con los importes normalizados.
+const CAMPOS_MONTO = ['precioAcordado', 'monto', 'montoFijo'];
+export function normalizarDocMontos(d) {
+  if (!d || typeof d !== 'object') return d;
+  let out = d;
+  for (const k of CAMPOS_MONTO) {
+    if (d[k] === null || d[k] === undefined || d[k] === '') continue;
+    const v = normalizarMontoARS(d[k]);
+    if (v !== d[k]) {
+      if (out === d) { out = { ...d }; Object.defineProperty(out, '_enPesos', { value: {}, enumerable: false }); }
+      out._enPesos[k] = d[k]; out[k] = v;
+    }
+  }
+  return out;
+}
+// ¿El valor guardado estaba en pesos completos (y se normalizó al leer)?
+export const estabaEnPesos = (valor) => Number.isFinite(Number(valor)) && Math.abs(Number(valor)) > UMBRAL_MILES_ARS;
+
 // Miles (como está en Firestore) → pesos enteros.
 export const milesAPesos = (miles) => (miles == null || !Number.isFinite(Number(miles)) ? null : Math.round(Number(miles) * 1000));
 // Pesos → miles con 1 decimal exacto (la escala de Firestore).
@@ -63,7 +95,7 @@ export const formatoPesosEnteros = (pesos) => (pesos == null ? '' : Math.round(p
 export function estadoCobro(prestacion, pagos) {
   const lista = pagos || [];
   const cobros = lista.filter((p) => p.tipo !== 'devolucion');
-  const cobrado = Math.round(lista.reduce((s, p) => s + (p.tipo === 'devolucion' ? -p.monto : p.monto), 0) * 10) / 10;
+  const cobrado = Math.round(lista.reduce((s, p) => s + (p.tipo === 'devolucion' ? -p.monto : p.monto), 0) * 1000) / 1000;
   const medios = [...new Set(cobros.map((p) => p.metodoPago).filter(Boolean))];
   const medioTxt = medios.length > 1 ? 'Mixto' : medios.length ? etiquetaMedio(medios[0]) : '';
   const base = { cobrado, medios, medioTxt, precio: null, saldo: null };
@@ -74,7 +106,7 @@ export function estadoCobro(prestacion, pagos) {
     if (cobrado > 0) return { ...base, clave: 'sin_precio', icono: '🟡', tono: 'warn', texto: `${formatoPesos(cobrado)} cobrado · falta precio` };
     return { ...base, clave: 'sin_registro', icono: '⚪', tono: 'neutro', texto: 'Cargar cobro' };
   }
-  const saldo = Math.round((precio - cobrado) * 10) / 10;
+  const saldo = Math.round((precio - cobrado) * 1000) / 1000;
   const r = { ...base, precio, saldo };
   if (saldo <= 0) return { ...r, clave: saldo < 0 ? 'saldo_a_favor' : 'pagado', icono: '🟢', tono: 'ok', texto: `${formatoPesos(precio)} · Pagado${medioTxt ? ` (${medioTxt})` : ''}${saldo < 0 ? ` · a favor ${formatoPesos(-saldo)}` : ''}` };
   if (cobrado > 0) return { ...r, clave: 'parcial', icono: '🟡', tono: 'warn', texto: `Debe ${formatoPesos(saldo)} (de ${formatoPesos(precio)})` };
@@ -100,32 +132,48 @@ export function planCobro({ modo, monto, precioTotal, entrega, medio, mixto, cob
   if (modo === 'sena') {
     const p = leer(precioTotal, 'el precio total acordado'); if (p.error) return { ok: false, error: p.error };
     const e = leer(entrega, 'el monto que entrega hoy'); if (e.error) return { ok: false, error: e.error };
-    const falta = Math.round((p.miles - prev) * 10) / 10;
+    const falta = Math.round((p.miles - prev) * 1000) / 1000;
     if (e.miles > falta) return { ok: false, error: `La entrega supera lo que falta cobrar (${formatoPesos(falta)}). Usá «Pagado total».` };
-    if (!medio || medio === 'mixto') return { ok: false, error: 'Elegí el medio de pago de la seña.' };
-    return { ok: true, prestacion: { precioAcordado: p.miles, sinCargo: false }, pagos: [{ monto: e.miles, metodoPago: medio }], saldoLuego: Math.round((falta - e.miles) * 10) / 10 };
+    const saldoLuego = Math.round((falta - e.miles) * 1000) / 1000;
+    if (medio === 'mixto') {
+      const mx = partesMixto(mixto, e.miles);
+      if (mx.error) return { ok: false, error: mx.error };
+      return { ok: true, prestacion: { precioAcordado: p.miles, sinCargo: false }, pagos: mx.pagos, esMixto: true, saldoLuego };
+    }
+    if (!medio) return { ok: false, error: 'Elegí el medio de pago de la seña.' };
+    return { ok: true, prestacion: { precioAcordado: p.miles, sinCargo: false }, pagos: [{ monto: e.miles, metodoPago: medio }], saldoLuego };
   }
   // total
   const p = leer(monto, 'el monto'); if (p.error) return { ok: false, error: p.error };
-  const aCobrar = Math.round((p.miles - prev) * 10) / 10;
+  const aCobrar = Math.round((p.miles - prev) * 1000) / 1000;
   if (aCobrar < 0) return { ok: false, error: `Ya hay ${formatoPesos(prev)} cobrados, más que este precio. Si hay que devolver, usá «Devolución / ajuste».` };
   const prestacion = { precioAcordado: p.miles, sinCargo: false };
   if (aCobrar === 0) return { ok: true, prestacion, pagos: [], saldoLuego: 0 };
   if (medio === 'mixto') {
-    const partes = (mixto || []).map((x) => ({ r: parsearPesos(x && x.pesos), medio: x && x.medio }));
-    for (const x of partes) {
-      if (!x.r.ok) return { ok: false, error: x.r.error };
-      if (x.r.vacio || x.r.pesos <= 0) return { ok: false, error: 'Completá los dos montos del pago mixto.' };
-      if (!x.medio || x.medio === 'mixto') return { ok: false, error: 'Elegí el medio de cada parte del pago mixto.' };
-    }
-    if (partes.length !== 2) return { ok: false, error: 'El pago mixto tiene dos partes.' };
-    const suma = Math.round(partes.reduce((s, x) => s + x.r.miles, 0) * 10) / 10;
-    if (suma !== aCobrar) return { ok: false, error: `Las dos partes suman ${formatoPesos(suma)} y hay que cobrar ${formatoPesos(aCobrar)}.` };
-    return { ok: true, prestacion, pagos: partes.map((x) => ({ monto: x.r.miles, metodoPago: x.medio })), esMixto: true, saldoLuego: 0 };
+    const mx = partesMixto(mixto, aCobrar);
+    if (mx.error) return { ok: false, error: mx.error };
+    return { ok: true, prestacion, pagos: mx.pagos, esMixto: true, saldoLuego: 0 };
   }
   if (!medio) return { ok: false, error: 'Elegí el medio de pago.' };
   return { ok: true, prestacion, pagos: [{ monto: aCobrar, metodoPago: medio }], saldoLuego: 0 };
 }
+
+// Dos partes de un pago mixto que tienen que sumar exactamente `totalMiles`.
+function partesMixto(mixto, totalMiles) {
+  const partes = (mixto || []).map((x) => ({ r: parsearPesos(x && x.pesos), medio: x && x.medio }));
+  if (partes.length !== 2) return { error: 'El pago mixto tiene dos partes.' };
+  for (const x of partes) {
+    if (!x.r.ok) return { error: x.r.error };
+    if (x.r.vacio || x.r.pesos <= 0) return { error: 'Completá los dos montos del pago mixto.' };
+    if (!x.medio || x.medio === 'mixto') return { error: 'Elegí el medio de cada parte del pago mixto.' };
+  }
+  const suma = Math.round(partes.reduce((s, x) => s + x.r.miles, 0) * 1000) / 1000;
+  if (suma !== totalMiles) return { error: `Las dos partes suman ${formatoPesos(suma)} y hay que cobrar ${formatoPesos(totalMiles)}.` };
+  return { pagos: partes.map((x) => ({ monto: x.r.miles, metodoPago: x.medio })) };
+}
+
+// Montos frecuentes del espacio (pesos) para los chips de 1 clic.
+export const MONTOS_RAPIDOS = [15000, 20000, 25000, 30000, 45000, 60000, 150000];
 
 // Pago mixto: al escribir la 1.ª parte, la 2.ª es el resto (en pesos).
 export function restoMixto(totalPesos, parte1Pesos) {
@@ -140,9 +188,9 @@ export function totalesPorMedio(pagos) {
   for (const p of pagos || []) {
     if (p.tipo === 'devolucion') { devoluciones += p.monto; continue; }
     const k = p.metodoPago || 'sin_medio';
-    out[k] = Math.round(((out[k] || 0) + p.monto) * 10) / 10;
+    out[k] = Math.round(((out[k] || 0) + p.monto) * 1000) / 1000;
   }
-  return { porMedio: out, devoluciones: Math.round(devoluciones * 10) / 10 };
+  return { porMedio: out, devoluciones: Math.round(devoluciones * 1000) / 1000 };
 }
 
 // Último precio acordado de esa paciente para ese servicio (miles), para el chip rápido.

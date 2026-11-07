@@ -104,7 +104,10 @@ check('muestra la disponibilidad estructurada de la planificación (Laura: marte
 check('muestra la última sesión (Hi-Fu Facial, hace 21 d)', tb.includes('Hi-Fu Facial · hace 21 d'));
 check('Laura sin sesiones previas → "Primera sesión"', tb.includes('Primera sesión'));
 // ("No disp." es la etiqueta de horario bloqueado de siempre, no un saldo.)
-check('NO muestra pagos ni saldo de horas en la Grilla', !/💳|Señado|Pagado|Pendiente de pago|\d h disp\.|⭐|saldo/i.test(tb + $('grilla-resumen-dia').innerHTML));
+// El acceso 💳 es solo un ícono (abre el modal); la celda no muestra montos ni saldos.
+const tbSinCobro = tb.replace(/<button[^>]*class="gc-cobro-btn"[^>]*>💳<\/button>/g, '');
+check('NO muestra pagos ni saldo de horas en la Grilla', !/💳|Señado|Pagado|Pendiente de pago|\$ ?\d|\d h disp\.|⭐|saldo/i.test(tbSinCobro + $('grilla-resumen-dia').innerHTML));
+check('cada turno tiene el acceso discreto 💳 (sin montos)', /class="gc-cobro-btn"/.test(tb) && typeof w.grillaCobrarTurno === 'function');
 check('NO consulta prestaciones ni pagos al dibujar la Grilla', !fb.calls.lecturas.some(p => p === 'pagos' || p === 'prestaciones'), fb.calls.lecturas.join(','));
 check('resumen del día solo con turnos, pacientes y boxes', /2<\/b> turnos/.test($('grilla-resumen-dia').innerHTML) && /Box 3: 1/.test($('grilla-resumen-dia').textContent), $('grilla-resumen-dia').textContent);
 const filas15 = () => [...w.document.querySelectorAll('#grilla-tbody tr.grilla-row-15')];
@@ -435,9 +438,9 @@ w._ppCerrar(); await tick(30);
 w.abrirCobro('m-prev'); await tick(40);
 check('sesión sin registro → ⚪ SIN REGISTRAR y "Pagado total" elegido', /SIN REGISTRAR/.test(body().textContent) && body().querySelector('.cr-modo.sel').textContent.includes('Pagado total'));
 $('cr-monto').value = '150'; w._crOnMonto($('cr-monto'));
-check('si escribe 150 ofrece corregir a $ 150.000', /Usar \$ 150\.000/.test($('cr-monto-ayuda').textContent));
+check('si escribe 150 ofrece corregir a $ 150.000', /¿Quisiste poner \$ 150\.000\? \(Clic para aplicar\)/.test($('cr-monto-ayuda').textContent));
 w._crPorMil('cr-monto');
-check('… y lo corrige con 1 toque, mostrando la equivalencia', $('cr-monto').value === '150.000' && /Equivale a \$150\.000 ARS/.test($('cr-monto-ayuda').textContent));
+check('… y lo corrige con 1 toque, mostrando la equivalencia', $('cr-monto').value === '150.000' && /Se registrará como: \$ 150\.000 ARS/.test($('cr-monto-ayuda').textContent));
 await w._crGuardar($('cr-guardar')); await tick(60);
 check('1 solo botón guarda el precio (150 en miles, escala explícita)…', fb.calls.store.get('prestaciones/m-prev')?.precioAcordado === 150 && fb.calls.store.get('prestaciones/m-prev')?.escala === 'miles_ars');
 pg = pagosDe('m-prev');
@@ -499,10 +502,67 @@ w._rmPill('saldo'); await tick();
 check('píldora «Con saldo pendiente» filtra la tabla', [...rm().querySelectorAll('#rm-detalle tbody tr')].every(tr => /Saldar/.test(tr.textContent)) && /Ramos|Rosa Paz/.test($('rm-detalle').textContent));
 w._rmToggleFormGasto(); await tick();
 $('rmg-concepto').value = 'Insumos'; $('rmg-monto').value = '85.000'; w._rmMontoGasto($('rmg-monto'));
-check('gasto: monto en pesos con equivalencia', /Equivale a \$85\.000 ARS/.test($('rmg-monto-ayuda').textContent));
+check('gasto: monto en pesos con equivalencia', /Se registrará como: \$ 85\.000 ARS/.test($('rmg-monto-ayuda').textContent));
 await w._rmGuardarGasto(rm().querySelector('#rm-form-gasto .btn-mini')); await tick(80);
 const gasto = [...fb.calls.store.entries()].find(([k, v]) => k.startsWith('gastos/') && v.concepto === 'Insumos');
 check('gasto guardado en la escala de siempre (85 = $85.000) con escala explícita', gasto && gasto[1].montoFijo === 85 && gasto[1].escala === 'miles_ars', gasto && gasto[1]);
+
+console.log('\n=== Escala: precios cargados en pesos completos (bug $ 21.065.000) ===');
+const kpiSaldo = () => rm().querySelectorAll('.rm-hero > .rm-kpi')[1].querySelector('.rm-kpi-val').textContent;
+const aPesosTxt = (t) => Number(t.replace(/[^0-9]/g, ''));
+const saldoAntes = aPesosTxt(kpiSaldo());
+// Sesión de hoy con el precio escrito en pesos (21000 = $21.000) y una seña también en pesos (6000).
+R('z-pesos', { dni: '24111000', nombre: 'Zoe Pesos', fecha: HOY, hora: '08:00', servicio: 'Criolipolisis', box: 'b1', duracionMinutos: 30 });
+set('prestaciones/z-pesos', { reservaId: 'z-pesos', pacienteKey: 'dni:24111000', precioAcordado: 21000, sinCargo: false, escala: 'miles_ars' });
+set('pagos/pg-z', { prestacionId: 'z-pesos', pacienteKey: 'dni:24111000', monto: 6000, tipo: 'cobro', metodoPago: 'efectivo', fechaEfectiva: HOY });
+await w.cargarResumenMensual(); await tick(80);
+const saldoDespues = aPesosTxt(kpiSaldo());
+check('⏳ Saldo pendiente suma $ 15.000 reales (21.000 − 6.000), no millones', saldoDespues - saldoAntes === 15000, kpiSaldo() + ' (antes $ ' + saldoAntes + ')');
+check('el saldo total queda en una escala realista (< $ 1.000.000)', saldoDespues < 1000000, kpiSaldo());
+check('el dato guardado en Firestore no se modificó', fb.calls.store.get('prestaciones/z-pesos').precioAcordado === 21000 && fb.calls.store.get('pagos/pg-z').monto === 6000);
+w.abrirPrecioPagos('z-pesos', 'dni:24111000', 'Zoe Pesos', 'Criolipolisis'); await tick(40);
+w._crVistaClasica(false); await tick();
+check('modal: precio $ 21.000 y saldo $ 15.000 (no $ 21.000.000)', /\$ 21\.000(?!\.)/.test(body().textContent) && /\$ 15\.000(?!\.)/.test(body().textContent) && !/21\.000\.000/.test(body().textContent));
+w._ppCerrar(); await tick(20);
+
+console.log('\n=== Modal 💳: chips de montos, último valor y mixto en Seña ===');
+// (los docs reales de prestaciones traen pacienteKey; el de la prueba no lo tenía)
+fb.calls.store.get('prestaciones/p-hoy').pacienteKey = 'dni:30111222';
+w.grillaCobrarTurno(null, 'p-fut'); await tick(60);
+check('💳 desde la Grilla abre Precio y pagos del turno', $('modal-precio-pagos-overlay').classList.contains('open') && /Paula Gómez/.test(body().textContent));
+check('7 chips de montos frecuentes ($15.000 … $150.000)', body().querySelectorAll('.cr-chips-rapidos .cr-chip-rapido').length === 7 && /\$15\.000/.test(body().textContent) && /\$150\.000/.test(body().textContent));
+await tick(40);
+const ult = body().querySelector('.cr-chip-ultimo');
+check('chip dorado ✨ Último valor con el precio anterior del mismo tratamiento ($ 45.000)', ult && /✨ Último valor: \$ 45\.000/.test(ult.textContent), ult && ult.textContent);
+w._crSetModo('sena'); await tick();
+check('Seña: chips también debajo del precio total y opción ➗ Pago mixto', body().querySelector('.cr-chips-rapidos[data-target="cr-precio-total"]') && /Pago mixto/.test(body().textContent));
+w._crUsarMonto(60, 'cr-precio-total');
+check('chip rellena el precio total con 1 toque (60.000)', $('cr-precio-total').value === '60.000' && /Se registrará como: \$ 60\.000 ARS/.test($('cr-precio-total-ayuda').textContent));
+$('cr-entrega').value = '30000'; w._crOnMonto($('cr-entrega'));
+w._crSetMedio('mixto'); await tick();
+$('cr-mx0').value = '10.000'; w._crOnMixto(0);
+check('seña mixta: la 2.ª parte se completa con el resto de la entrega ($ 20.000)', $('cr-mx1').value === '20.000', $('cr-mx1').value);
+w._crMixtoMedio(1, 'transferencia'); $('cr-mxm1').value = 'transferencia';
+await w._crGuardar($('cr-guardar')); await tick(60);
+pg = pagosDe('p-fut');
+check('seña mixta guardada: 10 efectivo + 20 transferencia, precio 60', pg.length === 2 && pg.every(p => p.esMixto) && pg.map(p => p.monto + p.metodoPago).sort().join() === '10efectivo,20transferencia' && fb.calls.store.get('prestaciones/p-fut')?.precioAcordado === 60, pg.map(p => [p.monto, p.metodoPago]));
+w._ppCerrar(); await tick(20);
+
+console.log('\n=== Glow up: Historias, Agenda, Directorio y encabezado ===');
+w.navegar('historias'); await tick(30);
+w.renderHistorias(w.todasLasHistorias || [{ id: '30111222', dni: '30111222', nombreLimpio: 'Paula Gómez', alergias: 'Penicilina', medicacion: 'No', objetivo: 'Mejorar textura', zona: 'Rostro' }]); await tick();
+const hcard = $('contenedorHistorias').querySelector('.hc-card');
+check('historias como card médica: cabecera con nombre y botón a Ficha 360°', hcard && /Paula Gómez/.test(hcard.querySelector('.hc-head').textContent) && /Ficha 360°/.test(hcard.textContent));
+check('alergias existentes resaltadas en ámbar', hcard && hcard.querySelector('.hc-alerta') && /Penicilina/.test(hcard.querySelector('.hc-alerta').textContent));
+check('ningún campo se pierde (objetivo y zona siguen visibles)', hcard && /Mejorar textura/.test(hcard.textContent) && /Rostro/.test(hcard.textContent));
+w.navegar('agenda'); await tick(30);
+check('Agenda: días con turnos libres destacados y hoy marcado', !!w.document.querySelector('#calendarGrid .day.day-libre, .day.day-libre') && !!w.document.querySelector('.day.day-today'));
+check('Agenda: 4 KPI con ícono', w.document.querySelectorAll('#kpiGrid .kpi-ico').length === 4);
+check('Directorio: filtros con texto completo', $('filtroTipoCliente').options[0].text === 'Todos los pacientes' && $('filtroActividadCliente').options[0].text === 'Cualquier actividad' && $('filtroPlanCliente').options[0].text === 'Cualquier planificación' && !!$('filtroTipoCliente').closest('.dir-filtros'));
+check('menú de usuario con íconos y separador antes de Salir', $('user-drop').querySelectorAll('.hdi-ico').length >= 7 && $('user-drop').querySelector('.hdr-drop-divider + .hdr-drop-danger'));
+$('jornadaTypeSelectorHeader').style.display = 'block';
+w.cerrarSelectorJornada(); await new Promise(r => setTimeout(r, 250));
+check('selector de jornada: botón ✕ Cerrar lo oculta', $('jornadaTypeSelectorHeader').style.display === 'none' && /✕ Cerrar/.test($('jornadaTypeSelectorHeader').textContent));
 
 check('sin errores de JavaScript durante la prueba', errores.length === 0, errores.join(' | '));
 console.log('\n' + (fails ? `${fails} FALLA(S)` : 'TODOS LOS FLUJOS DE ADMIN OK'));

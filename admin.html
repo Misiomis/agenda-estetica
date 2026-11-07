@@ -1928,6 +1928,115 @@
             .rm-filtros > div, .rm-filtros .rm-input { flex: 1 1 140px; width: 100%; }
         }
 
+        /* ═══════════ GLOW UP FINAL ═══════════ */
+        /* Directorio: filtros con texto completo (la flecha no corta palabras) */
+        .dir-filtros { grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)) !important; }
+        .dir-filtros .select-input { min-width: auto; padding-right: 32px; text-overflow: clip; white-space: nowrap; font-size: 15px; }
+
+        /* Modal 💳: confirmación en vivo, sugerencia ×1000 y chips de montos */
+        .cr-ok { color: var(--status-success-text, #065F46); font-weight: 600; }
+        .cr-ok strong { font-weight: 800; }
+        .cr-chip-sug { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 4px 10px; border-radius: var(--radius-pill); border: 1px solid var(--color-accent-gold); background: #FBF5E8; color: #6B4B10; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .cr-chip-sug small { font-weight: 600; opacity: .8; }
+        .cr-chip-sug:hover { background: #F6EBD3; }
+        .cr-chips-rapidos { margin: 6px 0 10px; }
+        .cr-ult-slot { display: contents; }
+        .cr-chip-rapido { padding: 5px 10px; border-radius: var(--radius-pill); border: 1px solid var(--border-color-soft); background: var(--bg-card, #fff); color: var(--text-primary); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s ease; }
+        .cr-chip-rapido:hover { border-color: var(--color-primary-main); background: var(--color-primary-soft); }
+        .cr-chip-ultimo { padding: 5px 11px; border-radius: var(--radius-pill); border: 1px solid #C5A059; background: linear-gradient(135deg, #FBF3DF, #F3E3BC); color: #5E430E; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 4px rgba(197,160,89,.25); }
+        .cr-chip-ultimo:hover { filter: brightness(.97); }
+        .rmq-conf { font-size: 11px; margin-top: 3px; line-height: 1.3; }
+        .rmq-conf .cr-chip-sug { font-size: 11px; padding: 3px 8px; }
+
+        /* Grilla: acceso 💳 discreto (aparece al pasar el mouse) */
+        .gc-cobro-btn { position: absolute; top: 1px; right: 21px; width: 20px; height: 19px; border: none; background: rgba(255,255,255,.85); border-radius: 5px; font-size: 11px; line-height: 1; cursor: pointer; z-index: 6; padding: 0; opacity: 0; transition: opacity .15s ease, transform .15s ease; box-shadow: 0 1px 3px rgba(20,36,29,.15); }
+        .grilla-celda-ocupada:hover .gc-cobro-btn, .gc-cobro-btn:focus-visible { opacity: 1; }
+        .gc-cobro-btn:hover { transform: scale(1.12); }
+        /* En pantallas táctiles el 💳 flotante taparía el nombre: el acceso está en el menú ⋮ del turno. */
+        @media (hover: none) { .gc-cobro-btn { display: none; } }
+        /* Chip de disponibilidad: hasta 2 líneas (texto completo en el title) */
+        .gc-ctx.gc-ctx-dispo { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; padding: 1px 5px; word-break: break-word; }
+        /* Línea dorada de la hora actual, cruzando los 4 boxes */
+        .grilla-linea-ahora { position: absolute; height: 0; border-top: 2px solid #C5A059; z-index: 7; pointer-events: none; box-shadow: 0 0 6px rgba(197,160,89,.55); }
+        .grilla-linea-ahora::before { content: ''; position: absolute; left: -5px; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: #C5A059; box-shadow: 0 0 0 3px rgba(197,160,89,.25); }
+
+        /* Agenda mensual: foco en los días con turnos libres */
+        .day.day-full { background: #F3F4F2 !important; color: #768980 !important; border: 1px solid #E2E8E4 !important; font-weight: 600; }
+        .day.day-full::after { background: transparent !important; color: #768980 !important; border: 1px solid #E2E8E4 !important; font-weight: 700 !important; }
+        .day.day-libre:not(.selected) { background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; font-weight: 700; }
+        .day.day-libre:not(.selected):hover { background: #D1FAE5; }
+        .day.day-today { outline: 2px solid #C5A059 !important; outline-offset: -2px; box-shadow: 0 0 0 3px rgba(197,160,89,.18); }
+        .agenda-legend-swatch.leg-completo { background: #F3F4F2; border-color: #E2E8E4; }
+        .agenda-legend-swatch.leg-libre { background: #ECFDF5; border: 1px solid #A7F3D0; }
+        .agenda-legend-swatch.leg-hoy { outline-color: #C5A059; }
+        /* KPI superiores con ícono y sombra suave */
+        #kpiGrid .kpi-card { position: relative; background: var(--bg-card, #fff); border: 1px solid var(--border-color-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding-left: 58px; min-height: 64px; display: flex; flex-direction: column; justify-content: center; transition: transform .15s ease, box-shadow .15s ease; }
+        #kpiGrid .kpi-card:hover { transform: translateY(-1px); box-shadow: 0 8px 24px -6px rgba(20,36,29,.12); }
+        #kpiGrid .kpi-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; background: var(--color-primary-soft); box-shadow: inset 0 0 0 1px rgba(197,160,89,.25); }
+        body.compact-mode #kpiGrid .kpi-card { padding-left: 50px; min-height: 0; }
+        body.compact-mode #kpiGrid .kpi-ico { width: 28px; height: 28px; font-size: 14px; left: 11px; }
+
+        /* Historias: card médica */
+        #contenedorHistorias { display: grid; gap: 12px; }
+        .hc-card { background: var(--bg-card, #fff); border: 1px solid var(--border-color-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 14px 16px; border-top: 3px solid var(--color-primary-main); }
+        .hc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color-soft); }
+        .hc-head-txt { min-width: 0; }
+        .hc-head h3 { margin: 0; font-size: 15px; font-weight: 800; color: #163026; }
+        .hc-head span { display: block; font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .hc-head .btn-sm { flex-shrink: 0; }
+        .hc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 0; }
+        .hc-campo { background: var(--bg-subtle); border: 1px solid var(--border-color-soft); border-radius: var(--radius-sm); padding: 7px 10px; min-width: 0; }
+        .hc-campo dt { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); }
+        .hc-campo dd { margin: 3px 0 0; font-size: 13px; color: var(--text-primary); word-break: break-word; }
+        .hc-campo.hc-si { border-color: #D9E6DE; background: #F4F8F5; }
+        .hc-campo.hc-alerta { background: #FFFBEB; border-color: #FDE68A; }
+        .hc-campo.hc-alerta dt, .hc-campo.hc-alerta dd { color: #92400E; }
+        .hc-campo.hc-alerta dd { font-weight: 700; }
+        .hc-otros { margin-top: 10px; }
+        .hc-otros summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--color-primary-main); margin-bottom: 8px; }
+        .hc-vacia { margin: 0; font-size: 13px; color: var(--text-secondary); }
+        @media (max-width: 560px) { .hc-head { flex-direction: column; } .hc-grid { grid-template-columns: 1fr 1fr; } }
+
+        /* Mis cursos: misma paleta clara Sage & Champagne */
+        #sec-cursos {
+            --cm-fondo: transparent;
+            --cm-tarjeta: #FFFFFF;
+            --cm-tarjeta-hover: #FAFBF9;
+            --cm-campo: #FFFFFF;
+            --cm-borde: #E2E8E4;
+            --cm-borde-fuerte: #B9C7BF;
+            --cm-acento: #0E7A55;
+            --cm-acento-fuerte: #0B6446;
+            --cm-on-acento: #FFFFFF;
+            --cm-texto: #163026;
+            --cm-texto-sec: #5C6F65;
+            --cm-warn: #92400E;
+            --cm-danger: #B42318;
+            --cm-danger-bg: #FEF2F2;
+            --cm-danger-bd: #FECACA;
+            background: transparent;
+        }
+        #sec-cursos .cm-card { box-shadow: var(--shadow-card); }
+        #sec-cursos .cm-eyebrow { color: #A07E3C; }
+        #sec-cursos h1, #sec-cursos h2, #sec-cursos h3 { color: #163026; }
+        #sec-cursos .cm-btn-ghost { background: #ECFDF5; border-color: #A7F3D0; color: #065F46; }
+        #sec-cursos .cm-pill-acento { background: #ECFDF5; border-color: #A7F3D0; color: #065F46; }
+        #sec-cursos .cm-pill-warn { background: #FFFBEB; border-color: #FDE68A; color: #92400E; }
+        #sec-cursos details.cm-more .cm-more-menu button:hover { background: var(--color-primary-soft); }
+        #sec-cursos .cm-field::placeholder { color: #8FA197; }
+
+        /* Header: selector de jornada con transición y botón cerrar */
+        #jornadaTypeSelectorHeader { position: relative; transition: all 0.2s ease; animation: jtsEntrar .2s ease; }
+        #jornadaTypeSelectorHeader.jts-saliendo { opacity: 0; transform: translateY(-6px); }
+        @keyframes jtsEntrar { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+        .jts-cerrar { position: absolute; top: 6px; right: 8px; border: 1px solid rgba(15,109,99,.25); background: rgba(255,255,255,.75); color: #0F6D63; border-radius: var(--radius-pill); padding: 3px 10px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; transition: all .2s ease; }
+        .jts-cerrar:hover { background: #fff; border-color: #0F6D63; }
+        /* Menú de usuario ▾ */
+        .hdr-drop-menu { border-radius: 12px; box-shadow: var(--shadow-modal); border: 1px solid var(--border-color-soft); padding: 6px; min-width: 220px; transition: all 0.2s ease; }
+        .hdr-drop-item { align-items: center; gap: 10px; border-radius: 8px; transition: all 0.2s ease; }
+        .hdi-ico { width: 20px; flex: 0 0 20px; text-align: center; font-size: 14px; line-height: 1; }
+        .hdr-drop-divider { margin: 6px 4px; background: var(--border-color-soft); }
+
         /* ── Control de sesiones ── */
         .cs-contadores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
         .cs-contador { display: flex; align-items: center; gap: 12px; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font: inherit; color: var(--ink); cursor: pointer; min-width: 0; }
@@ -2067,14 +2176,14 @@
                     <div class="hdr-drop-wrap" id="user-wrap">
                         <button class="btn-nav hdr-user-btn" id="btnUserMenu" onclick="toggleHdrDropdown('user')" aria-haspopup="true" aria-controls="user-drop"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;opacity:.85"><circle cx="12" cy="8" r="3.8"/><path d="M14.6 4.7 C15.8 2.2 18.5 2.8 18 5.2"/><path d="M6.5 21 C6.5 17.4 9 15 12 15 C15 15 17.5 17.4 17.5 21"/></svg>Gimena ▾</button>
                         <div class="hdr-drop-menu hdr-drop-right" id="user-drop" role="menu" hidden>
-                            <a class="hdr-drop-item" href="/fechagimena.html" target="_blank" rel="noopener" role="menuitem">Vista Gimena</a>
-                            <a class="hdr-drop-item" href="/admin-depi.html" target="_blank" rel="noopener" role="menuitem">Admin Depilación</a>
-                            <a class="hdr-drop-item" href="/admin-depi-gime.html" target="_blank" rel="noopener" role="menuitem">Panel Gimena</a>
-                            <a class="hdr-drop-item" href="/reloj/" target="_blank" rel="noopener" role="menuitem">Reloj recepción</a>
-                            <a class="hdr-drop-item" href="/doctora/" target="_blank" rel="noopener" role="menuitem">Pacientes de la Doctora</a>
-                            <button class="hdr-drop-item btn-nav" id="btn-control" onclick="navegar('control')" role="menuitem">Configuración</button>
+                            <a class="hdr-drop-item" href="/fechagimena.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">👁</span>Vista Gimena</a>
+                            <a class="hdr-drop-item" href="/admin-depi.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">🪒</span>Admin Depilación</a>
+                            <a class="hdr-drop-item" href="/admin-depi-gime.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">💼</span>Panel Gimena</a>
+                            <a class="hdr-drop-item" href="/reloj/" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">🕒</span>Reloj recepción</a>
+                            <a class="hdr-drop-item" href="/doctora/" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">🩺</span>Pacientes de la Doctora</a>
+                            <button class="hdr-drop-item btn-nav" id="btn-control" onclick="navegar('control')" role="menuitem"><span class="hdi-ico" aria-hidden="true">⚙️</span>Configuración</button>
                             <div class="hdr-drop-divider"></div>
-                            <button class="hdr-drop-item hdr-drop-danger" onclick="cerrarSesion()" role="menuitem">Salir</button>
+                            <button class="hdr-drop-item hdr-drop-danger" onclick="cerrarSesion()" role="menuitem"><span class="hdi-ico" aria-hidden="true">↪</span>Salir</button>
                         </div>
                     </div>
                 </div>
@@ -2086,13 +2195,13 @@
                 <div class="hdr-drop-wrap" style="position:relative;">
                     <button class="hdr-user-icon-btn" onclick="toggleHdrDropdown('user-mob')" aria-label="Menú de usuario" aria-haspopup="true" aria-controls="user-mob-drop"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.8"/><path d="M14.6 4.7 C15.8 2.2 18.5 2.8 18 5.2"/><path d="M6.5 21 C6.5 17.4 9 15 12 15 C15 15 17.5 17.4 17.5 21"/></svg></button>
                     <div class="hdr-drop-menu hdr-drop-right" id="user-mob-drop" role="menu" hidden>
-                        <a class="hdr-drop-item" href="/fechagimena.html" target="_blank" rel="noopener" role="menuitem">Vista Gimena</a>
-                        <a class="hdr-drop-item" href="/admin-depi.html" target="_blank" rel="noopener" role="menuitem">Admin Depilación</a>
-                        <a class="hdr-drop-item" href="/admin-depi-gime.html" target="_blank" rel="noopener" role="menuitem">Panel Gimena</a>
-                        <a class="hdr-drop-item" href="/reloj/" target="_blank" rel="noopener" role="menuitem">Reloj recepción</a>
-                        <a class="hdr-drop-item" href="/doctora/" target="_blank" rel="noopener" role="menuitem">Pacientes de la Doctora</a>
+                        <a class="hdr-drop-item" href="/fechagimena.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">👁</span>Vista Gimena</a>
+                        <a class="hdr-drop-item" href="/admin-depi.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">🪒</span>Admin Depilación</a>
+                        <a class="hdr-drop-item" href="/admin-depi-gime.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">💼</span>Panel Gimena</a>
+                        <a class="hdr-drop-item" href="/reloj/" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">🕒</span>Reloj recepción</a>
+                        <a class="hdr-drop-item" href="/doctora/" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">🩺</span>Pacientes de la Doctora</a>
                         <div class="hdr-drop-divider"></div>
-                        <button class="hdr-drop-item hdr-drop-danger" onclick="cerrarSesion()" role="menuitem">Salir</button>
+                        <button class="hdr-drop-item hdr-drop-danger" onclick="cerrarSesion()" role="menuitem"><span class="hdi-ico" aria-hidden="true">↪</span>Salir</button>
                     </div>
                 </div>
             </div>
@@ -2117,6 +2226,7 @@
                 </div>
             </div>
             <div id="jornadaTypeSelectorHeader" style="display:none; padding:10px 16px 14px; background:rgba(20,184,166,0.10); border:1px solid rgba(20,184,166,0.30); border-radius:14px; margin:8px 16px 0;">
+                <button type="button" class="jts-cerrar" onclick="window.cerrarSelectorJornada()" aria-label="Cerrar selector de jornada">✕ Cerrar</button>
                 <p style="font-size:11px; font-weight:700; color:#0F6D63; text-transform:uppercase; letter-spacing:0.1em; margin:0 0 8px; text-align:center;">Elegí tipo de jornada</p>
                 <div style="display:flex; gap:8px;">
                     <button onclick="selectJornadaType('crio')" id="btnJornadaCrioHeader" style="flex:1; padding:14px 10px; border-radius:12px; border:2px solid rgba(20,184,166,0.4); background:rgba(20,184,166,0.12); color:#0F6D63; font-weight:800; font-size:14px; cursor:pointer;">🧊 Crio</button>
@@ -2562,10 +2672,10 @@
                     <button id="btnCompactMode" class="mode-toggle" onclick="toggleCompactMode()">Modo compacto: OFF</button>
                 </div>
                 <div class="kpi-grid" id="kpiGrid">
-                    <div class="kpi-card"><div class="kpi-label">Reservas totales</div><div class="kpi-value" id="kpi-total">0</div></div>
-                    <div class="kpi-card"><div class="kpi-label">Turnos hoy</div><div class="kpi-value" id="kpi-hoy">0</div></div>
-                    <div class="kpi-card"><div class="kpi-label">Este mes</div><div class="kpi-value" id="kpi-mes">0</div></div>
-                    <div class="kpi-card"><div class="kpi-label">Historias</div><div class="kpi-value" id="kpi-historias">0</div></div>
+                    <div class="kpi-card"><span class="kpi-ico" aria-hidden="true">📋</span><div class="kpi-label">Reservas totales</div><div class="kpi-value" id="kpi-total">0</div></div>
+                    <div class="kpi-card"><span class="kpi-ico" aria-hidden="true">⏰</span><div class="kpi-label">Turnos hoy</div><div class="kpi-value" id="kpi-hoy">0</div></div>
+                    <div class="kpi-card"><span class="kpi-ico" aria-hidden="true">📅</span><div class="kpi-label">Este mes</div><div class="kpi-value" id="kpi-mes">0</div></div>
+                    <div class="kpi-card"><span class="kpi-ico" aria-hidden="true">📖</span><div class="kpi-label">Historias</div><div class="kpi-value" id="kpi-historias">0</div></div>
                 </div>
                 <div class="quick-actions">
                     <button class="btn-mini" onclick="irHoy()">Hoy</button>
@@ -2584,6 +2694,7 @@
                         <span class="agenda-legend-item"><span class="agenda-legend-swatch leg-hoy"></span>Hoy</span>
                         <span class="agenda-legend-item"><span class="agenda-legend-swatch leg-reserva"></span>Con reservas</span>
                         <span class="agenda-legend-item"><span class="agenda-legend-swatch leg-cerrado"></span>Día cerrado</span>
+                        <span class="agenda-legend-item"><span class="agenda-legend-swatch leg-libre"></span>Con turnos libres</span>
                         <span class="agenda-legend-item"><span class="agenda-legend-swatch leg-completo"></span>Completo</span>
                         <span class="agenda-legend-item"><span class="agenda-legend-swatch leg-seleccionado"></span>Seleccionado</span>
                     </div>
@@ -2624,7 +2735,7 @@
                     <input type="text" class="busc-input" id="inpBusPaciente" placeholder="Buscar por nombre, apellido, DNI, teléfono o tratamiento…" oninput="buscarPacienteNombreInput(); filtrarListadoClientesInput()" autocomplete="off" style="margin-bottom:0">
                     <div id="sugerenciasPaciente" style="display:none; position:absolute; top:calc(100% + 2px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-lg); z-index:200; max-height:220px; overflow-y:auto;"></div>
                 </div>
-                <div class="filtros-advanced" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom:12px;">
+                <div class="filtros-advanced dir-filtros" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-bottom:12px;">
                     <select id="filtroTipoCliente" class="select-input" onchange="filtrarListadoClientes()">
                         <option value="todos">Todos los pacientes</option>
                         <option value="membresia">Solo membresía</option>
@@ -3334,7 +3445,11 @@
         } from "/js/planificacion-paciente.js";
         import { initDuplicarMes } from "/js/duplicar-mes-ui.js";
         import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
-        import { MEDIOS, etiquetaMedio, iconoMedio, parsearPesos, milesAPesos, pesosAMiles, formatoPesos, formatoPesosEnteros, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio } from "/js/cobro-rapido.js";
+        import { MEDIOS, etiquetaMedio, iconoMedio, parsearPesos, milesAPesos, pesosAMiles, formatoPesos, formatoPesosEnteros, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio, normalizarMontoARS, normalizarDocMontos, MONTOS_RAPIDOS } from "/js/cobro-rapido.js";
+        // Normalización de escala al LEER importes (precios/pagos/gastos): ver
+        // js/cobro-rapido.js:normalizarMontoARS. El dato guardado no se toca.
+        const _nmDoc = normalizarDocMontos;
+        const _nmGasto = (g) => (g && g.escala ? g : normalizarDocMontos(g));
         import { TRATAMIENTOS_CONTROL, calcularControl, filtrarControl, contarCumplidos, textoEstado, esHifuSinZona } from "/js/control-sesiones.js";
         import { normalizarServiciosBox, serializarServiciosBox, serviciosDelBox, resolverServicioAlArrastrar } from "/js/grilla-servicio-box.js";
         import {
@@ -5301,27 +5416,52 @@
             document.getElementById("contenedorBusqueda").innerHTML = '';
         };
         
+        // Historias clínicas como "card médica": cabecera (nombre, fecha, botón a
+        // Ficha 360°) + grilla de campos con íconos. Se muestran TODOS los campos
+        // del documento, igual que antes: los conocidos en la grilla principal y
+        // el resto en "Otros datos".
+        const _HC_CAMPOS = [
+            ['enfermedad', '🩺', 'Antecedentes / enfermedad', true], ['medicacion', '💊', 'Medicación', true],
+            ['alergias', '⚠️', 'Alergias', true], ['objetivo', '✨', 'Objetivo estético', false],
+            ['embarazo', '🤰', 'Embarazo', true], ['hijos', '👶', 'Hijos', false], ['edad', '🎂', 'Edad', false],
+        ];
+        const _HC_FECHAS = ['fecha', 'actualizadoEn', 'creadoEn', 'fechaActualizacion', 'updatedAt', 'createdAt'];
+        const _hcEsNo = (v) => { const t = String(v ?? '').trim().toLowerCase(); return !t || ['no', 'ninguna', 'ninguno', 'nada', '-', '—'].includes(t); };
         window.renderHistorias = (datos) => {
             document.getElementById("contenedorHistorias").innerHTML = datos.map(h => {
-                const lineas = [];
-                lineas.push(`<div style="margin:2px 0;"><strong>Nombre:</strong> ${escapeHtml(h.nombreLimpio)}</div>`);
-                if (h.servicioIncluido) {
-                    lineas.push(`<div style="margin:2px 0;"><strong>Servicio incluido:</strong> ${escapeHtml(h.servicioIncluido)}</div>`);
-                } else if (h.servicio) {
-                    lineas.push(`<div style="margin:2px 0;"><strong>Servicio:</strong> ${escapeHtml(h.servicio)}</div>`);
-                }
+                const usados = new Set(['id', 'nombre', 'dni', 'servicio', 'servicioIncluido', 'nombreLimpio']);
+                const campoFecha = _HC_FECHAS.find(k => h[k]);
+                if (campoFecha) usados.add(campoFecha);
+                const celdas = _HC_CAMPOS.filter(([k]) => h[k] !== undefined && h[k] !== null && h[k] !== '').map(([k, ico, label, alertable]) => {
+                    usados.add(k);
+                    const alerta = k === 'alergias' && !_hcEsNo(h[k]);
+                    const marca = alertable && !_hcEsNo(h[k]) ? ' hc-si' : '';
+                    return `<div class="hc-campo${alerta ? ' hc-alerta' : marca}"><dt><span aria-hidden="true">${ico}</span> ${label}</dt><dd>${formatearCampo(k, h[k])}</dd></div>`;
+                });
+                const otros = [];
                 Object.entries(h).forEach(([key, value]) => {
                     const keyNormalizada = key.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    if (['id', 'nombre', 'dni', 'servicio', 'servicioIncluido', 'nombreLimpio'].includes(key)) return;
+                    if (usados.has(key)) return;
                     if (keyNormalizada.includes('fecharegistro')) return;
                     if (value === undefined || value === null || value === '') return;
                     const label = key.charAt(0).toUpperCase() + key.slice(1);
-                    lineas.push(`<div style="margin:2px 0;"><strong>${escapeHtml(label)}:</strong> ${formatearCampo(key, value)}</div>`);
+                    otros.push(`<div class="hc-campo"><dt>${escapeHtml(label)}</dt><dd>${formatearCampo(key, value)}</dd></div>`);
                 });
+                const servicio = h.servicioIncluido ? `Servicio incluido: ${escapeHtml(h.servicioIncluido)}` : (h.servicio ? escapeHtml(h.servicio) : '');
+                const dni = h.dni || h.id || '';
+                const clave = dni ? encodeURIComponent(_p360ClaveDePaciente({ dni })) : '';
                 return `
-                    <div class="detalle-dia-card" style="border-top-color: var(--verde-oscuro)">
-                        ${lineas.join('')}
-                    </div>`;
+                    <article class="hc-card">
+                        <header class="hc-head">
+                            <div class="hc-head-txt">
+                                <h3>${escapeHtml(h.nombreLimpio)}</h3>
+                                <span>${[campoFecha ? '📅 ' + formatearCampo(campoFecha, h[campoFecha]) : '', dni ? 'DNI ' + escapeHtml(dni) : '', servicio].filter(Boolean).join(' · ')}</span>
+                            </div>
+                            ${clave ? `<button type="button" class="btn-secondary btn-sm" onclick="abrirFicha360Enc('${clave}','clinica')">Ficha 360° →</button>` : ''}
+                        </header>
+                        ${celdas.length ? `<dl class="hc-grid">${celdas.join('')}</dl>` : '<p class="hc-vacia">Sin antecedentes cargados.</p>'}
+                        ${otros.length ? `<details class="hc-otros"><summary>Otros datos (${otros.length})</summary><dl class="hc-grid">${otros.join('')}</dl></details>` : ''}
+                    </article>`;
             }).join('');
         };
         
@@ -5639,7 +5779,10 @@
                     .filter(([k]) => k.startsWith(fStr + '|')).length;
                 const esDiaFullAdmin = !cierreDia && (horasReservadasDia.size + horasAdminDia) >= 25;
                 const div = document.createElement("div");
-                div.className = `day ${tiene && !esDiaFullAdmin ? 'has-reserva' : ''} ${cierreDia ? 'day-closed' : ''} ${esDiaFullAdmin ? 'day-full' : ''} ${fStr === _hoyStr ? 'day-today' : ''}`.trim();
+                // Días con turnos disponibles (hoy o futuros, ni cerrados ni completos):
+                // se destacan en verde esmeralda; los completos quedan en tono neutro.
+                const conDisponibles = !cierreDia && !esDiaFullAdmin && fStr >= _hoyStr;
+                div.className = `day ${tiene && !esDiaFullAdmin ? 'has-reserva' : ''} ${cierreDia ? 'day-closed' : ''} ${esDiaFullAdmin ? 'day-full' : ''} ${conDisponibles ? 'day-libre' : ''} ${fStr === _hoyStr ? 'day-today' : ''}`.trim();
                 div.innerText = d;
                 div.onclick = () => {
                     if (cierreDia) {
@@ -9962,14 +10105,14 @@
                 try {
                     var prestSnap = await getDoc(doc(db, 'prestaciones', reservaId));
                     var pagosSnap = await getDocs(query(collection(db, 'pagos'), where('prestacionId', '==', reservaId)));
-                    _ppPrestacion = prestSnap.exists() ? prestSnap.data() : null;
+                    _ppPrestacion = prestSnap.exists() ? _nmDoc(prestSnap.data()) : null;
                     _ppPagos = [];
-                    pagosSnap.forEach(function(d){ _ppPagos.push(Object.assign({ id: d.id }, d.data())); });
+                    pagosSnap.forEach(function(d){ _ppPagos.push(_nmDoc(Object.assign({ id: d.id }, d.data()))); });
                     _ppPagos.sort(function(a,b){ return (a.fechaEfectiva||'').localeCompare(b.fechaEfectiva||'') || (a.creadoEn && a.creadoEn.seconds || 0) - (b.creadoEn && b.creadoEn.seconds || 0); });
                     _ppSaldoAFavor = 0;
                     if (pacienteKey) {
                         var sueltosSnap = await getDocs(query(collection(db, 'pagos'), where('pacienteKey', '==', pacienteKey), where('prestacionId', '==', null)));
-                        sueltosSnap.forEach(function(d){ var p = d.data(); _ppSaldoAFavor += (p.tipo === 'devolucion' ? -p.monto : p.monto); });
+                        sueltosSnap.forEach(function(d){ var p = _nmDoc(d.data()); _ppSaldoAFavor += (p.tipo === 'devolucion' ? -p.monto : p.monto); });
                     }
                     _ppRender();
                 } catch (e) {
@@ -10095,6 +10238,7 @@
             window._ppOnPrecioInput = function() {
                 var errEl = document.getElementById('mpp-precio-error');
                 var r = validarPrecio(document.getElementById('mpp-precio-input').value, { sinCargo: document.getElementById('mpp-sincargo-input').checked });
+                if (r.ok && r.precio != null) r.precio = normalizarMontoARS(r.precio);
                 errEl.textContent = r.ok ? '' : r.error;
             };
             window._ppOnSinCargoChange = function(chk) {
@@ -10149,6 +10293,7 @@
             window._ppGuardarPrecio = async function(btn) {
                 var sinCargo = document.getElementById('mpp-sincargo-input').checked;
                 var r = validarPrecio(document.getElementById('mpp-precio-input').value, { sinCargo: sinCargo });
+                if (r.ok && r.precio != null) r.precio = normalizarMontoARS(r.precio);
                 if (!r.ok) { document.getElementById('mpp-precio-error').textContent = r.error; return; }
                 btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Guardando…';
                 try {
@@ -10335,6 +10480,7 @@
 
             window._ppRegistrarPago = async function(btn) {
                 var mr = validarMontoPago(document.getElementById('mpp-monto-input').value);
+                if (mr.ok) mr.monto = normalizarMontoARS(mr.monto);
                 if (!mr.ok) { mostrarAviso(mr.error); return; }
                 var fecha = document.getElementById('mpp-fecha-input').value || _hoyISOZona(ZONA_HORARIA_NEGOCIO);
                 var metodo = document.getElementById('mpp-metodo-input').value;
@@ -10391,6 +10537,7 @@
                 var montoTxt = prompt('Monto a devolver/ajustar (miles de ARS, sin signo):');
                 if (montoTxt === null) return;
                 var mr = validarMontoPago(montoTxt);
+                if (mr.ok) mr.monto = normalizarMontoARS(mr.monto);
                 if (!mr.ok) { mostrarAviso(mr.error); return; }
                 var motivo = prompt('Motivo de la devolución/ajuste (obligatorio):');
                 if (!motivo || !motivo.trim()) { mostrarAviso('La devolución/ajuste necesita un motivo.'); return; }
@@ -10539,7 +10686,7 @@
             window.cobroRapidoAplicar = async function(ctx, plan, opciones) {
                 if (!ctx.prestacion) {
                     var s = await getDoc(doc(db, 'prestaciones', ctx.reservaId));
-                    ctx.prestacion = s.exists() ? s.data() : null;
+                    ctx.prestacion = s.exists() ? _nmDoc(s.data()) : null;
                 }
                 return _crAplicarPlan(ctx, plan, opciones);
             };
@@ -10637,48 +10784,57 @@
                     return '<p class="cr-texto">La sesión queda registrada como <b>sin cargo</b> (cubierta por pack, cortesía o promoción). No se registra ningún cobro.' + (prev ? ' Los pagos ya cargados se conservan.' : '') + '</p>' +
                         '<button type="button" class="btn-primary cr-guardar" id="cr-guardar" onclick="window._crGuardar(this)">🎁 Guardar como sin cargo</button>';
                 }
-                if (_crModo === 'sena') {
-                    return '<div class="cr-grid2"><div><label class="cr-lbl" for="cr-precio-total">Precio total acordado</label>' + _crInputPesos('cr-precio-total', precio) + '</div>' +
-                        '<div><label class="cr-lbl" for="cr-entrega">Entrega / seña hoy</label>' + _crInputPesos('cr-entrega', null) + '</div></div>' +
-                        '<div class="cr-progreso" id="cr-progreso"></div>' +
-                        '<label class="cr-lbl">Medio de pago</label>' + _crMediosHtml(_crMedio === 'mixto' ? 'efectivo' : _crMedio, false) +
-                        '<input type="text" id="cr-nota" class="cr-nota" placeholder="Nota (opcional)">' +
-                        '<button type="button" class="btn-primary cr-guardar" id="cr-guardar" onclick="window._crGuardar(this)">💾 Guardar seña</button>';
-                }
-                var h = '<label class="cr-lbl" for="cr-monto">Monto total de la sesión</label>' + _crInputPesos('cr-monto', precio) +
-                    '<div class="cr-chips" id="cr-chips"></div>';
-                if (prev > 0) h += '<p class="cr-info" id="cr-prev">Ya hay ' + formatoPesos(prev) + ' cobrados: se registra solo lo que falta.</p>';
-                h += '<label class="cr-lbl">Medio de pago</label>' + _crMediosHtml(_crMedio, true);
-                if (_crMedio === 'mixto') {
-                    h += '<div class="cr-mixto">' + [0, 1].map(function(i){
+                var mixtoHtml = function() {
+                    if (_crMedio !== 'mixto') return '';
+                    return '<div class="cr-mixto">' + [0, 1].map(function(i){
                         return '<div class="cr-mixto-fila"><div class="cr-monto"><span class="cr-monto-signo">$</span><input type="text" inputmode="numeric" id="cr-mx' + i + '" placeholder="Parte ' + (i + 1) + '" oninput="window._crOnMixto(' + i + ')"></div>' +
                             '<select id="cr-mxm' + i + '" class="cr-select" aria-label="Medio de la parte ' + (i + 1) + '" onchange="window._crMixtoMedio(' + i + ', this.value)">' + MEDIOS.map(function(m){ return '<option value="' + m.v + '"' + (_crMixtoMedios[i] === m.v ? ' selected' : '') + '>' + m.icono + ' ' + m.label + '</option>'; }).join('') + '</select></div>';
                     }).join('') + '<div class="cr-ayuda" id="cr-mixto-ayuda"></div></div>';
+                };
+                if (_crModo === 'sena') {
+                    return '<label class="cr-lbl" for="cr-precio-total">Precio total acordado</label>' + _crInputPesos('cr-precio-total', precio) + _crChipsMontoHtml('cr-precio-total') +
+                        '<label class="cr-lbl" for="cr-entrega">Entrega / seña hoy</label>' + _crInputPesos('cr-entrega', null) +
+                        '<div class="cr-progreso" id="cr-progreso"></div>' +
+                        '<label class="cr-lbl">Medio de pago</label>' + _crMediosHtml(_crMedio, true) + mixtoHtml() +
+                        '<input type="text" id="cr-nota" class="cr-nota" placeholder="Nota (opcional)">' +
+                        '<button type="button" class="btn-primary cr-guardar" id="cr-guardar" onclick="window._crGuardar(this)">💾 Guardar seña</button>';
                 }
+                var h = '<label class="cr-lbl" for="cr-monto">Monto total de la sesión</label>' + _crInputPesos('cr-monto', precio) + _crChipsMontoHtml('cr-monto');
+                if (prev > 0) h += '<p class="cr-info" id="cr-prev">Ya hay ' + formatoPesos(prev) + ' cobrados: se registra solo lo que falta.</p>';
+                h += '<label class="cr-lbl">Medio de pago</label>' + _crMediosHtml(_crMedio, true) + mixtoHtml();
                 h += '<input type="text" id="cr-nota" class="cr-nota" placeholder="Nota (opcional)">';
                 h += '<button type="button" class="btn-primary cr-guardar" id="cr-guardar" onclick="window._crGuardar(this)">💾 Guardar cobro</button>';
                 return h;
             }
 
+            // Chips de 1 clic debajo del monto: ✨ último valor (dorado) + montos frecuentes.
+            function _crChipsMontoHtml(target) {
+                return '<div class="cr-chips cr-chips-rapidos" data-target="' + target + '">' +
+                    '<span class="cr-ult-slot"></span>' +
+                    MONTOS_RAPIDOS.map(function(p){ return '<button type="button" class="cr-chip-rapido" onclick="window._crUsarMonto(' + (p / 1000) + ', \'' + target + '\')">$' + formatoPesosEnteros(p) + '</button>'; }).join('') +
+                    '</div>';
+            }
             async function _crCargarUltimoPrecio() {
-                var cont = document.getElementById('cr-chips');
+                var cont = document.querySelector('#mpp-body .cr-chips-rapidos');
                 if (!cont || !_ppPacienteKey) return;
                 try {
                     if (_crUltimoPrecio === null) {
                         var snap = await getDocs(query(collection(db, 'prestaciones'), where('pacienteKey', '==', _ppPacienteKey)));
-                        var lista = []; snap.forEach(function(d){ lista.push(Object.assign({ id: d.id }, d.data())); });
+                        var lista = []; snap.forEach(function(d){ lista.push(_nmDoc(Object.assign({ id: d.id }, d.data()))); });
                         var mapa = new Map();
                         lista.forEach(function(p){ var rr = _crReserva(p.reservaId || p.id); if (rr) mapa.set(p.reservaId || p.id, rr); });
                         _crUltimoPrecio = ultimoPrecio(lista, mapa, { pacienteKey: _ppPacienteKey, servicio: _ppServicio, excluirId: _ppReservaId }) || 0;
                     }
                 } catch (e) { _crUltimoPrecio = 0; }
-                cont = document.getElementById('cr-chips');
-                if (!cont) return;
-                var chips = [];
-                if (_crUltimoPrecio) chips.push(['Último precio de ' + (_ppServicio || 'este servicio'), _crUltimoPrecio]);
-                var actual = _ppPrestacion && !_ppPrestacion.sinCargo ? _ppPrestacion.precioAcordado : null;
-                if (actual != null && actual !== _crUltimoPrecio) chips.push(['Precio acordado', actual]);
-                cont.innerHTML = chips.map(function(c){ return '<button type="button" class="cr-chip-monto" onclick="window._crUsarMonto(' + c[1] + ')"><small>' + escapeHtml(c[0]) + '</small>' + formatoPesos(c[1]) + '</button>'; }).join('');
+                document.querySelectorAll('#mpp-body .cr-chips-rapidos').forEach(function(c){
+                    var target = c.dataset.target, slot = c.querySelector('.cr-ult-slot');
+                    if (!slot) return;
+                    var chips = [];
+                    if (_crUltimoPrecio) chips.push(['✨ Último valor', _crUltimoPrecio, 'Último precio de ' + (_ppServicio || 'este servicio') + ' para esta paciente']);
+                    var actual = _ppPrestacion && !_ppPrestacion.sinCargo ? _ppPrestacion.precioAcordado : null;
+                    if (actual != null && actual !== _crUltimoPrecio) chips.push(['Precio acordado', actual, 'Precio ya acordado para esta sesión']);
+                    slot.innerHTML = chips.map(function(x){ return '<button type="button" class="cr-chip-ultimo" title="' + escapeHtml(x[2]) + '" onclick="window._crUsarMonto(' + x[1] + ', \'' + target + '\')">' + x[0] + ': ' + formatoPesos(x[1]) + '</button>'; }).join('');
+                });
             }
 
             window._crOnMonto = function(inp) {
@@ -10686,8 +10842,8 @@
                 var ay = document.getElementById(inp.id + '-ayuda');
                 if (ay) {
                     if (r.vacio) ay.innerHTML = '';
-                    else if (!r.ok) ay.innerHTML = '<span class="cr-err">' + escapeHtml(r.error) + '</span>' + (r.pareceMiles ? ' <button type="button" class="btn-ghost" onclick="window._crPorMil(\'' + inp.id + '\')">Usar $ ' + formatoPesosEnteros(r.pesos * 1000) + '</button>' : '');
-                    else ay.textContent = 'Equivale a $' + formatoPesosEnteros(r.pesos) + ' ARS';
+                    else if (!r.ok) ay.innerHTML = (r.pareceMiles ? '' : '<span class="cr-err">' + escapeHtml(r.error) + '</span>') + (r.pareceMiles ? '<button type="button" class="cr-chip-sug" onclick="window._crPorMil(\'' + inp.id + '\')">¿Quisiste poner $ ' + formatoPesosEnteros(r.pesos * 1000) + '? <small>(Clic para aplicar)</small></button>' : '');
+                    else ay.innerHTML = '<span class="cr-ok">Se registrará como: <strong>$ ' + formatoPesosEnteros(r.pesos) + ' ARS</strong></span>';
                 }
                 window._crSyncPanel();
             };
@@ -10696,8 +10852,8 @@
                 var r = parsearPesos(inp.value);
                 if (r.pesos) { inp.value = formatoPesosEnteros(r.pesos * 1000); window._crOnMonto(inp); }
             };
-            window._crUsarMonto = function(miles) {
-                var inp = document.getElementById('cr-monto'); if (!inp) return;
+            window._crUsarMonto = function(miles, target) {
+                var inp = document.getElementById(target || 'cr-monto'); if (!inp) return;
                 inp.value = formatoPesosEnteros(milesAPesos(miles)); window._crOnMonto(inp);
             };
             // Recalcula ayudas: progreso de la seña y resto del pago mixto.
@@ -10717,10 +10873,11 @@
             };
             window._crOnMixto = function(i) {
                 var e = estadoCobro(_ppPrestacion, _ppPagos);
-                var m = parsearPesos((document.getElementById('cr-monto') || {}).value);
+                var enSena = _crModo === 'sena';
+                var m = parsearPesos((document.getElementById(enSena ? 'cr-entrega' : 'cr-monto') || {}).value);
                 var ay = document.getElementById('cr-mixto-ayuda');
-                if (!m.ok || m.vacio) { if (ay) ay.textContent = 'Primero escribí el monto total.'; return; }
-                var aCobrarPesos = Math.max(0, milesAPesos(m.miles - e.cobrado));
+                if (!m.ok || m.vacio) { if (ay) ay.textContent = enSena ? 'Primero escribí cuánto entrega hoy.' : 'Primero escribí el monto total.'; return; }
+                var aCobrarPesos = Math.max(0, milesAPesos(enSena ? m.miles : m.miles - e.cobrado));
                 if (i === 0) {
                     var p1 = parsearPesos(document.getElementById('cr-mx0').value);
                     if (p1.ok && !p1.vacio) document.getElementById('cr-mx1').value = formatoPesosEnteros(restoMixto(aCobrarPesos, p1.pesos));
@@ -10728,7 +10885,7 @@
                 if (ay) ay.textContent = 'A cobrar: $' + formatoPesosEnteros(aCobrarPesos) + ' entre las dos partes.';
             };
             window._crMixtoMedio = function(i, v) { _crMixtoMedios[i] = v; };
-            window._crSetModo = function(m) { _crModo = m; if (m === 'sena' && _crMedio === 'mixto') _crMedio = 'efectivo'; _ppRender(); };
+            window._crSetModo = function(m) { _crModo = m; _ppRender(); };
             window._crSetMedio = function(m) {
                 var monto = (document.getElementById('cr-monto') || {}).value, nota = (document.getElementById('cr-nota') || {}).value;
                 var pt = (document.getElementById('cr-precio-total') || {}).value, en = (document.getElementById('cr-entrega') || {}).value;
@@ -10845,10 +11002,10 @@
                 document.getElementById('modal-enviar-recibo-overlay').classList.add('open');
                 try {
                     var prestSnap = await getDoc(doc(db, 'prestaciones', reservaId));
-                    _rePrestacion = prestSnap.exists() ? prestSnap.data() : null;
+                    _rePrestacion = prestSnap.exists() ? _nmDoc(prestSnap.data()) : null;
                     var pagosSnap = await getDocs(query(collection(db, 'pagos'), where('prestacionId', '==', reservaId), where('tipo', '==', 'cobro')));
                     _rePagos = [];
-                    pagosSnap.forEach(function(d){ _rePagos.push(Object.assign({ id: d.id }, d.data())); });
+                    pagosSnap.forEach(function(d){ _rePagos.push(_nmDoc(Object.assign({ id: d.id }, d.data()))); });
                     _rePagos.sort(function(a,b){ return (a.fechaEfectiva||'').localeCompare(b.fechaEfectiva||''); });
                     _rePagoElegidoId = _rePagos.length ? _rePagos[_rePagos.length - 1].id : null;
                     _reRender();
@@ -11107,9 +11264,9 @@
                     var prestSnap = await getDocs(collection(db, 'prestaciones'));
                     var pagosSnap = await getDocs(collection(db, 'pagos'));
                     var gastosSnap = await getDocs(collection(db, 'gastos'));
-                    var prestaciones = []; prestSnap.forEach(function(d){ prestaciones.push(Object.assign({ id: d.id }, d.data())); });
-                    var pagos = []; pagosSnap.forEach(function(d){ pagos.push(Object.assign({ id: d.id }, d.data())); });
-                    var gastos = []; gastosSnap.forEach(function(d){ gastos.push(Object.assign({ id: d.id }, d.data())); });
+                    var prestaciones = []; prestSnap.forEach(function(d){ prestaciones.push(_nmDoc(Object.assign({ id: d.id }, d.data()))); });
+                    var pagos = []; pagosSnap.forEach(function(d){ pagos.push(_nmDoc(Object.assign({ id: d.id }, d.data()))); });
+                    var gastos = []; gastosSnap.forEach(function(d){ gastos.push(_nmGasto(Object.assign({ id: d.id }, d.data()))); });
                     _rmData = { reservas: reservas, prestaciones: prestaciones, pagos: pagos, gastos: gastos };
                     _rmRender();
                 } catch (e) {
@@ -11394,14 +11551,14 @@
                     gastosParaListar.forEach(function(g){
                         var esFijo = g.modalidad === 'importe_fijo';
                         // Gastos viejos sin escala: se muestran y suman igual que siempre (como miles).
-                        var dudoso = esFijo && !g.escala && (g.montoFijo || 0) >= 10000;
+                        var dudoso = esFijo && g._enPesos && g._enPesos.montoFijo != null;
                         var det = esFijo
                             ? formatoPesos(g.montoFijo) + (g.estado === 'pagado' ? ' · pagado el ' + (g.fechaPagoEfectiva||'—') : ' · pendiente de pago')
                             : g.porcentaje + '% ' + (g.alcance === 'servicio' ? 'sobre "' + escapeHtml(g.servicioVinculado||'') + '"' : 'sobre cobros netos generales') + (g.reemplazadoPorGastoId ? ' · ya reemplazado por un gasto real (no se descuenta como estimado)' : '');
                         html += '<div class="rm-lista-fila">';
                         html += '<div class="rm-lista-top"><strong>' + escapeHtml(g.concepto||'—') + '</strong><span class="rm-tag">' + escapeHtml(g.categoria||'Sin categoría') + '</span></div>';
                         html += '<span>' + det + '</span>';
-                        if (dudoso) html += '<span class="rm-tag rm-tag-warn" title="Este gasto se cargó antes de que el panel guardara la unidad. El resumen lo toma en miles de pesos, como siempre.">⚠ Revisar unidad: ¿se cargó en pesos?</span>';
+                        if (dudoso) html += '<span class="rm-tag" title="Este gasto se cargó en pesos completos (' + escapeHtml(String(g._enPesos.montoFijo)) + '). El resumen lo toma como ' + formatoPesos(g.montoFijo) + '; el dato guardado no se modificó.">ℹ Cargado en pesos · se toma como ' + formatoPesos(g.montoFijo) + '</span>';
                         if (g.nota) html += '<em class="p360-muted">' + escapeHtml(g.nota) + '</em>';
                         var acc = '';
                         if (esFijo && g.estado !== 'pagado') acc += '<button class="btn-secondary" onclick="window._rmMarcarGastoPagado(\'' + g.id + '\')">Marcar como pagado</button>';
@@ -11432,14 +11589,30 @@
                     h += '<tr data-rid="' + rid + '"><td data-l="Fecha">' + escapeHtml(r.fecha.split('-').reverse().join('/')) + '</td>' +
                         '<td data-l="Paciente">' + escapeHtml(_pacienteNombreDisplay(r)) + (it.motivo === 'saldo' ? '<div class="p360-muted">Debe ' + formatoPesos(it.info.saldo) + '</div>' : '') + '</td>' +
                         '<td data-l="Servicio">' + escapeHtml(r.servicio || '—') + '</td>' +
-                        '<td data-l="Monto ($)"><input type="text" inputmode="numeric" class="rm-input rmq-monto" placeholder="$ 0" value="' + pre + '" aria-label="Monto en pesos"></td>' +
+                        '<td data-l="Monto ($)"><input type="text" inputmode="numeric" class="rm-input rmq-monto" placeholder="$ 0" value="' + pre + '" aria-label="Monto en pesos" oninput="window._rmqConf(this)"><div class="rmq-conf"></div></td>' +
                         '<td data-l="Medio"><select class="rm-input rmq-medio" aria-label="Medio de pago" onchange="window._rmqCambio(this)">' + medios + '</select></td>' +
                         '<td data-l="Estado"><select class="rm-input rmq-estado" aria-label="Estado" onchange="window._rmqCambio(this)"><option value="total">✅ Pagado total</option><option value="sena">⏳ Seña</option></select>' +
-                        '<input type="text" inputmode="numeric" class="rm-input rmq-entrega" placeholder="Entrega $" aria-label="Entrega en pesos" style="display:none;margin-top:4px;"></td>' +
+                        '<input type="text" inputmode="numeric" class="rm-input rmq-entrega" placeholder="Entrega $" aria-label="Entrega en pesos" style="display:none;margin-top:4px;" oninput="window._rmqConf(this)"><div class="rmq-conf"></div></td>' +
                         '<td data-l=""><button type="button" class="btn-secondary rmq-ok" onclick="window._rmqGuardarFila(\'' + _jsArg(r.id) + '\', this)">✔ Guardar</button><div class="rmq-msg"></div></td></tr>';
                 });
                 return h + '</tbody></table></div>';
             }
+            // Confirmación en vivo bajo cada monto de la planilla (pesos reales).
+            window._rmqConf = function(inp) {
+                var box = inp.nextElementSibling;
+                if (!box || !box.classList.contains('rmq-conf')) return;
+                var r = parsearPesos(inp.value);
+                if (r.vacio) { box.innerHTML = ''; return; }
+                if (r.ok) { box.innerHTML = '<span class="cr-ok">Se registrará como: <strong>$ ' + formatoPesosEnteros(r.pesos) + ' ARS</strong></span>'; return; }
+                box.innerHTML = r.pareceMiles
+                    ? '<button type="button" class="cr-chip-sug" onclick="window._rmqPorMil(this)">¿Quisiste poner $ ' + formatoPesosEnteros(r.pesos * 1000) + '? <small>(Clic para aplicar)</small></button>'
+                    : '<span class="cr-err">' + escapeHtml(r.error) + '</span>';
+            };
+            window._rmqPorMil = function(btn) {
+                var inp = btn.closest('.rmq-conf').previousElementSibling;
+                var r = parsearPesos(inp.value);
+                if (r.pesos) { inp.value = formatoPesosEnteros(r.pesos * 1000); window._rmqConf(inp); }
+            };
             window._rmqToggle = function() {
                 _rmqAbierto = !_rmqAbierto;
                 var box = document.getElementById('rm-carga-rapida');
@@ -11504,8 +11677,8 @@
                 });
                 var y = window.scrollY;
                 var [ps, pg] = await Promise.all([getDocs(collection(db, 'prestaciones')), getDocs(collection(db, 'pagos'))]);
-                var prest = []; ps.forEach(function(x){ prest.push(Object.assign({ id: x.id }, x.data())); });
-                var pagos = []; pg.forEach(function(x){ pagos.push(Object.assign({ id: x.id }, x.data())); });
+                var prest = []; ps.forEach(function(x){ prest.push(_nmDoc(Object.assign({ id: x.id }, x.data()))); });
+                var pagos = []; pg.forEach(function(x){ pagos.push(_nmDoc(Object.assign({ id: x.id }, x.data()))); });
                 _rmData.prestaciones = prest; _rmData.pagos = pagos;
                 _rmRender();
                 Object.keys(valores).forEach(function(rid){
@@ -11574,7 +11747,7 @@
             window._rmMontoGasto = function(inp) {
                 var r = parsearPesos(inp.value), ay = document.getElementById('rmg-monto-ayuda');
                 if (!ay) return;
-                ay.innerHTML = r.vacio ? '' : !r.ok ? '<span class="cr-err">' + escapeHtml(r.error) + '</span>' : 'Equivale a $' + formatoPesosEnteros(r.pesos) + ' ARS';
+                ay.innerHTML = r.vacio ? '' : !r.ok ? '<span class="cr-err">' + escapeHtml(r.error) + '</span>' : '<span class="cr-ok">Se registrará como: <strong>$ ' + formatoPesosEnteros(r.pesos) + ' ARS</strong></span>';
             };
             window._rmToggleModalidadGasto = function() {
                 var esFijo = document.getElementById('rmg-modalidad').value === 'importe_fijo';
@@ -13834,6 +14007,13 @@
             }
         };
 
+        // Cierra el selector de tipo de jornada sin cambiar nada de la configuración.
+        window.cerrarSelectorJornada = () => {
+            const sel = document.getElementById("jornadaTypeSelectorHeader");
+            if (!sel) return;
+            sel.classList.add('jts-saliendo');
+            setTimeout(() => { sel.style.display = 'none'; sel.classList.remove('jts-saliendo'); }, 180);
+        };
         window.activarModoNormal = async () => {
             const selHide = document.getElementById("jornadaTypeSelectorHeader");
             if (selHide) selHide.style.display = "none";
@@ -15556,6 +15736,7 @@
             pop.style.left = left + 'px';
             pop.innerHTML = `
                 <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();abrirFicha360DeReserva('${reservaId}','resumen')">📇 Ficha 360°</button>
+                <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();abrirCobro('${reservaId}')">💳 Cobrar / precio y pagos</button>
                 <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();grillaAbrirMover('${reservaId}')">↔ Mover de box / horario</button>
                 <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();abrirRecomendacionPostSesion('${reservaId}')">✨ Enviar recomendación post-sesión</button>
                 <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();grillaVerHistorialPaciente(null,'${reservaId}')">🕘 Últimas sesiones (rápido)</button>
@@ -16039,7 +16220,10 @@
                                 const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
                                 circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                             }
-                            const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" data-nota="${escapeHtml(notaRapida)}" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>`;
+                            const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" data-nota="${escapeHtml(notaRapida)}" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>` +
+                                // Acceso directo a 💳 Precio y pagos sin salir de la Grilla
+                                // (solo el ícono: la celda no muestra montos ni saldos).
+                                `<button type="button" class="gc-cobro-btn" draggable="false" onclick="grillaCobrarTurno(event,'${res.id}')" title="💳 Cobrar / precio y pagos" aria-label="Cobrar turno de ${nom}">💳</button>`;
                             // Tocar la tarjeta abre la Ficha 360° en la pestaña de
                             // historial (antes: el modal "Últimas sesiones", que
                             // sigue disponible desde el menú ⋮ del turno).
@@ -16047,7 +16231,7 @@
                                 ${menuHtml}
                                 <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Abrir ficha de ${nom}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaAbrirFichaTurno(event,'${res.id}')}">${nom}</span>
                                 <span class="grilla-paciente-servicio">${srv}</span>
-                                ${ctx.dispoHtml ? `<span class="gc-ctx gc-ctx-dispo">${ctx.dispoHtml}</span>` : ''}
+                                ${ctx.dispoHtml ? `<span class="gc-ctx gc-ctx-dispo" title="${escapeHtml(ctx.dispoTitulo || '')}">${ctx.dispoHtml}</span>` : ''}
                                 ${type === 'solo' && !ctx.dispoHtml && ctx.ultimaHtml ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : ''}
                                 ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
                                 ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
@@ -16085,6 +16269,7 @@
             document.getElementById('grilla-table')?.classList.toggle('grilla-compacta', _grilla_compacta);
             _grillaRenderResumenDia(del_dia);
             _grillaMarcarAhora();
+            setTimeout(() => { if (document.getElementById('sec-grilla')?.classList.contains('active')) _grillaMarcarAhora(); }, 60);
         };
 
         /* ════════════════════════════════════════════════════════════════════
@@ -16230,7 +16415,7 @@
                 lineas.push('Sin sesiones anteriores registradas');
             }
             lineas.push('Tocá para abrir la ficha · arrastrá para cambiar de box');
-            return { dispoHtml: dispo ? `🗓️ ${escapeHtml(dispo)}` : '', ultimaHtml, tooltip: lineas.join('\n') };
+            return { dispoHtml: dispo ? `🗓️ ${escapeHtml(dispo)}` : '', dispoTitulo: dispoTodo.length ? 'Puede: ' + dispoTodo.join(' | ') : (dispo || ''), ultimaHtml, tooltip: lineas.join('\n') };
         }
 
         function _grillaRenderResumenDia(delDia) {
@@ -16248,6 +16433,7 @@
         function _grillaMarcarAhora() {
             document.querySelectorAll('#grilla-tbody tr.grilla-row-ahora').forEach(tr => tr.classList.remove('grilla-row-ahora'));
             document.querySelectorAll('#grilla-tbody .grilla-ahora-pill').forEach(x => x.remove());
+            document.querySelectorAll('.grilla-linea-ahora').forEach(x => { x.style.display = 'none'; });
             const btn = document.getElementById('btn-grilla-ahora');
             const esHoy = _grilla_fecha === fechaHoyISO();
             if (btn) btn.classList.toggle('activo', esHoy);
@@ -16264,11 +16450,38 @@
             elegida.classList.add('grilla-row-ahora');
             const td = elegida.querySelector('.grilla-td-hora');
             if (td) td.insertAdjacentHTML('beforeend', `<span class="grilla-ahora-pill" aria-label="Hora actual">● ${ahora}</span>`);
+            _grillaLineaAhora(elegida, ahora);
             return elegida;
+        }
+        // Línea dorada horizontal en vivo: cruza los 4 boxes a la altura exacta
+        // de la hora actual (proporcional dentro de la franja de la fila).
+        function _grillaLineaAhora(tr, ahora) {
+            const wrap = tr && tr.closest('.grilla-scroll-wrap');
+            if (!wrap) return;
+            let linea = wrap.querySelector('.grilla-linea-ahora');
+            if (!linea) { linea = document.createElement('div'); linea.className = 'grilla-linea-ahora'; linea.setAttribute('aria-hidden', 'true'); wrap.appendChild(linea); }
+            const aMin = (h) => { const [hh, mm] = String(h || '0:0').split(':').map(Number); return hh * 60 + (mm || 0); };
+            let sig = tr.nextElementSibling;
+            while (sig && !sig.dataset.hora) sig = sig.nextElementSibling;
+            const desde = aMin(tr.dataset.hora), hasta = sig ? aMin(sig.dataset.hora) : desde + 15;
+            const frac = hasta > desde ? Math.max(0, Math.min(1, (aMin(ahora) - desde) / (hasta - desde))) : 0;
+            const rw = wrap.getBoundingClientRect(), rt = tr.getBoundingClientRect();
+            const tdH = tr.querySelector('.grilla-td-hora');
+            const izq = tdH ? tdH.getBoundingClientRect().right : rt.left;
+            linea.style.top = Math.round(rt.top - rw.top + wrap.scrollTop + frac * rt.height) + 'px';
+            linea.style.left = Math.round(izq - rw.left + wrap.scrollLeft) + 'px';
+            linea.style.width = Math.max(0, Math.round(rt.right - izq)) + 'px';
+            linea.style.display = '';
         }
         if (!window._grillaAhoraTimer) window._grillaAhoraTimer = setInterval(() => {
             if (document.getElementById('sec-grilla')?.classList.contains('active')) _grillaMarcarAhora();
         }, 60000);
+        if (!window._grillaAhoraResize) {
+            window._grillaAhoraResize = true;
+            window.addEventListener('resize', debounce(() => {
+                if (document.getElementById('sec-grilla')?.classList.contains('active')) _grillaMarcarAhora();
+            }, 150));
+        }
 
         window.grillaIrHoraActual = async () => {
             if (_grilla_fecha !== fechaHoyISO()) { _grilla_fecha = fechaHoyISO(); await cargarAdminBlocks(_grilla_fecha); }
@@ -16280,6 +16493,11 @@
             _grilla_compacta = !_grilla_compacta;
             try { localStorage.setItem('mimar_grilla_compacta', _grilla_compacta ? '1' : '0'); } catch (_) {}
             window.renderGrilla();
+        };
+        window.grillaCobrarTurno = (ev, reservaId) => {
+            if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+            if (_gDrag) return;
+            window.abrirCobro(reservaId);
         };
         window.grillaAbrirFichaTurno = (ev, reservaId) => {
             if (ev) { ev.stopPropagation(); ev.preventDefault(); }
@@ -17329,10 +17547,10 @@
                     getDocs(query(collection(db, 'prestaciones'), where('reservaId', 'in', lote))),
                     getDocs(query(collection(db, 'pagos'), where('prestacionId', 'in', lote))),
                 ]);
-                const prest = new Map(); ps.forEach(d => prest.set(d.data().reservaId || d.id, d.data()));
-                const pagos = new Map(); pg.forEach(d => { const p = d.data(); if (!pagos.has(p.prestacionId)) pagos.set(p.prestacionId, []); pagos.get(p.prestacionId).push(p); });
+                const prest = new Map(); ps.forEach(d => prest.set(d.data().reservaId || d.id, _nmDoc(d.data())));
+                const pagos = new Map(); pg.forEach(d => { const p = _nmDoc(d.data()); if (!pagos.has(p.prestacionId)) pagos.set(p.prestacionId, []); pagos.get(p.prestacionId).push(p); });
                 // prestaciones viejas sin campo reservaId: se leen por id
-                await Promise.all(lote.filter(id => !prest.has(id)).map(async id => { try { const s = await getDoc(doc(db, 'prestaciones', id)); if (s.exists()) prest.set(id, s.data()); } catch (_) {} }));
+                await Promise.all(lote.filter(id => !prest.has(id)).map(async id => { try { const s = await getDoc(doc(db, 'prestaciones', id)); if (s.exists()) prest.set(id, _nmDoc(s.data())); } catch (_) {} }));
                 lote.forEach(id => _cobroCache.set(id, { prest: prest.get(id) || null, pagos: pagos.get(id) || [], ms: Date.now() }));
             }
         }
@@ -17484,7 +17702,7 @@
                 const fuente = await _fetchReservasCompletasParaExport();
                 const activas = fuente.filter(esReservaExportablePdf);
                 const prest = new Map();
-                try { (await getDocs(collection(db, 'prestaciones'))).forEach(d => prest.set(d.id, d.data())); }
+                try { (await getDocs(collection(db, 'prestaciones'))).forEach(d => prest.set(d.id, _nmDoc(d.data()))); }
                 catch (e) { console.warn('Buscador avanzado: sin importes (prestaciones):', e); }
                 let cursos = _cursosCache && _cursosCache.length ? _cursosCache : [];
                 if (!cursos.length) {

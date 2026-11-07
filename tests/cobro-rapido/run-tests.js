@@ -1,5 +1,5 @@
 // node tests/cobro-rapido/run-tests.js   (datos 100% sintéticos)
-import { parsearPesos, milesAPesos, pesosAMiles, formatoPesos, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio, etiquetaMedio } from '../../js/cobro-rapido.js';
+import { parsearPesos, milesAPesos, pesosAMiles, formatoPesos, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio, etiquetaMedio, normalizarMontoARS, normalizarDocMontos, MONTOS_RAPIDOS } from '../../js/cobro-rapido.js';
 import { parsearImporte, formatearImporte } from '../../js/precio-pagos.js';
 
 let fails = 0;
@@ -55,6 +55,27 @@ check('suma por medio y devoluciones aparte', t.porMedio.efectivo === 120 && t.p
 const rs = new Map([['a', { fecha: '2026-09-01', servicio: 'Hi-Fu Facial' }], ['b', { fecha: '2026-10-01', servicio: 'Hi-Fu Facial' }], ['c', { fecha: '2026-10-05', servicio: 'Drenaje' }]]);
 check('último precio de esa paciente y servicio', ultimoPrecio([{ id: 'a', reservaId: 'a', pacienteKey: 'dni:1', precioAcordado: 120 }, { id: 'b', reservaId: 'b', pacienteKey: 'dni:1', precioAcordado: 150 }, { id: 'c', reservaId: 'c', pacienteKey: 'dni:1', precioAcordado: 80 }], rs, { pacienteKey: 'dni:1', servicio: 'Hi-Fu Facial' }) === 150);
 check('medios históricos se siguen leyendo', etiquetaMedio('otro') === 'Otro' && etiquetaMedio('mercadopago') === 'Mercado Pago');
+
+console.log('\n=== Normalización inteligente de escala (normalizarMontoARS) ===');
+check('<= 2000 se interpreta en miles (30, 150, 300, 2000 sin cambios)', normalizarMontoARS(30) === 30 && normalizarMontoARS(150) === 150 && normalizarMontoARS(300) === 300 && normalizarMontoARS(2000) === 2000);
+check('> 2000 ya está en pesos: 21000 → 21, 45500 → 45,5, 150000 → 150 (miles)', normalizarMontoARS(21000) === 21 && normalizarMontoARS(45500) === 45.5 && normalizarMontoARS(150000) === 150);
+check('21000 guardado se ve $ 21.000 (no $ 21.000.000)', formatoPesos(normalizarMontoARS(21000)) === '$ 21.000');
+check('null / vacío se respetan', normalizarMontoARS(null) === null && normalizarMontoARS(undefined) === undefined && normalizarMontoARS('') === '');
+const orig = { precioAcordado: 21000, sinCargo: false, escala: 'miles_ars' };
+const nd = normalizarDocMontos(orig);
+check('el doc normalizado es una copia: el original no se toca', orig.precioAcordado === 21000 && nd.precioAcordado === 21 && nd !== orig);
+check('marca interna no enumerable (nunca viaja a Firestore)', nd._enPesos.precioAcordado === 21000 && !Object.keys(nd).includes('_enPesos') && !('_enPesos' in JSON.parse(JSON.stringify(nd))) && !('_enPesos' in { ...nd }));
+const ya = { monto: 50 };
+check('doc ya en miles → mismo objeto, sin cambios', normalizarDocMontos(ya) === ya);
+const caso = estadoCobro(normalizarDocMontos({ precioAcordado: 21000 }), [normalizarDocMontos({ monto: 10, tipo: 'cobro', metodoPago: 'efectivo' })]);
+check('precio cargado en pesos (21000) + seña de 10 (miles) → Debe $ 11.000 (de $ 21.000)', caso.texto === 'Debe $ 11.000 (de $ 21.000)', caso.texto);
+check('montos rápidos del espacio', MONTOS_RAPIDOS.join() === '15000,20000,25000,30000,45000,60000,150000');
+
+console.log('\n=== Pago mixto también en Seña ===');
+let ps = planCobro({ modo: 'sena', precioTotal: '200.000', entrega: '50.000', medio: 'mixto', mixto: [{ pesos: '30.000', medio: 'efectivo' }, { pesos: '20.000', medio: 'transferencia' }] });
+check('seña mixta: 2 pagos (30 efectivo + 20 transferencia), saldo 150', ps.ok && ps.esMixto && ps.pagos.length === 2 && ps.pagos[0].monto === 30 && ps.pagos[1].metodoPago === 'transferencia' && ps.saldoLuego === 150, ps);
+ps = planCobro({ modo: 'sena', precioTotal: '200.000', entrega: '50.000', medio: 'mixto', mixto: [{ pesos: '30.000', medio: 'efectivo' }, { pesos: '10.000', medio: 'transferencia' }] });
+check('seña mixta que no suma la entrega → error claro', !ps.ok && /suman/.test(ps.error));
 
 console.log('\n' + '='.repeat(60));
 console.log(fails ? fails + ' prueba(s) fallaron' : 'TODAS LAS PRUEBAS DE COBRO RÁPIDO OK');
