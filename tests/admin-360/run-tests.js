@@ -239,7 +239,7 @@ $('inpBusPaciente').value = 'radiofrec'; w.filtrarListadoClientes(); await tick(
 check('busca por tratamiento habitual', $('contenedorClientes').textContent.includes('Rosa Paz'));
 $('inpBusPaciente').value = 'gomez'; w.filtrarListadoClientes(); await tick();
 const card = $('contenedorClientes').innerHTML;
-check('busca sin tildes y muestra próximo turno, disponibilidad y última sesión', card.includes('Paula') && /Próximo turno:/.test(card) && card.includes('🗓️ Puede jueves a la mañana') && /Última sesión: <b>/.test(card));
+check('busca sin tildes y muestra próximo turno, disponibilidad y última sesión', card.includes('Paula') && /Próximo turno/.test(card) && /class="dir-meta"/.test(card) && (card.match(/class="dir-badge/g) || []).length === (card.match(/class="detalle-dia-card"/g) || []).length && card.includes('🗓️ Puede jueves a la mañana') && /Última sesión: <b>/.test(card));
 check('la tarjeta no muestra "Saldo bajo" (sin ruido de horas)', !/Saldo bajo/.test(card));
 check('botón Ficha 360° en la tarjeta', card.includes('abrirFicha360Dni'));
 
@@ -403,6 +403,106 @@ check('acceso a la ficha / historial', /Historial/.test($('cs-resultados').textC
 w.abrirFicha360Enc('dni:31000001', 'historial'); await tick(30);
 check('abre la Ficha 360° del paciente (pestaña historial)', $('f360-drawer').classList.contains('visible'));
 w.cerrarFicha360?.();
+
+console.log('\n=== Cobro en 1 paso (💳 Precio y pagos) ===');
+const pagosDe = (rid) => [...fb.calls.store.entries()].filter(([k, v]) => k.startsWith('pagos/') && v.prestacionId === rid).map(([, v]) => v);
+w.jspdf.jsPDF.prototype.output = () => new w.Blob(['%PDF-1.4'], { type: 'application/pdf' });
+w.jspdf.jsPDF.prototype.setTextColor = () => {};
+w.prompt = () => 'Se cargó dos veces'; globalThis.prompt = w.prompt;
+w.navegar('grilla'); w.grillaIrHoy(); await tick(30);
+check('la Grilla no muestra botones ni montos de cobro', !$('grilla-tbody').querySelector('[data-cobro-id]') && !/\$ \d/.test($('grilla-tbody').textContent));
+check('la Grilla tiene un único encabezado (sin mini-encabezados ni cortes · · ·)', !$('grilla-tbody').querySelector('.grilla-mini-header') && !/· · ·/.test($('grilla-tbody').textContent));
+w.abrirFicha360Enc('dni:30111222', 'historial'); await tick(60);
+const btnCobro = $('f360-cuerpo').querySelector('[data-cobro-id="p-hoy"]');
+check('Historial: el botón muestra el estado en vivo (🟡 Debe $ 25.000 de $ 45.000)', btnCobro && /Debe \$ 25\.000 \(de \$ 45\.000\)/.test(btnCobro.textContent), btnCobro && btnCobro.textContent);
+w.cerrarFicha360?.();
+w.abrirCobro('p-hoy'); await tick(40);
+const body = () => $('mpp-body');
+check('modal: encabezado con paciente, servicio y estado SEÑA / PARCIAL', /Paula Gómez/.test(body().textContent) && /Limpieza Facial Profunda/.test(body().textContent) && /SEÑA \/ PARCIAL/.test(body().textContent));
+check('modal: 3 situaciones de cobro y medios de pago en chips', body().querySelectorAll('.cr-modo').length === 3 && /Mercado Pago/.test(body().textContent) && /Pago mixto/.test(body().textContent));
+check('modal: el monto se ve en pesos completos ($ 45.000 precio)', /\$ 45\.000/.test(body().textContent) && $('cr-monto').value === '45.000');
+check('modal: botón ⚡ Saldar resto ($ 25.000) hoy', /Saldar resto \(\$ 25\.000\) hoy/.test(body().textContent));
+w._crToggleSaldar(); await tick();
+await w._crSaldar('transferencia'); await tick(60);
+let pg = pagosDe('p-hoy').filter(p => p.metodoPago === 'transferencia');
+check('Saldar resto registra $25.000 (25 en miles) por transferencia con comprobante interno', pg.length === 1 && pg[0].monto === 25 && pg[0].escala === 'miles_ars' && pg[0].respaldo && pg[0].respaldo.tipo === 'comprobante_interno_cobro', pg);
+check('el precio acordado no cambia (45)', fb.calls.store.get('prestaciones/p-hoy').precioAcordado === 45);
+check('el pago viejo sin campos nuevos se conserva intacto', JSON.stringify(fb.calls.store.get('pagos/pg1')) === JSON.stringify({ prestacionId: 'p-hoy', monto: 20, tipo: 'cobro' }));
+check('el modal queda en ✅ PAGADO', /✅ PAGADO/.test(body().textContent));
+w._ppCerrar(); await tick(30);
+
+// Pagado total en 1 paso (sin "Guardar precio" previo)
+w.abrirCobro('m-prev'); await tick(40);
+check('sesión sin registro → ⚪ SIN REGISTRAR y "Pagado total" elegido', /SIN REGISTRAR/.test(body().textContent) && body().querySelector('.cr-modo.sel').textContent.includes('Pagado total'));
+$('cr-monto').value = '150'; w._crOnMonto($('cr-monto'));
+check('si escribe 150 ofrece corregir a $ 150.000', /Usar \$ 150\.000/.test($('cr-monto-ayuda').textContent));
+w._crPorMil('cr-monto');
+check('… y lo corrige con 1 toque, mostrando la equivalencia', $('cr-monto').value === '150.000' && /Equivale a \$150\.000 ARS/.test($('cr-monto-ayuda').textContent));
+await w._crGuardar($('cr-guardar')); await tick(60);
+check('1 solo botón guarda el precio (150 en miles, escala explícita)…', fb.calls.store.get('prestaciones/m-prev')?.precioAcordado === 150 && fb.calls.store.get('prestaciones/m-prev')?.escala === 'miles_ars');
+pg = pagosDe('m-prev');
+check('… y el cobro del 100% en efectivo con fecha de hoy', pg.length === 1 && pg[0].monto === 150 && pg[0].metodoPago === 'efectivo' && pg[0].fechaEfectiva === HOY && pg[0].tipo === 'cobro', pg);
+// Revertir (los pagos son inmutables: se registra una devolución)
+const pagoId = [...fb.calls.store.keys()].find(k => k.startsWith('pagos/') && fb.calls.store.get(k).prestacionId === 'm-prev').slice(6);
+await w._crRevertir(pagoId); await tick(40);
+const dev = pagosDe('m-prev').find(p => p.tipo === 'devolucion');
+check('Revertir no borra: registra una devolución con motivo', dev && dev.monto === 150 && dev.revierteA === pagoId && dev.motivo && fb.calls.store.has('pagos/' + pagoId));
+w._ppCerrar(); await tick(20);
+
+// Pago mixto
+w.abrirCobro('a-prev'); await tick(40);
+$('cr-monto').value = '100000'; w._crOnMonto($('cr-monto'));
+w._crSetMedio('mixto'); await tick();
+$('cr-mx0').value = '60000'; w._crOnMixto(0);
+check('pago mixto: la 2.ª parte se completa sola con el resto ($ 40.000)', $('cr-mx1').value === '40.000', $('cr-mx1').value);
+$('cr-mxm1').value = 'mercadopago'; w._crMixtoMedio(1, 'mercadopago');
+await w._crGuardar($('cr-guardar')); await tick(60);
+pg = pagosDe('a-prev');
+check('mixto: 2 pagos (60 efectivo + 40 Mercado Pago) del mismo grupo', pg.length === 2 && pg.every(p => p.esMixto && p.grupoPagoId === pg[0].grupoPagoId) && pg.map(p => p.monto + p.metodoPago).sort().join() === '40mercadopago,60efectivo', pg.map(p => [p.monto, p.metodoPago]));
+w._ppCerrar(); await tick(20);
+
+// Seña
+w.abrirCobro('r-prev'); await tick(40);
+w._crSetModo('sena'); await tick();
+$('cr-precio-total').value = '200.000'; w._crOnMonto($('cr-precio-total'));
+$('cr-entrega').value = '50000'; w._crOnMonto($('cr-entrega'));
+check('seña: muestra en grande el saldo pendiente ($ 150.000)', /Saldo pendiente a cobrar: \$ 150\.000/.test($('cr-progreso').textContent));
+await w._crGuardar($('cr-guardar')); await tick(60);
+check('seña: precio 200 y entrega 50 guardados', fb.calls.store.get('prestaciones/r-prev')?.precioAcordado === 200 && pagosDe('r-prev').length === 1 && pagosDe('r-prev')[0].monto === 50);
+check('seña: el modal queda en ⏳ SEÑA / PARCIAL con "Saldar resto ($ 150.000)"', /SEÑA \/ PARCIAL/.test(body().textContent) && /Saldar resto \(\$ 150\.000\)/.test(body().textContent));
+w._crVistaClasica(true); await tick();
+check('la vista clásica sigue disponible (Guardar precio / concepto)', /Guardar precio/.test(body().textContent) && /Volver a la carga rápida/.test(body().textContent));
+w._ppCerrar(); await tick(20);
+
+console.log('\n=== Resumen mensual: 4 tarjetas, desglose y carga rápida ===');
+w.navegar('resumen-mensual'); await tick(80);
+const rm = () => $('sec-resumen-mensual');
+check('4 tarjetas principales', rm().querySelectorAll('.rm-hero > .rm-kpi').length === 4);
+check('los 9 indicadores de siempre siguen, dentro del desglose', rm().querySelectorAll('.rm-desglose .rm-ind').length === 9 && /Valor prestaciones registradas/.test(rm().textContent) && /Neto estimado/.test(rm().textContent));
+const cobrosMes = [...fb.calls.store.values()].filter(p => p && p.tipo && p.monto && (p.fechaEfectiva || '').startsWith(HOY.slice(0, 7)));
+const esperado = cobrosMes.reduce((a, p) => a + (p.tipo === 'devolucion' ? -p.monto : p.monto), 0);
+const kpiTxt = rm().querySelector('.rm-hero .rm-kpi .rm-kpi-val').textContent;
+check('Total cobrado = suma exacta de los pagos del mes en Firestore', kpiTxt === '$ ' + (esperado * 1000).toLocaleString('es-AR'), kpiTxt + ' vs ' + esperado);
+check('desglose por medio de pago en la tarjeta', /Efectivo: \$/.test(rm().textContent) && /Transf\/MP: \$/.test(rm().textContent));
+const banner = $('rm-banner');
+check('el aviso de incompleto tiene el botón de carga rápida', banner && /Completar las \d+ sesiones ahora/.test(banner.textContent));
+const nAntes = Number($('rmq-pendientes').textContent);
+w._rmqToggle();
+const fila = $('rm-carga-rapida').querySelector('tr[data-rid="y4"]') || $('rm-carga-rapida').querySelector('tr[data-rid]');
+const ridFila = fila.dataset.rid;
+fila.querySelector('.rmq-monto').value = '80.000';
+fila.querySelector('.rmq-medio').value = 'efectivo';
+await w._rmqGuardarFila(ridFila, fila.querySelector('.rmq-ok')); await tick(60);
+check('guardar una fila crea precio + cobro de esa sesión', fb.calls.store.get('prestaciones/' + ridFila)?.precioAcordado === 80 && pagosDe(ridFila).some(p => p.monto === 80 && p.origen === 'resumen_carga_rapida'));
+check('el contador de pendientes baja sin recargar la página', Number($('rmq-pendientes').textContent) === nAntes - 1, $('rmq-pendientes').textContent + ' vs ' + nAntes);
+w._rmPill('saldo'); await tick();
+check('píldora «Con saldo pendiente» filtra la tabla', [...rm().querySelectorAll('#rm-detalle tbody tr')].every(tr => /Saldar/.test(tr.textContent)) && /Ramos|Rosa Paz/.test($('rm-detalle').textContent));
+w._rmToggleFormGasto(); await tick();
+$('rmg-concepto').value = 'Insumos'; $('rmg-monto').value = '85.000'; w._rmMontoGasto($('rmg-monto'));
+check('gasto: monto en pesos con equivalencia', /Equivale a \$85\.000 ARS/.test($('rmg-monto-ayuda').textContent));
+await w._rmGuardarGasto(rm().querySelector('#rm-form-gasto .btn-mini')); await tick(80);
+const gasto = [...fb.calls.store.entries()].find(([k, v]) => k.startsWith('gastos/') && v.concepto === 'Insumos');
+check('gasto guardado en la escala de siempre (85 = $85.000) con escala explícita', gasto && gasto[1].montoFijo === 85 && gasto[1].escala === 'miles_ars', gasto && gasto[1]);
 
 check('sin errores de JavaScript durante la prueba', errores.length === 0, errores.join(' | '));
 console.log('\n' + (fails ? `${fails} FALLA(S)` : 'TODOS LOS FLUJOS DE ADMIN OK'));

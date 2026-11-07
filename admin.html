@@ -1630,6 +1630,304 @@
             .gc-ctx, .gc-ctx-ultima { display: none; }
         }
 
+        /* ══════════════════════════════════════════════════════════════════
+           SAGE & CHAMPAGNE · CLINICAL LUXURY
+           Sistema de diseño del panel. Los nombres viejos (--forest, --ink,
+           --border, --danger…) se remapean a los nuevos tokens, así cada
+           regla existente toma la paleta nueva sin tocarla una por una.
+           ══════════════════════════════════════════════════════════════════ */
+        :root {
+            /* Identidad principal — Sage & Deep Forest */
+            --color-primary-dark: #163026;
+            --color-primary-main: #1E4032;
+            --color-primary-hover: #285442;
+            --color-primary-soft: #EAF0EC;
+            /* Acento Champagne / Gold */
+            --color-accent-gold: #C5A059;
+            --color-accent-gold-soft: #FBF7EFE6;
+            --color-accent-gold-border: #E6D3A7;
+            /* Superficies */
+            --bg-main: #F6F7F5;
+            --bg-card: #FFFFFF;
+            --bg-subtle: #F0F3F1;
+            --bg-modal-overlay: rgba(15, 29, 23, 0.55);
+            /* Texto */
+            --text-primary: #14241D;
+            --text-secondary: #4A5D54;
+            --text-muted: #768980;
+            /* Semántica refinada */
+            --status-success-bg: #ECFDF5; --status-success-text: #065F46; --status-success-border: #A7F3D0;
+            --status-warning-bg: #FFFBEB; --status-warning-text: #92400E; --status-warning-border: #FDE68A;
+            --status-danger-bg: #FEF2F2;  --status-danger-text: #991B1B;  --status-danger-border: #FECACA;
+            --status-info-bg: #F0F9FF;    --status-info-text: #075985;    --status-info-border: #BAE6FD;
+            /* Bordes, radios y sombras */
+            --border-color-soft: #E2E8E4;
+            --border-color-strong: #CBD5CF;
+            --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-pill: 9999px;
+            --shadow-sm: 0 1px 3px rgba(20, 36, 29, 0.05);
+            --shadow-card: 0 4px 20px -2px rgba(20, 36, 29, 0.06), 0 2px 6px -1px rgba(20, 36, 29, 0.03);
+            --shadow-modal: 0 20px 40px -10px rgba(20, 36, 29, 0.18);
+
+            /* Remapeo de los tokens existentes */
+            --bg: var(--bg-main);
+            --surface: var(--bg-card);
+            --surface-2: var(--bg-subtle);
+            --ink: var(--text-primary);
+            --ink-soft: var(--text-secondary);
+            --forest: var(--color-primary-main);
+            --forest-deep: var(--color-primary-dark);
+            --forest-soft: var(--color-primary-soft);
+            --sage-soft: var(--color-primary-soft);
+            --border: var(--border-color-soft);
+            /* Inputs y selects conservan un borde reconocible (≥3:1 sobre blanco). */
+            --border-strong: #8FA197;
+            --danger: var(--status-danger-text);   --danger-soft: var(--status-danger-bg);
+            --warning: var(--status-warning-text); --warning-soft: var(--status-warning-bg);
+            --info: var(--status-info-text);       --info-soft: var(--status-info-bg);
+            --success: var(--status-success-text); --success-soft: var(--status-success-bg);
+            --shadow-md: var(--shadow-card);
+            --shadow-lg: var(--shadow-modal);
+        }
+        body { background-color: var(--bg-main); color: var(--text-primary); }
+
+        /* ── Botones: 3 niveles ── */
+        .btn-primary, .btn-secondary, .btn-ghost {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            font: inherit; font-size: 13px; font-weight: 700; line-height: 1.2; cursor: pointer;
+            border-radius: var(--radius-sm); padding: 9px 16px; min-height: 40px;
+            transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+        }
+        .btn-primary { background: var(--color-primary-main); color: #fff; border: 1px solid var(--color-primary-main); box-shadow: var(--shadow-sm); }
+        .btn-primary:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); }
+        .btn-secondary { background: #fff; color: var(--text-primary); border: 1px solid var(--border-color-strong); }
+        .btn-secondary:hover { background: var(--bg-subtle); border-color: var(--color-primary-main); }
+        .btn-ghost { background: transparent; color: var(--color-primary-main); border: 1px solid transparent; padding: 6px 10px; min-height: 32px; }
+        .btn-ghost:hover { background: var(--color-primary-soft); }
+        .btn-primary:disabled, .btn-secondary:disabled, .btn-ghost:disabled { opacity: .55; cursor: not-allowed; }
+        .btn-primary:focus-visible, .btn-secondary:focus-visible, .btn-ghost:focus-visible { outline: 2px solid var(--color-accent-gold); outline-offset: 2px; }
+        .btn-sm { font-size: 12px; padding: 6px 12px; min-height: 32px; }
+        /* Botón secundario existente: borde fino y hover suave */
+        .btn-mini { border: 1px solid var(--border-color-strong); color: var(--color-primary-main); }
+        .btn-mini:hover { background: var(--bg-subtle); border-color: var(--color-primary-main); }
+        .p360-btn { border-width: 1px; border-color: var(--border-color-strong); }
+        .p360-btn.pri, .p360-btn-pri { background: var(--color-primary-main); border-color: var(--color-primary-main); }
+        .p360-btn.pri:hover, .p360-btn-pri:hover { background: var(--color-primary-hover); }
+
+        /* ── Skeleton shimmer (reemplaza "Cargando…") ── */
+        .skel { height: 12px; margin: 10px 0; border-radius: 6px; background: linear-gradient(90deg, #E9EEEA 25%, #F6F8F7 37%, #E9EEEA 63%); background-size: 400% 100%; animation: skel-brillo 1.3s ease infinite; }
+        .skel-l { height: 24px; width: 62%; } .skel-s { width: 38%; }
+        .p360-cargando::after { content: ''; display: block; height: 10px; margin-top: 10px; border-radius: 6px; background: linear-gradient(90deg, #E9EEEA 25%, #F6F8F7 37%, #E9EEEA 63%); background-size: 400% 100%; animation: skel-brillo 1.3s ease infinite; }
+        @keyframes skel-brillo { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+        @media (prefers-reduced-motion: reduce) { .skel, .p360-cargando::after { animation: none; } }
+
+        /* ── Encabezado: marca y modo jornada ── */
+        .hdr-brand .brand-t { color: var(--color-accent-gold); font-style: italic; }
+        .hdr-jornada-btn {
+            background: #fff !important; color: var(--text-secondary) !important;
+            border: 1px solid var(--border-color-strong) !important; box-shadow: var(--shadow-sm) !important;
+            font-weight: 700 !important; display: inline-flex !important; align-items: center; gap: 2px;
+        }
+        .hdr-jornada-btn:hover { border-color: var(--color-primary-main) !important; color: var(--color-primary-main) !important; }
+        .hdr-jornada-btn::before { color: #9AA9A1; font-size: 10px; }
+        .hdr-jornada-btn.is-jornada { background: var(--color-accent-gold-soft) !important; border-color: var(--color-accent-gold-border) !important; color: var(--color-primary-dark) !important; }
+        .hdr-jornada-btn.is-jornada::before { color: var(--color-accent-gold); text-shadow: 0 0 6px rgba(197,160,89,.9); animation: jornada-latido 1.8s ease-in-out infinite; }
+        @keyframes jornada-latido { 50% { opacity: .45; } }
+        @media (prefers-reduced-motion: reduce) { .hdr-jornada-btn.is-jornada::before { animation: none; } }
+
+        /* ── Grilla de 4 boxes ── */
+        .grilla-table thead th { z-index: 20 !important; background-color: rgba(255,255,255,0.92) !important; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+        .grilla-table thead th.grilla-th-hora { z-index: 21 !important; }
+        /* Salvia de la grilla (punto 13: no volver a lo pálido), un tono más sereno para la paleta nueva. */
+        .grilla-scroll-wrap { --grilla-fondo: #D3DFD5; --grilla-borde: #A7BBAD; --grilla-texto: #163026; }
+        tr.gr-corte-tarde > td, tr.gr-corte-noche > td { border-top: 2px solid var(--border-color-strong) !important; }
+        .grilla-celda-bloq { background: repeating-linear-gradient(135deg, var(--bg-subtle) 0 6px, #E6ECE8 6px 12px); border: 1px dashed var(--border-color-strong); color: var(--text-secondary); }
+        .grilla-celda-bloq:hover { background: repeating-linear-gradient(135deg, #E8EEEA 0 6px, #DDE5E0 6px 12px); }
+        #btn-grilla-ahora.activo { border-color: var(--color-accent-gold); color: var(--color-primary-dark); background: var(--color-accent-gold-soft); }
+        tr.grilla-row-ahora > td { box-shadow: inset 0 2px 0 var(--color-accent-gold); }
+        tr.grilla-row-ahora > td.grilla-td-hora { color: #7A5A1A !important; }
+        .grilla-ahora-pill { background: var(--color-accent-gold); color: var(--color-primary-dark); box-shadow: 0 1px 4px rgba(197,160,89,.45); }
+
+        /* ── Calendario mensual ── */
+        .day { border-color: var(--border-color-soft); }
+        .day.has-reserva::after { background: var(--color-accent-gold); }
+        .day.day-full { background: #fff !important; border-color: var(--status-danger-border) !important; color: var(--text-primary) !important; align-items: flex-start; padding-top: 6px; min-height: 48px; }
+        .day.day-full::after { display: block !important; content: 'Completo'; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: auto; height: auto; padding: 0 5px; border-radius: var(--radius-pill); background: var(--status-danger-bg); color: var(--status-danger-text); border: 1px solid var(--status-danger-border); font-size: 8px; font-weight: 800; line-height: 1.5; letter-spacing: 0; white-space: nowrap; }
+        .day.selected { background: var(--color-primary-main) !important; border-color: var(--color-primary-main) !important; color: #fff !important; }
+        .day.selected::after { background: var(--color-accent-gold); }
+        .day.day-today { outline-color: var(--color-accent-gold); }
+        .day.day-closed { background: repeating-linear-gradient(135deg, var(--bg-subtle) 0 5px, #E8EDEA 5px 10px); border-color: var(--border-color-strong); color: var(--text-secondary); }
+        .agenda-legend-swatch.leg-completo { background: var(--status-danger-bg); border-color: var(--status-danger-border); }
+        .agenda-legend-swatch.leg-seleccionado { background: var(--color-primary-main); border-color: var(--color-primary-main); }
+        .agenda-legend-swatch.leg-hoy { outline-color: var(--color-accent-gold); }
+        .agenda-legend-swatch.leg-cerrado { background: var(--bg-subtle); border-color: var(--border-color-strong); }
+        .pill.disponible { background: var(--status-success-bg); color: var(--status-success-text); border-color: var(--status-success-border); }
+        .pill.reservado { background: var(--status-info-bg); color: var(--status-info-text); border-color: var(--status-info-border); }
+        .pill.bloqueado { background: var(--status-warning-bg); color: var(--status-warning-text); border-color: var(--status-warning-border); }
+
+        /* ── Tarjeta de paciente: 1 badge + grilla de metadatos ── */
+        .dir-meta-wrap { margin-top: 8px; }
+        .dir-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 800; padding: 3px 10px; border-radius: var(--radius-pill); border: 1px solid; }
+        .dir-badge.ok { background: var(--status-success-bg); color: var(--status-success-text); border-color: var(--status-success-border); }
+        .dir-badge.info { background: var(--status-info-bg); color: var(--status-info-text); border-color: var(--status-info-border); }
+        .dir-badge.warn { background: var(--status-warning-bg); color: var(--status-warning-text); border-color: var(--status-warning-border); }
+        .dir-badge.neutro { background: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-color-strong); }
+        .dir-meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 14px; margin: 8px 0 0; padding: 10px 12px; background: var(--bg-subtle); border-radius: var(--radius-sm); }
+        .dir-meta div { min-width: 0; }
+        .dir-meta dt { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+        .dir-meta dd { margin: 1px 0 0; font-size: 13px; color: var(--text-secondary); font-weight: 600; overflow-wrap: anywhere; }
+        @media (max-width: 640px) { .dir-meta { grid-template-columns: 1fr 1fr; } }
+
+        /* ── Botón de cobro con estado en vivo ── */
+        .cobro-btn { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: var(--radius-pill); border: 1px solid; cursor: pointer; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; transition: filter .15s; }
+        .cobro-btn:hover { filter: brightness(.97); box-shadow: var(--shadow-sm); }
+        .cobro-ok { background: var(--status-success-bg); color: var(--status-success-text); border-color: var(--status-success-border); }
+        .cobro-warn { background: var(--status-warning-bg); color: var(--status-warning-text); border-color: var(--status-warning-border); }
+        .cobro-info { background: var(--status-info-bg); color: var(--status-info-text); border-color: var(--status-info-border); }
+        .cobro-neutro, .cobro-cargando { background: #fff; color: var(--text-secondary); border-color: var(--border-color-strong); }
+
+        /* ── Modal "💳 Precio y pagos" en 1 paso ── */
+        #modal-precio-pagos-overlay { background: var(--bg-modal-overlay); }
+        #modal-precio-pagos-card { max-width: 540px; border-radius: var(--radius-lg); box-shadow: var(--shadow-modal); padding: 22px 22px 18px; }
+        .cr-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
+        .cr-head-txt b { display: block; font-size: 16px; color: var(--text-primary); }
+        .cr-head-txt span { font-size: 12.5px; color: var(--text-secondary); }
+        .cr-estado { font-size: 11px; font-weight: 800; letter-spacing: .04em; padding: 4px 10px; border-radius: var(--radius-pill); border: 1px solid; white-space: nowrap; }
+        .cr-ok { background: var(--status-success-bg); color: var(--status-success-text); border-color: var(--status-success-border); }
+        .cr-warn { background: var(--status-warning-bg); color: var(--status-warning-text); border-color: var(--status-warning-border); }
+        .cr-info { background: var(--status-info-bg); color: var(--status-info-text); border-color: var(--status-info-border); }
+        .cr-neutro { background: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border-color-strong); }
+        p.cr-info { border: 1px solid var(--status-info-border); border-radius: var(--radius-sm); padding: 7px 10px; font-size: 12.5px; margin: 8px 0; }
+        .cr-resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: var(--bg-subtle); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 12px; }
+        .cr-resumen small { display: block; font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+        .cr-resumen b { font-size: 15px; color: var(--text-primary); }
+        .cr-resumen .cr-barra { grid-column: 1 / -1; }
+        .cr-debe { color: var(--status-danger-text) !important; }
+        .cr-barra { height: 8px; border-radius: var(--radius-pill); background: #DDE5E0; overflow: hidden; }
+        .cr-barra span { display: block; height: 100%; background: linear-gradient(90deg, var(--color-primary-main), var(--color-accent-gold)); border-radius: inherit; transition: width .25s; }
+        .cr-saldar { margin-bottom: 12px; }
+        .cr-btn-saldar { width: 100%; font: inherit; font-size: 14px; font-weight: 800; padding: 11px 14px; border-radius: var(--radius-md); border: 1px solid var(--color-accent-gold-border); background: var(--color-accent-gold-soft); color: var(--color-primary-dark); cursor: pointer; }
+        .cr-btn-saldar:hover { border-color: var(--color-accent-gold); }
+        .cr-saldar-medios { margin-top: 8px; } .cr-saldar-medios small { font-size: 12px; color: var(--text-secondary); }
+        .cr-modos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+        .cr-modo { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 11px 6px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--text-secondary); background: #fff; border: 1px solid var(--border-color-strong); border-radius: var(--radius-md); cursor: pointer; text-align: center; }
+        .cr-modo span { font-size: 20px; }
+        .cr-modo.sel { border: 2px solid var(--color-primary-main); background: var(--color-primary-soft); color: var(--color-primary-dark); padding: 10px 5px; }
+        .cr-panel { background: #fff; border: 1px solid var(--border-color-soft); border-radius: var(--radius-md); padding: 12px; margin-bottom: 14px; }
+        .cr-lbl { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; margin: 8px 0 5px; }
+        .cr-monto { display: flex; align-items: center; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: #fff; padding: 0 12px; }
+        .cr-monto:focus-within { border-color: var(--color-primary-main); box-shadow: 0 0 0 3px var(--color-primary-soft); }
+        .cr-monto-signo { font-size: 18px; font-weight: 800; color: var(--text-muted); margin-right: 6px; }
+        .cr-monto input { flex: 1; min-width: 0; border: none; outline: none; padding: 10px 0; font: inherit; font-size: 20px; font-weight: 800; color: var(--text-primary); background: transparent; }
+        .cr-ayuda { font-size: 12px; color: var(--text-muted); min-height: 16px; margin-top: 3px; }
+        .cr-err { color: var(--status-danger-text); }
+        .cr-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        .cr-chip-monto { display: flex; flex-direction: column; align-items: flex-start; font: inherit; font-size: 13px; font-weight: 800; color: var(--color-primary-dark); background: var(--color-accent-gold-soft); border: 1px solid var(--color-accent-gold-border); border-radius: var(--radius-sm); padding: 5px 10px; cursor: pointer; }
+        .cr-chip-monto small { font-size: 10.5px; font-weight: 600; color: var(--text-secondary); }
+        .cr-medios { display: flex; flex-wrap: wrap; gap: 6px; }
+        .cr-chip { font: inherit; font-size: 12.5px; font-weight: 700; padding: 8px 12px; border-radius: var(--radius-pill); border: 1px solid var(--border-color-strong); background: #fff; color: var(--text-secondary); cursor: pointer; }
+        .cr-chip:hover { border-color: var(--color-primary-main); }
+        .cr-chip.sel { background: var(--color-primary-main); border-color: var(--color-primary-main); color: #fff; }
+        .cr-mixto { margin-top: 8px; display: grid; gap: 6px; }
+        .cr-mixto-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .cr-mixto .cr-monto input { font-size: 15px; padding: 8px 0; }
+        .cr-select, .cr-nota { width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; padding: 9px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: #fff; }
+        .cr-nota { margin-top: 10px; }
+        .cr-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .cr-progreso { margin: 8px 0; } .cr-progreso .cr-barra { height: 10px; }
+        .cr-saldo-grande { margin-top: 6px; font-size: 14px; color: var(--text-secondary); } .cr-saldo-grande b { font-size: 18px; color: var(--status-danger-text); }
+        .cr-texto { font-size: 13px; color: var(--text-secondary); margin: 0 0 6px; }
+        .cr-guardar { width: 100%; margin-top: 12px; min-height: 46px; font-size: 14.5px; }
+        .cr-sec-t { font-size: 11px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .05em; margin: 4px 0 6px; }
+        .cr-vacio { font-size: 12.5px; color: var(--text-muted); margin: 0 0 10px; }
+        .cr-timeline { list-style: none; margin: 0 0 10px; padding: 0 0 0 14px; border-left: 2px solid var(--border-color-soft); }
+        .cr-timeline li { position: relative; display: flex; justify-content: space-between; gap: 8px; padding: 6px 0 8px 8px; }
+        .cr-timeline li::before { content: ''; position: absolute; left: -20px; top: 11px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary-main); box-shadow: 0 0 0 3px #fff; }
+        .cr-timeline li.dev::before { background: var(--status-danger-text); }
+        .cr-tl-l b { display: block; font-size: 14px; color: var(--text-primary); } .cr-timeline li.dev .cr-tl-l b { color: var(--status-danger-text); }
+        .cr-tl-l span, .cr-tl-l em { display: block; font-size: 12px; color: var(--text-secondary); font-style: normal; }
+        .cr-tl-l em { color: var(--text-muted); }
+        .cr-tl-acc { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+        .cr-tl-acc .btn-ghost { font-size: 11.5px; min-height: 26px; padding: 3px 8px; }
+        .cr-mas { border: 1px solid var(--border-color-soft); border-radius: var(--radius-md); margin: 8px 0; }
+        .cr-mas summary { cursor: pointer; padding: 10px 12px; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+        .cr-mas-cuerpo { padding: 0 12px 12px; } .cr-mas-cuerpo input[type=file] { font-size: 12.5px; width: 100%; }
+        .cr-mas-acc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .cr-unidad { font-size: 11px; color: var(--text-muted); margin: 8px 0 0; }
+        .cr-aviso { font-size: 13px; color: var(--status-warning-text); background: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: var(--radius-sm); padding: 8px 10px; }
+        .cr-cerrar, .cr-volver { width: 100%; margin-top: 8px; }
+        .cr-volver { margin: 0 0 10px; }
+        @media (max-width: 480px) {
+            #modal-precio-pagos-card { padding: 18px 14px 14px; max-height: 92vh; }
+            .cr-resumen { grid-template-columns: 1fr 1fr; }
+            .cr-grid2, .cr-mixto-fila { grid-template-columns: 1fr; }
+            .cr-modo { font-size: 11.5px; }
+        }
+
+        /* ── Resumen mensual ── */
+        .rm-head { padding: 20px 20px 4px; } .rm-head h2 { margin: 0; font-size: 22px; font-family: 'Playfair Display', serif; color: var(--color-primary-dark); }
+        .rm-head p { margin: 4px 0 0; font-size: 12.5px; color: var(--text-muted); }
+        .rm-wrap { padding: 0 20px 28px; }
+        .rm-filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin: 12px 0 16px; }
+        .rm-lbl { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; }
+        .rm-input { font: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: #fff; color: var(--text-primary); box-sizing: border-box; }
+        .rm-aviso { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px; font-size: 13px; border: 1px solid; }
+        .rm-aviso-warn { background: var(--status-warning-bg); color: var(--status-warning-text); border-color: var(--status-warning-border); }
+        .rm-aviso-info { background: var(--status-info-bg); color: var(--status-info-text); border-color: var(--status-info-border); }
+        .rm-hero { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+        .rm-kpi { background: var(--bg-card); border: 1px solid var(--border-color-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 16px; text-align: left; font: inherit; color: inherit; min-width: 0; }
+        .rm-kpi-btn { cursor: pointer; } .rm-kpi-btn:hover { border-color: var(--color-primary-main); }
+        .rm-kpi-warn .rm-kpi-val { color: var(--status-danger-text); }
+        .rm-kpi-oro { border: 1.5px solid var(--color-accent-gold); background: linear-gradient(180deg, var(--color-accent-gold-soft), #fff 70%); }
+        .rm-kpi-lbl { font-size: 11px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
+        .rm-kpi-val { font-size: 26px; font-weight: 800; color: var(--color-primary-dark); margin: 4px 0; line-height: 1.15; overflow-wrap: anywhere; }
+        .rm-neg { color: var(--status-danger-text) !important; }
+        .rm-kpi-det { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+        .rm-kpi-acc { margin-top: 8px; min-height: 32px; padding: 5px 12px; font-size: 12px; }
+        .rm-desglose { background: var(--bg-card); border: 1px solid var(--border-color-soft); border-radius: var(--radius-md); margin-bottom: 14px; }
+        .rm-desglose > summary { cursor: pointer; padding: 12px 14px; font-size: 13.5px; font-weight: 700; color: var(--color-primary-main); }
+        .rm-desglose[open] > summary { border-bottom: 1px solid var(--border-color-soft); }
+        .rm-ind-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; padding: 12px 14px 4px; }
+        .rm-ind { background: var(--bg-subtle); border-radius: var(--radius-sm); padding: 10px 12px; }
+        .rm-ind-val { font-size: 18px; font-weight: 800; color: var(--text-primary); }
+        .rm-ind-ok .rm-ind-val { color: var(--status-success-text); } .rm-ind-mal .rm-ind-val { color: var(--status-danger-text); } .rm-ind-warn .rm-ind-val { color: var(--status-warning-text); }
+        .rm-nota { font-size: 12px; color: var(--text-muted); margin: 6px 14px 12px; }
+        .rm-card { background: var(--bg-card); border: 1px solid var(--border-color-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 14px 16px; margin-bottom: 14px; }
+        .rm-card .rm-nota { margin: 0 0 10px; }
+        .rm-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        .rm-card-head h3 { margin: 0; font-size: 15.5px; color: var(--text-primary); }
+        .rm-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+        .rm-pill { font: inherit; font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: var(--radius-pill); border: 1px solid var(--border-color-strong); background: #fff; color: var(--text-secondary); cursor: pointer; }
+        .rm-pill small { font-weight: 800; color: var(--text-muted); }
+        .rm-pill.sel { background: var(--color-primary-main); border-color: var(--color-primary-main); color: #fff; } .rm-pill.sel small { color: rgba(255,255,255,.8); }
+        .rm-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--bg-subtle); color: var(--text-secondary); border: 1px solid var(--border-color-soft); }
+        .rm-tag-ok { background: var(--status-success-bg); color: var(--status-success-text); border-color: var(--status-success-border); }
+        .rm-tag-info { background: var(--status-info-bg); color: var(--status-info-text); border-color: var(--status-info-border); }
+        .rm-tag-warn { background: var(--status-warning-bg); color: var(--status-warning-text); border-color: var(--status-warning-border); }
+        .rm-debe { color: var(--status-danger-text); }
+        .rm-vacio { font-size: 13px; color: var(--text-muted); padding: 6px 2px; }
+        .rm-lista { border: 1px solid var(--border-color-soft); border-radius: var(--radius-md); overflow: hidden; margin: 0 14px 14px; }
+        .rm-card .rm-lista { margin: 0; }
+        .rm-lista-fila { display: flex; flex-direction: column; gap: 3px; padding: 10px 14px; font-size: 12.5px; color: var(--text-secondary); }
+        .rm-lista-fila + .rm-lista-fila { border-top: 1px solid var(--border-color-soft); }
+        .rm-lista-fila strong { font-size: 13.5px; color: var(--text-primary); }
+        .rm-lista-top { display: flex; justify-content: space-between; gap: 8px; }
+        .rm-lista-acc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        .rm-lista-acc .btn-secondary { min-height: 32px; padding: 5px 12px; font-size: 12px; }
+        .rm-form-gasto { background: var(--bg-subtle); border: 1px solid var(--border-color-soft); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; }
+        .rm-form-gasto select, .rm-form-gasto input { font: inherit; font-size: 13px; box-sizing: border-box; }
+        .rm-chips-gasto { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+        .rm-chips-gasto .cr-chip { padding: 5px 10px; font-size: 12px; }
+        .rmq-tabla .rm-input { width: 100%; min-width: 92px; }
+        .rmq-tabla tr.rmq-guardada td { background: var(--status-success-bg); }
+        .rmq-msg { font-size: 11.5px; margin-top: 3px; } .rmq-msg.ok { color: var(--status-success-text); font-weight: 700; } .rmq-msg.err { color: var(--status-danger-text); }
+        @media (max-width: 1100px) { .rm-hero { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 560px) {
+            .rm-head { padding: 16px 14px 4px; } .rm-wrap { padding: 0 14px 24px; }
+            .rm-hero { grid-template-columns: 1fr; } .rm-kpi-val { font-size: 23px; }
+            .rm-aviso .btn-primary { width: 100%; }
+            .rm-filtros > div, .rm-filtros .rm-input { flex: 1 1 140px; width: 100%; }
+        }
+
         /* ── Control de sesiones ── */
         .cs-contadores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
         .cs-contador { display: flex; align-items: center; gap: 12px; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font: inherit; color: var(--ink); cursor: pointer; min-width: 0; }
@@ -1761,7 +2059,7 @@
                  reubicados — ver más abajo). -->
             <div class="header-desk-row">
                 <div class="hdr-identity">
-                    <h2 class="hdr-brand">Espacio Mimar T</h2>
+                    <h2 class="hdr-brand" aria-label="Espacio Mimar T">Espacio Mimar<span class="brand-t">T</span></h2>
                 </div>
                 <nav class="hdr-primary-nav" aria-label="Secciones"></nav>
                 <div class="hdr-right">
@@ -1784,7 +2082,7 @@
             <!-- MÓVIL: header compacto (☰ | título | 👤) -->
             <div class="header-mob-row">
                 <button class="hamburger-btn" id="btnHamburger" onclick="toggleMenuNav()" aria-label="Más opciones" aria-expanded="false" aria-controls="bottom-sheet">☰</button>
-                <h2 class="hdr-brand hdr-brand-mob">Espacio Mimar T</h2>
+                <h2 class="hdr-brand hdr-brand-mob" aria-label="Espacio Mimar T">Espacio Mimar<span class="brand-t">T</span></h2>
                 <div class="hdr-drop-wrap" style="position:relative;">
                     <button class="hdr-user-icon-btn" onclick="toggleHdrDropdown('user-mob')" aria-label="Menú de usuario" aria-haspopup="true" aria-controls="user-mob-drop"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.8"/><path d="M14.6 4.7 C15.8 2.2 18.5 2.8 18 5.2"/><path d="M6.5 21 C6.5 17.4 9 15 12 15 C15 15 17.5 17.4 17.5 21"/></svg></button>
                     <div class="hdr-drop-menu hdr-drop-right" id="user-mob-drop" role="menu" hidden>
@@ -3036,6 +3334,7 @@
         } from "/js/planificacion-paciente.js";
         import { initDuplicarMes } from "/js/duplicar-mes-ui.js";
         import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
+        import { MEDIOS, etiquetaMedio, iconoMedio, parsearPesos, milesAPesos, pesosAMiles, formatoPesos, formatoPesosEnteros, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio } from "/js/cobro-rapido.js";
         import { TRATAMIENTOS_CONTROL, calcularControl, filtrarControl, contarCumplidos, textoEstado, esHifuSinZona } from "/js/control-sesiones.js";
         import { normalizarServiciosBox, serializarServiciosBox, serviciosDelBox, resolverServicioAlArrastrar } from "/js/grilla-servicio-box.js";
         import {
@@ -4664,7 +4963,7 @@
                         <button class="btn-mini" style="border-color:rgba(53,122,92,0.35);color:#2F6B4F;background:rgba(53,122,92,0.08)" onclick="guardarN('${r.id}')">💾 Guardar Nota</button>
                         <button class="btn-ws btn-recordar" onclick="enviarW('${r.phone || r.telefono || ''}','${r.nombreLimpio}','${r.fecha}','${r.hora}','${r.servicio}','recordar','${r.id}')">Recordar</button>
                         <button class="btn-mini" style="border-color:rgba(37,211,102,0.40);color:#128c7e;background:rgba(37,211,102,0.08)" onclick="abrirEnviarRecibo('${r.id}','${_pacienteMatchKey(r)}','${(r.nombreLimpio||'').replace(/'/g,"\\'")}','${(r.servicio||'').replace(/'/g,"\\'")}','${(r.phone || r.telefono || '').replace(/'/g,"\\'")}')">🧾 Enviar recibo</button>
-                        <button class="btn-mini" style="border-color:rgba(45,74,50,0.35);color:#2D4A32;background:rgba(45,74,50,0.06)" onclick="abrirPrecioPagos('${r.id}','${_pacienteMatchKey(r)}','${(r.nombreLimpio||'').replace(/'/g,"\\'")}','${(r.servicio||'').replace(/'/g,"\\'")}')">💳 Precio y pagos</button>
+                        ${_cobroBtnHtml(r) || '<button class="btn-mini" disabled>💳 Precio y pagos</button>'}
                     </div>
                     <div class="ac-row-secondary">
                         <button onclick="window._adminToggleMas('r${r.id}')" class="ac-mas-btn ac-mas-btn-full" id="admas-btn-r${r.id}">⋯ Más acciones</button>
@@ -7064,20 +7363,13 @@
                         ${formatearTelefonoWhatsApp(p.phone) && (p.phone || '').replace(/\D/g, '').length >= 8 ? ` · <a class="p360-wa-link" href="https://wa.me/${formatearTelefonoWhatsApp(p.phone)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
                     </div>
                     ${_dirBloque360(p, _idx360)}
-                    <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
-                        <span class="pill ${p.membershipActive ? 'disponible' : 'bloqueado'}">${p.membershipActive ? 'Membresía activa' : 'Ocasional'}</span>
-                        <span class="pill reservado">Horas: ${escapeHtml((p.hoursBalance ?? 0).toString())}</span>
-                        ${pillClasif}${pillCursos}
-                        ${_pillsSeguimiento360(p, _idx360)}
-                    </div>
+                    ${_dirMetaHtml(p, clasif, _idx360)}
                     <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
                         <button onclick="abrirFicha360Dni('${escapeHtml(p.dni || '')}','resumen')" class="p360-btn pri" style="font-size:11px;padding:5px 12px;">📇 Ficha 360°</button>
-                        <button onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni || '')}')"
-                            style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid #b5cce8;background:#f3f8ff;cursor:pointer;color:#2e61b1;font-weight:700;">
+                        <button onclick="cargarPacienteDesdeBusqueda('${escapeHtml(p.dni || '')}')" class="btn-secondary btn-sm">
                             ✏️ Editar
                         </button>
-                        <button onclick="toggleMembresiaCliente('${escapeHtml(p.dni || '')}', ${!p.membershipActive})"
-                            style="font-size:11px;padding:5px 12px;border-radius:8px;border:1.5px solid ${p.membershipActive ? 'var(--border)' : 'rgba(114,189,153,0.35)'};background:${p.membershipActive ? 'var(--surface-2)' : 'rgba(53,122,92,0.14)'};cursor:pointer;color:rgba(22,61,50,0.90);font-weight:700;">
+                        <button onclick="toggleMembresiaCliente('${escapeHtml(p.dni || '')}', ${!p.membershipActive})" class="btn-ghost btn-sm">
                             ${p.membershipActive ? 'Cambiar a Ocasional' : 'Cambiar a Membresía'}
                         </button>
                     </div>
@@ -7089,6 +7381,24 @@
         window.filtrarListadoClientesInput = debounce(() => window.filtrarListadoClientes(), 180);
 
         // Indicadores rápidos de seguimiento en cada tarjeta del directorio.
+        // Estado principal (un solo badge) + datos como grilla de metadatos.
+        function _dirMetaHtml(p, clasif, idx) {
+            const est = clasif ? clasif.estado : null;
+            const badge = p.membershipActive
+                ? '<span class="dir-badge ok">● Membresía activa</span>'
+                : clasif ? `<span class="dir-badge ${est === 'activo' ? 'ok' : est === 'cursos' ? 'info' : 'neutro'}" title="${escapeHtml(ETIQUETA_MOTIVO_CLASIFICACION[clasif.motivo] || '')}">● ${ETIQUETA_ESTADO_CLASIFICACION[est]}</span>`
+                : (_clasifError ? '<span class="dir-badge warn">● Datos insuficientes</span>' : '<span class="dir-badge neutro">● Ocasional</span>');
+            const e = idx.get(_p360ClaveDePaciente(p));
+            const prox = e && e.proximas.length ? _ghFormatoFecha(e.proximas[0].fecha) : 'Sin turno futuro';
+            const estTxt = clasif ? ETIQUETA_ESTADO_CLASIFICACION[est] + (clasif.tambienCursos && est !== 'cursos' ? ' · también cursos' : '') : '—';
+            return `<div class="dir-meta-wrap">${badge}
+                <dl class="dir-meta">
+                    <div><dt>💳 Modalidad</dt><dd>${p.membershipActive ? 'Membresía' : 'Ocasional'}</dd></div>
+                    <div><dt>⏱ Horas</dt><dd>${escapeHtml((p.hoursBalance ?? 0).toString())}</dd></div>
+                    <div><dt>📊 Estado</dt><dd>${escapeHtml(estTxt)}</dd></div>
+                    <div><dt>📅 Próximo turno</dt><dd>${escapeHtml(prox)}</dd></div>
+                </dl></div>`;
+        }
         function _pillsSeguimiento360(p, idx) {
             const e = idx.get(_p360ClaveDePaciente(p));
             if (!e || !e.proximas.length) return '<span class="p360-badge neutro">Sin turno futuro</span>';
@@ -8834,6 +9144,7 @@
                                 (boxLabel ? '<span style="font-size:10.5px;color:rgba(36,51,43,0.4);border:1px solid var(--border);border-radius:5px;padding:1px 6px;">' + boxLabel + '</span>' : '') +
                             '</div>' +
                             '<div style="font-size:12px;color:rgba(36,51,43,0.5);margin-top:2px;">' + (r.servicio||'—') + '</div>' +
+                            '<div style="margin-top:5px;">' + _cobroBtnHtml(r) + '</div>' +
                             ((r.detalleSesion||'').trim() ? '<div style="font-size:11px;color:rgba(36,51,43,0.35);margin-top:3px;font-style:italic;white-space:pre-line;">' + (r.detalleSesion||'').trim().slice(0,110) + ((r.detalleSesion||'').length>110?'…':'') + '</div>' : '') +
                             _pjBadgeInforme +
                         '</div></div>';
@@ -9676,7 +9987,7 @@
                 return '<p style="font-size:11.5px;color:#8A6A22;background:rgba(138,106,34,0.10);border:1px solid rgba(138,106,34,0.30);border-radius:8px;padding:6px 10px;margin:0 0 10px;">⚠ Este registro es anterior a esta versión y no tiene la unidad confirmada explícitamente. Se muestra el número tal cual está guardado.</p>';
             }
 
-            function _ppRender() {
+            function _ppRenderClasico() {
                 var body = document.getElementById('mpp-body');
                 var est = _ppEstadoChip();
                 var precio = _ppPrestacion && !_ppPrestacion.sinCargo ? _ppPrestacion.precioAcordado : null;
@@ -10098,6 +10409,419 @@
                     mostrarAviso('No se pudo registrar la devolución: ' + (e && e.message ? e.message : 'error desconocido'));
                 }
             };
+
+            /* ── COBRO RÁPIDO: el modal en 1 solo paso ─────────────────────────
+               Mismo modelo de datos de siempre: precioAcordado en
+               "prestaciones" (miles de ARS, escala explícita) + un documento
+               inmutable por pago en "pagos" con su respaldo. La diferencia es
+               la carga: la administradora escribe PESOS completos y con un solo
+               botón se guarda el precio y el cobro. Si no adjunta comprobante,
+               se genera automáticamente el comprobante interno de recepción
+               (como ya pasaba con efectivo), así se cumple la regla de
+               Firestore "ningún cobro sin respaldo". Los pagos no se editan ni
+               se borran (reglas: inmutables): una corrección es una devolución
+               con motivo, como antes. La vista anterior sigue disponible
+               ("Vista clásica"). Lógica pura: js/cobro-rapido.js. */
+            var _ppVistaClasica = false;
+            var _crModo = 'total', _crMedio = 'efectivo', _crMixtoMedios = ['efectivo', 'transferencia'];
+            var _crUltimoPrecio = null, _crSaldarAbierto = false, _crOps = {};
+            var _crHoy = function(){ return _hoyISOZona(ZONA_HORARIA_NEGOCIO); };
+            var _crQuien = function(){ return (auth.currentUser && auth.currentUser.email) || null; };
+            var _crFechaTxt = function(iso){ return iso ? iso.split('-').reverse().join('/') : ''; };
+
+            function _crReserva(id) {
+                return (typeof _cobroReservaDe === 'function' && _cobroReservaDe(id)) || null;
+            }
+            function _crOpId(clave) { if (!_crOps[clave]) _crOps[clave] = nuevoIdOperacion('cobro', _ppReservaId + '_' + clave); return _crOps[clave]; }
+
+            // Respaldo y transacción con la reserva como parámetro (para usarlos
+            // también desde la carga rápida del Resumen mensual).
+            async function _crGuardarRespaldo(reservaId, blob, opId, ext, tipo, metaExtra) {
+                var contentType = blob.type || (ext === 'pdf' ? 'application/pdf' : 'application/octet-stream');
+                var path = 'respaldosPago/' + reservaId + '/' + opId + '.' + ext;
+                try {
+                    await _ppConTimeout(uploadBytes(ref(storage, path), blob, { contentType: contentType }), 8000);
+                    return { ok: true, respaldo: Object.assign({ storagePath: path, modo: 'storage', tipo: tipo, mime: contentType, tamanoBytes: blob.size }, metaExtra || {}) };
+                } catch (eStorage) {
+                    console.warn('Storage no disponible, respaldo embebido en Firestore:', eStorage);
+                    var r = await _ppPrepararRespaldoEmbebido(blob, contentType);
+                    if (!r.ok) return r;
+                    return { ok: true, respaldo: Object.assign({ storagePath: null, modo: 'firestore_embebido', tipo: tipo, mime: contentType, tamanoBytes: r.tamanoBytes, base64DataUrl: r.dataUrl }, metaExtra || {}) };
+                }
+            }
+            async function _crComprobanteInterno(ctx, monto, medio, fecha, nota) {
+                if (medio === 'efectivo') {
+                    return window._reGenerarComprobanteInternoEfectivo({ pacienteNombre: ctx.pacienteNombre, servicio: ctx.servicio, monto: monto, fecha: fecha, nota: nota, operador: _crQuien() || 'admin' });
+                }
+                var tools = getPdfTools(); if (!tools) throw new Error('Generador de PDF no disponible');
+                var d = new tools.jsPDF({ unit: 'pt', format: 'a4' });
+                var x = 56, y = 64;
+                d.setFont('helvetica', 'bold'); d.setFontSize(13);
+                d.text(limpiarTextoPdf('Espacio Mimar T — Comprobante interno de cobro (' + etiquetaMedio(medio) + ')'), x, y, { maxWidth: 480 }); y += 30;
+                d.setFont('helvetica', 'normal'); d.setFontSize(10.5);
+                [['Paciente', ctx.pacienteNombre || '—'], ['Concepto', ctx.servicio || '—'], ['Importe recibido', formatoPesos(monto) + ' (' + formatearImporte(monto) + ' en miles)'],
+                 ['Medio de pago', etiquetaMedio(medio)], ['Fecha', fecha || '—'], ['Operador responsable', _crQuien() || 'admin']].forEach(function(f){
+                    d.setFont('helvetica', 'bold'); d.text(limpiarTextoPdf(f[0] + ':'), x, y);
+                    d.setFont('helvetica', 'normal'); d.text(limpiarTextoPdf(String(f[1])), x + 160, y); y += 20;
+                });
+                if (nota) { y += 8; d.text(limpiarTextoPdf('Nota: ' + nota), x, y, { maxWidth: 480 }); y += 20; }
+                y += 12; d.setFontSize(9); d.setTextColor(110);
+                d.text(limpiarTextoPdf('Documento interno generado al registrar el cobro sin comprobante adjunto. No es un recibo para el paciente.'), x, y, { maxWidth: 480 });
+                return d.output('blob');
+            }
+            async function _crEjecutarPago(reservaId, opId, datosPago) {
+                return runTransaction(db, async function(tx) {
+                    var pagoRef = doc(db, 'pagos', opId);
+                    var pagoSnap = await tx.get(pagoRef);
+                    if (pagoSnap.exists()) return { yaExistia: true };
+                    var prestRef = doc(db, 'prestaciones', reservaId);
+                    var prestSnap = await tx.get(prestRef);
+                    tx.set(pagoRef, datosPago);
+                    tx.set(doc(collection(db, 'auditoria')), {
+                        operacion: datosPago.tipo === 'devolucion' ? 'devolucion_pago' : 'registrar_pago',
+                        pagoId: opId, prestacionId: reservaId, responsable: _crQuien(), fecha: serverTimestamp(), motivo: datosPago.motivo || null, origen: 'cobro_rapido',
+                    });
+                    if (prestSnap.exists()) tx.update(prestRef, { version: (prestSnap.data().version || 0) + 1, actualizadoEn: serverTimestamp() });
+                    return { yaExistia: false };
+                });
+            }
+
+            // Aplica un plan de js/cobro-rapido.js:planCobro. ctx: { reservaId,
+            // pacienteKey, pacienteNombre, servicio, prestacion (actual o null) }.
+            // opIds: ids de operación estables por pago (reintento = mismo documento).
+            async function _crAplicarPlan(ctx, plan, opciones) {
+                opciones = opciones || {};
+                var prev = ctx.prestacion;
+                var np = plan.prestacion;
+                var cambiaPrecio = !prev || !!prev.sinCargo !== !!np.sinCargo || (np.sinCargo ? false : Number(prev.precioAcordado) !== Number(np.precioAcordado));
+                if (cambiaPrecio) {
+                    await setDoc(doc(db, 'prestaciones', ctx.reservaId), {
+                        reservaId: ctx.reservaId, pacienteKey: ctx.pacienteKey, pacienteNombre: ctx.pacienteNombre,
+                        precioAcordado: np.sinCargo ? null : np.precioAcordado, sinCargo: !!np.sinCargo,
+                        moneda: MONEDA_CANONICA, escala: ESCALA_CANONICA,
+                        version: ((prev && prev.version) || 0) + 1,
+                        actualizadoEn: serverTimestamp(), actualizadoPor: _crQuien(),
+                        creadoEn: (prev && prev.creadoEn) || serverTimestamp(),
+                        creadoPor: (prev && prev.creadoPor) || _crQuien(),
+                    }, { merge: true });
+                }
+                var fecha = opciones.fecha || _crHoy();
+                var grupo = plan.pagos.length > 1 ? nuevoIdOperacion('mixto', ctx.reservaId) : null;
+                var nuevos = 0;
+                for (var i = 0; i < plan.pagos.length; i++) {
+                    var pg = plan.pagos[i];
+                    var opId = (opciones.opIds && opciones.opIds[i]) || nuevoIdOperacion('cobro', ctx.reservaId + '_' + i);
+                    var resp;
+                    if (opciones.archivo && plan.pagos.length === 1) {
+                        var v = validarRespaldo(opciones.archivo);
+                        if (!v.ok) throw new Error(v.error);
+                        resp = await _crGuardarRespaldo(ctx.reservaId, opciones.archivo, opId, v.ext, 'adjunto', { nombreArchivo: opciones.archivo.name });
+                    } else {
+                        var blob = await _crComprobanteInterno(ctx, pg.monto, pg.metodoPago, fecha, opciones.nota || '');
+                        resp = await _crGuardarRespaldo(ctx.reservaId, blob, opId, 'pdf', pg.metodoPago === 'efectivo' ? 'comprobante_interno_efectivo' : 'comprobante_interno_cobro', { medio: pg.metodoPago });
+                    }
+                    if (!resp.ok) throw new Error(resp.error);
+                    var datos = {
+                        operacionId: opId, prestacionId: ctx.reservaId, pacienteKey: ctx.pacienteKey, pacienteNombre: ctx.pacienteNombre,
+                        monto: pg.monto, fechaEfectiva: fecha, metodoPago: pg.metodoPago, nota: opciones.nota || '', tipo: 'cobro',
+                        moneda: MONEDA_CANONICA, escala: ESCALA_CANONICA, respaldo: resp.respaldo,
+                        origen: opciones.origen || 'cobro_rapido', modalidadCobro: opciones.modalidad || null,
+                        creadoEn: serverTimestamp(), creadoPor: _crQuien(),
+                    };
+                    if (grupo) { datos.esMixto = true; datos.grupoPagoId = grupo; datos.parteMixto = i + 1; }
+                    var r = await _crEjecutarPago(ctx.reservaId, opId, datos);
+                    if (!r.yaExistia) nuevos++;
+                }
+                window._cobroRefrescar && window._cobroRefrescar(ctx.reservaId);
+                return { nuevos: nuevos, precioActualizado: cambiaPrecio };
+            }
+            // API para la carga rápida del Resumen mensual.
+            window.cobroRapidoAplicar = async function(ctx, plan, opciones) {
+                if (!ctx.prestacion) {
+                    var s = await getDoc(doc(db, 'prestaciones', ctx.reservaId));
+                    ctx.prestacion = s.exists() ? s.data() : null;
+                }
+                return _crAplicarPlan(ctx, plan, opciones);
+            };
+
+            function _crCtx() {
+                return { reservaId: _ppReservaId, pacienteKey: _ppPacienteKey, pacienteNombre: _ppPacienteNombre, servicio: _ppServicio, prestacion: _ppPrestacion };
+            }
+            function _crEstadoHeader(e) {
+                var m = { pagado: ['✅', 'PAGADO', 'ok'], saldo_a_favor: ['✅', 'PAGADO · SALDO A FAVOR', 'ok'], parcial: ['⏳', 'SEÑA / PARCIAL', 'warn'], sin_pagos: ['⏳', 'PENDIENTE DE COBRO', 'warn'],
+                          sin_precio: ['⏳', 'COBRADO SIN PRECIO', 'warn'], sin_cargo: ['🎁', 'SIN CARGO', 'info'], anulada: ['⛔', 'ANULADA', 'neutro'], sin_registro: ['⚪', 'SIN REGISTRAR', 'neutro'] }[e.clave];
+                return '<span class="cr-estado cr-' + m[2] + '">' + m[0] + ' ' + m[1] + '</span>';
+            }
+            function _crInputPesos(id, valorMiles, extra) {
+                var v = valorMiles != null ? formatoPesosEnteros(milesAPesos(valorMiles)) : '';
+                return '<div class="cr-monto"><span class="cr-monto-signo">$</span><input type="text" inputmode="numeric" autocomplete="off" id="' + id + '" value="' + v + '" placeholder="0" oninput="window._crOnMonto(this)" ' + (extra || '') + '></div>' +
+                    '<div class="cr-ayuda" id="' + id + '-ayuda"></div>';
+            }
+            function _crMediosHtml(sel, conMixto, accion) {
+                var lista = MEDIOS.map(function(m){ return [m.v, m.icono + ' ' + m.label]; });
+                if (conMixto) lista.push(['mixto', '➗ Pago mixto']);
+                return '<div class="cr-medios" role="radiogroup" aria-label="Medio de pago">' + lista.map(function(m){
+                    return '<button type="button" class="cr-chip' + (sel === m[0] ? ' sel' : '') + '" role="radio" aria-checked="' + (sel === m[0]) + '" onclick="' + (accion || 'window._crSetMedio') + '(\'' + m[0] + '\')">' + m[1] + '</button>';
+                }).join('') + '</div>';
+            }
+
+            function _ppRender() {
+                if (_ppVistaClasica) {
+                    var subtC = document.getElementById('mpp-paciente-label'); if (subtC) subtC.style.display = '';
+                    _ppRenderClasico();
+                    var b = document.getElementById('mpp-body');
+                    if (b) b.insertAdjacentHTML('afterbegin', '<button type="button" class="btn-secondary cr-volver" onclick="window._crVistaClasica(false)">⚡ Volver a la carga rápida</button>');
+                    return;
+                }
+                var body = document.getElementById('mpp-body');
+                var subt = document.getElementById('mpp-paciente-label'); if (subt) subt.style.display = 'none';
+                var r = _crReserva(_ppReservaId);
+                var e = estadoCobro(_ppPrestacion, _ppPagos);
+                var prev = e.cobrado;
+                var precio = e.precio;
+                var html = '';
+                html += '<div class="cr-head"><div class="cr-head-txt"><b>' + escapeHtml(_ppPacienteNombre || '—') + '</b><span>' + escapeHtml(_ppServicio || 'Sesión') + (r && r.fecha ? ' · ' + escapeHtml(_crFechaTxt(r.fecha)) + (r.hora ? ' ' + escapeHtml(r.hora) + ' hs' : '') : '') + '</span></div>' + _crEstadoHeader(e) + '</div>';
+                html += _ppAvisoEscalaVieja(_ppPrestacion);
+                if (precio != null || prev) {
+                    var pct = precio ? Math.max(0, Math.min(100, Math.round(prev / precio * 100))) : 100;
+                    html += '<div class="cr-resumen"><div><small>Precio acordado</small><b>' + (precio != null ? formatoPesos(precio) : (_ppPrestacion && _ppPrestacion.sinCargo ? 'Sin cargo' : '—')) + '</b></div>' +
+                        '<div><small>Cobrado</small><b>' + formatoPesos(prev) + '</b></div>' +
+                        '<div><small>Saldo pendiente</small><b class="' + (e.saldo > 0 ? 'cr-debe' : '') + '">' + (e.saldo != null ? formatoPesos(Math.max(0, e.saldo)) : '—') + '</b></div>' +
+                        (precio ? '<div class="cr-barra" aria-hidden="true"><span style="width:' + pct + '%"></span></div>' : '') + '</div>';
+                }
+                if (_ppPrestacion && _ppPrestacion.anulada) {
+                    html += '<p class="cr-aviso">Esta prestación está anulada: no se registran cobros nuevos.</p>';
+                } else {
+                    if (e.saldo > 0) {
+                        html += '<div class="cr-saldar"><button type="button" class="cr-btn-saldar" onclick="window._crToggleSaldar()">⚡ Saldar resto (' + formatoPesos(e.saldo) + ') hoy</button>' +
+                            (_crSaldarAbierto ? '<div class="cr-saldar-medios"><small>¿Cómo pagó?</small>' + _crMediosHtml(null, false, 'window._crSaldar') + '</div>' : '') + '</div>';
+                    }
+                    html += '<div class="cr-modos" role="tablist" aria-label="Situación de cobro">' +
+                        [['total', '✅', 'Pagado total'], ['sena', '⏳', 'Seña / pago parcial'], ['sincargo', '🎁', 'Sin cargo / pack']].map(function(m){
+                            return '<button type="button" role="tab" aria-selected="' + (_crModo === m[0]) + '" class="cr-modo' + (_crModo === m[0] ? ' sel' : '') + '" onclick="window._crSetModo(\'' + m[0] + '\')"><span>' + m[1] + '</span>' + m[2] + '</button>';
+                        }).join('') + '</div>';
+                    html += '<div id="cr-panel" class="cr-panel">' + _crPanelHtml(e) + '</div>';
+                }
+                // Historial de entregas (timeline)
+                html += '<div class="cr-sec-t">Historial de pagos</div>';
+                if (!_ppPagos.length) html += '<p class="cr-vacio">Todavía no hay pagos registrados.</p>';
+                else {
+                    html += '<ol class="cr-timeline">' + _ppPagos.map(function(p){
+                        var dev = p.tipo === 'devolucion';
+                        var tieneResp = p.respaldo && (p.respaldo.storagePath || p.respaldo.modo === 'firestore_embebido');
+                        return '<li class="' + (dev ? 'dev' : '') + '"><div class="cr-tl-l"><b>' + (dev ? '− ' : '') + formatoPesos(p.monto) + '</b><span>' + escapeHtml(_crFechaTxt(p.fechaEfectiva) || '—') + ' · ' + (dev ? 'Devolución / ajuste' : iconoMedio(p.metodoPago) + ' ' + escapeHtml(etiquetaMedio(p.metodoPago))) + (p.esMixto ? ' · mixto' : '') + '</span>' +
+                            (p.nota ? '<em>' + escapeHtml(p.nota) + '</em>' : '') + (p.motivo ? '<em>Motivo: ' + escapeHtml(p.motivo) + '</em>' : '') + '</div>' +
+                            '<div class="cr-tl-acc">' + (tieneResp ? '<button type="button" class="btn-ghost" onclick="window._ppVerRespaldo(\'' + p.id + '\')">Comprobante</button>' : '') +
+                            (!dev ? '<button type="button" class="btn-ghost" onclick="window._crRevertir(\'' + p.id + '\')" title="Los pagos no se borran: se registra una devolución por el mismo monto">↩ Revertir</button>' : '') + '</div></li>';
+                    }).join('') + '</ol>';
+                }
+                if (_ppSaldoAFavor > 0) html += '<p class="cr-info">💚 Saldo a favor de la paciente (adelantos sin aplicar): <b>' + formatoPesos(_ppSaldoAFavor) + '</b></p>';
+                var rr = r || {};
+                html += '<details class="cr-mas"><summary>Más opciones</summary><div class="cr-mas-cuerpo">' +
+                    '<label class="cr-lbl">Adjuntar comprobante (opcional: si no, se genera uno interno)</label>' +
+                    '<input type="file" id="cr-respaldo" accept="application/pdf,image/jpeg,image/png" onchange="window._ppOnRespaldoChange(this)">' +
+                    '<div class="cr-mas-acc">' +
+                    (_ppPagos.some(function(p){ return p.tipo === 'cobro'; }) ? '<button type="button" class="btn-secondary" onclick="window._crRecibo()">🧾 Enviar recibo</button>' : '') +
+                    ((_ppPrestacion && !_ppPrestacion.sinCargo && precio != null && !_ppPrestacion.anulada) ? '<button type="button" class="btn-secondary" onclick="window._ppAbrirDevolucion()">Devolución / ajuste</button>' : '') +
+                    '<button type="button" class="btn-secondary" onclick="window._crVistaClasica(true)">Vista clásica (concepto, plan, detalle)</button>' +
+                    '</div><p class="cr-unidad">Se guarda en la misma escala de siempre (miles de pesos): ' + ETIQUETA_UNIDAD.toLowerCase() + '. Ves y escribís pesos completos.</p></div></details>';
+                html += '<button type="button" class="btn-secondary cr-cerrar" onclick="window._ppCerrar()">Cerrar</button>';
+                body.innerHTML = html;
+                window._crSyncPanel();
+                _crCargarUltimoPrecio();
+            }
+
+            function _crPanelHtml(e) {
+                var precio = e.precio, prev = e.cobrado;
+                if (_crModo === 'sincargo') {
+                    return '<p class="cr-texto">La sesión queda registrada como <b>sin cargo</b> (cubierta por pack, cortesía o promoción). No se registra ningún cobro.' + (prev ? ' Los pagos ya cargados se conservan.' : '') + '</p>' +
+                        '<button type="button" class="btn-primary cr-guardar" id="cr-guardar" onclick="window._crGuardar(this)">🎁 Guardar como sin cargo</button>';
+                }
+                if (_crModo === 'sena') {
+                    return '<div class="cr-grid2"><div><label class="cr-lbl" for="cr-precio-total">Precio total acordado</label>' + _crInputPesos('cr-precio-total', precio) + '</div>' +
+                        '<div><label class="cr-lbl" for="cr-entrega">Entrega / seña hoy</label>' + _crInputPesos('cr-entrega', null) + '</div></div>' +
+                        '<div class="cr-progreso" id="cr-progreso"></div>' +
+                        '<label class="cr-lbl">Medio de pago</label>' + _crMediosHtml(_crMedio === 'mixto' ? 'efectivo' : _crMedio, false) +
+                        '<input type="text" id="cr-nota" class="cr-nota" placeholder="Nota (opcional)">' +
+                        '<button type="button" class="btn-primary cr-guardar" id="cr-guardar" onclick="window._crGuardar(this)">💾 Guardar seña</button>';
+                }
+                var h = '<label class="cr-lbl" for="cr-monto">Monto total de la sesión</label>' + _crInputPesos('cr-monto', precio) +
+                    '<div class="cr-chips" id="cr-chips"></div>';
+                if (prev > 0) h += '<p class="cr-info" id="cr-prev">Ya hay ' + formatoPesos(prev) + ' cobrados: se registra solo lo que falta.</p>';
+                h += '<label class="cr-lbl">Medio de pago</label>' + _crMediosHtml(_crMedio, true);
+                if (_crMedio === 'mixto') {
+                    h += '<div class="cr-mixto">' + [0, 1].map(function(i){
+                        return '<div class="cr-mixto-fila"><div class="cr-monto"><span class="cr-monto-signo">$</span><input type="text" inputmode="numeric" id="cr-mx' + i + '" placeholder="Parte ' + (i + 1) + '" oninput="window._crOnMixto(' + i + ')"></div>' +
+                            '<select id="cr-mxm' + i + '" class="cr-select" aria-label="Medio de la parte ' + (i + 1) + '" onchange="window._crMixtoMedio(' + i + ', this.value)">' + MEDIOS.map(function(m){ return '<option value="' + m.v + '"' + (_crMixtoMedios[i] === m.v ? ' selected' : '') + '>' + m.icono + ' ' + m.label + '</option>'; }).join('') + '</select></div>';
+                    }).join('') + '<div class="cr-ayuda" id="cr-mixto-ayuda"></div></div>';
+                }
+                h += '<input type="text" id="cr-nota" class="cr-nota" placeholder="Nota (opcional)">';
+                h += '<button type="button" class="btn-primary cr-guardar" id="cr-guardar" onclick="window._crGuardar(this)">💾 Guardar cobro</button>';
+                return h;
+            }
+
+            async function _crCargarUltimoPrecio() {
+                var cont = document.getElementById('cr-chips');
+                if (!cont || !_ppPacienteKey) return;
+                try {
+                    if (_crUltimoPrecio === null) {
+                        var snap = await getDocs(query(collection(db, 'prestaciones'), where('pacienteKey', '==', _ppPacienteKey)));
+                        var lista = []; snap.forEach(function(d){ lista.push(Object.assign({ id: d.id }, d.data())); });
+                        var mapa = new Map();
+                        lista.forEach(function(p){ var rr = _crReserva(p.reservaId || p.id); if (rr) mapa.set(p.reservaId || p.id, rr); });
+                        _crUltimoPrecio = ultimoPrecio(lista, mapa, { pacienteKey: _ppPacienteKey, servicio: _ppServicio, excluirId: _ppReservaId }) || 0;
+                    }
+                } catch (e) { _crUltimoPrecio = 0; }
+                cont = document.getElementById('cr-chips');
+                if (!cont) return;
+                var chips = [];
+                if (_crUltimoPrecio) chips.push(['Último precio de ' + (_ppServicio || 'este servicio'), _crUltimoPrecio]);
+                var actual = _ppPrestacion && !_ppPrestacion.sinCargo ? _ppPrestacion.precioAcordado : null;
+                if (actual != null && actual !== _crUltimoPrecio) chips.push(['Precio acordado', actual]);
+                cont.innerHTML = chips.map(function(c){ return '<button type="button" class="cr-chip-monto" onclick="window._crUsarMonto(' + c[1] + ')"><small>' + escapeHtml(c[0]) + '</small>' + formatoPesos(c[1]) + '</button>'; }).join('');
+            }
+
+            window._crOnMonto = function(inp) {
+                var r = parsearPesos(inp.value);
+                var ay = document.getElementById(inp.id + '-ayuda');
+                if (ay) {
+                    if (r.vacio) ay.innerHTML = '';
+                    else if (!r.ok) ay.innerHTML = '<span class="cr-err">' + escapeHtml(r.error) + '</span>' + (r.pareceMiles ? ' <button type="button" class="btn-ghost" onclick="window._crPorMil(\'' + inp.id + '\')">Usar $ ' + formatoPesosEnteros(r.pesos * 1000) + '</button>' : '');
+                    else ay.textContent = 'Equivale a $' + formatoPesosEnteros(r.pesos) + ' ARS';
+                }
+                window._crSyncPanel();
+            };
+            window._crPorMil = function(id) {
+                var inp = document.getElementById(id); if (!inp) return;
+                var r = parsearPesos(inp.value);
+                if (r.pesos) { inp.value = formatoPesosEnteros(r.pesos * 1000); window._crOnMonto(inp); }
+            };
+            window._crUsarMonto = function(miles) {
+                var inp = document.getElementById('cr-monto'); if (!inp) return;
+                inp.value = formatoPesosEnteros(milesAPesos(miles)); window._crOnMonto(inp);
+            };
+            // Recalcula ayudas: progreso de la seña y resto del pago mixto.
+            window._crSyncPanel = function() {
+                var e = estadoCobro(_ppPrestacion, _ppPagos);
+                var prog = document.getElementById('cr-progreso');
+                if (prog) {
+                    var pt = parsearPesos((document.getElementById('cr-precio-total') || {}).value), en = parsearPesos((document.getElementById('cr-entrega') || {}).value);
+                    if (pt.ok && !pt.vacio) {
+                        var cob = e.cobrado + (en.ok && !en.vacio ? en.miles : 0);
+                        var saldo = Math.max(0, Math.round((pt.miles - cob) * 10) / 10);
+                        var pct = Math.max(0, Math.min(100, Math.round(cob / pt.miles * 100)));
+                        prog.innerHTML = '<div class="cr-barra"><span style="width:' + pct + '%"></span></div><div class="cr-saldo-grande">Saldo pendiente a cobrar: <b>' + formatoPesos(saldo) + '</b></div>';
+                    } else prog.innerHTML = '';
+                }
+                if (_crMedio === 'mixto' && document.getElementById('cr-mx0')) window._crOnMixto(-1);
+            };
+            window._crOnMixto = function(i) {
+                var e = estadoCobro(_ppPrestacion, _ppPagos);
+                var m = parsearPesos((document.getElementById('cr-monto') || {}).value);
+                var ay = document.getElementById('cr-mixto-ayuda');
+                if (!m.ok || m.vacio) { if (ay) ay.textContent = 'Primero escribí el monto total.'; return; }
+                var aCobrarPesos = Math.max(0, milesAPesos(m.miles - e.cobrado));
+                if (i === 0) {
+                    var p1 = parsearPesos(document.getElementById('cr-mx0').value);
+                    if (p1.ok && !p1.vacio) document.getElementById('cr-mx1').value = formatoPesosEnteros(restoMixto(aCobrarPesos, p1.pesos));
+                }
+                if (ay) ay.textContent = 'A cobrar: $' + formatoPesosEnteros(aCobrarPesos) + ' entre las dos partes.';
+            };
+            window._crMixtoMedio = function(i, v) { _crMixtoMedios[i] = v; };
+            window._crSetModo = function(m) { _crModo = m; if (m === 'sena' && _crMedio === 'mixto') _crMedio = 'efectivo'; _ppRender(); };
+            window._crSetMedio = function(m) {
+                var monto = (document.getElementById('cr-monto') || {}).value, nota = (document.getElementById('cr-nota') || {}).value;
+                var pt = (document.getElementById('cr-precio-total') || {}).value, en = (document.getElementById('cr-entrega') || {}).value;
+                _crMedio = m; _ppRender();
+                var set = function(id, v){ var el = document.getElementById(id); if (el && v != null) { el.value = v; if (el.oninput) window._crOnMonto(el); } };
+                set('cr-monto', monto); set('cr-precio-total', pt); set('cr-entrega', en);
+                var n = document.getElementById('cr-nota'); if (n && nota) n.value = nota;
+                window._crSyncPanel();
+            };
+            window._crToggleSaldar = function() { _crSaldarAbierto = !_crSaldarAbierto; _ppRender(); };
+            window._crVistaClasica = function(v) { _ppVistaClasica = !!v; _ppRender(); };
+            window._crRecibo = function() {
+                var r = _crReserva(_ppReservaId) || {};
+                window.abrirEnviarRecibo(_ppReservaId, _ppPacienteKey, _ppPacienteNombre, _ppServicio, r.phone || r.telefono || '');
+            };
+
+            async function _crEjecutarYRecargar(btn, plan, opciones, okMsg) {
+                var orig = btn ? btn.innerHTML : '';
+                if (btn) { btn.disabled = true; btn.innerHTML = 'Guardando…'; }
+                try {
+                    var res = await _crAplicarPlan(_crCtx(), plan, Object.assign({ archivo: _ppRespaldoArchivo }, opciones));
+                    _crOps = {}; _ppRespaldoArchivo = null; _crSaldarAbierto = false;
+                    mostrarAviso(okMsg + (res.nuevos === 0 && plan.pagos.length ? ' (ya estaba registrado, no se duplicó)' : ''));
+                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre, _ppServicio);
+                } catch (e) {
+                    console.error(e);
+                    mostrarAviso('No se pudo guardar: ' + (e && e.message ? e.message : 'sin conexión') + '. Podés reintentar: no se duplica.');
+                    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+                }
+            }
+            window._crGuardar = async function(btn) {
+                var e = estadoCobro(_ppPrestacion, _ppPagos);
+                var val = function(id){ return (document.getElementById(id) || {}).value; };
+                var plan = planCobro({
+                    modo: _crModo, monto: val('cr-monto'), precioTotal: val('cr-precio-total'), entrega: val('cr-entrega'),
+                    medio: _crMedio, mixto: [{ pesos: val('cr-mx0'), medio: _crMixtoMedios[0] }, { pesos: val('cr-mx1'), medio: _crMixtoMedios[1] }],
+                    cobradoPrevio: e.cobrado,
+                });
+                if (!plan.ok) { mostrarAviso(plan.error); return; }
+                var opIds = plan.pagos.map(function(_, i){ return _crOpId(_crModo + i); });
+                var msg = _crModo === 'sincargo' ? 'Sesión guardada como sin cargo.' : _crModo === 'sena' ? 'Seña registrada. Saldo pendiente: ' + formatoPesos(plan.saldoLuego) + '.' : (plan.pagos.length ? 'Cobro guardado: ' + formatoPesos(plan.prestacion.precioAcordado) + ' pagado.' : 'Precio actualizado.');
+                await _crEjecutarYRecargar(btn, plan, { opIds: opIds, nota: (val('cr-nota') || '').trim(), modalidad: _crModo }, msg);
+            };
+            window._crSaldar = async function(medio) {
+                var e = estadoCobro(_ppPrestacion, _ppPagos);
+                if (!(e.saldo > 0)) return;
+                var plan = { ok: true, prestacion: { precioAcordado: e.precio, sinCargo: false }, pagos: [{ monto: e.saldo, metodoPago: medio }] };
+                await _crEjecutarYRecargar(document.querySelector('.cr-btn-saldar'), plan, { opIds: [_crOpId('saldar')], nota: 'Saldo restante', modalidad: 'saldar' }, 'Saldo cobrado. La cuenta quedó en $ 0.');
+            };
+            // Los pagos son inmutables (reglas de Firestore): "revertir" registra
+            // una devolución por el mismo monto, con motivo obligatorio.
+            window._crRevertir = async function(pagoId) {
+                var p = _ppPagos.find(function(x){ return x.id === pagoId; });
+                if (!p) return;
+                var motivo = prompt('Revertir el pago de ' + formatoPesos(p.monto) + ' (' + etiquetaMedio(p.metodoPago) + ').\nSe registra una devolución por el mismo monto; el pago original queda en el historial.\n\nMotivo (obligatorio):');
+                if (!motivo || !motivo.trim()) return;
+                try {
+                    var opId = nuevoIdOperacion('dev', _ppReservaId + '_' + pagoId);
+                    await _crEjecutarPago(_ppReservaId, opId, {
+                        operacionId: opId, prestacionId: _ppReservaId, pacienteKey: _ppPacienteKey, pacienteNombre: _ppPacienteNombre,
+                        monto: p.monto, fechaEfectiva: _crHoy(), metodoPago: null, nota: '', motivo: motivo.trim(), tipo: 'devolucion', revierteA: pagoId,
+                        moneda: MONEDA_CANONICA, escala: ESCALA_CANONICA, creadoEn: serverTimestamp(), creadoPor: _crQuien(),
+                    });
+                    mostrarAviso('Pago revertido (devolución registrada).');
+                    window._cobroRefrescar && window._cobroRefrescar(_ppReservaId);
+                    await _ppCargar(_ppReservaId, _ppPacienteKey, _ppPacienteNombre, _ppServicio);
+                } catch (e) { console.error(e); mostrarAviso('No se pudo revertir: ' + (e && e.message ? e.message : 'sin conexión')); }
+            };
+            // Al abrir: modo por defecto según el estado de la sesión.
+            var _abrirOriginal = window.abrirPrecioPagos;
+            window.abrirPrecioPagos = function(reservaId, pacienteKey, pacienteNombre, servicio) {
+                _ppVistaClasica = false; _crOps = {}; _crUltimoPrecio = null; _crSaldarAbierto = false; _crMedio = 'efectivo';
+                _crModo = 'total';
+                _abrirOriginal(reservaId, pacienteKey, pacienteNombre, servicio);
+            };
+            // Al cerrar: refrescar los botones de cobro y, si está abierto, el Resumen mensual.
+            var _cerrarOriginal = window._ppCerrar;
+            window._ppCerrar = function() {
+                var id = _ppReservaId;
+                _cerrarOriginal();
+                if (id && window._cobroRefrescar) window._cobroRefrescar(id);
+                var rm = document.getElementById('sec-resumen-mensual');
+                if (rm && rm.classList.contains('active') && window._rmRecargarSuave) window._rmRecargarSuave();
+            };
+            var _cargarOriginal = _ppCargar;
+            _ppCargar = async function(reservaId, pacienteKey, pacienteNombre, servicio) {
+                var body = document.getElementById('mpp-body');
+                document.getElementById('modal-precio-pagos-overlay').classList.add('open');
+                var res = _cargarOriginal(reservaId, pacienteKey, pacienteNombre, servicio);
+                if (body && body.textContent === 'Cargando…') body.innerHTML = '<div class="skel skel-l"></div><div class="skel"></div><div class="skel skel-s"></div>';
+                await res;
+                if (_ppPrestacion && _ppPrestacion.sinCargo && _crModo === 'total' && !_ppPagos.length) { _crModo = 'sincargo'; _ppRender(); }
+            };
         })();
         /* ══ FIN PRECIO Y PAGOS ═════════════════════════════════════════════════ */
 
@@ -10377,7 +11101,7 @@
             window.cargarResumenMensual = async function() {
                 var cont = document.getElementById('sec-resumen-mensual');
                 if (!_rmAnio) { var h = _fechaEnZona(new Date(), ZONA_HORARIA_NEGOCIO); _rmAnio = h.y; _rmMes = h.m; }
-                cont.innerHTML = '<div style="padding:20px 20px 4px;"><h2 style="margin:0;font-size:20px;color:#20382B;">Resumen mensual</h2></div><p style="padding:20px;color:#7C8D81;">Cargando…</p>';
+                cont.innerHTML = '<div class="rm-head"><div><h2>Resumen mensual</h2><p>Leyendo sesiones, cobros y gastos…</p></div></div><div class="rm-wrap" aria-busy="true"><div class="rm-hero">' + '<div class="rm-kpi"><div class="skel skel-s"></div><div class="skel skel-l"></div><div class="skel"></div></div>'.repeat(4) + '</div><div class="rm-card"><div class="skel"></div><div class="skel"></div><div class="skel skel-s"></div></div></div>';
                 try {
                     var reservas = await _fetchReservasCompletasParaExport();
                     var prestSnap = await getDocs(collection(db, 'prestaciones'));
@@ -10506,62 +11230,147 @@
                 }).sort(function(a,b){ return a.nombre.localeCompare(b.nombre); });
 
                 var mesLabelCap = MESES_RM[mes-1];
-                var html = '';
-                html += '<div style="padding:20px 20px 4px;"><h2 style="margin:0;font-size:20px;color:#20382B;">Resumen mensual</h2><p style="margin:4px 0 0;font-size:11.5px;color:#7C8D81;">Importes expresados en miles de pesos argentinos (ARS).</p></div>';
-                html += '<div style="padding:0 20px 24px;">';
+                var mesTitulo = mesLabelCap.charAt(0).toUpperCase() + mesLabelCap.slice(1);
+                // ── Datos por sesión (para la tabla, la carga rápida y los filtros).
+                // Mismas fuentes y mismo corte que los indicadores de arriba.
+                var prestPorReserva = new Map();
+                d.prestaciones.forEach(function(p){ prestPorReserva.set(p.reservaId || p.id, p); });
+                var pagosPorReserva = new Map();
+                d.pagos.forEach(function(p){ if (!p.prestacionId) return; if (!pagosPorReserva.has(p.prestacionId)) pagosPorReserva.set(p.prestacionId, []); pagosPorReserva.get(p.prestacionId).push(p); });
+                _rmIdx = { reservasPorId: reservasPorId, prestPorReserva: prestPorReserva, pagosPorReserva: pagosPorReserva };
+                _cobroRegistrarReservas(d.reservas);
+                function infoSesion(r) {
+                    var p = prestPorReserva.get(r.id) || null;
+                    var pagosR = pagosPorReserva.get(r.id) || [];
+                    var cobradoCorte = cobradoHasta(r.id, cutoff);
+                    var medios = Array.from(new Set(pagosR.filter(function(x){ return x.tipo !== 'devolucion' && x.metodoPago; }).map(function(x){ return x.metodoPago; })));
+                    var precio = p && !p.sinCargo && !p.anulada && p.precioAcordado != null ? p.precioAcordado : null;
+                    var saldo = precio != null ? Math.max(0, Math.round((precio - cobradoCorte) * 10) / 10) : null;
+                    var clave = p && p.anulada ? 'anulada' : p && p.sinCargo ? 'sincargo' : precio == null ? 'sinprecio' : saldo > 0 ? 'saldo' : 'aldia';
+                    return { r: r, p: p, precio: precio, cobrado: cobradoCorte, saldo: saldo, clave: clave, medios: medios };
+                }
+                var filasSesion = reservasDelMes.filter(function(r){ return r.fecha <= cutoff && (!_rmFiltroPacienteKey || _pacienteMatchKey(r) === _rmFiltroPacienteKey || (prestPorReserva.get(r.id) || {}).pacienteKey === _rmFiltroPacienteKey); }).map(infoSesion);
+                var idsMes = new Set(filasSesion.map(function(f){ return f.r.id; }));
+                prestacionesParaSaldo.forEach(function(p){
+                    var r = reservasPorId.get(p.reservaId);
+                    if (!r || idsMes.has(r.id)) return;
+                    var f = infoSesion(r);
+                    if (f.saldo > 0) { f.deAntes = true; filasSesion.push(f); }
+                });
+                filasSesion.sort(function(a,b){ return (a.r.fecha + (a.r.hora||'')).localeCompare(b.r.fecha + (b.r.hora||'')); });
+                var cuentaPill = { todos: filasSesion.length, saldo: 0, sinprecio: 0, aldia: 0 };
+                filasSesion.forEach(function(f){ if (f.clave === 'saldo') cuentaPill.saldo++; else if (f.clave === 'sinprecio') cuentaPill.sinprecio++; else if (f.clave === 'aldia' || f.clave === 'sincargo') cuentaPill.aldia++; });
 
-                html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:16px;">';
-                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Mes</label><select id="rm-mes-input" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">' + MESES_RM.map(function(m,i){ return '<option value="' + (i+1) + '"' + (i+1===mes?' selected':'') + '>' + m.charAt(0).toUpperCase()+m.slice(1) + '</option>'; }).join('') + '</select></div>';
-                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Año</label><input type="number" id="rm-anio-input" value="' + anio + '" style="width:90px;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;"></div>';
-                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Servicio</label><select id="rm-servicio-input" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;"><option value="">Todos</option>' + servicios.map(function(s){ return '<option value="' + escapeHtml(s) + '"' + (s===_rmFiltroServicio?' selected':'') + '>' + escapeHtml(s) + '</option>'; }).join('') + '</select></div>';
-                html += '<div><label style="display:block;font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;margin-bottom:4px;">Paciente</label><select id="rm-paciente-input" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;max-width:200px;"><option value="">Todos</option>' + Array.from(pacientesMap.entries()).sort(function(a,b){return a[1].localeCompare(b[1]);}).map(function(e){ return '<option value="' + escapeHtml(e[0]) + '"' + (e[0]===_rmFiltroPacienteKey?' selected':'') + '>' + escapeHtml(e[1]) + '</option>'; }).join('') + '</select></div>';
-                html += '<button class="btn-mini" onclick="window._rmAplicarFiltros()">Aplicar</button>';
+                // Sesiones para la carga rápida: exactamente las que cuenta el aviso
+                // (sin registro + precio no definido) y, además, las del mes con saldo.
+                var listaRapida = [];
+                reservasDelMes.forEach(function(r){
+                    var p = prestPorReserva.get(r.id);
+                    if (!p) listaRapida.push({ r: r, motivo: 'sin_registro' });
+                });
+                prestacionesDelMes.forEach(function(p){
+                    if (p.sinCargo || (p.precioAcordado !== null && p.precioAcordado !== undefined)) return;
+                    var r = reservasPorId.get(p.reservaId); if (r) listaRapida.push({ r: r, motivo: 'sin_precio' });
+                });
+                filasSesion.forEach(function(f){ if (f.clave === 'saldo' && !f.deAntes) listaRapida.push({ r: f.r, motivo: 'saldo', info: f }); });
+                listaRapida.sort(function(a,b){ return (a.r.fecha + (a.r.hora||'')).localeCompare(b.r.fecha + (b.r.hora||'')); });
+                var faltanPrecio = sesionesSinRegistro + prestacionesIncompletas;
+
+                var html = '';
+                html += '<div class="rm-head"><div><h2>Resumen mensual</h2><p>' + mesTitulo + ' ' + anio + ' · importes en pesos argentinos</p></div></div>';
+                html += '<div class="rm-wrap">';
+
+                html += '<div class="rm-filtros">';
+                html += '<div><label class="rm-lbl" for="rm-mes-input">Mes</label><select id="rm-mes-input" class="rm-input">' + MESES_RM.map(function(m,i){ return '<option value="' + (i+1) + '"' + (i+1===mes?' selected':'') + '>' + m.charAt(0).toUpperCase()+m.slice(1) + '</option>'; }).join('') + '</select></div>';
+                html += '<div><label class="rm-lbl" for="rm-anio-input">Año</label><input type="number" id="rm-anio-input" class="rm-input" value="' + anio + '" style="width:90px;"></div>';
+                html += '<div><label class="rm-lbl" for="rm-servicio-input">Servicio</label><select id="rm-servicio-input" class="rm-input"><option value="">Todos</option>' + servicios.map(function(s){ return '<option value="' + escapeHtml(s) + '"' + (s===_rmFiltroServicio?' selected':'') + '>' + escapeHtml(s) + '</option>'; }).join('') + '</select></div>';
+                html += '<div><label class="rm-lbl" for="rm-paciente-input">Paciente</label><select id="rm-paciente-input" class="rm-input" style="max-width:200px;"><option value="">Todos</option>' + Array.from(pacientesMap.entries()).sort(function(a,b){return a[1].localeCompare(b[1]);}).map(function(e){ return '<option value="' + escapeHtml(e[0]) + '"' + (e[0]===_rmFiltroPacienteKey?' selected':'') + '>' + escapeHtml(e[1]) + '</option>'; }).join('') + '</select></div>';
+                html += '<button class="btn-primary" onclick="window._rmAplicarFiltros()">Aplicar</button>';
                 html += '</div>';
 
                 if (_rmFiltroServicio || _rmFiltroPacienteKey) {
-                    html += '<div style="background:rgba(173,46,46,0.08);border:1px solid rgba(173,46,46,0.25);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:12.5px;color:#8A3030;">Filtro activo: ' + (_rmFiltroServicio ? 'servicio "' + escapeHtml(_rmFiltroServicio) + '"' : '') + (_rmFiltroServicio && _rmFiltroPacienteKey ? ' · ' : '') + (_rmFiltroPacienteKey ? 'paciente "' + escapeHtml(pacientesMap.get(_rmFiltroPacienteKey) || _rmFiltroPacienteKey) + '"' : '') + ' — afecta "valor de prestaciones", "saldo pendiente" y el detalle por paciente. Cobros netos, gastos y netos de caja/estimado son siempre del negocio completo.</div>';
+                    html += '<div class="rm-aviso rm-aviso-info">Filtro activo: ' + (_rmFiltroServicio ? 'servicio "' + escapeHtml(_rmFiltroServicio) + '"' : '') + (_rmFiltroServicio && _rmFiltroPacienteKey ? ' · ' : '') + (_rmFiltroPacienteKey ? 'paciente "' + escapeHtml(pacientesMap.get(_rmFiltroPacienteKey) || _rmFiltroPacienteKey) + '"' : '') + ' — afecta "valor de prestaciones", "saldo pendiente" y el detalle. Cobros netos, gastos y netos de caja/estimado son siempre del negocio completo.</div>';
                 }
 
-                if (prestacionesIncompletas > 0 || sesionesSinRegistro > 0) {
-                    html += '<div style="background:rgba(138,106,34,0.10);border:1px solid rgba(138,106,34,0.30);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:#8A6A22;">⚠️ Este resumen está incompleto: ' +
-                        (sesionesSinRegistro > 0 ? sesionesSinRegistro + ' sesión(es) de ' + mesLabelCap + ' sin ningún registro de precio' : '') +
-                        (prestacionesIncompletas > 0 ? (sesionesSinRegistro > 0 ? ' y ' : '') + prestacionesIncompletas + ' con precio marcado como no definido' : '') +
-                        '. No están incluidas en "Valor de las prestaciones registradas".</div>';
+                if (faltanPrecio > 0 || listaRapida.length) {
+                    html += '<div class="rm-aviso rm-aviso-warn" id="rm-banner"><div>' +
+                        (faltanPrecio > 0 ? '⚠️ Este resumen está incompleto: ' +
+                            (sesionesSinRegistro > 0 ? sesionesSinRegistro + ' sesión(es) de ' + mesLabelCap + ' sin ningún registro de precio' : '') +
+                            (prestacionesIncompletas > 0 ? (sesionesSinRegistro > 0 ? ' y ' : '') + prestacionesIncompletas + ' con precio marcado como no definido' : '') +
+                            '. No están incluidas en "Valor de las prestaciones registradas".' : '⏳ Hay sesiones de ' + mesLabelCap + ' con saldo pendiente.') +
+                        '</div><button type="button" class="btn-primary" onclick="window._rmqToggle()">📋 ' + (faltanPrecio > 0 ? 'Completar las ' + faltanPrecio + ' sesiones ahora' : 'Cobrar saldos ahora') + ' (carga rápida)</button></div>';
+                    html += '<div id="rm-carga-rapida" class="rm-card" style="' + (_rmqAbierto ? '' : 'display:none;') + '">' + _rmqHtml(listaRapida) + '</div>';
                 }
 
-                function tarjeta(label, valor, color) {
-                    return '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;"><div style="font-size:11px;font-weight:700;color:#526358;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">' + label + '</div><div style="font-size:19px;font-weight:800;color:' + (color||'#20382B') + ';">' + _fmtMoneyARS(valor) + '</div></div>';
-                }
-                html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:8px;">';
-                html += tarjeta('Valor prestaciones registradas', valorPrestaciones);
-                html += tarjeta('Cobros del mes', cobrosDelMes, '#2F6B4F');
-                html += tarjeta('Devoluciones del mes', devolucionesDelMes, '#AD2E2E');
-                html += tarjeta('Cobros netos', cobrosNetosDelMes, cobrosNetosDelMes >= 0 ? '#2F6B4F' : '#AD2E2E');
-                html += tarjeta('Saldo pendiente al cierre', saldoPendienteCierre, saldoPendienteCierre > 0 ? '#AD2E2E' : '#2F6B4F');
-                html += tarjeta('Gastos pagados', gastosPagadosDelMes, '#AD2E2E');
-                html += tarjeta('Neto de caja', netoCaja, netoCaja >= 0 ? '#2F6B4F' : '#AD2E2E');
-                html += tarjeta('Gastos estimados (previstos)', gastosPrevistosAdicionales, '#8A6A22');
-                html += tarjeta('Neto estimado', netoEstimado, netoEstimado >= 0 ? '#2F6B4F' : '#AD2E2E');
+                // ── Nivel 1: 4 tarjetas principales ──
+                var tm = totalesPorMedio(pagosDelMes);
+                var transfMp = (tm.porMedio.transferencia || 0) + (tm.porMedio.mercadopago || 0);
+                var otrosMedios = Object.keys(tm.porMedio).filter(function(k){ return ['efectivo','transferencia','mercadopago'].indexOf(k) < 0; }).reduce(function(s,k){ return s + tm.porMedio[k]; }, 0);
+                html += '<div class="rm-hero">';
+                html += '<div class="rm-kpi"><div class="rm-kpi-lbl">💰 Total cobrado en ' + mesLabelCap + '</div><div class="rm-kpi-val">' + formatoPesos(cobrosNetosDelMes) + '</div>' +
+                    '<div class="rm-kpi-det">💵 Efectivo: ' + formatoPesos(tm.porMedio.efectivo || 0) + ' · 🏦 Transf/MP: ' + formatoPesos(transfMp) + (otrosMedios ? ' · 💳 Otros: ' + formatoPesos(otrosMedios) : '') + (devolucionesDelMes ? '<br>Devoluciones: −' + formatoPesos(devolucionesDelMes) : '') + '</div></div>';
+                html += '<button type="button" class="rm-kpi rm-kpi-btn' + (saldoPendienteCierre > 0 ? ' rm-kpi-warn' : '') + '" onclick="window._rmPill(\'saldo\', true)"><div class="rm-kpi-lbl">⏳ Saldo pendiente por cobrar</div><div class="rm-kpi-val">' + formatoPesos(saldoPendienteCierre) + '</div><div class="rm-kpi-det">' + cuentaPill.saldo + ' sesión(es) con saldo · tocá para verlas</div></button>';
+                html += '<div class="rm-kpi"><div class="rm-kpi-lbl">📉 Gastos del mes</div><div class="rm-kpi-val">' + formatoPesos(gastosPagadosDelMes + gastosPrevistosAdicionales) + '</div><div class="rm-kpi-det">Pagados ' + formatoPesos(gastosPagadosDelMes) + ' · Previstos ' + formatoPesos(gastosPrevistosAdicionales) + '</div><button type="button" class="btn-secondary rm-kpi-acc" onclick="window._rmIrAGastos()">+ Agregar gasto</button></div>';
+                html += '<div class="rm-kpi rm-kpi-oro"><div class="rm-kpi-lbl">✨ Caja neta real</div><div class="rm-kpi-val ' + (netoCaja < 0 ? 'rm-neg' : '') + '">' + formatoPesos(netoCaja) + '</div><div class="rm-kpi-det">Cobros netos − gastos pagados</div></div>';
                 html += '</div>';
-                html += '<p style="font-size:11.5px;color:#7C8D81;margin:0 0 18px;">Corte al ' + cutoff + (_rmEsMesActual(anio,mes) ? ' (mes en curso: corte al momento de la consulta).' : ' (mes cerrado: corte al último día del mes).') + ' Neto estimado = Cobros netos − Gastos pagados − Gastos previstos todavía no incluidos.</p>';
 
-                html += '<h3 style="font-size:15px;margin:0 0 10px;">Detalle por paciente</h3>';
-                if (!filasPaciente.length) {
-                    html += '<p style="font-size:13px;color:#7C8D81;">Sin movimientos para este mes' + (_rmFiltroServicio||_rmFiltroPacienteKey?' con el filtro activo':'') + '.</p>';
+                // ── Nivel 2: los 9 indicadores de siempre ──
+                function tarjeta(label, valor, tono) {
+                    return '<div class="rm-ind rm-ind-' + (tono || 'n') + '"><div class="rm-kpi-lbl">' + label + '</div><div class="rm-ind-val">' + formatoPesos(valor) + '</div></div>';
+                }
+                html += '<details class="rm-desglose"' + (_rmDesgloseOpen ? ' open' : '') + ' ontoggle="window._rmDesglose(this.open)"><summary>Ver desglose contable completo (9 indicadores)</summary><div class="rm-ind-grid">';
+                html += tarjeta('Valor prestaciones registradas', valorPrestaciones);
+                html += tarjeta('Cobros del mes', cobrosDelMes, 'ok');
+                html += tarjeta('Devoluciones del mes', devolucionesDelMes, 'mal');
+                html += tarjeta('Cobros netos', cobrosNetosDelMes, cobrosNetosDelMes >= 0 ? 'ok' : 'mal');
+                html += tarjeta('Saldo pendiente al cierre', saldoPendienteCierre, saldoPendienteCierre > 0 ? 'mal' : 'ok');
+                html += tarjeta('Gastos pagados', gastosPagadosDelMes, 'mal');
+                html += tarjeta('Neto de caja', netoCaja, netoCaja >= 0 ? 'ok' : 'mal');
+                html += tarjeta('Gastos estimados (previstos)', gastosPrevistosAdicionales, 'warn');
+                html += tarjeta('Neto estimado', netoEstimado, netoEstimado >= 0 ? 'ok' : 'mal');
+                html += '</div><p class="rm-nota">Corte al ' + cutoff + (_rmEsMesActual(anio,mes) ? ' (mes en curso: corte al momento de la consulta).' : ' (mes cerrado: corte al último día del mes).') + ' Neto estimado = Cobros netos − Gastos pagados − Gastos previstos todavía no incluidos.</p></details>';
+
+                // ── Detalle por sesión con filtros rápidos ──
+                html += '<div class="rm-card" id="rm-detalle"><div class="rm-card-head"><h3>Detalle por paciente y sesión</h3><div class="rm-pills" role="group" aria-label="Filtrar detalle">' +
+                    [['todos', 'Todos'], ['saldo', '⚠️ Con saldo pendiente'], ['sinprecio', '⚪ Sin precio cargado'], ['aldia', '✅ Al día / pagados']].map(function(p){
+                        return '<button type="button" class="rm-pill' + (_rmPillSel === p[0] ? ' sel' : '') + '" aria-pressed="' + (_rmPillSel === p[0]) + '" onclick="window._rmPill(\'' + p[0] + '\')">' + p[1] + ' <small>' + cuentaPill[p[0]] + '</small></button>';
+                    }).join('') + '</div></div>';
+                var visibles = filasSesion.filter(function(f){ return _rmPillSel === 'todos' || f.clave === _rmPillSel || (_rmPillSel === 'aldia' && f.clave === 'sincargo'); });
+                if (!visibles.length) {
+                    html += '<p class="rm-vacio">Sin sesiones para mostrar' + (_rmPillSel !== 'todos' ? ' con este filtro' : '') + '.</p>';
                 } else {
-                    html += '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:22px;">';
-                    filasPaciente.forEach(function(f, idx){
-                        html += '<div style="padding:10px 14px;' + (idx ? 'border-top:1px solid var(--border);' : '') + '">';
-                        html += '<strong style="font-size:13.5px;">' + escapeHtml(f.nombre) + '</strong><br>';
-                        html += '<span style="font-size:12px;color:#526358;">Cobrado en ' + mesLabelCap + ': ' + _fmtMoneyARS(f.cobradoMes) + ' — Pendiente al cierre de ' + mesLabelCap + ': ' + _fmtMoneyARS(f.pendienteCierre) + (f.pendienteDeAntes > 0 ? ' (de las cuales ' + _fmtMoneyARS(f.pendienteDeAntes) + ' son deuda de antes de este mes)' : '') + '</span>';
+                    html += '<div class="p360-tabla-wrap"><table class="p360-tabla rm-tabla"><thead><tr><th>Fecha</th><th>Paciente</th><th>Tratamiento</th><th>Precio acordado</th><th>Cobrado</th><th>Saldo</th><th></th></tr></thead><tbody>';
+                    visibles.forEach(function(f){
+                        var est = f.clave === 'sincargo' ? '<span class="rm-tag rm-tag-info">🎁 Sin cargo</span>' : f.clave === 'anulada' ? '<span class="rm-tag">Anulada</span>' : f.clave === 'sinprecio' ? '<span class="rm-tag">⚪ Sin precio</span>' : '';
+                        html += '<tr><td data-l="Fecha">' + escapeHtml(f.r.fecha.split('-').reverse().join('/')) + (f.deAntes ? '<div class="p360-muted">mes anterior</div>' : '') + '</td>' +
+                            '<td data-l="Paciente">' + escapeHtml(_pacienteNombreDisplay(f.r)) + '</td>' +
+                            '<td data-l="Tratamiento">' + escapeHtml(f.r.servicio || '—') + '</td>' +
+                            '<td data-l="Precio acordado">' + (f.precio != null ? formatoPesos(f.precio) : est || '—') + '</td>' +
+                            '<td data-l="Cobrado">' + formatoPesos(f.cobrado) + (f.medios.length ? '<div class="p360-muted">' + escapeHtml(f.medios.map(etiquetaMedio).join(' + ')) + '</div>' : '') + '</td>' +
+                            '<td data-l="Saldo">' + (f.saldo > 0 ? '<b class="rm-debe">' + formatoPesos(f.saldo) + '</b>' : f.saldo === 0 ? '<span class="rm-tag rm-tag-ok">✅ Al día</span>' : '—') + '</td>' +
+                            '<td data-l=""><button type="button" class="btn-ghost" onclick="abrirCobro(\'' + _jsArg(f.r.id) + '\')">💳 ' + (f.saldo > 0 ? 'Saldar' : 'Editar') + '</button></td></tr>';
+                    });
+                    html += '</tbody></table></div>';
+                }
+                html += '</div>';
+
+                // Resumen por paciente (cobrado del mes, pendiente al cierre y recibos) — se conserva tal cual.
+                html += '<details class="rm-desglose"><summary>Resumen por paciente y recibos (' + filasPaciente.length + ')</summary>';
+                if (!filasPaciente.length) {
+                    html += '<p class="rm-vacio">Sin movimientos para este mes' + (_rmFiltroServicio||_rmFiltroPacienteKey?' con el filtro activo':'') + '.</p>';
+                } else {
+                    html += '<div class="rm-lista">';
+                    filasPaciente.forEach(function(f){
+                        html += '<div class="rm-lista-fila"><strong>' + escapeHtml(f.nombre) + '</strong>';
+                        html += '<span>Cobrado en ' + mesLabelCap + ': ' + formatoPesos(f.cobradoMes) + ' — Pendiente al cierre de ' + mesLabelCap + ': ' + formatoPesos(f.pendienteCierre) + (f.pendienteDeAntes > 0 ? ' (de las cuales ' + formatoPesos(f.pendienteDeAntes) + ' son deuda de antes de este mes)' : '') + '</span>';
                         if (f.recibos.length) {
-                            html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">';
+                            html += '<div class="rm-lista-acc">';
                             f.recibos.forEach(function(rc){
                                 var kEsc = String(f.key).replace(/'/g,"\\'");
                                 var nEsc = String(rc.nombreReserva||'').replace(/'/g,"\\'");
                                 var sEsc = String(rc.servicio||'').replace(/'/g,"\\'");
                                 var pEsc = String(rc.phone||'').replace(/'/g,"\\'");
-                                html += '<button class="btn-mini" style="border-color:rgba(37,211,102,0.40);color:#128c7e;background:rgba(37,211,102,0.08)" onclick="abrirEnviarRecibo(\'' + rc.reservaId + '\',\'' + kEsc + '\',\'' + nEsc + '\',\'' + sEsc + '\',\'' + pEsc + '\')">🧾 Enviar recibo' + (f.recibos.length > 1 && rc.servicio ? ' (' + escapeHtml(rc.servicio) + ')' : '') + '</button>';
+                                html += '<button class="btn-secondary" onclick="abrirEnviarRecibo(\'' + rc.reservaId + '\',\'' + kEsc + '\',\'' + nEsc + '\',\'' + sEsc + '\',\'' + pEsc + '\')">🧾 Enviar recibo' + (f.recibos.length > 1 && rc.servicio ? ' (' + escapeHtml(rc.servicio) + ')' : '') + '</button>';
                             });
                             html += '</div>';
                         }
@@ -10569,37 +11378,156 @@
                     });
                     html += '</div>';
                 }
+                html += '</details>';
 
-                html += '<h3 style="font-size:15px;margin:20px 0 10px;">Gastos</h3>';
-                html += '<button class="btn-mini" style="margin-bottom:12px;" onclick="window._rmToggleFormGasto()">➕ Agregar gasto</button>';
-                html += '<div id="rm-form-gasto" style="display:none;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;"></div>';
+                html += '<div class="rm-card" id="rm-gastos"><div class="rm-card-head"><h3>Gastos</h3><button class="btn-primary" onclick="window._rmToggleFormGasto()">➕ Agregar gasto</button></div>';
+                html += '<div id="rm-form-gasto" class="rm-form-gasto" style="display:none;"></div>';
 
                 var gastosParaListar = gastosActivos.filter(function(g){
                     if (g.modalidad === 'importe_fijo') return (g.fecha||'').startsWith(prefijoMes) || (g.fechaPagoEfectiva||'').startsWith(prefijoMes);
                     return true;
                 });
                 if (!gastosParaListar.length) {
-                    html += '<p style="font-size:13px;color:#7C8D81;">No hay gastos cargados.</p>';
+                    html += '<p class="rm-vacio">No hay gastos cargados.</p>';
                 } else {
-                    html += '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">';
-                    gastosParaListar.forEach(function(g, idx){
+                    html += '<div class="rm-lista">';
+                    gastosParaListar.forEach(function(g){
                         var esFijo = g.modalidad === 'importe_fijo';
+                        // Gastos viejos sin escala: se muestran y suman igual que siempre (como miles).
+                        var dudoso = esFijo && !g.escala && (g.montoFijo || 0) >= 10000;
                         var det = esFijo
-                            ? _fmtMoneyARS(g.montoFijo) + (g.estado === 'pagado' ? ' · pagado el ' + (g.fechaPagoEfectiva||'—') : ' · pendiente de pago')
+                            ? formatoPesos(g.montoFijo) + (g.estado === 'pagado' ? ' · pagado el ' + (g.fechaPagoEfectiva||'—') : ' · pendiente de pago')
                             : g.porcentaje + '% ' + (g.alcance === 'servicio' ? 'sobre "' + escapeHtml(g.servicioVinculado||'') + '"' : 'sobre cobros netos generales') + (g.reemplazadoPorGastoId ? ' · ya reemplazado por un gasto real (no se descuenta como estimado)' : '');
-                        html += '<div style="padding:10px 14px;' + (idx?'border-top:1px solid var(--border);':'') + '">';
-                        html += '<div style="display:flex;justify-content:space-between;gap:8px;"><strong style="font-size:13px;">' + escapeHtml(g.concepto||'—') + '</strong><span style="font-size:11px;color:#7C8D81;">' + escapeHtml(g.categoria||'') + '</span></div>';
-                        html += '<div style="font-size:12.5px;color:#526358;margin-top:2px;">' + det + '</div>';
-                        if (esFijo && g.estado !== 'pagado') html += '<button class="btn-mini" style="margin-top:6px;" onclick="window._rmMarcarGastoPagado(\'' + g.id + '\')">Marcar como pagado</button>';
-                        if (!esFijo && !g.reemplazadoPorGastoId) html += '<button class="btn-mini" style="margin-top:6px;" onclick="window._rmVincularGastoReal(\'' + g.id + '\')">Vincular con el gasto real (reemplazar estimado)</button>';
+                        html += '<div class="rm-lista-fila">';
+                        html += '<div class="rm-lista-top"><strong>' + escapeHtml(g.concepto||'—') + '</strong><span class="rm-tag">' + escapeHtml(g.categoria||'Sin categoría') + '</span></div>';
+                        html += '<span>' + det + '</span>';
+                        if (dudoso) html += '<span class="rm-tag rm-tag-warn" title="Este gasto se cargó antes de que el panel guardara la unidad. El resumen lo toma en miles de pesos, como siempre.">⚠ Revisar unidad: ¿se cargó en pesos?</span>';
+                        if (g.nota) html += '<em class="p360-muted">' + escapeHtml(g.nota) + '</em>';
+                        var acc = '';
+                        if (esFijo && g.estado !== 'pagado') acc += '<button class="btn-secondary" onclick="window._rmMarcarGastoPagado(\'' + g.id + '\')">Marcar como pagado</button>';
+                        if (!esFijo && !g.reemplazadoPorGastoId) acc += '<button class="btn-secondary" onclick="window._rmVincularGastoReal(\'' + g.id + '\')">Vincular con el gasto real (reemplazar estimado)</button>';
+                        if (acc) html += '<div class="rm-lista-acc">' + acc + '</div>';
                         html += '</div>';
                     });
                     html += '</div>';
                 }
+                html += '</div>';
 
                 html += '</div>';
                 cont.innerHTML = html;
             }
+
+            // ── Carga rápida de cobros (inline, dentro del Resumen) ──
+            var _rmIdx = null, _rmqAbierto = false, _rmqOps = {}, _rmPillSel = 'todos', _rmDesgloseOpen = false;
+            window._rmDesglose = function(v){ _rmDesgloseOpen = !!v; };
+            function _rmqHtml(lista) {
+                if (!lista.length) return '<p class="rm-vacio">✅ No quedan sesiones sin precio ni con saldo en este mes.</p>';
+                var medios = MEDIOS.map(function(m){ return '<option value="' + m.v + '">' + m.icono + ' ' + m.label + '</option>'; }).join('') + '<option value="sincargo">🎁 Sin cargo</option>';
+                var h = '<div class="rm-card-head"><h3>📋 Carga rápida de cobros · <span id="rmq-pendientes">' + lista.length + '</span> pendiente(s)</h3><button type="button" class="btn-primary" onclick="window._rmqGuardarTodas(this)">💾 Guardar todas las filas completadas</button></div>';
+                h += '<p class="rm-nota">Escribí el monto en pesos (ej. 150000 o 150.000). «Pagado total» guarda el precio y el cobro de una vez; «Seña» pide además cuánto entregó. Sin comprobante adjunto se genera el comprobante interno de cobro.</p>';
+                h += '<div class="p360-tabla-wrap"><table class="p360-tabla rm-tabla rmq-tabla"><thead><tr><th>Fecha</th><th>Paciente</th><th>Servicio</th><th>Monto ($)</th><th>Medio</th><th>Estado</th><th></th></tr></thead><tbody>';
+                lista.forEach(function(it){
+                    var r = it.r, rid = escapeHtml(r.id);
+                    var pre = it.motivo === 'saldo' && it.info ? formatoPesosEnteros(milesAPesos(it.info.precio)) : '';
+                    h += '<tr data-rid="' + rid + '"><td data-l="Fecha">' + escapeHtml(r.fecha.split('-').reverse().join('/')) + '</td>' +
+                        '<td data-l="Paciente">' + escapeHtml(_pacienteNombreDisplay(r)) + (it.motivo === 'saldo' ? '<div class="p360-muted">Debe ' + formatoPesos(it.info.saldo) + '</div>' : '') + '</td>' +
+                        '<td data-l="Servicio">' + escapeHtml(r.servicio || '—') + '</td>' +
+                        '<td data-l="Monto ($)"><input type="text" inputmode="numeric" class="rm-input rmq-monto" placeholder="$ 0" value="' + pre + '" aria-label="Monto en pesos"></td>' +
+                        '<td data-l="Medio"><select class="rm-input rmq-medio" aria-label="Medio de pago" onchange="window._rmqCambio(this)">' + medios + '</select></td>' +
+                        '<td data-l="Estado"><select class="rm-input rmq-estado" aria-label="Estado" onchange="window._rmqCambio(this)"><option value="total">✅ Pagado total</option><option value="sena">⏳ Seña</option></select>' +
+                        '<input type="text" inputmode="numeric" class="rm-input rmq-entrega" placeholder="Entrega $" aria-label="Entrega en pesos" style="display:none;margin-top:4px;"></td>' +
+                        '<td data-l=""><button type="button" class="btn-secondary rmq-ok" onclick="window._rmqGuardarFila(\'' + _jsArg(r.id) + '\', this)">✔ Guardar</button><div class="rmq-msg"></div></td></tr>';
+                });
+                return h + '</tbody></table></div>';
+            }
+            window._rmqToggle = function() {
+                _rmqAbierto = !_rmqAbierto;
+                var box = document.getElementById('rm-carga-rapida');
+                if (box) { box.style.display = _rmqAbierto ? '' : 'none'; if (_rmqAbierto) box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+            };
+            window._rmqCambio = function(el) {
+                var tr = el.closest('tr');
+                var sc = tr.querySelector('.rmq-medio').value === 'sincargo';
+                tr.querySelector('.rmq-estado').disabled = sc;
+                tr.querySelector('.rmq-monto').disabled = sc;
+                tr.querySelector('.rmq-entrega').style.display = (!sc && tr.querySelector('.rmq-estado').value === 'sena') ? '' : 'none';
+            };
+            function _rmqPlanFila(tr) {
+                var rid = tr.dataset.rid;
+                var medio = tr.querySelector('.rmq-medio').value, estado = tr.querySelector('.rmq-estado').value;
+                var monto = tr.querySelector('.rmq-monto').value, entrega = tr.querySelector('.rmq-entrega').value;
+                var previo = (_rmIdx.pagosPorReserva.get(rid) || []).reduce(function(s,p){ return s + (p.tipo === 'devolucion' ? -p.monto : p.monto); }, 0);
+                if (medio === 'sincargo') return planCobro({ modo: 'sincargo' });
+                if (estado === 'sena') return planCobro({ modo: 'sena', precioTotal: monto, entrega: entrega, medio: medio, cobradoPrevio: previo });
+                return planCobro({ modo: 'total', monto: monto, medio: medio, cobradoPrevio: previo });
+            }
+            async function _rmqGuardar(tr) {
+                var rid = tr.dataset.rid, msg = tr.querySelector('.rmq-msg');
+                var plan = _rmqPlanFila(tr);
+                if (!plan.ok) { msg.className = 'rmq-msg err'; msg.textContent = plan.error; return false; }
+                var r = _rmIdx.reservasPorId.get(rid);
+                if (!_rmqOps[rid]) _rmqOps[rid] = [nuevoIdOperacion('cobro', rid + '_rq0'), nuevoIdOperacion('cobro', rid + '_rq1')];
+                await window.cobroRapidoAplicar({ reservaId: rid, pacienteKey: _pacienteMatchKey(r), pacienteNombre: _pacienteNombreDisplay(r), servicio: r.servicio || '', prestacion: _rmIdx.prestPorReserva.get(rid) || null },
+                    plan, { opIds: _rmqOps[rid], origen: 'resumen_carga_rapida', modalidad: tr.querySelector('.rmq-medio').value === 'sincargo' ? 'sincargo' : tr.querySelector('.rmq-estado').value });
+                tr.classList.add('rmq-guardada'); msg.className = 'rmq-msg ok'; msg.textContent = '✓ Guardado';
+                return true;
+            }
+            window._rmqGuardarFila = async function(rid, btn) {
+                var tr = btn.closest('tr');
+                btn.disabled = true; var o = btn.textContent; btn.textContent = 'Guardando…';
+                try { if (await _rmqGuardar(tr)) await _rmRecargarSuave(); }
+                catch (e) { console.error(e); var m = tr.querySelector('.rmq-msg'); m.className = 'rmq-msg err'; m.textContent = 'No se pudo guardar: ' + (e && e.message ? e.message : 'sin conexión'); }
+                finally { if (document.body.contains(btn)) { btn.disabled = false; btn.textContent = o; } }
+            };
+            window._rmqGuardarTodas = async function(btn) {
+                var filas = Array.prototype.slice.call(document.querySelectorAll('#rm-carga-rapida tr[data-rid]')).filter(function(tr){
+                    return !tr.classList.contains('rmq-guardada') && (tr.querySelector('.rmq-medio').value === 'sincargo' || tr.querySelector('.rmq-monto').value.trim());
+                });
+                if (!filas.length) { mostrarAviso('Completá al menos una fila (monto o «Sin cargo»).'); return; }
+                btn.disabled = true; var o = btn.textContent; btn.textContent = 'Guardando ' + filas.length + '…';
+                var ok = 0, err = 0;
+                for (var i = 0; i < filas.length; i++) {
+                    try { if (await _rmqGuardar(filas[i])) ok++; else err++; }
+                    catch (e) { console.error(e); err++; var m = filas[i].querySelector('.rmq-msg'); m.className = 'rmq-msg err'; m.textContent = 'No se pudo guardar: ' + (e && e.message ? e.message : 'sin conexión'); }
+                }
+                mostrarAviso(ok + ' fila(s) guardada(s)' + (err ? ' · ' + err + ' con error (revisalas)' : ''));
+                if (ok) await _rmRecargarSuave();
+                if (document.body.contains(btn)) { btn.disabled = false; btn.textContent = o; }
+            };
+            // Recarga solo prestaciones y pagos y vuelve a dibujar sin perder lo
+            // que se estaba escribiendo en las filas todavía no guardadas.
+            async function _rmRecargarSuave() {
+                var valores = {};
+                document.querySelectorAll('#rm-carga-rapida tr[data-rid]').forEach(function(tr){
+                    if (tr.classList.contains('rmq-guardada')) return;
+                    valores[tr.dataset.rid] = { m: tr.querySelector('.rmq-monto').value, me: tr.querySelector('.rmq-medio').value, e: tr.querySelector('.rmq-estado').value, en: tr.querySelector('.rmq-entrega').value, msg: tr.querySelector('.rmq-msg').outerHTML };
+                });
+                var y = window.scrollY;
+                var [ps, pg] = await Promise.all([getDocs(collection(db, 'prestaciones')), getDocs(collection(db, 'pagos'))]);
+                var prest = []; ps.forEach(function(x){ prest.push(Object.assign({ id: x.id }, x.data())); });
+                var pagos = []; pg.forEach(function(x){ pagos.push(Object.assign({ id: x.id }, x.data())); });
+                _rmData.prestaciones = prest; _rmData.pagos = pagos;
+                _rmRender();
+                Object.keys(valores).forEach(function(rid){
+                    var tr = document.querySelector('#rm-carga-rapida tr[data-rid="' + (window.CSS && CSS.escape ? CSS.escape(rid) : rid) + '"]');
+                    if (!tr) return;
+                    var v = valores[rid];
+                    tr.querySelector('.rmq-monto').value = v.m; tr.querySelector('.rmq-medio').value = v.me; tr.querySelector('.rmq-estado').value = v.e; tr.querySelector('.rmq-entrega').value = v.en;
+                    tr.querySelector('.rmq-msg').outerHTML = v.msg;
+                    window._rmqCambio(tr.querySelector('.rmq-medio'));
+                });
+                window.scrollTo(0, y);
+            }
+            window._rmRecargarSuave = function(){ if (_rmData) return _rmRecargarSuave(); };
+            window._rmPill = function(p, scroll) {
+                _rmPillSel = p; _rmRender();
+                if (scroll) { var el = document.getElementById('rm-detalle'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+            };
+            window._rmIrAGastos = function() {
+                var box = document.getElementById('rm-form-gasto');
+                if (box && box.style.display === 'none') window._rmToggleFormGasto();
+                var g = document.getElementById('rm-gastos'); if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
 
             window._rmAplicarFiltros = function() {
                 _rmMes = Number(document.getElementById('rm-mes-input').value);
@@ -10620,13 +11548,14 @@
                 h += '<input type="text" id="rmg-concepto" placeholder="Concepto" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
                 h += '<input type="text" id="rmg-categoria" placeholder="Categoría" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
                 h += '</div>';
+                h += '<div class="rm-chips-gasto" role="group" aria-label="Categorías frecuentes">' + ['Alquiler', 'Sueldos / honorarios', 'Insumos', 'Productos', 'Luz / agua / gas', 'Internet / teléfono', 'Publicidad', 'Mantenimiento de equipos', 'Impuestos / monotributo', 'Comisiones (MP / tarjeta)', 'Limpieza'].map(function(c){ return '<button type="button" class="cr-chip" onclick="window._rmChipGasto(this)">' + c + '</button>'; }).join('') + '</div>';
                 h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
                 h += '<select id="rmg-alcance" onchange="document.getElementById(\'rmg-servicio-wrap\').style.display=this.value===\'servicio\'?\'block\':\'none\';"><option value="general">Gasto general</option><option value="servicio">Ligado a un servicio</option></select>';
                 h += '<select id="rmg-modalidad" onchange="window._rmToggleModalidadGasto()"><option value="importe_fijo">Importe fijo</option><option value="porcentaje_estimado">Porcentaje estimado</option></select>';
                 h += '</div>';
                 h += '<div id="rmg-servicio-wrap" style="display:none;margin-bottom:8px;"><select id="rmg-servicio" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">' + servicios.map(function(s){ return '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>'; }).join('') + '</select></div>';
                 h += '<div id="rmg-campo-fijo" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">';
-                h += '<input type="number" id="rmg-monto" min="0" step="100" placeholder="Monto $" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
+                h += '<div><input type="text" inputmode="numeric" id="rmg-monto" placeholder="Monto $ (ej. 85.000)" oninput="window._rmMontoGasto(this)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;"><div class="cr-ayuda" id="rmg-monto-ayuda"></div></div>';
                 h += '<select id="rmg-estado"><option value="pagado">Pagado</option><option value="pendiente">Pendiente</option></select>';
                 h += '<input type="date" id="rmg-fecha-pago" value="' + _hoyISOZona(ZONA_HORARIA_NEGOCIO) + '" style="padding:8px 10px;border:1.5px solid var(--border-strong);border-radius:8px;">';
                 h += '</div>';
@@ -10636,6 +11565,17 @@
                 box.innerHTML = h;
             };
 
+            window._rmChipGasto = function(btn) {
+                var cat = document.getElementById('rmg-categoria'), con = document.getElementById('rmg-concepto');
+                if (cat) cat.value = btn.textContent;
+                if (con && !con.value.trim()) con.value = btn.textContent;
+                document.querySelectorAll('.rm-chips-gasto .cr-chip').forEach(function(b){ b.classList.toggle('sel', b === btn); });
+            };
+            window._rmMontoGasto = function(inp) {
+                var r = parsearPesos(inp.value), ay = document.getElementById('rmg-monto-ayuda');
+                if (!ay) return;
+                ay.innerHTML = r.vacio ? '' : !r.ok ? '<span class="cr-err">' + escapeHtml(r.error) + '</span>' : 'Equivale a $' + formatoPesosEnteros(r.pesos) + ' ARS';
+            };
             window._rmToggleModalidadGasto = function() {
                 var esFijo = document.getElementById('rmg-modalidad').value === 'importe_fijo';
                 document.getElementById('rmg-campo-fijo').style.display = esFijo ? 'grid' : 'none';
@@ -10657,9 +11597,12 @@
                     creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
                 };
                 if (modalidad === 'importe_fijo') {
-                    var monto = Math.round(Number(document.getElementById('rmg-monto').value));
-                    if (!monto || monto <= 0) { mostrarAviso('Ingresá un monto válido.'); return; }
-                    data.montoFijo = monto;
+                    // Se escribe en pesos y se guarda en la misma escala que el resto del
+                    // resumen (miles de ARS), ahora con la escala explícita.
+                    var pr = parsearPesos(document.getElementById('rmg-monto').value);
+                    if (!pr.ok || pr.vacio || !(pr.pesos > 0)) { mostrarAviso(pr.error || 'Ingresá un monto válido en pesos.'); return; }
+                    data.montoFijo = pr.miles;
+                    data.escala = ESCALA_CANONICA; data.moneda = MONEDA_CANONICA;
                     data.estado = document.getElementById('rmg-estado').value;
                     data.fechaPagoEfectiva = data.estado === 'pagado' ? (document.getElementById('rmg-fecha-pago').value || _hoyISOZona(ZONA_HORARIA_NEGOCIO)) : null;
                 } else {
@@ -10692,17 +11635,18 @@
             };
 
             window._rmVincularGastoReal = async function(estimadoId) {
-                var montoTxt = prompt('Monto real pagado que reemplaza a este estimado:');
+                var montoTxt = prompt('Monto real pagado que reemplaza a este estimado (en pesos, ej. 85000):');
                 if (montoTxt === null) return;
-                var monto = Math.round(Number(montoTxt));
-                if (!monto || monto <= 0) { mostrarAviso('Monto inválido.'); return; }
+                var prv = parsearPesos(montoTxt);
+                if (!prv.ok || prv.vacio || !(prv.pesos > 0)) { mostrarAviso(prv.error || 'Monto inválido.'); return; }
+                var monto = prv.miles;
                 var concepto = prompt('Concepto del gasto real (podés dejar el mismo):') || 'Gasto real (reemplaza estimado)';
                 try {
                     var nuevoId = 'gasto_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
                     var estimado = _rmData.gastos.find(function(g){ return g.id === estimadoId; });
                     await setDoc(doc(db, 'gastos', nuevoId), {
                         concepto: concepto, categoria: (estimado && estimado.categoria) || '', alcance: (estimado && estimado.alcance) || 'general',
-                        servicioVinculado: (estimado && estimado.servicioVinculado) || null, modalidad: 'importe_fijo', montoFijo: monto,
+                        servicioVinculado: (estimado && estimado.servicioVinculado) || null, modalidad: 'importe_fijo', montoFijo: monto, escala: ESCALA_CANONICA, moneda: MONEDA_CANONICA,
                         estado: 'pagado', fechaPagoEfectiva: _hoyISOZona(ZONA_HORARIA_NEGOCIO), nota: 'Reemplaza al estimado ' + estimadoId,
                         reemplazaEstimadoId: estimadoId, anulado: false,
                         creadoEn: serverTimestamp(), creadoPor: (auth.currentUser && auth.currentUser.email) || null
@@ -10870,6 +11814,7 @@
                     pendHTML += "<div style='background:rgba(200,165,30,0.05);border:1px solid rgba(240,180,40,0.14);border-left:3px solid rgba(252,211,77,0.50);border-radius:10px;padding:12px 14px;margin-bottom:8px;'>" +
                         "<div style='font-size:13px;font-weight:700;color:rgba(76,103,89,0.96);margin-bottom:3px;'>" + escapeHtml(_fechaDisplay(r,false)) + " · " + escapeHtml(r.hora||'—') + " hs</div>" +
                         "<div style='font-size:13px;color:rgba(76,103,89,0.80);'>" + escapeHtml(r.servicio||'—') + _boxBadgeHtml(r) + "</div>" +
+                        "<div style='margin-top:6px;'>" + _cobroBtnHtml(r) + "</div>" +
                         (detalle ? "<div style='font-size:11px;margin-top:6px;color:rgba(76,103,89,0.60);background:rgba(53,122,92,0.07);border-radius:7px;padding:5px 8px;'>" + escapeHtml(detalle) + "</div>" : "") +
                         "</div>";
                 });
@@ -10895,6 +11840,7 @@
                         filasMes += "<div style='padding:8px 0;border-bottom:1px solid var(--border);'>" +
                             "<div style='font-size:12px;font-weight:600;color:rgba(76,103,89,0.85);'>" + escapeHtml(_fechaDisplay(r,false)) + " · " + escapeHtml(r.hora||'—') + " hs</div>" +
                             "<div style='font-size:12px;color:rgba(22,61,50,0.70);margin-top:2px;'>" + escapeHtml(r.servicio||'—') + _boxBadgeHtml(r) + "</div>" +
+                            "<div style='margin-top:5px;'>" + _cobroBtnHtml(r) + "</div>" +
                             (detalle ? "<div style='font-size:11px;margin-top:4px;color:rgba(22,61,50,0.55);'>" + escapeHtml(detalle) + "</div>" : "") +
                             "</div>";
                     });
@@ -12747,7 +13693,7 @@
             const typeLabel = jornadaType === "radio" ? "radio" : jornadaType === "crio" ? "crio" : jornadaType === "detox" ? "detox" : "";
             const text = isJornada ? "Cambiar a modo normal" : "Cambiar a modo jornada";
             const compactText = isJornada
-                ? `Activo: jornada ${typeLabel} · Cambiar tipo`
+                ? `✨ Jornada ${typeLabel} activa · Cambiar`
                 : "Modo normal · Activar jornada";
             buttons.forEach((button) => {
                 button.disabled = disabled;
@@ -15028,20 +15974,12 @@
                 const isComercial = _esHoraComercial(hora);
                 if (!isComercial && !_grilla_extraSlots) continue;
 
-                // Separador visual + mini-header entre mañana y tarde
-                if (lastHora && lastHora <= '13:00' && hora >= '14:00') {
-                    rows.push(`<tr class="grilla-sep-row"><td colspan="${COLS}" class="grilla-sep-cell">· · ·</td></tr>`);
-                    const miniCols = GRILLA_BOXES.map(b =>
-                        `<td style="background:${b.bg};border-color:${b.border};border-bottom:3px solid ${b.accent}">
-                            <div class="grilla-mini-th">${b.icon} ${b.title}<span class="grilla-box-sub">${b.sub}</span></div>
-                        </td>`
-                    ).join('');
-                    rows.push(`<tr class="grilla-mini-header"><td class="grilla-td-hora" style="font-size:9px;color:rgba(22,61,50,0.25)">———</td>${miniCols}</tr>`);
-                }
-                // Separador entre tarde y noche
-                if (lastHora && lastHora <= '20:45' && hora >= '21:00') {
-                    rows.push(`<tr class="grilla-sep-row"><td colspan="${COLS}" class="grilla-sep-cell" style="color:rgba(22,61,50,0.20)">· · ·</td></tr>`);
-                }
+                // Cambio de turno (mañana→tarde, tarde→noche): solo una línea sutil
+                // en la primera fila. El encabezado de los boxes es uno solo, fijo
+                // arriba — antes se repetía a mitad de tabla con cortes punteados.
+                let _grCorte = '';
+                if (lastHora && lastHora <= '13:00' && hora >= '14:00') _grCorte = ' gr-corte-tarde';
+                if (lastHora && lastHora <= '20:45' && hora >= '21:00') _grCorte = ' gr-corte-noche';
                 lastHora = hora;
 
                 const esHoraManana = hora < '14:00';
@@ -15138,7 +16076,7 @@
                     return `<td class="grilla-td-box" style="background:${box.bg};border-color:${box.border}${tdExtra}" ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
                 }).join('');
 
-                rows.push(`<tr class="${rowCls}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora">${horaLabel}</td>${celdas}</tr>`);
+                rows.push(`<tr class="${rowCls}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora">${horaLabel}</td>${celdas}</tr>`);
             }
             tbody.innerHTML = rows.length
                 ? rows.join('')
@@ -15670,7 +16608,7 @@
                 ${r.notaRapida ? `<div class="p360-muted">📝 ${escapeHtml(r.notaRapida)}</div>` : ''}
                 <div class="f360-ses-acc">
                     <button class="p360-btn" onclick="f360VerEnGrilla('${r.fecha}')">Ver en Grilla</button>
-                    ${tipo !== 'cancelada' ? `<button class="p360-btn" onclick="f360PrecioPagos('${r.id}')">💳 Precio y pagos</button>` : ''}
+                    ${tipo !== 'cancelada' ? _cobroBtnHtml(r) : ''}
                     ${tipo === 'realizada' ? `<button class="p360-btn pri" onclick="abrirRecomendacionPostSesion('${r.id}')">✨ Recomendación</button>` : ''}
                 </div>
             </div>`;
@@ -16358,6 +17296,71 @@
         };
 
         /* ════════════════════════════════════════════════════════════════════
+           BOTÓN DE COBRO CON ESTADO EN VIVO (Ficha 360° → Historial, Sesiones,
+           Buscador avanzado, Preparar jornada y detalle del día de Agenda).
+           Nunca en la Grilla (regla: sin datos de pago en la Grilla).
+           Lee solo las prestaciones/pagos de las sesiones visibles (consultas
+           "in" de a 30), no la colección entera. Un botón muestra:
+             🟢 $150.000 · Pagado (Efectivo) · 🟡 Debe $50.000 (de $150.000) · ⚪ Cargar cobro
+           ════════════════════════════════════════════════════════════════════ */
+        const _cobroCache = new Map();      // reservaId → { prest, pagos, ms }
+        const _cobroReservasExtra = new Map(); // reservas que no están en todasLasReservas (Resumen, buscadores)
+        let _cobroPintadoProgramado = false;
+
+        function _cobroReservaDe(id) {
+            return (todasLasReservas || []).find(r => r.id === id) || _cobroReservasExtra.get(id) || null;
+        }
+        function _cobroRegistrarReservas(lista) { (lista || []).forEach(r => { if (r && r.id) _cobroReservasExtra.set(r.id, r); }); }
+
+        function _cobroBtnHtml(r) {
+            if (!r || !r.id || !esReservaActiva(r)) return '';
+            _cobroReservasExtra.set(r.id, r);
+            if (!_cobroPintadoProgramado) { _cobroPintadoProgramado = true; setTimeout(() => { _cobroPintadoProgramado = false; _cobroPintarVisibles(); }, 0); }
+            const c = _cobroCache.get(r.id);
+            const e = c ? estadoCobro(c.prest, c.pagos) : null;
+            return `<button type="button" class="cobro-btn ${e ? 'cobro-' + e.tono : 'cobro-cargando'}" data-cobro-id="${escapeHtml(r.id)}" onclick="event.stopPropagation();abrirCobro('${_jsArg(r.id)}')" title="Precio y pagos de esta sesión">${e ? `${e.icono} ${escapeHtml(e.texto)}` : '💳 Cobro…'}</button>`;
+        }
+
+        async function _cobroAsegurar(ids, forzar) {
+            const faltan = [...new Set(ids)].filter(id => forzar || !_cobroCache.has(id));
+            for (let i = 0; i < faltan.length; i += 30) {
+                const lote = faltan.slice(i, i + 30);
+                const [ps, pg] = await Promise.all([
+                    getDocs(query(collection(db, 'prestaciones'), where('reservaId', 'in', lote))),
+                    getDocs(query(collection(db, 'pagos'), where('prestacionId', 'in', lote))),
+                ]);
+                const prest = new Map(); ps.forEach(d => prest.set(d.data().reservaId || d.id, d.data()));
+                const pagos = new Map(); pg.forEach(d => { const p = d.data(); if (!pagos.has(p.prestacionId)) pagos.set(p.prestacionId, []); pagos.get(p.prestacionId).push(p); });
+                // prestaciones viejas sin campo reservaId: se leen por id
+                await Promise.all(lote.filter(id => !prest.has(id)).map(async id => { try { const s = await getDoc(doc(db, 'prestaciones', id)); if (s.exists()) prest.set(id, s.data()); } catch (_) {} }));
+                lote.forEach(id => _cobroCache.set(id, { prest: prest.get(id) || null, pagos: pagos.get(id) || [], ms: Date.now() }));
+            }
+        }
+        function _cobroPintarBoton(btn) {
+            const c = _cobroCache.get(btn.dataset.cobroId);
+            if (!c) return;
+            const e = estadoCobro(c.prest, c.pagos);
+            btn.className = 'cobro-btn cobro-' + e.tono;
+            btn.textContent = `${e.icono} ${e.texto}`;
+        }
+        async function _cobroPintarVisibles() {
+            const btns = [...document.querySelectorAll('[data-cobro-id]')];
+            if (!btns.length) return;
+            try { await _cobroAsegurar(btns.map(b => b.dataset.cobroId)); }
+            catch (e) { console.warn('Estado de cobro no disponible:', e); btns.forEach(b => { if (b.classList.contains('cobro-cargando')) b.textContent = '💳 Precio y pagos'; }); return; }
+            document.querySelectorAll('[data-cobro-id]').forEach(_cobroPintarBoton);
+        }
+        window._cobroRefrescar = async (reservaId) => {
+            try { await _cobroAsegurar([reservaId], true); } catch (_) { _cobroCache.delete(reservaId); }
+            document.querySelectorAll(`[data-cobro-id="${window.CSS && CSS.escape ? CSS.escape(reservaId) : reservaId}"]`).forEach(_cobroPintarBoton);
+        };
+        window.abrirCobro = (reservaId) => {
+            const r = _cobroReservaDe(reservaId);
+            if (!r) { mostrarAviso('No se encontró la sesión.'); return; }
+            window.abrirPrecioPagos(r.id, _pacienteMatchKey(r), _pacienteNombreDisplay(r), r.servicio || '');
+        };
+
+        /* ════════════════════════════════════════════════════════════════════
            CONTROL DE SESIONES (Pacientes y Fichas → ⏱️ Control de sesiones)
            HIFU corporal: plazo cumplido a los 45 días · Crio: a los 30 días,
            contados desde la ÚLTIMA SESIÓN REALIZADA de cada tratamiento.
@@ -16658,8 +17661,9 @@
                     <td data-l="Paciente"><button class="p360-link" onclick="abrirFicha360Enc('${_jsArg(p.clave)}','historial')">${escapeHtml(p.nombre)}</button></td>
                     <td data-l="Estado">${_baEstadoBadge(p.estado)}</td>
                     <td data-l="Servicio">${escapeHtml(r.servicio || '—')}</td>
-                    <td data-l="Box">${escapeHtml(_baBox(r))}</td></tr>`).join('');
-                cont.innerHTML = `<div class="p360-tabla-wrap"><table class="p360-tabla"><thead><tr><th>Fecha</th><th>Hora</th><th>Paciente</th><th>Estado</th><th>Servicio</th><th>Box</th></tr></thead><tbody>${filas}</tbody></table></div>`
+                    <td data-l="Box">${escapeHtml(_baBox(r))}</td>
+                    <td data-l="Cobro">${_cobroBtnHtml(r)}</td></tr>`).join('');
+                cont.innerHTML = `<div class="p360-tabla-wrap"><table class="p360-tabla"><thead><tr><th>Fecha</th><th>Hora</th><th>Paciente</th><th>Estado</th><th>Servicio</th><th>Box</th><th>Cobro</th></tr></thead><tbody>${filas}</tbody></table></div>`
                     + (res.sesiones.length > LIM ? `<p class="p360-ayuda">Se muestran ${LIM} de ${res.sesiones.length}; el PDF incluye todas.</p>` : '');
                 return;
             }
