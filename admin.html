@@ -1630,6 +1630,27 @@
             .gc-ctx, .gc-ctx-ultima { display: none; }
         }
 
+        /* ── Control de sesiones ── */
+        .cs-contadores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+        .cs-contador { display: flex; align-items: center; gap: 12px; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font: inherit; color: var(--ink); cursor: pointer; min-width: 0; }
+        .cs-contador:hover { border-color: var(--forest); }
+        .cs-contador-ico { font-size: 22px; }
+        .cs-contador-num { display: block; font-size: 26px; font-weight: 800; color: var(--forest); line-height: 1.1; }
+        .cs-contador-lbl { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+        .cs-filtros #cs-busq { min-width: 220px; flex: 1; }
+        .cs-estado { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+        .cs-estado small { font-weight: 600; }
+        .cs-cumplido { background: var(--success-soft, #EAF6EF); color: var(--forest); border-color: #A9D3BC; }
+        .cs-espera { background: var(--warning-soft); color: var(--warning); border-color: #E0C989; }
+        .cs-sin { background: var(--surface-2, #F4F4F1); color: var(--ink-soft); border-color: var(--border); }
+        .cs-tabla tr.cs-fila-cumplido td:first-child { box-shadow: inset 3px 0 0 var(--forest); }
+        @media (max-width: 560px) {
+            .cs-contadores { grid-template-columns: 1fr; }
+            .cs-filtros #cs-busq, .cs-filtros select { flex: 1 1 100%; width: 100%; min-width: 0; }
+            .cs-filtros .p360-seg { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+            .cs-filtros .p360-seg button { border-left: none; border-top: 1px solid var(--border); }
+        }
+
         /* ── Buscador avanzado + duplicados ── */
         .ba-filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
         .ba-col { min-width: 0; }
@@ -1862,6 +1883,10 @@
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 3.5h13l-5 6v4.5l-3 1.5v-6Z" stroke-linejoin="round"/></svg>
                         Buscador avanzado
                     </button>
+                    <button class="btn-nav nav-sub" id="btn-control-sesiones" onclick="navegar('control-sesiones')">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="9.5" r="6.3"/><path d="M9 6v3.7l2.4 1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 1.8h4" stroke-linecap="round"/></svg>
+                        Control de sesiones
+                    </button>
                     <button class="btn-nav nav-sub" id="btn-buscador-sesiones" onclick="navegar('buscador-sesiones')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7.8" cy="7.8" r="5"/><path d="M15.3 15.3 11.5 11.5" stroke-linecap="round"/></svg>
                         Sesiones
@@ -1984,6 +2009,7 @@
             <div class="bsh-section">
                 <span class="bsh-label">Atención</span>
                 <button class="bsh-item" onclick="navegar('buscador-avanzado');cerrarBottomSheet()">🎯 Buscador avanzado</button>
+                <button class="bsh-item" onclick="navegar('control-sesiones');cerrarBottomSheet()">⏱️ Control de sesiones</button>
                 <button class="bsh-item" onclick="navegar('recordatorios');cerrarBottomSheet()">🔔 Recordatorios y retorno</button>
                 <button class="bsh-item" onclick="navegar('recomendaciones');cerrarBottomSheet()">✨ Recomendaciones post-sesión</button>
                 <button class="bsh-item" onclick="navegar('historias');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 2.2h6.1L14 5.6v10.2a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1Z"/><path d="M10.4 2.2V5.6H14"/><path d="M5.7 9h5.5M5.7 11.5h5.5M5.7 14h3.5" stroke-linecap="round"/></svg> Historias</button>
@@ -2193,6 +2219,37 @@
                         </div>
                     </div>
                     <div id="ba-resultados"><div class="p360-cargando">Cargando reservas…</div></div>
+                </div>
+            </div>
+
+            <div id="sec-control-sesiones" class="section">
+                <div class="p360-sec-head">
+                    <div>
+                        <h3 class="p360-sec-title">Control de sesiones</h3>
+                        <p class="p360-sec-sub">Pacientes que cumplieron el plazo de seguimiento desde su <b>última sesión realizada</b>: HIFU corporal a los 45 días y Crio a los 30 días. Cada tratamiento se cuenta por separado; los turnos futuros o cancelados no reinician el contador.</p>
+                    </div>
+                    <div class="p360-acc">
+                        <button class="btn-mini" onclick="csRecargar()" title="Volver a leer las reservas de Firestore">↻ Actualizar datos</button>
+                    </div>
+                </div>
+                <div class="cs-contadores" id="cs-contadores" aria-live="polite"></div>
+                <div class="p360-card">
+                    <div class="p360-filtros cs-filtros">
+                        <input type="search" id="cs-busq" class="select-input" placeholder="Buscar cliente o DNI…" oninput="csRender()" aria-label="Buscar cliente">
+                        <select id="cs-trat" class="select-input" onchange="csRender()" aria-label="Tratamiento">
+                            <option value="todos">Todos los tratamientos</option>
+                            <option value="hifu_corporal">HIFU corporal (45 días)</option>
+                            <option value="crio">Crio (30 días)</option>
+                        </select>
+                        <div class="p360-seg" id="cs-estado-seg" role="group" aria-label="Estado">
+                            <button type="button" data-e="todos" class="activo" onclick="csSetEstado('todos')">Todos</button>
+                            <button type="button" data-e="cumplido" onclick="csSetEstado('cumplido')">✅ Plazo cumplido</button>
+                            <button type="button" data-e="espera" onclick="csSetEstado('espera')">⏳ En espera</button>
+                            <button type="button" data-e="sin_sesion" onclick="csSetEstado('sin_sesion')">⚪ Sin sesión</button>
+                        </div>
+                    </div>
+                    <div id="cs-resultados" style="margin-top:12px;"><div class="p360-cargando">Cargando sesiones…</div></div>
+                    <p class="p360-ayuda" id="cs-nota"></p>
                 </div>
             </div>
 
@@ -2979,6 +3036,7 @@
         } from "/js/planificacion-paciente.js";
         import { initDuplicarMes } from "/js/duplicar-mes-ui.js";
         import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
+        import { TRATAMIENTOS_CONTROL, calcularControl, filtrarControl, contarCumplidos, textoEstado, esHifuSinZona } from "/js/control-sesiones.js";
         import { normalizarServiciosBox, serializarServiciosBox, serviciosDelBox, resolverServicioAlArrastrar } from "/js/grilla-servicio-box.js";
         import {
             PREF_TRATAMIENTOS, PREF_ESTADOS, PREF_FRANJAS, PREF_PERIODOS, PREF_DIAS,
@@ -11774,7 +11832,7 @@
         // sus pantallas como pestañas. Cada bloque recuerda la última abierta.
         const NAV_GRUPOS = [
             { id: 'jornada', label: 'Grilla y Jornada', items: [['grilla', '📅 Grilla de boxes'], ['agenda', '🗓 Agenda mensual'], ['preparar-jornada', '📋 Preparar jornada']] },
-            { id: 'pacientes', label: 'Pacientes y Fichas', items: [['clientes', '👥 Directorio'], ['buscador-avanzado', '🎯 Buscador avanzado'], ['historias', '📄 Historias clínicas'], ['buscador-sesiones', '🔎 Sesiones'], ['buscar', '🔍 Buscar turnos']] },
+            { id: 'pacientes', label: 'Pacientes y Fichas', items: [['clientes', '👥 Directorio'], ['buscador-avanzado', '🎯 Buscador avanzado'], ['control-sesiones', '⏱️ Control de sesiones'], ['historias', '📄 Historias clínicas'], ['buscador-sesiones', '🔎 Sesiones'], ['buscar', '🔍 Buscar turnos']] },
             { id: 'seguimiento', label: 'Seguimiento y Consultas', items: [['recordatorios', '🔔 Recordatorios y retorno'], ['recomendaciones', '✨ Recomendaciones'], ['consultas', '💬 Consultas web'], ['control-consultas', '✅ Control de consultas'], ['agenda-ci', '🗓 Agenda CI']] },
             { id: 'recursos', label: 'Recursos del Espacio', items: [['servicios', '🧩 Servicios y boxes'], ['pedidos-kit', '🧴 Pedidos de kit'], ['calculadora', '⏱ Calculadora'], ['cursos', '🎓 Mis cursos']] },
             { id: 'gestion', label: 'Gestión y Cierre', items: [['resumen-mensual', '📊 Resumen mensual'], ['export', '⬇ Exportar / Jornadas'], ['@movimientos', '🕘 Movimientos']] },
@@ -11837,6 +11895,7 @@
             if (s === 'recordatorios') window.recRender?.();
             if (s === 'recomendaciones') window.recPostRender?.();
             if (s === 'buscador-avanzado') window.baAbrir?.();
+            if (s === 'control-sesiones') window.csAbrir?.();
             _navRenderGrupo(s);
         };
         // Estado inicial: la Grilla es la vista activa al cargar.
@@ -16296,6 +16355,106 @@
                 }
                 _renderConsI(fecha);
             } catch(e) { console.error('toggleSlotConsI', e); }
+        };
+
+        /* ════════════════════════════════════════════════════════════════════
+           CONTROL DE SESIONES (Pacientes y Fichas → ⏱️ Control de sesiones)
+           HIFU corporal: plazo cumplido a los 45 días · Crio: a los 30 días,
+           contados desde la ÚLTIMA SESIÓN REALIZADA de cada tratamiento.
+           Fuente única: la colección reservas completa (la misma de los PDF y
+           del Buscador avanzado). No se guarda ningún indicador: el estado se
+           calcula con la fecha de hoy (zona horaria del negocio) cada vez que
+           se dibuja, así avanza solo con los días y refleja al instante
+           sesiones nuevas, movidas o canceladas. Lógica: js/control-sesiones.js.
+           ════════════════════════════════════════════════════════════════════ */
+        const _cs = { reservas: null, leidoMs: 0, cargando: null, estado: 'todos' };
+        const CS_VIGENCIA_MS = 60000; // al volver a la pestaña se relee si pasó más de 1 minuto
+
+        function _csCargar(forzar) {
+            if (!forzar && _cs.reservas && Date.now() - _cs.leidoMs < CS_VIGENCIA_MS) return Promise.resolve(_cs.reservas);
+            if (_cs.cargando) return _cs.cargando;
+            _cs.cargando = (async () => {
+                const todas = await _fetchReservasCompletasParaExport();
+                _cs.reservas = todas.filter(esReservaExportablePdf);
+                _cs.leidoMs = Date.now();
+                return _cs.reservas;
+            })().finally(() => { _cs.cargando = null; });
+            return _cs.cargando;
+        }
+
+        // "Realizada" = mismo criterio que Sesiones realizadas del panel:
+        // reserva activa (no cancelada) cuyo horario ya terminó.
+        const _csEsRealizada = (r) => esReservaActiva(r) && !_esSesionPendiente(r);
+        const _csFecha = (iso) => iso ? iso.split('-').reverse().join('/') : '—';
+
+        function _csFilas() {
+            return calcularControl({
+                reservas: _cs.reservas || [], hoy: _hoyISOZona(ZONA_HORARIA_NEGOCIO),
+                claveDe: _pacienteMatchKey, nombreDe: _pacienteNombreDisplay, esRealizada: _csEsRealizada,
+            });
+        }
+
+        window.csAbrir = async () => {
+            const cont = document.getElementById('cs-resultados');
+            if (!_cs.reservas && cont) cont.innerHTML = '<div class="p360-cargando">Leyendo el historial de sesiones…</div>';
+            try { await _csCargar(false); }
+            catch (e) {
+                console.error('Control de sesiones:', e);
+                if (cont) cont.innerHTML = `<p class="p360-alerta err">No se pudo leer el historial de sesiones (${escapeHtml(e?.code || e?.message || 'sin conexión')}). <button class="p360-btn" onclick="csRecargar()">Reintentar</button></p>`;
+                const k = document.getElementById('cs-contadores'); if (k) k.innerHTML = '';
+                return;
+            }
+            window.csRender();
+        };
+        window.csRecargar = async () => { _cs.reservas = null; await window.csAbrir(); if (_cs.reservas) mostrarAviso('Datos actualizados'); };
+        window.csSetEstado = (e) => {
+            _cs.estado = e;
+            document.querySelectorAll('#cs-estado-seg button').forEach(b => b.classList.toggle('activo', b.dataset.e === e));
+            window.csRender();
+        };
+        window.csVerCumplidos = (trat) => {
+            const sel = document.getElementById('cs-trat'); if (sel) sel.value = trat;
+            window.csSetEstado('cumplido');
+        };
+
+        function _csBadge(f) {
+            const txt = escapeHtml(textoEstado(f));
+            if (f.estado === 'cumplido') return `<span class="cs-estado cs-cumplido"><span aria-hidden="true">✅</span> ${txt}${f.diasDesdeCumplimiento > 0 ? ` <small>(hace ${f.diasDesdeCumplimiento} d)</small>` : ' <small>(hoy)</small>'}</span>`;
+            if (f.estado === 'espera') return `<span class="cs-estado cs-espera"><span aria-hidden="true">⏳</span> ${txt}</span>`;
+            return `<span class="cs-estado cs-sin"><span aria-hidden="true">⚪</span> ${txt}</span>`;
+        }
+
+        window.csRender = () => {
+            const cont = document.getElementById('cs-resultados');
+            if (!cont || !_cs.reservas) return;
+            const filas = _csFilas();
+            const filtros = { texto: document.getElementById('cs-busq')?.value || '', tratamiento: document.getElementById('cs-trat')?.value || 'todos', estado: _cs.estado };
+            // Contadores: misma función de filtrado que el listado (respetan la búsqueda).
+            const cuenta = contarCumplidos(filas, { texto: filtros.texto });
+            document.getElementById('cs-contadores').innerHTML = TRATAMIENTOS_CONTROL.map(t => `
+                <button type="button" class="cs-contador" onclick="csVerCumplidos('${t.clave}')" title="Ver solo ${escapeHtml(t.etiqueta)} con plazo cumplido">
+                    <span class="cs-contador-ico" aria-hidden="true">${t.icono}</span>
+                    <span><span class="cs-contador-num">${cuenta[t.clave]}</span>
+                    <span class="cs-contador-lbl">${escapeHtml(t.etiqueta)} · plazo cumplido (${t.plazo}+ días)</span></span>
+                </button>`).join('');
+            const lista = filtrarControl(filas, filtros);
+            const hifuSinZona = new Set(_cs.reservas.filter(r => esHifuSinZona(r.servicio)).map(r => r.servicio));
+            document.getElementById('cs-nota').innerHTML = `Cálculo en días calendario (hora de Argentina), con la fecha de hoy ${_csFecha(_hoyISOZona(ZONA_HORARIA_NEGOCIO))}. Las reservas no registran zona corporal, así que el seguimiento es por paciente y tratamiento.`
+                + (hifuSinZona.size ? ` <b>Atención:</b> hay turnos de HIFU sin indicar si es facial o corporal (${[...hifuSinZona].map(escapeHtml).join(', ')}); no se cuentan como HIFU corporal.` : '');
+            if (!filas.length) { cont.innerHTML = '<div class="p360-vacio">Todavía no hay sesiones de HIFU corporal ni de Crio en el historial.</div>'; return; }
+            if (!lista.length) { cont.innerHTML = '<div class="p360-vacio">Ningún paciente coincide con la búsqueda y los filtros elegidos.</div>'; return; }
+            cont.innerHTML = `<div class="p360-tabla-wrap"><table class="p360-tabla cs-tabla"><thead><tr>
+                <th>Cliente</th><th>Tratamiento</th><th>Última sesión realizada</th><th>Días</th><th>Cumple el plazo</th><th>Estado</th><th></th></tr></thead><tbody>`
+                + lista.map(f => `<tr class="cs-fila-${f.estado}">
+                    <td data-l="Cliente"><button class="p360-link" onclick="abrirFicha360Enc('${_jsArg(f.clave)}','historial')">${escapeHtml(f.nombre)}</button>${f.clave.startsWith('dni:') ? `<div class="p360-muted">DNI ${escapeHtml(f.clave.slice(4))}</div>` : ''}</td>
+                    <td data-l="Tratamiento">${f.icono} <b>${escapeHtml(f.etiqueta)}</b><div class="p360-muted">${escapeHtml(f.servicioUltima || 'Plazo: ' + f.plazo + ' días')}${f.sesiones ? ` · ${f.sesiones} sesi${f.sesiones !== 1 ? 'ones' : 'ón'}` : ''}</div></td>
+                    <td data-l="Última sesión">${f.fechaUltima ? _csFecha(f.fechaUltima) : '<span class="p360-muted">Sin sesión registrada</span>'}</td>
+                    <td data-l="Días transcurridos" class="p360-hora">${f.dias == null ? '—' : f.dias}</td>
+                    <td data-l="Cumple el plazo">${f.fechaCumplimiento ? _csFecha(f.fechaCumplimiento) : '—'}</td>
+                    <td data-l="Estado">${_csBadge(f)}${f.proxima ? `<div class="p360-muted">Próximo turno: ${_csFecha(f.proxima.fecha)}</div>` : ''}</td>
+                    <td data-l=""><button class="p360-btn" onclick="abrirFicha360Enc('${_jsArg(f.clave)}','historial')">📇 Historial</button></td>
+                </tr>`).join('') + '</tbody></table></div>'
+                + `<p class="p360-ayuda">${lista.length} registro${lista.length !== 1 ? 's' : ''} · primero los de plazo cumplido (más días vencidos arriba), después los que están por cumplirse y al final los que no tienen una sesión realizada.</p>`;
         };
 
         /* ════════════════════════════════════════════════════════════════════

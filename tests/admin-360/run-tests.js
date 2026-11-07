@@ -365,6 +365,45 @@ check('la principal recibe el email faltante y las notas', fb.calls.store.get('c
 check('la principal conserva su membresía', fb.calls.store.get('clients/30111222')?.membershipActive === true);
 check('ya no quedan duplicados en el panel', /No se encontraron fichas duplicadas/.test($('dup-panel').textContent));
 
+console.log('\n=== Control de sesiones (HIFU corporal 45 d · Crio 30 d) ===');
+// Datos agregados recién acá para no alterar los escenarios anteriores.
+R('cs-h45', { dni: '31000001', nombre: 'Carla Plazo', fecha: dia(-45), hora: '10:00', servicio: 'Hi-Fu Corporal', duracionMinutos: 60 });
+R('cs-hfa', { dni: '31000001', nombre: 'Carla Plazo', fecha: dia(-3), hora: '10:00', servicio: 'Hi-Fu Facial', duracionMinutos: 60 });
+R('cs-c29', { dni: '31000002', nombre: 'Dora Espera', fecha: dia(-29), hora: '10:00', servicio: 'Criolipolisis', duracionMinutos: 30 });
+R('cs-cx', { dni: '31000002', nombre: 'Dora Espera', fecha: dia(-2), hora: '10:00', servicio: 'Criolipolisis', duracionMinutos: 30, estado: 'cancelado' });
+R('cs-c31', { dni: '31000003', nombre: 'Elsa Ambos', fecha: dia(-31), hora: '10:00', servicio: 'Criolipolisis', duracionMinutos: 30 });
+R('cs-h10', { dni: '31000003', nombre: 'Elsa Ambos', fecha: dia(-10), hora: '10:00', servicio: 'Hi-Fu Corporal', duracionMinutos: 60 });
+w.navegar('control-sesiones'); await tick(20);
+await w.csRecargar(); await tick(20);
+check('el acceso está en Pacientes y Fichas (sidebar, pestañas y menú del celular)', !!$('btn-control-sesiones') && /Control de sesiones/.test($('subtabs-bar').textContent) && [...w.document.querySelectorAll('.bsh-item')].filter(b => /Control de sesiones/.test(b.textContent)).length === 1);
+check('un solo botón en el sidebar (sin duplicados)', w.document.querySelectorAll('#btn-control-sesiones').length === 1);
+const filasCs = () => [...$('cs-resultados').querySelectorAll('tbody tr')].map(tr => tr.textContent.replace(/\s+/g, ' '));
+let fc = filasCs();
+const filaDe = (nom, trat) => fc.find(t => t.includes(nom) && t.includes(trat)) || '';
+check('HIFU corporal a los 45 días → Plazo cumplido (el HIFU facial no reinicia)', /Plazo cumplido/.test(filaDe('Carla Plazo', 'HIFU corporal')) && / 45 /.test(filaDe('Carla Plazo', 'HIFU corporal')), filaDe('Carla Plazo', 'HIFU corporal'));
+check('Crio a los 29 días → Faltan 1 día (la cancelada no reinicia)', /Faltan 1 día/.test(filaDe('Dora Espera', 'Crio')), filaDe('Dora Espera', 'Crio'));
+check('paciente con ambos: Crio cumplido y HIFU corporal faltan 35', /Plazo cumplido/.test(filaDe('Elsa Ambos', 'Crio')) && /Faltan 35 días/.test(filaDe('Elsa Ambos', 'HIFU corporal')));
+check('turno solo futuro → Sin sesión registrada (Laura, Crio)', /Sin sesión registrada/.test(filaDe('Laura Ruiz', 'Crio')));
+const orden = fc.map(t => /Plazo cumplido/.test(t) ? 0 : /Faltan/.test(t) ? 1 : 2);
+check('orden: cumplidos → en espera → sin sesión', orden.every((v, i) => i === 0 || orden[i - 1] <= v), orden.join());
+check('entre cumplidos, más días vencidos primero (Crio +1 d antes que HIFU +0 d)', fc.findIndex(t => t.includes('Elsa Ambos') && t.includes('Crio')) < fc.findIndex(t => t.includes('Carla Plazo')));
+const nums = [...$('cs-contadores').querySelectorAll('.cs-contador-num')].map(n => n.textContent);
+check('contadores visibles: HIFU corporal 1 · Crio 1', nums.join() === '1,1', nums.join());
+w.csVerCumplidos('crio'); await tick();
+fc = filasCs();
+check('tocar el contador filtra Crio con plazo cumplido (coincide con el número)', fc.length === 1 && fc[0].includes('Elsa Ambos'), fc);
+$('cs-trat').value = 'todos'; w.csSetEstado('todos'); $('cs-busq').value = 'dora'; w.csRender(); await tick();
+fc = filasCs();
+check('búsqueda por cliente', fc.length === 1 && fc[0].includes('Dora Espera'));
+// Registrar una nueva sesión de Crio a Elsa (ayer) → su contador se reinicia
+$('cs-busq').value = ''; R('cs-new', { dni: '31000003', nombre: 'Elsa Ambos', fecha: dia(-1), hora: '10:00', servicio: 'Criolipolisis', duracionMinutos: 30 });
+await w.csRecargar(); await tick(20); fc = filasCs();
+check('nueva sesión de Crio reinicia solo Crio (faltan 29) y HIFU sigue igual', /Faltan 29 días/.test(filaDe('Elsa Ambos', 'Crio')) && /Faltan 35 días/.test(filaDe('Elsa Ambos', 'HIFU corporal')));
+check('acceso a la ficha / historial', /Historial/.test($('cs-resultados').textContent) && !!$('cs-resultados').querySelector('button[onclick*="abrirFicha360Enc"]'));
+w.abrirFicha360Enc('dni:31000001', 'historial'); await tick(30);
+check('abre la Ficha 360° del paciente (pestaña historial)', $('f360-drawer').classList.contains('visible'));
+w.cerrarFicha360?.();
+
 check('sin errores de JavaScript durante la prueba', errores.length === 0, errores.join(' | '));
 console.log('\n' + (fails ? `${fails} FALLA(S)` : 'TODOS LOS FLUJOS DE ADMIN OK'));
 process.exit(fails ? 1 : 0);
