@@ -161,7 +161,7 @@ check('lista los turnos de hoy con tratamiento y box', rt.includes('Paula Gómez
 check('sin aviso previo → "Pendiente de avisar"', rt.includes('Pendiente de avisar'));
 w.recRecordar('p-hoy'); await tick(20);
 const msgRec = abiertas.map(decodeURIComponent).find(u => u.includes('wa.me/5493764111222')) || '';
-check('Recordar abre WhatsApp con día y hora', msgRec.includes('10:00') && msgRec.includes('hoy'));
+check('Recordar abre WhatsApp con fecha y hora y pide confirmar asistencia', msgRec.includes('10:00') && /para el .+ de .+ a las 10:00 hs\. ¿Nos confirmás tu asistencia\? ¡Te esperamos!/.test(msgRec), msgRec);
 check('el recordatorio NO dice tratamiento ni box', !msgRec.includes('Limpieza') && !/Box \d/.test(msgRec), msgRec);
 check('queda registrado en contactosWhatsApp (preparado)', fb.calls.store.get('contactosWhatsApp/reservas_p-hoy_recordatorio')?.estado === 'preparado');
 check('la fila pasa a "Preparado"', $('rec-turnos').textContent.includes('Preparado'));
@@ -585,7 +585,8 @@ check('✅ confirma en Firestore (confirmacionManual) y la celda muestra ✅ Con
 abiertas.length = 0;
 await w.recordarSesionDesdeGrilla('j-fac', new w.Event('click')); await tick(20);
 const waUrl = decodeURIComponent(abiertas[0] || '');
-check('📲 abre WhatsApp con nombre, servicio, hora y box', /wa\.me\/\d+/.test(waUrl) && /Marta/.test(waUrl) && /Tratamiento Facial/.test(waUrl) && /17:30/.test(waUrl) && /Box 3/.test(waUrl), waUrl);
+check('📲 recordatorio simple: nombre, fecha y hora + "¿Nos confirmás tu asistencia?"', /wa\.me\/\d+/.test(waUrl) && /^Hola Marta, te recordamos tu turno en Espacio MimarT para el .+ a las 17:30 hs\. ¿Nos confirmás tu asistencia\? ¡Te esperamos!$/.test(waUrl.split('text=')[1] || ''), waUrl);
+check('📲 el recordatorio NO dice tratamiento ni box, ni lleva emojis que llegan rotos', !/Tratamiento Facial|Box|🌿/.test(waUrl), waUrl);
 check('📲 guarda recordatorioEnviado y el botón queda "Recordado"', fb.calls.store.get('reservas/j-fac').recordatorioEnviado === true && celda().querySelectorAll('.gqa-btn')[1].classList.contains('on'));
 await w.alternarJornadaDesdeGrilla('j-fac', new w.Event('click')); await tick(20);
 check('🏷️ fuerza JORNADA (forzarJornadaManual = true) y la celda lo muestra', fb.calls.store.get('reservas/j-fac').forzarJornadaManual === true && !!celda().querySelector('.badge-jornada'));
@@ -601,6 +602,21 @@ w.verTurnos(D3); await tick(20);
 check('la CI desaparece de la Agenda al instante (sin copia fantasma)', !/12:00[\s\S]{0,400}Marta/.test(panelD3()) || !panelD3().includes('Consulta Inicial'));
 await w.eliminarConsultaDefinitiva('otra'); await tick(20);
 check('🗑 Eliminar consulta borra una consulta suelta de Firestore', !fb.calls.store.has('consultas/otra'));
+console.log('\n=== Aviso "kit listo" con detalle y total ===');
+set('pedidosKit/k2', { dni: '30111222', nombrePaciente: 'Paula Gómez', productos: ['Leche de limpieza', 'Tónico calmante', 'Gel de limpieza'], productosDetalle: [{ nombre: 'Leche de limpieza', precio: 15000 }, { nombre: 'Tónico calmante', precio: 15000 }, { nombre: 'Gel de limpieza', precio: 10000 }], totalPedido: 40000, estado: 'pendiente' });
+abiertas.length = 0;
+await w.enviarWaKit('k2', '30111222', 'Paula Gómez'); await tick(10);
+const kitMsg = decodeURIComponent((abiertas[0] || '').split('text=')[1] || '');
+check('saluda por el nombre y avisa que el kit está listo', /¡Hola Paula!/.test(kitMsg) && /kit de cuidado personalizado/.test(kitMsg) && /listo para retirar/.test(kitMsg), kitMsg);
+check('lista cada producto con su precio', /• Leche de limpieza — \$15\.000/.test(kitMsg) && /• Tónico calmante — \$15\.000/.test(kitMsg) && /• Gel de limpieza — \$10\.000/.test(kitMsg), kitMsg);
+check('muestra el total final del pedido ($40.000)', /Total del pedido: \$40\.000/.test(kitMsg), kitMsg);
+check('mantiene retiro en Farmacia Central, horario y pedido de envases', /Farmacia Central/.test(kitMsg) && /08:00 a 12:00 y de 16:00 a 20:00/.test(kitMsg) && /envases vacíos/.test(kitMsg));
+check('sin emojis que WhatsApp muestra rotos (solo símbolos básicos)', ![...kitMsg].some(ch => ch.codePointAt(0) > 0xFFFF), kitMsg);
+abiertas.length = 0;
+await w.enviarWaKit('k1', '30111222', 'Paula Gómez'); await tick(10);
+const kitViejo = decodeURIComponent((abiertas[0] || '').split('text=')[1] || '');
+check('pedido viejo sin precios por producto: lista los productos y el total guardado', /• Leche de limpieza/.test(kitViejo) && /Total del pedido: \$30\.000/.test(kitViejo), kitViejo);
+
 check('un solo listener onSnapshot (clients) en todo el panel', (html.match(/onSnapshot\(/g) || []).length === 1);
 
 check('sin errores de JavaScript durante la prueba', errores.length === 0, errores.join(' | '));

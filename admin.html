@@ -4831,6 +4831,14 @@
         // Abre WhatsApp con el texto precargado en el teléfono de quien hace
         // clic (la admin) — nunca manda nada por sí solo, requiere que la
         // persona presione Enviar dentro de WhatsApp.
+        // Texto ÚNICO del recordatorio de turno (Agenda, Grilla y Recordatorios):
+        // simple, sin tratamiento ni box, y pidiendo confirmación. Sin emojis
+        // fuera del plano básico: por el enlace wa.me algunos llegaban como "�".
+        const _textoRecordatorioTurno = (nombre, fecha, hora) => {
+            const pila = (nombre || '').toString().trim().split(' ')[0] || '';
+            const fechaFmt = (() => { try { return formatoFechaISO(fecha); } catch (_) { return fecha; } })();
+            return `Hola ${pila}, te recordamos tu turno en Espacio MimarT para el ${fechaFmt} a las ${normalizarHora(hora || '') || hora} hs. ¿Nos confirmás tu asistencia? ¡Te esperamos!`;
+        };
         window.enviarW = (tel, nombre, fecha, hora, servicio, accion, reservaId) => {
             const num = formatearTelefonoWhatsApp(tel);
             if (!num) { mostrarAviso("Sin teléfono registrado"); return; }
@@ -4838,7 +4846,7 @@
             const fechaFmt = (() => { try { return formatoFechaISO(fecha); } catch (_) { return fecha; } })();
             let texto, tipoMensaje;
             if (accion === "recordar") {
-                texto = `Hola ${nombrePila}, te recordamos tu turno en Espacio MimarT para el ${fechaFmt} a las ${hora} hs. ¡Te esperamos!`;
+                texto = _textoRecordatorioTurno(nombrePila, fecha, hora);
                 tipoMensaje = "recordatorio";
             } else if (accion === "cancelar") {
                 texto = `Hola ${nombrePila}, queremos avisarte que tu turno en Espacio MimarT del ${fechaFmt} a las ${hora} hs no puede realizarse. Comunicáte con nosotros para reprogramar.`;
@@ -12344,10 +12352,48 @@
             }
             if (!phone) { mostrarAviso('No hay teléfono registrado para este paciente.'); return; }
             var num = formatearTelefonoWhatsApp(phone);
-            var msg = '¡Hola! Te avisamos que tu kit ya está listo para retirar en Farmacia Central. Podés pasar en horario comercial, de 08:00 a 12:00 y de 16:00 a 20:00. 🌿\nUn favor: si tenés envases vacíos de tus productos anteriores, te agradecemos que los traigas para que podamos esterilizarlos y reutilizarlos. ¡Así, entre todos, reciclamos 🗑️, cuidamos el medio ambiente y mantenemos precios accesibles! Te esperamos. 💚';
-            var url = 'https://wa.me/' + num + '?text=' + encodeURIComponent(msg);
+            var pedido = null;
+            try {
+                var pSnap = await getDoc(doc(db, 'pedidosKit', pedidoId));
+                if (pSnap.exists()) pedido = pSnap.data();
+            } catch(_) {}
+            var url = 'https://wa.me/' + num + '?text=' + encodeURIComponent(_mensajeKitListo(pedido, nombre));
             window.open(url, '_blank');
         };
+
+        // Aviso "tu kit está listo" con el detalle del pedido: cada producto con
+        // su precio y el total final (precios en pesos, como los guarda
+        // kit-facial.html). Solo símbolos del plano básico (✨ • ✔ ♻ ❤): por
+        // el enlace wa.me algunos emojis llegaban como "�".
+        function _mensajeKitListo(pedido, nombre) {
+            var pesos = function(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('es-AR'); };
+            var pila = String((pedido && pedido.nombrePaciente) || nombre || '').trim().split(' ')[0];
+            var detalle = pedido && Array.isArray(pedido.productosDetalle) && pedido.productosDetalle.length
+                ? pedido.productosDetalle.map(function(p) { return { nombre: p.nombre, precio: p.precio }; })
+                : ((pedido && Array.isArray(pedido.productos)) ? pedido.productos.map(function(n) { return { nombre: n, precio: null }; }) : []);
+            var total = pedido && pedido.totalPedido != null ? Number(pedido.totalPedido)
+                : detalle.reduce(function(s, p) { return s + (Number(p.precio) || 0); }, 0);
+            var lineas = [];
+            lineas.push('✨ ¡Hola' + (pila ? ' ' + pila : '') + '! ✨');
+            lineas.push('');
+            lineas.push('Tu *kit de cuidado personalizado* de Espacio MimarT ya está listo para retirar ❤');
+            if (detalle.length) {
+                lineas.push('');
+                lineas.push('*Tu kit incluye:*');
+                detalle.forEach(function(p) { lineas.push('• ' + p.nombre + (p.precio != null && Number(p.precio) > 0 ? ' — ' + pesos(p.precio) : '')); });
+            }
+            if (total > 0) {
+                lineas.push('');
+                lineas.push('✔ *Total del pedido: ' + pesos(total) + '*');
+            }
+            lineas.push('');
+            lineas.push('Podés retirarlo en *Farmacia Central*, en horario comercial: de 08:00 a 12:00 y de 16:00 a 20:00.');
+            lineas.push('');
+            lineas.push('♻ Un favor: si tenés envases vacíos de tus productos anteriores, traelos así podemos esterilizarlos y reutilizarlos. Entre todos cuidamos el medio ambiente y mantenemos precios accesibles.');
+            lineas.push('');
+            lineas.push('¡Te esperamos! ❤');
+            return lineas.join('\n');
+        }
         
         window.marcarEntregadoKit = async function(pedidoId) {
             if (!pedidoId) return;
@@ -16358,10 +16404,7 @@
             const num = formatearTelefonoWhatsApp(r.phone || r.telefono);
             if (!num) { mostrarAviso('Sin teléfono registrado'); return; }
             const pila = _pacienteNombreDisplay(r).split(' ')[0];
-            const hora = normalizarHora(r.hora);
-            const cuando = r.fecha === fechaHoyISO() ? 'hoy' : r.fecha === _sumarDiasISO(fechaHoyISO(), 1) ? 'mañana' : `el ${formatoFechaISO(r.fecha)}`;
-            const box = GRILLA_BOXES.find(x => x.id === _grilla_boxDeReserva(r));
-            const texto = `Hola ${pila}, te recordamos tu sesión de ${r.servicio || 'tratamiento'} en Espacio MimarT ${cuando} (${formatoFechaISO(r.fecha)}) a las ${hora} hs${box ? ` en el ${box.title}` : ''}. ¿Nos confirmás tu asistencia? ¡Te esperamos! 🌿`;
+            const texto = _textoRecordatorioTurno(pila, r.fecha, r.hora);
             // Se abre primero (dentro del clic) para que el navegador no lo bloquee.
             window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, '_blank');
             registrarContactoWA(r.id, 'recordatorio', pila);
@@ -17064,10 +17107,8 @@
             const num = formatearTelefonoWhatsApp(r.phone);
             if (!num) { mostrarAviso('Sin teléfono registrado'); return; }
             const pila = _pacienteNombreDisplay(r).split(' ')[0];
-            const hora = normalizarHora(r.hora);
-            const cuando = r.fecha === fechaHoyISO() ? 'hoy' : r.fecha === _sumarDiasISO(fechaHoyISO(), 1) ? 'mañana' : `el ${formatoFechaISO(r.fecha)}`;
             // Solo día y hora: el recordatorio nunca dice qué tratamiento ni box (a pedido).
-            const texto = `Hola ${pila}, te recordamos tu turno en Espacio MimarT ${cuando} (${formatoFechaISO(r.fecha)}) a las ${hora} hs. ¿Nos confirmás tu asistencia? ¡Te esperamos! 🌿`;
+            const texto = _textoRecordatorioTurno(pila, r.fecha, r.hora);
             registrarContactoWA(r.id, 'recordatorio', pila);
             window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, '_blank');
             recRenderTurnos();
