@@ -92,7 +92,7 @@ console.log('\n=== Grilla: barra de herramientas ===');
 const tools = w.document.querySelector('.grilla-tools').textContent;
 check('"Pendientes de reagendar" ya no está en la barra de la Grilla', !/Pendientes de reagendar/.test(tools));
 check('siguen + Horario extra, Duplicar mes, Vista clásica y Cristina', /Horario extra/.test(tools) && /Duplicar mes/.test(tools) && /Vista clásica/.test(tools) && !!$('btn-grilla-cristina'));
-check('hay "Hora actual" y selector de densidad', !!$('btn-grilla-ahora') && !!$('btn-grilla-densidad'));
+check('hay "Hora actual" (sin selector de densidad)', !!$('btn-grilla-ahora') && !$('btn-grilla-densidad'));
 check('"Pendientes de reagendar" tampoco aparece como botón en Agenda', ![...w.document.querySelectorAll('button')].some(b => /Pendientes de reagendar/.test(b.textContent)));
 
 console.log('\n=== Grilla: disponibilidad y última sesión, sin datos financieros ===');
@@ -111,10 +111,8 @@ check('cada turno tiene el acceso discreto 💳 (sin montos)', /class="gc-cobro-
 check('NO consulta prestaciones ni pagos al dibujar la Grilla', !fb.calls.lecturas.some(p => p === 'pagos' || p === 'prestaciones'), fb.calls.lecturas.join(','));
 check('resumen del día solo con turnos, pacientes y boxes', /2<\/b> turnos/.test($('grilla-resumen-dia').innerHTML) && /Box 3: 1/.test($('grilla-resumen-dia').textContent), $('grilla-resumen-dia').textContent);
 const filas15 = () => [...w.document.querySelectorAll('#grilla-tbody tr.grilla-row-15')];
-w.grillaToggleDensidad(); await tick();
-check('vista compacta activa la clase y oculta filas :15/:45 sin turnos', $('grilla-table').classList.contains('grilla-compacta') && filas15().some(tr => !tr.classList.contains('gr-con-inicio')));
-check('el botón cambia a "Vista detallada · 15 min"', /detallada/.test($('btn-grilla-densidad').textContent));
-w.grillaToggleDensidad(); await tick();
+check('la "Vista compacta · 30 min" ya no existe (botón, función y clase)', !$('btn-grilla-densidad') && typeof w.grillaToggleDensidad === 'undefined' && !$('grilla-table').classList.contains('grilla-compacta'));
+check('la Grilla siempre muestra las filas de :15/:45', filas15().length > 0 && filas15().every(tr => w.getComputedStyle(tr).display !== 'none'));
 check('encabezado sticky con z-index 10 en el CSS', /\.grilla-table thead th \{ z-index: 10; \}/.test(html));
 
 console.log('\n=== Ficha 360° desde la Grilla ===');
@@ -275,7 +273,8 @@ check('y sus últimas sesiones con box y tratamiento', ctxReg.includes('Hi-Fu Fa
 
 console.log('\n=== Navegación en 5 bloques con pestañas internas ===');
 check('el sidebar tiene los 5 bloques', ['jornada', 'pacientes', 'seguimiento', 'recursos', 'gestion'].every(g => $('btn-g-' + g)));
-check('ninguna sección quedó sin acceso', ['grilla', 'agenda', 'preparar-jornada', 'clientes', 'historias', 'buscador-sesiones', 'recordatorios', 'recomendaciones', 'consultas', 'control-consultas', 'agenda-ci', 'servicios', 'pedidos-kit', 'calculadora', 'cursos', 'resumen-mensual', 'export'].every(s => $('btn-' + s)));
+check('ninguna sección quedó sin acceso', ['grilla', 'agenda', 'preparar-jornada', 'clientes', 'buscador-sesiones', 'recordatorios', 'recomendaciones', 'consultas', 'control-consultas', 'servicios', 'pedidos-kit', 'cursos', 'resumen-mensual', 'export'].every(s => $('btn-' + s)));
+check('Agenda CI, Calculadora e Historias ya no están (menú, celular, secciones ni pestañas)', ['historias', 'agenda-ci', 'calculadora'].every(s => !$('btn-' + s) && !$('sec-' + s) && !w.document.querySelector(`[onclick*="navegar('${s}')"]`)) && typeof w.cargarCalculadora === 'undefined' && typeof w.renderHistorias === 'undefined' && typeof w.consIIrHoy === 'undefined');
 w.navegar('control-consultas'); await tick(20);
 const bar = $('subtabs-bar');
 check('la sección muestra las pestañas de su bloque', !bar.hidden && /Recordatorios y retorno/.test(bar.textContent) && /Consultas web/.test(bar.textContent) && bar.querySelector('.subtab.activo')?.textContent.includes('Control de consultas'));
@@ -548,13 +547,7 @@ pg = pagosDe('p-fut');
 check('seña mixta guardada: 10 efectivo + 20 transferencia, precio 60', pg.length === 2 && pg.every(p => p.esMixto) && pg.map(p => p.monto + p.metodoPago).sort().join() === '10efectivo,20transferencia' && fb.calls.store.get('prestaciones/p-fut')?.precioAcordado === 60, pg.map(p => [p.monto, p.metodoPago]));
 w._ppCerrar(); await tick(20);
 
-console.log('\n=== Glow up: Historias, Agenda, Directorio y encabezado ===');
-w.navegar('historias'); await tick(30);
-w.renderHistorias(w.todasLasHistorias || [{ id: '30111222', dni: '30111222', nombreLimpio: 'Paula Gómez', alergias: 'Penicilina', medicacion: 'No', objetivo: 'Mejorar textura', zona: 'Rostro' }]); await tick();
-const hcard = $('contenedorHistorias').querySelector('.hc-card');
-check('historias como card médica: cabecera con nombre y botón a Ficha 360°', hcard && /Paula Gómez/.test(hcard.querySelector('.hc-head').textContent) && /Ficha 360°/.test(hcard.textContent));
-check('alergias existentes resaltadas en ámbar', hcard && hcard.querySelector('.hc-alerta') && /Penicilina/.test(hcard.querySelector('.hc-alerta').textContent));
-check('ningún campo se pierde (objetivo y zona siguen visibles)', hcard && /Mejorar textura/.test(hcard.textContent) && /Rostro/.test(hcard.textContent));
+console.log('\n=== Glow up: Agenda, Directorio y encabezado ===');
 w.navegar('agenda'); await tick(30);
 check('Agenda: días con turnos libres destacados y hoy marcado', !!w.document.querySelector('#calendarGrid .day.day-libre, .day.day-libre') && !!w.document.querySelector('.day.day-today'));
 check('Agenda: 4 KPI con ícono', w.document.querySelectorAll('#kpiGrid .kpi-ico').length === 4);
@@ -563,6 +556,52 @@ check('menú de usuario con íconos y separador antes de Salir', $('user-drop').
 $('jornadaTypeSelectorHeader').style.display = 'block';
 w.cerrarSelectorJornada(); await new Promise(r => setTimeout(r, 250));
 check('selector de jornada: botón ✕ Cerrar lo oculta', $('jornadaTypeSelectorHeader').style.display === 'none' && /✕ Cerrar/.test($('jornadaTypeSelectorHeader').textContent));
+
+console.log('\n=== Jornada vs Normal · Consulta Inicial única · acciones rápidas ===');
+const D3 = dia(3);
+// Facial en Box 3 a las 17:30 que quedó con origen "jornada" (bug) + un turno real de jornada crio.
+R('j-fac', { dni: '28777666', nombre: 'Marta Sosa', fecha: D3, hora: '17:30', servicio: 'Tratamiento Facial', box: 'b3', duracionMinutos: 30, origen: 'jornada', phone: '3764777666' });
+R('j-crio', { dni: '28777666', nombre: 'Marta Sosa', fecha: D3, hora: '10:00', servicio: 'Jornada de Criolipólisis', box: 'b2', duracionMinutos: 30, origen: 'jornada' });
+// CI agendada desde el panel: reserva + consulta vinculada, y una copia huérfana con la misma fecha·hora·paciente.
+R('ci-1', { dni: '28777666', nombre: 'Marta Sosa', fecha: D3, hora: '12:00', servicio: 'Consulta Inicial', box: 'b1', duracionMinutos: 30, consultaId: 'ci_ci-1', esConsultaInicial: true, origen: 'jornada' });
+set('consultas/ci_ci-1', { nombre: 'Marta Sosa', fecha: D3, hora: '12:00', estado: 'pendiente', reservaId: 'ci-1' });
+set('consultas/huerfana', { nombre: 'Marta Sosa', fecha: D3, hora: '12:00', estado: 'pendiente' });
+set('consultas/otra', { nombre: 'Otra Persona', fecha: D3, hora: '15:00', estado: 'pendiente' });
+await w.marcarConfirmacionManual('p-fut', false); await tick(80); // recarga todo desde Firestore
+w.verTurnos(D3); await tick(30);
+const panelD3 = () => $('panelDetalleDia').innerHTML;
+const tarjetaDe = (txt) => [...$('panelDetalleDia').querySelectorAll('.detalle-dia-card, .tarjeta-reserva, [class*="card"]')].filter(c => c.textContent.includes(txt));
+check('Tratamiento Facial con origen legacy "jornada" se muestra NORMAL', /Tratamiento Facial/.test(panelD3()) && (panelD3().match(/badge-jornada/g) || []).length === 1, (panelD3().match(/class="tag-origen[^"]*"/g) || []).join(' '));
+check('el turno real de la jornada (Jornada de Criolipólisis) sigue como JORNADA', /badge-jornada"[^>]*>Jornada/.test(panelD3()));
+check('la Consulta Inicial lleva su badge propio (nunca JORNADA)', /badge-ci/.test(panelD3()));
+check('la CI aparece UNA sola vez (sin la consulta vinculada ni la copia huérfana)', !panelD3().includes("eliminarConsultaDefinitiva('ci_ci-1')") && !panelD3().includes("eliminarConsultaDefinitiva('huerfana')"));
+check('una consulta web de otra persona sí se sigue mostrando (con 🗑 Eliminar)', panelD3().includes("eliminarConsultaDefinitiva('otra')"));
+// Acciones rápidas en la Grilla
+w.navegar('grilla'); w.grillaIrHoy(); await tick(20); w.grillaNavFecha(3); await tick(60);
+const celda = () => [...$('grilla-tbody').querySelectorAll('.grilla-celda-ocupada')].find(c => c.textContent.includes('Tratamiento Facial'));
+check('cada turno de la Grilla tiene la barra ✅ 📲 🏷️ 🗑️', celda() && celda().querySelectorAll('.grilla-quick-actions .gqa-btn').length === 4 && /⏳/.test(celda().querySelector('.gqa-estado').textContent));
+await w.confirmarTurnoDesdeGrilla('j-fac', new w.Event('click')); await tick(20);
+check('✅ confirma en Firestore (confirmacionManual) y la celda muestra ✅ Confirmado', fb.calls.store.get('reservas/j-fac').confirmacionManual === true && /Confirmado/.test(celda().querySelector('.gqa-estado').textContent));
+abiertas.length = 0;
+await w.recordarSesionDesdeGrilla('j-fac', new w.Event('click')); await tick(20);
+const waUrl = decodeURIComponent(abiertas[0] || '');
+check('📲 abre WhatsApp con nombre, servicio, hora y box', /wa\.me\/\d+/.test(waUrl) && /Marta/.test(waUrl) && /Tratamiento Facial/.test(waUrl) && /17:30/.test(waUrl) && /Box 3/.test(waUrl), waUrl);
+check('📲 guarda recordatorioEnviado y el botón queda "Recordado"', fb.calls.store.get('reservas/j-fac').recordatorioEnviado === true && celda().querySelectorAll('.gqa-btn')[1].classList.contains('on'));
+await w.alternarJornadaDesdeGrilla('j-fac', new w.Event('click')); await tick(20);
+check('🏷️ fuerza JORNADA (forzarJornadaManual = true) y la celda lo muestra', fb.calls.store.get('reservas/j-fac').forzarJornadaManual === true && !!celda().querySelector('.badge-jornada'));
+await w.alternarJornadaDesdeGrilla('j-fac', new w.Event('click')); await tick(20);
+check('🏷️ de nuevo → NORMAL (forzarJornadaManual = false)', fb.calls.store.get('reservas/j-fac').forzarJornadaManual === false && !celda().querySelector('.badge-jornada'));
+// 🗑️ en la CI: borra la reserva y en cascada la consulta vinculada y la huérfana; la de otra persona queda.
+pendiente = w.grillaEliminarTurnoDefinitivo('ci-1', new w.Event('click')); await tick();
+w.cerrarModalBorradoReserva(true); await pendiente; await tick(30);
+check('🗑️ borra la reserva de la CI', !fb.calls.store.has('reservas/ci-1'));
+check('… y en cascada la consulta vinculada y la copia huérfana', !fb.calls.store.has('consultas/ci_ci-1') && !fb.calls.store.has('consultas/huerfana'));
+check('… sin tocar la consulta de otra persona', fb.calls.store.has('consultas/otra'));
+w.verTurnos(D3); await tick(20);
+check('la CI desaparece de la Agenda al instante (sin copia fantasma)', !/12:00[\s\S]{0,400}Marta/.test(panelD3()) || !panelD3().includes('Consulta Inicial'));
+await w.eliminarConsultaDefinitiva('otra'); await tick(20);
+check('🗑 Eliminar consulta borra una consulta suelta de Firestore', !fb.calls.store.has('consultas/otra'));
+check('un solo listener onSnapshot (clients) en todo el panel', (html.match(/onSnapshot\(/g) || []).length === 1);
 
 check('sin errores de JavaScript durante la prueba', errores.length === 0, errores.join(' | '));
 console.log('\n' + (fails ? `${fails} FALLA(S)` : 'TODOS LOS FLUJOS DE ADMIN OK'));

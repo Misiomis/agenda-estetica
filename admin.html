@@ -1397,7 +1397,6 @@
         #btn-grilla-ahora.activo { border-color: #C2185B; color: #9C1450; }
         .grilla-resumen-dia { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); margin: 6px 0 10px; line-height: 1.6; }
         .grilla-resumen-dia b { color: var(--ink); }
-        .grilla-compacta tr.grilla-row-15:not(.gr-con-inicio) { display: none; }
         tr.grilla-row-ahora > td { box-shadow: inset 0 2px 0 #D81B60; }
         tr.grilla-row-ahora > td.grilla-td-hora { color: #9C1450 !important; }
         .grilla-ahora-pill { display: block; font-size: 8.5px; font-weight: 800; color: #fff; background: #D81B60; border-radius: 999px; padding: 0 4px; margin-top: 1px; line-height: 1.5; white-space: nowrap; }
@@ -1976,27 +1975,6 @@
         body.compact-mode #kpiGrid .kpi-card { padding-left: 50px; min-height: 0; }
         body.compact-mode #kpiGrid .kpi-ico { width: 28px; height: 28px; font-size: 14px; left: 11px; }
 
-        /* Historias: card médica */
-        #contenedorHistorias { display: grid; gap: 12px; }
-        .hc-card { background: var(--bg-card, #fff); border: 1px solid var(--border-color-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 14px 16px; border-top: 3px solid var(--color-primary-main); }
-        .hc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color-soft); }
-        .hc-head-txt { min-width: 0; }
-        .hc-head h3 { margin: 0; font-size: 15px; font-weight: 800; color: #163026; }
-        .hc-head span { display: block; font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-        .hc-head .btn-sm { flex-shrink: 0; }
-        .hc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 0; }
-        .hc-campo { background: var(--bg-subtle); border: 1px solid var(--border-color-soft); border-radius: var(--radius-sm); padding: 7px 10px; min-width: 0; }
-        .hc-campo dt { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); }
-        .hc-campo dd { margin: 3px 0 0; font-size: 13px; color: var(--text-primary); word-break: break-word; }
-        .hc-campo.hc-si { border-color: #D9E6DE; background: #F4F8F5; }
-        .hc-campo.hc-alerta { background: #FFFBEB; border-color: #FDE68A; }
-        .hc-campo.hc-alerta dt, .hc-campo.hc-alerta dd { color: #92400E; }
-        .hc-campo.hc-alerta dd { font-weight: 700; }
-        .hc-otros { margin-top: 10px; }
-        .hc-otros summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--color-primary-main); margin-bottom: 8px; }
-        .hc-vacia { margin: 0; font-size: 13px; color: var(--text-secondary); }
-        @media (max-width: 560px) { .hc-head { flex-direction: column; } .hc-grid { grid-template-columns: 1fr 1fr; } }
-
         /* Mis cursos: misma paleta clara Sage & Champagne */
         #sec-cursos {
             --cm-fondo: transparent;
@@ -2036,6 +2014,119 @@
         .hdr-drop-item { align-items: center; gap: 10px; border-radius: 8px; transition: all 0.2s ease; }
         .hdi-ico { width: 20px; flex: 0 0 20px; text-align: center; font-size: 14px; line-height: 1; }
         .hdr-drop-divider { margin: 6px 4px; background: var(--border-color-soft); }
+
+        /* ═══════════ BOTANICAL LUXURY & AURORA GLASS ═══════════
+           Capa final de tema: redefine los tokens (todo el panel los hereda) y
+           suma vidrio esmerilado SOLO en contenedores (no en cada celda, por
+           rendimiento). Va después de "Sage & Champagne", así que lo pisa. */
+        :root {
+            --jungle-900: #162a21;
+            --jungle-800: #1e3f2f;
+            --emerald-500: #10b981;
+            --champagne: #c89d54;
+            --aurora-bg: #f3f7f4;
+            --glass-bg: rgba(255, 255, 255, 0.84);
+            --glass-border: 1px solid rgba(30, 63, 47, 0.12);
+            --glass-shadow: 0 1px 2px rgba(20, 42, 31, 0.04), 0 18px 40px -12px rgba(20, 42, 31, 0.09);
+            --ease-lux: cubic-bezier(0.22, 1, 0.36, 1);
+            --box-1-color: #a78bfa;
+            --box-2-color: #38bdf8;
+            --box-3-color: #f59e0b;
+            --box-4-color: #10b981;
+            --bg-main: var(--aurora-bg);
+            --color-primary-main: var(--jungle-800);
+            --color-primary-dark: var(--jungle-900);
+            --color-accent-gold: var(--champagne);
+            --shadow-card: var(--glass-shadow);
+        }
+        body {
+            background-color: var(--aurora-bg);
+            background-image:
+                radial-gradient(1100px 520px at 0% 0%, rgba(16, 185, 129, 0.10), transparent 60%),
+                radial-gradient(900px 480px at 100% 0%, rgba(200, 157, 84, 0.10), transparent 62%),
+                radial-gradient(900px 520px at 0% 100%, rgba(200, 157, 84, 0.07), transparent 60%),
+                radial-gradient(1000px 560px at 100% 100%, rgba(30, 63, 47, 0.08), transparent 62%);
+            background-attachment: fixed;
+        }
+        @media (max-width: 768px) { body { background-attachment: scroll; } }
+
+        /* Superficies de cristal esmerilado */
+        .detalle-dia-card, .rm-card, .f360-card, #kpiGrid .kpi-card, .rm-kpi, .grilla-scroll-wrap, #sec-cursos .cm-card {
+            background: var(--glass-bg) !important;
+            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+            border: var(--glass-border) !important;
+            border-radius: 16px;
+            box-shadow: var(--glass-shadow);
+            transition: all 0.25s var(--ease-lux);
+        }
+        .detalle-dia-card:hover, #kpiGrid .kpi-card:hover, .rm-kpi:hover {
+            transform: translateY(-2px);
+            border-color: rgba(200, 157, 84, 0.5) !important;
+            box-shadow: 0 1px 2px rgba(20, 42, 31, 0.05), 0 22px 44px -14px rgba(20, 42, 31, 0.14), 0 0 0 3px rgba(200, 157, 84, 0.10);
+        }
+
+        /* Grilla moderna: cada celda es una cápsula con indicador del box */
+        .grilla-table { border-collapse: separate !important; border-spacing: 6px; }
+        .grilla-table th, .grilla-table td { border-color: rgba(30, 63, 47, 0.10); }
+        .grilla-table td.grilla-td-box { border-radius: 12px; border-width: 1px; }
+        .grilla-table tbody td.grilla-td-box:nth-child(2) { box-shadow: inset 3px 0 0 var(--box-1-color); }
+        .grilla-table tbody td.grilla-td-box:nth-child(3) { box-shadow: inset 3px 0 0 var(--box-2-color); }
+        .grilla-table tbody td.grilla-td-box:nth-child(4) { box-shadow: inset 3px 0 0 var(--box-3-color); }
+        .grilla-table tbody td.grilla-td-box:nth-child(5) { box-shadow: inset 3px 0 0 var(--box-4-color); }
+        .grilla-table td.grilla-td-hora { border-radius: 10px; }
+        /* Un turno de varias filas sigue siendo UNA tarjeta: los segmentos de
+           continuación cubren el espacio entre cápsulas. */
+        .grilla-table td.grilla-td-box[style*="border-top-color:transparent"] { border-top-left-radius: 0; border-top-right-radius: 0; }
+        .grilla-table td.grilla-td-box[style*="border-bottom-color:transparent"] { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+        .grilla-celda-ocupada[style*="border-top:none"] { margin-top: -7px; height: calc(100% + 7px); }
+        .grilla-table thead th {
+            position: sticky; top: 0; z-index: 20 !important;
+            background: rgba(22, 42, 33, 0.94) !important;
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            color: #f3f7f4 !important; letter-spacing: 0.05em; border-color: transparent !important;
+            border-radius: 12px;
+        }
+        .grilla-table thead th * { color: inherit !important; }
+        .grilla-table thead th .grilla-box-sub, .grilla-table thead th small { color: rgba(243, 247, 244, 0.68) !important; }
+        @media (min-width: 769px) { .grilla-table thead th { top: var(--topbar-h-real, var(--topbar-h, 0px)); } }
+        .grilla-celda-ocupada { border-radius: 12px; transition: all 0.25s var(--ease-lux); }
+        .grilla-celda-ocupada:hover { border-color: rgba(200, 157, 84, 0.5) !important; box-shadow: 0 0 0 2px rgba(200, 157, 84, 0.18), 0 10px 22px -12px rgba(20, 42, 31, 0.30); }
+        /* Solo el turno de una fila se eleva (uno de varias filas no se "parte"). */
+        .grilla-celda-ocupada:not([style*="border-radius"]):hover { transform: translateY(-2px); }
+
+        /* Acciones rápidas dentro de cada turno */
+        .grilla-quick-actions { display: flex; align-items: center; gap: 4px; width: 100%; margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(30, 63, 47, 0.12); flex-wrap: wrap; }
+        .gqa-estado { font-size: 9.5px; font-weight: 800; padding: 1px 6px; border-radius: 999px; white-space: nowrap; line-height: 1.5; }
+        .gqa-estado.ok { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .gqa-estado.pend { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+        .gqa-tag { font-size: 9px !important; padding: 1px 6px !important; }
+        .gqa-btns { display: inline-flex; gap: 2px; margin-left: auto; }
+        .gqa-btn { width: 22px; height: 22px; min-height: 0 !important; padding: 0; border: 1px solid transparent; border-radius: 7px; background: transparent; font-size: 11.5px; line-height: 1; cursor: pointer; opacity: .6; transition: all 0.25s var(--ease-lux); }
+        .gqa-btn:hover, .gqa-btn:focus-visible { opacity: 1; background: #fff; border-color: rgba(200, 157, 84, 0.5); transform: translateY(-1px); }
+        .gqa-btn.on { opacity: 1; background: #ecfdf5; border-color: #a7f3d0; }
+        .gqa-btn.gqa-del:hover { background: #fef2f2; border-color: #fecaca; }
+        @media (max-width: 768px) {
+            .gqa-txt { display: none; }
+            .gqa-btn { width: 20px; height: 20px; font-size: 10.5px; opacity: .85; }
+            .grilla-quick-actions { gap: 2px; }
+            .gqa-btns { width: 100%; margin-left: 0; flex-wrap: wrap; justify-content: space-between; }
+        }
+
+        /* Badges refinados (Agenda, Sesiones, Grilla) */
+        .tag-origen.badge-normal, .badge-normal { background: #d1fae5 !important; color: #065f46 !important; border: 1px solid #34d399 !important; }
+        .tag-origen.badge-jornada, .badge-jornada { background: linear-gradient(135deg, #fef3c7, #fde68a) !important; color: #92400e !important; border: 1px solid #f59e0b !important; }
+        .tag-origen.badge-ci, .badge-ci { background: linear-gradient(135deg, #f5f3ff, #ede9fe) !important; color: #5b21b6 !important; border: 1px solid #c4b5fd !important; }
+
+        /* Barra lateral y botones con el verde selva */
+        .sidebar .btn-nav.active:not(.nav-sub) { background: linear-gradient(135deg, var(--jungle-800), var(--jungle-900)) !important; color: #fff !important; }
+        .sidebar .btn-nav.nav-sub.active { background: rgba(16, 185, 129, 0.12) !important; color: var(--jungle-900) !important; box-shadow: inset 3px 0 0 var(--champagne); }
+        .btn-primary { background: linear-gradient(135deg, var(--jungle-800), var(--jungle-900)); border-color: var(--jungle-900); }
+        .btn-primary:hover { box-shadow: 0 8px 18px -8px rgba(22, 42, 33, 0.55), 0 0 0 3px rgba(200, 157, 84, 0.18); }
+        @media (prefers-reduced-motion: reduce) {
+            .detalle-dia-card, .rm-kpi, #kpiGrid .kpi-card, .grilla-celda-ocupada, .gqa-btn { transition: none; }
+            .detalle-dia-card:hover, .rm-kpi:hover, #kpiGrid .kpi-card:hover, .grilla-celda-ocupada:hover { transform: none; }
+        }
 
         /* ── Control de sesiones ── */
         .cs-contadores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
@@ -2283,10 +2374,6 @@
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="6" r="2.6"/><path d="M2.3 15.5c.5-3 2.2-4.6 4.7-4.6s4.2 1.6 4.7 4.6"/><circle cx="13.2" cy="5.6" r="2"/><path d="M12.2 10.8c1.9.2 3.1 1.7 3.5 4.1"/></svg>
                         Pacientes
                     </button>
-                    <button class="btn-nav nav-sub" id="btn-historias" onclick="navegar('historias')">
-                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 2.2h6.1L14 5.6v10.2a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1Z"/><path d="M10.4 2.2V5.6H14"/><path d="M5.7 9h5.5M5.7 11.5h5.5M5.7 14h3.5" stroke-linecap="round"/></svg>
-                        Historias
-                    </button>
                     <button class="btn-nav nav-sub" id="btn-buscador-avanzado" onclick="navegar('buscador-avanzado')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 3.5h13l-5 6v4.5l-3 1.5v-6Z" stroke-linejoin="round"/></svg>
                         Buscador avanzado
@@ -2325,10 +2412,6 @@
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="2.5" width="11" height="13.5" rx="1.6"/><path d="M6.5 1.6h5a1 1 0 0 1 1 1v1.3h-7V2.6a1 1 0 0 1 1-1Z"/><path d="m6.3 9.6 1.4 1.4 3.2-3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         Control de consultas
                     </button>
-                    <button class="btn-nav nav-sub" id="btn-agenda-ci" onclick="navegar('agenda-ci')">
-                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3.2" width="14" height="12.3" rx="2"/><path d="M2 7h14M6 1.5v3M12 1.5v3" stroke-linecap="round"/><path d="m6.3 11 1.4 1.4 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        Agenda CI
-                    </button>
                 </div>
             </div>
             <div class="nav-grupo-wrap" data-grupo="recursos">
@@ -2344,10 +2427,6 @@
                     <button class="btn-nav nav-sub" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 5.6 9 2.3l6.5 3.3-6.5 3.3-6.5-3.3Z"/><path d="M2.5 5.6v6.6L9 15.7l6.5-3.5V5.6M9 8.9v6.8"/></svg>
                         Kit
-                    </button>
-                    <button class="btn-nav nav-sub" id="btn-calculadora" onclick="navegar('calculadora')">
-                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="1.8" width="12" height="14.4" rx="1.8"/><path d="M5.2 4.6h7.6" stroke-linecap="round"/><circle cx="5.6" cy="8.2" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="8.2" r=".9" fill="currentColor" stroke="none"/><circle cx="12.4" cy="8.2" r=".9" fill="currentColor" stroke="none"/><circle cx="5.6" cy="11.4" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="11.4" r=".9" fill="currentColor" stroke="none"/><circle cx="12.4" cy="11.4" r=".9" fill="currentColor" stroke="none"/></svg>
-                        Calculadora
                     </button>
                     <button class="btn-nav nav-sub" id="btn-cursos" onclick="navegar('cursos')" style="position:relative">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.5 6.2 9 2.5l7.5 3.7L9 9.9 1.5 6.2Z"/><path d="M4.6 7.7v3.4c0 1.2 1.9 2.2 4.4 2.2s4.4-1 4.4-2.2V7.7M16.5 6.2v4.6" stroke-linecap="round"/></svg>
@@ -2420,17 +2499,14 @@
                 <button class="bsh-item" onclick="navegar('control-sesiones');cerrarBottomSheet()">⏱️ Control de sesiones</button>
                 <button class="bsh-item" onclick="navegar('recordatorios');cerrarBottomSheet()">🔔 Recordatorios y retorno</button>
                 <button class="bsh-item" onclick="navegar('recomendaciones');cerrarBottomSheet()">✨ Recomendaciones post-sesión</button>
-                <button class="bsh-item" onclick="navegar('historias');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 2.2h6.1L14 5.6v10.2a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1Z"/><path d="M10.4 2.2V5.6H14"/><path d="M5.7 9h5.5M5.7 11.5h5.5M5.7 14h3.5" stroke-linecap="round"/></svg> Historias</button>
                 <button class="bsh-item" onclick="navegar('consultas');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.3 4.6a1.6 1.6 0 0 1 1.6-1.6h9.2a1.6 1.6 0 0 1 1.6 1.6v6.3a1.6 1.6 0 0 1-1.6 1.6H7.8l-3.3 2.9v-2.9H3.9a1.6 1.6 0 0 1-1.6-1.6Z"/></svg> Consultas</button>
                 <button class="bsh-item" onclick="navegar('control-consultas');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="2.5" width="11" height="13.5" rx="1.6"/><path d="M6.5 1.6h5a1 1 0 0 1 1 1v1.3h-7V2.6a1 1 0 0 1 1-1Z"/><path d="m6.3 9.6 1.4 1.4 3.2-3.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Control consultas</button>
-                <button class="bsh-item" onclick="navegar('agenda-ci');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3.2" width="14" height="12.3" rx="2"/><path d="M2 7h14M6 1.5v3M12 1.5v3" stroke-linecap="round"/><path d="m6.3 11 1.4 1.4 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg> Agenda CI</button>
             </div>
             <div class="bsh-divider"></div>
             <div class="bsh-section">
                 <span class="bsh-label">Recursos</span>
                 <button class="bsh-item" onclick="navegar('servicios');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.8 4.5h12.4M2.8 9h12.4M2.8 13.5h7.4" stroke-linecap="round"/></svg> Servicios</button>
                 <button class="bsh-item" onclick="navegar('pedidos-kit');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 5.6 9 2.3l6.5 3.3-6.5 3.3-6.5-3.3Z"/><path d="M2.5 5.6v6.6L9 15.7l6.5-3.5V5.6M9 8.9v6.8"/></svg> Kit</button>
-                <button class="bsh-item" onclick="navegar('calculadora');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="1.8" width="12" height="14.4" rx="1.8"/><path d="M5.2 4.6h7.6" stroke-linecap="round"/><circle cx="5.6" cy="8.2" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="8.2" r=".9" fill="currentColor" stroke="none"/><circle cx="12.4" cy="8.2" r=".9" fill="currentColor" stroke="none"/><circle cx="5.6" cy="11.4" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="11.4" r=".9" fill="currentColor" stroke="none"/><circle cx="12.4" cy="11.4" r=".9" fill="currentColor" stroke="none"/></svg> Calculadora</button>
                 <button class="bsh-item" onclick="navegar('cursos');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.5 6.2 9 2.5l7.5 3.7L9 9.9 1.5 6.2Z"/><path d="M4.6 7.7v3.4c0 1.2 1.9 2.2 4.4 2.2s4.4-1 4.4-2.2V7.7M16.5 6.2v4.6" stroke-linecap="round"/></svg> Mis Cursos</button>
             </div>
             <div class="bsh-divider"></div>
@@ -2474,7 +2550,6 @@
                     <button class="btn-mini" id="btn-grilla-cristina" onclick="grillaToggleMenuCristina(event)">⋮ Cristina</button>
                     <span class="grilla-tools-sep" aria-hidden="true"></span>
                     <button class="btn-mini" id="btn-grilla-ahora" onclick="grillaIrHoraActual()" title="Ir al horario actual de hoy">🕒 Hora actual</button>
-                    <button class="btn-mini" id="btn-grilla-densidad" onclick="grillaToggleDensidad()" title="Alternar entre ver cada 15 min o solo cada 30 min">Vista compacta · 30 min</button>
                 </div>
                 <div class="grilla-resumen-dia" id="grilla-resumen-dia" aria-live="polite"></div>
                 <div id="grilla-banner-cristina" class="grilla-banner-cristina" style="display:none;">🟡 Hoy viene Cristina</div>
@@ -2700,10 +2775,6 @@
                     </div>
                 </div>
                 <div id="panelDetalleDia"></div>
-            </div>
-            <div id="sec-historias" class="section">
-                <input type="text" class="busc-input" id="inpBusHistorias" placeholder="Buscar paciente..." oninput="filtrarHistoriasInput()">
-                <div id="contenedorHistorias"></div>
             </div>
             <div id="sec-buscar" class="section">
                 <input type="text" class="busc-input" id="inpBusReservas" placeholder="Nombre del paciente..." oninput="filtrarReservasInput()">
@@ -3221,55 +3292,6 @@
             </div><!-- /sec-cursos -->
 
             <!-- ══ CALCULADORA DE SERVICIOS ══ -->
-            <div id="sec-calculadora" class="section">
-
-                <div class="detalle-dia-card">
-                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.2em;">⏱ Duración de Servicios</h3>
-                    <p style="font-size:13px;margin:0 0 16px;color:rgba(22,61,50,0.70);">Definí cuántos minutos dura cada servicio. Esto afecta el cálculo de combinaciones y el planificador del día.</p>
-                    <div id="calc-tabla-servicios" style="min-height:60px;">
-                        <div style="color:rgba(22,61,50,0.5);font-size:13px;">Tocá "🧮 Calculadora" en el menú para cargar...</div>
-                    </div>
-                    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
-                        <button class="btn-mini" onclick="guardarDuracionesCalc()" style="padding:9px 20px;">Guardar duraciones</button>
-                    </div>
-                    <div id="calc-duraciones-feedback" style="display:none;margin-top:10px;padding:9px 13px;border-radius:10px;font-size:13px;font-weight:600;"></div>
-                </div>
-
-                <div class="detalle-dia-card">
-                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.2em;">🔗 Combinaciones Permitidas</h3>
-                    <p style="font-size:13px;margin:0 0 16px;color:rgba(22,61,50,0.70);">Marcá qué servicios pueden hacerse juntos en la misma jornada. Las combinaciones son simétricas automáticamente.</p>
-                    <div id="calc-matriz-combinaciones">
-                        <div style="color:rgba(22,61,50,0.5);font-size:13px;">Cargá los servicios primero.</div>
-                    </div>
-                    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
-                        <button class="btn-mini" onclick="guardarCombinacionesCalc()" style="padding:9px 20px;">Guardar combinaciones</button>
-                    </div>
-                    <div id="calc-combinaciones-feedback" style="display:none;margin-top:10px;padding:9px 13px;border-radius:10px;font-size:13px;font-weight:600;"></div>
-                </div>
-
-                <div class="detalle-dia-card">
-                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.2em;">📅 Planificador del Día</h3>
-                    <p style="font-size:13px;margin:0 0 16px;color:rgba(22,61,50,0.70);">Ingresá tus horarios de trabajo y calculá cuántas pacientes podés atender por servicio o combinación.</p>
-                    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:16px;">
-                        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(22,61,50,0.85);">
-                            <span style="font-weight:600;">Desde:</span>
-                            <input type="time" id="calc-inicio" value="08:00" style="background:var(--surface-2);border:1.5px solid var(--border-strong);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.9);font-size:13px;outline:none;">
-                        </div>
-                        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(22,61,50,0.85);">
-                            <span style="font-weight:600;">Hasta:</span>
-                            <input type="time" id="calc-fin" value="20:00" style="background:var(--surface-2);border:1.5px solid var(--border-strong);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.9);font-size:13px;outline:none;">
-                        </div>
-                        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(22,61,50,0.85);">
-                            <span style="font-weight:600;">Pausa entre turnos:</span>
-                            <input type="number" id="calc-pausa" value="15" min="0" step="5" style="width:64px;background:var(--surface-2);border:1.5px solid var(--border-strong);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.9);font-size:13px;outline:none;text-align:center;">
-                            <span style="font-size:12px;color:rgba(22,61,50,0.55);">min</span>
-                        </div>
-                        <button class="btn-mini" onclick="calcularCapacidadDia()" style="padding:9px 20px;">Calcular</button>
-                    </div>
-                    <div id="calc-resultado-dia"></div>
-                </div>
-
-            </div><!-- /sec-calculadora -->
 
             <!-- ══ CONSULTAS INICIALES ══ -->
             <div id="sec-consultas" class="section">
@@ -3297,25 +3319,6 @@
             </div><!-- /sec-consultas -->
 
             <!-- ══ AGENDA CONSULTA INICIAL ══ -->
-            <div id="sec-agenda-ci" class="section">
-                <div class="detalle-dia-card" style="margin-bottom:18px;">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-                        <div style="flex:1;">
-                            <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif;font-size:1.3em;color:rgba(22,61,50,0.95);">Agenda Cons. Inic.</h3>
-                            <p style="margin:0;font-size:12px;color:rgba(22,61,50,0.48);">Todos los días están cerrados por defecto — habilitá días y horarios específicos.</p>
-                        </div>
-                        <button class="btn-mini" onclick="navegar('consultas')" style="padding:8px 14px;font-size:11.5px;opacity:0.70;">Lista de consultas →</button>
-                    </div>
-                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
-                        <button class="btn-mini" onclick="consINavFecha(-1)" style="padding:8px 14px;">←</button>
-                        <span id="consI-fecha-titulo" style="font-size:13px;color:rgba(22,61,50,0.82);font-weight:600;flex:1;text-align:center;">—</span>
-                        <button class="btn-mini" onclick="consINavFecha(1)" style="padding:8px 14px;">→</button>
-                        <button class="btn-mini" onclick="consIIrHoy()" style="font-size:11px;opacity:0.75;">Hoy</button>
-                    </div>
-                    <div id="consI-dia-info" style="text-align:center;padding:12px 0;color:rgba(22,61,50,0.45);font-size:13px;">—</div>
-                    <div id="consI-slots" style="margin-top:10px;"></div>
-                </div>
-            </div><!-- /sec-agenda-ci -->
 
             <!-- ══ PREPARAR JORNADA ══ -->
             <div id="sec-preparar-jornada" class="section"></div>
@@ -3446,6 +3449,7 @@
         import { initDuplicarMes } from "/js/duplicar-mes-ui.js";
         import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
         import { MEDIOS, etiquetaMedio, iconoMedio, parsearPesos, milesAPesos, pesosAMiles, formatoPesos, formatoPesosEnteros, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio, normalizarMontoARS, normalizarDocMontos, MONTOS_RAPIDOS } from "/js/cobro-rapido.js";
+        import { esTurnoDeJornadaValido, origenParaNuevoTurno } from "/js/turno-jornada.js";
         // Normalización de escala al LEER importes (precios/pagos/gastos): ver
         // js/cobro-rapido.js:normalizarMontoARS. El dato guardado no se toca.
         const _nmDoc = normalizarDocMontos;
@@ -4099,23 +4103,30 @@
         };
         
         const resolverMembresiaActiva = (c = {}) => c.membershipActive === true || c.membresia === true;
+        // Tipo de la jornada activa del día ('crio' | 'radio' | 'detox' | '' si
+        // el sitio está en modo normal). Lo actualiza setFlowModeButtons.
+        window._jornadaTipoActivo = window._jornadaTipoActivo || '';
+        const _esConsultaInicialReserva = (r = {}) => r.esConsultaInicial === true
+            || (typeof _svTipoMap !== 'undefined' && _svTipoMap.get(r.servicio) === SERVICIO_TIPO_CONSULTA_INICIAL);
+        // Única fuente de verdad para JORNADA vs NORMAL (ver js/turno-jornada.js):
+        // el origen "jornada" que se arrastraba de cuando el switch estaba
+        // encendido ya no alcanza — tiene que coincidir el servicio.
+        const _esTurnoJornada = (r = {}) => esTurnoDeJornadaValido(
+            _esConsultaInicialReserva(r) ? { ...r, esConsultaInicial: true } : r,
+            window._jornadaTipoActivo);
         const resolverOrigenReserva = (r = {}) => {
             if ((r.tipo || '').toLowerCase() === 'depilacion') return 'depilacion';
-            const origen = (r.origen || '').toString().trim().toLowerCase();
-            if (origen === 'jornada') return 'jornada';
-            if (origen === 'normal') return 'normal';
-            if (origen === 'admin' || origen === 'admin_manual') return 'normal';
-            const creadoPor = (r.creadoPor || '').toString().trim().toLowerCase();
-            if (creadoPor === 'admin_manual') return 'normal';
-            return 'normal';
+            return _esTurnoJornada(r) ? 'jornada' : 'normal';
         };
 
         const renderTagOrigen = (r = {}) => {
+            if (_esConsultaInicialReserva(r)) return '<span class="tag-origen badge-ci">Consulta inicial</span>';
             const origen = resolverOrigenReserva(r);
             const labels = { jornada: 'Jornada', normal: 'Normal', depilacion: 'Depilación' };
             const colors = { depilacion: 'background:rgba(168,85,247,0.18);color:rgba(61,92,134,0.90);border-color:rgba(168,85,247,0.35)' };
             const style = colors[origen] ? `style="${colors[origen]}"` : '';
-            return `<span class="tag-origen ${origen !== 'depilacion' ? origen : ''}" ${style}>${labels[origen] || 'Normal'}</span>`;
+            const badge = origen === 'jornada' ? ' badge-jornada' : origen === 'normal' ? ' badge-normal' : '';
+            return `<span class="tag-origen ${origen !== 'depilacion' ? origen : ''}${badge}" ${style}>${labels[origen] || 'Normal'}</span>`;
         };
         
         const esReservaBloqueoAdmin = (r = {}) => {
@@ -4804,7 +4815,6 @@
                 }
 
                 // ── Actualizar secciones que dependen de datos secundarios ────────
-                renderHistorias(todasLasHistorias);
                 actualizarKPIs();
                 poblarServiciosFiltro();
                 filtrarListadoClientes();
@@ -4874,8 +4884,18 @@
             ` : "";
             const filtrados = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === f).sort((a,b) => a.hora.localeCompare(b.hora));
             const _seenCIds = new Set();
+            // Una CI agendada desde el panel existe como reserva + consulta
+            // vinculada: la tarjeta es UNA sola (la de la reserva). Se descarta la
+            // consulta si su reserva ya está en el día (por id en ambos sentidos)
+            // o si coincide la clave fecha·hora·paciente con una reserva.
+            const _resIdsDia = new Set(filtrados.map(r => r.id));
+            const _consIdsVinculadas = new Set(filtrados.map(r => r.consultaId).filter(Boolean));
+            const _claveTurno = (fecha, hora, nombre) => `${fecha}_${normalizarHora(hora || '')}_${(nombre || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()}`;
+            const _clavesReservas = new Set(filtrados.map(r => _claveTurno(r.fecha, r.hora, r.nombreLimpio || r.nombre || r.cliente)));
             const consultasDia = todasLasConsultas.filter(c => {
                 if (c.fecha !== f) return false;
+                if ((c.reservaId && _resIdsDia.has(c.reservaId)) || _consIdsVinculadas.has(c.id)) return false;
+                if (_clavesReservas.has(_claveTurno(c.fecha, c.hora, c.nombre))) return false;
                 if (['cancelada','cancelado'].includes((c.estado||'').toLowerCase())) return false;
                 if (!c.hora || !/^\d{1,2}:\d{2}$/.test(c.hora)) return false; // sin hora válida → no mostrar
                 if (_seenCIds.has(c.id)) return false;                          // deduplicar por ID
@@ -5160,6 +5180,7 @@
                         ${_cWa?`<a href="https://wa.me/${_cWa}?text=${_MSG_PRE_CONSULTA(_cN1)}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:10px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.16),rgba(251,191,36,0.06));border:1.5px solid rgba(251,191,36,0.35);color:rgba(138,106,34,0.92);font-weight:700;font-size:13px;text-decoration:none;text-align:center;">📋 Enviar info pre-consulta</a>`:''}
                         ${_cEst!=='confirmada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','confirmada')" style="padding:9px 12px;font-size:12px;background:rgba(74,222,128,0.10);border-color:rgba(74,222,128,0.30);color:#2F6B4F;width:100%;">✓ Marcar como confirmada</button>`:''}
                         ${_cEst!=='cancelada'?`<button class="btn-mini" onclick="cambiarEstadoConsulta('${c.id}','cancelada')" style="padding:9px 12px;font-size:12px;background:rgba(255,100,100,0.06);border-color:rgba(255,100,100,0.22);color:rgba(165,67,58,0.85);width:100%;">✕ Cancelar consulta</button>`:''}
+                        <button class="btn-mini" onclick="eliminarConsultaDefinitiva('${c.id}')" style="padding:9px 12px;font-size:12px;width:100%;color:rgba(165,67,58,0.85);" title="Borra la consulta de Firestore (por ejemplo, una copia que quedó huérfana)">🗑 Eliminar consulta</button>
                         ${_cWa?`
                         <button onclick="(function(){var m=document.getElementById('${_cRecId}');m.style.display=m.style.display==='flex'?'none':'flex'})()" style="width:100%;padding:9px;border-radius:10px;border:1.5px solid rgba(60,100,200,0.30);background:rgba(60,100,200,0.08);color:rgba(61,92,134,0.90);font-weight:700;cursor:pointer;font-size:12px;">📋 Enviar Recomendaciones post-sesión</button>
                         <div id="${_cRecId}" style="display:none;flex-direction:column;gap:6px;background:rgba(60,100,200,0.06);border:1px solid rgba(60,100,200,0.15);border-radius:10px;padding:10px;">
@@ -5416,66 +5437,6 @@
             document.getElementById("contenedorBusqueda").innerHTML = '';
         };
         
-        // Historias clínicas como "card médica": cabecera (nombre, fecha, botón a
-        // Ficha 360°) + grilla de campos con íconos. Se muestran TODOS los campos
-        // del documento, igual que antes: los conocidos en la grilla principal y
-        // el resto en "Otros datos".
-        const _HC_CAMPOS = [
-            ['enfermedad', '🩺', 'Antecedentes / enfermedad', true], ['medicacion', '💊', 'Medicación', true],
-            ['alergias', '⚠️', 'Alergias', true], ['objetivo', '✨', 'Objetivo estético', false],
-            ['embarazo', '🤰', 'Embarazo', true], ['hijos', '👶', 'Hijos', false], ['edad', '🎂', 'Edad', false],
-        ];
-        const _HC_FECHAS = ['fecha', 'actualizadoEn', 'creadoEn', 'fechaActualizacion', 'updatedAt', 'createdAt'];
-        const _hcEsNo = (v) => { const t = String(v ?? '').trim().toLowerCase(); return !t || ['no', 'ninguna', 'ninguno', 'nada', '-', '—'].includes(t); };
-        window.renderHistorias = (datos) => {
-            document.getElementById("contenedorHistorias").innerHTML = datos.map(h => {
-                const usados = new Set(['id', 'nombre', 'dni', 'servicio', 'servicioIncluido', 'nombreLimpio']);
-                const campoFecha = _HC_FECHAS.find(k => h[k]);
-                if (campoFecha) usados.add(campoFecha);
-                const celdas = _HC_CAMPOS.filter(([k]) => h[k] !== undefined && h[k] !== null && h[k] !== '').map(([k, ico, label, alertable]) => {
-                    usados.add(k);
-                    const alerta = k === 'alergias' && !_hcEsNo(h[k]);
-                    const marca = alertable && !_hcEsNo(h[k]) ? ' hc-si' : '';
-                    return `<div class="hc-campo${alerta ? ' hc-alerta' : marca}"><dt><span aria-hidden="true">${ico}</span> ${label}</dt><dd>${formatearCampo(k, h[k])}</dd></div>`;
-                });
-                const otros = [];
-                Object.entries(h).forEach(([key, value]) => {
-                    const keyNormalizada = key.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    if (usados.has(key)) return;
-                    if (keyNormalizada.includes('fecharegistro')) return;
-                    if (value === undefined || value === null || value === '') return;
-                    const label = key.charAt(0).toUpperCase() + key.slice(1);
-                    otros.push(`<div class="hc-campo"><dt>${escapeHtml(label)}</dt><dd>${formatearCampo(key, value)}</dd></div>`);
-                });
-                const servicio = h.servicioIncluido ? `Servicio incluido: ${escapeHtml(h.servicioIncluido)}` : (h.servicio ? escapeHtml(h.servicio) : '');
-                const dni = h.dni || h.id || '';
-                const clave = dni ? encodeURIComponent(_p360ClaveDePaciente({ dni })) : '';
-                return `
-                    <article class="hc-card">
-                        <header class="hc-head">
-                            <div class="hc-head-txt">
-                                <h3>${escapeHtml(h.nombreLimpio)}</h3>
-                                <span>${[campoFecha ? '📅 ' + formatearCampo(campoFecha, h[campoFecha]) : '', dni ? 'DNI ' + escapeHtml(dni) : '', servicio].filter(Boolean).join(' · ')}</span>
-                            </div>
-                            ${clave ? `<button type="button" class="btn-secondary btn-sm" onclick="abrirFicha360Enc('${clave}','clinica')">Ficha 360° →</button>` : ''}
-                        </header>
-                        ${celdas.length ? `<dl class="hc-grid">${celdas.join('')}</dl>` : '<p class="hc-vacia">Sin antecedentes cargados.</p>'}
-                        ${otros.length ? `<details class="hc-otros"><summary>Otros datos (${otros.length})</summary><dl class="hc-grid">${otros.join('')}</dl></details>` : ''}
-                    </article>`;
-            }).join('');
-        };
-        
-        window.filtrarHistorias = () => {
-            const txt = document.getElementById("inpBusHistorias").value.toLowerCase();
-            const filtradas = todasLasHistorias.filter(h => h.nombreLimpio.toLowerCase().includes(txt));
-            if (!filtradas.length && txt.length >= 2) {
-                document.getElementById("contenedorHistorias").innerHTML = '<div class="empty-state">No hay historias que coincidan.</div>';
-                return;
-            }
-            renderHistorias(filtradas);
-        };
-        
-        window.filtrarHistoriasInput = debounce(() => window.filtrarHistorias(), 200);
         
         const getPdfTools = () => {
             const jsPDF = window.jspdf?.jsPDF;
@@ -6699,7 +6660,10 @@
                     servicio: servicioIngresado,
                     fecha: fechaSnap,
                     hora: horaSnap,
-                    origen: document.getElementById("btnFlowModeHeader")?.classList.contains("is-jornada") ? "jornada" : "normal",
+                    // Jornada solo si el servicio corresponde al equipamiento de la
+                    // jornada activa (antes: cualquier servicio con el switch encendido).
+                    origen: origenParaNuevoTurno({ servicio: servicioIngresado, esConsultaInicial: _esConsultaInicial }, !!document.getElementById("btnFlowModeHeader")?.classList.contains("is-jornada"), window._jornadaTipoActivo),
+                    jornadaTipo: document.getElementById("btnFlowModeHeader")?.classList.contains("is-jornada") && origenParaNuevoTurno({ servicio: servicioIngresado, esConsultaInicial: _esConsultaInicial }, true, window._jornadaTipoActivo) === 'jornada' ? (window._jornadaTipoActivo || null) : null,
                     status: "confirmado",
                     estado: "confirmado",
                     reminderSent: false,
@@ -6710,7 +6674,23 @@
                     box: _boxGuardar?.id || null,
                     boxLabel: _boxGuardar?.label || null
                 };
-                const ref = await addDoc(collection(db, "reservas"), reservaNueva);
+                // Consulta Inicial: ID determinístico (fecha·hora·box·DNI). Un doble
+                // disparo o un reintento escribe el MISMO documento en vez de crear
+                // una segunda CI; si ya hay una activa igual, no se toca.
+                let ref;
+                if (_esConsultaInicial) {
+                    const ciId = `ci_${fechaSnap}_${horaSnap.replace(':', '')}_${_boxGuardar?.id || 'sinbox'}_${normalizarDNI(clienteSnap.dni) || 'sindni'}`;
+                    ref = doc(db, "reservas", ciId);
+                    const previa = await getDoc(ref);
+                    if (previa.exists() && esReservaActiva(previa.data())) {
+                        mostrarAviso('Esa Consulta Inicial ya estaba agendada — no se duplicó.');
+                        return;
+                    }
+                    await setDoc(ref, { ...reservaNueva, esConsultaInicial: true }, { merge: true });
+                    reservaNueva.esConsultaInicial = true;
+                } else {
+                    ref = await addDoc(collection(db, "reservas"), reservaNueva);
+                }
 
                 // Punto 14: si el servicio es Consulta Inicial, se crea también el
                 // documento vinculado en "consultas" (colección real que ya leen
@@ -6723,7 +6703,10 @@
                 // la integración en vez de mostrar éxito completo.
                 if (_esConsultaInicial) {
                     try {
-                        const consultaRef = await addDoc(collection(db, "consultas"), {
+                        // ID determinístico también acá (ci_<reservaId>): nunca dos
+                        // consultas para la misma reserva.
+                        const consultaRef = doc(db, "consultas", 'ci_' + ref.id);
+                        await setDoc(consultaRef, {
                             nombre: clienteSnap.nombre,
                             fecha: fechaSnap, hora: horaSnap,
                             telefono: clienteSnap.phone || clienteSnap.telefono || '',
@@ -6738,7 +6721,7 @@
                             timestamp: serverTimestamp(),
                         });
                         await updateDoc(doc(db, "reservas", ref.id), { consultaId: consultaRef.id });
-                        if (typeof todasLasConsultas !== 'undefined') todasLasConsultas.push({ id: consultaRef.id, nombre: clienteSnap.nombre, fecha: fechaSnap, hora: horaSnap, estado: 'pendiente', reservaId: ref.id });
+                        if (typeof todasLasConsultas !== 'undefined') todasLasConsultas = todasLasConsultas.filter(c => c.id !== consultaRef.id).concat({ id: consultaRef.id, nombre: clienteSnap.nombre, fecha: fechaSnap, hora: horaSnap, estado: 'pendiente', reservaId: ref.id });
                         if (typeof window.renderConsultas === 'function') window.renderConsultas();
                     } catch (eConsulta) {
                         console.error(eConsulta);
@@ -6838,6 +6821,53 @@
             }
         };
         
+        // Borrado en cascada de la consulta vinculada a una reserva (CI agendada
+        // desde el panel = reserva + documento en "consultas"). Antes solo se
+        // borraba la reserva y la consulta quedaba huérfana, apareciendo como
+        // una "copia" en la Agenda. Borra: consultaId, el id determinístico
+        // ci_<reservaId>, las que apuntan a la reserva (reservaId) y, si es una
+        // CI, las huérfanas de la misma fecha·hora·paciente sin otra reserva.
+        async function _borrarConsultasVinculadas(reserva) {
+            if (!reserva) return 0;
+            const ids = new Set(['ci_' + reserva.id]);
+            if (reserva.consultaId) ids.add(reserva.consultaId);
+            try {
+                (await getDocs(query(collection(db, 'consultas'), where('reservaId', '==', reserva.id)))).forEach(d => ids.add(d.id));
+            } catch (e) { console.warn('consultas por reservaId:', e); }
+            if (_esConsultaInicialReserva(reserva) || reserva.consultaId) {
+                const nom = (x) => (x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+                const nomRes = nom(reserva.nombreLimpio || reserva.nombre || reserva.cliente);
+                try {
+                    (await getDocs(query(collection(db, 'consultas'), where('fecha', '==', reserva.fecha)))).forEach(d => {
+                        const c = d.data();
+                        if ((!c.reservaId || c.reservaId === reserva.id) && normalizarHora(c.hora || '') === normalizarHora(reserva.hora || '') && nom(c.nombre) === nomRes) ids.add(d.id);
+                    });
+                } catch (e) { console.warn('consultas huérfanas:', e); }
+            }
+            const batch = writeBatch(db);
+            ids.forEach(id => batch.delete(doc(db, 'consultas', id)));
+            await batch.commit();
+            todasLasConsultas = todasLasConsultas.filter(c => !ids.has(c.id));
+            if (typeof _consultasCache !== 'undefined' && Array.isArray(_consultasCache)) {
+                for (let i = _consultasCache.length - 1; i >= 0; i--) if (ids.has(_consultasCache[i].id)) _consultasCache.splice(i, 1);
+            }
+            return ids.size;
+        }
+        window.eliminarConsultaDefinitiva = async (consultaId) => {
+            const c = todasLasConsultas.find(x => x.id === consultaId);
+            if (!confirm(`¿Eliminar definitivamente la consulta de ${(c && c.nombre) || 'esta paciente'}${c && c.hora ? ' (' + c.hora + ' hs)' : ''}? No se puede deshacer.`)) return;
+            try {
+                mostrarLoader(true);
+                await deleteDoc(doc(db, 'consultas', consultaId));
+                todasLasConsultas = todasLasConsultas.filter(x => x.id !== consultaId);
+                if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+                if (typeof window.renderConsultas === 'function') window.renderConsultas();
+                mostrarAviso('Consulta eliminada');
+            } catch (e) {
+                console.error(e);
+                mostrarAviso('No se pudo eliminar la consulta');
+            } finally { mostrarLoader(false); }
+        };
         window.borrarReserva = async (idReserva) => {
             const reserva = todasLasReservas.find(r => r.id === idReserva);
             if (!reserva) {
@@ -6849,6 +6879,10 @@
             try {
                 mostrarLoader(true);
                 await deleteDoc(doc(db, "reservas", idReserva));
+                // Estado local primero: desaparece al instante de la interfaz.
+                todasLasReservas = todasLasReservas.filter(r => r.id !== idReserva);
+                try { await _borrarConsultasVinculadas(reserva); }
+                catch (eCons) { console.error('Cascada consultas:', eCons); mostrarAviso('Se borró la reserva, pero no la consulta vinculada — eliminála desde la Agenda.'); }
                 await registrarAuditoria("borrado_reserva", reserva.fecha, reserva.hora,
                     [reserva.servicio, reserva.dni ? `DNI ${reserva.dni}` : ""].filter(Boolean).join(" · "),
                     reserva.nombreLimpio || reserva.cliente || "Paciente"
@@ -12951,9 +12985,9 @@
         // sus pantallas como pestañas. Cada bloque recuerda la última abierta.
         const NAV_GRUPOS = [
             { id: 'jornada', label: 'Grilla y Jornada', items: [['grilla', '📅 Grilla de boxes'], ['agenda', '🗓 Agenda mensual'], ['preparar-jornada', '📋 Preparar jornada']] },
-            { id: 'pacientes', label: 'Pacientes y Fichas', items: [['clientes', '👥 Directorio'], ['buscador-avanzado', '🎯 Buscador avanzado'], ['control-sesiones', '⏱️ Control de sesiones'], ['historias', '📄 Historias clínicas'], ['buscador-sesiones', '🔎 Sesiones'], ['buscar', '🔍 Buscar turnos']] },
-            { id: 'seguimiento', label: 'Seguimiento y Consultas', items: [['recordatorios', '🔔 Recordatorios y retorno'], ['recomendaciones', '✨ Recomendaciones'], ['consultas', '💬 Consultas web'], ['control-consultas', '✅ Control de consultas'], ['agenda-ci', '🗓 Agenda CI']] },
-            { id: 'recursos', label: 'Recursos del Espacio', items: [['servicios', '🧩 Servicios y boxes'], ['pedidos-kit', '🧴 Pedidos de kit'], ['calculadora', '⏱ Calculadora'], ['cursos', '🎓 Mis cursos']] },
+            { id: 'pacientes', label: 'Pacientes y Fichas', items: [['clientes', '👥 Directorio'], ['buscador-avanzado', '🎯 Buscador avanzado'], ['control-sesiones', '⏱️ Control de sesiones'], ['buscador-sesiones', '🔎 Sesiones'], ['buscar', '🔍 Buscar turnos']] },
+            { id: 'seguimiento', label: 'Seguimiento y Consultas', items: [['recordatorios', '🔔 Recordatorios y retorno'], ['recomendaciones', '✨ Recomendaciones'], ['consultas', '💬 Consultas web'], ['control-consultas', '✅ Control de consultas']] },
+            { id: 'recursos', label: 'Recursos del Espacio', items: [['servicios', '🧩 Servicios y boxes'], ['pedidos-kit', '🧴 Pedidos de kit'], ['cursos', '🎓 Mis cursos']] },
             { id: 'gestion', label: 'Gestión y Cierre', items: [['resumen-mensual', '📊 Resumen mensual'], ['export', '⬇ Exportar / Jornadas'], ['@movimientos', '🕘 Movimientos']] },
         ];
         const _navUltima = {};
@@ -12989,7 +13023,7 @@
             document.getElementById(`sec-${s}`)?.classList.add('active');
             document.getElementById(`btn-${s}`)?.classList.add('active');
             // "Más" se resalta si la sección está dentro de ese dropdown
-            const _masItems = ['buscar','historias','cursos','pedidos-kit','calculadora','servicios','export','ultimos-movimientos','control','control-consultas','agenda-ci','preparar-jornada'];
+            const _masItems = ['buscar','cursos','pedidos-kit','servicios','export','ultimos-movimientos','control','control-consultas','preparar-jornada'];
             if (_masItems.includes(s)) document.getElementById('btnMas')?.classList.add('active');
             // Bottom nav: marcar item activo por data-section
             document.querySelectorAll('.bni').forEach(x => x.classList.remove('active'));
@@ -13004,9 +13038,7 @@
             if (s === 'servicios') { gsCargar(); blRender(); }
             if (s === 'export') { window.cargarJornadaStatus?.(); expDepiInit(); }
             if (s === 'clientes') filtrarListadoClientes();
-            if (s === 'calculadora') window.cargarCalculadora();
             if (s === 'consultas') window.cargarConsultas();
-            if (s === 'agenda-ci') cargarDisponibilidadConsI(_consI_fecha);
             if (s === 'control-consultas') window.cargarControlConsultas();
             if (s === 'cursos') window.cargarCursos();
             if (s === 'preparar-jornada') window.cargarPreparaJornada();
@@ -13863,6 +13895,8 @@
                 document.getElementById("btnFlowModeHeader")
             ].filter(Boolean);
             const isJornada = flowMode === "jornada";
+            if (!isJornada) window._jornadaTipoActivo = '';
+            else if (jornadaType) window._jornadaTipoActivo = jornadaType;
             const typeLabel = jornadaType === "radio" ? "radio" : jornadaType === "crio" ? "crio" : jornadaType === "detox" ? "detox" : "";
             const text = isJornada ? "Cambiar a modo normal" : "Cambiar a modo jornada";
             const compactText = isJornada
@@ -15118,223 +15152,6 @@
             }
         };
 
-        // ══════════════════════════════════════════
-        // CALCULADORA DE SERVICIOS
-        // ══════════════════════════════════════════
-        let _calcServicios = [];
-
-        window.cargarCalculadora = async () => {
-            document.getElementById('calc-tabla-servicios').innerHTML = '<div style="color:rgba(22,61,50,0.5);font-size:13px;padding:8px 0;">Cargando servicios...</div>';
-            try {
-                const snap = await getDocs(collection(db, 'services'));
-                _calcServicios = [];
-                snap.forEach(d => {
-                    const data = d.data();
-                    if (data.activo !== false) {
-                        _calcServicios.push({
-                            _id: d.id,
-                            nombre: data.nombre || '',
-                            duracion: Number(data.duracion) || 60,
-                            combinaciones: Array.isArray(data.combinaciones) ? data.combinaciones : [],
-                            orden: data.orden || 99
-                        });
-                    }
-                });
-                _calcServicios.sort((a, b) => a.orden - b.orden);
-                _renderCalcTabla();
-                _renderCalcMatriz();
-            } catch (err) {
-                console.error("cargarCalculadora:", err);
-                document.getElementById('calc-tabla-servicios').innerHTML = '<div style="color:#A5433A;font-size:13px;padding:8px 0;">Error al cargar servicios.</div>';
-            }
-        };
-
-        const _renderCalcTabla = () => {
-            const cont = document.getElementById('calc-tabla-servicios');
-            if (!_calcServicios.length) {
-                cont.innerHTML = '<div style="color:rgba(22,61,50,0.5);font-size:13px;padding:8px 0;">No hay servicios activos. Agregá servicios desde ⚙ Configuración avanzada.</div>';
-                return;
-            }
-            const rows = _calcServicios.map((s, i) => {
-                const h = Math.floor(s.duracion / 60);
-                const m = s.duracion % 60;
-                const label = h > 0 ? `${h}h${m ? ` ${m}min` : ''}` : `${m}min`;
-                return `<tr>
-                    <td style="padding:9px 10px;font-weight:600;color:rgba(22,61,50,0.9);font-size:13px;">${escapeHtml(s.nombre)}</td>
-                    <td style="padding:9px 10px;text-align:center;">
-                        <input type="number" min="5" step="5" value="${s.duracion}"
-                            style="width:78px;border-radius:8px;border:1.5px solid var(--border-strong);background:var(--surface-2);color:rgba(36,51,43,0.9);padding:6px 8px;font-size:13px;text-align:center;outline:none;"
-                            oninput="_calcServicios[${i}].duracion=Math.max(5,Number(this.value)||5);document.getElementById('calc-lbl-${i}').textContent=_calcFmtMin(_calcServicios[${i}].duracion)">
-                    </td>
-                    <td id="calc-lbl-${i}" style="padding:9px 10px;text-align:center;color:rgba(22,61,50,0.65);font-size:12px;min-width:70px;">${label}</td>
-                </tr>`;
-            }).join('');
-            cont.innerHTML = `<table style="width:100%;border-collapse:collapse;">
-                <thead><tr>
-                    <th style="text-align:left;padding:6px 10px 10px;color:rgba(22,61,50,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);">Servicio</th>
-                    <th style="text-align:center;padding:6px 10px 10px;color:rgba(22,61,50,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);">Minutos</th>
-                    <th style="text-align:center;padding:6px 10px 10px;color:rgba(22,61,50,0.55);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);">= Tiempo</th>
-                </tr></thead>
-                <tbody>${rows}</tbody>
-            </table>`;
-        };
-
-        const _calcFmtMin = (min) => {
-            const h = Math.floor(min / 60), m = min % 60;
-            return h > 0 ? `${h}h${m ? ` ${m}min` : ''}` : `${m}min`;
-        };
-
-        const _renderCalcMatriz = () => {
-            const cont = document.getElementById('calc-matriz-combinaciones');
-            if (_calcServicios.length < 2) {
-                cont.innerHTML = '<div style="color:rgba(22,61,50,0.5);font-size:13px;padding:8px 0;">Necesitás al menos 2 servicios para definir combinaciones.</div>';
-                return;
-            }
-            const headers = _calcServicios.map(s =>
-                `<th style="padding:6px 8px;color:rgba(22,61,50,0.55);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;writing-mode:vertical-rl;transform:rotate(180deg);min-width:38px;white-space:nowrap;max-width:54px;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(s.nombre)}">${escapeHtml(s.nombre.length > 14 ? s.nombre.slice(0,13)+'…' : s.nombre)}</th>`
-            ).join('');
-            const rows = _calcServicios.map((a, i) =>
-                `<tr>
-                    <td style="padding:8px 10px;font-weight:600;color:rgba(22,61,50,0.9);font-size:12px;white-space:nowrap;">${escapeHtml(a.nombre)}</td>
-                    ${_calcServicios.map((b, j) => {
-                        if (i === j) return `<td style="background:var(--surface);padding:8px;"></td>`;
-                        const checked = a.combinaciones.includes(b.nombre);
-                        return `<td style="text-align:center;padding:8px;">
-                            <input type="checkbox" ${checked ? 'checked' : ''}
-                                style="width:16px;height:16px;accent-color:#4ea37f;cursor:pointer;"
-                                onchange="window._calcToggleComb(${i},${j},this.checked)">
-                        </td>`;
-                    }).join('')}
-                </tr>`
-            ).join('');
-            cont.innerHTML = `<div style="overflow-x:auto;">
-                <table style="width:100%;border-collapse:collapse;">
-                    <thead><tr>
-                        <th style="min-width:120px;padding:6px 10px 40px;"></th>
-                        ${headers}
-                    </tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>
-            <p style="font-size:11px;color:rgba(22,61,50,0.45);margin:10px 0 0;line-height:1.6;">
-                Tildá las casillas donde dos servicios puedan hacerse juntos en la misma jornada. Las combinaciones se guardan simétricamente (si A combina con B, B también combina con A).
-            </p>`;
-        };
-
-        window._calcToggleComb = (i, j, checked) => {
-            const a = _calcServicios[i], b = _calcServicios[j];
-            if (checked) {
-                if (!a.combinaciones.includes(b.nombre)) a.combinaciones.push(b.nombre);
-                if (!b.combinaciones.includes(a.nombre)) b.combinaciones.push(a.nombre);
-            } else {
-                a.combinaciones = a.combinaciones.filter(n => n !== b.nombre);
-                b.combinaciones = b.combinaciones.filter(n => n !== a.nombre);
-            }
-            _renderCalcMatriz();
-        };
-
-        window.guardarDuracionesCalc = async () => {
-            const fb = document.getElementById('calc-duraciones-feedback');
-            fb.style.display = 'block';
-            fb.style.background = 'var(--surface-2)';
-            fb.style.color = 'var(--ink-soft)';
-            fb.textContent = 'Guardando...';
-            try {
-                await Promise.all(_calcServicios.map(s =>
-                    setDoc(doc(db, 'services', s._id), { duracion: s.duracion }, { merge: true })
-                ));
-                fb.style.background = 'var(--success-soft)';
-                fb.style.color = 'var(--success)';
-                fb.textContent = '✓ Duraciones guardadas correctamente';
-                _renderCalcTabla();
-            } catch (err) {
-                console.error("guardarDuracionesCalc:", err);
-                fb.style.background = 'var(--danger-soft)';
-                fb.style.color = 'var(--danger)';
-                fb.textContent = 'Error al guardar. Intentá de nuevo.';
-            }
-            setTimeout(() => { fb.style.display = 'none'; }, 3500);
-        };
-
-        window.guardarCombinacionesCalc = async () => {
-            const fb = document.getElementById('calc-combinaciones-feedback');
-            fb.style.display = 'block';
-            fb.style.background = 'var(--surface-2)';
-            fb.style.color = 'var(--ink-soft)';
-            fb.textContent = 'Guardando...';
-            try {
-                await Promise.all(_calcServicios.map(s =>
-                    setDoc(doc(db, 'services', s._id), { combinaciones: s.combinaciones }, { merge: true })
-                ));
-                fb.style.background = 'var(--success-soft)';
-                fb.style.color = 'var(--success)';
-                fb.textContent = '✓ Combinaciones guardadas';
-            } catch (err) {
-                console.error("guardarCombinacionesCalc:", err);
-                fb.style.background = 'var(--danger-soft)';
-                fb.style.color = 'var(--danger)';
-                fb.textContent = 'Error al guardar. Intentá de nuevo.';
-            }
-            setTimeout(() => { fb.style.display = 'none'; }, 3500);
-        };
-
-        window.calcularCapacidadDia = () => {
-            const inicio = document.getElementById('calc-inicio').value;
-            const fin = document.getElementById('calc-fin').value;
-            const pausa = Math.max(0, Number(document.getElementById('calc-pausa').value) || 0);
-            const cont = document.getElementById('calc-resultado-dia');
-            if (!inicio || !fin) { cont.innerHTML = ''; return; }
-            const [ih, im] = inicio.split(':').map(Number);
-            const [fh, fm] = fin.split(':').map(Number);
-            const totalMin = (fh * 60 + fm) - (ih * 60 + im);
-            if (totalMin <= 0) {
-                cont.innerHTML = '<div style="color:#A5433A;font-size:13px;padding:10px 0;">El horario de fin debe ser posterior al de inicio.</div>';
-                return;
-            }
-            if (!_calcServicios.length) {
-                cont.innerHTML = '<div style="color:rgba(22,61,50,0.5);font-size:13px;padding:10px 0;">Cargá los servicios primero.</div>';
-                return;
-            }
-            const rowStyle = 'display:flex;justify-content:space-between;align-items:center;padding:10px 13px;border-radius:10px;margin-bottom:6px;';
-            const singlesHtml = _calcServicios.map(s => {
-                const n = Math.floor(totalMin / (s.duracion + pausa));
-                return `<div style="${rowStyle}background:rgba(78,163,127,0.10);">
-                    <span style="font-size:13px;font-weight:600;color:rgba(22,61,50,0.9);">${escapeHtml(s.nombre)}</span>
-                    <span style="font-size:12px;color:rgba(22,61,50,0.7);">${s.duracion}min → <strong style="color:#2F6B4F;font-size:14px;">${n}</strong> <span style="color:rgba(22,61,50,0.6);">pacientes/día</span></span>
-                </div>`;
-            }).join('');
-            const combosVistas = new Set();
-            const combosRows = [];
-            _calcServicios.forEach(a => {
-                (a.combinaciones || []).forEach(bNombre => {
-                    const b = _calcServicios.find(x => x.nombre === bNombre);
-                    if (!b) return;
-                    const key = [a.nombre, b.nombre].sort().join('|');
-                    if (combosVistas.has(key)) return;
-                    combosVistas.add(key);
-                    const dur = a.duracion + b.duracion;
-                    const n = Math.floor(totalMin / (dur + pausa));
-                    combosRows.push(`<div style="${rowStyle}background:rgba(139,92,246,0.10);">
-                        <span style="font-size:13px;font-weight:600;color:rgba(61,92,134,0.9);">${escapeHtml(a.nombre)} <span style="color:rgba(61,92,134,0.5);">+</span> ${escapeHtml(b.nombre)}</span>
-                        <span style="font-size:12px;color:rgba(61,92,134,0.7);">${dur}min → <strong style="color:#5B3FA0;font-size:14px;">${n}</strong> <span style="color:rgba(61,92,134,0.6);">pacientes/día</span></span>
-                    </div>`);
-                });
-            });
-            const jh = Math.floor(totalMin / 60), jm = totalMin % 60;
-            cont.innerHTML = `
-                <div style="font-size:11px;color:rgba(22,61,50,0.45);margin-bottom:14px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:0 2px;">
-                    Jornada de ${jh}h${jm ? ` ${jm}min` : ''} · Pausa entre turnos: ${pausa}min
-                </div>
-                <div style="margin-bottom:14px;">
-                    <div style="font-size:11px;font-weight:700;color:rgba(22,61,50,0.45);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;padding:0 2px;">Servicios solos</div>
-                    ${singlesHtml}
-                </div>
-                ${combosRows.length ? `<div>
-                    <div style="font-size:11px;font-weight:700;color:rgba(61,92,134,0.45);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;padding:0 2px;">Combinaciones</div>
-                    ${combosRows.join('')}
-                </div>` : '<div style="color:rgba(22,61,50,0.35);font-size:12px;padding:4px 2px;">No hay combinaciones definidas aún.</div>'}`;
-        };
-        // ══ FIN CALCULADORA ══
 
         // ════════════════════════════════════════════════════════════════════
         // GRILLA DE BOXES — vista principal de agenda
@@ -15392,7 +15209,9 @@
         let _grilla_cristinaTarde  = false;
         let _grilla_extraSlots    = false;     // mostrar slots fuera de horario comercial
         // Vista compacta (solo filas :00/:30, salvo que un turno empiece en :15/:45).
-        let _grilla_compacta      = (() => { try { return localStorage.getItem('mimar_grilla_compacta') === '1'; } catch (_) { return false; } })();
+        // La "Vista compacta · 30 min" se quitó: la Grilla siempre muestra cada 15 min.
+        const _grilla_compacta = false;
+        try { localStorage.removeItem('mimar_grilla_compacta'); } catch (_) {}
         let _mreg_boxPresel       = null;
 
         const _grilla_slots = (() => {
@@ -16015,7 +15834,8 @@
                 // se inventa ni se elige uno "exclusivo" por su cuenta — un box
                 // sin predeterminado configurado no cambia el servicio.
                 let _boxSinPredeterminado = false;
-                if (boxActual !== nuevoBoxId) {
+                // Mover nunca toca origen/jornada; y una Consulta Inicial conserva su servicio.
+                if (boxActual !== nuevoBoxId && !_esConsultaInicialReserva(r)) {
                     const svcParaBox = resolverServicioAlArrastrar(nuevoBoxId, r.servicio, _svBoxMap, _svBoxDefaultMap);
                     if (svcParaBox) updates.servicio = svcParaBox;
                     else if (!_svBoxDefaultMap.has(nuevoBoxId)) _boxSinPredeterminado = true;
@@ -16236,6 +16056,7 @@
                                 ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
                                 ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
                                 ${circHtml}
+                                ${_grillaQuickActionsHtml(res)}
                             </div>`;
                         } else {
                             // Continuación: la primera celda de continuación muestra
@@ -16266,7 +16087,6 @@
                 ? rows.join('')
                 : `<tr><td colspan="${COLS}" style="text-align:center;padding:40px;color:rgba(22,61,50,0.35);font-size:13px;">Sin turnos · hacé click en + para agregar</td></tr>`;
 
-            document.getElementById('grilla-table')?.classList.toggle('grilla-compacta', _grilla_compacta);
             _grillaRenderResumenDia(del_dia);
             _grillaMarcarAhora();
             setTimeout(() => { if (document.getElementById('sec-grilla')?.classList.contains('active')) _grillaMarcarAhora(); }, 60);
@@ -16421,8 +16241,6 @@
         function _grillaRenderResumenDia(delDia) {
             const el = document.getElementById('grilla-resumen-dia');
             if (!el) return;
-            const btnD = document.getElementById('btn-grilla-densidad');
-            if (btnD) btnD.textContent = _grilla_compacta ? 'Vista detallada · 15 min' : 'Vista compacta · 30 min';
             if (!delDia.length) { el.innerHTML = '<span class="p360-muted">Sin turnos para este día.</span>'; return; }
             const pacientes = new Set(delDia.map(_pacienteMatchKey));
             const porBox = GRILLA_BOXES.map(b => `${b.icon} ${b.title}: ${delDia.filter(r => _grilla_boxDeReserva(r) === b.id).length}`).join(' · ');
@@ -16489,10 +16307,89 @@
             if (tr) tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
             else mostrarAviso('La hora actual está fuera del horario que muestra la Grilla');
         };
-        window.grillaToggleDensidad = () => {
-            _grilla_compacta = !_grilla_compacta;
-            try { localStorage.setItem('mimar_grilla_compacta', _grilla_compacta ? '1' : '0'); } catch (_) {}
-            window.renderGrilla();
+        /* ── Acciones rápidas en cada turno de la Grilla (sin abrir modales) ──
+           ✅ confirmación de la paciente (mismo campo confirmacionManual que
+           usan Agenda y Recordatorios) · 📲 recordatorio por WhatsApp (queda
+           registrado en contactosWhatsApp y en el turno) · 🏷️ forzar
+           NORMAL/JORNADA (forzarJornadaManual) · 🗑️ eliminar con borrado en
+           cascada de la consulta vinculada. Cada botón frena la propagación
+           para no abrir la ficha ni iniciar el arrastre. */
+        function _grillaQuickActionsHtml(r) {
+            const conf = r.confirmacionManual === true;
+            const recordado = r.recordatorioEnviado === true;
+            const esJor = _esTurnoJornada(r);
+            const esCI = _esConsultaInicialReserva(r);
+            const id = r.id; // mismos ids que usa el resto de la Grilla ('${res.id}')
+            const estado = conf
+                ? '<span class="gqa-estado ok" title="Confirmado">✅<span class="gqa-txt"> Confirmado</span></span>'
+                : '<span class="gqa-estado pend" title="Pendiente de confirmar">⏳<span class="gqa-txt"> Pendiente</span></span>';
+            const tag = esCI ? '<span class="tag-origen badge-ci gqa-tag">CI</span>'
+                : esJor ? '<span class="tag-origen jornada badge-jornada gqa-tag">Jornada</span>' : '';
+            return `<div class="grilla-quick-actions" role="group" aria-label="Acciones rápidas" draggable="false" ondragstart="event.stopPropagation();event.preventDefault()">
+                ${estado}${tag}
+                <span class="gqa-btns">
+                    <button type="button" class="gqa-btn${conf ? ' on' : ''}" draggable="false" onclick="confirmarTurnoDesdeGrilla('${id}', event)" title="${conf ? 'Quitar confirmación' : 'Marcar como confirmado'}" aria-pressed="${conf}">✅</button>
+                    <button type="button" class="gqa-btn${recordado ? ' on' : ''}" draggable="false" onclick="recordarSesionDesdeGrilla('${id}', event)" title="${recordado ? 'Recordado · volver a enviar recordatorio' : 'Recordar sesión por WhatsApp'}">📲</button>
+                    <button type="button" class="gqa-btn${r.forzarJornadaManual === true || r.forzarJornadaManual === false ? ' on' : ''}" draggable="false" onclick="alternarJornadaDesdeGrilla('${id}', event)" title="Cambiar a ${esJor ? 'NORMAL' : 'JORNADA'}">🏷️</button>
+                    <button type="button" class="gqa-btn gqa-del" draggable="false" onclick="grillaEliminarTurnoDefinitivo('${id}', event)" title="Eliminar turno">🗑️</button>
+                </span>
+            </div>`;
+        }
+        const _gqaFrenar = (ev) => { if (ev) { ev.stopPropagation(); ev.preventDefault(); } };
+        window.confirmarTurnoDesdeGrilla = async (reservaId, ev) => {
+            _gqaFrenar(ev);
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            const valor = r.confirmacionManual !== true;
+            const cambios = { confirmacionManual: valor, confirmacionManualAt: valor ? serverTimestamp() : null };
+            if (valor && r.esperaConfirmacion) { cambios.esperaConfirmacion = false; cambios.esperaConfirmacionAt = null; }
+            try {
+                await updateDoc(doc(db, 'reservas', reservaId), cambios);
+                r.confirmacionManual = valor;
+                if (valor) r.esperaConfirmacion = false;
+                window.renderGrilla();
+                mostrarAviso(valor ? '✅ Turno confirmado' : 'Se quitó la confirmación');
+            } catch (e) { console.error('confirmarTurnoDesdeGrilla', e); mostrarAviso('No se pudo actualizar la confirmación'); }
+        };
+        window.recordarSesionDesdeGrilla = async (reservaId, ev) => {
+            _gqaFrenar(ev);
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            const num = formatearTelefonoWhatsApp(r.phone || r.telefono);
+            if (!num) { mostrarAviso('Sin teléfono registrado'); return; }
+            const pila = _pacienteNombreDisplay(r).split(' ')[0];
+            const hora = normalizarHora(r.hora);
+            const cuando = r.fecha === fechaHoyISO() ? 'hoy' : r.fecha === _sumarDiasISO(fechaHoyISO(), 1) ? 'mañana' : `el ${formatoFechaISO(r.fecha)}`;
+            const box = GRILLA_BOXES.find(x => x.id === _grilla_boxDeReserva(r));
+            const texto = `Hola ${pila}, te recordamos tu sesión de ${r.servicio || 'tratamiento'} en Espacio MimarT ${cuando} (${formatoFechaISO(r.fecha)}) a las ${hora} hs${box ? ` en el ${box.title}` : ''}. ¿Nos confirmás tu asistencia? ¡Te esperamos! 🌿`;
+            // Se abre primero (dentro del clic) para que el navegador no lo bloquee.
+            window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, '_blank');
+            registrarContactoWA(r.id, 'recordatorio', pila);
+            try {
+                await updateDoc(doc(db, 'reservas', reservaId), { recordatorioEnviado: true, recordatorioEnviadoAt: serverTimestamp() });
+                r.recordatorioEnviado = true;
+                window.renderGrilla();
+            } catch (e) { console.error('recordarSesionDesdeGrilla', e); }
+        };
+        window.alternarJornadaDesdeGrilla = async (reservaId, ev) => {
+            _gqaFrenar(ev);
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            if (_esConsultaInicialReserva(r)) { mostrarAviso('Una Consulta Inicial nunca es turno de jornada'); return; }
+            const valor = !_esTurnoJornada(r);
+            try {
+                await updateDoc(doc(db, 'reservas', reservaId), { forzarJornadaManual: valor, forzarJornadaManualAt: serverTimestamp() });
+                r.forzarJornadaManual = valor;
+                window.renderGrilla();
+                if (fechaSeleccionada === r.fecha) verTurnos(r.fecha, document.querySelector('.day.selected'));
+                mostrarAviso(valor ? '🏷️ Marcado como JORNADA' : '🏷️ Marcado como NORMAL');
+            } catch (e) { console.error('alternarJornadaDesdeGrilla', e); mostrarAviso('No se pudo cambiar el tipo de turno'); }
+        };
+        // Eliminar desde la Grilla: misma confirmación de siempre + cascada de
+        // la consulta vinculada (ver borrarReserva / _borrarConsultasVinculadas).
+        window.grillaEliminarTurnoDefinitivo = async (reservaId, ev) => {
+            _gqaFrenar(ev);
+            await window.grillaEliminarReserva(reservaId);
         };
         window.grillaCobrarTurno = (ev, reservaId) => {
             if (ev) { ev.stopPropagation(); ev.preventDefault(); }
@@ -17384,134 +17281,6 @@
             URL.revokeObjectURL(url);
         };
 
-        // ══════════════════════════════════════════════════
-        // DISPONIBILIDAD — CONSULTA INICIAL
-        // Cerrado por defecto; admin habilita días/horarios
-        // ══════════════════════════════════════════════════
-        const CONSULT_SLOTS = Array.from({length: 27}, (_, i) => {
-            const t = 7 * 60 + 30 + i * 30;
-            return `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
-        });
-
-        let _consI_fecha = fechaHoyISO();
-        let _consI_habilitado_docId = null;
-        let _consI_bloqSlots = new Map(); // hora → docId
-
-        const _consI_fmtFecha = (fStr) => {
-            const [y,m,d] = fStr.split('-').map(Number);
-            const dt = new Date(y,m-1,d);
-            const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-            const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-            return `${dias[dt.getDay()]} ${d} de ${meses[m-1]} ${y}`;
-        };
-
-        const cargarDisponibilidadConsI = async (fecha) => {
-            const tituloEl = document.getElementById('consI-fecha-titulo');
-            const infoEl   = document.getElementById('consI-dia-info');
-            const slotsEl  = document.getElementById('consI-slots');
-            if (!tituloEl || !infoEl || !slotsEl) return;
-            tituloEl.textContent = _consI_fmtFecha(fecha);
-            infoEl.textContent = 'Cargando...';
-            slotsEl.innerHTML = '';
-            _consI_habilitado_docId = null;
-            _consI_bloqSlots.clear();
-            try {
-                const snap = await getDocs(query(collection(db,'calendarExceptions'), where('fecha','==',fecha)));
-                snap.forEach(d => {
-                    const data = d.data();
-                    if (data.tipo === 'habilitado_consulta') { _consI_habilitado_docId = d.id; return; }
-                    if (data.tipo === 'bloq_consulta' && data.hora) { _consI_bloqSlots.set(normalizarHora(data.hora), d.id); }
-                });
-            } catch(e) { console.error('consI load', e); }
-            _renderConsI(fecha);
-        };
-
-        function _renderConsI(fecha) {
-            const infoEl  = document.getElementById('consI-dia-info');
-            const slotsEl = document.getElementById('consI-slots');
-            if (!infoEl || !slotsEl) return;
-            const isHabilitado = !!_consI_habilitado_docId;
-            const ocupadas = new Set(todasLasConsultas.filter(c => c.fecha === fecha).map(c => normalizarHora(c.hora)));
-            if (!isHabilitado) {
-                infoEl.innerHTML = `<div style="display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                    <span style="color:rgba(165,67,58,0.75);font-size:13px;font-weight:600;">Día cerrado</span>
-                    <button class="btn-mini" onclick="habilitarDiaConsI('${fecha}')" style="padding:8px 16px;background:rgba(74,222,128,0.12);border-color:rgba(74,222,128,0.35);color:#2F6B4F;">✓ Habilitar día</button>
-                </div>`;
-                slotsEl.innerHTML = '';
-                return;
-            }
-            infoEl.innerHTML = `<div style="display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                <span style="color:rgba(22,61,50,0.85);font-size:13px;font-weight:600;">Día habilitado</span>
-                <button class="btn-mini" onclick="deshabilitarDiaConsI('${fecha}')" style="padding:8px 16px;background:rgba(248,113,113,0.10);border-color:rgba(248,113,113,0.30);color:rgba(165,67,58,0.80);">✗ Deshabilitar día</button>
-            </div>`;
-            const btns = CONSULT_SLOTS.map(hora => {
-                const esBloq = _consI_bloqSlots.has(hora);
-                const esOcup = ocupadas.has(hora);
-                if (esOcup)  return `<button class="consI-slot-btn ocupado" disabled title="Reservado">${hora}</button>`;
-                if (esBloq)  return `<button class="consI-slot-btn" onclick="toggleSlotConsI('${fecha}','${hora}',true)" title="Cerrado — tocá para abrir">${hora}</button>`;
-                return `<button class="consI-slot-btn habilitado" onclick="toggleSlotConsI('${fecha}','${hora}',false)" title="Disponible — tocá para cerrar">${hora}</button>`;
-            }).join('');
-            slotsEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:5px;">${btns}</div>
-                <div style="margin-top:11px;display:flex;gap:14px;font-size:11px;color:rgba(22,61,50,0.42);">
-                    <span><span style="color:rgba(22,61,50,0.80);">■</span> disponible</span>
-                    <span><span style="color:rgba(165,67,58,0.60);">■</span> cerrado</span>
-                    <span><span style="color:rgba(22,61,50,0.22);">■</span> reservado</span>
-                </div>`;
-        }
-
-        window.consINavFecha = (d) => {
-            const [y,m,dd] = _consI_fecha.split('-').map(Number);
-            const dt = new Date(y,m-1,dd+d);
-            _consI_fecha = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
-            cargarDisponibilidadConsI(_consI_fecha);
-        };
-        window.consIIrHoy = () => { _consI_fecha = fechaHoyISO(); cargarDisponibilidadConsI(_consI_fecha); };
-
-        window.habilitarDiaConsI = async (fecha) => {
-            try {
-                const docId = `ci_${fecha}_habilitado`;
-                await setDoc(doc(db,'calendarExceptions',docId), { fecha, tipo: 'habilitado_consulta', updatedAt: serverTimestamp() });
-                _consI_habilitado_docId = docId;
-                _renderConsI(fecha);
-            } catch(e) { console.error('habilitarDiaConsI', e); }
-        };
-
-        const _consIConfirm = (msg, onSi) => {
-            document.getElementById('consI-confirm-msg').textContent = msg;
-            const btn = document.getElementById('consI-confirm-ok');
-            btn.onclick = () => { document.getElementById('consI-confirm-overlay').style.display='none'; onSi(); };
-            document.getElementById('consI-confirm-overlay').style.display = 'flex';
-        };
-
-        window.deshabilitarDiaConsI = (fecha) => {
-            if (!_consI_habilitado_docId) return;
-            _consIConfirm(`¿Cerrar ${_consI_fmtFecha(fecha)} para Consulta Inicial? Todos los horarios quedarán bloqueados.`, async () => {
-                try {
-                    await deleteDoc(doc(db,'calendarExceptions',_consI_habilitado_docId));
-                    const bloqIds = [..._consI_bloqSlots.values()];
-                    await Promise.all(bloqIds.map(id => deleteDoc(doc(db,'calendarExceptions',id))));
-                    _consI_habilitado_docId = null;
-                    _consI_bloqSlots.clear();
-                    _renderConsI(fecha);
-                } catch(e) { console.error('deshabilitarDiaConsI', e); }
-            });
-        };
-
-        window.toggleSlotConsI = async (fecha, hora, esBloqueado) => {
-            try {
-                if (esBloqueado) {
-                    const docId = _consI_bloqSlots.get(hora);
-                    if (!docId) return;
-                    await deleteDoc(doc(db,'calendarExceptions',docId));
-                    _consI_bloqSlots.delete(hora);
-                } else {
-                    const docId = `ci_${fecha}_${hora.replace(':','')}`;
-                    await setDoc(doc(db,'calendarExceptions',docId), { fecha, hora, tipo: 'bloq_consulta', blocked: true, type: 'blocked', updatedAt: serverTimestamp() });
-                    _consI_bloqSlots.set(hora, docId);
-                }
-                _renderConsI(fecha);
-            } catch(e) { console.error('toggleSlotConsI', e); }
-        };
 
         /* ════════════════════════════════════════════════════════════════════
            BOTÓN DE COBRO CON ESTADO EN VIVO (Ficha 360° → Historial, Sesiones,
