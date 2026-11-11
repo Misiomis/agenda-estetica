@@ -2301,6 +2301,89 @@
         table#grilla-table td.cristina-active .grilla-celda-bloq,
         table#grilla-table td.cristina-active .grilla-celda-default-bloq { background-color: #fef3c7 !important; border-color: #eab308 !important; }
 
+        /* ══════════════════════════════════════════════════════════════════
+           GRILLA COMO REGLA DE TIEMPO
+           · Todas las filas de 15 min miden lo mismo: un turno de 45 min
+             ocupa exactamente 3 filas y se lee de qué hora a qué hora va.
+           · La tarjeta va posicionada dentro de su celda (no estira la fila);
+             muestra más o menos detalle según cuántas filas ocupa.
+           · Línea marcada en cada hora en punto y suave en cada media hora.
+           ══════════════════════════════════════════════════════════════════ */
+        table#grilla-table { --gr-fila: 52px; }
+        table#grilla-table tr[data-hora] > td { height: var(--gr-fila) !important; position: relative; }
+        table#grilla-table td.grilla-td-box > .grilla-celda-ocupada {
+            position: absolute !important;
+            inset: 3px !important;
+            width: auto !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+            z-index: 2;
+            padding: 7px 10px 6px !important;
+        }
+        table#grilla-table td.grilla-td-box.cristina-active > .grilla-celda-ocupada { inset: 4px !important; }
+        table#grilla-table .grilla-celda-ocupada:hover { transform: none; z-index: 3; }
+
+        /* Horario del turno en la tarjeta */
+        .grilla-tarjeta-turno .gc-horario { font-size: 11px; font-weight: 800; color: #1e3f2f; background: #eef3f0; border-radius: 6px; padding: 1px 6px; letter-spacing: .02em; line-height: 1.5; }
+        td.cristina-active .grilla-tarjeta-turno .gc-horario { background: #fef9c3; color: #713f12; }
+        .grilla-tarjeta-turno .gc-horario { white-space: nowrap; }
+        .grilla-tarjeta-turno .gch-sep { margin: 0 4px; }
+        .grilla-tarjeta-turno .card-top-info { gap: 1px; }
+        .grilla-tarjeta-turno .grilla-paciente-nombre, .grilla-tarjeta-turno .grilla-paciente-servicio { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .grilla-tarjeta-turno .card-bottom-footer { padding-top: 5px; gap: 3px; }
+
+        /* Detalle según la duración (filas que ocupa) */
+        td.gr-span-1 .grilla-tarjeta-turno { flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; gap: 6px; padding: 4px 22px 4px 8px !important; }
+        td.gr-span-1 .grilla-tarjeta-turno .card-top-info { flex-direction: row; align-items: center; gap: 6px; min-width: 0; padding-right: 0; }
+        td.gr-span-1 .grilla-tarjeta-turno .card-bottom-footer,
+        td.gr-span-1 .grilla-tarjeta-turno .gc-ctx-dispo,
+        td.gr-span-1 .grilla-tarjeta-turno .grilla-paciente-servicio,
+        td.gr-span-1 .grilla-tarjeta-turno .gc-ya-sede,
+        td.gr-span-1 .grilla-tarjeta-turno .gc-sigue,
+        td.gr-span-1 .grilla-tarjeta-turno .gc-nota-tag { display: none !important; }
+        td.gr-span-2 .grilla-tarjeta-turno .gc-ctx-dispo,
+        td.gr-span-2 .grilla-tarjeta-turno .gc-ctx-ultima,
+        td.gr-span-2 .grilla-tarjeta-turno .gc-ya-sede,
+        td.gr-span-2 .grilla-tarjeta-turno .gc-sigue,
+        td.gr-span-2 .grilla-tarjeta-turno .gc-nota-tag { display: none !important; }
+        td.gr-span-2 .grilla-tarjeta-turno .card-bottom-footer { border-top: none; padding-top: 2px; }
+
+        /* Columna de hora: en punto marcada, media hora media, cuartos suaves */
+        table#grilla-table tr[data-hora] > td.grilla-td-hora { vertical-align: top !important; padding-top: 6px !important; }
+        table#grilla-table tr.gr-en-punto > td.grilla-td-hora { font-size: 14px !important; font-weight: 800 !important; color: #13241c !important; background-color: #dfe9e4 !important; }
+        table#grilla-table tr.gr-y-media > td.grilla-td-hora { font-size: 12.5px !important; font-weight: 700 !important; color: #1e3f2f !important; }
+        table#grilla-table tr.grilla-row-15 > td.grilla-td-hora { font-size: 11px !important; font-weight: 600 !important; color: #8aa195 !important; background-color: #f1f5f3 !important; border-color: #e2e8f0 !important; }
+        table#grilla-table tr.turno-cristina.gr-en-punto > td.grilla-td-hora { background-color: #facc15 !important; color: #713f12 !important; }
+        table#grilla-table tr.turno-cristina.grilla-row-15 > td.grilla-td-hora { background-color: #fef08a !important; color: #854d0e !important; border: 2px solid #eab308 !important; }
+
+        /* Líneas guía: corren por el espacio entre filas y se cortan donde
+           hay una tarjeta (el turno sigue de largo por encima). */
+        table#grilla-table tr.gr-en-punto > td::before,
+        table#grilla-table tr.gr-y-media > td::before {
+            content: ''; position: absolute; left: -5px; right: -5px; top: -4px;
+            border-top: 2px solid rgba(30, 63, 47, 0.30); pointer-events: none; z-index: 1;
+        }
+        table#grilla-table tr.gr-y-media > td::before { border-top: 1px dashed rgba(30, 63, 47, 0.22); }
+        table#grilla-table tr.turno-cristina.gr-en-punto > td::before { border-top-color: rgba(161, 98, 7, 0.55); }
+
+        @media (max-width: 768px) {
+            table#grilla-table { --gr-fila: 46px; }
+            table#grilla-table td.grilla-td-box > .grilla-celda-ocupada { inset: 2px !important; padding: 4px 5px 4px 6px !important; }
+            table#grilla-table td.grilla-td-box.cristina-active > .grilla-celda-ocupada { inset: 2px !important; }
+            .grilla-tarjeta-turno .gc-horario { font-size: 9px; padding: 0 3px; letter-spacing: -0.02em; max-width: 100%; overflow: hidden; }
+            /* En celular la columna es angosta: el inicio ya se ve en la fila; se muestra hasta qué hora va. */
+            .grilla-tarjeta-turno .gch-ini { display: none; }
+            .grilla-tarjeta-turno .gch-sep { margin: 0 1px 0 0; font-size: 0; }
+            .grilla-tarjeta-turno .gch-sep::before { content: "→"; font-size: 9px; }
+            td.gr-span-2 .grilla-tarjeta-turno .gqa-estado { display: none; }
+            td.gr-span-2 .grilla-tarjeta-turno .gqa-btns { grid-template-columns: repeat(4, 18px) !important; justify-content: space-between; }
+            td.gr-span-2 .grilla-tarjeta-turno .gqa-btn { width: 18px; height: 18px; font-size: 10px; }
+            td.gr-span-1 .grilla-tarjeta-turno .gc-horario { display: none; }
+            table#grilla-table tr.gr-en-punto > td.grilla-td-hora { font-size: 12.5px !important; }
+            table#grilla-table tr.gr-en-punto > td::before, table#grilla-table tr.gr-y-media > td::before { left: -3px; right: -3px; top: -3px; }
+        }
+
         /* ── Control de sesiones ── */
         .cs-contadores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
         .cs-contador { display: flex; align-items: center; gap: 12px; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; font: inherit; color: var(--ink); cursor: pointer; min-width: 0; }
@@ -16262,11 +16345,15 @@
                             `<button type="button" class="gc-cobro-btn" draggable="false" onclick="grillaCobrarTurno(event,'${res.id}')" title="💳 Cobrar / precio y pagos" aria-label="Cobrar turno de ${nom}">💳</button>`;
                         // Última sesión: siempre en turnos de varias filas; en los de una
                         // sola fila, solo si no hay chip de disponibilidad (como antes).
+                        // Horario real del turno (inicio – fin) escrito en la tarjeta.
+                        const _hIni = normalizarHora(res.hora || hora) || hora;
+                        const _hFin = (() => { const [hh, mm] = _hIni.split(':').map(Number); const t = hh * 60 + mm + (Number(res.duracionMinutos) || _grRowspan * 15); return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; })();
                         const ultima = ctx.ultimaHtml && (_grRowspan > 1 || !ctx.dispoHtml) ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : '';
                         // Tocar la tarjeta abre la Ficha 360° (historial).
                         inner = `<div class="grilla-celda-ocupada grilla-tarjeta-turno${_grRowspan > 1 ? ' gr-multi' : ''}${circCls}${esperaCls}${notaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaAbrirFichaTurno(event,'${res.id}')" title="${escapeHtml(ctx.tooltip)}">
                                 ${menuHtml}
                                 <div class="card-top-info">
+                                    <span class="gc-horario" title="${_hIni} a ${_hFin} hs"><span class="gch-ini">${_hIni}</span><span class="gch-sep">–</span>${_hFin}</span>
                                     <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Abrir ficha de ${nom}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaAbrirFichaTurno(event,'${res.id}')}">${nom}</span>
                                     <span class="grilla-paciente-servicio">${srv}</span>
                                     ${ctx.dispoHtml ? `<span class="gc-ctx gc-ctx-dispo" title="${escapeHtml(ctx.dispoTitulo || '')}">${ctx.dispoHtml}</span>` : ''}
@@ -16293,7 +16380,7 @@
                             <div class="gcl-blk" onclick="grillaBloquearSlot('${hora}','${box.id}')" title="${adminUnbloq ? 'Restablecer bloqueo' : 'Bloquear slot'}">🔒</div>
                         </div>`;
                     }
-                    return `<td class="grilla-td-box gr-box-${box.id}${_grRowspan > 1 ? ' gr-span' : ''}${_crisCls}"${_grRowspan > 1 ? ` rowspan="${_grRowspan}"` : ''} ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
+                    return `<td class="grilla-td-box gr-box-${box.id}${slotData ? ` gr-span-${Math.min(_grRowspan, 4)}` : ''}${_grRowspan > 1 ? ' gr-span' : ''}${_crisCls}"${_grRowspan > 1 ? ` rowspan="${_grRowspan}"` : ''} ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
                 }).join('');
 
                 // División MAÑANA / TARDE: banda separadora que cruza las 5 columnas.
@@ -16302,7 +16389,7 @@
                 if (_grCorte === ' gr-corte-tarde' && _grSinCruce) {
                     rows.push(`<tr class="grilla-separador-row" aria-hidden="true"><td colspan="${COLS}"><div class="grilla-separador-tarde">☀️ Fin turno mañana <span class="gst-linea"></span> 🌤️ Inicio turno tarde</div></td></tr>`);
                 }
-                rows.push(`<tr class="${rowCls}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora${_crisCls}">${horaLabel}</td>${celdas}</tr>`);
+                rows.push(`<tr class="${rowCls}${hora.endsWith(':00') ? ' gr-en-punto' : hora.endsWith(':30') ? ' gr-y-media' : ''}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora${_crisCls}">${horaLabel}</td>${celdas}</tr>`);
             }
             tbody.innerHTML = rows.length
                 ? rows.join('')
