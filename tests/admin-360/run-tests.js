@@ -108,6 +108,16 @@ check('Laura sin sesiones previas → "Primera sesión"', tb.includes('Primera s
 const tbSinCobro = tb.replace(/<button[^>]*class="gc-cobro-btn"[^>]*>💳<\/button>/g, '');
 check('NO muestra pagos ni saldo de horas en la Grilla', !/💳|Señado|Pagado|Pendiente de pago|\$ ?\d|\d h disp\.|⭐|saldo/i.test(tbSinCobro + $('grilla-resumen-dia').innerHTML));
 check('cada turno tiene el acceso discreto 💳 (sin montos)', /class="gc-cobro-btn"/.test(tb) && typeof w.grillaCobrarTurno === 'function');
+{
+  const tbody = $('grilla-tbody');
+  const tarjetas = [...tbody.querySelectorAll('.grilla-celda-ocupada')];
+  const tdHoy = tarjetas.find(c => c.textContent.includes('Paula Gómez'))?.closest('td');
+  check('turno de 60 min = UNA celda con rowspan (sin segmentos de continuación)', tdHoy && Number(tdHoy.getAttribute('rowspan')) >= 2 && !tbody.querySelector('.gc-bloque-cont'), tdHoy && tdHoy.outerHTML.slice(0, 160));
+  check('una sola tarjeta por turno en la Grilla', tarjetas.length === new Set(tarjetas.map(c => c.getAttribute('onclick'))).size);
+  check('tarjeta en 2 bloques: datos arriba y pie con estado + acciones + última sesión', tarjetas.every(c => c.querySelector(':scope > .card-top-info') && c.querySelector(':scope > .card-bottom-footer .grilla-quick-actions')));
+  check('los <td> no llevan fondo ni borde de color inline', [...tbody.querySelectorAll('td.grilla-td-box')].every(td => !/background|border-color/.test(td.getAttribute('style') || '')) && [...tbody.querySelectorAll('td.grilla-td-box')].every(td => /gr-box-b[1-4]/.test(td.className)));
+  check('la marca "viene Cristina" ya no pinta filas de amarillo', !/grilla-row-cristina td[^{]*\{[^}]*#FF/i.test(html));
+}
 check('NO consulta prestaciones ni pagos al dibujar la Grilla', !fb.calls.lecturas.some(p => p === 'pagos' || p === 'prestaciones'), fb.calls.lecturas.join(','));
 check('resumen del día solo con turnos, pacientes y boxes', /2<\/b> turnos/.test($('grilla-resumen-dia').innerHTML) && /Box 3: 1/.test($('grilla-resumen-dia').textContent), $('grilla-resumen-dia').textContent);
 const filas15 = () => [...w.document.querySelectorAll('#grilla-tbody tr.grilla-row-15')];

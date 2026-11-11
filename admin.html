@@ -959,8 +959,7 @@
            ya usa el separador "mañana/tarde" del propio render: 14:00).
            !important porque cada celda ya trae su color de box inline
            (style="background:...") — necesitamos pisarlo a propósito acá. */
-        tr.grilla-row-cristina td.grilla-td-box { background: #FFE066 !important; }
-        tr.grilla-row-cristina td.grilla-td-hora { background: #FFD93B !important; color: #5C4400 !important; }
+        /* "Viene Cristina": ya no pinta filas de amarillo — solo el aviso de la barra superior (#grilla-banner-cristina). */
         /* position:fixed, creado en <body> al vuelo (ver grillaToggleMenuEspera) —
            NUNCA anidado dentro de .grilla-celda-ocupada: esa celda tiene
            overflow:hidden (para el ellipsis del nombre/servicio largo) y
@@ -2066,20 +2065,6 @@
             box-shadow: 0 1px 2px rgba(20, 42, 31, 0.05), 0 22px 44px -14px rgba(20, 42, 31, 0.14), 0 0 0 3px rgba(200, 157, 84, 0.10);
         }
 
-        /* Grilla moderna: cada celda es una cápsula con indicador del box */
-        .grilla-table { border-collapse: separate !important; border-spacing: 6px; }
-        .grilla-table th, .grilla-table td { border-color: rgba(30, 63, 47, 0.10); }
-        .grilla-table td.grilla-td-box { border-radius: 12px; border-width: 1px; }
-        .grilla-table tbody td.grilla-td-box:nth-child(2) { box-shadow: inset 3px 0 0 var(--box-1-color); }
-        .grilla-table tbody td.grilla-td-box:nth-child(3) { box-shadow: inset 3px 0 0 var(--box-2-color); }
-        .grilla-table tbody td.grilla-td-box:nth-child(4) { box-shadow: inset 3px 0 0 var(--box-3-color); }
-        .grilla-table tbody td.grilla-td-box:nth-child(5) { box-shadow: inset 3px 0 0 var(--box-4-color); }
-        .grilla-table td.grilla-td-hora { border-radius: 10px; }
-        /* Un turno de varias filas sigue siendo UNA tarjeta: los segmentos de
-           continuación cubren el espacio entre cápsulas. */
-        .grilla-table td.grilla-td-box[style*="border-top-color:transparent"] { border-top-left-radius: 0; border-top-right-radius: 0; }
-        .grilla-table td.grilla-td-box[style*="border-bottom-color:transparent"] { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-        .grilla-celda-ocupada[style*="border-top:none"] { margin-top: -7px; height: calc(100% + 7px); }
         .grilla-table thead th {
             position: sticky; top: 0; z-index: 20 !important;
             background: rgba(22, 42, 33, 0.94) !important;
@@ -2092,8 +2077,7 @@
         @media (min-width: 769px) { .grilla-table thead th { top: var(--topbar-h-real, var(--topbar-h, 0px)); } }
         .grilla-celda-ocupada { border-radius: 12px; transition: all 0.25s var(--ease-lux); }
         .grilla-celda-ocupada:hover { border-color: rgba(200, 157, 84, 0.5) !important; box-shadow: 0 0 0 2px rgba(200, 157, 84, 0.18), 0 10px 22px -12px rgba(20, 42, 31, 0.30); }
-        /* Solo el turno de una fila se eleva (uno de varias filas no se "parte"). */
-        .grilla-celda-ocupada:not([style*="border-radius"]):hover { transform: translateY(-2px); }
+        .grilla-celda-ocupada:hover { transform: translateY(-2px); }
 
         /* Acciones rápidas dentro de cada turno */
         .grilla-quick-actions { display: flex; align-items: center; gap: 4px; width: 100%; margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(30, 63, 47, 0.12); flex-wrap: wrap; }
@@ -2126,6 +2110,104 @@
         @media (prefers-reduced-motion: reduce) {
             .detalle-dia-card, .rm-kpi, #kpiGrid .kpi-card, .grilla-celda-ocupada, .gqa-btn { transition: none; }
             .detalle-dia-card:hover, .rm-kpi:hover, #kpiGrid .kpi-card:hover, .grilla-celda-ocupada:hover { transform: none; }
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           UNIFICACIÓN PRO DE LA GRILLA — una sola capa: sin fondo amarillo ni
+           bordes de color del <td> asomando detrás de las tarjetas.
+           · Los <td> ya no reciben color inline (renderGrilla) y la marca
+             "viene Cristina" solo se ve en el aviso de la barra superior.
+           · Un turno de varias filas es UNA celda con rowspan real.
+           · El acento de cada box va por clase (gr-box-b1…b4): con rowspan,
+             nth-child dejaría de corresponder al box en las filas siguientes.
+           ══════════════════════════════════════════════════════════════════ */
+        table#grilla-table {
+            width: 100% !important;
+            border-collapse: separate !important;
+            border-spacing: 8px 6px !important;
+            table-layout: fixed !important;
+        }
+        table#grilla-table td.grilla-td-box {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            vertical-align: top !important;
+            height: 42px;
+        }
+        table#grilla-table tr.grilla-row-15 td.grilla-td-box { height: 34px; }
+        table#grilla-table td.grilla-td-hora {
+            background: #eef3f0 !important;
+            color: #1e3a2f !important;
+            border: 1px solid rgba(30, 58, 47, 0.10) !important;
+            border-radius: 10px !important;
+            font-weight: 700 !important;
+            font-size: 12.5px !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+            box-shadow: none !important;
+        }
+        table#grilla-table tr.grilla-row-15 td.grilla-td-hora { font-weight: 600 !important; color: #6b8378 !important; font-size: 11.5px !important; }
+        /* Celdas libres (+): superficie neutra, sin amarillo ni borde de color */
+        table#grilla-table .grilla-celda-libre {
+            background: rgba(255, 255, 255, 0.65) !important;
+            border: 1px dashed rgba(30, 58, 47, 0.18) !important;
+            border-radius: 12px !important;
+            color: #5b7568 !important;
+            min-height: 34px !important;
+            height: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            box-shadow: none !important;
+            transition: all 0.2s ease !important;
+        }
+        table#grilla-table .grilla-celda-libre:hover {
+            background: #ffffff !important;
+            border: 1px solid #c89d54 !important;
+            color: #1e3a2f !important;
+            box-shadow: 0 6px 16px -4px rgba(30, 58, 47, 0.08) !important;
+        }
+        table#grilla-table .grilla-celda-bloq, table#grilla-table .grilla-celda-default-bloq { border-radius: 12px !important; height: 100% !important; box-sizing: border-box; }
+        /* Tarjeta de turno: una sola tarjeta blanca que llena toda la celda */
+        table#grilla-table td.grilla-td-box > .grilla-celda-ocupada {
+            background: #ffffff !important;
+            border: 1px solid rgba(30, 58, 47, 0.12) !important;
+            border-left: 4px solid #234b38 !important;
+            border-radius: 14px !important;
+            box-shadow: 0 8px 22px -6px rgba(19, 36, 28, 0.07) !important;
+            padding: 10px 12px 8px !important;
+            margin: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            align-items: stretch !important;
+            box-sizing: border-box !important;
+        }
+        table#grilla-table td.gr-box-b1 > .grilla-celda-ocupada { border-left-color: #475569 !important; } /* Box 1 General: pizarra */
+        table#grilla-table td.gr-box-b2 > .grilla-celda-ocupada { border-left-color: #0d9488 !important; } /* Box 2 Corporal: teal */
+        table#grilla-table td.gr-box-b3 > .grilla-celda-ocupada { border-left-color: #c89d54 !important; } /* Box 3 Facial: champagne */
+        table#grilla-table td.gr-box-b4 > .grilla-celda-ocupada { border-left-color: #16a34a !important; } /* Box 4 Relax: esmeralda */
+        table#grilla-table .grilla-celda-ocupada:hover { border-color: rgba(200, 157, 84, 0.5) !important; border-left-color: inherit; }
+        /* Distribución interna: arriba datos, abajo estado + acciones + última sesión */
+        .grilla-tarjeta-turno .card-top-info { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding-right: 22px; }
+        .grilla-tarjeta-turno .grilla-paciente-nombre { font-weight: 700 !important; font-size: 14px !important; color: #13241c !important; max-width: 100%; }
+        .grilla-tarjeta-turno .grilla-paciente-servicio { font-size: 12px !important; color: #64748b !important; max-width: 100%; }
+        .grilla-tarjeta-turno .card-bottom-footer { margin-top: auto; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 5px; width: 100%; }
+        .grilla-tarjeta-turno .grilla-quick-actions { background: #f8fafc; padding: 3px 6px; border-radius: 8px; gap: 6px; margin-top: 0; border-top: none; }
+        .grilla-tarjeta-turno .gc-ctx-ultima, .grilla-tarjeta-turno .gc-ctx-ultima * { color: #0f766e !important; }
+        .grilla-tarjeta-turno .gc-ctx-ultima { margin-top: 0; font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        @media (max-width: 768px) {
+            table#grilla-table { border-spacing: 4px 4px !important; }
+            table#grilla-table td.grilla-td-box > .grilla-celda-ocupada { padding: 6px 6px 5px 7px !important; border-left-width: 3px !important; border-radius: 11px !important; }
+            .grilla-tarjeta-turno .grilla-paciente-nombre { font-size: 12.5px !important; }
+            .grilla-tarjeta-turno .grilla-paciente-servicio { font-size: 11px !important; }
+            .grilla-tarjeta-turno .card-top-info { padding-right: 14px; }
+            .grilla-tarjeta-turno .grilla-quick-actions { padding: 2px 3px; gap: 2px; }
+            .grilla-tarjeta-turno .card-bottom-footer { padding-top: 5px; }
         }
 
         /* ── Control de sesiones ── */
@@ -16016,10 +16098,22 @@
             const COLS = GRILLA_BOXES.length + 1;
             const rows = [];
             let lastHora = null;
+            // Un turno de varias filas es UNA sola celda (rowspan real): la
+            // tarjeta ocupa todo el alto, sin segmentos ni escalones. _grSaltar
+            // lleva, por box, cuántas filas siguientes ya cubre ese rowspan.
+            const _grFilas = _grilla_slots.filter(({ hora }) => _esHoraComercial(hora) || _grilla_extraSlots);
+            const _grSaltar = new Map();
+            const _grSpan = (boxId, desde, resId) => {
+                let n = 1;
+                for (let j = desde + 1; j < _grFilas.length; j++) {
+                    const sd = boxSlotInfo.get(boxId)?.get(_grFilas[j].hora);
+                    if (sd && sd.res.id === resId && (sd.type === 'mid' || sd.type === 'end')) n++; else break;
+                }
+                return n;
+            };
 
-            for (const { hora, es30 } of _grilla_slots) {
-                const isComercial = _esHoraComercial(hora);
-                if (!isComercial && !_grilla_extraSlots) continue;
+            for (let _grI = 0; _grI < _grFilas.length; _grI++) {
+                const { hora, es30 } = _grFilas[_grI];
 
                 // Cambio de turno (mañana→tarde, tarde→noche): solo una línea sutil
                 // en la primera fila. El encabezado de los boxes es uno solo, fijo
@@ -16036,80 +16130,61 @@
 
                 let filaConInicio = false;
                 const celdas = GRILLA_BOXES.map(box => {
+                    // Fila cubierta por el rowspan de un turno que empezó más arriba.
+                    if ((_grSaltar.get(box.id) || 0) > 0) { _grSaltar.set(box.id, _grSaltar.get(box.id) - 1); return ''; }
                     const slotData    = boxSlotInfo.get(box.id)?.get(hora);
+                    let _grRowspan = 1;
                     const key         = `${hora}_${box.id}`;
                     const adminBloq   = _grilla_adminBlocks.has(key);
                     const adminUnbloq = _grilla_adminUnblocks.has(key);
                     const defBloq     = _esDefaultBloqueado(hora, dayOfWeek);
                     let inner = '';
-                    // Estilos de <td> para bordes fusionados entre slots de un mismo turno
-                    let tdExtra = '';
                     if (slotData) {
-                        const { type, res, idx: idxBloque } = slotData;
-                        if (type === 'start' || type === 'solo') filaConInicio = true;
+                        const { res } = slotData;
+                        // Cualquier slot de un turno que llegue acá es su primera fila
+                        // visible: la tarjeta completa va en esta celda con rowspan.
+                        _grRowspan = _grSpan(box.id, _grI, res.id);
+                        if (_grRowspan > 1) _grSaltar.set(box.id, _grRowspan - 1);
+                        filaConInicio = true;
                         const ctx = _grillaContextoTurno(res);
                         const nom  = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
-                        // Antes se cortaba a 22 caracteres a mano (sin "…"), lo que
-                        // partía nombres de servicio largos a mitad de palabra
-                        // ("Tratamientos Corporale", "Tratamiento Detox Dren").
-                        // El texto completo se manda entero — el corte visual real
-                        // lo hace el CSS (text-overflow: ellipsis), que se adapta al
-                        // ancho real de la celda en vez de un límite de caracteres fijo.
+                        // Texto completo: el corte visual lo hace el CSS (ellipsis).
                         const srv  = escapeHtml(res.servicio || '');
                         const circ = _cm.get(res.id);
                         const circCls = circ?.isTarget ? ' gc-continua' : '';
-                        // Bordess de la celda: eliminar borde entre slots del mismo bloque
-                        if (type === 'start') tdExtra = ';border-bottom-color:transparent;padding-bottom:0';
-                        else if (type === 'mid') tdExtra = ';border-top-color:transparent;border-bottom-color:transparent;padding-top:0;padding-bottom:0';
-                        else if (type === 'end') tdExtra = ';border-top-color:transparent;padding-top:0';
-                        // Border-radius del div: redondeado solo en los extremos del bloque
-                        const divRad = {
-                            solo:  '',
-                            start: 'border-radius:9px 9px 0 0;border-bottom:none;',
-                            mid:   'border-radius:0;border-top:none;border-bottom:none;',
-                            end:   'border-radius:0 0 9px 9px;border-top:none;'
-                        }[type];
                         const esperaCls = res.esperaConfirmacion ? ' gc-espera' : '';
                         const notaRapida = (res.notaRapida || '').trim();
                         // La nota GENERAL de la paciente (clients/{dni}.notas) NO se
-                        // muestra acá: es un campo único por paciente, no por turno — si
-                        // alguien anota el detalle de UNA sesión puntual ahí (en vez de
-                        // en "detalle de sesión", que es lo correcto), se repetía
-                        // igual en TODAS sus tarjetas de todos los turnos, mezclando
-                        // info de un tratamiento con otro. Para verla hay que ir a
-                        // Pacientes o a "Registrar turno" (donde ya se mostraba antes).
+                        // muestra acá: es por paciente, no por turno (ver Pacientes).
                         const notaCls = notaRapida ? ' gc-con-nota' : '';
-                        if (type === 'start' || type === 'solo') {
-                            let circHtml = '';
-                            if (circ?.isTarget) circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
-                            if (circ?.nextBox) {
-                                const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
-                                circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
-                            }
-                            const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" data-nota="${escapeHtml(notaRapida)}" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>` +
-                                // Acceso directo a 💳 Precio y pagos sin salir de la Grilla
-                                // (solo el ícono: la celda no muestra montos ni saldos).
-                                `<button type="button" class="gc-cobro-btn" draggable="false" onclick="grillaCobrarTurno(event,'${res.id}')" title="💳 Cobrar / precio y pagos" aria-label="Cobrar turno de ${nom}">💳</button>`;
-                            // Tocar la tarjeta abre la Ficha 360° en la pestaña de
-                            // historial (antes: el modal "Últimas sesiones", que
-                            // sigue disponible desde el menú ⋮ del turno).
-                            inner = `<div class="grilla-celda-ocupada${circCls}${esperaCls}${notaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaAbrirFichaTurno(event,'${res.id}')" title="${escapeHtml(ctx.tooltip)}" style="--box-accent:${box.accent};${divRad}">
-                                ${menuHtml}
-                                <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Abrir ficha de ${nom}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaAbrirFichaTurno(event,'${res.id}')}">${nom}</span>
-                                <span class="grilla-paciente-servicio">${srv}</span>
-                                ${ctx.dispoHtml ? `<span class="gc-ctx gc-ctx-dispo" title="${escapeHtml(ctx.dispoTitulo || '')}">${ctx.dispoHtml}</span>` : ''}
-                                ${type === 'solo' && !ctx.dispoHtml && ctx.ultimaHtml ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : ''}
-                                ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
-                                ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
-                                ${circHtml}
-                                ${_grillaQuickActionsHtml(res)}
-                            </div>`;
-                        } else {
-                            // Continuación: la primera celda de continuación muestra
-                            // la última sesión de la paciente (antes iba vacía).
-                            const contTxt = idxBloque === 1 && ctx.ultimaHtml ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : '';
-                            inner = `<div class="grilla-celda-ocupada gc-bloque-cont${contTxt ? ' gc-bloque-cont-info' : ''}${circCls}${esperaCls}${notaCls}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" title="${escapeHtml(ctx.tooltip)}" style="--box-accent:${box.accent};${divRad}">${contTxt}</div>`;
+                        let circHtml = '';
+                        if (circ?.isTarget) circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
+                        if (circ?.nextBox) {
+                            const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
+                            circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
                         }
+                        const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" data-nota="${escapeHtml(notaRapida)}" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>` +
+                            // Acceso directo a 💳 Precio y pagos (solo el ícono: sin montos).
+                            `<button type="button" class="gc-cobro-btn" draggable="false" onclick="grillaCobrarTurno(event,'${res.id}')" title="💳 Cobrar / precio y pagos" aria-label="Cobrar turno de ${nom}">💳</button>`;
+                        // Última sesión: siempre en turnos de varias filas; en los de una
+                        // sola fila, solo si no hay chip de disponibilidad (como antes).
+                        const ultima = ctx.ultimaHtml && (_grRowspan > 1 || !ctx.dispoHtml) ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : '';
+                        // Tocar la tarjeta abre la Ficha 360° (historial).
+                        inner = `<div class="grilla-celda-ocupada grilla-tarjeta-turno${_grRowspan > 1 ? ' gr-multi' : ''}${circCls}${esperaCls}${notaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaAbrirFichaTurno(event,'${res.id}')" title="${escapeHtml(ctx.tooltip)}" style="--box-accent:${box.accent};">
+                                ${menuHtml}
+                                <div class="card-top-info">
+                                    <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Abrir ficha de ${nom}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaAbrirFichaTurno(event,'${res.id}')}">${nom}</span>
+                                    <span class="grilla-paciente-servicio">${srv}</span>
+                                    ${ctx.dispoHtml ? `<span class="gc-ctx gc-ctx-dispo" title="${escapeHtml(ctx.dispoTitulo || '')}">${ctx.dispoHtml}</span>` : ''}
+                                    ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
+                                    ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
+                                    ${circHtml}
+                                </div>
+                                <div class="card-bottom-footer">
+                                    ${_grillaQuickActionsHtml(res)}
+                                    ${ultima}
+                                </div>
+                            </div>`;
                     } else if (adminBloq) {
                         inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
                             <span class="gcb-ico">🔒</span><span class="gcb-txt">Bloqueado</span>
@@ -16124,7 +16199,7 @@
                             <div class="gcl-blk" onclick="grillaBloquearSlot('${hora}','${box.id}')" title="${adminUnbloq ? 'Restablecer bloqueo' : 'Bloquear slot'}">🔒</div>
                         </div>`;
                     }
-                    return `<td class="grilla-td-box" style="background:${box.bg};border-color:${box.border}${tdExtra}" ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
+                    return `<td class="grilla-td-box gr-box-${box.id}${_grRowspan > 1 ? ' gr-span' : ''}"${_grRowspan > 1 ? ` rowspan="${_grRowspan}"` : ''} style="--box-accent:${box.accent}" ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
                 }).join('');
 
                 rows.push(`<tr class="${rowCls}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora">${horaLabel}</td>${celdas}</tr>`);
