@@ -116,7 +116,16 @@ check('cada turno tiene el acceso discreto 💳 (sin montos)', /class="gc-cobro-
   check('una sola tarjeta por turno en la Grilla', tarjetas.length === new Set(tarjetas.map(c => c.getAttribute('onclick'))).size);
   check('tarjeta en 2 bloques: datos arriba y pie con estado + acciones + última sesión', tarjetas.every(c => c.querySelector(':scope > .card-top-info') && c.querySelector(':scope > .card-bottom-footer .grilla-quick-actions')));
   check('los <td> no llevan fondo ni borde de color inline', [...tbody.querySelectorAll('td.grilla-td-box')].every(td => !/background|border-color/.test(td.getAttribute('style') || '')) && [...tbody.querySelectorAll('td.grilla-td-box')].every(td => /gr-box-b[1-4]/.test(td.className)));
-  check('la marca "viene Cristina" ya no pinta filas de amarillo', !/grilla-row-cristina td[^{]*\{[^}]*#FF/i.test(html));
+  const sep = tbody.querySelector('tr.grilla-separador-row');
+  check('banda "Fin turno mañana / Inicio turno tarde" que cruza las 5 columnas, justo antes de la tarde', sep && /Fin turno mañana/.test(sep.textContent) && /Inicio turno tarde/.test(sep.textContent) && sep.querySelector('td').getAttribute('colspan') === '5' && sep.nextElementSibling?.classList.contains('gr-corte-tarde'));
+  await w.grillaMarcarCristina('tarde', true); await tick(20);
+  const filasTarde = [...tbody.querySelectorAll('tr[data-hora]')].filter(tr => tr.dataset.hora >= '14:00');
+  const filasManana = [...tbody.querySelectorAll('tr[data-hora]')].filter(tr => tr.dataset.hora < '14:00');
+  check('viene Cristina a la tarde: TODO el turno tarde marcado (fila, hora y boxes)', filasTarde.length > 0 && filasTarde.every(tr => tr.classList.contains('turno-cristina') && tr.querySelector('td.grilla-td-hora.cristina-active') && [...tr.querySelectorAll('td.grilla-td-box')].every(td => td.classList.contains('cristina-active'))));
+  check('… y la mañana queda neutra', filasManana.every(tr => !tr.classList.contains('turno-cristina') && !tr.querySelector('.cristina-active')));
+  check('el amarillo del turno de Cristina está unificado (#fde047 + borde #eab308) para hora, libres y ocupadas', /tr\.turno-cristina td\.grilla-td-hora[\s\S]{0,200}#fde047[\s\S]{0,160}#eab308/.test(html) && /tr\.turno-cristina \.grilla-celda-libre[\s\S]{0,200}#fde047[\s\S]{0,80}#eab308/.test(html) && /tr\.turno-cristina td\.grilla-td-box[\s\S]{0,200}#fde047[\s\S]{0,80}#eab308/.test(html));
+  check('ninguna celda ni tarjeta lleva el color del box por inline (sin violeta/azul atrás)', !/--box-accent:#/.test(tbody.innerHTML) && !/#844578|#315E95|#665096/i.test(tbody.innerHTML));
+  await w.grillaMarcarCristina('tarde', false); await tick(20);
 }
 check('NO consulta prestaciones ni pagos al dibujar la Grilla', !fb.calls.lecturas.some(p => p === 'pagos' || p === 'prestaciones'), fb.calls.lecturas.join(','));
 check('resumen del día solo con turnos, pacientes y boxes', /2<\/b> turnos/.test($('grilla-resumen-dia').innerHTML) && /Box 3: 1/.test($('grilla-resumen-dia').textContent), $('grilla-resumen-dia').textContent);

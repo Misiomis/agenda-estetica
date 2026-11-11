@@ -2191,7 +2191,6 @@
         table#grilla-table td.gr-box-b2 > .grilla-celda-ocupada { border-left-color: #0d9488 !important; } /* Box 2 Corporal: teal */
         table#grilla-table td.gr-box-b3 > .grilla-celda-ocupada { border-left-color: #c89d54 !important; } /* Box 3 Facial: champagne */
         table#grilla-table td.gr-box-b4 > .grilla-celda-ocupada { border-left-color: #16a34a !important; } /* Box 4 Relax: esmeralda */
-        table#grilla-table .grilla-celda-ocupada:hover { border-color: rgba(200, 157, 84, 0.5) !important; border-left-color: inherit; }
         /* Distribución interna: arriba datos, abajo estado + acciones + última sesión */
         .grilla-tarjeta-turno .card-top-info { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding-right: 22px; }
         .grilla-tarjeta-turno .grilla-paciente-nombre { font-weight: 700 !important; font-size: 14px !important; color: #13241c !important; max-width: 100%; }
@@ -2209,6 +2208,98 @@
             .grilla-tarjeta-turno .grilla-quick-actions { padding: 2px 3px; gap: 2px; }
             .grilla-tarjeta-turno .card-bottom-footer { padding-top: 5px; }
         }
+
+        /* ══════════════════════════════════════════════════════════════════
+           GRILLA — MAÑANA/TARDE Y TURNO DE CRISTINA
+           · Ninguna celda recibe ya el color del box por inline (--box-accent
+             violeta/azul): el acento se define acá, por box, sin azules.
+           · renderGrilla marca las filas del turno en que viene Cristina con
+             tr.turno-cristina y td.cristina-active (hora y boxes).
+           ══════════════════════════════════════════════════════════════════ */
+        table#grilla-table td.gr-box-b1 { --box-accent: #475569; }
+        table#grilla-table td.gr-box-b2 { --box-accent: #0d9488; }
+        table#grilla-table td.gr-box-b3 { --box-accent: #c89d54; }
+        table#grilla-table td.gr-box-b4 { --box-accent: #16a34a; }
+        table#grilla-table .grilla-celda-ocupada:hover { border-color: rgba(200, 157, 84, 0.5) !important; border-left-color: var(--box-accent) !important; }
+
+        /* Turno normal (sin Cristina): neutro y unificado */
+        table#grilla-table td.grilla-td-hora {
+            background-color: #e8efec !important;
+            color: #1e3f2f !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 10px !important;
+            font-weight: 700 !important;
+        }
+        table#grilla-table td.grilla-td-box { background-color: transparent !important; border: none !important; padding: 3px !important; }
+        table#grilla-table .grilla-celda-libre {
+            background-color: #f1f5f3 !important;
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 12px !important;
+            color: #475569 !important;
+            box-shadow: none !important;
+        }
+        table#grilla-table .grilla-celda-libre:hover { background-color: #ffffff !important; border-color: #c89d54 !important; }
+
+        /* División MAÑANA / TARDE */
+        table#grilla-table tr.grilla-separador-row td { padding: 4px 0 !important; border: none !important; background: transparent !important; height: auto !important; }
+        .grilla-separador-tarde {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: linear-gradient(90deg, #162a21, #234b38) !important;
+            color: #fde047 !important;
+            font-weight: 700 !important;
+            font-size: 12px !important;
+            letter-spacing: 0.08em !important;
+            text-transform: uppercase !important;
+            text-align: center !important;
+            padding: 6px 12px !important;
+            border-radius: 8px !important;
+        }
+        .grilla-separador-tarde .gst-linea { flex: 0 1 120px; height: 1px; background: rgba(253, 224, 71, 0.55); }
+        /* Si un turno cruza el corte no hay banda: queda la línea reforzada. */
+        table#grilla-table tr:not(.grilla-separador-row) + tr.gr-corte-tarde > td { border-top: 3px solid #1e3f2f !important; padding-top: 10px !important; }
+        @media (max-width: 768px) { .grilla-separador-tarde { font-size: 10px !important; letter-spacing: 0.04em !important; gap: 6px; } .grilla-separador-tarde .gst-linea { flex-basis: 30px; } }
+
+        /* Turno en que viene Cristina: 100 % amarillo unificado, sin azules atrás */
+        table#grilla-table tr.turno-cristina td.grilla-td-hora,
+        table#grilla-table td.grilla-td-hora.cristina-active {
+            background-color: #fde047 !important;
+            color: #713f12 !important;
+            border: 2px solid #eab308 !important;
+            font-weight: 800 !important;
+        }
+        table#grilla-table tr.turno-cristina .grilla-celda-libre,
+        table#grilla-table td.cristina-active .grilla-celda-libre {
+            background-color: #fde047 !important;
+            border: 2px solid #eab308 !important;
+            color: #713f12 !important;
+            box-shadow: none !important;
+        }
+        table#grilla-table tr.turno-cristina td.grilla-td-box,
+        table#grilla-table td.grilla-td-box.cristina-active {
+            background-color: #fde047 !important;
+            border: 2px solid #eab308 !important;
+            border-radius: 14px !important;
+            padding: 4px !important;
+        }
+        /* Las celdas libres ya traen su propio marco: dentro del turno de Cristina el <td> no suma otro. */
+        table#grilla-table td.grilla-td-box.cristina-active:has(> .grilla-celda-libre) { background-color: transparent !important; border: none !important; padding: 3px !important; }
+        table#grilla-table td.grilla-td-box.cristina-active > .grilla-celda-ocupada {
+            background-color: #ffffff !important;
+            border: 1px solid rgba(234, 179, 8, 0.35) !important;
+            border-left: 4px solid #eab308 !important;
+            border-radius: 10px !important;
+            box-shadow: 0 4px 12px rgba(113, 63, 18, 0.08) !important;
+            height: 100% !important;
+            min-height: 100% !important;
+        }
+        table#grilla-table td.grilla-td-box.cristina-active > .grilla-celda-ocupada:hover { border-left-color: #eab308 !important; }
+        @media (max-width: 768px) {
+            table#grilla-table tr.turno-cristina td.grilla-td-box, table#grilla-table td.grilla-td-box.cristina-active { padding: 2px !important; border-width: 1.5px !important; border-radius: 12px !important; }
+            table#grilla-table td.grilla-td-box.cristina-active > .grilla-celda-ocupada { border-left-width: 3px !important; }
+            .grilla-tarjeta-turno .gqa-btns { display: grid !important; grid-template-columns: repeat(2, 20px); justify-content: space-around; gap: 2px; width: 100%; }
+        }
+        table#grilla-table td.cristina-active .grilla-celda-bloq,
+        table#grilla-table td.cristina-active .grilla-celda-default-bloq { background-color: #fef3c7 !important; border-color: #eab308 !important; }
 
         /* ── Control de sesiones ── */
         .cs-contadores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
@@ -16125,7 +16216,10 @@
 
                 const esHoraManana = hora < '14:00';
                 const cristinaEnEstaFila = esHoraManana ? _grilla_cristinaManana : _grilla_cristinaTarde;
-                const rowCls = (es30 ? 'grilla-row-30' : 'grilla-row-15') + (cristinaEnEstaFila ? ' grilla-row-cristina' : '');
+                const rowCls = (es30 ? 'grilla-row-30' : 'grilla-row-15') + (cristinaEnEstaFila ? ' grilla-row-cristina turno-cristina' : '');
+                const _crisCls = cristinaEnEstaFila ? ' cristina-active' : '';
+                // ¿Algún turno de más arriba sigue ocupando filas (rowspan) al llegar acá?
+                const _grSinCruce = [..._grSaltar.values()].every(n => !n);
                 const horaLabel = es30 ? `<strong>${hora}</strong>` : hora;
 
                 let filaConInicio = false;
@@ -16170,7 +16264,7 @@
                         // sola fila, solo si no hay chip de disponibilidad (como antes).
                         const ultima = ctx.ultimaHtml && (_grRowspan > 1 || !ctx.dispoHtml) ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : '';
                         // Tocar la tarjeta abre la Ficha 360° (historial).
-                        inner = `<div class="grilla-celda-ocupada grilla-tarjeta-turno${_grRowspan > 1 ? ' gr-multi' : ''}${circCls}${esperaCls}${notaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaAbrirFichaTurno(event,'${res.id}')" title="${escapeHtml(ctx.tooltip)}" style="--box-accent:${box.accent};">
+                        inner = `<div class="grilla-celda-ocupada grilla-tarjeta-turno${_grRowspan > 1 ? ' gr-multi' : ''}${circCls}${esperaCls}${notaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaAbrirFichaTurno(event,'${res.id}')" title="${escapeHtml(ctx.tooltip)}">
                                 ${menuHtml}
                                 <div class="card-top-info">
                                     <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Abrir ficha de ${nom}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaAbrirFichaTurno(event,'${res.id}')}">${nom}</span>
@@ -16199,10 +16293,16 @@
                             <div class="gcl-blk" onclick="grillaBloquearSlot('${hora}','${box.id}')" title="${adminUnbloq ? 'Restablecer bloqueo' : 'Bloquear slot'}">🔒</div>
                         </div>`;
                     }
-                    return `<td class="grilla-td-box gr-box-${box.id}${_grRowspan > 1 ? ' gr-span' : ''}"${_grRowspan > 1 ? ` rowspan="${_grRowspan}"` : ''} style="--box-accent:${box.accent}" ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
+                    return `<td class="grilla-td-box gr-box-${box.id}${_grRowspan > 1 ? ' gr-span' : ''}${_crisCls}"${_grRowspan > 1 ? ` rowspan="${_grRowspan}"` : ''} ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
                 }).join('');
 
-                rows.push(`<tr class="${rowCls}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora">${horaLabel}</td>${celdas}</tr>`);
+                // División MAÑANA / TARDE: banda separadora que cruza las 5 columnas.
+                // Solo si ningún turno (rowspan) cruza el corte — si cruzara, la
+                // banda partiría su celda; en ese caso queda la línea reforzada.
+                if (_grCorte === ' gr-corte-tarde' && _grSinCruce) {
+                    rows.push(`<tr class="grilla-separador-row" aria-hidden="true"><td colspan="${COLS}"><div class="grilla-separador-tarde">☀️ Fin turno mañana <span class="gst-linea"></span> 🌤️ Inicio turno tarde</div></td></tr>`);
+                }
+                rows.push(`<tr class="${rowCls}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora${_crisCls}">${horaLabel}</td>${celdas}</tr>`);
             }
             tbody.innerHTML = rows.length
                 ? rows.join('')
