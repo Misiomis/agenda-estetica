@@ -2162,12 +2162,6 @@
             box-shadow: none !important;
             transition: all 0.2s ease !important;
         }
-        table#grilla-table .grilla-celda-libre:hover {
-            background: #ffffff !important;
-            border: 1px solid #c89d54 !important;
-            color: #1e3a2f !important;
-            box-shadow: 0 6px 16px -4px rgba(30, 58, 47, 0.08) !important;
-        }
         table#grilla-table .grilla-celda-bloq, table#grilla-table .grilla-celda-default-bloq { border-radius: 12px !important; height: 100% !important; box-sizing: border-box; }
         /* Tarjeta de turno: una sola tarjeta blanca que llena toda la celda */
         table#grilla-table td.grilla-td-box > .grilla-celda-ocupada {
@@ -2238,7 +2232,6 @@
             color: #475569 !important;
             box-shadow: none !important;
         }
-        table#grilla-table .grilla-celda-libre:hover { background-color: #ffffff !important; border-color: #c89d54 !important; }
 
         /* División MAÑANA / TARDE */
         table#grilla-table tr.grilla-separador-row td { padding: 4px 0 !important; border: none !important; background: transparent !important; height: auto !important; }
@@ -2302,86 +2295,154 @@
         table#grilla-table td.cristina-active .grilla-celda-default-bloq { background-color: #fef3c7 !important; border-color: #eab308 !important; }
 
         /* ══════════════════════════════════════════════════════════════════
-           GRILLA COMO REGLA DE TIEMPO
-           · Todas las filas de 15 min miden lo mismo: un turno de 45 min
-             ocupa exactamente 3 filas y se lee de qué hora a qué hora va.
-           · La tarjeta va posicionada dentro de su celda (no estira la fila);
-             muestra más o menos detalle según cuántas filas ocupa.
-           · Línea marcada en cada hora en punto y suave en cada media hora.
+           GRILLA COMO REGLA DE TIEMPO — filas de 10 minutos
+           · Todas las filas miden lo mismo; la tarjeta se ubica dentro de su
+             celda en proporción a su hora real (--t / --b) y no estira la fila.
+           · Turnos que se pisan en un mismo box van lado a lado (--l / --w).
+           · Detalle según la duración: gr-det-1 (≤15 min) … gr-det-6 (1 h+).
            ══════════════════════════════════════════════════════════════════ */
-        table#grilla-table { --gr-fila: 52px; }
+        table#grilla-table { --gr-fila: 32px; border-spacing: 8px 4px !important; }
         table#grilla-table tr[data-hora] > td { height: var(--gr-fila) !important; position: relative; }
-        table#grilla-table td.grilla-td-box > .grilla-celda-ocupada {
+        table#grilla-table td.grilla-td-box > .grilla-celda-ocupada,
+        table#grilla-table td.grilla-td-box.cristina-active > .grilla-celda-ocupada {
             position: absolute !important;
-            inset: 3px !important;
-            width: auto !important;
+            top: calc(var(--t, 0%) + 2px) !important;
+            bottom: calc(var(--b, 0%) + 2px) !important;
+            left: calc(var(--l, 0%) + 2px) !important;
+            right: auto !important;
+            width: calc(var(--w, 100%) - 4px) !important;
             height: auto !important;
             min-height: 0 !important;
             overflow: hidden !important;
             z-index: 2;
-            padding: 7px 10px 6px !important;
+            padding: 6px 10px 5px !important;
         }
-        table#grilla-table td.grilla-td-box.cristina-active > .grilla-celda-ocupada { inset: 4px !important; }
         table#grilla-table .grilla-celda-ocupada:hover { transform: none; z-index: 3; }
 
         /* Horario del turno en la tarjeta */
-        .grilla-tarjeta-turno .gc-horario { font-size: 11px; font-weight: 800; color: #1e3f2f; background: #eef3f0; border-radius: 6px; padding: 1px 6px; letter-spacing: .02em; line-height: 1.5; }
+        .grilla-tarjeta-turno .gc-horario { font-size: 11px; font-weight: 800; color: #1e3f2f; background: #eef3f0; border-radius: 6px; padding: 1px 6px; letter-spacing: .02em; line-height: 1.5; white-space: nowrap; }
+        .grilla-tarjeta-turno .gch-sep { margin: 0 3px; }
         td.cristina-active .grilla-tarjeta-turno .gc-horario { background: #fef9c3; color: #713f12; }
-        .grilla-tarjeta-turno .gc-horario { white-space: nowrap; }
-        .grilla-tarjeta-turno .gch-sep { margin: 0 4px; }
         .grilla-tarjeta-turno .card-top-info { gap: 1px; }
         .grilla-tarjeta-turno .grilla-paciente-nombre, .grilla-tarjeta-turno .grilla-paciente-servicio { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .grilla-tarjeta-turno .card-bottom-footer { padding-top: 5px; gap: 3px; }
+        .grilla-tarjeta-turno .card-bottom-footer { padding-top: 4px; gap: 3px; }
 
-        /* Detalle según la duración (filas que ocupa) */
-        td.gr-span-1 .grilla-tarjeta-turno { flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; gap: 6px; padding: 4px 22px 4px 8px !important; }
-        td.gr-span-1 .grilla-tarjeta-turno .card-top-info { flex-direction: row; align-items: center; gap: 6px; min-width: 0; padding-right: 0; }
-        td.gr-span-1 .grilla-tarjeta-turno .card-bottom-footer,
-        td.gr-span-1 .grilla-tarjeta-turno .gc-ctx-dispo,
-        td.gr-span-1 .grilla-tarjeta-turno .grilla-paciente-servicio,
-        td.gr-span-1 .grilla-tarjeta-turno .gc-ya-sede,
-        td.gr-span-1 .grilla-tarjeta-turno .gc-sigue,
-        td.gr-span-1 .grilla-tarjeta-turno .gc-nota-tag { display: none !important; }
-        td.gr-span-2 .grilla-tarjeta-turno .gc-ctx-dispo,
-        td.gr-span-2 .grilla-tarjeta-turno .gc-ctx-ultima,
-        td.gr-span-2 .grilla-tarjeta-turno .gc-ya-sede,
-        td.gr-span-2 .grilla-tarjeta-turno .gc-sigue,
-        td.gr-span-2 .grilla-tarjeta-turno .gc-nota-tag { display: none !important; }
-        td.gr-span-2 .grilla-tarjeta-turno .card-bottom-footer { border-top: none; padding-top: 2px; }
+        /* Detalle según la duración */
+        .grilla-tarjeta-turno.gr-det-1 { flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; gap: 6px; padding: 2px 22px 2px 8px !important; }
+        .grilla-tarjeta-turno.gr-det-1 .card-top-info { flex-direction: row; align-items: center; gap: 6px; min-width: 0; padding-right: 0; }
+        .grilla-tarjeta-turno.gr-det-1 .card-bottom-footer,
+        .grilla-tarjeta-turno.gr-det-1 .grilla-paciente-servicio,
+        .grilla-tarjeta-turno.gr-det-2 .grilla-paciente-servicio,
+        .grilla-tarjeta-turno:is(.gr-det-1, .gr-det-2, .gr-det-3) :is(.gc-ctx-dispo, .gc-ya-sede, .gc-sigue, .gc-nota-tag),
+        .grilla-tarjeta-turno:is(.gr-det-1, .gr-det-2) .gc-ctx-ultima { display: none !important; }
+        .grilla-tarjeta-turno.gr-det-2 .card-top-info { flex-direction: row; align-items: center; gap: 6px; min-width: 0; }
+        .grilla-tarjeta-turno:is(.gr-det-2, .gr-det-3) .card-bottom-footer { border-top: none; padding-top: 1px; }
+        .grilla-tarjeta-turno:is(.gr-det-2, .gr-det-3) .gqa-estado .gqa-txt { display: none; }
+        .grilla-tarjeta-turno.gr-carril .gqa-estado { display: none; }
 
-        /* Columna de hora: en punto marcada, media hora media, cuartos suaves */
-        table#grilla-table tr[data-hora] > td.grilla-td-hora { vertical-align: top !important; padding-top: 6px !important; }
-        table#grilla-table tr.gr-en-punto > td.grilla-td-hora { font-size: 14px !important; font-weight: 800 !important; color: #13241c !important; background-color: #dfe9e4 !important; }
+        /* Columna de hora: 7 · 7:10 … en punto marcada, media hora media, resto suave */
+        table#grilla-table tr[data-hora] > td.grilla-td-hora { vertical-align: top !important; padding: 4px 2px 0 !important; line-height: 1.1; }
+        table#grilla-table tr.gr-en-punto > td.grilla-td-hora { font-size: 15px !important; font-weight: 800 !important; color: #13241c !important; background-color: #dfe9e4 !important; }
         table#grilla-table tr.gr-y-media > td.grilla-td-hora { font-size: 12.5px !important; font-weight: 700 !important; color: #1e3f2f !important; }
-        table#grilla-table tr.grilla-row-15 > td.grilla-td-hora { font-size: 11px !important; font-weight: 600 !important; color: #8aa195 !important; background-color: #f1f5f3 !important; border-color: #e2e8f0 !important; }
+        table#grilla-table tr.grilla-row-15 > td.grilla-td-hora { font-size: 10.5px !important; font-weight: 600 !important; color: #8aa195 !important; background-color: #f1f5f3 !important; border-color: #e2e8f0 !important; }
+        table#grilla-table tr.gr-fila-fuera > td.grilla-td-hora { opacity: .7; }
         table#grilla-table tr.turno-cristina.gr-en-punto > td.grilla-td-hora { background-color: #facc15 !important; color: #713f12 !important; }
         table#grilla-table tr.turno-cristina.grilla-row-15 > td.grilla-td-hora { background-color: #fef08a !important; color: #854d0e !important; border: 2px solid #eab308 !important; }
 
-        /* Líneas guía: corren por el espacio entre filas y se cortan donde
-           hay una tarjeta (el turno sigue de largo por encima). */
+        /* Líneas guía por el espacio entre filas (se cortan donde hay tarjeta) */
         table#grilla-table tr.gr-en-punto > td::before,
         table#grilla-table tr.gr-y-media > td::before {
-            content: ''; position: absolute; left: -5px; right: -5px; top: -4px;
+            content: ''; position: absolute; left: -5px; right: -5px; top: -3px;
             border-top: 2px solid rgba(30, 63, 47, 0.30); pointer-events: none; z-index: 1;
         }
         table#grilla-table tr.gr-y-media > td::before { border-top: 1px dashed rgba(30, 63, 47, 0.22); }
         table#grilla-table tr.turno-cristina.gr-en-punto > td::before { border-top-color: rgba(161, 98, 7, 0.55); }
 
+        /* ── Celda libre, selección, bloqueo y desbloqueo: un estado = un estilo ──
+           · Libre: neutra (o amarilla si viene Cristina), sin mezclar colores.
+           · Seleccionada (mouse encima, foco o al tocar): verde claro y bien
+             visible, igual en el turno normal y en el de Cristina.
+           · El hover solo existe con mouse: en celular no queda "pegado" (era
+             el fondo blanco con borde dorado que aparecía al desbloquear). */
+        table#grilla-table .grilla-celda-libre { position: relative; padding: 0 !important; overflow: hidden; }
+        table#grilla-table .gcl-reg { flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #5b7568; background: transparent !important; border-radius: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        table#grilla-table .gcl-blk { width: 22px; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: transparent; background: transparent !important; -webkit-tap-highlight-color: transparent; outline: none; }
+        @media (hover: hover) {
+            table#grilla-table .grilla-celda-libre:hover { background-color: #ecfdf5 !important; border: 1.5px solid #10b981 !important; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.18) !important; }
+            table#grilla-table .grilla-celda-libre:hover .gcl-reg { color: #065f46; }
+            table#grilla-table .grilla-celda-libre:hover .gcl-blk { color: #92400e; }
+            table#grilla-table .gcl-blk:hover { background: rgba(146, 64, 14, 0.10) !important; }
+        }
+        table#grilla-table .grilla-celda-libre:focus-within,
+        table#grilla-table .grilla-celda-libre:active,
+        table#grilla-table tr.turno-cristina .grilla-celda-libre:focus-within,
+        table#grilla-table tr.turno-cristina .grilla-celda-libre:active {
+            background-color: #d1fae5 !important; border: 2px solid #10b981 !important; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
+        }
+        table#grilla-table .grilla-celda-libre:focus-within .gcl-reg,
+        table#grilla-table .grilla-celda-libre:active .gcl-reg { color: #065f46; }
+        @media (hover: hover) {
+            table#grilla-table tr.turno-cristina .grilla-celda-libre:hover { background-color: #d1fae5 !important; border: 2px solid #10b981 !important; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important; }
+        }
+        /* Bloqueado por admin: rayado pizarra (en el turno de Cristina, rayado ámbar) */
+        table#grilla-table .grilla-celda-bloq {
+            background: repeating-linear-gradient(135deg, #eef1f4 0 6px, #e2e7ec 6px 12px) !important;
+            border: 1.5px solid #94a3b8 !important; color: #475569 !important;
+            flex-direction: row !important; gap: 4px !important; -webkit-tap-highlight-color: transparent;
+        }
+        table#grilla-table .grilla-celda-bloq .gcb-txt { color: #475569 !important; font-size: 9px !important; }
+        table#grilla-table td.cristina-active .grilla-celda-bloq { background: repeating-linear-gradient(135deg, #fef3c7 0 6px, #fde68a 6px 12px) !important; border-color: #b45309 !important; }
+        table#grilla-table td.cristina-active .grilla-celda-bloq .gcb-txt { color: #78350f !important; }
+        @media (hover: hover) { table#grilla-table .grilla-celda-bloq:hover { border-color: #10b981 !important; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.18) !important; } }
+        table#grilla-table .grilla-celda-bloq:active { border-color: #10b981 !important; }
+        /* Fuera de horario: gris plano, sin rayas */
+        table#grilla-table .grilla-celda-default-bloq { background: #f1f5f9 !important; border: 1px dashed #cbd5e1 !important; flex-direction: row !important; gap: 4px !important; -webkit-tap-highlight-color: transparent; }
+        table#grilla-table .grilla-celda-default-bloq .gcb-txt { color: #94a3b8 !important; font-size: 9px !important; }
+        table#grilla-table td.gr-fuera.cristina-active { background-color: transparent !important; border: none !important; padding: 3px !important; }
+
         @media (max-width: 768px) {
-            table#grilla-table { --gr-fila: 46px; }
-            table#grilla-table td.grilla-td-box > .grilla-celda-ocupada { inset: 2px !important; padding: 4px 5px 4px 6px !important; }
-            table#grilla-table td.grilla-td-box.cristina-active > .grilla-celda-ocupada { inset: 2px !important; }
+            table#grilla-table { --gr-fila: 28px; border-spacing: 3px 3px !important; table-layout: fixed !important; }
+            table#grilla-table th.grilla-th-hora, table#grilla-table td.grilla-td-hora { width: 34px; }
+            table#grilla-table td.grilla-td-box { padding: 1px !important; }
+            table#grilla-table td.grilla-td-box.cristina-active:not(:has(> .grilla-celda-libre)) { padding: 2px !important; border-width: 1.5px !important; }
+            table#grilla-table td.grilla-td-box > .grilla-celda-ocupada,
+            table#grilla-table td.grilla-td-box.cristina-active > .grilla-celda-ocupada {
+                padding: 3px 4px 3px 5px !important; border-left-width: 3px !important; border-radius: 9px !important;
+                top: calc(var(--t, 0%) + 1px) !important; bottom: calc(var(--b, 0%) + 1px) !important;
+                left: calc(var(--l, 0%) + 1px) !important; width: calc(var(--w, 100%) - 2px) !important;
+            }
+            /* "+" más chico a la vista, pero toda la celda se puede tocar */
+            table#grilla-table .gcl-reg { font-size: 13px; font-weight: 600; }
+            /* 🔒 tenue y en gris (se puede tocar igual) para no recargar la vista */
+            table#grilla-table .gcl-blk { width: 18px; font-size: 9px; color: #000; filter: grayscale(1); opacity: .32; }
+            table#grilla-table .grilla-celda-libre { border-radius: 8px !important; border-width: 1px !important; }
+            table#grilla-table .grilla-celda-bloq, table#grilla-table .grilla-celda-default-bloq { border-radius: 8px !important; }
+            table#grilla-table .grilla-celda-bloq .gcb-txt, table#grilla-table .grilla-celda-default-bloq .gcb-txt { display: none; }
+            table#grilla-table tr[data-hora] > td.grilla-td-hora { padding: 3px 0 0 !important; }
+            table#grilla-table tr.gr-en-punto > td.grilla-td-hora { font-size: 13px !important; }
+            table#grilla-table tr.gr-y-media > td.grilla-td-hora { font-size: 11px !important; }
+            table#grilla-table tr.grilla-row-15 > td.grilla-td-hora { font-size: 9.5px !important; }
+            table#grilla-table tr.gr-en-punto > td::before, table#grilla-table tr.gr-y-media > td::before { left: -2px; right: -2px; top: -2px; }
+            /* Tarjeta: nombre bien legible y datos compactos */
+            .grilla-tarjeta-turno .card-top-info { padding-right: 10px !important; }
+            .grilla-tarjeta-turno .grilla-paciente-nombre { font-size: 12px !important; line-height: 1.2; }
+            .grilla-tarjeta-turno .grilla-paciente-servicio { font-size: 10.5px !important; }
             .grilla-tarjeta-turno .gc-horario { font-size: 9px; padding: 0 3px; letter-spacing: -0.02em; max-width: 100%; overflow: hidden; }
-            /* En celular la columna es angosta: el inicio ya se ve en la fila; se muestra hasta qué hora va. */
             .grilla-tarjeta-turno .gch-ini { display: none; }
             .grilla-tarjeta-turno .gch-sep { margin: 0 1px 0 0; font-size: 0; }
             .grilla-tarjeta-turno .gch-sep::before { content: "→"; font-size: 9px; }
-            td.gr-span-2 .grilla-tarjeta-turno .gqa-estado { display: none; }
-            td.gr-span-2 .grilla-tarjeta-turno .gqa-btns { grid-template-columns: repeat(4, 18px) !important; justify-content: space-between; }
-            td.gr-span-2 .grilla-tarjeta-turno .gqa-btn { width: 18px; height: 18px; font-size: 10px; }
-            td.gr-span-1 .grilla-tarjeta-turno .gc-horario { display: none; }
-            table#grilla-table tr.gr-en-punto > td.grilla-td-hora { font-size: 12.5px !important; }
-            table#grilla-table tr.gr-en-punto > td::before, table#grilla-table tr.gr-y-media > td::before { left: -3px; right: -3px; top: -3px; }
+            .grilla-tarjeta-turno.gr-det-1 { padding: 1px 12px 1px 5px !important; gap: 3px; }
+            .grilla-tarjeta-turno.gr-det-1 .gc-horario, .grilla-tarjeta-turno.gr-det-2 .gc-horario { display: none; }
+            .grilla-tarjeta-turno .gc-menu-btn { width: 14px !important; height: 16px !important; right: 0 !important; top: 1px !important; font-size: 11px !important; }
+            .grilla-tarjeta-turno .gqa-estado { display: none; }
+            .grilla-tarjeta-turno .gqa-btns { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 1px !important; width: 100%; justify-items: center; }
+            .grilla-tarjeta-turno .gqa-btn { width: 100% !important; max-width: 18px; height: 18px !important; font-size: 9.5px !important; padding: 0 !important; }
+            /* Nombre en hasta 2 líneas; datos secundarios fuera en tarjetas angostas */
+            .grilla-tarjeta-turno:not(.gr-det-1) .grilla-paciente-nombre { white-space: normal !important; display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; overflow: hidden; }
+            .grilla-tarjeta-turno .gc-ctx-dispo, .grilla-tarjeta-turno:not(.gr-det-6) :is(.gc-ya-sede, .gc-sigue) { display: none !important; }
+            .grilla-tarjeta-turno .gc-ctx-ultima { font-size: 9px !important; }
+            .grilla-tarjeta-turno .grilla-quick-actions { padding: 1px 2px !important; }
+            .grilla-tarjeta-turno.gr-det-2 .card-bottom-footer { display: none; }
         }
 
         /* ── Control de sesiones ── */
@@ -3706,6 +3767,7 @@
         import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
         import { MEDIOS, etiquetaMedio, iconoMedio, parsearPesos, milesAPesos, pesosAMiles, formatoPesos, formatoPesosEnteros, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio, normalizarMontoARS, normalizarDocMontos, MONTOS_RAPIDOS } from "/js/cobro-rapido.js";
         import { esTurnoDeJornadaValido, origenParaNuevoTurno } from "/js/turno-jornada.js";
+        import { PASO_GRILLA, aMin, aHora, etiquetaHora, franjasDelDia, generarFilas, agruparTurnos, bloqueosDeFila, intervaloBloqueo, turnoQueSePisa, DURACION_BLOQUEO_LEGADO } from "/js/grilla-tiempo.js";
         // Normalización de escala al LEER importes (precios/pagos/gastos): ver
         // js/cobro-rapido.js:normalizarMontoARS. El dato guardado no se toca.
         const _nmDoc = normalizarDocMontos;
@@ -6848,6 +6910,37 @@
             // visible sino por el tipo estable del servicio resuelto.
             const _esConsultaInicial = _svTipoMap.get(servicioIngresado) === SERVICIO_TIPO_CONSULTA_INICIAL;
             const durMin = _esConsultaInicial ? DURACION_CONSULTA_INICIAL_MIN : (_svDurMap.get(servicioIngresado) || 30);
+            // Disponibilidad real del box por intervalo de tiempo (no por hora
+            // exacta): el turno nuevo [inicio, inicio + duración) no puede pisar
+            // otro turno del mismo box (aunque empiece a las 7:15 o 7:45) ni un
+            // horario bloqueado de ese box.
+            if (_mreg_boxPresel) {
+                const _iniN = aMin(normalizarHora(horaSnap)), _finN = _iniN + durMin;
+                const _turnosBox = todasLasReservas
+                    .filter(r => esReservaActiva(r) && r.fecha === fechaSnap && _grilla_boxDeReserva(r) === _mreg_boxPresel.id)
+                    .map(r => { const i = aMin(normalizarHora(r.hora)); return { id: r.id, ini: i, fin: i + (Number(r.duracionMinutos) > 0 ? Number(r.duracionMinutos) : DURACION_BLOQUEO_LEGADO), r }; })
+                    .filter(t => Number.isFinite(t.ini));
+                const _choque = turnoQueSePisa(_turnosBox, _iniN, _finN);
+                const _bloqBox = fechaSnap === _grilla_fecha
+                    ? [..._grilla_adminBlocks.values()].filter(v => v.boxId === _mreg_boxPresel.id).map(v => ({ ...intervaloBloqueo(v), hora: v.hora })).filter(b => b.ini < _finN && _iniN < b.fin)
+                    : [];
+                if (_choque || _bloqBox.length) {
+                    const _det = _choque
+                        ? `<b>${escapeHtml((_choque.r.nombreLimpio || _choque.r.nombre || 'Otra paciente').split(' ').slice(0, 2).join(' '))}</b> tiene turno de <b>${etiquetaHora(_choque.ini)} a ${etiquetaHora(_choque.fin)} hs</b>.`
+                        : `Hay un horario bloqueado a las <b>${_bloqBox.map(b => etiquetaHora(b.ini)).join(', ')} hs</b>.`;
+                    const _ovCh = document.createElement('div');
+                    _ovCh.id = '_mreg_choque_overlay';
+                    _ovCh.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.62);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px';
+                    _ovCh.innerHTML = `
+                        <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:28px 24px 22px">
+                            <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 8px">⚠️ ${_mreg_boxPresel.icon} ${escapeHtml(_mreg_boxPresel.title)} ocupado</p>
+                            <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 14px">El turno de <b>${durMin} min</b> desde las <b>${etiquetaHora(_iniN)} hs</b> no entra.<br>${_det}</p>
+                            <button onclick="document.getElementById('_mreg_choque_overlay').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">Entendido</button>
+                        </div>`;
+                    document.body.appendChild(_ovCh);
+                    return;
+                }
+            }
             const slotsExtension = (() => {
                 if (durMin <= 30) return [];
                 const extra = Math.max(0, Math.ceil(durMin / 30) - 1);
@@ -15484,17 +15577,19 @@
             });
         };
 
-        const DEFAULT_WEEKLY_BLOCKS = {};  // sin bloqueos automáticos — el admin decide todo
-        const _esHoraComercial = (hora) =>
-            (hora >= '08:00' && hora <= '13:00') || (hora >= '14:00' && hora <= '23:45') || hora === '00:00';
-        const _esDefaultBloqueado = (hora, dayOfWeek) => {
-            if (!_esHoraComercial(hora)) return true;
-            // Noche: 21:00 en adelante bloqueado por defecto en todos los días
-            if (hora >= '21:00' || hora === '00:00') return true;
-            const rules = DEFAULT_WEEKLY_BLOCKS[dayOfWeek];
-            if (!rules) return false;
-            if (rules === 'ALL') return true;
-            return rules.some(([desde, hasta]) => hora >= desde && hora <= hasta);
+        // Horario de la Grilla: apertura y cierre por día (js/grilla-tiempo.js,
+        // HORARIO_GRILLA_DEFECTO). Se puede ajustar por día de semana en
+        // configuracion/horarioGrilla; si no existe, se usa el de siempre.
+        let _grillaHorarioConfig = null;
+        let _grillaHorarioCargado = false;
+        let _grillaFilasActuales = [];
+        const _cargarHorarioGrilla = async () => {
+            if (_grillaHorarioCargado) return;
+            _grillaHorarioCargado = true;
+            try {
+                const snap = await getDoc(doc(db, 'configuracion', 'horarioGrilla'));
+                if (snap.exists()) _grillaHorarioConfig = snap.data();
+            } catch (_) { /* sin config: horario por defecto */ }
         };
 
         initDuplicarMes({
@@ -15505,8 +15600,10 @@
             inferirBoxes: (n) => _inferirBoxes(n, ''),
         });
         let _grilla_fecha         = fechaHoyISO();
-        let _grilla_adminBlocks   = new Map(); // `${hora}_${boxId}` → docId
-        let _grilla_adminUnblocks = new Map(); // `${hora}_${boxId}` → docId (override de default)
+        // `${hora}_${boxId}` → { docId, hora, boxId, duracionMinutos }. Los bloqueos
+        // viejos no guardaban duración: eran de 15 min (una fila de la grilla de antes).
+        let _grilla_adminBlocks   = new Map();
+        let _grilla_adminUnblocks = new Map(); // habilitaciones fuera de horario (mismo formato)
         let _grilla_cristinaManana = false; // aviso general del día, separado por mañana/tarde — ver cargarAdminBlocks
         let _grilla_cristinaTarde  = false;
         let _grilla_extraSlots    = false;     // mostrar slots fuera de horario comercial
@@ -15516,17 +15613,6 @@
         try { localStorage.removeItem('mimar_grilla_compacta'); } catch (_) {}
         let _mreg_boxPresel       = null;
 
-        const _grilla_slots = (() => {
-            const s = [];
-            for (let h = 7; h <= 23; h++) {
-                for (let m = 0; m < 60; m += 15) {
-                    const hora = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-                    s.push({ hora, es30: m === 0 || m === 30 });
-                }
-            }
-            s.push({ hora: '00:00', es30: true });
-            return s;
-        })();
 
         const _grilla_boxDeReserva = (r) => {
             if (r.box) return r.box;
@@ -15539,6 +15625,7 @@
         };
 
         const cargarAdminBlocks = async (fecha) => {
+            await _cargarHorarioGrilla();
             try {
                 const snap = await getDocs(query(collection(db,'calendarExceptions'), where('fecha','==',fecha)));
                 _grilla_adminBlocks.clear();
@@ -15559,8 +15646,9 @@
                     }
                     if (!data.hora || !data.boxId) return;
                     const key = `${data.hora}_${data.boxId}`;
-                    if (data.source === 'admin')          _grilla_adminBlocks.set(key, d.id);
-                    else if (data.source === 'admin_unblock') _grilla_adminUnblocks.set(key, d.id);
+                    const info = { docId: d.id, hora: normalizarHora(data.hora) || data.hora, boxId: data.boxId, duracionMinutos: data.duracionMinutos };
+                    if (data.source === 'admin')          _grilla_adminBlocks.set(key, info);
+                    else if (data.source === 'admin_unblock') _grilla_adminUnblocks.set(key, info);
                 });
             } catch(_e) {}
             window.renderGrilla();
@@ -15581,34 +15669,43 @@
             window.renderGrilla();
         };
 
-        window.grillaBloquearSlot = async (hora, boxId) => {
-            const key = `${hora}_${boxId}`;
-            // Si había un admin_unblock, quitarlo (vuelve al estado default)
-            if (_grilla_adminUnblocks.has(key)) {
-                try {
-                    await deleteDoc(doc(db,'calendarExceptions',_grilla_adminUnblocks.get(key)));
-                    _grilla_adminUnblocks.delete(key);
-                    window.renderGrilla();
-                } catch(e) { console.error(e); }
-                return;
-            }
-            const docId = `adm_${_grilla_fecha}_${hora.replace(':','-')}_${boxId}`;
-            try {
-                await setDoc(doc(db,'calendarExceptions',docId), {
-                    fecha: _grilla_fecha, hora, boxId, adminBlocked: true, source: 'admin', updatedAt: serverTimestamp()
-                });
-                _grilla_adminBlocks.set(key, docId);
-                window.renderGrilla();
-            } catch(e) { console.error('grillaBloquearSlot', e); }
+        // Entradas de un mapa de bloqueos de ese box que tocan la fila [hora, hora + 10 min).
+        const _bloqueosQueTocan = (mapa, hora, boxId) => {
+            const ini = aMin(hora);
+            return [...mapa.entries()].filter(([, v]) => v.boxId === boxId && bloqueosDeFila([v], ini, PASO_GRILLA).length);
         };
-        window.grillaDesbloquearSlot = async (hora, boxId) => {
-            const key = `${hora}_${boxId}`;
-            const docId = _grilla_adminBlocks.get(key) || `adm_${_grilla_fecha}_${hora.replace(':','-')}_${boxId}`;
+        let _grillaBloqueoEnCurso = false;
+        window.grillaBloquearSlot = async (hora, boxId) => {
+            if (_grillaBloqueoEnCurso) return;
+            _grillaBloqueoEnCurso = true;
             try {
-                await deleteDoc(doc(db,'calendarExceptions',docId));
-                _grilla_adminBlocks.delete(key);
+                // Fila fuera de horario habilitada a mano: "bloquear" la vuelve a cerrar.
+                const habilitaciones = _bloqueosQueTocan(_grilla_adminUnblocks, hora, boxId);
+                if (habilitaciones.length) {
+                    await Promise.all(habilitaciones.map(([, v]) => deleteDoc(doc(db, 'calendarExceptions', v.docId))));
+                    habilitaciones.forEach(([k]) => _grilla_adminUnblocks.delete(k));
+                    window.renderGrilla();
+                    return;
+                }
+                const key = `${hora}_${boxId}`;
+                const docId = `adm_${_grilla_fecha}_${hora.replace(':','-')}_${boxId}`;
+                await setDoc(doc(db,'calendarExceptions',docId), {
+                    fecha: _grilla_fecha, hora, boxId, duracionMinutos: PASO_GRILLA, adminBlocked: true, source: 'admin', updatedAt: serverTimestamp()
+                });
+                _grilla_adminBlocks.set(key, { docId, hora, boxId, duracionMinutos: PASO_GRILLA });
                 window.renderGrilla();
-            } catch(e) { console.error('grillaDesbloquearSlot', e); }
+            } catch(e) { console.error('grillaBloquearSlot', e); mostrarAviso('No se pudo bloquear el horario'); }
+            finally { _grillaBloqueoEnCurso = false; }
+        };
+        // Desbloquea TODO lo que bloquea esa fila (incluye bloqueos viejos de
+        // 15 min que empiezan a :15/:45) y la celda vuelve a su estado al instante.
+        window.grillaDesbloquearSlot = async (hora, boxId) => {
+            const tocan = _bloqueosQueTocan(_grilla_adminBlocks, hora, boxId);
+            try {
+                await Promise.all(tocan.map(([, v]) => deleteDoc(doc(db,'calendarExceptions', v.docId))));
+                tocan.forEach(([k]) => _grilla_adminBlocks.delete(k));
+                window.renderGrilla();
+            } catch(e) { console.error('grillaDesbloquearSlot', e); mostrarAviso('No se pudo desbloquear el horario'); }
         };
 
         window.grillaSlotBloqueadoClick = (hora, boxId) => {
@@ -15621,7 +15718,7 @@
                 <div style="width:100%;max-width:380px;background:linear-gradient(165deg,#0e2318 0%,#0a1c13 100%);border-radius:22px;border:1px solid rgba(100,200,140,0.18);box-shadow:0 24px 52px rgba(0,0,0,0.45);padding:28px 24px 22px;text-align:center">
                     <div style="font-size:32px;margin-bottom:12px">🔒</div>
                     <p style="font-family:'Playfair Display',serif;font-size:17px;color:rgba(76,103,89,0.92);margin:0 0 6px">Horario bloqueado</p>
-                    <p style="font-size:13px;color:rgba(22,61,50,0.65);margin:0 0 4px">${hora} hs &nbsp;·&nbsp; ${boxNombre}</p>
+                    <p style="font-size:13px;color:rgba(22,61,50,0.65);margin:0 0 4px">${etiquetaHora(hora)} hs &nbsp;·&nbsp; ${boxNombre}</p>
                     <p style="font-size:13px;color:rgba(22,61,50,0.50);margin:0 0 22px">¿Querés desbloquearlo para agendar un turno?</p>
                     <div style="display:flex;flex-direction:column;gap:10px">
                         <button onclick="(async()=>{document.getElementById('_grilla_bloq_ov').remove();await grillaDesbloquearSlot('${hora}','${boxId}');grillaAbrirRegistro('${hora}','${boxId}');})()" style="width:100%;padding:13px;background:linear-gradient(135deg,#3a7a55,#2a5c3f);border:none;border-radius:13px;color:#d4f0e2;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.35)">
@@ -15642,11 +15739,11 @@
             const docId = `adm_unblk_${_grilla_fecha}_${hora.replace(':','-')}_${boxId}`;
             try {
                 await setDoc(doc(db,'calendarExceptions',docId), {
-                    fecha: _grilla_fecha, hora, boxId, source: 'admin_unblock', updatedAt: serverTimestamp()
+                    fecha: _grilla_fecha, hora, boxId, duracionMinutos: PASO_GRILLA, source: 'admin_unblock', updatedAt: serverTimestamp()
                 });
-                _grilla_adminUnblocks.set(key, docId);
+                _grilla_adminUnblocks.set(key, { docId, hora, boxId, duracionMinutos: PASO_GRILLA });
                 window.renderGrilla();
-            } catch(e) { console.error('grillaDesbloquearDefault', e); }
+            } catch(e) { console.error('grillaDesbloquearDefault', e); mostrarAviso('No se pudo habilitar el horario'); }
         };
 
         window.grillaAbrirRegistro = (hora, boxId) => {
@@ -16111,14 +16208,15 @@
             const horaNueva = normalizarHora(hora);
             // Nada cambió
             if (boxActual === nuevoBoxId && horaActual === horaNueva) return false;
-            // Verificar conflicto en el destino (box + hora destino)
-            const conflicto = todasLasReservas.find(x =>
-                esReservaActiva(x) &&
-                x.fecha === r.fecha &&
-                normalizarHora(x.hora) === horaNueva &&
-                _grilla_boxDeReserva(x) === nuevoBoxId &&
-                x.id !== reservaId
-            );
+            // Verificar conflicto en el destino: el turno movido [hora, hora + duración)
+            // no puede pisar otro turno de ese box (por intervalo, no por hora exacta).
+            const _durMov = (x) => Number(x.duracionMinutos) > 0 ? Number(x.duracionMinutos) : DURACION_BLOQUEO_LEGADO;
+            const _iniMov = aMin(horaNueva);
+            const _turnosDestino = todasLasReservas
+                .filter(x => esReservaActiva(x) && x.fecha === r.fecha && _grilla_boxDeReserva(x) === nuevoBoxId && x.id !== reservaId)
+                .map(x => { const i = aMin(normalizarHora(x.hora)); return { id: x.id, ini: i, fin: i + _durMov(x), x }; })
+                .filter(t => Number.isFinite(t.ini));
+            const conflicto = turnoQueSePisa(_turnosDestino, _iniMov, _iniMov + _durMov(r))?.x || null;
             if (conflicto) {
                 const nom = (conflicto.nombreLimpio || conflicto.nombre || 'Paciente').split(' ')[0];
                 mostrarAviso(`Slot ocupado · ${nom} ya está en ese horario`);
@@ -16242,145 +16340,138 @@
             });
             // ────────────────────────────────────────────────────────────────────
 
-            // ── Pre-computar cobertura por slot × box (bloques fusionados) ────────
-            // boxSlotInfo: boxId → Map(hora → { type:'solo'|'start'|'mid'|'end', res })
-            const _visHoras = [];
-            for (const { hora: _h } of _grilla_slots) {
-                if (_esHoraComercial(_h) || _grilla_extraSlots) _visHoras.push(_h);
-            }
-            const boxSlotInfo = new Map();
-            GRILLA_BOXES.forEach(box => {
-                const m = new Map();
-                del_dia
-                    .filter(r => _grilla_boxDeReserva(r) === box.id)
-                    .forEach(r => {
-                        const startMin = _toMin(normalizarHora(r.hora));
-                        const durMin   = (r.duracionMinutos > 15) ? r.duracionMinutos : 15;
-                        const covered  = _visHoras.filter(h => { const sm = _toMin(h); return sm >= startMin && sm < startMin + durMin; });
-                        covered.forEach((h, idx) => {
-                            if (m.has(h)) return; // primera reserva gana en solapamiento
-                            const t = covered.length === 1 ? 'solo'
-                                    : idx === 0            ? 'start'
-                                    : idx === covered.length - 1 ? 'end' : 'mid';
-                            m.set(h, { type: t, res: r, idx });
-                        });
-                    });
-                boxSlotInfo.set(box.id, m);
+            // ── Filas cada 10 min y ocupación exacta (lógica en js/grilla-tiempo.js) ──
+            // Cada turno conserva su hora y duración: uno de las 7:15 se dibuja
+            // desde la mitad de la fila de las 7:10. Turnos de un mismo box que
+            // comparten alguna fila van en una sola celda (rowspan) con cada
+            // tarjeta en su posición; si se pisan en el tiempo, lado a lado.
+            const _durGrilla = (r) => Number(r.duracionMinutos) > 0 ? Number(r.duracionMinutos) : DURACION_BLOQUEO_LEGADO;
+            const _turnosPorBox = new Map(GRILLA_BOXES.map(b => [b.id, []]));
+            del_dia.forEach(r => {
+                const b = _grilla_boxDeReserva(r);
+                if (!_turnosPorBox.has(b)) return;
+                const ini = aMin(normalizarHora(r.hora));
+                if (!Number.isFinite(ini)) return;
+                _turnosPorBox.get(b).push({ id: r.id, ini, fin: ini + _durGrilla(r), res: r });
             });
+            const _porBox = (mapa) => {
+                const m = new Map(GRILLA_BOXES.map(b => [b.id, []]));
+                mapa.forEach(v => { if (m.has(v.boxId)) m.get(v.boxId).push(v); });
+                return m;
+            };
+            const _bloqueos = _porBox(_grilla_adminBlocks);
+            const _desbloqueos = _porBox(_grilla_adminUnblocks);
+            const _franjas = franjasDelDia(_grillaHorarioConfig, dayOfWeek);
+            const _eventos = [..._turnosPorBox.values()].flat().map(t => ({ ini: t.ini, fin: t.fin }))
+                .concat([..._desbloqueos.values()].flat().map(intervaloBloqueo));
+            const _grFilas = generarFilas({ franjas: _franjas, eventos: _eventos, extra: _grilla_extraSlots });
+            _grillaFilasActuales = _grFilas;
+            const _grupoQueEmpieza = new Map(); // `${boxId}|${índice de fila}` → grupo
+            GRILLA_BOXES.forEach(b => agruparTurnos(_turnosPorBox.get(b.id), _grFilas).forEach(g => _grupoQueEmpieza.set(`${b.id}|${g.filaIni}`, g)));
             // ─────────────────────────────────────────────────────────────────────
+
+            // Tarjeta de un turno dentro de su celda (posición proporcional).
+            const _tarjetaTurnoHtml = (it) => {
+                const res = it.res;
+                const dur = it.fin - it.ini;
+                // Nivel de detalle según la duración (la tarjeta no estira la fila).
+                const det = dur <= 15 ? 1 : dur <= 25 ? 2 : dur <= 35 ? 3 : dur <= 55 ? 4 : 6;
+                const ctx = _grillaContextoTurno(res);
+                const nom  = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
+                const srv  = escapeHtml(res.servicio || '');
+                const circ = _cm.get(res.id);
+                const circCls = circ?.isTarget ? ' gc-continua' : '';
+                const esperaCls = res.esperaConfirmacion ? ' gc-espera' : '';
+                const notaRapida = (res.notaRapida || '').trim();
+                // La nota GENERAL de la paciente (clients/{dni}.notas) NO se
+                // muestra acá: es por paciente, no por turno (ver Pacientes).
+                const notaCls = notaRapida ? ' gc-con-nota' : '';
+                let circHtml = '';
+                if (circ?.isTarget) circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
+                if (circ?.nextBox) {
+                    const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
+                    circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${etiquetaHora(circ.nextHora)}</span>`;
+                }
+                const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" data-nota="${escapeHtml(notaRapida)}" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>` +
+                    // Acceso directo a 💳 Precio y pagos (solo el ícono: sin montos).
+                    `<button type="button" class="gc-cobro-btn" draggable="false" onclick="grillaCobrarTurno(event,'${res.id}')" title="💳 Cobrar / precio y pagos" aria-label="Cobrar turno de ${nom}">💳</button>`;
+                const hIni = etiquetaHora(it.ini), hFin = etiquetaHora(it.fin);
+                const ultima = ctx.ultimaHtml && det >= 3 ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : '';
+                const pos = `--t:${(it.top * 100).toFixed(3)}%;--b:${(it.bottom * 100).toFixed(3)}%;--l:${(it.carril / it.carriles * 100).toFixed(3)}%;--w:${(100 / it.carriles).toFixed(3)}%`;
+                // Tocar la tarjeta abre la Ficha 360° (historial).
+                return `<div class="grilla-celda-ocupada grilla-tarjeta-turno gr-det-${det}${it.carriles > 1 ? ' gr-carril' : ''}${circCls}${esperaCls}${notaCls}" style="${pos}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaAbrirFichaTurno(event,'${res.id}')" title="${escapeHtml(ctx.tooltip)}">
+                        ${menuHtml}
+                        <div class="card-top-info">
+                            <span class="gc-horario" title="${hIni} a ${hFin} hs"><span class="gch-ini">${hIni}</span><span class="gch-sep">–</span>${hFin}</span>
+                            <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Abrir ficha de ${nom}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaAbrirFichaTurno(event,'${res.id}')}">${nom}</span>
+                            <span class="grilla-paciente-servicio">${srv}</span>
+                            ${ctx.dispoHtml ? `<span class="gc-ctx gc-ctx-dispo" title="${escapeHtml(ctx.dispoTitulo || '')}">${ctx.dispoHtml}</span>` : ''}
+                            ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
+                            ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
+                            ${circHtml}
+                        </div>
+                        <div class="card-bottom-footer">
+                            ${_grillaQuickActionsHtml(res)}
+                            ${ultima}
+                        </div>
+                    </div>`;
+            };
 
             const COLS = GRILLA_BOXES.length + 1;
             const rows = [];
-            let lastHora = null;
-            // Un turno de varias filas es UNA sola celda (rowspan real): la
-            // tarjeta ocupa todo el alto, sin segmentos ni escalones. _grSaltar
-            // lleva, por box, cuántas filas siguientes ya cubre ese rowspan.
-            const _grFilas = _grilla_slots.filter(({ hora }) => _esHoraComercial(hora) || _grilla_extraSlots);
-            const _grSaltar = new Map();
-            const _grSpan = (boxId, desde, resId) => {
-                let n = 1;
-                for (let j = desde + 1; j < _grFilas.length; j++) {
-                    const sd = boxSlotInfo.get(boxId)?.get(_grFilas[j].hora);
-                    if (sd && sd.res.id === resId && (sd.type === 'mid' || sd.type === 'end')) n++; else break;
-                }
-                return n;
-            };
+            let lastMin = null;
+            const _grSaltar = new Map(); // boxId → filas que todavía cubre el rowspan de arriba
 
             for (let _grI = 0; _grI < _grFilas.length; _grI++) {
-                const { hora, es30 } = _grFilas[_grI];
+                const fila = _grFilas[_grI];
+                const { hora, min } = fila;
 
-                // Cambio de turno (mañana→tarde, tarde→noche): solo una línea sutil
-                // en la primera fila. El encabezado de los boxes es uno solo, fijo
-                // arriba — antes se repetía a mitad de tabla con cortes punteados.
+                // Cambio de turno (mañana→tarde, tarde→noche).
                 let _grCorte = '';
-                if (lastHora && lastHora <= '13:00' && hora >= '14:00') _grCorte = ' gr-corte-tarde';
-                if (lastHora && lastHora <= '20:45' && hora >= '21:00') _grCorte = ' gr-corte-noche';
-                lastHora = hora;
+                if (lastMin !== null && lastMin < 14 * 60 && min >= 14 * 60) _grCorte = ' gr-corte-tarde';
+                if (lastMin !== null && lastMin < 21 * 60 && min >= 21 * 60) _grCorte = ' gr-corte-noche';
+                lastMin = min;
 
-                const esHoraManana = hora < '14:00';
-                const cristinaEnEstaFila = esHoraManana ? _grilla_cristinaManana : _grilla_cristinaTarde;
+                const cristinaEnEstaFila = min < 14 * 60 ? _grilla_cristinaManana : _grilla_cristinaTarde;
+                const es30 = min % 30 === 0;
                 const rowCls = (es30 ? 'grilla-row-30' : 'grilla-row-15') + (cristinaEnEstaFila ? ' grilla-row-cristina turno-cristina' : '');
                 const _crisCls = cristinaEnEstaFila ? ' cristina-active' : '';
                 // ¿Algún turno de más arriba sigue ocupando filas (rowspan) al llegar acá?
                 const _grSinCruce = [..._grSaltar.values()].every(n => !n);
-                const horaLabel = es30 ? `<strong>${hora}</strong>` : hora;
 
                 let filaConInicio = false;
                 const celdas = GRILLA_BOXES.map(box => {
-                    // Fila cubierta por el rowspan de un turno que empezó más arriba.
+                    // Fila cubierta por el rowspan de un grupo que empezó más arriba.
                     if ((_grSaltar.get(box.id) || 0) > 0) { _grSaltar.set(box.id, _grSaltar.get(box.id) - 1); return ''; }
-                    const slotData    = boxSlotInfo.get(box.id)?.get(hora);
-                    let _grRowspan = 1;
-                    const key         = `${hora}_${box.id}`;
-                    const adminBloq   = _grilla_adminBlocks.has(key);
-                    const adminUnbloq = _grilla_adminUnblocks.has(key);
-                    const defBloq     = _esDefaultBloqueado(hora, dayOfWeek);
+                    const grupo = _grupoQueEmpieza.get(`${box.id}|${_grI}`);
+                    let span = 1;
                     let inner = '';
-                    if (slotData) {
-                        const { res } = slotData;
-                        // Cualquier slot de un turno que llegue acá es su primera fila
-                        // visible: la tarjeta completa va en esta celda con rowspan.
-                        _grRowspan = _grSpan(box.id, _grI, res.id);
-                        if (_grRowspan > 1) _grSaltar.set(box.id, _grRowspan - 1);
+                    let estadoCls = '';
+                    if (grupo) {
+                        span = grupo.filaFin - grupo.filaIni + 1;
+                        if (span > 1) _grSaltar.set(box.id, span - 1);
                         filaConInicio = true;
-                        const ctx = _grillaContextoTurno(res);
-                        const nom  = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
-                        // Texto completo: el corte visual lo hace el CSS (ellipsis).
-                        const srv  = escapeHtml(res.servicio || '');
-                        const circ = _cm.get(res.id);
-                        const circCls = circ?.isTarget ? ' gc-continua' : '';
-                        const esperaCls = res.esperaConfirmacion ? ' gc-espera' : '';
-                        const notaRapida = (res.notaRapida || '').trim();
-                        // La nota GENERAL de la paciente (clients/{dni}.notas) NO se
-                        // muestra acá: es por paciente, no por turno (ver Pacientes).
-                        const notaCls = notaRapida ? ' gc-con-nota' : '';
-                        let circHtml = '';
-                        if (circ?.isTarget) circHtml += `<span class="gc-ya-sede">↪ ya en sede</span>`;
-                        if (circ?.nextBox) {
-                            const nb = GRILLA_BOXES.find(b => b.id === circ.nextBox);
-                            circHtml += `<span class="gc-sigue">→ ${nb ? nb.title : circ.nextBox} · ${circ.nextHora}</span>`;
-                        }
-                        const menuHtml = `<button type="button" class="gc-menu-btn" draggable="false" data-nota="${escapeHtml(notaRapida)}" onclick="grillaToggleMenuEspera(event,'${res.id}',${res.esperaConfirmacion ? 'true' : 'false'})" title="Más opciones">⋮</button>` +
-                            // Acceso directo a 💳 Precio y pagos (solo el ícono: sin montos).
-                            `<button type="button" class="gc-cobro-btn" draggable="false" onclick="grillaCobrarTurno(event,'${res.id}')" title="💳 Cobrar / precio y pagos" aria-label="Cobrar turno de ${nom}">💳</button>`;
-                        // Última sesión: siempre en turnos de varias filas; en los de una
-                        // sola fila, solo si no hay chip de disponibilidad (como antes).
-                        // Horario real del turno (inicio – fin) escrito en la tarjeta.
-                        const _hIni = normalizarHora(res.hora || hora) || hora;
-                        const _hFin = (() => { const [hh, mm] = _hIni.split(':').map(Number); const t = hh * 60 + mm + (Number(res.duracionMinutos) || _grRowspan * 15); return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; })();
-                        const ultima = ctx.ultimaHtml && (_grRowspan > 1 || !ctx.dispoHtml) ? `<span class="gc-ctx gc-ctx-ultima">${ctx.ultimaHtml}</span>` : '';
-                        // Tocar la tarjeta abre la Ficha 360° (historial).
-                        inner = `<div class="grilla-celda-ocupada grilla-tarjeta-turno${_grRowspan > 1 ? ' gr-multi' : ''}${circCls}${esperaCls}${notaCls}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaAbrirFichaTurno(event,'${res.id}')" title="${escapeHtml(ctx.tooltip)}">
-                                ${menuHtml}
-                                <div class="card-top-info">
-                                    <span class="gc-horario" title="${_hIni} a ${_hFin} hs"><span class="gch-ini">${_hIni}</span><span class="gch-sep">–</span>${_hFin}</span>
-                                    <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Abrir ficha de ${nom}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaAbrirFichaTurno(event,'${res.id}')}">${nom}</span>
-                                    <span class="grilla-paciente-servicio">${srv}</span>
-                                    ${ctx.dispoHtml ? `<span class="gc-ctx gc-ctx-dispo" title="${escapeHtml(ctx.dispoTitulo || '')}">${ctx.dispoHtml}</span>` : ''}
-                                    ${res.esperaConfirmacion ? `<span class="gc-espera-tag">🔴 Espera confirmación</span>` : ''}
-                                    ${notaRapida ? `<span class="gc-nota-tag">📝 ${escapeHtml(notaRapida)}</span>` : ''}
-                                    ${circHtml}
-                                </div>
-                                <div class="card-bottom-footer">
-                                    ${_grillaQuickActionsHtml(res)}
-                                    ${ultima}
-                                </div>
-                            </div>`;
-                    } else if (adminBloq) {
-                        inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · click para desbloquear o agendar">
+                        inner = grupo.items.map(_tarjetaTurnoHtml).join('');
+                        estadoCls = ' gr-ocupada';
+                    } else if (bloqueosDeFila(_bloqueos.get(box.id), min).length) {
+                        inner = `<div class="grilla-celda-bloq" onclick="grillaSlotBloqueadoClick('${hora}','${box.id}')" title="Bloqueado · tocá para desbloquear o agendar">
                             <span class="gcb-ico">🔒</span><span class="gcb-txt">Bloqueado</span>
                         </div>`;
-                    } else if (defBloq && !adminUnbloq) {
-                        inner = `<div class="grilla-celda-default-bloq" onclick="grillaDesbloquearDefault('${hora}','${box.id}')" title="No disponible · click para habilitar">
+                        estadoCls = ' gr-bloqueada';
+                    } else if (!fila.dentro && !bloqueosDeFila(_desbloqueos.get(box.id), min).length) {
+                        inner = `<div class="grilla-celda-default-bloq" onclick="grillaDesbloquearDefault('${hora}','${box.id}')" title="Fuera de horario · tocá para habilitar">
                             <span class="gcb-ico">🚫</span><span class="gcb-txt">No disp.</span>
                         </div>`;
+                        estadoCls = ' gr-fuera';
                     } else {
+                        const habilitadaFuera = !fila.dentro;
                         inner = `<div class="grilla-celda-libre">
-                            <div class="gcl-reg" onclick="grillaAbrirRegistro('${hora}','${box.id}')" title="Registrar paciente en ${box.label}">+</div>
-                            <div class="gcl-blk" onclick="grillaBloquearSlot('${hora}','${box.id}')" title="${adminUnbloq ? 'Restablecer bloqueo' : 'Bloquear slot'}">🔒</div>
+                            <div class="gcl-reg" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="grillaAbrirRegistro('${hora}','${box.id}')" title="Agendar a las ${fila.etiqueta} en ${box.label}" aria-label="Agendar a las ${fila.etiqueta} en ${box.label}">+</div>
+                            <div class="gcl-blk" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="grillaBloquearSlot('${hora}','${box.id}')" title="${habilitadaFuera ? 'Volver a cerrar (fuera de horario)' : 'Bloquear ' + fila.etiqueta}" aria-label="${habilitadaFuera ? 'Volver a cerrar' : 'Bloquear'} ${fila.etiqueta} en ${box.label}">🔒</div>
                         </div>`;
+                        estadoCls = ' gr-libre';
                     }
-                    return `<td class="grilla-td-box gr-box-${box.id}${slotData ? ` gr-span-${Math.min(_grRowspan, 4)}` : ''}${_grRowspan > 1 ? ' gr-span' : ''}${_crisCls}"${_grRowspan > 1 ? ` rowspan="${_grRowspan}"` : ''} ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
+                    return `<td class="grilla-td-box gr-box-${box.id}${estadoCls}${span > 1 ? ' gr-span' : ''}${_crisCls}"${span > 1 ? ` rowspan="${span}"` : ''} data-hora="${hora}" ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
                 }).join('');
 
                 // División MAÑANA / TARDE: banda separadora que cruza las 5 columnas.
@@ -16389,7 +16480,7 @@
                 if (_grCorte === ' gr-corte-tarde' && _grSinCruce) {
                     rows.push(`<tr class="grilla-separador-row" aria-hidden="true"><td colspan="${COLS}"><div class="grilla-separador-tarde">☀️ Fin turno mañana <span class="gst-linea"></span> 🌤️ Inicio turno tarde</div></td></tr>`);
                 }
-                rows.push(`<tr class="${rowCls}${hora.endsWith(':00') ? ' gr-en-punto' : hora.endsWith(':30') ? ' gr-y-media' : ''}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora${_crisCls}">${horaLabel}</td>${celdas}</tr>`);
+                rows.push(`<tr class="${rowCls}${min % 60 === 0 ? ' gr-en-punto' : min % 60 === 30 ? ' gr-y-media' : ''}${fila.dentro ? '' : ' gr-fila-fuera'}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora${_crisCls}">${fila.etiqueta}</td>${celdas}</tr>`);
             }
             tbody.innerHTML = rows.length
                 ? rows.join('')
@@ -16717,7 +16808,7 @@
             const dur = r.duracionMinutos > 15 ? r.duracionMinutos : 15;
             const asignados = (() => { const v = _svBoxMap.get(r.servicio); return Array.isArray(v) ? v : (v ? [v] : []); })();
             let selBox = boxActual, selHora = horaActual;
-            const horas = _grilla_slots.map(s => s.hora).filter(h => _esHoraComercial(h) || _grilla_extraSlots);
+            const horas = [...new Set([..._grillaFilasActuales.map(f => f.hora), horaActual])].sort();
             const ocupado = (boxId, hora) => {
                 const ini = toMin(hora), fin = ini + dur;
                 return todasLasReservas.find(x => x.id !== r.id && esReservaActiva(x) && x.fecha === r.fecha && _grilla_boxDeReserva(x) === boxId && (() => {
@@ -16740,7 +16831,7 @@
                 const opts = horas.map(h => {
                     const occ = ocupado(selBox, h);
                     const nom = occ ? (occ.nombreLimpio || occ.nombre || 'otro turno').split(' ')[0] : '';
-                    return `<option value="${h}" ${h === selHora ? 'selected' : ''} ${occ ? 'disabled' : ''}>${h}${occ ? ` — ocupado (${escapeHtml(nom)})` : h === horaActual && selBox === boxActual ? ' — actual' : ''}</option>`;
+                    return `<option value="${h}" ${h === selHora ? 'selected' : ''} ${occ ? 'disabled' : ''}>${etiquetaHora(h)}${occ ? ` — ocupado (${escapeHtml(nom)})` : h === horaActual && selBox === boxActual ? ' — actual' : ''}</option>`;
                 }).join('');
                 const sinCambios = selBox === boxActual && selHora === horaActual;
                 ov.innerHTML = `<div class="p360-modal" role="dialog" aria-modal="true" aria-label="Mover turno">
