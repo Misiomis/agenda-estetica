@@ -2295,13 +2295,13 @@
         table#grilla-table td.cristina-active .grilla-celda-default-bloq { background-color: #fef3c7 !important; border-color: #eab308 !important; }
 
         /* ══════════════════════════════════════════════════════════════════
-           GRILLA COMO REGLA DE TIEMPO — filas de 10 minutos
+           GRILLA COMO REGLA DE TIEMPO — filas de 5 minutos
            · Todas las filas miden lo mismo; la tarjeta se ubica dentro de su
              celda en proporción a su hora real (--t / --b) y no estira la fila.
            · Turnos que se pisan en un mismo box van lado a lado (--l / --w).
            · Detalle según la duración: gr-det-1 (≤15 min) … gr-det-6 (1 h+).
            ══════════════════════════════════════════════════════════════════ */
-        table#grilla-table { --gr-fila: 32px; border-spacing: 8px 4px !important; }
+        table#grilla-table { --gr-fila: 22px; border-spacing: 8px 3px !important; }
         table#grilla-table tr[data-hora] > td { height: var(--gr-fila) !important; position: relative; }
         table#grilla-table td.grilla-td-box > .grilla-celda-ocupada,
         table#grilla-table td.grilla-td-box.cristina-active > .grilla-celda-ocupada {
@@ -2341,13 +2341,14 @@
         .grilla-tarjeta-turno.gr-carril .gqa-estado { display: none; }
 
         /* Columna de hora: 7 · 7:10 … en punto marcada, media hora media, resto suave */
-        table#grilla-table tr[data-hora] > td.grilla-td-hora { vertical-align: top !important; padding: 4px 2px 0 !important; line-height: 1.1; }
-        table#grilla-table tr.gr-en-punto > td.grilla-td-hora { font-size: 15px !important; font-weight: 800 !important; color: #13241c !important; background-color: #dfe9e4 !important; }
-        table#grilla-table tr.gr-y-media > td.grilla-td-hora { font-size: 12.5px !important; font-weight: 700 !important; color: #1e3f2f !important; }
-        table#grilla-table tr.grilla-row-15 > td.grilla-td-hora { font-size: 10.5px !important; font-weight: 600 !important; color: #8aa195 !important; background-color: #f1f5f3 !important; border-color: #e2e8f0 !important; }
+        table#grilla-table tr[data-hora] > td.grilla-td-hora { vertical-align: middle !important; padding: 0 2px !important; line-height: 1; }
+        table#grilla-table tr.gr-en-punto > td.grilla-td-hora { font-size: 13px !important; font-weight: 800 !important; color: #13241c !important; background-color: #dfe9e4 !important; }
+        table#grilla-table tr.gr-y-media > td.grilla-td-hora { font-size: 12px !important; font-weight: 700 !important; color: #1e3f2f !important; }
+        table#grilla-table tr.gr-cuarto > td.grilla-td-hora { font-size: 11px !important; font-weight: 700 !important; color: #4b6358 !important; background-color: #eef3f0 !important; }
+        table#grilla-table tr.grilla-row-15:not(.gr-cuarto) > td.grilla-td-hora { font-size: 9.5px !important; font-weight: 600 !important; color: #8aa195 !important; background-color: #f1f5f3 !important; border-color: #e2e8f0 !important; }
         table#grilla-table tr.gr-fila-fuera > td.grilla-td-hora { opacity: .7; }
         table#grilla-table tr.turno-cristina.gr-en-punto > td.grilla-td-hora { background-color: #facc15 !important; color: #713f12 !important; }
-        table#grilla-table tr.turno-cristina.grilla-row-15 > td.grilla-td-hora { background-color: #fef08a !important; color: #854d0e !important; border: 2px solid #eab308 !important; }
+        table#grilla-table tr.turno-cristina.grilla-row-15 > td.grilla-td-hora, table#grilla-table tr.turno-cristina.gr-cuarto > td.grilla-td-hora { background-color: #fef08a !important; color: #854d0e !important; border: 2px solid #eab308 !important; }
 
         /* Líneas guía por el espacio entre filas (se cortan donde hay tarjeta) */
         table#grilla-table tr.gr-en-punto > td::before,
@@ -2365,7 +2366,13 @@
            · El hover solo existe con mouse: en celular no queda "pegado" (era
              el fondo blanco con borde dorado que aparecía al desbloquear). */
         table#grilla-table .grilla-celda-libre { position: relative; padding: 0 !important; overflow: hidden; }
-        table#grilla-table .gcl-reg { flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #5b7568; background: transparent !important; border-radius: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        /* Filas de 5 min: ninguna celda fuerza un alto mínimo (antes 34px estiraban la fila) */
+        table#grilla-table :is(.grilla-celda-libre, .grilla-celda-bloq, .grilla-celda-default-bloq) { min-height: 0 !important; height: 100% !important; box-sizing: border-box !important; }
+        /* La línea de la hora actual pasa por detrás de las tarjetas (no las tacha) */
+        .grilla-linea-ahora { z-index: 1 !important; }
+        /* El "+" se marca en los cuartos de hora y queda suave en las filas de 5 min intermedias */
+        table#grilla-table tr.grilla-row-15:not(.gr-cuarto) .gcl-reg { opacity: .45; }
+        table#grilla-table .gcl-reg { flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #5b7568; background: transparent !important; border-radius: 0; outline: none; -webkit-tap-highlight-color: transparent; }
         table#grilla-table .gcl-blk { width: 22px; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: transparent; background: transparent !important; -webkit-tap-highlight-color: transparent; outline: none; }
         @media (hover: hover) {
             table#grilla-table .grilla-celda-libre:hover { background-color: #ecfdf5 !important; border: 1.5px solid #10b981 !important; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.18) !important; }
@@ -2401,8 +2408,8 @@
         table#grilla-table td.gr-fuera.cristina-active { background-color: transparent !important; border: none !important; padding: 3px !important; }
 
         @media (max-width: 768px) {
-            table#grilla-table { --gr-fila: 28px; border-spacing: 3px 3px !important; table-layout: fixed !important; }
-            table#grilla-table th.grilla-th-hora, table#grilla-table td.grilla-td-hora { width: 34px; }
+            table#grilla-table { --gr-fila: 22px; border-spacing: 3px 2px !important; table-layout: fixed !important; }
+            table#grilla-table th.grilla-th-hora, table#grilla-table td.grilla-td-hora { width: 38px; }
             table#grilla-table td.grilla-td-box { padding: 1px !important; }
             table#grilla-table td.grilla-td-box.cristina-active:not(:has(> .grilla-celda-libre)) { padding: 2px !important; border-width: 1.5px !important; }
             table#grilla-table td.grilla-td-box > .grilla-celda-ocupada,
@@ -2418,10 +2425,11 @@
             table#grilla-table .grilla-celda-libre { border-radius: 8px !important; border-width: 1px !important; }
             table#grilla-table .grilla-celda-bloq, table#grilla-table .grilla-celda-default-bloq { border-radius: 8px !important; }
             table#grilla-table .grilla-celda-bloq .gcb-txt, table#grilla-table .grilla-celda-default-bloq .gcb-txt { display: none; }
-            table#grilla-table tr[data-hora] > td.grilla-td-hora { padding: 3px 0 0 !important; }
-            table#grilla-table tr.gr-en-punto > td.grilla-td-hora { font-size: 13px !important; }
-            table#grilla-table tr.gr-y-media > td.grilla-td-hora { font-size: 11px !important; }
-            table#grilla-table tr.grilla-row-15 > td.grilla-td-hora { font-size: 9.5px !important; }
+            table#grilla-table tr[data-hora] > td.grilla-td-hora { padding: 0 !important; }
+            table#grilla-table tr.gr-en-punto > td.grilla-td-hora { font-size: 11.5px !important; }
+            table#grilla-table tr.gr-y-media > td.grilla-td-hora { font-size: 10.5px !important; }
+            table#grilla-table tr.gr-cuarto > td.grilla-td-hora { font-size: 9.5px !important; }
+            table#grilla-table tr.grilla-row-15:not(.gr-cuarto) > td.grilla-td-hora { font-size: 8.5px !important; letter-spacing: -0.02em; }
             table#grilla-table tr.gr-en-punto > td::before, table#grilla-table tr.gr-y-media > td::before { left: -2px; right: -2px; top: -2px; }
             /* Tarjeta: nombre bien legible y datos compactos */
             .grilla-tarjeta-turno .card-top-info { padding-right: 10px !important; }
@@ -2436,7 +2444,7 @@
             .grilla-tarjeta-turno .gc-menu-btn { width: 14px !important; height: 16px !important; right: 0 !important; top: 1px !important; font-size: 11px !important; }
             .grilla-tarjeta-turno .gqa-estado { display: none; }
             .grilla-tarjeta-turno .gqa-btns { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 1px !important; width: 100%; justify-items: center; }
-            .grilla-tarjeta-turno .gqa-btn { width: 100% !important; max-width: 18px; height: 18px !important; font-size: 9.5px !important; padding: 0 !important; }
+            .grilla-tarjeta-turno .gqa-btn { width: 100% !important; max-width: 16px; height: 18px !important; font-size: 9px !important; padding: 0 !important; }
             /* Nombre en hasta 2 líneas; datos secundarios fuera en tarjetas angostas */
             .grilla-tarjeta-turno:not(.gr-det-1) .grilla-paciente-nombre { white-space: normal !important; display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; overflow: hidden; }
             .grilla-tarjeta-turno .gc-ctx-dispo, .grilla-tarjeta-turno:not(.gr-det-6) :is(.gc-ya-sede, .gc-sigue) { display: none !important; }
@@ -16375,7 +16383,7 @@
                 const res = it.res;
                 const dur = it.fin - it.ini;
                 // Nivel de detalle según la duración (la tarjeta no estira la fila).
-                const det = dur <= 15 ? 1 : dur <= 25 ? 2 : dur <= 35 ? 3 : dur <= 55 ? 4 : 6;
+                const det = dur <= 10 ? 1 : dur <= 15 ? 2 : dur <= 25 ? 3 : dur <= 40 ? 4 : 6;
                 const ctx = _grillaContextoTurno(res);
                 const nom  = escapeHtml((res.nombreLimpio || res.nombre || '—').split(' ').slice(0,2).join(' '));
                 const srv  = escapeHtml(res.servicio || '');
@@ -16480,7 +16488,7 @@
                 if (_grCorte === ' gr-corte-tarde' && _grSinCruce) {
                     rows.push(`<tr class="grilla-separador-row" aria-hidden="true"><td colspan="${COLS}"><div class="grilla-separador-tarde">☀️ Fin turno mañana <span class="gst-linea"></span> 🌤️ Inicio turno tarde</div></td></tr>`);
                 }
-                rows.push(`<tr class="${rowCls}${min % 60 === 0 ? ' gr-en-punto' : min % 60 === 30 ? ' gr-y-media' : ''}${fila.dentro ? '' : ' gr-fila-fuera'}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora${_crisCls}">${fila.etiqueta}</td>${celdas}</tr>`);
+                rows.push(`<tr class="${rowCls}${min % 60 === 0 ? ' gr-en-punto' : min % 60 === 30 ? ' gr-y-media' : min % 15 === 0 ? ' gr-cuarto' : ''}${fila.dentro ? '' : ' gr-fila-fuera'}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora${_crisCls}">${fila.etiqueta}</td>${celdas}</tr>`);
             }
             tbody.innerHTML = rows.length
                 ? rows.join('')

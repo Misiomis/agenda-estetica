@@ -116,14 +116,15 @@ check('cada turno tiene el acceso discreto 💳 (sin montos)', /class="gc-cobro-
   check('una sola tarjeta por turno en la Grilla', tarjetas.length === new Set(tarjetas.map(c => c.getAttribute('onclick'))).size);
   check('tarjeta en 2 bloques: datos arriba y pie con estado + acciones + última sesión', tarjetas.every(c => c.querySelector(':scope > .card-top-info') && c.querySelector(':scope > .card-bottom-footer .grilla-quick-actions')));
   check('los <td> no llevan fondo ni borde de color inline', [...tbody.querySelectorAll('td.grilla-td-box')].every(td => !/background|border-color/.test(td.getAttribute('style') || '')) && [...tbody.querySelectorAll('td.grilla-td-box')].every(td => /gr-box-b[1-4]/.test(td.className)));
-  check('cada tarjeta muestra su horario (inicio–fin) con el formato de la Grilla (10 · 10:30)', tarjetas.every(c => /^\d{1,2}(:\d\d)?–\d{1,2}(:\d\d)?$/.test(c.querySelector('.gc-horario')?.textContent || '')) && tarjetas.find(x => x.textContent.includes('Paula Gómez')).querySelector('.gc-horario').textContent === '10–11', tarjetas.map(c => c.querySelector('.gc-horario')?.textContent).join(' | '));
+  check('cada tarjeta muestra su horario (inicio–fin) en formato HH:MM', tarjetas.every(c => /^\d\d:\d\d–\d\d:\d\d$/.test(c.querySelector('.gc-horario')?.textContent || '')) && tarjetas.find(x => x.textContent.includes('Paula Gómez')).querySelector('.gc-horario').textContent === '10:00–11:00', tarjetas.map(c => c.querySelector('.gc-horario')?.textContent).join(' | '));
   {
     const filasG = [...tbody.querySelectorAll('tr[data-hora]')];
-    const etq = filasG.slice(0, 7).map(tr => tr.querySelector('td.grilla-td-hora').textContent.trim()).join(',');
-    check('filas cada 10 minutos desde la apertura: 7, 7:10 … 7:50, 8', etq === '7,7:10,7:20,7:30,7:40,7:50,8', etq);
-    check('turno de 60 min ocupa 6 filas de 10 min (rowspan 6)', Number(tdHoy.getAttribute('rowspan')) === 6, tdHoy.getAttribute('rowspan'));
-    check('el cierre del día es la última fila (20:50) y el mediodía 13:30–14:00 no se muestra', filasG[filasG.length - 1].dataset.hora === '20:50' && !filasG.some(tr => tr.dataset.hora === '13:40'), filasG[filasG.length - 1].dataset.hora);
-    check('el "+" agenda con la hora exacta de la celda', /grillaAbrirRegistro\('07:10','b1'\)/.test(tbody.innerHTML));
+    const etq = filasG.slice(0, 5).map(tr => tr.querySelector('td.grilla-td-hora').textContent.trim()).join(',');
+    check('filas cada 5 minutos desde las 08:00: 08:00, 08:05, 08:10, 08:15, 08:20', etq === '08:00,08:05,08:10,08:15,08:20', etq);
+    check('07:00 a 08:00 queda oculto', !filasG.some(tr => tr.dataset.hora < '08:00'));
+    check('turno de 60 min ocupa 12 filas de 5 min (rowspan 12)', Number(tdHoy.getAttribute('rowspan')) === 12, tdHoy.getAttribute('rowspan'));
+    check('el cierre del día es la última fila (20:55) y el mediodía 13:30–14:00 no se muestra', filasG[filasG.length - 1].dataset.hora === '20:55' && !filasG.some(tr => tr.dataset.hora === '13:40'), filasG[filasG.length - 1].dataset.hora);
+    check('el "+" agenda con la hora exacta de la celda', /grillaAbrirRegistro\('08:05','b1'\)/.test(tbody.innerHTML));
   }
   check('filas de hora en punto y media hora marcadas para las líneas guía', tbody.querySelectorAll('tr.gr-en-punto').length > 3 && tbody.querySelectorAll('tr.gr-y-media').length > 3 && [...tbody.querySelectorAll('tr.gr-en-punto')].every(tr => tr.dataset.hora.endsWith(':00')));
   check('todas las filas tienen la misma altura (la tarjeta no estira la fila)', /tr\[data-hora\] > td \{ height: var\(--gr-fila\) !important/.test(html) && /\.grilla-celda-ocupada \{\s*position: absolute !important;/.test(html));
@@ -632,40 +633,39 @@ w.verTurnos(D3); await tick(20);
 check('la CI desaparece de la Agenda al instante (sin copia fantasma)', !/12:00[\s\S]{0,400}Marta/.test(panelD3()) || !panelD3().includes('Consulta Inicial'));
 await w.eliminarConsultaDefinitiva('otra'); await tick(20);
 check('🗑 Eliminar consulta borra una consulta suelta de Firestore', !fb.calls.store.has('consultas/otra'));
-console.log('\n=== Grilla cada 10 min: turnos 7:15/7:45 existentes, bloqueo y desbloqueo ===');
+console.log('\n=== Grilla cada 5 min: turnos desalineados existentes, bloqueo y desbloqueo ===');
 {
   const D5 = dia(5);
-  R('q700', { dni: '27666555', nombre: 'Ana Díaz', fecha: D5, hora: '07:00', servicio: 'Limpieza facial', box: 'b1', duracionMinutos: 15 });
-  R('q715', { dni: '26555444', nombre: 'Rosa Paz', fecha: D5, hora: '07:15', servicio: 'Radiofrecuencia corporal', box: 'b1', duracionMinutos: 45 });
-  // Bloqueo viejo (grilla de 15 min): sin duración guardada → 7:45 a 8:00.
-  set(`calendarExceptions/adm_${D5}_07-45_b2`, { fecha: D5, hora: '07:45', boxId: 'b2', adminBlocked: true, source: 'admin' });
+  R('q800', { dni: '27666555', nombre: 'Ana Díaz', fecha: D5, hora: '08:00', servicio: 'Limpieza facial', box: 'b1', duracionMinutos: 15 });
+  R('q815', { dni: '26555444', nombre: 'Rosa Paz', fecha: D5, hora: '08:15', servicio: 'Radiofrecuencia corporal', box: 'b1', duracionMinutos: 45 });
+  // Bloqueo viejo (grilla de 15 min): sin duración guardada → 08:45 a 09:00.
+  set(`calendarExceptions/adm_${D5}_08-45_b2`, { fecha: D5, hora: '08:45', boxId: 'b2', adminBlocked: true, source: 'admin' });
   await w.marcarConfirmacionManual('p-fut', false); await tick(60);
   w.navegar('grilla'); w.grillaIrHoy(); await tick(20); w.grillaNavFecha(5); await tick(60);
   const tb5 = $('grilla-tbody');
   const celda = (hora, box) => [...tb5.querySelectorAll(`td.gr-box-${box}`)].find(td => td.dataset.hora === hora);
   const tarjeta = (txt) => [...tb5.querySelectorAll('.grilla-celda-ocupada')].find(c => c.textContent.includes(txt));
-  const t700 = tarjeta('Ana Díaz'), t715 = tarjeta('Rosa Paz');
-  check('7:00–7:15 y 7:15–8:00 en el mismo box: una celda (7:00 a 8:00, rowspan 6) con las dos tarjetas', t700 && t715 && t700.closest('td') === t715.closest('td') && t700.closest('td').getAttribute('rowspan') === '6');
-  check('cada turno conserva su hora exacta (7–7:15 y 7:15–8)', t700.querySelector('.gc-horario').textContent === '7–7:15' && t715.querySelector('.gc-horario').textContent === '7:15–8');
-  check('la tarjeta de las 7:15 arranca en proporción (25 % del alto de la celda)', /--t:25\.000%/.test(t715.getAttribute('style')) && /--b:75\.000%/.test(t700.getAttribute('style')), t715.getAttribute('style'));
-  check('bloqueo viejo de 7:45 (15 min) bloquea las filas 7:40 y 7:50 de ese box', celda('07:40', 'b2').classList.contains('gr-bloqueada') && celda('07:50', 'b2').classList.contains('gr-bloqueada') && celda('07:30', 'b2').classList.contains('gr-libre'));
-  await w.grillaDesbloquearSlot('07:50', 'b2'); await tick(20);
-  check('desbloquear 7:50 borra el bloqueo viejo y las dos filas vuelven a "libre" al instante', !fb.calls.store.has(`calendarExceptions/adm_${D5}_07-45_b2`) && celda('07:40', 'b2').classList.contains('gr-libre') && celda('07:50', 'b2').classList.contains('gr-libre') && !celda('07:50', 'b2').querySelector('.grilla-celda-bloq'));
+  const t800 = tarjeta('Ana Díaz'), t815 = tarjeta('Rosa Paz');
+  check('08:00–08:15 y 08:15–09:00 en el mismo box: cada una con su alto real (3 y 9 filas)', t800 && t815 && t800.closest('td').getAttribute('rowspan') === '3' && t815.closest('td').getAttribute('rowspan') === '9');
+  check('cada turno conserva su hora exacta (08:00–08:15 y 08:15–09:00)', t800.querySelector('.gc-horario').textContent === '08:00–08:15' && t815.querySelector('.gc-horario').textContent === '08:15–09:00');
+  check('bloqueo viejo de 08:45 (15 min) bloquea 08:45, 08:50 y 08:55 de ese box', ['08:45', '08:50', '08:55'].every(h => celda(h, 'b2').classList.contains('gr-bloqueada')) && celda('08:40', 'b2').classList.contains('gr-libre') && celda('09:00', 'b2').classList.contains('gr-libre'));
+  await w.grillaDesbloquearSlot('08:50', 'b2'); await tick(20);
+  check('desbloquear 08:50 borra el bloqueo viejo y las tres filas vuelven a "libre" al instante', !fb.calls.store.has(`calendarExceptions/adm_${D5}_08-45_b2`) && ['08:45', '08:50', '08:55'].every(h => celda(h, 'b2').classList.contains('gr-libre') && !celda(h, 'b2').querySelector('.grilla-celda-bloq')));
   await w.grillaBloquearSlot('09:10', 'b2'); await tick(20);
   const blk = fb.calls.store.get(`calendarExceptions/adm_${D5}_09-10_b2`);
-  check('bloquear desde la celda de 9:10 guarda esa hora y 10 min', blk && blk.hora === '09:10' && blk.duracionMinutos === 10 && blk.source === 'admin', blk);
-  check('solo esa fila queda bloqueada (9:00 y 9:20 siguen libres)', celda('09:10', 'b2').classList.contains('gr-bloqueada') && celda('09:00', 'b2').classList.contains('gr-libre') && celda('09:20', 'b2').classList.contains('gr-libre'));
+  check('bloquear desde la celda de 09:10 guarda esa hora y 5 min', blk && blk.hora === '09:10' && blk.duracionMinutos === 5 && blk.source === 'admin', blk);
+  check('solo esa fila queda bloqueada (09:05 y 09:15 siguen libres)', celda('09:10', 'b2').classList.contains('gr-bloqueada') && celda('09:05', 'b2').classList.contains('gr-libre') && celda('09:15', 'b2').classList.contains('gr-libre'));
   await w.grillaDesbloquearSlot('09:10', 'b2'); await tick(20);
   check('desbloquear y volver a seleccionar: la celda es "+" libre otra vez', !fb.calls.store.has(`calendarExceptions/adm_${D5}_09-10_b2`) && celda('09:10', 'b2').classList.contains('gr-libre') && !!celda('09:10', 'b2').querySelector(".gcl-reg[onclick=\"grillaAbrirRegistro('09:10','b2')\"]"));
   check('estilos: selección verde visible con mouse, al tocar y con foco; sin hover pegado en celular', /@media \(hover: hover\) \{\s*table#grilla-table \.grilla-celda-libre:hover \{ background-color: #ecfdf5/.test(html) && /\.grilla-celda-libre:focus-within,[\s\S]{0,300}#d1fae5/.test(html) && !/\.grilla-celda-libre:hover \{\s*background: #ffffff/.test(html));
-  // Mover el turno de 7:00 (15 min) a las 7:20 pisaría el de 7:15–8:00.
-  w.grillaDragStart({ dataTransfer: { setData() {}, effectAllowed: '' } }, 'q700');
-  await w.grillaDrop({ preventDefault() {} }, 'b1', '07:20', null); await tick(20);
-  check('mover a 7:20 se rechaza: choca con el turno de 7:15 (por intervalo, no por hora exacta)', fb.calls.store.get('reservas/q700').hora === '07:00');
-  w.grillaDragStart({ dataTransfer: { setData() {}, effectAllowed: '' } }, 'q700');
-  await w.grillaDrop({ preventDefault() {} }, 'b2', '07:20', null); await tick(30);
-  check('mover a otro box libre a las 7:20 sí funciona', fb.calls.store.get('reservas/q700').hora === '07:20' && fb.calls.store.get('reservas/q700').box === 'b2');
-  // Alta desde el "+" de una celda de 10 min.
+  // Mover el turno de 08:00 (15 min) a las 08:05 pisaría el de 08:15–09:00.
+  w.grillaDragStart({ dataTransfer: { setData() {}, effectAllowed: '' } }, 'q800');
+  await w.grillaDrop({ preventDefault() {} }, 'b1', '08:05', null); await tick(20);
+  check('mover a 08:05 se rechaza: choca con el turno de 08:15 (por intervalo, no por hora exacta)', fb.calls.store.get('reservas/q800').hora === '08:00');
+  w.grillaDragStart({ dataTransfer: { setData() {}, effectAllowed: '' } }, 'q800');
+  await w.grillaDrop({ preventDefault() {} }, 'b2', '08:20', null); await tick(30);
+  check('mover a otro box libre a las 08:20 sí funciona', fb.calls.store.get('reservas/q800').hora === '08:20' && fb.calls.store.get('reservas/q800').box === 'b2');
+  // Alta desde el "+" de una celda de 5 min.
   const altaDesde = async (hora, box, servicio) => {
     w.grillaAbrirRegistro(hora, box); await tick(20);
     const p = w.document.createElement('div');
@@ -675,13 +675,13 @@ console.log('\n=== Grilla cada 10 min: turnos 7:15/7:45 existentes, bloqueo y de
     await w.confirmarRegistroManual(); await tick(40);
   };
   const reservasMarta = () => [...fb.calls.store.entries()].filter(([k, v]) => k.startsWith('reservas/') && v.fecha === D5 && v.dni === '28777666').map(([, v]) => v);
-  await altaDesde('07:10', 'b3', 'Criolipolisis');
+  await altaDesde('08:05', 'b3', 'Criolipolisis');
   const nueva = reservasMarta().find(v => v.box === 'b3');
-  check('"+" de la celda 7:10 (Box 3) crea el turno a las 7:10 en ese box', nueva && nueva.hora === '07:10', reservasMarta());
-  check('… y aparece en la Grilla con su horario', /7:10–/.test(tarjeta('Marta Sosa')?.querySelector('.gc-horario')?.textContent || ''), tarjeta('Marta Sosa')?.outerHTML.slice(0, 200));
+  check('"+" de la celda 08:05 (Box 3) crea el turno a las 08:05 en ese box', nueva && nueva.hora === '08:05', reservasMarta());
+  check('… y aparece en la Grilla con su horario', /^08:05–/.test(tarjeta('Marta Sosa')?.querySelector('.gc-horario')?.textContent || ''), tarjeta('Marta Sosa')?.outerHTML.slice(0, 200));
   const antes = reservasMarta().length;
-  await altaDesde('07:00', 'b1', 'Criolipolisis');
-  check('"+" de 7:00 en Box 1 con un turno de 30 min se rechaza: pisa el de 7:15 (aviso claro)', reservasMarta().length === antes && !!$('_mreg_choque_overlay') && /7:15 a 8 hs/.test($('_mreg_choque_overlay').textContent), $('_mreg_choque_overlay')?.textContent);
+  await altaDesde('08:00', 'b1', 'Criolipolisis');
+  check('"+" de 08:00 en Box 1 con un turno de 30 min se rechaza: pisa el de 08:15 (aviso claro)', reservasMarta().length === antes && !!$('_mreg_choque_overlay') && /08:15 a 09:00 hs/.test($('_mreg_choque_overlay').textContent), $('_mreg_choque_overlay')?.textContent);
   $('_mreg_choque_overlay')?.remove();
 }
 

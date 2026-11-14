@@ -1,4 +1,4 @@
-// Grilla de boxes por tiempo: filas cada 10 minutos, turnos y bloqueos con
+// Grilla de boxes por tiempo: filas cada 5 minutos, turnos y bloqueos con
 // su hora y duración exactas. Lógica pura (sin DOM ni Firestore) — se prueba
 // sola en tests/grilla-tiempo.
 //
@@ -6,12 +6,12 @@
 //   tarde), cada PASO_GRILLA minutos. Si hay un turno o bloqueo fuera de ese
 //   horario, se agregan las filas que lo cubren: nunca queda nada oculto.
 // · Un turno ocupa las filas que su intervalo [inicio, fin) toca. Si no está
-//   alineado (ej. 7:15 en filas de 10 min) la tarjeta se ubica en proporción:
-//   empieza a mitad de la fila de las 7:10.
+//   alineado (ej. 8:12 en filas de 5 min) la tarjeta se ubica en proporción:
+//   empieza dentro de la fila de las 8:10.
 // · Los turnos de un mismo box que comparten alguna fila forman un "grupo":
 //   una sola celda con rowspan y las tarjetas adentro en su posición.
 
-export const PASO_GRILLA = 10;
+export const PASO_GRILLA = 5;
 
 // Horario por defecto de la Grilla (todos los días). Se puede reemplazar por
 // día de semana con configuracion/horarioGrilla en Firestore:
@@ -19,7 +19,9 @@ export const PASO_GRILLA = 10;
 // (0 = domingo … 6 = sábado). "hasta" es el cierre: la última fila empieza
 // PASO_GRILLA minutos antes.
 export const HORARIO_GRILLA_DEFECTO = [
-  { desde: '07:00', hasta: '13:30' },
+  // Se arranca a las 08:00: la franja de 07:00 a 08:00 queda oculta (se ve
+  // con «+ Horario extra» para un pedido especial).
+  { desde: '08:00', hasta: '13:30' },
   { desde: '14:00', hasta: '21:00' },
 ];
 
@@ -29,12 +31,11 @@ export const aMin = (h) => {
 };
 export const aHora = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
-// "07:00" → "7" · "07:10" → "7:10" · "16:00" → "16"
+// Formato de la Grilla: siempre HH:MM ("08:00", "08:05", "16:30").
 export function etiquetaHora(hora) {
   const min = typeof hora === 'number' ? hora : aMin(hora);
   if (!Number.isFinite(min)) return String(hora || '');
-  const h = Math.floor(min / 60), m = min % 60;
-  return m === 0 ? String(h) : `${h}:${String(m).padStart(2, '0')}`;
+  return aHora(min);
 }
 
 // Franjas del día (en minutos) según la configuración por día de semana.
