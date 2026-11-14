@@ -16,7 +16,7 @@ const CATEGORIAS_ORIGEN = {
   cancelada: 'Canceladas (no se regeneran)', continuidad_por_definir: 'Continuidad por definir', sin_paciente: 'Sin paciente identificado',
 };
 const MOTIVO_TXT = {
-  cierre_dia: 'Estética cerrada', bloqueo_estetica: 'Estética bloqueada', bloqueo_box: 'Box bloqueado', bloqueo_depilacion_protegido: 'Box 2 bloqueado por depilación',
+  cierre_dia: 'Estética cerrada', bloqueo_estetica: 'Estética bloqueada', bloqueo_box: 'Box bloqueado', bloqueo_depilacion_protegido: 'Box 5 bloqueado por depilación',
   box_ocupado: 'Box ocupado', paciente_ocupado: 'La paciente ya tiene otro turno', box_incompatible: 'Box incompatible', fuera_horario: 'Fuera de horario',
   indisponible: 'Indisponibilidad de la paciente', ausente: 'Paciente ausente', fuera_cupo: 'Fuera del cupo', pendiente_consultar: 'Pendiente de consultar',
   definir_frecuencia: 'Definir frecuencia', continuidad_por_definir: 'Continuidad por definir', deficit: 'Sesiones sin fecha',

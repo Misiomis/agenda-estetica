@@ -292,7 +292,7 @@ check('sin disponibilidad cargada → botón para agregarla con 1 clic', /Agrega
 w.editarDisponibilidad('26555444'); await tick();
 $('_dispo_txt').value = 'Puede viernes por la tarde'; $('_dispo_ok').click(); await tick(20);
 check('edición rápida guarda y refresca el directorio', fb.calls.store.get('clients/26555444').disponibilidadTexto === 'Puede viernes por la tarde' && $('contenedorClientes').textContent.includes('Puede viernes por la tarde'));
-check('la tarjeta muestra última sesión con fecha, box y tratamiento', /Última sesión: .*Box 2.*Radiofrecuencia corporal/.test($('contenedorClientes').textContent));
+check('la tarjeta muestra última sesión con fecha, box y tratamiento (b2 = Box 5)', /Última sesión: .*Box 5.*Radiofrecuencia corporal/.test($('contenedorClientes').textContent));
 
 console.log('\n=== Registrar turno: recuadro de disponibilidad y últimas sesiones ===');
 const elPac = w.document.createElement('div');
@@ -699,6 +699,83 @@ abiertas.length = 0;
 await w.enviarWaKit('k1', '30111222', 'Paula Gómez'); await tick(10);
 const kitViejo = decodeURIComponent((abiertas[0] || '').split('text=')[1] || '');
 check('pedido viejo sin precios por producto: lista los productos y el total guardado', /• Leche de limpieza/.test(kitViejo) && /Total del pedido: \$30\.000/.test(kitViejo), kitViejo);
+
+console.log('\n=== Boxes: orden 4, 2, 3, 5 con la misma identidad ===');
+{
+  w.navegar('grilla'); w.grillaIrHoy(); await tick(40);
+  const ths = [...w.document.querySelectorAll('#grilla-table thead th.grilla-th-box')];
+  check('encabezado de la Grilla: Box 4, Box 2, Box 3, Box 5 (orden explícito)', ths.map(th => th.querySelector('.gth-full').firstChild.textContent.trim().replace(/^\S+\s/, '')).join(',') === 'Box 4,Box 2,Box 3,Box 5', ths.map(th => th.textContent).join(' | '));
+  check('cada columna conserva su identidad: b1, b4, b3, b2', ths.map(th => th.dataset.box).join(',') === 'b1,b4,b3,b2');
+  const fila = $('grilla-tbody').querySelector('tr[data-hora="08:00"]');
+  check('las celdas siguen el mismo orden que el encabezado', [...fila.querySelectorAll('td.grilla-td-box')].map(td => /gr-box-(\w+)/.exec(td.className)[1]).join(',') === 'b1,b4,b3,b2');
+  check('el «Box 5» anterior no aparece entre los activos (solo 4 columnas)', ths.length === 4 && !w.document.querySelector('#grilla-table [data-box="b5"]'));
+  check('un turno guardado en b3 (Facial) sigue en su columna «Box 3»', (() => { const c = [...$('grilla-tbody').querySelectorAll('.grilla-celda-ocupada')].find(x => x.textContent.includes('Paula Gómez')); return c && c.closest('td').classList.contains('gr-box-b3'); })());
+}
+
+console.log('\n=== Desbloqueo selectivo desde la Agenda ===');
+{
+  const D7 = dia(7), D8 = dia(8);
+  set(`calendarExceptions/${D7}`, { fecha: D7, type: 'blocked', blocked: true, active: true, reason: 'Capacitación' });
+  set(`calendarExceptions/block_${D8}_09-00`, { fecha: D8, hora: '09:00', blocked: true });
+  set(`calendarExceptions/block_${D8}_09-30`, { fecha: D8, hora: '09:30', blocked: true });
+  set(`calendarExceptions/reserva_admin_${D8}_10-00`, { fecha: D8, hora: '10:00', blocked: true, tipo: 'reserva', reservaId: 'p-fut' }); // apunta a una reserva real (las huérfanas el panel ya las purga solo)
+  set(`calendarExceptions/adm_${D8}_11-00_b3`, { fecha: D8, hora: '11:00', boxId: 'b3', source: 'admin', adminBlocked: true, duracionMinutos: 30 });
+  const reservasAntes = JSON.stringify([...fb.calls.store.entries()].filter(([k]) => k.startsWith('reservas/')));
+  await w.marcarConfirmacionManual('p-fut', false); await tick(80);
+  check('el calendario abre la vista selectiva (ya no solo «Desbloquear día»)', /abrirDesbloqueoSelectivo\(fStr\)/.test(html) && !/abrirModalDesbloqueo\(fStr, cierreDia\);/.test(html));
+  w.abrirDesbloqueoSelectivo(D7); await tick(10);
+  const det = (f) => w.document.querySelector(`#dsb-cuerpo details[data-fecha="${f}"]`);
+  check('muestra los días bloqueados con fecha, horarios y boxes (el elegido abierto)', $('dsb-ov').style.display === 'flex' && det(D7)?.open && !!det(D8) && [...det(D7).querySelectorAll('thead th')].map(th => th.textContent.trim().replace(/^\S+\s/, '')).slice(1).join(',') === 'Box 4,Box 2,Box 3,Box 5');
+  const filasD7 = det(D7).querySelectorAll('tbody tr').length;
+  check('día cerrado completo: todos los horarios × 4 boxes bloqueados', filasD7 > 10 && det(D7).querySelectorAll('.dsb-celda.bloq').length === filasD7 * 4);
+  check('el registro «ocupado por reserva» no aparece como bloqueo', ![...det(D8).querySelectorAll('tbody th')].some(th => th.textContent.trim() === '10:00') && det(D8).querySelectorAll('tbody tr').length === 3);
+  check('nada elegido → botón deshabilitado', $('dsb-confirmar').disabled);
+  w.dsbToggle(D7, '10:00|b3'); w.dsbFila(D7, '11:00'); await tick();
+  check('elegir una celda y una fila: 5 seleccionadas, marcadas «Liberar»', !$('dsb-confirmar').disabled && /5 seleccionados/.test($('dsb-confirmar').textContent) && det(D7).querySelectorAll('.dsb-celda.sel').length === 5);
+  w.dsbToggle(D7, '10:00|b3'); w.dsbToggle(D7, '10:00|b3'); await tick();
+  check('se puede elegir y deselegir libremente (no descuenta otros)', det(D7).querySelectorAll('.dsb-celda.sel').length === 5);
+  await w.dsbConfirmar(); await tick(80);
+  const st = (id) => fb.calls.store.get('calendarExceptions/' + id);
+  check('se quitó el cierre del día…', !fb.calls.store.has(`calendarExceptions/${D7}`));
+  check('… 10:00 queda libre solo en Box 3; Box 4, Box 2 y Box 5 siguen bloqueados', !st(`block_${D7}_10-00`) && ['b1', 'b4', 'b2'].every(b => st(`adm_${D7}_10-00_${b}`)?.source === 'admin') && !st(`adm_${D7}_10-00_b3`));
+  check('… 11:00 queda libre en todos los boxes', !st(`block_${D7}_11-00`) && !['b1', 'b4', 'b3', 'b2'].some(b => st(`adm_${D7}_11-00_${b}`)));
+  check('… y el resto del día sigue bloqueado para todos (ej. 09:00 y 15:00, con su motivo)', st(`block_${D7}_09-00`)?.blocked === true && st(`block_${D7}_15-00`)?.blocked === true && st(`block_${D7}_09-00`).reason === 'Capacitación');
+  check('otro día no se toca (bloqueos de horario, por box y de reserva intactos)', !!st(`block_${D8}_09-00`) && !!st(`block_${D8}_09-30`) && !!st(`adm_${D8}_11-00_b3`) && !!st(`reserva_admin_${D8}_10-00`));
+  check('las reservas no se modifican', JSON.stringify([...fb.calls.store.entries()].filter(([k]) => k.startsWith('reservas/'))) === reservasAntes);
+  check('la vista se cierra y avisa cuántos se liberaron', $('dsb-ov').style.display === 'none');
+  // Persistencia: al recargar y volver a abrir, se ve exactamente el resultado.
+  await w.marcarConfirmacionManual('p-fut', false); await tick(80);
+  w.abrirDesbloqueoSelectivo(D7); await tick(10);
+  const fila10 = [...det(D7).querySelectorAll('tbody tr')].find(tr => tr.querySelector('th').textContent.trim() === '10:00');
+  const fila11 = [...det(D7).querySelectorAll('tbody tr')].find(tr => tr.querySelector('th').textContent.trim() === '11:00');
+  check('al recargar: 10:00 con Box 3 libre y los otros 3 bloqueados', fila10 && fila10.querySelectorAll('.dsb-celda.bloq').length === 3 && fila10.querySelectorAll('td')[2].querySelector('.dsb-celda.libre'));
+  check('al recargar: 11:00 ya no figura como bloqueada', !fila11);
+  w.dsbCerrar();
+}
+
+console.log('\n=== Boxes: editar nombres y agregar un box ===');
+{
+  w.navegar('servicios'); await tick(30);
+  check('tarjeta «Boxes de la Grilla» con los 4 boxes en orden', $('blabels-lista').querySelectorAll('.bxg-fila').length === 4 && [...$('blabels-lista').querySelectorAll('.bxg-nombre')].map(i => i.value).join(',') === 'Box 4,Box 2,Box 3,Box 5');
+  $('bxg-nom-b3').value = 'Box 3 Facial';
+  $('bxg-nuevo-nombre').value = 'Box 6'; $('bxg-nuevo-sub').value = 'Depilación';
+  w.bxgAgregar(); await tick();
+  check('agregar: aparece al final del borrador', $('blabels-lista').querySelectorAll('.bxg-fila').length === 5 && /agregado/.test($('bxg-msg').textContent));
+  $('bxg-nom-b4').value = 'Box 4'; // repetido con b1 → no deja guardar
+  await w.blGuardar(); await tick(10);
+  check('no deja guardar dos boxes con el mismo nombre', /Ya hay un box/.test($('bxg-msg').textContent) && !fb.calls.store.has('configuracion/boxesGrilla'));
+  $('bxg-nom-b4').value = 'Box 2';
+  await w.blGuardar(); await tick(20);
+  const cfg = fb.calls.store.get('configuracion/boxesGrilla');
+  check('se guarda la configuración con identidad, nombre y orden', cfg && cfg.boxes.map(b => `${b.id}:${b.title}`).join(',') === 'b1:Box 4,b4:Box 2,b3:Box 3 Facial,b2:Box 5,bx1:Box 6', cfg && cfg.boxes.map(b => b.title));
+  w.navegar('grilla'); w.grillaIrHoy(); await tick(40);
+  const ths = [...w.document.querySelectorAll('#grilla-table thead th.grilla-th-box')];
+  check('la Grilla muestra el nombre editado y el box nuevo (5 columnas)', ths.length === 5 && /Box 3 Facial/.test(ths[2].textContent) && ths[4].dataset.box === 'bx1' && $('grilla-tbody').querySelector('tr[data-hora="08:00"]').querySelectorAll('td.grilla-td-box').length === 5);
+  check('el turno de Paula (b3) sigue en su box, ahora «Box 3 Facial»', (() => { const c = [...$('grilla-tbody').querySelectorAll('.grilla-celda-ocupada')].find(x => x.textContent.includes('Paula Gómez')); return c && c.closest('td').classList.contains('gr-box-b3'); })());
+  await w.marcarConfirmacionManual('p-fut', false); await tick(80);
+  w.renderGrilla(); await tick(10);
+  check('persiste al recargar (nombres, orden y box nuevo)', [...w.document.querySelectorAll('#grilla-table thead th.grilla-th-box')].map(th => th.dataset.box).join(',') === 'b1,b4,b3,b2,bx1');
+}
 
 check('un solo listener onSnapshot (clients) en todo el panel', (html.match(/onSnapshot\(/g) || []).length === 1);
 

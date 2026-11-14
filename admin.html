@@ -2181,10 +2181,10 @@
             align-items: stretch !important;
             box-sizing: border-box !important;
         }
-        table#grilla-table td.gr-box-b1 > .grilla-celda-ocupada { border-left-color: #475569 !important; } /* Box 1 General: pizarra */
-        table#grilla-table td.gr-box-b2 > .grilla-celda-ocupada { border-left-color: #0d9488 !important; } /* Box 2 Corporal: teal */
-        table#grilla-table td.gr-box-b3 > .grilla-celda-ocupada { border-left-color: #c89d54 !important; } /* Box 3 Facial: champagne */
-        table#grilla-table td.gr-box-b4 > .grilla-celda-ocupada { border-left-color: #16a34a !important; } /* Box 4 Relax: esmeralda */
+        table#grilla-table td.gr-box-b1 > .grilla-celda-ocupada { border-left-color: #475569 !important; } /* b1 · Box 4 General: pizarra */
+        table#grilla-table td.gr-box-b2 > .grilla-celda-ocupada { border-left-color: #0d9488 !important; } /* b2 · Box 5 Corporal: teal */
+        table#grilla-table td.gr-box-b3 > .grilla-celda-ocupada { border-left-color: #c89d54 !important; } /* b3 · Box 3 Facial: champagne */
+        table#grilla-table td.gr-box-b4 > .grilla-celda-ocupada { border-left-color: #16a34a !important; } /* b4 · Box 2 Relax: esmeralda */
         /* Distribución interna: arriba datos, abajo estado + acciones + última sesión */
         .grilla-tarjeta-turno .card-top-info { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding-right: 22px; }
         .grilla-tarjeta-turno .grilla-paciente-nombre { font-weight: 700 !important; font-size: 14px !important; color: #13241c !important; max-width: 100%; }
@@ -2451,6 +2451,66 @@
             .grilla-tarjeta-turno .gc-ctx-ultima { font-size: 9px !important; }
             .grilla-tarjeta-turno .grilla-quick-actions { padding: 1px 2px !important; }
             .grilla-tarjeta-turno.gr-det-2 .card-bottom-footer { display: none; }
+        }
+
+        /* ── Desbloqueo selectivo (Agenda) ── */
+        .dsb-ov { position: fixed; inset: 0; z-index: 200000; background: rgba(6, 22, 15, 0.55); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 16px; }
+        .dsb-modal { width: 100%; max-width: 980px; max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: #fff; border-radius: 18px; box-shadow: var(--shadow-modal); overflow: hidden; }
+        .dsb-head { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; padding: 18px 20px 12px; border-bottom: 1px solid var(--border-color-soft); }
+        .dsb-head h3 { margin: 0 0 4px; font-family: 'Playfair Display', serif; font-size: 20px; color: #163026; }
+        .dsb-head p { margin: 0; font-size: 13px; color: var(--text-secondary); }
+        .dsb-x { border: none; background: transparent; font-size: 18px; cursor: pointer; color: #475569; width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; }
+        .dsb-x:hover { background: var(--bg-subtle); }
+        .dsb-cuerpo { overflow: auto; padding: 12px 20px; display: grid; gap: 10px; }
+        .dsb-vacio { margin: 20px 0; text-align: center; color: var(--text-secondary); }
+        .dsb-dia { border: 1px solid var(--border-color-soft); border-radius: 14px; background: #fbfcfb; }
+        .dsb-dia > summary { cursor: pointer; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; list-style-position: inside; }
+        .dsb-dia > summary b { color: #163026; }
+        .dsb-dia > summary span { font-size: 12px; color: var(--text-secondary); }
+        .dsb-dia > summary em { font-style: normal; font-size: 11.5px; font-weight: 800; color: #065f46; background: #d1fae5; border-radius: 999px; padding: 1px 8px; }
+        .dsb-acc { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 14px 8px; }
+        .dsb-tabla-wrap { overflow-x: auto; padding: 0 10px 12px; }
+        .dsb-tabla { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; min-width: 420px; }
+        .dsb-tabla thead th { font-size: 11px; font-weight: 800; color: #f3f7f4; background: #1e3f2f; border-radius: 8px; padding: 6px 4px; }
+        .dsb-tabla thead th:first-child { width: 62px; }
+        .dsb-hora { width: 100%; border: 1px solid #cbd5e1; background: #eef3f0; border-radius: 8px; font: inherit; font-size: 12px; font-weight: 800; color: #1e3f2f; padding: 6px 0; cursor: pointer; }
+        .dsb-hora:hover { border-color: #10b981; }
+        .dsb-celda { width: 100%; min-height: 40px; border-radius: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font: inherit; font-size: 12px; line-height: 1.15; }
+        .dsb-celda small { font-size: 9.5px; font-weight: 700; opacity: .8; }
+        .dsb-celda.libre { color: #94a3b8; background: #f8fafc; border: 1px dashed #e2e8f0; }
+        .dsb-celda.bloq { cursor: pointer; color: #475569; background: repeating-linear-gradient(135deg, #eef1f4 0 6px, #e2e7ec 6px 12px); border: 1.5px solid #94a3b8; transition: all .15s ease; }
+        .dsb-celda.bloq:hover { border-color: #10b981; }
+        .dsb-celda.bloq.sel { background: #d1fae5; border: 2px solid #10b981; color: #065f46; font-weight: 800; }
+        .dsb-turno { color: #0f766e !important; opacity: 1 !important; }
+        .dsb-pie { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border-color-soft); background: #fff; }
+        @media (max-width: 600px) {
+            .dsb-ov { padding: 0; align-items: stretch; }
+            .dsb-modal { max-height: 100vh; border-radius: 0; }
+            .dsb-head { padding: 14px 14px 10px; } .dsb-cuerpo { padding: 10px; } .dsb-pie { padding: 10px; }
+            .dsb-pie button { flex: 1; }
+            .dsb-tabla { min-width: 0; border-spacing: 2px; }
+            .dsb-tabla thead th { font-size: 9.5px; padding: 5px 2px; }
+            .dsb-tabla thead th:first-child { width: 46px; }
+            .dsb-celda { min-height: 38px; font-size: 11px; }
+            .dsb-celda small { font-size: 8.5px; }
+        }
+
+        /* ── Boxes de la Grilla (Servicios y boxes) ── */
+        .bxg-lista { display: grid; gap: 8px; }
+        .bxg-fila { display: grid; grid-template-columns: 28px 52px minmax(90px, 1fr) minmax(110px, 1.4fr) auto; gap: 8px; align-items: center; }
+        .bxg-pos { width: 26px; height: 26px; border-radius: 8px; background: #1e3f2f; color: #fff; font-weight: 800; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+        .bxg-in { width: 100%; box-sizing: border-box; background: var(--surface); border: 1.5px solid var(--border-strong); border-radius: 8px; padding: 7px 10px; color: rgba(36,51,43,0.92); font-size: 13px; font-family: inherit; }
+        .bxg-icon { text-align: center; padding: 7px 4px; }
+        .bxg-nombre { font-weight: 800; }
+        .bxg-mov { display: inline-flex; gap: 2px; }
+        .bxg-mov .btn-ghost { min-height: 32px; padding: 4px 8px; }
+        .bxg-nuevo { display: grid; grid-template-columns: 52px 1fr 1.4fr auto; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-color-soft); }
+        .bxg-msg { margin: 8px 0 0; font-size: 12.5px; color: #92400e; min-height: 1em; }
+        @media (max-width: 600px) {
+            .bxg-fila { grid-template-columns: 26px 44px 1fr auto; }
+            .bxg-fila > input:nth-of-type(3) { grid-column: 2 / 4; }
+            .bxg-nuevo { grid-template-columns: 44px 1fr; }
+            .bxg-nuevo > input:nth-of-type(3), .bxg-nuevo > button { grid-column: 1 / -1; }
         }
 
         /* ── Control de sesiones ── */
@@ -2883,10 +2943,10 @@
                         <thead>
                             <tr>
                                 <th class="grilla-th-hora">Hora</th>
-                                <th class="grilla-th-box" style="border-bottom:3px solid #844578"><span class="gth-full">⬜ Box 1<span class="grilla-box-sub">General</span></span><span class="gth-short">⬜ B1</span></th>
-                                <th class="grilla-th-box" style="border-bottom:3px solid #315E95"><span class="gth-full">💎 Box 2<span class="grilla-box-sub">Corporal</span></span><span class="gth-short">💎 B2</span></th>
-                                <th class="grilla-th-box" style="border-bottom:3px solid #665096"><span class="gth-full">✨ Box 3<span class="grilla-box-sub">Facial</span></span><span class="gth-short">✨ B3</span></th>
-                                <th class="grilla-th-box" style="border-bottom:3px solid #2F7050"><span class="gth-full">🌿 Box 4<span class="grilla-box-sub">Relax · Drenaje</span></span><span class="gth-short">🌿 B4</span></th>
+                                <th class="grilla-th-box" data-box="b1"><span class="gth-full">⬜ Box 4<span class="grilla-box-sub">General</span></span><span class="gth-short">⬜ B4</span></th>
+                                <th class="grilla-th-box" data-box="b4"><span class="gth-full">🌿 Box 2<span class="grilla-box-sub">Relax · Drenaje</span></span><span class="gth-short">🌿 B2</span></th>
+                                <th class="grilla-th-box" data-box="b3"><span class="gth-full">✨ Box 3<span class="grilla-box-sub">Facial</span></span><span class="gth-short">✨ B3</span></th>
+                                <th class="grilla-th-box" data-box="b2"><span class="gth-full">💎 Box 5<span class="grilla-box-sub">Corporal</span></span><span class="gth-short">💎 B5</span></th>
                             </tr>
                         </thead>
                         <tbody id="grilla-tbody">
@@ -3386,10 +3446,17 @@
             <div id="sec-servicios" class="section">
                 <!-- Renombrar Boxes -->
                 <div class="detalle-dia-card" style="max-width:700px;margin:0 auto 20px;">
-                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">🗂 Nombres de Boxes</h3>
-                    <p style="font-size:13px;color:rgba(22,61,50,0.70);margin:0 0 16px;">Cambiá el nombre descriptivo de cada box. Los cambios se guardan en la nube y se aplican en toda la agenda.</p>
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">🗂 Boxes de la Grilla</h3>
+                    <p style="font-size:13px;color:rgba(22,61,50,0.70);margin:0 0 16px;">Nombre, descripción, ícono y orden de cada box (de izquierda a derecha en la Grilla). Cambiar el nombre no mueve turnos ni bloqueos: cada box conserva todo lo suyo. También podés agregar un box nuevo.</p>
                     <div id="blabels-lista"></div>
-                    <button class="btn-mini" onclick="blGuardar()" style="margin-top:14px;padding:10px 20px;font-size:13px;border-radius:12px;">💾 Guardar nombres</button>
+                    <div class="bxg-nuevo">
+                        <input id="bxg-nuevo-icon" class="bxg-in bxg-icon" maxlength="4" placeholder="▫️" aria-label="Ícono del box nuevo">
+                        <input id="bxg-nuevo-nombre" class="bxg-in" maxlength="24" placeholder="Nombre (ej. Box 6)" aria-label="Nombre del box nuevo">
+                        <input id="bxg-nuevo-sub" class="bxg-in" maxlength="40" placeholder="Descripción (ej. Depilación)" aria-label="Descripción del box nuevo">
+                        <button class="btn-secondary" type="button" onclick="bxgAgregar()">＋ Agregar box</button>
+                    </div>
+                    <p id="bxg-msg" class="bxg-msg" role="status"></p>
+                    <button class="btn-mini" onclick="blGuardar()" style="margin-top:14px;padding:10px 20px;font-size:13px;border-radius:12px;">💾 Guardar boxes</button>
                 </div>
                 <!-- Grilla de servicios -->
                 <div class="detalle-dia-card" style="max-width:700px;margin:0 auto;">
@@ -3695,7 +3762,7 @@
                         <h3 style="margin:0;font-family:'Playfair Display',serif;font-size:1.2em;color:var(--ink);">Nueva Consulta Inicial</h3>
                         <button onclick="cerrarNuevaConsulta()" aria-label="Cerrar" style="background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:22px;line-height:1;width:44px;height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;border-radius:var(--r-md);flex-shrink:0;">✕</button>
                     </div>
-                    <div style="background:var(--sage-soft);border:1px solid var(--border-strong);border-radius:10px;padding:10px 12px;margin-bottom:18px;font-size:13px;color:var(--ink);font-weight:700;">Box 1 · General — siempre</div>
+                    <div style="background:var(--sage-soft);border:1px solid var(--border-strong);border-radius:10px;padding:10px 12px;margin-bottom:18px;font-size:13px;color:var(--ink);font-weight:700;">Box 4 · General — siempre</div>
                     <div style="display:flex;flex-direction:column;gap:14px;">
                         <div class="field" id="nc-nombre-field" style="position:relative">
                             <label for="nc-nombre">Nombre completo *</label>
@@ -3775,6 +3842,8 @@
         import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
         import { MEDIOS, etiquetaMedio, iconoMedio, parsearPesos, milesAPesos, pesosAMiles, formatoPesos, formatoPesosEnteros, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio, normalizarMontoARS, normalizarDocMontos, MONTOS_RAPIDOS } from "/js/cobro-rapido.js";
         import { esTurnoDeJornadaValido, origenParaNuevoTurno } from "/js/turno-jornada.js";
+        import { normalizarBoxes, serializarBoxes, nuevoBox, renombrar as renombrarBox, mover as moverBox, nombreCorto as nombreCortoBox, validarNombre as validarNombreBox, MAX_LARGO_NOMBRE as MAX_NOMBRE_BOX } from "/js/boxes-grilla.js";
+        import { armarDiasBloqueados, planDesbloqueo } from "/js/desbloqueo-selectivo.js";
         import { PASO_GRILLA, aMin, aHora, etiquetaHora, franjasDelDia, generarFilas, agruparTurnos, bloqueosDeFila, intervaloBloqueo, turnoQueSePisa, DURACION_BLOQUEO_LEGADO } from "/js/grilla-tiempo.js";
         // Normalización de escala al LEER importes (precios/pagos/gastos): ver
         // js/cobro-rapido.js:normalizarMontoARS. El dato guardado no se toca.
@@ -4259,6 +4328,24 @@
         let todasLasConsultas = [];
 
         // ── Sistema de Boxes ──
+        // ── Boxes: IDENTIDAD vs NOMBRE VISIBLE ─────────────────────────────────
+        // La identidad de cada box es su id interno (b1…b4): a ese id apuntan
+        // reservas (r.box), bloqueos (boxId), servicios por box y predeterminados.
+        // Eso NO cambia. Lo que cambia es solo cómo se llama y en qué orden se
+        // muestra. Correspondencia directa (sin renombres encadenados):
+        //   b1 (General Corporal)  → «Box 4»   1.º
+        //   b4 (Relax · Drenaje)   → «Box 2»   2.º
+        //   b3 (Facial)            → «Box 3»   3.º
+        //   b2 (Corporal)          → «Box 5»   4.º
+        // El «Box 5» anterior no existe entre los boxes activos del panel; si
+        // hubiera datos con otro id (ej. b5) no se tocan ni se borran.
+        // Nombres, orden y boxes agregados: js/boxes-grilla.js +
+        // configuracion/boxesGrilla (Servicios y boxes → Boxes de la Grilla).
+        const _nombreBoxId = (id) => (GRILLA_BOXES.find(b => b.id === id) || {}).title || id || '';
+        const _boxPorNum = (n) => GRILLA_BOXES.find(b => b.num === n);
+        // Etiqueta corta de un número interno de box (los de _inferirBoxes): «B4», «B2»…
+        const _cortoNumBox = (n) => { const b = _boxPorNum(n); return b ? nombreCortoBox(b) : 'B' + n; };
+        const _ordenNumBox = (n) => GRILLA_BOXES.findIndex(b => b.num === n);
         const _BOX_INFO = {
             1: { label: 'General',   color: '#844578', bg: '#F7EDF6', bd: 'rgba(132,69,120,0.45)' },
             2: { label: 'Corporal',  color: '#315E95', bg: '#EAF2FC', bd: 'rgba(49,94,149,0.45)' },
@@ -4272,7 +4359,7 @@
             if (_svKey && _svBoxMap.has(_svKey)) {
                 const _rawIds = _svBoxMap.get(_svKey);
                 const _ids = Array.isArray(_rawIds) ? _rawIds : [_rawIds];
-                const _numMap = { b1:1, b2:2, b3:3, b4:4, bv:0 };
+                const _numMap = Object.fromEntries(GRILLA_BOXES.map(b => [b.id, b.num]).concat([['bv', 0]]));
                 const _nums = _ids.map(id => _numMap[id]).filter(n => n != null && n > 0);
                 if (_nums.length > 0) return _nums;
             }
@@ -4287,8 +4374,8 @@
         };
         const _boxBadgesHtml = (boxes) => {
             if (!boxes || boxes.length === 0) return '';
-            if (boxes.length === 4) return `<span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.05em;background:rgba(248,113,113,0.12);color:#A5433A;border:1px solid rgba(248,113,113,0.30);margin-left:5px;vertical-align:middle;">🔒 Exclusivo</span>`;
-            return boxes.map(b => { const i = _BOX_INFO[b]||{}; return `<span style="display:inline-block;padding:1px 7px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.04em;background:${i.bg};color:${i.color};border:1px solid ${i.bd};margin-left:4px;vertical-align:middle;">B${b}</span>`; }).join('');
+            if (boxes.length >= 4 && boxes.length === GRILLA_BOXES.length) return `<span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.05em;background:rgba(248,113,113,0.12);color:#A5433A;border:1px solid rgba(248,113,113,0.30);margin-left:5px;vertical-align:middle;">🔒 Exclusivo</span>`;
+            return [...boxes].sort((a, b) => _ordenNumBox(a) - _ordenNumBox(b)).map(b => { const i = _BOX_INFO[b]||{}; return `<span style="display:inline-block;padding:1px 7px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.04em;background:${i.bg};color:${i.color};border:1px solid ${i.bd};margin-left:4px;vertical-align:middle;">${escapeHtml(_cortoNumBox(b))}</span>`; }).join('');
         };
         let todasLasHistorias = [];
         let todasLosPacientes = [];
@@ -4404,6 +4491,7 @@
         const DURACION_CONSULTA_INICIAL_MIN = 30; // regla fija del punto 14, no editable desde Servicios
         let _gsServicios     = [];        // cache local de docs 'services' // key: fecha|hora -> docId en calendarExceptions
         let cierresPorFecha  = new Map();
+        let _bloqueosPorBoxTodos = []; // bloqueos por box (Grilla) de todas las fechas
         let bloqueoPendienteConReserva = null;
         let resolverModalBorrado = null;
         let membresiaNormalizadaSesion = false;
@@ -4970,7 +5058,8 @@
                     getDocs(collection(db, "horarios")),
                     getDocs(collection(db, "calendarExceptions")),
                     getDoc(doc(db, 'configuracion', 'serviciosBox')),
-                    getDoc(doc(db, 'configuracion', 'boxesLabels'))
+                    getDoc(doc(db, 'configuracion', 'boxesLabels')),
+                    getDoc(doc(db, 'configuracion', 'boxesGrilla'))
                 ]);
 
                 const snapR        = resultados[0].status === 'fulfilled' ? resultados[0].value : { docs: [] };
@@ -4978,19 +5067,24 @@
                 const snapBloqueos = resultados[2].status === 'fulfilled' ? resultados[2].value : { docs: [] };
                 const _svBoxSnap   = resultados[3].status === 'fulfilled' ? resultados[3].value : null;
                 const _blSnap      = resultados[4].status === 'fulfilled' ? resultados[4].value : null;
+                const _bgSnap      = resultados[5] && resultados[5].status === 'fulfilled' ? resultados[5].value : null;
 
                 if (resultados[0].status === 'rejected') console.warn("Error reservas F1:", resultados[0].reason);
 
                 horariosDisponibles = extraerHorariosDesdeFirebase(snapHorarios);
                 bloqueosHorarios    = extraerBloqueosDesdeFirebase(snapBloqueos);
                 cierresPorFecha     = extraerCierresDiaDesdeFirebase(snapBloqueos);
+                _bloqueosPorBoxTodos = (snapBloqueos?.docs || []).map(d => ({ id: d.id, ...(d.data() || {}) }))
+                    .filter(x => x.source === 'admin' && x.boxId && x.fecha && normalizarHora(x.hora || ''))
+                    .map(x => ({ id: x.id, fecha: x.fecha, hora: normalizarHora(x.hora), boxId: x.boxId, duracionMinutos: x.duracionMinutos, motivo: x.motivo || '' }));
 
                 if (_svBoxSnap?.exists?.()) {
                     const _normSvBox = normalizarServiciosBox(_svBoxSnap.data());
                     _svBoxMap = _normSvBox.boxesPorServicio;
                     _svBoxDefaultMap = _normSvBox.defaultPorBox;
                 }
-                if (_blSnap?.exists?.()) _aplicarBoxLabels(_blSnap.data().boxes || {});
+                if (_bgSnap?.exists?.()) { _boxesGrillaGuardados = true; _aplicarConfigBoxes(_bgSnap.data()); }
+                else if (_blSnap?.exists?.()) _aplicarBoxLabels(_blSnap.data().boxes || {});
 
                 // Reservas del mes: phone solo del campo directo (cross-ref viene en Fase 2)
                 todasLasReservas = snapR.docs.map(d => {
@@ -5700,6 +5794,7 @@
                 <button class="btn-mini" onclick="bloquearDiaCompletoYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(200,80,80,0.35);color:rgba(165,67,58,0.90);">🔒 Día</button>
                 <button class="btn-mini" onclick="bloquearSemanaYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(200,80,80,0.35);color:rgba(165,67,58,0.90);">🔒 Semana</button>
                 <button class="btn-mini" onclick="bloquearMesYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(200,80,80,0.35);color:rgba(165,67,58,0.90);">🔒 Mes</button>
+                <button class="btn-mini" onclick="abrirDesbloqueoSelectivo('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(16,185,129,0.45);color:#065f46;font-weight:800;">🔓 Elegir horarios</button>
                 <button class="btn-mini" onclick="desbloquearSemanaYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(80,180,130,0.35);color:rgba(22,61,50,0.90);">🔓 Semana</button>
                 <button class="btn-mini" onclick="desbloquearMesYRefrescar('${f}')" style="white-space:nowrap;font-size:11px;padding:6px 10px;border-color:rgba(80,180,130,0.35);color:rgba(22,61,50,0.90);">🔓 Mes</button>
             </div>`;
@@ -6081,7 +6176,7 @@
                 div.innerText = d;
                 div.onclick = () => {
                     if (cierreDia) {
-                        abrirModalDesbloqueo(fStr, cierreDia);
+                        abrirDesbloqueoSelectivo(fStr);
                         return;
                     }
                     verTurnos(fStr, div);
@@ -6105,6 +6200,137 @@
             return txt;
         };
         
+        /* ══ DESBLOQUEO SELECTIVO (Agenda) ══════════════════════════════════════
+           Todos los días y horarios bloqueados, como una grilla (hora × box), para
+           elegir libremente qué liberar. Solo se desbloquea lo elegido; el resto
+           de horarios, días y boxes queda como estaba. Las reservas nunca se
+           tocan. Lógica: js/desbloqueo-selectivo.js (armarDiasBloqueados /
+           planDesbloqueo). */
+        let _dsb = null; // { dias, sel: Map(fecha → Set('HH:MM|boxId')) }
+        const _dsbEsReservaLock = (v) => !!(v && (v.reservaId || v.tipo === 'reserva' || v.tipo === 'extension' || /^(reserva_admin_|ext_)/.test(v.id || '')));
+        const _dsbArmar = (fechaFoco) => armarDiasBloqueados({
+            cierres: [...cierresPorFecha.values()].map(c => ({ fecha: c.fecha, id: c.id || c.fecha, reason: c.reason || '' })),
+            horarios: [...bloqueosHorarios.values()].filter(v => !_dsbEsReservaLock(v)).map(v => ({ fecha: v.fecha, hora: normalizarHora(v.hora), id: v.id || docIdBloqueo(v.fecha, v.hora), reason: v.reason || '' })),
+            porBox: _bloqueosPorBoxTodos,
+            boxes: GRILLA_BOXES.map(b => b.id),
+            horasBase: (f) => obtenerHorariosDia(f),
+            desde: fechaHoyISO(),
+            incluir: fechaFoco || '',
+        });
+        // Turno activo de ese box que ocupa esa hora (solo para mostrar: nunca se toca).
+        const _dsbTurno = (fecha, hora, boxId) => {
+            const m = aMin(hora);
+            return todasLasReservas.find(r => esReservaActiva(r) && r.fecha === fecha && _grilla_boxDeReserva(r) === boxId && (() => {
+                const i = aMin(normalizarHora(r.hora)); const fin = i + (Number(r.duracionMinutos) > 0 ? Number(r.duracionMinutos) : 30);
+                return m >= i && m < fin;
+            })());
+        };
+        const _dsbTotalSel = () => _dsb ? [..._dsb.sel.values()].reduce((s, x) => s + x.size, 0) : 0;
+        const _ETQ_FUENTE = { dia: 'Día', horario: 'Horario', box: 'Box' };
+        const _dsbFechaLarga = (f) => { const d = parsearFecha(f); const t = d ? d.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }) : f; return t.charAt(0).toUpperCase() + t.slice(1); };
+        const _dsbRender = () => {
+            const cuerpo = document.getElementById('dsb-cuerpo');
+            if (!cuerpo || !_dsb) return;
+            const abiertos = new Set([...cuerpo.querySelectorAll('details[open]')].map(d => d.dataset.fecha));
+            if (!_dsb.dias.length) {
+                cuerpo.innerHTML = '<p class="dsb-vacio">✅ No hay días ni horarios bloqueados desde hoy.</p>';
+            } else {
+                cuerpo.innerHTML = _dsb.dias.map(dia => {
+                    const sel = _dsb.sel.get(dia.fecha) || new Set();
+                    const abierto = abiertos.size ? abiertos.has(dia.fecha) : dia.fecha === _dsb.foco;
+                    const cab = GRILLA_BOXES.map(b => `<th scope="col">${escapeHtml(b.icon || '')} ${escapeHtml(b.title)}</th>`).join('');
+                    const filas = dia.filas.map(fila => `<tr><th scope="row"><button type="button" class="dsb-hora" onclick="dsbFila('${dia.fecha}','${fila.hora}')" title="Elegir toda la fila">${fila.hora}</button></th>${GRILLA_BOXES.map(b => {
+                        const c = fila.celdas[b.id];
+                        const t = _dsbTurno(dia.fecha, fila.hora, b.id);
+                        const tTxt = t ? `<small class="dsb-turno">👤 ${escapeHtml((t.nombreLimpio || t.nombre || 'Turno').split(' ')[0])}</small>` : '';
+                        if (!c || !c.fuentes.length) return `<td><div class="dsb-celda libre">${tTxt || '—'}</div></td>`;
+                        const k = fila.hora + '|' + b.id, on = sel.has(k);
+                        return `<td><button type="button" class="dsb-celda bloq${on ? ' sel' : ''}" aria-pressed="${on}" onclick="dsbToggle('${dia.fecha}','${k}')" title="${escapeHtml(b.title)} · ${fila.hora} · bloqueo de ${c.fuentes.map(x => _ETQ_FUENTE[x]).join(' + ')}">${on ? '✓ Liberar' : '🔒'}<small>${c.fuentes.map(x => _ETQ_FUENTE[x]).join(' + ')}</small>${tTxt}</button></td>`;
+                    }).join('')}</tr>`).join('');
+                    const motivo = dia.cierre ? ` · Día cerrado${dia.cierre.reason ? ': ' + escapeHtml(normalizarMotivoDia(dia.fecha, dia.cierre.reason)) : ''}` : '';
+                    return `<details class="dsb-dia" data-fecha="${dia.fecha}" ${abierto ? 'open' : ''}>
+                        <summary><b>${escapeHtml(_dsbFechaLarga(dia.fecha))}</b><span>${dia.bloqueadas} bloqueado${dia.bloqueadas !== 1 ? 's' : ''}${motivo}</span>${sel.size ? `<em>${sel.size} elegido${sel.size !== 1 ? 's' : ''}</em>` : ''}</summary>
+                        <div class="dsb-acc"><button type="button" class="btn-ghost" onclick="dsbDia('${dia.fecha}',true)">Elegir todo el día</button><button type="button" class="btn-ghost" onclick="dsbDia('${dia.fecha}',false)">Quitar selección</button></div>
+                        <div class="dsb-tabla-wrap"><table class="dsb-tabla"><thead><tr><th scope="col">Hora</th>${cab}</tr></thead><tbody>${filas}</tbody></table></div>
+                    </details>`;
+                }).join('');
+            }
+            const n = _dsbTotalSel();
+            const btn = document.getElementById('dsb-confirmar');
+            if (btn) { btn.disabled = !n; btn.textContent = n ? `🔓 Desbloquear ${n} seleccionado${n !== 1 ? 's' : ''}` : '🔓 Elegí qué desbloquear'; }
+        };
+        window.abrirDesbloqueoSelectivo = (fechaFoco) => {
+            _dsb = { dias: _dsbArmar(fechaFoco), sel: new Map(), foco: fechaFoco };
+            let ov = document.getElementById('dsb-ov');
+            if (!ov) {
+                ov = document.createElement('div');
+                ov.id = 'dsb-ov';
+                ov.className = 'dsb-ov';
+                ov.innerHTML = `<div class="dsb-modal" role="dialog" aria-modal="true" aria-labelledby="dsb-titulo">
+                    <div class="dsb-head"><div><h3 id="dsb-titulo">🔓 Desbloquear días y horarios</h3><p>Elegí uno o varios horarios bloqueados. Solo se libera lo elegido: el resto de horarios, días y boxes sigue bloqueado. Las reservas no se tocan.</p></div><button type="button" class="dsb-x" onclick="dsbCerrar()" aria-label="Cerrar">✕</button></div>
+                    <div id="dsb-cuerpo" class="dsb-cuerpo"></div>
+                    <div class="dsb-pie"><button type="button" class="btn-secondary" onclick="dsbCerrar()">Cancelar</button><button type="button" id="dsb-confirmar" class="btn-primary" onclick="dsbConfirmar()" disabled>🔓 Elegí qué desbloquear</button></div>
+                </div>`;
+                ov.addEventListener('mousedown', (e) => { if (e.target === ov) window.dsbCerrar(); });
+                document.body.appendChild(ov);
+            }
+            ov.style.display = 'flex';
+            _dsbRender();
+            setTimeout(() => document.querySelector(`#dsb-cuerpo details[data-fecha="${fechaFoco}"]`)?.scrollIntoView({ block: 'start' }), 30);
+        };
+        window.dsbCerrar = () => { const ov = document.getElementById('dsb-ov'); if (ov) ov.style.display = 'none'; _dsb = null; };
+        const _dsbSet = (fecha) => { if (!_dsb.sel.has(fecha)) _dsb.sel.set(fecha, new Set()); return _dsb.sel.get(fecha); };
+        window.dsbToggle = (fecha, k) => { if (!_dsb) return; const s = _dsbSet(fecha); s.has(k) ? s.delete(k) : s.add(k); _dsbRender(); };
+        window.dsbFila = (fecha, hora) => {
+            if (!_dsb) return;
+            const dia = _dsb.dias.find(d => d.fecha === fecha); const fila = dia && dia.filas.find(x => x.hora === hora);
+            if (!fila) return;
+            const keys = GRILLA_BOXES.filter(b => fila.celdas[b.id].fuentes.length).map(b => hora + '|' + b.id);
+            const s = _dsbSet(fecha); const todas = keys.every(k => s.has(k));
+            keys.forEach(k => todas ? s.delete(k) : s.add(k));
+            _dsbRender();
+        };
+        window.dsbDia = (fecha, elegir) => {
+            if (!_dsb) return;
+            const dia = _dsb.dias.find(d => d.fecha === fecha); if (!dia) return;
+            const s = _dsbSet(fecha); s.clear();
+            if (elegir) dia.filas.forEach(fila => GRILLA_BOXES.forEach(b => { if (fila.celdas[b.id].fuentes.length) s.add(fila.hora + '|' + b.id); }));
+            _dsbRender();
+        };
+        window.dsbConfirmar = async () => {
+            if (!_dsb || !_dsbTotalSel()) return;
+            const boxes = GRILLA_BOXES.map(b => b.id);
+            const planes = _dsb.dias.filter(d => (_dsb.sel.get(d.fecha) || new Set()).size).map(d => ({ fecha: d.fecha, plan: planDesbloqueo(d, _dsb.sel.get(d.fecha), { boxes }) }));
+            const ops = planes.flatMap(p => p.plan.borrar.map(id => ({ tipo: 'borrar', id })).concat(p.plan.crear.map(c => ({ tipo: 'crear', ...c }))));
+            if (!ops.length) { mostrarAviso('Nada para desbloquear'); return; }
+            const n = _dsbTotalSel();
+            const btn = document.getElementById('dsb-confirmar');
+            if (btn) { btn.disabled = true; btn.textContent = 'Desbloqueando…'; }
+            try {
+                // Lotes de hasta 400 escrituras (límite de Firestore: 500 por lote).
+                for (let i = 0; i < ops.length; i += 400) {
+                    const batch = writeBatch(db);
+                    ops.slice(i, i + 400).forEach(op => {
+                        if (op.tipo === 'borrar') batch.delete(doc(db, 'calendarExceptions', op.id));
+                        else batch.set(doc(db, 'calendarExceptions', op.id), { ...op.data, updatedAt: serverTimestamp() });
+                    });
+                    await batch.commit();
+                }
+                await registrarAuditoria?.('desbloqueo_selectivo', planes.map(p => p.fecha).join(', '), '', `${n} horario(s) liberado(s)`, 'Agenda');
+            } catch (e) {
+                console.error('dsbConfirmar', e);
+                mostrarAviso('No se pudo desbloquear: ' + (e.code || e.message));
+                if (btn) { btn.disabled = false; btn.textContent = '🔓 Reintentar'; }
+                return;
+            }
+            const fechas = planes.map(p => p.fecha);
+            window.dsbCerrar();
+            mostrarAviso(`🔓 ${n} horario${n !== 1 ? 's' : ''} desbloqueado${n !== 1 ? 's' : ''}. El resto sigue bloqueado.`);
+            await cargarTodo();
+            if (fechas.includes(_grilla_fecha)) await cargarAdminBlocks(_grilla_fecha);
+            if (fechaSeleccionada && fechas.includes(fechaSeleccionada)) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+        };
+
         const abrirModalDesbloqueo = (fStr, cierreDia) => {
             desbloqueodiaPendiente = { fStr, cierreDia };
             const motivoCorregido = normalizarMotivoDia(fStr, cierreDia.reason) || 'No disponible';
@@ -6643,7 +6869,7 @@
             // REAL de cada reserva (el campo guardado, o una única inferencia de
             // respaldo si no lo tiene) — mismo criterio que ya usa la Grilla.
             const reservasEnHora = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === fecha && normalizarHora(r.hora) === horaNormalizada);
-            const _numDeBoxId = { b1: 1, b2: 2, b3: 3, b4: 4 };
+            const _numDeBoxId = Object.fromEntries(GRILLA_BOXES.map(b => [b.id, b.num]));
             _mreg_boxesOcupados = new Set(
                 reservasEnHora.map(r => _numDeBoxId[_grilla_boxDeReserva(r)]).filter(Boolean)
             );
@@ -6667,7 +6893,7 @@
 
             // Mostrar boxes ocupados en el subtítulo del modal
             const _boxesLabel = _mreg_boxesOcupados.size > 0
-                ? ` · Boxes ocupados: ${[..._mreg_boxesOcupados].map(b => `B${b}`).join(', ')}`
+                ? ` · Boxes ocupados: ${[..._mreg_boxesOcupados].sort((a, b) => _ordenNumBox(a) - _ordenNumBox(b)).map(b => _cortoNumBox(b)).join(', ')}`
                 : ' · Todos los boxes disponibles';
             document.getElementById('mreg-fecha-label').textContent = `${formatoFechaISO(fecha)} · ${horaNormalizada} hs${_boxesLabel}`;
             document.getElementById('mreg-nombre-input').value = '';
@@ -9192,7 +9418,7 @@
                     var bo = GRILLA_BOXES.find(function(b){ return b.id === bid; });
                     if (bo) return H(bo.icon + ' ' + bo.title + (bo.sub ? ' — ' + bo.sub : ''));
                 }
-                return H({b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[bid]||bid);
+                return H(_nombreBoxId(bid));
             };
 
 
@@ -9658,7 +9884,7 @@
                         var pm = patientMap.get(k);
                         var isFirst = pm && pm.reservas[0] === r;
                         var box = (typeof _grilla_boxDeReserva === 'function') ? _grilla_boxDeReserva(r) : '';
-                        var boxLabel = box ? ({b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[box]||box) : '';
+                        var boxLabel = box ? _nombreBoxId(box) : '';
                         listHtml += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;margin-bottom:6px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">';
                         if (isFirst) {
                             listHtml += '<input type="checkbox" class="pj-chk" data-key="' + k.replace(/"/g,'&quot;') + '" checked onchange="window._pjUpdateBtn()" style="margin-top:3px;width:16px;height:16px;accent-color:#facc15;cursor:pointer;flex-shrink:0;">';
@@ -9768,7 +9994,7 @@
                 // fmtBox en generarPDFJornada, unas líneas más abajo en este archivo).
                 var colBoxes = (typeof GRILLA_BOXES !== 'undefined' && GRILLA_BOXES.length)
                     ? GRILLA_BOXES.map(function(b){ return {id:b.id, label:b.title+(b.sub?' · '+b.sub:'')}; })
-                    : [{id:'b1',label:'Box 1'},{id:'b2',label:'Box 2'},{id:'b3',label:'Box 3'},{id:'b4',label:'Box 4'}];
+                    : [];
 
                 var timesSet = new Set();
                 reservasDia.forEach(function(r){ if(r.hora) timesSet.add(r.hora); });
@@ -10187,7 +10413,7 @@
                         var bo = GRILLA_BOXES.find(function(b){ return b.id === bid; });
                         if (bo) return (bo.title || '') + (bo.sub ? ' — ' + bo.sub : '');
                     }
-                    return {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'}[bid]||bid;
+                    return _nombreBoxId(bid);
                 };
                 var fechaLargaJornada = fmtF(f);
 
@@ -12363,7 +12589,7 @@
                     "<div style='margin-bottom:14px;'><button onclick='window.exportarHistorialPDF("+_exportIdx+",this)' style='width:100%;padding:10px 16px;background:rgba(80,40,130,0.08);border:1px solid rgba(160,110,220,0.28);border-radius:10px;color:rgba(61,92,134,0.90);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.02em;font-family:inherit;'>📄 Exportar historial completo PDF (" + (pendientes.length+completadas.length+canceladas.length) + " sesiones)</button></div>";
 
                 // ── Helper de card de sesión ──
-                var _bxNumsT = {b1:'Box 1',b2:'Box 2',b3:'Box 3',b4:'Box 4'};
+                var _bxNumsT = Object.fromEntries(GRILLA_BOXES.map(function(b){ return [b.id, b.title]; }));
                 var _boxBadgeHtml = function(r) {
                     var boxId = _grilla_boxDeReserva(r);
                     var boxObj = (typeof GRILLA_BOXES !== 'undefined') ? GRILLA_BOXES.find(function(b){ return b.id===boxId; }) : null;
@@ -13113,7 +13339,7 @@
                 <div style="background:var(--surface);border:1px solid rgba(60,179,113,0.14);border-radius:18px;padding:18px 20px;position:relative;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
                         <span style="background:rgba(${estado==='confirmada'?'74,222,128':estado==='cancelada'?'255,100,100':'251,191,36'},0.15);border:1px solid rgba(${estado==='confirmada'?'74,222,128':estado==='cancelada'?'255,100,100':'251,191,36'},0.35);color:${estadoColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.06em;">${estadoLabel}</span>
-                        <span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:#F7EDF6;border:1px solid rgba(132,69,120,0.35);color:#844578;">⬜ Box 1</span>
+                        <span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:#F7EDF6;border:1px solid rgba(132,69,120,0.35);color:#844578;">⬜ Box 4</span>
                         <strong style="font-size:15px;color:rgba(36,51,43,0.92);flex:1;">${escapeHtml(c.nombre||'Sin nombre')}</strong>
                         <span style="font-size:12px;color:rgba(22,61,50,0.50);">DNI: ${c.dni||'-'}</span>
                     </div>
@@ -14545,27 +14771,62 @@
         }
 
         /* ══ NOMBRES DE BOXES ══ */
+        // Borrador editable: los cambios se ven al guardar (no a medias).
+        let _bxgBorrador = null;
+        const _bxgLeerInputs = () => {
+            (_bxgBorrador || []).forEach(b => {
+                const n = document.getElementById('bxg-nom-' + b.id), d = document.getElementById('bxg-sub-' + b.id), i = document.getElementById('bxg-ico-' + b.id);
+                if (n) b.title = n.value; if (d) b.sub = d.value; if (i) b.icon = i.value;
+            });
+        };
         const blRender = () => {
             const el = document.getElementById('blabels-lista');
             if (!el) return;
-            el.innerHTML = GRILLA_BOXES.map(b => `
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-                    <span style="width:60px;font-size:12px;font-weight:700;color:rgba(22,61,50,0.70);">${b.title}</span>
-                    <input id="bl-sub-${b.id}" value="${escapeHtml(b.sub)}"
-                        style="flex:1;background:var(--surface);border:1.5px solid var(--border-strong);border-radius:8px;padding:7px 10px;color:rgba(36,51,43,0.92);font-size:13px;font-family:inherit;outline:none;">
-                </div>`).join('');
+            if (!_bxgBorrador) _bxgBorrador = GRILLA_BOXES.map(b => ({ ...b }));
+            const n = _bxgBorrador.length;
+            el.innerHTML = '<div class="bxg-lista">' + _bxgBorrador.map((b, i) => `
+                <div class="bxg-fila" data-box="${b.id}">
+                    <span class="bxg-pos" title="Posición en la Grilla">${i + 1}</span>
+                    <input id="bxg-ico-${b.id}" class="bxg-in bxg-icon" maxlength="4" value="${escapeHtml(b.icon || '')}" aria-label="Ícono de ${escapeHtml(b.title)}">
+                    <input id="bxg-nom-${b.id}" class="bxg-in bxg-nombre" maxlength="${MAX_NOMBRE_BOX}" value="${escapeHtml(b.title)}" aria-label="Nombre del box">
+                    <input id="bxg-sub-${b.id}" class="bxg-in" maxlength="40" value="${escapeHtml(b.sub || '')}" aria-label="Descripción de ${escapeHtml(b.title)}">
+                    <span class="bxg-mov">
+                        <button type="button" class="btn-ghost" onclick="bxgMover('${b.id}',-1)" ${i === 0 ? 'disabled' : ''} aria-label="Mover a la izquierda">◀</button>
+                        <button type="button" class="btn-ghost" onclick="bxgMover('${b.id}',1)" ${i === n - 1 ? 'disabled' : ''} aria-label="Mover a la derecha">▶</button>
+                    </span>
+                </div>`).join('') + '</div>';
+        };
+        window.bxgMover = (id, delta) => { _bxgLeerInputs(); _bxgBorrador = moverBox(_bxgBorrador, id, delta); blRender(); };
+        window.bxgAgregar = () => {
+            _bxgLeerInputs();
+            const msg = document.getElementById('bxg-msg');
+            const r = nuevoBox(_bxgBorrador, { nombre: document.getElementById('bxg-nuevo-nombre').value, sub: document.getElementById('bxg-nuevo-sub').value, icon: document.getElementById('bxg-nuevo-icon').value });
+            if (!r.ok) { if (msg) msg.textContent = r.error; return; }
+            _bxgBorrador = r.lista;
+            ['bxg-nuevo-nombre', 'bxg-nuevo-sub', 'bxg-nuevo-icon'].forEach(id => { const x = document.getElementById(id); if (x) x.value = ''; });
+            if (msg) msg.textContent = `«${r.box.title}» agregado al final. Tocá «Guardar boxes» para aplicarlo.`;
+            blRender();
         };
         window.blGuardar = async () => {
-            const overrides = {};
-            GRILLA_BOXES.forEach(b => {
-                const val = (document.getElementById(`bl-sub-${b.id}`)?.value || '').trim();
-                if (val) { b.sub = val; overrides[b.id] = { sub: val }; }
-            });
+            _bxgLeerInputs();
+            const msg = document.getElementById('bxg-msg');
+            // Validación: nombres no vacíos y sin repetir.
+            let lista = _bxgBorrador.map(b => ({ ...b }));
+            for (const b of lista) {
+                const r = renombrarBox(lista, b.id, { nombre: b.title, sub: b.sub, icon: b.icon });
+                if (!r.ok) { if (msg) msg.textContent = r.error; return; }
+                lista = r.lista;
+            }
             try {
-                await setDoc(doc(db, 'configuracion', 'boxesLabels'), { boxes: overrides });
+                await setDoc(doc(db, 'configuracion', 'boxesGrilla'), { ...serializarBoxes(lista), actualizadoEn: serverTimestamp(), actualizadoPor: (auth.currentUser && auth.currentUser.email) || null });
+                _boxesGrillaGuardados = true;
+                _aplicarConfigBoxes({ boxes: serializarBoxes(lista).boxes });
+                _bxgBorrador = null;
                 blRender();
-                renderGrilla?.();
-                mostrarAviso('✓ Nombres de boxes guardados');
+                gsRender?.(); gsRenderDefaults?.();
+                window.renderGrilla?.();
+                if (msg) msg.textContent = '';
+                mostrarAviso('✓ Boxes guardados');
             } catch(e) { mostrarAviso('Error: ' + (e.code || e.message)); }
         };
 
@@ -15568,12 +15829,18 @@
         // La identidad de cada box queda en su ícono/etiqueta (encabezado) y
         // en "accent" (franja izquierda de cada turno ocupado) — sin esos dos,
         // unificar el fondo sí perdería la distinción; con ellos, no.
-        const GRILLA_BOXES = [
-            { id:'b1', num:1, label:'Box 1', title:'Box 1', sub:'General Corporal', icon:'⬜', bg:'#C4D5C1', border:'#78967C', accent:'#844578' },
-            { id:'b2', num:2, label:'Box 2', title:'Box 2', sub:'Corporal',          icon:'💎', bg:'#C4D5C1', border:'#78967C', accent:'#315E95' },
-            { id:'b3', num:3, label:'Box 3', title:'Box 3', sub:'Facial',            icon:'✨', bg:'#C4D5C1', border:'#78967C', accent:'#665096' },
-            { id:'b4', num:4, label:'Box 4', title:'Box 4', sub:'Relax Corporal',    icon:'🌿', bg:'#C4D5C1', border:'#78967C', accent:'#2F7050' },
-        ];
+        // Boxes activos, en el orden visible. Arranca con la configuración por
+        // defecto (Box 4, Box 2, Box 3, Box 5) y se reemplaza EN EL LUGAR con lo
+        // guardado en configuracion/boxesGrilla (ver _aplicarConfigBoxes).
+        const GRILLA_BOXES = normalizarBoxes(null);
+        // Lista de boxes guardada (nombres, orden, boxes agregados). Se aplica en
+        // el mismo array para que todo lo que ya lo referencia vea el cambio.
+        let _boxesGrillaGuardados = false;
+        const _aplicarConfigBoxes = (cfg) => {
+            const lista = normalizarBoxes(cfg);
+            GRILLA_BOXES.splice(0, GRILLA_BOXES.length, ...lista);
+            _boxesDuplicar.splice(0, _boxesDuplicar.length, ...lista.map(b => ({ id: b.id, label: b.label })));
+        };
         // Aplica overrides de labels guardados en Firestore (se parchean después de cargar)
         const _aplicarBoxLabels = (overrides) => {
             if (!overrides) return;
@@ -15600,9 +15867,11 @@
             } catch (_) { /* sin config: horario por defecto */ }
         };
 
+        // Duplicar mes usa esta lista; se actualiza en el lugar si cambian los boxes.
+        const _boxesDuplicar = GRILLA_BOXES.map(b => ({ id: b.id, label: b.label }));
         initDuplicarMes({
             db, auth, F: { collection, getDocs, getDoc, doc, setDoc, runTransaction, serverTimestamp, query, where },
-            escapeHtml, mostrarAviso: (m) => window.mostrarAviso(m), boxes: GRILLA_BOXES.map(b => ({ id: b.id, label: b.label })),
+            escapeHtml, mostrarAviso: (m) => window.mostrarAviso(m), boxes: _boxesDuplicar,
             getPacientes: () => todasLosPacientes, getFechaAgenda: () => fechaActual, esReservaActiva, boxDeReserva: (r) => _grilla_boxDeReserva(r),
             servicioInfo: (n) => ({ duracionMin: _svDurMap.get(n) || 30, boxes: _inferirBoxes(n, '').map(x => 'b' + x) }),
             inferirBoxes: (n) => _inferirBoxes(n, ''),
@@ -16310,6 +16579,14 @@
                 } else {
                     bannerCristina.style.display = 'none';
                 }
+            }
+
+            // Encabezado: mismo orden y nombres que las columnas (GRILLA_BOXES).
+            const _thead = document.querySelector('#grilla-table thead tr');
+            if (_thead) {
+                const _subCorto = _boxesGrillaGuardados ? {} : { b1: 'General', b4: 'Relax · Drenaje', b3: 'Facial', b2: 'Corporal' };
+                _thead.innerHTML = '<th class="grilla-th-hora">Hora</th>' + GRILLA_BOXES.map(b =>
+                    `<th class="grilla-th-box" data-box="${b.id}"><span class="gth-full">${b.icon} ${escapeHtml(b.title)}<span class="grilla-box-sub">${escapeHtml(_subCorto[b.id] || b.sub || '')}</span></span><span class="gth-short">${b.icon} ${escapeHtml(nombreCortoBox(b))}</span></th>`).join('');
             }
 
             // Reservas del día
