@@ -504,21 +504,29 @@ export function formatearARS(valor) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(valor);
 }
 
-// Convierte productosDetalle (una entrada por unidad, sin campo de cantidad
-// propio — confirmado en la auditoría: sumar sus "precio" da exactamente
-// totalPedido) en líneas agrupadas por producto con cantidad y subtotal.
+// Convierte productosDetalle en líneas agrupadas por producto con cantidad y
+// subtotal. Dos formatos guardados:
+//  · desde nov-2026 (js/kit-cantidades.js): cada entrada trae "precio"
+//    UNITARIO + "cantidad" (+ "subtotal" = precio × cantidad);
+//  · pedidos anteriores: una entrada por unidad, sin "cantidad" (cuenta 1).
+// En ambos casos la suma de subtotales da exactamente totalPedido.
+function cantidadDeEntrada(p) {
+  const n = Math.floor(Number(p?.cantidad));
+  return Number.isFinite(n) && n >= 1 ? n : 1;
+}
 function agruparItems(productosDetalle) {
   if (!Array.isArray(productosDetalle) || !productosDetalle.length) return null;
   const porNombre = new Map();
   for (const p of productosDetalle) {
     const nombre = (p?.nombre || "Producto sin nombre").trim();
     const precio = Number(p?.precio);
-    const precioValido = Number.isFinite(precio);
+    const precioValido = p?.precio != null && p?.precio !== "" && Number.isFinite(precio);
+    const cantidad = cantidadDeEntrada(p);
     const clave = `${nombre}::${precioValido ? precio : "?"}`;
     if (!porNombre.has(clave)) porNombre.set(clave, { nombre, precioUnitario: precioValido ? precio : null, cantidad: 0, subtotal: 0, subtotalCompleto: precioValido });
     const linea = porNombre.get(clave);
-    linea.cantidad += 1;
-    if (precioValido) linea.subtotal += precio;
+    linea.cantidad += cantidad;
+    if (precioValido) linea.subtotal += precio * cantidad;
   }
   return Array.from(porNombre.values());
 }
@@ -1166,7 +1174,8 @@ export function construirTextoAvisoDuenaKit(kit) {
     ? kit.items.map((it) => {
         const importe = it.subtotalCompleto ? formatearARS(it.subtotal) : "importe no registrado";
         const cant = it.cantidad > 1 ? `${it.cantidad} × ` : "";
-        return `• ${cant}${it.nombre} — ${importe}`;
+        const cu = it.cantidad > 1 && it.subtotalCompleto ? ` (${formatearARS(it.precioUnitario)} c/u)` : "";
+        return `• ${cant}${it.nombre} — ${importe}${cu}`;
       }).join("\n")
     : (kit.productosResumen && kit.productosResumen.length ? kit.productosResumen.map((p) => `• ${p}`).join("\n") : "• (sin detalle de productos)"));
 
