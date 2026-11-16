@@ -29,6 +29,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="mobile-fixes.css">
+    <link rel="preload" as="image" type="image/webp" href="img/espacio/hero-movil-750.webp" imagesrcset="img/espacio/hero-movil-750.webp 750w, img/espacio/hero-movil-1200.webp 1200w" imagesizes="100vw" media="(max-width: 700px)" fetchpriority="high">
+    <link rel="preload" as="image" type="image/webp" href="img/espacio/hero-1600.webp" imagesrcset="img/espacio/hero-1600.webp 1600w, img/espacio/hero-2400.webp 2400w" imagesizes="100vw" media="(min-width: 701px)" fetchpriority="high">
     <style>
 /* ── VARIABLES ── */
 :root {
@@ -304,55 +306,89 @@ img, video { max-width: 100%; height: auto; }
 
 /* ── ESPACIO SECTION ── */
 .espacio-section {
-  padding: clamp(48px, 6vw, 80px) clamp(24px, 5vw, 80px) clamp(80px, 10vw, 140px);
-  background: var(--bg-secondary); position: relative; overflow: hidden;
+  padding: clamp(64px, 8vw, 120px) clamp(24px, 5vw, 80px);
+  background: var(--bg-secondary); position: relative;
 }
-.espacio-section::before {
-  content: 'ESPACIO'; position: absolute; top: 50%; right: -2%;
-  transform: translateY(-50%) rotate(-90deg);
-  font-family: 'DM Serif Display', serif; font-size: clamp(80px, 12vw, 160px);
-  color: rgba(60, 179, 113, 0.04); letter-spacing: 0.2em;
-  pointer-events: none; user-select: none;
+.eg-salas, .eg-equipos { list-style: none; margin: 0; padding: 0; display: grid; }
+.eg-salas { grid-template-columns: 2fr 1fr; column-gap: var(--space-4, 16px); row-gap: var(--space-5, 24px); }
+.eg-item { min-width: 0; display: flex; flex-direction: column; }
+.eg-item--main { grid-row: span 2; }
+.eg-foto {
+  position: relative; display: block; width: 100%; aspect-ratio: 4 / 3;
+  padding: 0; border: 0; border-radius: var(--radius-md); overflow: hidden;
+  background: var(--bg-card); cursor: zoom-in; -webkit-tap-highlight-color: transparent;
 }
-.espacio-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; margin-top: 48px; }
-.espacio-grid-main { position: relative; border-radius: var(--radius-lg); overflow: hidden; height: 520px; }
-.espacio-grid-main img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s ease; }
-.espacio-grid-main:hover img { transform: scale(1.04); }
-.espacio-grid-caption {
-  position: absolute; bottom: 16px; left: 16px;
-  font-family: 'Jost', sans-serif; font-size: 0.68rem; font-weight: 500;
-  letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold-light);
-  background: rgba(14, 26, 20, 0.7); backdrop-filter: blur(8px);
-  padding: 6px 14px; border-radius: var(--radius-pill); border: 1px solid var(--border-subtle);
+.eg-item--main .eg-foto { aspect-ratio: auto; flex: 1 1 auto; min-height: 320px; }
+.eg-foto img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: var(--pos, 50% 50%); display: block;
+  transition: transform 0.3s var(--ease, ease);
 }
-.espacio-grid-side { display: grid; grid-template-rows: 1fr 1fr 0.85fr; gap: 12px; }
-.espacio-grid-item { border-radius: var(--radius-md); overflow: hidden; }
-.espacio-grid-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s ease; }
-.espacio-grid-item:hover img { transform: scale(1.05); }
-.espacio-carousel { display: none; }
-.espacio-equipos { margin-top: 56px; }
-.espacio-equipos-title { font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: clamp(22px, 3vw, 30px); text-align: center; margin: 0 0 22px; color: var(--text-primary, #f0f5f2); }
-.espacio-equipos-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-.espacio-equipo { position: relative; border-radius: var(--radius-md); overflow: hidden; aspect-ratio: 3 / 4; background: rgba(255, 255, 255, 0.04); }
-.espacio-equipo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.8s ease; }
-.espacio-equipo:hover img { transform: scale(1.05); }
-.espacio-equipo-nombre { position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 12px 10px; background: linear-gradient(to top, rgba(8, 18, 13, 0.85), rgba(8, 18, 13, 0)); color: #fff; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; line-height: 1.25; }
-.espacio-equipo-nombre small { display: block; font-size: 11.5px; font-weight: 400; opacity: 0.85; }
-@media (max-width: 600px) {
-  .espacio-equipos { margin-top: 36px; }
-  .espacio-equipos-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .espacio-equipo-nombre { font-size: 12.5px; padding: 24px 9px 8px; }
+@media (hover: hover) { .eg-foto:hover img { transform: scale(1.03); } }
+.eg-foto:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+.eg-cap {
+  margin-top: var(--space-3, 12px); font-family: 'Jost', sans-serif; font-size: 0.86rem; font-weight: 400;
+  color: var(--text-primary); line-height: 1.35; letter-spacing: 0.01em;
 }
-.espacio-carousel-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; padding-bottom: 16px; scrollbar-width: none; }
-.espacio-carousel-track::-webkit-scrollbar { display: none; }
-.espacio-carousel-slide { flex: 0 0 85%; scroll-snap-align: center; border-radius: var(--radius-md); overflow: hidden; height: 280px; }
-.espacio-carousel-slide img { width: 100%; height: 100%; object-fit: cover; }
-.espacio-carousel-dots { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
-.espacio-carousel-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-mid); cursor: pointer; transition: all var(--transition-fast); border: none; }
-.espacio-carousel-dot.active { background: var(--gold-mid); width: 20px; border-radius: 3px; }
-@media (max-width: 768px) {
-  .espacio-grid { display: none; }
-  .espacio-carousel { display: block; }
+.eg-cap small { display: block; margin-top: 2px; font-size: 0.76rem; color: var(--text-secondary); }
+.eg-titulo {
+  font-family: 'Cormorant Garamond', serif; font-weight: 400; font-size: clamp(1.6rem, 3vw, 2.2rem);
+  color: var(--text-primary); margin: clamp(56px, 7vw, 96px) 0 clamp(20px, 2.4vw, 32px);
+}
+.eg-equipos { grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: var(--space-4, 16px); row-gap: var(--space-6, 32px); }
+.eg-equipos .eg-foto { aspect-ratio: 4 / 5; }
+@media (max-width: 1023px) { .eg-equipos { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .eg-salas { grid-template-columns: 1fr 1fr; column-gap: 10px; row-gap: 20px; }
+  .eg-item--main { grid-column: 1 / -1; grid-row: auto; }
+  .eg-item--main .eg-foto { aspect-ratio: 4 / 3; flex: none; min-height: 0; }
+  .eg-equipos { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; row-gap: 22px; }
+  .eg-cap { font-size: 0.82rem; margin-top: 8px; }
+}
+
+/* ── Visor de fotos ── */
+.lb {
+  position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0; background: rgba(5, 10, 8, 0.96); color: #fff;
+  overscroll-behavior: contain;
+}
+.lb[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; animation: lbIn 0.24s var(--ease, ease); }
+.lb::backdrop { background: rgba(5, 10, 8, 0.6); }
+@keyframes lbIn { from { opacity: 0; } to { opacity: 1; } }
+html:has(.lb[open]) { overflow: hidden; }
+.lb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: max(12px, env(safe-area-inset-top)) clamp(12px, 3vw, 28px) 8px; }
+.lb-count { font-family: 'Jost', sans-serif; font-size: 0.82rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.lb-stage { position: relative; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 clamp(8px, 8vw, 112px); }
+.lb-img {
+  display: block; width: auto; height: auto; max-width: 100%;
+  max-height: calc(100dvh - 150px); object-fit: contain;
+  border-radius: var(--radius-sm); background: rgba(255, 255, 255, 0.03);
+}
+.lb-btn {
+  width: 48px; height: 48px; min-height: 48px; border-radius: 50%; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(20, 33, 25, 0.72);
+  color: #fff; cursor: pointer; transition: background-color 0.18s var(--ease, ease), border-color 0.18s var(--ease, ease);
+}
+@media (hover: hover) { .lb-btn:hover { background: rgba(60, 179, 113, 0.28); border-color: var(--border-strong); } }
+.lb-btn:focus-visible, .lb-hd:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+.lb-prev, .lb-next { position: absolute; top: 50%; transform: translateY(-50%); }
+.lb-prev { left: clamp(8px, 2.4vw, 32px); }
+.lb-next { right: clamp(8px, 2.4vw, 32px); }
+.lb-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap;
+  padding: 12px clamp(16px, 8vw, 112px) max(16px, env(safe-area-inset-bottom));
+}
+.lb-cap { font-family: 'Jost', sans-serif; font-size: 0.92rem; color: var(--text-primary); }
+.lb-hd {
+  font-family: 'Jost', sans-serif; font-size: 0.84rem; font-weight: 500; color: var(--gold-light);
+  text-decoration: none; display: inline-flex; align-items: center; min-height: 44px;
+}
+.lb-hd:hover { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 700px) {
+  .lb-stage { padding: 0 4px; }
+  .lb-prev, .lb-next { top: auto; bottom: 8px; transform: none; }
+  .lb-img { max-height: calc(100dvh - 200px); }
 }
 
 /* ── TRATAMIENTOS ── */
@@ -899,6 +935,53 @@ img, video { max-width: 100%; height: auto; }
 @media (max-width: 768px) {
   .porque-grid { grid-template-columns: 1fr 1fr; }
 }
+
+/* ══ REFINAMIENTO PREMIUM (2026-11) ══
+   Tokens de espacio y contenedor, foco visible, transiciones 180–300 ms,
+   fotos con color natural (sin filtros) y contenido con ancho máximo. */
+:root {
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px; --space-9: 96px;
+  --container: 1180px;
+  --gutter: clamp(24px, 5vw, 80px);
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-mid: 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Contenido centrado con ancho máximo en pantallas grandes */
+.tratamientos-section, .porque-section, .testimonios-section, .espacio-section, .ubicacion-section, .faq-section {
+  padding-left: max(var(--gutter), calc((100% - var(--container)) / 2));
+  padding-right: max(var(--gutter), calc((100% - var(--container)) / 2));
+}
+/* Hero: la foto con su color real; la legibilidad la da el degradado */
+.hero-bg picture { position: absolute; inset: 0; display: block; }
+.hero-bg-img { display: block; filter: none; transform: none; transition: none; object-position: 68% 55%; }
+.hero.loaded .hero-bg-img { transform: none; }
+.hero-grain { display: none; }
+/* El contenido arranca debajo de la barra fija (72px) aunque no entre en pantalla */
+.hero { padding-top: calc(72px + clamp(20px, 4svh, 48px)); }
+.hero-title { text-wrap: balance; }
+.hero-overlay { background: linear-gradient(100deg, rgba(14, 26, 20, 0.92) 0%, rgba(14, 26, 20, 0.78) 42%, rgba(14, 26, 20, 0.28) 100%); }
+@media (max-width: 700px) {
+  .hero-bg-img { object-position: 50% 60%; }
+  .hero-overlay { background: linear-gradient(180deg, rgba(14, 26, 20, 0.78) 0%, rgba(14, 26, 20, 0.86) 55%, rgba(14, 26, 20, 0.94) 100%); }
+}
+/* Tarjetas: sin filtros sobre la foto y movimiento contenido */
+.tratamiento-card-img-wrap img { filter: none; transition: transform 0.3s var(--ease); }
+.tratamiento-card:hover .tratamiento-card-img-wrap img { transform: scale(1.03); filter: none; }
+.tratamiento-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+/* Aparición al hacer scroll: corta y sutil */
+[data-reveal] { transform: translateY(12px); transition: opacity 0.3s var(--ease), transform 0.3s var(--ease); }
+[data-reveal="left"] { transform: translateX(-12px); }
+[data-reveal="right"] { transform: translateX(12px); }
+[data-reveal].revealed { transform: none; }
+/* Foco visible y consistente */
+:where(a, button, [role="button"], summary, input, select, textarea):focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1; transform: none; }
+  .eg-foto img, .tratamiento-card-img-wrap img { transform: none !important; }
+  .lb[open] { animation: none; }
+}
     </style>
 </head>
 <body>
@@ -943,7 +1026,10 @@ img, video { max-width: 100%; height: auto; }
     <!-- ── HERO ── -->
     <section class="hero" id="inicio" aria-label="Bienvenida">
         <div class="hero-bg">
-            <img src="img/2P.jpg" alt="" class="hero-bg-img" loading="eager">
+            <picture>
+                <source media="(max-width: 700px)" srcset="img/espacio/hero-movil-750.webp 750w, img/espacio/hero-movil-1200.webp 1200w" sizes="100vw" width="750" height="1000">
+                <img src="img/espacio/hero-1600.webp" srcset="img/espacio/hero-1600.webp 1600w, img/espacio/hero-2400.webp 2400w" sizes="100vw" width="1600" height="1200" alt="" class="hero-bg-img" fetchpriority="high" decoding="async">
+            </picture>
             <div class="hero-overlay"></div>
             <div class="hero-grain"></div>
         </div>
@@ -1014,7 +1100,7 @@ img, video { max-width: 100%; height: auto; }
         <div class="tratamientos-grid">
             <div class="tratamiento-card" data-reveal data-reveal-delay="0.1">
                 <div class="tratamiento-card-img-wrap">
-                    <img src="img/espacio/luz-led-800.webp" srcset="img/espacio/luz-led-800.webp 600w, img/espacio/luz-led-1600.webp 1200w" sizes="(max-width: 700px) 100vw, 380px" width="600" height="800" alt="Equipo de luz LED de Espacio Mimar T" loading="lazy" decoding="async">
+                    <img src="img/espacio/luz-led-800.webp" srcset="img/espacio/luz-led-800.webp 600w, img/espacio/luz-led-1600.webp 1200w" sizes="(max-width: 700px) 100vw, 380px" width="600" height="800" alt="Equipo de luz LED de Espacio Mimar T" loading="lazy" decoding="async" style="object-position:62% 55%">
                     <div class="tratamiento-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><line x1="12" y1="2" x2="12" y2="5.5"/><line x1="12" y1="18.5" x2="12" y2="22"/><line x1="2" y1="12" x2="5.5" y2="12"/><line x1="18.5" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="7.34" y2="7.34"/><line x1="16.66" y1="16.66" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="7.34" y2="16.66"/><line x1="16.66" y1="7.34" x2="19.07" y2="4.93"/></svg></div>
                 </div>
                 <div class="tratamiento-card-body">
@@ -1041,7 +1127,7 @@ img, video { max-width: 100%; height: auto; }
             </div>
             <div class="tratamiento-card" data-reveal data-reveal-delay="0.3">
                 <div class="tratamiento-card-img-wrap">
-                    <img src="img/espacio/sala-mioup-800.webp" srcset="img/espacio/sala-mioup-800.webp 800w, img/espacio/sala-mioup-1600.webp 1600w" sizes="(max-width: 700px) 100vw, 380px" width="800" height="600" alt="Equipo MioUp en su cabina de Espacio Mimar T" loading="lazy" decoding="async">
+                    <img src="img/espacio/sala-mioup-800.webp" srcset="img/espacio/sala-mioup-800.webp 800w, img/espacio/sala-mioup-1600.webp 1600w" sizes="(max-width: 700px) 100vw, 380px" width="800" height="600" alt="Equipo MioUp en su cabina de Espacio Mimar T" loading="lazy" decoding="async" style="object-position:40% 45%">
                     <div class="tratamiento-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 12 5.5 6 9.5 16 13.5 8 17.5 13 21 8"/></svg></div>
                 </div>
                 <div class="tratamiento-card-body">
@@ -1095,7 +1181,7 @@ img, video { max-width: 100%; height: auto; }
             </div>
             <div class="tratamiento-card" data-reveal data-reveal-delay="0.7">
                 <div class="tratamiento-card-img-wrap">
-                    <img src="img/espacio/hifu-800.webp" srcset="img/espacio/hifu-800.webp 800w, img/espacio/hifu-1600.webp 1600w" sizes="(max-width: 700px) 100vw, 380px" width="800" height="600" alt="Equipo HIFU Starbene de Espacio Mimar T" loading="lazy" decoding="async">
+                    <img src="img/espacio/hifu-800.webp" srcset="img/espacio/hifu-800.webp 800w, img/espacio/hifu-1600.webp 1600w" sizes="(max-width: 700px) 100vw, 380px" width="800" height="600" alt="Equipo HIFU Starbene de Espacio Mimar T" loading="lazy" decoding="async" style="object-position:50% 50%">
                     <div class="tratamiento-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M8 12a4 4 0 0 1 8 0"/><path d="M5 12a7 7 0 0 1 14 0"/><path d="M2 12a10 10 0 0 1 20 0"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg></div>
                 </div>
                 <div class="tratamiento-card-body">
@@ -1205,46 +1291,120 @@ img, video { max-width: 100%; height: auto; }
             <h2 class="section-title">Un espacio pensado<br><em>para cuidarte</em></h2>
             <p class="section-desc">Cabinas privadas, equipamiento profesional y un ambiente diseñado para que cada sesión sea una experiencia completa.</p>
         </div>
-        <div class="espacio-grid">
-            <div class="espacio-grid-main" data-reveal="left">
-                <img src="img/espacio/sala-aparatologia-800.webp" srcset="img/espacio/sala-aparatologia-800.webp 800w, img/espacio/sala-aparatologia-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 60vw" width="800" height="600" alt="Cabina de aparatología con camilla y equipos" loading="lazy" decoding="async">
-                <div class="espacio-grid-caption">Cabina de aparatología</div>
-            </div>
-            <div class="espacio-grid-side" data-reveal="right">
-                <div class="espacio-grid-item"><img src="img/espacio/presoterapia-800.webp" srcset="img/espacio/presoterapia-800.webp 800w, img/espacio/presoterapia-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 40vw" width="800" height="600" alt="Cabina con presoterapia preparada" loading="lazy" decoding="async"></div>
-                <div class="espacio-grid-item"><img src="img/espacio/sala-mioup-800.webp" srcset="img/espacio/sala-mioup-800.webp 800w, img/espacio/sala-mioup-1600.webp 1600w" sizes="(max-width: 900px) 100vw, 40vw" width="800" height="600" alt="Cabina del equipo MioUp" loading="lazy" decoding="async"></div>
-                <div class="espacio-grid-item"><img src="img/recepcion.webp" alt="Recepción Espacio Mimar T" loading="lazy"></div>
-            </div>
-        </div>
-        <div class="espacio-carousel" aria-label="Galería del espacio">
-            <div class="espacio-carousel-track">
-                <div class="espacio-carousel-slide"><img src="img/espacio/sala-aparatologia-800.webp" srcset="img/espacio/sala-aparatologia-800.webp 800w, img/espacio/sala-aparatologia-1600.webp 1600w" sizes="85vw" width="800" height="600" alt="Cabina de aparatología" loading="lazy" decoding="async"></div>
-                <div class="espacio-carousel-slide"><img src="img/espacio/presoterapia-800.webp" srcset="img/espacio/presoterapia-800.webp 800w, img/espacio/presoterapia-1600.webp 1600w" sizes="85vw" width="800" height="600" alt="Cabina con presoterapia" loading="lazy" decoding="async"></div>
-                <div class="espacio-carousel-slide"><img src="img/espacio/sala-mioup-800.webp" srcset="img/espacio/sala-mioup-800.webp 800w, img/espacio/sala-mioup-1600.webp 1600w" sizes="85vw" width="800" height="600" alt="Cabina del equipo MioUp" loading="lazy" decoding="async"></div>
-                <div class="espacio-carousel-slide"><img src="img/recepcion.webp" alt="Recepción" loading="lazy"></div>
-                <div class="espacio-carousel-slide"><img src="img/placa.jpg" alt="Fachada" loading="lazy"></div>
-            </div>
-            <div class="espacio-carousel-dots"></div>
-        </div>
-        <div class="espacio-equipos" data-reveal>
-            <h3 class="espacio-equipos-title">Equipamiento profesional</h3>
-            <ul class="espacio-equipos-grid">
-                <li class="espacio-equipo"><img src="img/espacio/criolipolisis-800.webp" srcset="img/espacio/criolipolisis-800.webp 600w, img/espacio/criolipolisis-1600.webp 1200w" sizes="(max-width: 600px) 50vw, (max-width: 1100px) 25vw, 260px" width="600" height="800" alt="Criolipólisis" loading="lazy" decoding="async"><span class="espacio-equipo-nombre">Criolipólisis</span></li>
-                <li class="espacio-equipo"><img src="img/espacio/hifu-800.webp" srcset="img/espacio/hifu-800.webp 800w, img/espacio/hifu-1600.webp 1600w" sizes="(max-width: 600px) 50vw, (max-width: 1100px) 25vw, 260px" width="800" height="600" alt="HIFU" loading="lazy" decoding="async"><span class="espacio-equipo-nombre">HIFU</span></li>
-                <li class="espacio-equipo"><img src="img/espacio/lipoactive-rf-800.webp" srcset="img/espacio/lipoactive-rf-800.webp 600w, img/espacio/lipoactive-rf-1600.webp 1200w" sizes="(max-width: 600px) 50vw, (max-width: 1100px) 25vw, 260px" width="600" height="800" alt="Lipoactive RF — Cavitación y radiofrecuencia" loading="lazy" decoding="async"><span class="espacio-equipo-nombre">Lipoactive RF<small>Cavitación y radiofrecuencia</small></span></li>
-                <li class="espacio-equipo"><img src="img/espacio/fraxis-800.webp" srcset="img/espacio/fraxis-800.webp 600w, img/espacio/fraxis-1600.webp 1200w" sizes="(max-width: 600px) 50vw, (max-width: 1100px) 25vw, 260px" width="600" height="800" alt="Fraxis — Radiofrecuencia fraccionada" loading="lazy" decoding="async"><span class="espacio-equipo-nombre">Fraxis<small>Radiofrecuencia fraccionada</small></span></li>
-                <li class="espacio-equipo"><img src="img/espacio/deepskin-800.webp" srcset="img/espacio/deepskin-800.webp 600w, img/espacio/deepskin-1600.webp 1200w" sizes="(max-width: 600px) 50vw, (max-width: 1100px) 25vw, 260px" width="600" height="800" alt="Deepskin — Electroporación" loading="lazy" decoding="async"><span class="espacio-equipo-nombre">Deepskin<small>Electroporación</small></span></li>
-                <li class="espacio-equipo"><img src="img/espacio/luz-led-800.webp" srcset="img/espacio/luz-led-800.webp 600w, img/espacio/luz-led-1600.webp 1200w" sizes="(max-width: 600px) 50vw, (max-width: 1100px) 25vw, 260px" width="600" height="800" alt="Luz LED" loading="lazy" decoding="async"><span class="espacio-equipo-nombre">Luz LED</span></li>
-                <li class="espacio-equipo"><img src="img/espacio/microdermoabrasion-800.webp" srcset="img/espacio/microdermoabrasion-800.webp 600w, img/espacio/microdermoabrasion-1600.webp 1200w" sizes="(max-width: 600px) 50vw, (max-width: 1100px) 25vw, 260px" width="600" height="800" alt="Microdermoabrasión" loading="lazy" decoding="async"><span class="espacio-equipo-nombre">Microdermoabrasión</span></li>
-                <li class="espacio-equipo"><img src="img/espacio/radiofrecuencia-electroporacion-800.webp" srcset="img/espacio/radiofrecuencia-electroporacion-800.webp 600w, img/espacio/radiofrecuencia-electroporacion-1600.webp 1200w" sizes="(max-width: 600px) 50vw, (max-width: 1100px) 25vw, 260px" width="600" height="800" alt="Radiofrecuencia — y electroporación" loading="lazy" decoding="async"><span class="espacio-equipo-nombre">Radiofrecuencia<small>y electroporación</small></span></li>
-                <li class="espacio-equipo"><img src="img/espacio/alta-frecuencia-800.webp" srcset="img/espacio/alta-frecuencia-800.webp 600w, img/espacio/alta-frecuencia-1600.webp 1200w" sizes="(max-width: 600px) 50vw, (max-width: 1100px) 25vw, 260px" width="600" height="800" alt="Alta frecuencia" loading="lazy" decoding="async"><span class="espacio-equipo-nombre">Alta frecuencia</span></li>
-                <li class="espacio-equipo"><img src="img/espacio/plataforma-vibratoria-800.webp" srcset="img/espacio/plataforma-vibratoria-800.webp 600w, img/espacio/plataforma-vibratoria-1600.webp 1200w" sizes="(max-width: 600px) 50vw, (max-width: 1100px) 25vw, 260px" width="600" height="800" alt="Plataforma vibratoria" loading="lazy" decoding="async"><span class="espacio-equipo-nombre">Plataforma vibratoria</span></li>
-                <li class="espacio-equipo"><img src="img/espacio/manta-termica-800.webp" srcset="img/espacio/manta-termica-800.webp 600w, img/espacio/manta-termica-1600.webp 1200w" sizes="(max-width: 600px) 50vw, (max-width: 1100px) 25vw, 260px" width="600" height="800" alt="Manta térmica" loading="lazy" decoding="async"><span class="espacio-equipo-nombre">Manta térmica</span></li>
-            </ul>
-        </div>
+        <ul class="eg-salas" data-reveal>
+                <li class="eg-item eg-item--main">
+                    <button type="button" class="eg-foto" data-lb="0" data-titulo="Cabina de aparatología" data-full="img/espacio/sala-aparatologia-1600.webp" data-srcset="img/espacio/sala-aparatologia-1600.webp 1600w, img/espacio/sala-aparatologia-3200.webp 3200w" data-hd="img/espacio/sala-aparatologia-3200.webp" data-w="1600" data-h="1200" aria-label="Ampliar foto: Cabina de aparatología" style="--pos: 50% 50%">
+                        <img src="img/espacio/sala-aparatologia-800.webp" srcset="img/espacio/sala-aparatologia-800.webp 800w, img/espacio/sala-aparatologia-1600.webp 1600w" sizes="(max-width: 700px) 100vw, (max-width: 1240px) 64vw, 780px" width="800" height="600" alt="Cabina de aparatología con camilla, equipo láser y estantería con certificados" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Cabina de aparatología</p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="1" data-titulo="Cabina Mio Up" data-full="img/espacio/sala-mioup-1600.webp" data-srcset="img/espacio/sala-mioup-1600.webp 1600w, img/espacio/sala-mioup-3200.webp 3200w" data-hd="img/espacio/sala-mioup-3200.webp" data-w="1600" data-h="1200" aria-label="Ampliar foto: Cabina Mio Up" style="--pos: 45% 55%">
+                        <img src="img/espacio/sala-mioup-800.webp" srcset="img/espacio/sala-mioup-800.webp 800w, img/espacio/sala-mioup-1600.webp 1600w" sizes="(max-width: 700px) 50vw, (max-width: 1240px) 32vw, 390px" width="800" height="600" alt="Cabina con el equipo Mio Up encendido junto a la camilla" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Cabina Mio Up</p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="2" data-titulo="Presoterapia" data-full="img/espacio/presoterapia-1600.webp" data-srcset="img/espacio/presoterapia-1600.webp 1600w, img/espacio/presoterapia-3200.webp 3200w" data-hd="img/espacio/presoterapia-3200.webp" data-w="1600" data-h="1200" aria-label="Ampliar foto: Presoterapia" style="--pos: 50% 55%">
+                        <img src="img/espacio/presoterapia-800.webp" srcset="img/espacio/presoterapia-800.webp 800w, img/espacio/presoterapia-1600.webp 1600w" sizes="(max-width: 700px) 50vw, (max-width: 1240px) 32vw, 390px" width="800" height="600" alt="Camilla con las botas y la faja de presoterapia preparadas" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Presoterapia</p>
+                </li>
+        </ul>
+        <h3 class="eg-titulo" data-reveal>Equipamiento profesional</h3>
+        <ul class="eg-equipos" data-reveal>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="3" data-titulo="Criolipólisis" data-full="img/espacio/criolipolisis-1600.webp" data-srcset="img/espacio/criolipolisis-1600.webp 1200w, img/espacio/criolipolisis-3200.webp 2400w" data-hd="img/espacio/criolipolisis-3200.webp" data-w="1200" data-h="1600" aria-label="Ampliar foto: Criolipólisis" style="--pos: 50% 45%">
+                        <img src="img/espacio/criolipolisis-800.webp" srcset="img/espacio/criolipolisis-800.webp 600w, img/espacio/criolipolisis-1600.webp 1200w" sizes="(max-width: 700px) 50vw, (max-width: 1023px) 25vw, 200px" width="600" height="800" alt="Equipo de criolipólisis con sus dos cabezales encendidos" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Criolipólisis</p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="4" data-titulo="Lipoactive RF — Cavitación y radiofrecuencia" data-full="img/espacio/lipoactive-rf-1600.webp" data-srcset="img/espacio/lipoactive-rf-1600.webp 1200w, img/espacio/lipoactive-rf-3200.webp 2400w" data-hd="img/espacio/lipoactive-rf-3200.webp" data-w="1200" data-h="1600" aria-label="Ampliar foto: Lipoactive RF — Cavitación y radiofrecuencia" style="--pos: 50% 55%">
+                        <img src="img/espacio/lipoactive-rf-800.webp" srcset="img/espacio/lipoactive-rf-800.webp 600w, img/espacio/lipoactive-rf-1600.webp 1200w" sizes="(max-width: 700px) 50vw, (max-width: 1023px) 25vw, 200px" width="600" height="800" alt="Equipo Lipoactive RF con sus cuatro cabezales" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Lipoactive RF<small>Cavitación y radiofrecuencia</small></p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="5" data-titulo="HIFU" data-full="img/espacio/hifu-1600.webp" data-srcset="img/espacio/hifu-1600.webp 1600w, img/espacio/hifu-3200.webp 3200w" data-hd="img/espacio/hifu-3200.webp" data-w="1600" data-h="1200" aria-label="Ampliar foto: HIFU" style="--pos: 50% 50%">
+                        <img src="img/espacio/hifu-800.webp" srcset="img/espacio/hifu-800.webp 800w, img/espacio/hifu-1600.webp 1600w" sizes="(max-width: 700px) 50vw, (max-width: 1023px) 25vw, 200px" width="800" height="600" alt="Equipo HIFU con sus dos manípulos" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">HIFU</p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="6" data-titulo="Plataforma vibratoria" data-full="img/espacio/plataforma-vibratoria-1600.webp" data-srcset="img/espacio/plataforma-vibratoria-1600.webp 1200w, img/espacio/plataforma-vibratoria-3200.webp 2400w" data-hd="img/espacio/plataforma-vibratoria-3200.webp" data-w="1200" data-h="1600" aria-label="Ampliar foto: Plataforma vibratoria" style="--pos: 50% 62%">
+                        <img src="img/espacio/plataforma-vibratoria-800.webp" srcset="img/espacio/plataforma-vibratoria-800.webp 600w, img/espacio/plataforma-vibratoria-1600.webp 1200w" sizes="(max-width: 700px) 50vw, (max-width: 1023px) 25vw, 200px" width="600" height="800" alt="Plataforma vibratoria" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Plataforma vibratoria</p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="7" data-titulo="Manta térmica" data-full="img/espacio/manta-termica-1600.webp" data-srcset="img/espacio/manta-termica-1600.webp 1200w, img/espacio/manta-termica-3200.webp 2400w" data-hd="img/espacio/manta-termica-3200.webp" data-w="1200" data-h="1600" aria-label="Ampliar foto: Manta térmica" style="--pos: 50% 70%">
+                        <img src="img/espacio/manta-termica-800.webp" srcset="img/espacio/manta-termica-800.webp 600w, img/espacio/manta-termica-1600.webp 1200w" sizes="(max-width: 700px) 50vw, (max-width: 1023px) 25vw, 200px" width="600" height="800" alt="Manta térmica sobre la camilla" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Manta térmica</p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="8" data-titulo="Fraxis — Radiofrecuencia fraccionada" data-full="img/espacio/fraxis-1600.webp" data-srcset="img/espacio/fraxis-1600.webp 1200w, img/espacio/fraxis-3200.webp 2400w" data-hd="img/espacio/fraxis-3200.webp" data-w="1200" data-h="1600" aria-label="Ampliar foto: Fraxis — Radiofrecuencia fraccionada" style="--pos: 50% 45%">
+                        <img src="img/espacio/fraxis-800.webp" srcset="img/espacio/fraxis-800.webp 600w, img/espacio/fraxis-1600.webp 1200w" sizes="(max-width: 700px) 50vw, (max-width: 1023px) 25vw, 200px" width="600" height="800" alt="Equipo Fraxis de radiofrecuencia fraccionada" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Fraxis<small>Radiofrecuencia fraccionada</small></p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="9" data-titulo="Deepskin — Electroporación" data-full="img/espacio/deepskin-1600.webp" data-srcset="img/espacio/deepskin-1600.webp 1200w, img/espacio/deepskin-3200.webp 2400w" data-hd="img/espacio/deepskin-3200.webp" data-w="1200" data-h="1600" aria-label="Ampliar foto: Deepskin — Electroporación" style="--pos: 50% 42%">
+                        <img src="img/espacio/deepskin-800.webp" srcset="img/espacio/deepskin-800.webp 600w, img/espacio/deepskin-1600.webp 1200w" sizes="(max-width: 700px) 50vw, (max-width: 1023px) 25vw, 200px" width="600" height="800" alt="Equipo Deepskin de electroporación con sus manípulos" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Deepskin<small>Electroporación</small></p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="10" data-titulo="Microdermoabrasión" data-full="img/espacio/microdermoabrasion-1600.webp" data-srcset="img/espacio/microdermoabrasion-1600.webp 1200w, img/espacio/microdermoabrasion-3200.webp 2400w" data-hd="img/espacio/microdermoabrasion-3200.webp" data-w="1200" data-h="1600" aria-label="Ampliar foto: Microdermoabrasión" style="--pos: 35% 58%">
+                        <img src="img/espacio/microdermoabrasion-800.webp" srcset="img/espacio/microdermoabrasion-800.webp 600w, img/espacio/microdermoabrasion-1600.webp 1200w" sizes="(max-width: 700px) 50vw, (max-width: 1023px) 25vw, 200px" width="600" height="800" alt="Equipo de microdermoabrasión sobre la camilla" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Microdermoabrasión</p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="11" data-titulo="Radiofrecuencia — y electroporación" data-full="img/espacio/radiofrecuencia-electroporacion-1600.webp" data-srcset="img/espacio/radiofrecuencia-electroporacion-1600.webp 1200w, img/espacio/radiofrecuencia-electroporacion-3200.webp 2400w" data-hd="img/espacio/radiofrecuencia-electroporacion-3200.webp" data-w="1200" data-h="1600" aria-label="Ampliar foto: Radiofrecuencia — y electroporación" style="--pos: 45% 50%">
+                        <img src="img/espacio/radiofrecuencia-electroporacion-800.webp" srcset="img/espacio/radiofrecuencia-electroporacion-800.webp 600w, img/espacio/radiofrecuencia-electroporacion-1600.webp 1200w" sizes="(max-width: 700px) 50vw, (max-width: 1023px) 25vw, 200px" width="600" height="800" alt="Equipo de radiofrecuencia y electroporación" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Radiofrecuencia<small>y electroporación</small></p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="12" data-titulo="Alta frecuencia" data-full="img/espacio/alta-frecuencia-1600.webp" data-srcset="img/espacio/alta-frecuencia-1600.webp 1200w, img/espacio/alta-frecuencia-3200.webp 2400w" data-hd="img/espacio/alta-frecuencia-3200.webp" data-w="1200" data-h="1600" aria-label="Ampliar foto: Alta frecuencia" style="--pos: 50% 50%">
+                        <img src="img/espacio/alta-frecuencia-800.webp" srcset="img/espacio/alta-frecuencia-800.webp 600w, img/espacio/alta-frecuencia-1600.webp 1200w" sizes="(max-width: 700px) 50vw, (max-width: 1023px) 25vw, 200px" width="600" height="800" alt="Equipo de alta frecuencia con sus electrodos" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Alta frecuencia</p>
+                </li>
+                <li class="eg-item">
+                    <button type="button" class="eg-foto" data-lb="13" data-titulo="Luz LED" data-full="img/espacio/luz-led-1600.webp" data-srcset="img/espacio/luz-led-1600.webp 1200w, img/espacio/luz-led-3200.webp 2400w" data-hd="img/espacio/luz-led-3200.webp" data-w="1200" data-h="1600" aria-label="Ampliar foto: Luz LED" style="--pos: 62% 50%">
+                        <img src="img/espacio/luz-led-800.webp" srcset="img/espacio/luz-led-800.webp 600w, img/espacio/luz-led-1600.webp 1200w" sizes="(max-width: 700px) 50vw, (max-width: 1023px) 25vw, 200px" width="600" height="800" alt="Máscara de luz LED roja encendida sobre la camilla" loading="lazy" decoding="async">
+                    </button>
+                    <p class="eg-cap">Luz LED</p>
+                </li>
+        </ul>
     </section>
 
     <div class="section-divider" aria-hidden="true"><span></span><span class="section-divider-gem">✦</span><span></span></div>
+
+    <dialog class="lb" id="lightbox" aria-label="Fotos del espacio">
+        <div class="lb-top">
+            <span class="lb-count" aria-live="polite"></span>
+            <button type="button" class="lb-btn lb-close" aria-label="Cerrar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+        <div class="lb-stage">
+            <img class="lb-img" alt="">
+            <button type="button" class="lb-btn lb-prev" aria-label="Foto anterior">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+            </button>
+            <button type="button" class="lb-btn lb-next" aria-label="Foto siguiente">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+        <div class="lb-foot">
+            <p class="lb-cap"></p>
+            <a class="lb-hd" href="#" target="_blank" rel="noopener">Ver en alta resolución</a>
+        </div>
+    </dialog>
 
     <!-- ── UBICACIÓN ── -->
     <section class="ubicacion-section" id="contacto" aria-label="Cómo encontrarnos">
@@ -1627,27 +1787,55 @@ img, video { max-width: 100%; height: auto; }
         }
     })();
 
-    /* ── Espacio mobile carousel dots ── */
+    /* ── Visor de fotos del espacio ── */
     (function() {
-        const track = document.querySelector('.espacio-carousel-track');
-        const dotsWrap = document.querySelector('.espacio-carousel-dots');
-        if (!track || !dotsWrap) return;
-        const slides = track.querySelectorAll('.espacio-carousel-slide');
-        slides.forEach((_, i) => {
-            const dot = document.createElement('button');
-            dot.className = 'espacio-carousel-dot' + (i === 0 ? ' active' : '');
-            dot.addEventListener('click', () => { slides[i].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); });
-            dotsWrap.appendChild(dot);
+        const dlg = document.getElementById('lightbox');
+        const fotos = [...document.querySelectorAll('.eg-foto[data-lb]')];
+        if (!dlg || !fotos.length || typeof dlg.showModal !== 'function') return;
+        const img = dlg.querySelector('.lb-img');
+        const cap = dlg.querySelector('.lb-cap');
+        const cont = dlg.querySelector('.lb-count');
+        const hd = dlg.querySelector('.lb-hd');
+        let actual = 0, origen = null;
+        const precargar = (b) => { const p = new Image(); p.sizes = '100vw'; p.srcset = b.dataset.srcset; p.src = b.dataset.full; };
+        function mostrar(i) {
+            actual = (i + fotos.length) % fotos.length;
+            const b = fotos[actual];
+            img.removeAttribute('srcset');
+            img.width = +b.dataset.w; img.height = +b.dataset.h;
+            img.sizes = '100vw'; img.srcset = b.dataset.srcset; img.src = b.dataset.full;
+            img.alt = b.querySelector('img').alt;
+            cap.textContent = b.dataset.titulo;
+            cont.textContent = (actual + 1) + ' / ' + fotos.length;
+            hd.href = b.dataset.hd;
+            precargar(fotos[(actual + 1) % fotos.length]);
+            precargar(fotos[(actual - 1 + fotos.length) % fotos.length]);
+        }
+        fotos.forEach((b, i) => b.addEventListener('click', () => {
+            origen = b; mostrar(i); dlg.showModal();
+            dlg.querySelector('.lb-close').focus();
+        }));
+        dlg.querySelector('.lb-prev').addEventListener('click', () => mostrar(actual - 1));
+        dlg.querySelector('.lb-next').addEventListener('click', () => mostrar(actual + 1));
+        dlg.querySelector('.lb-close').addEventListener('click', () => dlg.close());
+        dlg.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') { e.preventDefault(); mostrar(actual - 1); }
+            else if (e.key === 'ArrowRight') { e.preventDefault(); mostrar(actual + 1); }
         });
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const idx = [...slides].indexOf(entry.target);
-                    dotsWrap.querySelectorAll('.espacio-carousel-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
-                }
-            });
-        }, { root: track, threshold: 0.6 });
-        slides.forEach(s => observer.observe(s));
+        // Tocar el fondo (fuera de la foto y de los controles) cierra.
+        dlg.addEventListener('click', (e) => { if (e.target === dlg || e.target.classList.contains('lb-stage')) dlg.close(); });
+        dlg.addEventListener('close', () => {
+            img.removeAttribute('srcset'); img.removeAttribute('src');
+            if (origen) origen.focus();
+        });
+        let x0 = null;
+        const escena = dlg.querySelector('.lb-stage');
+        escena.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+        escena.addEventListener('touchend', (e) => {
+            if (x0 === null) return;
+            const d = e.changedTouches[0].clientX - x0; x0 = null;
+            if (Math.abs(d) > 48) mostrar(actual + (d < 0 ? 1 : -1));
+        }, { passive: true });
     })();
 
     /* ── FAQ accordion ── */

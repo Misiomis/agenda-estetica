@@ -289,6 +289,29 @@
             transition: background var(--trans), color var(--trans);
         }
 
+        .kit-cant {
+            display: none; align-items: center; flex-shrink: 0;
+            border: 1px solid rgba(114, 189, 153, 0.35); border-radius: var(--r-pill);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .producto-item.selected .kit-cant { display: inline-flex; }
+        .kit-cant button {
+            width: 40px; height: 40px; min-width: 40px; min-height: 40px !important; padding: 0;
+            border: 0; border-radius: var(--r-pill); background: transparent; cursor: pointer;
+            color: var(--ink); font-size: 18px; font-weight: 600; line-height: 1; font-family: inherit;
+            transition: background 0.18s;
+        }
+        .kit-cant button:hover:not(:disabled) { background: rgba(114, 189, 153, 0.18); }
+        .kit-cant button:disabled { opacity: 0.35; cursor: default; }
+        .kit-cant button:focus-visible { outline: 2px solid rgba(138, 220, 180, 0.9); outline-offset: 1px; }
+        .kit-cant span { min-width: 20px; text-align: center; font-weight: 700; font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+        @media (max-width: 420px) {
+            .producto-item.selected { flex-wrap: wrap; }
+            .producto-item.selected label { flex-basis: calc(100% - 40px); }
+            .producto-item.selected .kit-cant { margin-left: 35px; }
+            .producto-item.selected .producto-precio { margin-left: auto; }
+        }
+
         .productos-loading {
             text-align: center;
             padding: 22px;
@@ -603,6 +626,7 @@
     <script type="module">
         import { db, collection, addDoc, doc, getDoc } from "/js/firebase-web.js";
         import "/js/mimar-sesion.js";
+        import { armarPedidoKit, normalizarCantidad, CANT_MAX_KIT } from "/js/kit-cantidades.js";
 
         const PRODUCTOS_DEFAULT = [
             { nombre: "Leche de limpieza",                   precio: 15000 },
@@ -612,6 +636,7 @@
         ];
 
         let productosKit = [];
+        let cantKit = [];
 
         const escapeHtml = (value) => String(value ?? "")
             .replace(/&/g, "&amp;")
@@ -661,11 +686,17 @@
 
         const renderizarProductos = () => {
             const lista = document.getElementById('productosList');
+            cantKit = productosKit.map(() => 1);
             lista.innerHTML = productosKit.map((p, i) => `
                 <div class="producto-item" onclick="document.getElementById('prod-${i}').click()">
-                    <input type="checkbox" id="prod-${i}" value="${escapeHtml(p.nombre)}" autocomplete="off" onclick="event.stopPropagation()" onchange="actualizarTotal()">
+                    <input type="checkbox" id="prod-${i}" data-i="${i}" value="${escapeHtml(p.nombre)}" autocomplete="off" onclick="event.stopPropagation()" onchange="actualizarTotal()">
                     <label for="prod-${i}" onclick="event.preventDefault()">${escapeHtml(p.nombre)}</label>
-                    <span class="producto-precio">${formatPrecio(p.precio)}</span>
+                    <div class="kit-cant" role="group" aria-label="Cantidad de ${escapeHtml(p.nombre)}" onclick="event.stopPropagation()">
+                        <button type="button" onclick="cambiarCantKit(${i}, -1)" aria-label="Quitar uno">−</button>
+                        <span id="cant-${i}" aria-live="polite">1</span>
+                        <button type="button" id="mas-${i}" onclick="cambiarCantKit(${i}, 1)" aria-label="Agregar uno">+</button>
+                    </div>
+                    <span class="producto-precio" id="precio-${i}">${formatPrecio(p.precio)}</span>
                 </div>
             `).join('');
             // Nada arranca seleccionado: el navegador puede restaurar casillas
@@ -676,10 +707,17 @@
 
         window.actualizarTotal = () => {
             const checks = document.querySelectorAll('#productosList input[type="checkbox"]:checked');
-            let total = 0;
-            checks.forEach(cb => {
-                const prod = productosKit.find(p => p.nombre === cb.value);
-                if (prod) total += Number(prod.precio);
+            const pedido = armarPedidoKit(itemsElegidos());
+            const total = pedido.totalPedido;
+            productosKit.forEach((p, i) => {
+                const cb = document.getElementById('prod-' + i);
+                const cant = cantKit[i] || 1;
+                const precioEl = document.getElementById('precio-' + i);
+                if (precioEl) precioEl.textContent = formatPrecio(Number(p.precio) * (cb && cb.checked ? cant : 1));
+                const cantEl = document.getElementById('cant-' + i);
+                if (cantEl) cantEl.textContent = cant;
+                const mas = document.getElementById('mas-' + i);
+                if (mas) mas.disabled = cant >= CANT_MAX_KIT;
             });
             const montoEl = document.getElementById('totalMonto');
             const nuevo = formatPrecio(total);
@@ -689,13 +727,33 @@
                 setTimeout(() => montoEl.classList.remove('bump'), 200);
             }
             document.getElementById('totalCant').textContent = checks.length
-                ? `${checks.length} producto${checks.length !== 1 ? 's' : ''}`
+                ? `${pedido.cantidadTotal} producto${pedido.cantidadTotal !== 1 ? 's' : ''}`
                 : 'Ningún producto elegido';
             // update selected style
             document.querySelectorAll('#productosList .producto-item').forEach(item => {
                 const cb = item.querySelector('input[type="checkbox"]');
                 item.classList.toggle('selected', cb.checked);
             });
+        };
+
+        // Productos marcados con su cantidad
+        function itemsElegidos() {
+            return [...document.querySelectorAll('#productosList input[type="checkbox"]:checked')].map(cb => {
+                const i = Number(cb.dataset.i);
+                const prod = productosKit[i];
+                return { nombre: prod ? prod.nombre : cb.value, precio: prod ? Number(prod.precio) || 0 : 0, cantidad: cantKit[i] || 1 };
+            });
+        }
+
+        // − en 1 desmarca el producto; + en uno sin marcar lo marca.
+        window.cambiarCantKit = (i, delta) => {
+            const cb = document.getElementById('prod-' + i);
+            if (!cb) return;
+            const nueva = (cantKit[i] || 1) + delta;
+            if (!cb.checked && delta > 0) { cb.checked = true; }
+            else if (nueva < 1) { cb.checked = false; cantKit[i] = 1; }
+            else { cantKit[i] = normalizarCantidad(nueva); }
+            actualizarTotal();
         };
 
         const _mostrarVerif = () => {
@@ -805,13 +863,7 @@
                 return;
             }
 
-            const checkboxes = document.querySelectorAll('#productosList input[type="checkbox"]:checked');
-            const productosSeleccionados = Array.from(checkboxes).map(cb => {
-                const prod = productosKit.find(p => p.nombre === cb.value);
-                return { nombre: cb.value, precio: prod ? prod.precio : 0 };
-            });
-            const productos = productosSeleccionados.map(p => p.nombre);
-            const totalPedido = productosSeleccionados.reduce((s, p) => s + p.precio, 0);
+            const { productos, productosDetalle: productosSeleccionados, totalPedido } = armarPedidoKit(itemsElegidos());
 
             if (productos.length === 0) {
                 showFeedback("Seleccioná al menos un producto.", "error");
@@ -856,6 +908,7 @@
 
                 // Limpiar formulario
                 document.querySelectorAll('#productosList input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+                cantKit = productosKit.map(() => 1);
                 document.getElementById("descripcionPiel").value = "";
                 actualizarTotal();
 

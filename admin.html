@@ -497,6 +497,23 @@
         #modal-precio-kit-card .mpk-btn-cancel:hover { background: var(--surface-2); }
         #modal-precio-kit-card .mpk-btn-save { flex: 1; padding: 12px; border: none; border-radius: var(--r-md); background: var(--forest); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: filter 0.15s; }
         #modal-precio-kit-card .mpk-btn-save:hover { filter: brightness(1.1); }
+        /* Pedido de kit: cantidad por producto */
+        .kit-adm-fila { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); min-height: 52px; }
+        .kit-adm-fila.sel { border-color: rgba(53,122,92,0.45); }
+        .kit-adm-check { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; cursor: pointer; }
+        .kit-adm-check input { accent-color: #3f8f6f; width: 16px; height: 16px; cursor: pointer; flex: none; }
+        .kit-adm-nombre { font-size: 13px; }
+        .kit-adm-precio { font-size: 12px; font-weight: 700; color: rgba(22,61,50,0.90); text-align: right; white-space: nowrap; }
+        .kit-adm-precio small { display: block; font-size: 10.5px; font-weight: 500; opacity: 0.7; }
+        .kit-cant { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); flex: none; }
+        .kit-cant button { width: 36px; height: 36px; min-height: 36px; min-width: 36px; border: 0; background: transparent; font-size: 17px; font-weight: 700; color: rgba(22,61,50,0.92); cursor: pointer; border-radius: 999px; line-height: 1; padding: 0; }
+        .kit-cant button:hover:not(:disabled) { background: rgba(53,122,92,0.14); }
+        .kit-cant button:disabled { opacity: 0.35; cursor: default; }
+        .kit-cant button:focus-visible { outline: 2px solid var(--forest); outline-offset: 1px; }
+        .kit-cant span { min-width: 22px; text-align: center; font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .kit-adm-total { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px 2px; font-size: 13px; font-weight: 700; color: rgba(22,61,50,0.90); }
+        .kit-adm-total strong { font-size: 16px; }
+        @media (max-width: 480px) { .kit-adm-fila { flex-wrap: wrap; } .kit-adm-check { flex-basis: 100%; } .kit-cant { margin-left: 26px; } .kit-adm-precio { margin-left: auto; } }
 
         /* ── Disponibilidad y planificación por paciente (ficha del listado) ── */
         .plan-wrap { margin-top: 10px; border-top: 1px dashed var(--border-strong); padding-top: 6px; }
@@ -3846,6 +3863,7 @@
         import { normalizarBoxes, serializarBoxes, nuevoBox, renombrar as renombrarBox, mover as moverBox, nombreCorto as nombreCortoBox, validarNombre as validarNombreBox, MAX_LARGO_NOMBRE as MAX_NOMBRE_BOX } from "/js/boxes-grilla.js";
         import { armarDiasBloqueados, planDesbloqueo } from "/js/desbloqueo-selectivo.js";
         import { numeroWhatsApp } from "/js/telefono-wa.js";
+        import { armarPedidoKit, lineasPedidoKit, totalLineas, etiquetaLinea, cambiarPrecioLinea, normalizarCantidad as normalizarCantKit, CANT_MAX_KIT } from "/js/kit-cantidades.js";
         import { PASO_GRILLA, aMin, aHora, etiquetaHora, franjasDelDia, generarFilas, agruparTurnos, bloqueosDeFila, intervaloBloqueo, turnoQueSePisa, DURACION_BLOQUEO_LEGADO } from "/js/grilla-tiempo.js";
         // Normalización de escala al LEER importes (precios/pagos/gastos): ver
         // js/cobro-rapido.js:normalizarMontoARS. El dato guardado no se toca.
@@ -12719,7 +12737,9 @@
                 const cards = pedidos.map(function(p) {
                     const productosArr = Array.isArray(p.productos) ? p.productos : (p.productos ? [p.productos] : []);
                     const productosDetalle = Array.isArray(p.productosDetalle) ? p.productosDetalle : null;
-                    const totalPedido = p.totalPedido != null ? Number(p.totalPedido) : calcularTotalKit(productosArr);
+                    const _precioRespaldoKit = function(nom) { const key = Object.keys(KIT_PRECIOS).find(k => String(nom).toLowerCase().includes(k.toLowerCase())); return key ? KIT_PRECIOS[key] : null; };
+                    const lineasKit = lineasPedidoKit(p, productosDetalle ? null : _precioRespaldoKit);
+                    const totalPedido = p.totalPedido != null ? Number(p.totalPedido) : totalLineas(lineasKit);
                     const fechaStr = p.createdAt || p.fecha || '';
                     if (fechaStr.slice(0, 7) === mesActual) totalMes += totalPedido;
                     const estadoBadge = p.estado === 'entregado'
@@ -12727,22 +12747,18 @@
                         : p.estado === 'listo'
                         ? '<span style="background:rgba(53,122,92,0.14);color:rgba(22,61,50,0.92);border:1px solid rgba(53,122,92,0.25);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Listo</span>'
                         : '<span style="background:rgba(165,130,30,0.14);color:rgba(138,106,34,0.92);border:1px solid rgba(165,130,30,0.25);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Pendiente</span>';
-                    const productosList = productosArr.length
-                        ? productosArr.map(function(prod, idx) {
-                            let precio;
-                            if (productosDetalle && productosDetalle[idx] != null) {
-                                precio = Number(productosDetalle[idx].precio);
-                            } else {
-                                const key = Object.keys(KIT_PRECIOS).find(k => prod.toLowerCase().includes(k.toLowerCase()));
-                                precio = key ? KIT_PRECIOS[key] : null;
-                            }
+                    const productosList = lineasKit.length
+                        ? lineasKit.map(function(l, idx) {
+                            const precio = l.precio;
                             const safePrice = (precio !== null && !isNaN(precio)) ? precio : 0;
-                            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">' +
-                                '<span>' + escapeHtml(prod) + '</span>' +
-                                '<span style="display:flex;align-items:center;gap:5px;">' +
+                            const prod = l.nombre;
+                            return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);">' +
+                                '<span>' + (l.cantidad > 1 ? '<strong style="color:rgba(22,61,50,0.95);">' + l.cantidad + ' ×</strong> ' : '') + escapeHtml(prod) + '</span>' +
+                                '<span style="display:flex;align-items:center;gap:5px;white-space:nowrap;">' +
                                     (precio !== null
-                                        ? '<span style="color:rgba(22,61,50,0.92);font-weight:700;">' + formatPesos(safePrice) + '</span>' +
-                                          '<button onclick="editarPrecioProdKit(\'' + escapeHtml(p.id) + '\',' + idx + ',' + safePrice + ',\'' + escapeHtml(prod).replace(/'/g, "&#39;") + '\')" title="Editar precio" style="background:none;border:none;cursor:pointer;font-size:12px;line-height:1;opacity:0.5;padding:2px 3px;border-radius:4px;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'" aria-label="Editar precio">✏️</button>'
+                                        ? (l.cantidad > 1 ? '<span style="font-size:11px;opacity:0.7;">' + formatPesos(safePrice) + ' c/u</span>' : '') +
+                                          '<span style="color:rgba(22,61,50,0.92);font-weight:700;">' + formatPesos(safePrice * l.cantidad) + '</span>' +
+                                          '<button onclick="editarPrecioProdKit(\'' + escapeHtml(p.id) + '\',' + idx + ',' + safePrice + ',\'' + escapeHtml(prod).replace(/'/g, "&#39;") + '\')" title="Editar precio unitario" style="background:none;border:none;cursor:pointer;font-size:12px;line-height:1;opacity:0.5;padding:2px 3px;border-radius:4px;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'" aria-label="Editar precio">✏️</button>'
                                         : '<span style="opacity:0.45;">—</span>'
                                     ) +
                                 '</span>' +
@@ -12849,9 +12865,9 @@
                 const snap = await getDoc(doc(db, 'configuracion', 'kitProductos'));
                 const base = (snap.exists() && Array.isArray(snap.data().productos) && snap.data().productos.length)
                     ? snap.data().productos : KIT_PRODUCTOS_DEFAULT;
-                _kitAdminProds = base.map(p => ({ nombre: p.nombre || '', precio: Number(p.precio) || 0, sel: false }));
+                _kitAdminProds = base.map(p => ({ nombre: p.nombre || '', precio: Number(p.precio) || 0, sel: false, cant: 1 }));
             } catch(e) {
-                _kitAdminProds = KIT_PRODUCTOS_DEFAULT.map(p => ({ ...p, sel: false }));
+                _kitAdminProds = KIT_PRODUCTOS_DEFAULT.map(p => ({ ...p, sel: false, cant: 1 }));
             }
             _renderKitAdminProds();
             form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -12862,16 +12878,40 @@
             _renderKitAdminProds();
         };
 
+        window.cambiarCantKitAdmin = function(i, delta) {
+            const p = _kitAdminProds[i];
+            if (!p) return;
+            const nueva = (p.cant || 1) + delta;
+            if (!p.sel && delta > 0) { p.sel = true; p.cant = 1; }
+            else if (nueva < 1) { p.sel = false; p.cant = 1; }
+            else { p.sel = true; p.cant = normalizarCantKit(nueva); }
+            _renderKitAdminProds();
+        };
+
         function _renderKitAdminProds() {
             const el = document.getElementById('kitAdminProductosList');
             if (!el) return;
-            el.innerHTML = _kitAdminProds.map((p, i) => `
-                <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--surface);cursor:pointer;border:1px solid ${p.sel ? 'rgba(53,122,92,0.45)' : 'var(--border)'};">
-                    <input type="checkbox" ${p.sel ? 'checked' : ''} onchange="toggleKitAdminProd(${i}, this.checked)" style="accent-color:#3f8f6f;width:15px;height:15px;cursor:pointer;">
-                    <span style="flex:1;font-size:13px;">${escapeHtml(p.nombre)}</span>
-                    <span style="font-size:12px;font-weight:700;color:rgba(22,61,50,0.90);">$${Number(p.precio).toLocaleString('es-AR')}</span>
-                </label>
-            `).join('');
+            el.innerHTML = _kitAdminProds.map((p, i) => {
+                const cant = p.cant || 1;
+                return `
+                <div class="kit-adm-fila${p.sel ? ' sel' : ''}">
+                    <label class="kit-adm-check">
+                        <input type="checkbox" ${p.sel ? 'checked' : ''} onchange="toggleKitAdminProd(${i}, this.checked)">
+                        <span class="kit-adm-nombre">${escapeHtml(p.nombre)}</span>
+                    </label>
+                    ${p.sel ? `<div class="kit-cant" role="group" aria-label="Cantidad de ${escapeHtml(p.nombre)}">
+                        <button type="button" onclick="cambiarCantKitAdmin(${i}, -1)" aria-label="Quitar uno">−</button>
+                        <span aria-live="polite">${cant}</span>
+                        <button type="button" onclick="cambiarCantKitAdmin(${i}, 1)" ${cant >= CANT_MAX_KIT ? 'disabled' : ''} aria-label="Agregar uno">+</button>
+                    </div>` : ''}
+                    <span class="kit-adm-precio">$${(Number(p.precio) * (p.sel ? cant : 1)).toLocaleString('es-AR')}${p.sel && cant > 1 ? `<small>$${Number(p.precio).toLocaleString('es-AR')} c/u</small>` : ''}</span>
+                </div>`;
+            }).join('') + (() => {
+                const sel = _kitAdminProds.filter(p => p.sel);
+                if (!sel.length) return '';
+                const r = armarPedidoKit(sel.map(p => ({ nombre: p.nombre, precio: p.precio, cantidad: p.cant })));
+                return `<div class="kit-adm-total"><span>Total · ${r.cantidadTotal} producto${r.cantidadTotal !== 1 ? 's' : ''}</span><strong>$${r.totalPedido.toLocaleString('es-AR')}</strong></div>`;
+            })();
         }
 
         window.cerrarFormKitAdmin = function() {
@@ -12888,9 +12928,7 @@
             const dni = _kitAdminPaciente.dni || '';
             const seleccionados = _kitAdminProds.filter(p => p.sel);
             if (!seleccionados.length) { mostrarAviso('Seleccioná al menos un producto'); return; }
-            const productos = seleccionados.map(p => p.nombre);
-            const productosDetalle = seleccionados.map(p => ({ nombre: p.nombre, precio: p.precio }));
-            const totalPedido = seleccionados.reduce((s, p) => s + (Number(p.precio) || 0), 0);
+            const { productos, productosDetalle, totalPedido } = armarPedidoKit(seleccionados.map(p => ({ nombre: p.nombre, precio: p.precio, cantidad: p.cant })));
             try {
                 mostrarLoader(true);
                 await addDoc(collection(db, 'pedidosKit'), {
@@ -12941,11 +12979,8 @@
         function _mensajeKitListo(pedido, nombre) {
             var pesos = function(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('es-AR'); };
             var pila = String((pedido && pedido.nombrePaciente) || nombre || '').trim().split(' ')[0];
-            var detalle = pedido && Array.isArray(pedido.productosDetalle) && pedido.productosDetalle.length
-                ? pedido.productosDetalle.map(function(p) { return { nombre: p.nombre, precio: p.precio }; })
-                : ((pedido && Array.isArray(pedido.productos)) ? pedido.productos.map(function(n) { return { nombre: n, precio: null }; }) : []);
-            var total = pedido && pedido.totalPedido != null ? Number(pedido.totalPedido)
-                : detalle.reduce(function(s, p) { return s + (Number(p.precio) || 0); }, 0);
+            var detalle = lineasPedidoKit(pedido);
+            var total = pedido && pedido.totalPedido != null ? Number(pedido.totalPedido) : totalLineas(detalle);
             var lineas = [];
             lineas.push('✨ ¡Hola' + (pila ? ' ' + pila : '') + '! ✨');
             lineas.push('');
@@ -12953,7 +12988,7 @@
             if (detalle.length) {
                 lineas.push('');
                 lineas.push('*Tu kit incluye:*');
-                detalle.forEach(function(p) { lineas.push('• ' + p.nombre + (p.precio != null && Number(p.precio) > 0 ? ' — ' + pesos(p.precio) : '')); });
+                detalle.forEach(function(p) { lineas.push('• ' + etiquetaLinea(p) + (p.subtotal != null && Number(p.subtotal) > 0 ? ' — ' + pesos(p.subtotal) : '')); });
             }
             if (total > 0) {
                 lineas.push('');
@@ -13040,10 +13075,9 @@
                 const detalle = Array.isArray(data.productosDetalle)
                     ? data.productosDetalle.map(function(d) { return Object.assign({}, d); })
                     : (Array.isArray(data.productos) ? data.productos.map(function(n) { return { nombre: n, precio: 0 }; }) : []);
-                if (!detalle[prodIdx]) { mostrarAviso('Producto no encontrado'); return; }
-                detalle[prodIdx].precio = nuevoPrecio;
-                const nuevoTotal = detalle.reduce(function(sum, d) { return sum + (Number(d.precio) || 0); }, 0);
-                await updateDoc(pedidoRef, { productosDetalle: detalle, totalPedido: nuevoTotal });
+                const cambio = cambiarPrecioLinea(detalle, prodIdx, nuevoPrecio);
+                if (!cambio) { mostrarAviso('Producto no encontrado'); return; }
+                await updateDoc(pedidoRef, { productosDetalle: cambio.productosDetalle, totalPedido: cambio.totalPedido });
                 mostrarAviso('Precio actualizado ✓');
                 await cargarPedidosKit();
             } catch(e) {
