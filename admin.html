@@ -3239,7 +3239,8 @@
                             </div>
                             <div class="field">
                                 <label for="cliPhone">Teléfono</label>
-                                <input id="cliPhone" class="select-input" type="text" inputmode="tel" placeholder="Ej: 375613943">
+                                <input id="cliPhone" class="select-input" type="text" inputmode="tel" placeholder="Ej: 3757 512496 · otro país: +55 46 92001-8665" aria-describedby="cliPhone-ayuda">
+                                <small id="cliPhone-ayuda" style="display:block;margin-top:4px;font-size:11.5px;color:var(--text-secondary);">Argentina: con o sin 0 / 15. Otro país: empezá con <b>+</b> y el código del país (Brasil +55, Uruguay +598, Paraguay +595…).</small>
                             </div>
                             <div class="field">
                                 <label for="cliFechaNacimiento">Fecha de nacimiento <span class="field-opcional">(opcional)</span></label>
@@ -3788,7 +3789,7 @@
                         </div>
                         <div class="field">
                             <label for="nc-telefono">Teléfono</label>
-                            <input id="nc-telefono" class="select-input" type="tel" placeholder="3757...">
+                            <input id="nc-telefono" class="select-input" type="tel" placeholder="3757... · otro país: +55 46 92001-8665">
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                             <div class="field">
@@ -3844,6 +3845,7 @@
         import { esTurnoDeJornadaValido, origenParaNuevoTurno } from "/js/turno-jornada.js";
         import { normalizarBoxes, serializarBoxes, nuevoBox, renombrar as renombrarBox, mover as moverBox, nombreCorto as nombreCortoBox, validarNombre as validarNombreBox, MAX_LARGO_NOMBRE as MAX_NOMBRE_BOX } from "/js/boxes-grilla.js";
         import { armarDiasBloqueados, planDesbloqueo } from "/js/desbloqueo-selectivo.js";
+        import { numeroWhatsApp } from "/js/telefono-wa.js";
         import { PASO_GRILLA, aMin, aHora, etiquetaHora, franjasDelDia, generarFilas, agruparTurnos, bloqueosDeFila, intervaloBloqueo, turnoQueSePisa, DURACION_BLOQUEO_LEGADO } from "/js/grilla-tiempo.js";
         // Normalización de escala al LEER importes (precios/pagos/gastos): ver
         // js/cobro-rapido.js:normalizarMontoARS. El dato guardado no se toca.
@@ -3966,16 +3968,10 @@
         const normalizarDNI = (v) => (v ?? "").toString().replace(/\D/g, '');
         const normalizarNombreKey = (v) => borrarEtiquetaDNI(v || "").toLowerCase().replace(/\s+/g, ' ').trim();
         const normalizarTelefono = (v) => (v ?? "").toString().trim();
-        const normalizarWA = (tel) => {
-            let d = (tel||'').replace(/\D/g,'');
-            if(!d) return '';
-            if(d.startsWith('549') && d.length >= 12) return d;
-            if(d.startsWith('54') && d.length >= 11) return '549'+d.slice(2);
-            if(d.startsWith('0')) d = d.slice(1); // strip leading 0 (ej: 01121931848 → 1121931848)
-            if(d.length === 10) return '549'+d;
-            if(d.length === 11 && d.startsWith('9')) return '54'+d;
-            return '549'+d;
-        };
+        // Número para WhatsApp: una sola regla (js/telefono-wa.js). Respeta el
+        // código de país de los números extranjeros (+55…) y mantiene el armado
+        // argentino de siempre (0 inicial, 15, 9 de celular).
+        const normalizarWA = (tel) => numeroWhatsApp(tel);
         const generarUsername = (nombre) => (nombre || "")
             .toString()
             .normalize('NFD')
@@ -4609,12 +4605,7 @@
             return pendientes.length;
         };
         
-        const formatearTelefonoWhatsApp = (tel) => {
-            let limpio = (tel || "").toString().replace(/\D/g, "");
-            if (!limpio) return "";
-            if (!limpio.startsWith("54")) limpio = "549" + limpio;
-            return limpio;
-        };
+        const formatearTelefonoWhatsApp = (tel) => numeroWhatsApp(tel);
         
         window.enviarDetalleManual = async function(id) {
             var r = todasLasReservas.find(function(x) { return x.id === id; });
@@ -5402,7 +5393,7 @@
                 // r.phone puede estar vacío si el cliente fue registrado con campo 'telefono'
                 const _rawPhoneRec = (r.phone || r.telefono || '').toString().trim();
                 const _digRec = _rawPhoneRec.replace(/\D/g,'');
-                const phone = _digRec.length >= 8 ? (_digRec.startsWith('54') ? _digRec : `549${_digRec.replace(/^0+/,'').replace(/^54/,'')}`) : '';
+                const phone = _digRec.length >= 8 ? numeroWhatsApp(_rawPhoneRec) : '';
                 const recId = `recMenu-${r.id}`;
                 // Título de personalización, sin saludo: nombre real desde Firestore (r.nombreLimpio) o encabezado neutro si falta
                 const _recNombre = (r.nombreLimpio || '').toString().trim();
@@ -6736,8 +6727,7 @@
 
                     // Abrir WhatsApp para que Gimena envíe manualmente desde su celular
                     if (telefonoRegistrado) {
-                        let num = telefonoRegistrado.replace(/\D/g, "");
-                        if (!num.startsWith("54")) num = "549" + num;
+                        const num = numeroWhatsApp(telefonoRegistrado);
                         const fechaFmt = formatFechaLargaExport(reserva.fecha) || reserva.fecha || "";
                         const horaFmt = reserva.hora || "";
                         const servicio = reserva.servicio || "Tratamiento";
@@ -15735,9 +15725,9 @@
                 const nombre = escapeHtml(r.nombre || r.name || "Sin nombre");
                 const hora = escapeHtml(r.hora || r.hour || r.time || "");
                 const servicio = escapeHtml(r.servicio || r.service || r.servicioSeleccionado || "");
-                const telefono = (r.telefono || r.phone || r.whatsapp || "").toString().replace(/\D/g, "");
+                const telefono = numeroWhatsApp(r.telefono || r.phone || r.whatsapp || "");
                 const waText = encodeURIComponent(`Hola ${r.nombre || ""}! 👋 Te avisamos que el día ${fechaVis} quedó reservado para una Jornada Especial en Espacio Mimar T. Te pedimos que te comuniques con nosotras para reprogramar tu turno${hora ? ` de las ${hora} hs` : ""}. ¡Disculpá el inconveniente y gracias por tu comprensión! 🌿`);
-                const waLink = telefono ? `https://wa.me/549${telefono}?text=${waText}` : "";
+                const waLink = telefono ? `https://wa.me/${telefono}?text=${waText}` : "";
                 return `<div style="padding:10px 12px;background:var(--surface);border-radius:10px;margin-bottom:8px;border:1px solid var(--border);">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
                         <div>

@@ -777,6 +777,24 @@ console.log('\n=== Boxes: editar nombres y agregar un box ===');
   check('persiste al recargar (nombres, orden y box nuevo)', [...w.document.querySelectorAll('#grilla-table thead th.grilla-th-box')].map(th => th.dataset.box).join(',') === 'b1,b4,b3,b2,bx1');
 }
 
+console.log('\n=== WhatsApp con números de otro país ===');
+{
+  R('br1', { dni: '41049182', nombre: 'Daiana Prueba', fecha: HOY, hora: '19:00', servicio: 'Consulta', box: 'b3', duracionMinutos: 30, phone: '+55 46 92001-8665' });
+  R('br2', { dni: '41049183', nombre: 'Dai Sinmas', fecha: HOY, hora: '19:30', servicio: 'Consulta', box: 'b3', duracionMinutos: 30, phone: '5546920018665' });
+  await w.marcarConfirmacionManual('p-fut', false); await tick(80);
+  const urlDe = async (fn) => { abiertas.length = 0; await fn(); await tick(10); return decodeURIComponent(abiertas[0] || ''); };
+  let u = await urlDe(() => w.recordarSesionDesdeGrilla('br1', new w.Event('click')));
+  check('📲 Grilla: +55 46 92001-8665 → wa.me/5546920018665 (sin 549 adelante)', /wa\.me\/5546920018665\?/.test(u), u);
+  u = await urlDe(() => w.recRecordar('br1'));
+  check('Recordatorios: mismo número de Brasil', /wa\.me\/5546920018665\?/.test(u), u);
+  u = await urlDe(() => w.recRecordar('br2'));
+  check('guardado sin "+" (5546920018665) también se respeta', /wa\.me\/5546920018665\?/.test(u), u);
+  u = await urlDe(() => w.enviarW('+55 46 92001-8665', 'Daiana', HOY, '19:00', 'Consulta', 'recordar', 'br1'));
+  check('Agenda (Recordar / Confirmar): mismo número', /wa\.me\/5546920018665\?/.test(u), u);
+  u = await urlDe(() => w.recRecordar('p-hoy'));
+  check('un número argentino sigue saliendo igual (3764111222 → 5493764111222)', /wa\.me\/5493764111222\?/.test(u), u);
+}
+
 check('un solo listener onSnapshot (clients) en todo el panel', (html.match(/onSnapshot\(/g) || []).length === 1);
 
 check('sin errores de JavaScript durante la prueba', errores.length === 0, errores.join(' | '));
