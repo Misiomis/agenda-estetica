@@ -665,6 +665,30 @@ console.log('\n=== Grilla cada 5 min: turnos desalineados existentes, bloqueo y 
   w.grillaDragStart({ dataTransfer: { setData() {}, effectAllowed: '' } }, 'q800');
   await w.grillaDrop({ preventDefault() {} }, 'b2', '08:20', null); await tick(30);
   check('mover a otro box libre a las 08:20 sí funciona', fb.calls.store.get('reservas/q800').hora === '08:20' && fb.calls.store.get('reservas/q800').box === 'b2');
+  // Cambio rápido de horario: tocar el horario de la tarjeta (sin arrastrar).
+  const btnHorario = tarjeta('Rosa Paz')?.querySelector('button.gc-horario');
+  check('el horario de la tarjeta es un botón para cambiarlo', !!btnHorario && /grillaCambiarHorario/.test(btnHorario.getAttribute('onclick')));
+  w.grillaCambiarHorario(null, 'q815'); await tick(); // (jsdom no ejecuta onclick en línea)
+  const modalHr = () => w.document.querySelector('.ghr-modal');
+  check('abre "Cambiar horario" con el rango actual', !!modalHr() && /08:15 – 09:00/.test(modalHr().querySelector('.ghr-antes').textContent));
+  modalHr().querySelector('.ghr-paso[data-d="5"]').click(); await tick();
+  check('+5 min muestra 08:20 – 09:05 (se puede correr dentro de su propio rango)', /08:20 – 09:05/.test(modalHr().querySelector('.ghr-nuevo').textContent) && !modalHr().querySelector('#_ghr_ok').disabled);
+  modalHr().querySelector('#_ghr_ok').click(); await tick(30);
+  check('guardar cambia solo la hora (mismo box, misma duración)', fb.calls.store.get('reservas/q815').hora === '08:20' && fb.calls.store.get('reservas/q815').box === 'b1' && !modalHr(), fb.calls.store.get('reservas/q815'));
+  w.grillaCambiarHorario(null, 'q815'); await tick();
+  const selHr = modalHr().querySelector('#_ghr_sel');
+  check('la lista de horarios va de a 5 min', [...selHr.options].some(o => /^08:05 – /.test(o.textContent)) && [...selHr.options].some(o => /^08:10 – /.test(o.textContent)));
+  modalHr().querySelector('.ghr-paso[data-d="-15"]').click(); await tick();
+  modalHr().querySelector('#_ghr_ok').click(); await tick(30);
+  check('−15 min y guardar: 08:05', fb.calls.store.get('reservas/q815').hora === '08:05');
+  w.grillaCambiarHorario(null, 'q815'); await tick();
+  const sel815 = modalHr().querySelector('#_ghr_sel');
+  sel815.value = String(8 * 60 + 15); sel815.dispatchEvent(new w.Event('change')); await tick();
+  modalHr().querySelector('#_ghr_ok').click(); await tick(30);
+  check('elegir 08:15 de la lista y guardar lo vuelve a 08:15', fb.calls.store.get('reservas/q815').hora === '08:15');
+  // Arrastre: soltar con el cursor más abajo de donde se agarró la tarjeta
+  // respeta ese desplazamiento (en jsdom no hay coordenadas: usa la fila soltada).
+  check('el arrastre calcula la hora desde la fila bajo el cursor', /_grillaHoraEnY\(ev\.clientY\)/.test(html) && /_gDragOffsetMin/.test(html));
   // Alta desde el "+" de una celda de 5 min.
   const altaDesde = async (hora, box, servicio) => {
     w.grillaAbrirRegistro(hora, box); await tick(20);

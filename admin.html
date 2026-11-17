@@ -1494,6 +1494,22 @@
         .p360-lbl { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); margin: 12px 0 6px; }
         .p360-textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 13px; line-height: 1.5; color: var(--ink); resize: vertical; }
         .p360-modal-acc { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 16px; }
+        /* Cambio rápido de horario */
+        .grilla-tarjeta-turno button.gc-horario { border: 0; font-family: inherit; cursor: pointer; min-height: 0 !important; min-width: 0 !important; transition: box-shadow .18s, background-color .18s; }
+        .grilla-tarjeta-turno button.gc-horario:hover { box-shadow: 0 0 0 2px rgba(30,63,47,.35); }
+        .grilla-tarjeta-turno button.gc-horario:focus-visible { outline: 2px solid var(--forest); outline-offset: 2px; }
+        .ghr-vista { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 14px 0 12px; padding: 14px; border-radius: 12px; background: var(--surface-2); }
+        .ghr-antes { font-size: 15px; color: var(--ink-soft); text-decoration: line-through; font-variant-numeric: tabular-nums; }
+        .ghr-flecha { color: var(--ink-soft); }
+        .ghr-nuevo { font-size: 22px; color: var(--ink); font-variant-numeric: tabular-nums; }
+        .ghr-nuevo.ocupado { color: #a5433a; }
+        .ghr-pasos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        @media (max-width: 420px) { .ghr-pasos { gap: 6px; } .ghr-paso { font-size: 13px; } }
+        .ghr-paso { white-space: nowrap; padding: 0 4px; min-height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); font: 700 14px/1 inherit; font-family: inherit; cursor: pointer; font-variant-numeric: tabular-nums; }
+        .ghr-paso:hover:not(:disabled) { background: var(--forest-soft, #e7f1ec); border-color: var(--forest); }
+        .ghr-paso:disabled { opacity: .4; cursor: default; }
+        .ghr-paso:focus-visible { outline: 2px solid var(--forest); outline-offset: 2px; }
+        .ghr-aviso { margin: 10px 0 0; font-size: 13px; color: #a5433a; font-weight: 600; }
         .p360-box-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
         .p360-box-chip { text-align: left; padding: 9px 11px; border-radius: 10px; border: 1.5px solid var(--border-strong); border-left: 4px solid var(--acc); background: var(--surface); cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 2px; color: var(--ink); }
         .p360-box-chip small { font-size: 10.5px; color: var(--ink-soft); }
@@ -16457,10 +16473,27 @@
 
         /* ── Drag-and-drop para cambiar de box en la grilla ── */
         let _gDrag = null; // reservaId en arrastre
+        let _gDragOffsetMin = 0; // minutos entre el inicio del turno y el punto donde se agarró
+        // Hora de la fila de la grilla que está bajo la coordenada Y (o la más cercana).
+        const _grillaHoraEnY = (y) => {
+            const filas = document.querySelectorAll('#grilla-tbody tr[data-hora]');
+            let mejor = null, dist = Infinity;
+            for (const tr of filas) {
+                const rc = tr.getBoundingClientRect();
+                if (y >= rc.top && y < rc.bottom) return tr.dataset.hora;
+                const d = Math.min(Math.abs(y - rc.top), Math.abs(y - rc.bottom));
+                if (d < dist) { dist = d; mejor = tr.dataset.hora; }
+            }
+            return mejor;
+        };
 
         window.grillaDragStart = (ev, reservaId) => {
             _gDrag = reservaId;
             window._gDrag = reservaId;
+            _gDragOffsetMin = 0;
+            const _r = todasLasReservas.find(x => x.id === reservaId);
+            const _hPunto = _grillaHoraEnY(ev.clientY);
+            if (_r && _hPunto) _gDragOffsetMin = Math.max(0, aMin(_hPunto) - aMin(normalizarHora(_r.hora)));
             ev.dataTransfer.effectAllowed = 'move';
             ev.dataTransfer.setData('text/plain', reservaId);
         };
@@ -16496,6 +16529,14 @@
             _gDrag = null;
             window._gDrag = null;
             if (!reservaId) return;
+            // La hora sale de la fila bajo el cursor menos el punto donde se
+            // agarró la tarjeta: el borde de arriba queda donde se ve.
+            const _hPunto = _grillaHoraEnY(ev.clientY);
+            if (_hPunto) {
+                const m = Math.round((aMin(_hPunto) - _gDragOffsetMin) / PASO_GRILLA) * PASO_GRILLA;
+                if (Number.isFinite(m) && m >= 0) hora = aHora(m);
+            }
+            _gDragOffsetMin = 0;
             return _grillaMoverReserva(reservaId, nuevoBoxId, hora);
         };
 
@@ -16711,7 +16752,7 @@
                 return `<div class="grilla-celda-ocupada grilla-tarjeta-turno gr-det-${det}${it.carriles > 1 ? ' gr-carril' : ''}${circCls}${esperaCls}${notaCls}" style="${pos}" draggable="true" ondragstart="grillaDragStart(event,'${res.id}')" ondragend="grillaDragEnd()" onclick="grillaAbrirFichaTurno(event,'${res.id}')" title="${escapeHtml(ctx.tooltip)}">
                         ${menuHtml}
                         <div class="card-top-info">
-                            <span class="gc-horario" title="${hIni} a ${hFin} hs"><span class="gch-ini">${hIni}</span><span class="gch-sep">–</span>${hFin}</span>
+                            <button type="button" class="gc-horario" draggable="false" onclick="grillaCambiarHorario(event,'${res.id}')" title="Cambiar horario (${hIni} a ${hFin} hs)" aria-label="Cambiar horario de ${nom}: ${hIni} a ${hFin}"><span class="gch-ini">${hIni}</span><span class="gch-sep">–</span>${hFin}</button>
                             <span class="grilla-paciente-nombre grilla-paciente-nombre-clickable" role="button" tabindex="0" aria-haspopup="dialog" title="Abrir ficha de ${nom}" onclick="grillaAbrirFichaTurno(event,'${res.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();grillaAbrirFichaTurno(event,'${res.id}')}">${nom}</span>
                             <span class="grilla-paciente-servicio">${srv}</span>
                             ${ctx.dispoHtml ? `<span class="gc-ctx gc-ctx-dispo" title="${escapeHtml(ctx.dispoTitulo || '')}">${ctx.dispoHtml}</span>` : ''}
@@ -17105,6 +17146,73 @@
             if (ev) { ev.stopPropagation(); ev.preventDefault(); }
             if (_gDrag) return;
             abrirFicha360DeReserva(reservaId, 'historial');
+        };
+
+        // ── Cambio rápido de horario (tocar el horario de la tarjeta) ──
+        // Mismo box y misma duración; solo corre el inicio en pasos de 5 min.
+        window.grillaCambiarHorario = (ev, reservaId) => {
+            if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+            if (_gDrag) return;
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            const boxId = _grilla_boxDeReserva(r);
+            const horaActual = normalizarHora(r.hora);
+            const dur = Number(r.duracionMinutos) > 0 ? Number(r.duracionMinutos) : DURACION_BLOQUEO_LEGADO;
+            const ocupantes = todasLasReservas
+                .filter(x => x.id !== r.id && esReservaActiva(x) && x.fecha === r.fecha && _grilla_boxDeReserva(x) === boxId)
+                .map(x => { const i = aMin(normalizarHora(x.hora)); return { id: x.id, ini: i, fin: i + (Number(x.duracionMinutos) > 0 ? Number(x.duracionMinutos) : DURACION_BLOQUEO_LEGADO), x }; })
+                .filter(t => Number.isFinite(t.ini));
+            const choca = (m) => turnoQueSePisa(ocupantes, m, m + dur)?.x || null;
+            const filas = (_grillaFilasActuales || []).map(f => aMin(f.hora)).filter(Number.isFinite);
+            const ini0 = aMin(horaActual);
+            const desde = Math.min(ini0, filas.length ? Math.min(...filas) : 480);
+            const hasta = Math.max(ini0, filas.length ? Math.max(...filas) : 1260);
+            let sel = ini0;
+            const bx = GRILLA_BOXES.find(b => b.id === boxId);
+            const ov = document.createElement('div');
+            ov.className = 'p360-modal-ov';
+            const anterior = document.activeElement;
+            const cerrar = () => { ov.remove(); document.removeEventListener('keydown', teclas); anterior?.focus?.(); };
+            const teclas = (e) => { if (e.key === 'Escape') cerrar(); };
+            const render = () => {
+                const occ = sel !== ini0 ? choca(sel) : null;
+                const nomOcc = occ ? (occ.nombreLimpio || occ.nombre || 'otro turno').split(' ')[0] : '';
+                const opts = [];
+                for (let m = desde; m <= hasta; m += PASO_GRILLA) {
+                    const c = m !== ini0 ? choca(m) : null;
+                    opts.push(`<option value="${m}" ${m === sel ? 'selected' : ''} ${c ? 'disabled' : ''}>${etiquetaHora(aHora(m))} – ${etiquetaHora(aHora(m + dur))}${c ? ` · ocupado (${escapeHtml((c.nombreLimpio || c.nombre || '').split(' ')[0])})` : m === ini0 ? ' · actual' : ''}</option>`);
+                }
+                const paso = (d) => `<button type="button" class="ghr-paso" data-d="${d}" ${sel + d < desde || sel + d > hasta ? 'disabled' : ''}>${d > 0 ? '+' : '−'}${Math.abs(d)} min</button>`;
+                ov.innerHTML = `<div class="p360-modal ghr-modal" role="dialog" aria-modal="true" aria-label="Cambiar horario">
+                    <p class="p360-modal-t">🕒 Cambiar horario</p>
+                    <p class="p360-modal-s">${escapeHtml(_pacienteNombreDisplay(r))} · ${escapeHtml(r.servicio || '')} · ${bx ? escapeHtml(bx.title) : ''} · ${dur} min</p>
+                    <div class="ghr-vista">
+                        <span class="ghr-antes">${etiquetaHora(horaActual)} – ${etiquetaHora(aHora(ini0 + dur))}</span>
+                        <span class="ghr-flecha" aria-hidden="true">→</span>
+                        <strong class="ghr-nuevo${occ ? ' ocupado' : ''}" aria-live="polite">${etiquetaHora(aHora(sel))} – ${etiquetaHora(aHora(sel + dur))}</strong>
+                    </div>
+                    <div class="ghr-pasos">${paso(-15)}${paso(-5)}${paso(5)}${paso(15)}</div>
+                    ${occ ? `<p class="ghr-aviso">Se superpone con ${escapeHtml(nomOcc)} en este box.</p>` : ''}
+                    <label class="p360-lbl" for="_ghr_sel">O elegí el horario</label>
+                    <select id="_ghr_sel" class="select-input">${opts.join('')}</select>
+                    <div class="p360-modal-acc">
+                        <button type="button" class="btn-mini" id="_ghr_cancel">Cancelar</button>
+                        <button type="button" class="p360-btn-pri" id="_ghr_ok" ${sel === ini0 || occ ? 'disabled' : ''}>Guardar horario</button>
+                    </div></div>`;
+                ov.querySelectorAll('.ghr-paso').forEach(b => b.onclick = () => { sel += Number(b.dataset.d); render(); ov.querySelector(`.ghr-paso[data-d="${b.dataset.d}"]`)?.focus(); });
+                ov.querySelector('#_ghr_sel').onchange = (e) => { sel = Number(e.target.value); render(); ov.querySelector('#_ghr_sel')?.focus(); };
+                ov.querySelector('#_ghr_cancel').onclick = cerrar;
+                ov.querySelector('#_ghr_ok').onclick = async (e) => {
+                    e.target.disabled = true;
+                    const ok = await _grillaMoverReserva(r.id, boxId, aHora(sel));
+                    if (ok) { cerrar(); _p360Invalidar(); } else e.target.disabled = false;
+                };
+            };
+            ov.addEventListener('mousedown', (e) => { if (e.target === ov) cerrar(); });
+            document.addEventListener('keydown', teclas);
+            document.body.appendChild(ov);
+            render();
+            ov.querySelector('.ghr-paso[data-d="5"]')?.focus();
         };
 
         // ── Mover un turno de box / horario sin borrarlo (menú ⋮) ──
