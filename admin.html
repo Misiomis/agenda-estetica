@@ -10104,9 +10104,10 @@
                 var getBoxId = function(r){ return typeof _grilla_boxDeReserva === 'function' ? (_grilla_boxDeReserva(r)||'') : ''; };
                 var _nd = function(r){ return (r.nombre||r.paciente||'—').trim(); };
 
+                var _hn = function(r){ return normalizarHora(r.hora) || ''; };
                 var reservasDia = todasLasReservas
                     .filter(function(r){ return r.fecha === f && esReservaActiva(r); })
-                    .sort(function(a,b){ return (a.hora||'')<(b.hora||'') ? -1 : 1; });
+                    .sort(function(a,b){ var ha=_hn(a), hb=_hn(b); if (ha !== hb) return ha < hb ? -1 : 1; return _nd(a).localeCompare(_nd(b), 'es'); });
 
                 if (!reservasDia.length) { mostrarAviso('Sin reservas activas para esta fecha.'); return; }
 
@@ -10118,12 +10119,12 @@
                     : [];
 
                 var timesSet = new Set();
-                reservasDia.forEach(function(r){ if(r.hora) timesSet.add(r.hora); });
+                reservasDia.forEach(function(r){ if(_hn(r)) timesSet.add(_hn(r)); });
                 var sortedTimes = [...timesSet].sort();
 
                 // Una celda (hora·box) puede tener más de un turno: se imprimen todos.
                 var cellMap = new Map();
-                reservasDia.forEach(function(r){ var bid=getBoxId(r); if(!bid||!r.hora) return; var k=r.hora+'|'+bid; if(!cellMap.has(k)) cellMap.set(k, []); cellMap.get(k).push(r); });
+                reservasDia.forEach(function(r){ var bid=getBoxId(r); if(!bid||!_hn(r)) return; var k=_hn(r)+'|'+bid; if(!cellMap.has(k)) cellMap.set(k, []); cellMap.get(k).push(r); });
                 // Helvetica (WinAnsi) no dibuja emoji ni símbolos fuera de Latin-1:
                 // se quitan para que la nota no salga con caracteres basura.
                 var _pdfTxt = function(t){ return String(t||'').replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/[\u2013\u2014]/g,'-').replace(/[^\x20-\x7E\u00A0-\u00FF\n]/g,'').replace(/\s+/g,' ').trim(); };
@@ -10220,7 +10221,7 @@
                     var noBoxH = 0;
                     if (incluirNoBox && noBoxRes.length) {
                         doc.setFont('helvetica', 'normal'); doc.setFontSize(Math.max(6.5, cellPt - 1.5));
-                        var noBoxTxt = noBoxRes.map(function(r){ return (r.hora||'—') + ' ' + _nd(r); }).join('     ·     ');
+                        var noBoxTxt = noBoxRes.map(function(r){ return (_hn(r)||'—') + ' ' + _nd(r); }).join('     ·     ');
                         var noBoxLines = doc.splitTextToSize(noBoxTxt, CONTENT_W).length;
                         noBoxH = 4 + noBoxLines * mmPerPt(Math.max(6.5, cellPt - 1.5)) + 3;
                     }
@@ -10328,14 +10329,14 @@
                         y += 4;
                         var noBoxPt = Math.max(6.5, layout.cellPt - 1.5);
                         doc.setFont('helvetica', 'normal'); doc.setFontSize(noBoxPt); doc.setTextColor(100,100,100);
-                        var noBoxTxt = noBoxRes.map(function(r){ return (r.hora||'—') + ' ' + _nd(r); }).join('     ·     ');
+                        var noBoxTxt = noBoxRes.map(function(r){ return (_hn(r)||'—') + ' ' + _nd(r); }).join('     ·     ');
                         var noBoxLines = doc.splitTextToSize(noBoxTxt, CONTENT_W);
                         doc.text(noBoxLines, MARGIN_L, y + mmPerPt(noBoxPt)*0.75);
                     }
                 }
 
                 // Encabezado: cantidad de TURNOS (no de horarios) de esa parte del día.
-                var _cuentaTurnos = function(times){ return reservasDia.filter(function(r){ return times.indexOf(r.hora) >= 0; }).length; };
+                var _cuentaTurnos = function(times){ return reservasDia.filter(function(r){ return times.indexOf(_hn(r)) >= 0; }).length; };
                 var sessionsWritten = 0;
                 var expectedPages = (hasMañana && haTarde) ? 2 : 1;
 
