@@ -2427,6 +2427,16 @@
            · El hover solo existe con mouse: en celular no queda "pegado" (era
              el fondo blanco con borde dorado que aparecía al desbloquear). */
         table#grilla-table .grilla-celda-libre { position: relative; padding: 0 !important; overflow: hidden; }
+        /* Celda con turnos: el tiempo libre que queda alrededor de las tarjetas
+           (turnos encimados o con huecos) se ve como filas libres, no en blanco.
+           Tocarlo agenda a esa hora (grillaClickCeldaOcupada). */
+        table#grilla-table { --gr-paso: calc(var(--gr-fila) + 3px); }
+        table#grilla-table td.grilla-td-box.gr-ocupada {
+            background-color: transparent !important;
+            background-image: repeating-linear-gradient(to bottom, rgba(30,58,47,0.06) 0, rgba(30,58,47,0.06) calc(var(--gr-fila) - 2px), transparent calc(var(--gr-fila) - 2px), transparent var(--gr-paso)) !important;
+            background-origin: border-box; cursor: copy;
+        }
+        @media (max-width: 768px) { table#grilla-table { --gr-paso: calc(var(--gr-fila) + 2px); } }
         /* Filas de 5 min: ninguna celda fuerza un alto mínimo (antes 34px estiraban la fila) */
         table#grilla-table :is(.grilla-celda-libre, .grilla-celda-bloq, .grilla-celda-default-bloq) { min-height: 0 !important; height: 100% !important; box-sizing: border-box !important; }
         /* La línea de la hora actual pasa por detrás de las tarjetas (no las tacha) */
