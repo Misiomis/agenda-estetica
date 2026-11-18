@@ -3517,6 +3517,8 @@
                     <h3 style="margin-top:0">Reporte de Pacientes</h3>
                     <p style="font-size:14px;">Exporta todos los pacientes en PDF con datos de contacto y estado de membresía.</p>
                     <button class="btn-export-main" onclick="exportarPacientesPDF()">Descargar pacientes (.pdf)</button>
+                    <button class="btn-export-main" id="btnInformeActividad" onclick="exportarInformeActividadPDF()" style="margin-top:10px;">Informe de actividad desde septiembre (.pdf)</button>
+                    <p style="font-size:12px;opacity:.65;margin:6px 0 0;">Nuevos por mes, activos del mes actual, en suspensión (sin turnos este mes) e inactivos desde septiembre.</p>
                 </div>
             </div>
 
@@ -6217,6 +6219,140 @@
             docPdf.save(`pacientes_mimar_t_${fechaHoyISO()}.pdf`);
         };
         
+        // Informe de actividad: todos los pacientes con turnos desde el 1 de
+        // septiembre, separados en: activos del mes actual (agrupados por mes en
+        // que se sumaron), en suspensión (sin turnos este mes, última sesión el
+        // mes pasado) e inactivos (última sesión en septiembre o antes).
+        window.exportarInformeActividadPDF = async () => {
+            const tools = getPdfTools();
+            if (!tools) return;
+            const { jsPDF, runAutoTable } = tools;
+            const btn = document.getElementById('btnInformeActividad');
+            const orig = btn ? btn.textContent : '';
+            if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
+            let fuente;
+            try { fuente = await _fetchReservasCompletasParaExport(); }
+            catch (err) { console.error(err); mostrarAviso('No se pudieron leer todas las reservas (¿sin conexión?). No se generó el PDF.'); if (btn) { btn.disabled = false; btn.textContent = orig; } return; }
+            if (btn) { btn.disabled = false; btn.textContent = orig; }
+
+            const hoy = fechaHoyISO();
+            const anio = hoy.slice(0, 4);
+            const mesAct = hoy.slice(0, 7);
+            const desde = (mesAct >= anio + '-09' ? anio : String(Number(anio) - 1)) + '-09-01';
+            const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+            const nomMes = (ym) => MESES[Number(ym.slice(5, 7)) - 1];
+            const fCorta = (f) => { const [y, m, d] = f.split('-'); return Number(d) + ' de ' + MESES[Number(m) - 1] + (y !== anio ? ' ' + y : ''); };
+            const ahora = new Date(); const horaAhora = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
+            const realizada = (r) => r.fecha < hoy || (r.fecha === hoy && (normalizarHora(r.hora || '') || '23:59') <= horaAhora);
+
+            // Agrupar por paciente (DNI; si no hay, nombre)
+            const pac = new Map();
+            fuente.forEach((r) => {
+                if (!r.fecha || !esReservaPacienteExportable(r)) return;
+                const dni = String(r.dni ?? r.clienteDni ?? r.documento ?? '').replace(/\D/g, '');
+                const nombre = (r.nombreLimpio || '').trim();
+                if (!dni && !nombre) return;
+                const k = dni ? 'd' + dni : 'n' + nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+                if (!pac.has(k)) pac.set(k, { nombre, dni, phone: '', res: [] });
+                const p = pac.get(k);
+                if (nombre && (!p.nombre || r.fecha >= (p._fNom || ''))) { p.nombre = nombre; p._fNom = r.fecha; }
+                if (r.phone) p.phone = r.phone;
+                p.res.push(r);
+            });
+
+            const filas = [];
+            pac.forEach((p) => {
+                const fechas = p.res.map(r => r.fecha).sort();
+                const primera = fechas[0];
+                const hechas = p.res.filter(realizada).map(r => r.fecha).sort();
+                const desdeSep = p.res.filter(r => r.fecha >= desde);
+                if (!desdeSep.length) return; // sin actividad desde septiembre
+                const hechasSep = desdeSep.filter(realizada).length;
+                const delMes = p.res.filter(r => r.fecha.slice(0, 7) === mesAct);
+                const futuras = p.res.filter(r => !realizada(r)).map(r => r.fecha).sort();
+                filas.push({
+                    nombre: p.nombre || '(sin nombre)', dni: p.dni, phone: p.phone || '',
+                    primera, mesAlta: primera.slice(0, 7),
+                    ultima: hechas.length ? hechas[hechas.length - 1] : null,
+                    proxima: futuras[0] || null,
+                    hechasSep, totalHechas: hechas.length,
+                    mesHechas: delMes.filter(realizada).length, mesAgendadas: delMes.filter(r => !realizada(r)).length,
+                    enMes: delMes.length > 0,
+                });
+            });
+            const porNombre = (a, b) => a.nombre.localeCompare(b.nombre, 'es');
+            const ses = (n) => n + (n === 1 ? ' sesión' : ' sesiones');
+
+            const docPdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const VERDE = [47, 90, 71];
+            let y = 16;
+            docPdf.setTextColor(...VERDE); docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(16);
+            docPdf.text('Informe de pacientes - Espacio Mimar T', 14, y); y += 6;
+            docPdf.setFont('helvetica', 'normal'); docPdf.setFontSize(9.5);
+            docPdf.text('Del ' + fCorta(desde) + ' al ' + fCorta(hoy) + ' de ' + anio + '  ·  generado el ' + formatoFechaVisible(hoy), 14, y); y += 5;
+
+            const activos = filas.filter(f => f.enMes);
+            const sinMes = filas.filter(f => !f.enMes);
+            const mesAnt = (() => { const [yy, mm] = mesAct.split('-').map(Number); const d = new Date(yy, mm - 2, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); })();
+            const suspension = sinMes.filter(f => f.ultima && f.ultima.slice(0, 7) >= mesAnt || (!f.ultima && f.proxima));
+            const inactivos = sinMes.filter(f => !suspension.includes(f));
+            docPdf.text('Total: ' + filas.length + ' pacientes  ·  Activos en ' + nomMes(mesAct) + ': ' + activos.length + '  ·  En suspensión: ' + suspension.length + '  ·  Inactivos: ' + inactivos.length, 14, y); y += 4;
+
+            const _t = (t) => String(t || '').replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '');
+            const titulo = (txt, sub, color) => {
+                if (y > 265) { docPdf.addPage(); y = 16; }
+                y += 6;
+                docPdf.setFont('helvetica', 'bold'); docPdf.setFontSize(12.5); docPdf.setTextColor(...(color || VERDE));
+                docPdf.text(_t(txt), 14, y); y += 1.5;
+                if (sub) { y += 3.8; docPdf.setFont('helvetica', 'normal'); docPdf.setFontSize(8.5); docPdf.setTextColor(90, 90, 90); docPdf.text(_t(sub), 14, y); }
+                y += 2;
+            };
+            const tabla = (head, body, color) => {
+                if (!body.length) { docPdf.setFont('helvetica', 'italic'); docPdf.setFontSize(9); docPdf.setTextColor(120, 120, 120); y += 4; docPdf.text('Ninguno', 16, y); y += 2; return; }
+                runAutoTable(docPdf, {
+                    startY: y, head: [head], body: body.map(r => r.map(_t)),
+                    margin: { left: 14, right: 14, bottom: 12 },
+                    styles: { font: 'helvetica', fontSize: 8.5, textColor: [40, 50, 45], lineColor: [215, 230, 222], lineWidth: 0.2, cellPadding: 1.8, overflow: 'linebreak' },
+                    headStyles: { fillColor: color || [63, 143, 111], textColor: 255, fontStyle: 'bold' },
+                    alternateRowStyles: { fillColor: [248, 251, 249] },
+                    columnStyles: { 0: { cellWidth: 8, halign: 'right', textColor: [140, 140, 140] }, 1: { fontStyle: 'bold' } },
+                });
+                y = docPdf.lastAutoTable.finalY + 2;
+            };
+            const num = (arr, fn) => arr.map((f, i) => [String(i + 1), ...fn(f)]);
+
+            // 1. Activos del mes actual, agrupados por mes en que se sumaron
+            titulo('1. Pacientes activos en ' + nomMes(mesAct) + ' (' + activos.length + ')', 'Tienen sesiones realizadas o turnos agendados en ' + nomMes(mesAct) + '.');
+            const meses = []; for (let m = mesAct; m >= desde.slice(0, 7);) { meses.push(m); const [yy, mm] = m.split('-').map(Number); const d = new Date(yy, mm - 2, 1); m = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+            const headAct = ['#', 'Paciente', 'Teléfono', 'Realizadas desde sep.', 'En ' + nomMes(mesAct), 'Próximo turno'];
+            const filaAct = (f) => [f.nombre, f.phone, ses(f.hechasSep), f.mesHechas + (f.mesHechas === 1 ? ' hecha' : ' hechas') + (f.mesAgendadas ? ' + ' + f.mesAgendadas + ' agendada' + (f.mesAgendadas === 1 ? '' : 's') : ''), f.proxima ? fCorta(f.proxima) : '-'];
+            meses.forEach((m) => {
+                const g = activos.filter(f => f.mesAlta === m).sort(porNombre);
+                titulo('Pacientes nuevos de ' + nomMes(m) + ' (' + g.length + ')', 'Primera sesión en ' + nomMes(m) + '.');
+                tabla(headAct, num(g, filaAct));
+            });
+            const viejos = activos.filter(f => f.mesAlta < desde.slice(0, 7)).sort(porNombre);
+            titulo('Pacientes de antes de septiembre que siguen activos (' + viejos.length + ')', '');
+            tabla(headAct, num(viejos, filaAct));
+
+            // 2. En suspensión
+            const ROJO = [176, 120, 40];
+            titulo('2. Pacientes en suspensión - sin turnos en ' + nomMes(mesAct) + ' (' + suspension.length + ')', 'Tuvieron sesiones en ' + nomMes(mesAnt) + ' pero no están agendados en ' + nomMes(mesAct) + '.', ROJO);
+            const headIn = ['#', 'Paciente', 'Teléfono', 'Se sumó en', 'Realizadas desde sep.', 'Última sesión'];
+            const filaIn = (f) => [f.nombre, f.phone, f.mesAlta < desde.slice(0, 7) ? 'antes de sep.' : nomMes(f.mesAlta), ses(f.hechasSep), f.ultima ? fCorta(f.ultima) : (f.proxima ? 'agendado ' + fCorta(f.proxima) : '-')];
+            const porUltima = (a, b) => (b.ultima || '').localeCompare(a.ultima || '') || porNombre(a, b);
+            tabla(headIn, num(suspension.sort(porUltima), filaIn), ROJO);
+
+            // 3. Inactivos
+            const GRIS = [130, 70, 70];
+            titulo('3. Pacientes inactivos - sin sesiones desde septiembre (' + inactivos.length + ')', 'Su última sesión fue en septiembre (o antes) y no volvieron a agendar.', GRIS);
+            tabla(headIn, num(inactivos.sort(porUltima), filaIn), GRIS);
+
+            const n = docPdf.getNumberOfPages();
+            for (let i = 1; i <= n; i++) { docPdf.setPage(i); docPdf.setFont('helvetica', 'normal'); docPdf.setFontSize(8); docPdf.setTextColor(150, 150, 150); docPdf.text('Página ' + i + ' de ' + n, 196, 290, { align: 'right' }); }
+            docPdf.save('informe_pacientes_' + desde.slice(0, 7) + '_a_' + mesAct + '.pdf');
+        };
+
         window.exportarCSV = window.exportarReservasPDF;
         window.exportarClientesCSV = window.exportarPacientesPDF;
         
