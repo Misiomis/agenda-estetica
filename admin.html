@@ -10193,7 +10193,7 @@
                     });
                     var theadH = Math.max(7, theadLines * mmPerPt(THEAD_PT) + CELL_PAD * 2);
 
-                    var servPt = Math.max(6, cellPt - 1.5);
+                    var servPt = Math.max(3.5, cellPt - 1.5);
                     var rowHeights = times.map(function(hora) {
                         var maxLines = 0;
                         colBoxes.forEach(function(b) {
@@ -10233,7 +10233,7 @@
                 // Prueba tamaños de fuente de mayor a menor y usa el más grande
                 // que hace entrar el turno completo — nunca se elige un tamaño
                 // que fuerce a partir la tabla entre páginas.
-                var FONT_CANDIDATES = [11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6];
+                var FONT_CANDIDATES = [11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4];
                 function elegirLayout(times, availableH, incluirNoBox) {
                     var last = null;
                     for (var i = 0; i < FONT_CANDIDATES.length; i++) {
@@ -10251,8 +10251,11 @@
                     var layout = elegirLayout(times, availableH, incluirNoBox);
                     // Si no entra en una hoja ni achicando, se usa letra legible (8pt)
                     // y la tabla sigue en hojas nuevas repitiendo encabezados.
+                    // Prioridad: que entre en UNA hoja. Si no entra, se compactan
+                    // las celdas (menos margen interno) y se vuelve a probar.
+                    if (layout.total > availableH + 0.5) { CELL_PAD = 0.9; layout = elegirLayout(times, availableH, incluirNoBox); }
                     var paginar = layout.total > availableH + 0.5;
-                    if (paginar) layout = medirLayout(times, 8, incluirNoBox);
+                    if (paginar) { CELL_PAD = 2.2; layout = medirLayout(times, 8, incluirNoBox); }
 
                     var dibujarThead = function() {
                     doc.setDrawColor(17,17,17); doc.setLineWidth(0.6);
