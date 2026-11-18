@@ -10249,12 +10249,12 @@
                     var y = drawHeader(turno, nTurnos);
                     var availableH = CONTENT_BOTTOM - y;
                     var layout = elegirLayout(times, availableH, incluirNoBox);
-                    if (layout.total > availableH + 0.5) {
-                        throw new Error('El turno ' + (turno || '') + ' tiene ' + times.length + ' horario(s) y no entra en una sola página aun con la tipografía mínima (' +
-                            FONT_CANDIDATES[FONT_CANDIDATES.length-1] + 'pt). Reducí la cantidad de boxes impresos o dividí la jornada.');
-                    }
+                    // Si no entra en una hoja ni achicando, se usa letra legible (8pt)
+                    // y la tabla sigue en hojas nuevas repitiendo encabezados.
+                    var paginar = layout.total > availableH + 0.5;
+                    if (paginar) layout = medirLayout(times, 8, incluirNoBox);
 
-                    // ── Encabezado de tabla ──
+                    var dibujarThead = function() {
                     doc.setDrawColor(17,17,17); doc.setLineWidth(0.6);
                     doc.setFillColor(255,255,255);
                     doc.rect(MARGIN_L, y, HORA_W, layout.theadH);
@@ -10274,10 +10274,17 @@
                         xBox += BOX_W;
                     });
                     y += layout.theadH;
+                    };
+                    dibujarThead();
 
                     // ── Filas ──
                     times.forEach(function(hora, i) {
                         var rowH = layout.rowHeights[i];
+                        if (paginar && y + rowH > CONTENT_BOTTOM) {
+                            doc.addPage(); _paginasExtra++;
+                            y = drawHeader(turno ? turno + ' (continuación)' : 'Continuación', nTurnos);
+                            dibujarThead();
+                        }
                         doc.setDrawColor(17,17,17); doc.setLineWidth(0.6);
                         doc.rect(MARGIN_L, y, HORA_W, rowH);
                         doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(17,17,17);
@@ -10323,6 +10330,7 @@
 
                     // ── Sin box asignado (una sola vez, en la última página) ──
                     if (incluirNoBox && noBoxRes.length) {
+                        if (paginar && y + layout.noBoxH > CONTENT_BOTTOM) { doc.addPage(); _paginasExtra++; y = drawHeader(turno ? turno + ' (continuación)' : 'Continuación', nTurnos); }
                         y += 3;
                         doc.setDrawColor(210,210,210); doc.setLineWidth(0.3);
                         doc.line(MARGIN_L, y, PAGE_W - MARGIN_R, y);
@@ -10337,6 +10345,7 @@
 
                 // Encabezado: cantidad de TURNOS (no de horarios) de esa parte del día.
                 var _cuentaTurnos = function(times){ return reservasDia.filter(function(r){ return times.indexOf(_hn(r)) >= 0; }).length; };
+                var _paginasExtra = 0;
                 var sessionsWritten = 0;
                 var expectedPages = (hasMañana && haTarde) ? 2 : 1;
 
@@ -10364,7 +10373,7 @@
                 // horarios dibujados debe coincidir exactamente con lo esperado
                 // — si no, se avisa en vez de entregar una grilla incompleta. ──
                 var totalPages = doc.internal.getNumberOfPages();
-                if (totalPages !== expectedPages || sessionsWritten !== sortedTimes.length) {
+                if (totalPages !== expectedPages + _paginasExtra || sessionsWritten !== sortedTimes.length) {
                     mostrarAviso('La grilla no se generó correctamente (páginas: ' + totalPages + '/' + expectedPages +
                         ', horarios: ' + sessionsWritten + '/' + sortedTimes.length + '). No se abrió para imprimir.');
                     return;
