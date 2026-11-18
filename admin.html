@@ -582,6 +582,16 @@
         .fc15-acc button { width: 100%; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; min-height: 44px; }
         .fc15-ok { background: linear-gradient(135deg,#4a7060,#2f5a47); border: none; color: #fff; }
         .fc15-igual { background: transparent; border: 1.5px solid rgba(190,80,115,.55); color: #8a2f52; }
+        /* Aviso de superposición (avisa, no bloquea) */
+        .sup-card { background: linear-gradient(165deg,#fff 0%,#fffaf0 100%); border-color: rgba(202,138,4,.45); color: #6b4a0a; box-shadow: 0 24px 52px rgba(90,60,10,.22); }
+        .sup-card h3 { color: #6b4a0a; }
+        .sup-card p { color: #6b5320; }
+        .sup-lista { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 6px; }
+        .sup-lista li { background: rgba(202,138,4,.12); border-radius: 10px; padding: 8px 10px; font-size: 13.5px; color: #5c420b; }
+        .sup-nota { font-size: 12.5px !important; opacity: .85; }
+        .sup-card .fc15-igual { border-color: rgba(120,100,60,.4); color: #5c4a1f; }
+        .mreg-hora-sel { margin-bottom: 12px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
+        .mreg-aviso-sup { margin: -4px 0 14px; padding: 9px 12px; border-radius: 10px; background: #fef9c3; border: 1px solid #facc15; color: #713f12; font-size: 12.5px; line-height: 1.45; }
         .plan-cartel { display: flex; gap: 12px; align-items: flex-start; margin: 10px 0 0; padding: 12px 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(230,150,170,.20), rgba(251,231,236,.55)); border: 1.5px solid rgba(214,120,148,.45); color: #7a2f47; box-shadow: 0 4px 14px rgba(214,120,148,.16); }
         .plan-cartel .plan-cartel-ico { font-size: 26px; line-height: 1; flex: 0 0 auto; }
         .plan-cartel strong { display: block; font-size: 13px; margin-bottom: 2px; }
@@ -2372,6 +2382,24 @@
         .grilla-tarjeta-turno:is(.gr-det-2, .gr-det-3) .card-bottom-footer { border-top: none; padding-top: 1px; }
         .grilla-tarjeta-turno:is(.gr-det-2, .gr-det-3) .gqa-estado .gqa-txt { display: none; }
         .grilla-tarjeta-turno.gr-carril .gqa-estado { display: none; }
+        /* Turnos encimados en el celular (dos o más lado a lado): tarjeta compacta
+           que se lee — hora de inicio + nombre en hasta 3 líneas; el resto
+           (servicio, íconos) queda en la ficha y en el menú ⋮. */
+        @media (max-width: 768px) {
+            table#grilla-table td.grilla-td-box > .grilla-tarjeta-turno.gr-carril { padding: 2px 2px 2px 3px !important; border-left-width: 2px !important; border-radius: 7px !important; }
+            .grilla-tarjeta-turno.gr-carril .card-bottom-footer,
+            .grilla-tarjeta-turno.gr-carril .grilla-paciente-servicio,
+            .grilla-tarjeta-turno.gr-carril :is(.gc-ctx, .gc-sigue, .gc-ya-sede, .gc-nota-tag, .gc-espera-tag),
+            .grilla-tarjeta-turno.gr-carril .gc-cobro-btn,
+            .grilla-tarjeta-turno.gr-carril .gc-horario :is(.gch-sep) { display: none !important; }
+            .grilla-tarjeta-turno.gr-carril .card-top-info { flex-direction: column !important; align-items: stretch !important; gap: 1px !important; padding-right: 0 !important; min-width: 0; }
+            /* Hora de inicio como franja tocable de todo el ancho (abre "Cambiar horario") */
+            .grilla-tarjeta-turno.gr-carril button.gc-horario { display: block !important; width: 100% !important; min-height: 16px !important; padding: 1px 2px !important; font-size: 0 !important; text-align: center; overflow: hidden; border-radius: 5px; }
+            .grilla-tarjeta-turno.gr-carril button.gc-horario .gch-ini { display: inline !important; font-size: 9.5px; letter-spacing: -0.02em; }
+            .grilla-tarjeta-turno.gr-carril .grilla-paciente-nombre { white-space: normal !important; overflow-wrap: anywhere; word-break: normal; display: -webkit-box !important; -webkit-line-clamp: 3; -webkit-box-orient: vertical; font-size: 10px !important; line-height: 1.15 !important; }
+            /* ⋮ abajo a la derecha: no tapa la hora ni el nombre */
+            .grilla-tarjeta-turno.gr-carril .gc-menu-btn { width: 18px !important; min-width: 18px !important; height: 20px !important; min-height: 20px !important; font-size: 13px !important; top: auto !important; bottom: 1px !important; right: 0 !important; }
+        }
 
         /* Columna de hora: 7 · 7:10 … en punto marcada, media hora media, resto suave */
         table#grilla-table tr[data-hora] > td.grilla-td-hora { vertical-align: middle !important; padding: 0 2px !important; line-height: 1; }
@@ -6739,6 +6767,7 @@
                         const idxBase = SLOTS_30_COMPLETOS.indexOf(normalizarHora(reserva.hora));
                         for (let i = 1; i <= slotsExtra && idxBase + i < SLOTS_30_COMPLETOS.length; i++) {
                             const extHora = SLOTS_30_COMPLETOS[idxBase + i];
+                            if (_lockDeOtroTurno(reserva.fecha, extHora, reserva.id)) continue;
                             const extId = `ext_${reserva.fecha}_${extHora.replace(':','h')}`;
                             try { await deleteDoc(doc(db, "calendarExceptions", extId)); } catch(_) {}
                             bloqueosHorarios.delete(keyBloqueo(reserva.fecha, extHora));
@@ -6802,15 +6831,8 @@
             document.getElementById(hiddenId).value = nombreSvc;
             // Badge de duración (solo modal principal)
             if (hiddenId === 'mreg-servicio-hidden') {
-                const badge = document.getElementById('mreg-duracion-badge');
-                if (badge && _mreg_hora) {
-                    const dur = _svDurMap.get(nombreSvc) || 30;
-                    const [hh, mm] = normalizarHora(_mreg_hora).split(':').map(Number);
-                    const endMin = hh * 60 + mm + dur;
-                    const endStr = `${String(Math.floor(endMin/60)).padStart(2,'0')}:${String(endMin%60).padStart(2,'0')}`;
-                    badge.innerHTML = `⏱ ${_mreg_hora} → ${endStr} hs &nbsp;·&nbsp; <b>${dur} min</b>`;
-                    badge.style.display = 'block';
-                }
+                _mregActualizarBadge();
+                window._mregActualizarAviso();
             }
             // Auto-asignar box solo si el servicio tiene exactamente 1 box configurado
             const _bxRaw = _svBoxMap.get(nombreSvc) || el.dataset.boxid || '';
@@ -6878,6 +6900,132 @@
             if (preseleccion) document.getElementById(hiddenId).value = preseleccion;
         };
 
+        // ── Superposiciones: se AVISAN, nunca bloquean (la administradora decide) ──
+        const _durDe = (r) => Number(r && r.duracionMinutos) > 0 ? Number(r.duracionMinutos) : DURACION_BLOQUEO_LEGADO;
+        // Turnos activos de ese box que se pisan con [ini, fin) y bloqueos del box
+        // (los bloqueos por box solo están cargados para el día que muestra la Grilla).
+        function _superposicionesEnBox({ fecha, boxId, ini, fin, idIgnorar, extra }) {
+            const turnos = [];
+            const vistos = new Set();
+            const sumar = (r) => {
+                if (!r || vistos.has(r.id) || r.id === idIgnorar || !esReservaActiva(r) || r.fecha !== fecha || _grilla_boxDeReserva(r) !== boxId) return;
+                const i = aMin(normalizarHora(r.hora));
+                if (!Number.isFinite(i)) return;
+                const f = i + _durDe(r);
+                if (i < fin && ini < f) { vistos.add(r.id); turnos.push({ r, ini: i, fin: f }); }
+            };
+            todasLasReservas.forEach(sumar);
+            (extra || []).forEach(sumar);
+            turnos.sort((a, b) => a.ini - b.ini);
+            const bloqueos = fecha === _grilla_fecha
+                ? [..._grilla_adminBlocks.values()].filter(v => v.boxId === boxId).map(v => intervaloBloqueo(v)).filter(b => b.ini < fin && ini < b.fin)
+                : [];
+            return { turnos, bloqueos, hay: turnos.length > 0 || bloqueos.length > 0 };
+        }
+        function _textoSuperposicion(sup) {
+            const lineas = sup.turnos.map(t => `<b>${escapeHtml((t.r.nombreLimpio || t.r.nombre || 'Otra paciente').split(' ').slice(0, 2).join(' '))}</b> · ${etiquetaHora(t.ini)} a ${etiquetaHora(t.fin)} hs`);
+            if (sup.bloqueos.length) lineas.push(`🔒 Bloqueado ${sup.bloqueos.map(b => `${etiquetaHora(b.ini)}–${etiquetaHora(b.fin)}`).join(', ')} hs`);
+            return lineas;
+        }
+        // Cartel "se superpone": resuelve true si elige seguir igual.
+        function _confirmarSuperposicion({ titulo, detalle, lineas, si, no }) {
+            return new Promise((resolve) => {
+                const previo = document.activeElement;
+                const ov = document.createElement('div');
+                ov.className = 'fc15-overlay sup-overlay';
+                ov.id = '_sup_overlay';
+                ov.setAttribute('role', 'alertdialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'sup-tit');
+                ov.innerHTML = `
+                    <div class="fc15-card sup-card">
+                        <div class="fc15-ico" aria-hidden="true">⚠️</div>
+                        <h3 id="sup-tit">${titulo}</h3>
+                        ${detalle ? `<p>${detalle}</p>` : ''}
+                        <ul class="sup-lista">${lineas.map(l => `<li>${l}</li>`).join('')}</ul>
+                        <p class="sup-nota">Podés seguir igual: los dos turnos quedan uno al lado del otro en la Grilla.</p>
+                        <div class="fc15-acc">
+                            <button type="button" class="fc15-ok" data-sup="si">${si}</button>
+                            <button type="button" class="fc15-igual" data-sup="no">${no}</button>
+                        </div>
+                    </div>`;
+                const cerrar = (v) => { document.removeEventListener('keydown', tecla, true); ov.remove(); try { previo && previo.focus && previo.focus(); } catch (_) {} resolve(v); };
+                const tecla = (e) => { if (e.key === 'Escape') { e.stopPropagation(); cerrar(false); } };
+                ov.addEventListener('click', (e) => { const b = e.target.closest('[data-sup]'); if (b) cerrar(b.dataset.sup === 'si'); });
+                document.addEventListener('keydown', tecla, true);
+                document.body.appendChild(ov);
+                ov.querySelector('[data-sup="si"]').focus();
+            });
+        }
+        // Registros de calendarExceptions que ocultan el horario en la reserva
+        // pública: uno por fecha·hora. Si ya lo tiene otro turno activo, no se
+        // pisa (y al borrar/cancelar un turno no se libera el de otro).
+        function _lockDeOtroTurno(fecha, hora, reservaId) {
+            const blk = bloqueosHorarios.get(keyBloqueo(fecha, hora));
+            if (!blk || !blk.reservaId || blk.reservaId === reservaId) return false;
+            return todasLasReservas.some(r => r.id === blk.reservaId && esReservaActiva(r));
+        }
+
+        // ── Horario elegible en "Registrar turno" (cada 5 min) ──
+        function _mregDuracion() {
+            const s = (document.getElementById('mreg-servicio-hidden')?.value || '').trim();
+            if (!s) return null;
+            return _svTipoMap.get(s) === SERVICIO_TIPO_CONSULTA_INICIAL ? DURACION_CONSULTA_INICIAL_MIN : (_svDurMap.get(s) || 30);
+        }
+        function _mregRenderHora() {
+            const sel = document.getElementById('mreg-hora-sel');
+            if (!sel || !_mreg_hora) return;
+            const actual = aMin(_mreg_hora);
+            const filas = (_grillaFilasActuales || []).map(f => aMin(f.hora)).filter(Number.isFinite);
+            const desde = Math.min(actual, filas.length ? Math.min(...filas) : 7 * 60);
+            const hasta = Math.max(actual, filas.length ? Math.max(...filas) : 22 * 60);
+            const opts = [];
+            for (let m = Math.floor(desde / PASO_GRILLA) * PASO_GRILLA; m <= hasta; m += PASO_GRILLA) {
+                opts.push(`<option value="${aHora(m)}"${m === actual ? ' selected' : ''}>${etiquetaHora(aHora(m))} hs</option>`);
+            }
+            // Una hora fuera de la grilla de 5 min (ej. 08:07 guardada a mano) se respeta.
+            if (actual % PASO_GRILLA) opts.push(`<option value="${_mreg_hora}" selected>${etiquetaHora(_mreg_hora)} hs</option>`);
+            sel.innerHTML = opts.join('');
+            sel.onchange = () => window.mregCambiarHora(sel.value);
+        }
+        function _mregRenderSubtitulo() {
+            const _numDeBoxId = Object.fromEntries(GRILLA_BOXES.map(b => [b.id, b.num]));
+            _mreg_boxesOcupados = new Set(todasLasReservas
+                .filter(r => esReservaActiva(r) && r.fecha === _mreg_fecha && normalizarHora(r.hora) === _mreg_hora)
+                .map(r => _numDeBoxId[_grilla_boxDeReserva(r)]).filter(Boolean));
+            const _boxesLabel = _mreg_boxesOcupados.size > 0
+                ? ` · Boxes con turno a esa hora: ${[..._mreg_boxesOcupados].sort((a, b) => _ordenNumBox(a) - _ordenNumBox(b)).map(b => _cortoNumBox(b)).join(', ')}`
+                : '';
+            const el = document.getElementById('mreg-fecha-label');
+            if (el) el.textContent = `${formatoFechaISO(_mreg_fecha)}${_boxesLabel}`;
+        }
+        function _mregActualizarBadge() {
+            const badge = document.getElementById('mreg-duracion-badge');
+            const dur = _mregDuracion();
+            if (!badge) return;
+            if (!dur || !_mreg_hora) { badge.style.display = 'none'; return; }
+            badge.innerHTML = `⏱ ${etiquetaHora(_mreg_hora)} → ${etiquetaHora(aHora(aMin(_mreg_hora) + dur))} hs &nbsp;·&nbsp; <b>${dur} min</b>`;
+            badge.style.display = 'block';
+        }
+        // Aviso en vivo dentro del modal (no impide registrar).
+        window._mregActualizarAviso = function() {
+            const el = document.getElementById('mreg-aviso-sup');
+            if (!el) return;
+            const dur = _mregDuracion() || 30;
+            if (!_mreg_boxPresel || !_mreg_hora) { el.style.display = 'none'; return; }
+            const ini = aMin(_mreg_hora);
+            const sup = _superposicionesEnBox({ fecha: _mreg_fecha, boxId: _mreg_boxPresel.id, ini, fin: ini + dur });
+            if (!sup.hay) { el.style.display = 'none'; el.innerHTML = ''; return; }
+            el.innerHTML = `⚠️ En ${escapeHtml(_mreg_boxPresel.title)} se superpone con: ${_textoSuperposicion(sup).join(' · ')}. Podés registrarlo igual.`;
+            el.style.display = 'block';
+        };
+        window.mregCambiarHora = function(valor) {
+            const h = normalizarHora(valor);
+            if (!h) return;
+            _mreg_hora = h;
+            _mregRenderSubtitulo();
+            _mregActualizarBadge();
+            window._mregActualizarAviso();
+        };
+
         window.registrarReservaManual = async (fecha, hora) => {
             const horaNormalizada = normalizarHora(hora);
             if (!horaNormalizada) { mostrarAviso("Hora inválida"); return; }
@@ -6897,10 +7045,8 @@
             _mreg_boxesOcupados = new Set(
                 reservasEnHora.map(r => _numDeBoxId[_grilla_boxDeReserva(r)]).filter(Boolean)
             );
-            if (_mreg_boxesOcupados.has(1) && _mreg_boxesOcupados.has(2) && _mreg_boxesOcupados.has(3) && _mreg_boxesOcupados.has(4)) {
-                mostrarAviso("Ese horario está completamente ocupado (todos los boxes bloqueados)");
-                return;
-            }
+            // Aunque todos los boxes tengan turno a esa hora, se puede agendar igual
+            // (la administradora decide); el subtítulo muestra cuáles están tomados.
 
             _mreg_fecha = fecha;
             _mreg_hora = horaNormalizada;
@@ -6915,15 +7061,15 @@
                 ).join('');
             }
 
-            // Mostrar boxes ocupados en el subtítulo del modal
-            const _boxesLabel = _mreg_boxesOcupados.size > 0
-                ? ` · Boxes ocupados: ${[..._mreg_boxesOcupados].sort((a, b) => _ordenNumBox(a) - _ordenNumBox(b)).map(b => _cortoNumBox(b)).join(', ')}`
-                : ' · Todos los boxes disponibles';
-            document.getElementById('mreg-fecha-label').textContent = `${formatoFechaISO(fecha)} · ${horaNormalizada} hs${_boxesLabel}`;
+            // Fecha + boxes con turno a esa hora; el horario se elige abajo (cada 5 min).
+            _mregRenderSubtitulo();
+            _mregRenderHora();
             document.getElementById('mreg-nombre-input').value = '';
             document.getElementById('mreg-resultados').innerHTML = '';
             document.getElementById('mreg-btn-confirmar').disabled = true;
             document.getElementById('mreg-servicio-hidden').value = '';
+            _mregActualizarBadge();
+            window._mregActualizarAviso();
             document.getElementById('modal-registrar-overlay').classList.add('open');
             setTimeout(() => document.getElementById('mreg-nombre-input').focus(), 80);
 
@@ -6932,6 +7078,7 @@
 
         window.seleccionarBoxMreg = (boxId) => {
             _mreg_boxPresel = GRILLA_BOXES.find(b => b.id === boxId) || null;
+            setTimeout(() => window._mregActualizarAviso?.(), 0);
             GRILLA_BOXES.forEach(b => {
                 const chip = document.getElementById(`mreg-box-chip-${b.id}`);
                 if (!chip) return;
@@ -7111,55 +7258,6 @@
 
             const fechaSnap = _mreg_fecha, horaSnap = _mreg_hora;
 
-            // Conflicto de boxes: siempre hay _mreg_boxPresel (verificado arriba).
-            // Usamos el box seleccionado explícitamente — NO la inferencia por servicio —
-            // para permitir que el mismo tipo de servicio corra en distintos boxes al mismo tiempo.
-            const _reservasVivasAhora = todasLasReservas.filter(r => esReservaActiva(r) && r.fecha === fechaSnap && normalizarHora(r.hora) === horaSnap);
-            const _boxesNuevos = _mreg_boxPresel.num > 0 ? [_mreg_boxPresel.num] : _inferirBoxes(servicioIngresado, '');
-            // Si viene de la grilla: verificar que el box específico no esté tomado
-            if (_mreg_boxPresel) {
-                const _boxTomado = _reservasVivasAhora.some(r => _grilla_boxDeReserva(r) === _mreg_boxPresel.id);
-                if (_boxTomado) {
-                    mostrarAviso(`${_mreg_boxPresel.icon} ${_mreg_boxPresel.label} ya tiene un turno a las ${horaSnap} hs`);
-                    return;
-                }
-                // Verificar que el slot no caiga dentro de la duración de otra reserva del mismo box
-                const _toMinC = h => { const [hh,mm]=(h||'00:00').split(':').map(Number); return hh*60+mm; };
-                const _nuevoMin = _toMinC(normalizarHora(horaSnap));
-                const _cubiertoPor = todasLasReservas.find(r =>
-                    esReservaActiva(r) && r.fecha === fechaSnap &&
-                    _grilla_boxDeReserva(r) === _mreg_boxPresel.id &&
-                    r.duracionMinutos > 15 &&
-                    (() => { const sm = _toMinC(normalizarHora(r.hora)); return _nuevoMin > sm && _nuevoMin < sm + r.duracionMinutos; })()
-                );
-                if (_cubiertoPor) {
-                    const _nom = _cubiertoPor.nombreLimpio || 'otro paciente';
-                    const _endMin2 = _toMinC(normalizarHora(_cubiertoPor.hora)) + (_cubiertoPor.duracionMinutos || 60);
-                    const _endH = `${String(Math.floor(_endMin2/60)).padStart(2,'0')}:${String(_endMin2%60).padStart(2,'0')}`;
-                    const _ovC = document.createElement('div');
-                    _ovC.id = '_mreg_cub_overlay';
-                    _ovC.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.62);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px';
-                    _ovC.innerHTML = `
-                        <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:28px 24px 22px">
-                            <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 8px">${_mreg_boxPresel.icon} Box ocupado</p>
-                            <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 6px"><b>${_mreg_boxPresel.label}</b> tiene un turno en curso.</p>
-                            <p style="font-size:13px;color:#4C6759;text-align:center;margin:0 0 16px">El tratamiento de <b>${escapeHtml(_nom)}</b> ocupa el box hasta las <b>${_endH} hs</b>.<br><span style="font-size:12px;color:#55645A">Los tratamientos duran 1 hora — no se puede agendar dentro de ese rango.</span></p>
-                            <button onclick="document.getElementById('_mreg_cub_overlay').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(47,90,71,0.28)">Entendido</button>
-                        </div>`;
-                    document.body.appendChild(_ovC);
-                    return;
-                }
-            }
-            // Re-check contra Firestore para prevenir race condition entre sesiones
-            try {
-                const _snapLive = await getDocs(query(collection(db,'reservas'), where('fecha','==',fechaSnap), where('hora','==',horaSnap)));
-                const _cfLive = _snapLive.docs.some(d => { const r = d.data(); return esReservaActiva(r) && _grilla_boxDeReserva(r) === _mreg_boxPresel.id; });
-                if (_cfLive) {
-                    mostrarAviso(`Horario ocupado en ${_mreg_boxPresel.title} (confirmado). Actualizá la agenda.`);
-                    return;
-                }
-            } catch(_e) { /* si falla el check extra, dejamos continuar — la UI local ya revisó */ }
-
             const clienteSnap = { ..._mreg_clienteSeleccionado };
 
             // Duración según el servicio (definida en Servicios > Catálogo), por defecto 30 min.
@@ -7168,35 +7266,27 @@
             // visible sino por el tipo estable del servicio resuelto.
             const _esConsultaInicial = _svTipoMap.get(servicioIngresado) === SERVICIO_TIPO_CONSULTA_INICIAL;
             const durMin = _esConsultaInicial ? DURACION_CONSULTA_INICIAL_MIN : (_svDurMap.get(servicioIngresado) || 30);
-            // Disponibilidad real del box por intervalo de tiempo (no por hora
-            // exacta): el turno nuevo [inicio, inicio + duración) no puede pisar
-            // otro turno del mismo box (aunque empiece a las 7:15 o 7:45) ni un
-            // horario bloqueado de ese box.
-            if (_mreg_boxPresel) {
+
+            // Superposición en el mismo box (por intervalo de tiempo) o con un
+            // horario bloqueado de ese box: se AVISA y la administradora decide.
+            // Nunca bloquea — puede agendar a la hora que quiera.
+            {
                 const _iniN = aMin(normalizarHora(horaSnap)), _finN = _iniN + durMin;
-                const _turnosBox = todasLasReservas
-                    .filter(r => esReservaActiva(r) && r.fecha === fechaSnap && _grilla_boxDeReserva(r) === _mreg_boxPresel.id)
-                    .map(r => { const i = aMin(normalizarHora(r.hora)); return { id: r.id, ini: i, fin: i + (Number(r.duracionMinutos) > 0 ? Number(r.duracionMinutos) : DURACION_BLOQUEO_LEGADO), r }; })
-                    .filter(t => Number.isFinite(t.ini));
-                const _choque = turnoQueSePisa(_turnosBox, _iniN, _finN);
-                const _bloqBox = fechaSnap === _grilla_fecha
-                    ? [..._grilla_adminBlocks.values()].filter(v => v.boxId === _mreg_boxPresel.id).map(v => ({ ...intervaloBloqueo(v), hora: v.hora })).filter(b => b.ini < _finN && _iniN < b.fin)
-                    : [];
-                if (_choque || _bloqBox.length) {
-                    const _det = _choque
-                        ? `<b>${escapeHtml((_choque.r.nombreLimpio || _choque.r.nombre || 'Otra paciente').split(' ').slice(0, 2).join(' '))}</b> tiene turno de <b>${etiquetaHora(_choque.ini)} a ${etiquetaHora(_choque.fin)} hs</b>.`
-                        : `Hay un horario bloqueado a las <b>${_bloqBox.map(b => etiquetaHora(b.ini)).join(', ')} hs</b>.`;
-                    const _ovCh = document.createElement('div');
-                    _ovCh.id = '_mreg_choque_overlay';
-                    _ovCh.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.62);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px';
-                    _ovCh.innerHTML = `
-                        <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:28px 24px 22px">
-                            <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 8px">⚠️ ${_mreg_boxPresel.icon} ${escapeHtml(_mreg_boxPresel.title)} ocupado</p>
-                            <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 14px">El turno de <b>${durMin} min</b> desde las <b>${etiquetaHora(_iniN)} hs</b> no entra.<br>${_det}</p>
-                            <button onclick="document.getElementById('_mreg_choque_overlay').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">Entendido</button>
-                        </div>`;
-                    document.body.appendChild(_ovCh);
-                    return;
+                // Re-lectura del día en Firestore: turnos cargados desde otra sesión.
+                let _remotas = [];
+                try {
+                    const _snapDia = await getDocs(query(collection(db, 'reservas'), where('fecha', '==', fechaSnap)));
+                    _remotas = _snapDia.docs.map(d => ({ id: d.id, ...d.data() }));
+                } catch (_e) { /* sin conexión: alcanza con lo ya cargado */ }
+                const _sup = _superposicionesEnBox({ fecha: fechaSnap, boxId: _mreg_boxPresel.id, ini: _iniN, fin: _finN, extra: _remotas });
+                if (_sup.hay) {
+                    const seguir = await _confirmarSuperposicion({
+                        titulo: `${_mreg_boxPresel.icon} ${escapeHtml(_mreg_boxPresel.title)}: se superpone`,
+                        detalle: `El turno de <b>${durMin} min</b> de <b>${etiquetaHora(_iniN)} a ${etiquetaHora(_finN)} hs</b> coincide con:`,
+                        lineas: _textoSuperposicion(_sup),
+                        si: 'Agendar igual', no: 'Cambiar horario',
+                    });
+                    if (!seguir) return;
                 }
             }
             const slotsExtension = (() => {
@@ -7211,51 +7301,6 @@
                 }
                 return slots;
             })();
-            // Bloquear solo si hay una PERSONA REAL en los slots de extensión Y en el MISMO BOX
-            if (slotsExtension.length > 0) {
-                const _personaEnSlot = (fecha, hora) => {
-                    // Chequeo por hora exacta: solo importa si hay reserva en el mismo box
-                    const enHoraExacta = todasLasReservas.some(r => {
-                        if (!esReservaActiva(r) || r.fecha !== fecha || normalizarHora(r.hora) !== normalizarHora(hora)) return false;
-                        const rBox = _grilla_boxDeReserva(r);
-                        // Si hay box preseleccionado, solo verificar ese box exacto
-                        if (_mreg_boxPresel) return rBox === _mreg_boxPresel.id;
-                        return _boxesNuevos.some(b => _inferirBoxes(r.servicio, r.tipo).includes(b));
-                    });
-                    if (enHoraExacta) return true;
-                    // Chequeo por bloqueo (extensión de otra reserva): verificar que sea el mismo box
-                    const blk = bloqueosHorarios.get(keyBloqueo(fecha, hora));
-                    if (!blk || !blk.reservaId) return false;
-                    const blkReserva = todasLasReservas.find(r => r.id === blk.reservaId && esReservaActiva(r));
-                    if (!blkReserva) return false;
-                    // Verificar que blkReserva TODAVÍA cubra esta hora
-                    // (bloqueosHorarios no se actualiza tras drag-drop, puede quedar stale)
-                    const _toM = h => { const [hh,mm]=(h||'00:00').split(':').map(Number); return hh*60+mm; };
-                    const _blkStart = _toM(normalizarHora(blkReserva.hora));
-                    const _blkEnd = _blkStart + (blkReserva.duracionMinutos || 30);
-                    const _thisMin = _toM(normalizarHora(hora));
-                    if (_thisMin <= _blkStart || _thisMin >= _blkEnd) return false;
-                    const blkBox = _grilla_boxDeReserva(blkReserva);
-                    // Si hay box preseleccionado, solo verificar ese box exacto
-                    if (_mreg_boxPresel) return blkBox === _mreg_boxPresel.id;
-                    return _boxesNuevos.some(b => _inferirBoxes(blkReserva.servicio, blkReserva.tipo).includes(b));
-                };
-                for (const extHora of slotsExtension) {
-                    if (_personaEnSlot(fechaSnap, extHora)) {
-                        const ov = document.createElement('div');
-                        ov.id = '_mreg_ext_overlay';
-                        ov.style.cssText = 'position:fixed;inset:0;z-index:200000;background:rgba(6,22,15,0.62);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px';
-                        ov.innerHTML = `
-                            <div style="width:100%;max-width:400px;background:linear-gradient(165deg,#fff 0%,#f6fbf8 100%);border-radius:22px;border:1px solid rgba(178,222,200,0.6);box-shadow:0 24px 52px rgba(6,40,25,0.22);padding:28px 24px 22px">
-                                <p style="font-family:'Playfair Display',serif;font-size:18px;color:#2f5a47;text-align:center;margin:0 0 8px">⚠️ Horario ocupado</p>
-                                <p style="font-size:14px;color:#4a7060;text-align:center;margin:0 0 14px">Hay otra paciente agendada a las <b>${extHora} hs</b>.<br>El turno de <b>${durMin} min</b> desde las <b>${horaSnap} hs</b> no entra.</p>
-                                <button onclick="document.getElementById('_mreg_ext_overlay').remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#4a7060,#2f5a47);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">Entendido</button>
-                            </div>`;
-                        document.body.appendChild(ov);
-                        return;
-                    }
-                }
-            }
 
             if (!(await _facial15Confirmar({ dni: clienteSnap.dni, fecha: fechaSnap, servicio: servicioIngresado }))) return;
 
@@ -7346,14 +7391,18 @@
 
                 // Bloquear slot base en calendarExceptions (visible al público inmediatamente)
                 const _baseBlockId = `reserva_admin_${fechaSnap}_${horaSnap.replace(':','-')}`;
-                setDoc(doc(db, "calendarExceptions", _baseBlockId), {
-                    fecha: fechaSnap, hora: horaSnap, blocked: true,
-                    tipo: 'reserva', reservaId: ref.id,
-                    boxes: _inferirBoxes(servicioIngresado, ''),
-                    updatedAt: serverTimestamp()
-                }).catch(() => {});
+                if (!_lockDeOtroTurno(fechaSnap, horaSnap, ref.id)) {
+                    setDoc(doc(db, "calendarExceptions", _baseBlockId), {
+                        fecha: fechaSnap, hora: horaSnap, blocked: true,
+                        tipo: 'reserva', reservaId: ref.id,
+                        boxes: _inferirBoxes(servicioIngresado, ''),
+                        updatedAt: serverTimestamp()
+                    }).catch(() => {});
+                    bloqueosHorarios.set(keyBloqueo(fechaSnap, horaSnap), { id: _baseBlockId, fecha: fechaSnap, hora: horaSnap, blocked: true, tipo: 'reserva', reservaId: ref.id });
+                }
                 // Bloquear slots de extension en calendarExceptions
                 for (const extHora of slotsExtension) {
+                    if (_lockDeOtroTurno(fechaSnap, extHora, ref.id)) continue;
                     const extId = `ext_${fechaSnap}_${extHora.replace(':','h')}`;
                     await setDoc(doc(db, "calendarExceptions", extId), {
                         fecha: fechaSnap, hora: extHora, blocked: true,
@@ -7504,14 +7553,17 @@
                 );
                 // Eliminar el slot base en calendarExceptions
                 const _baseId = `reserva_admin_${reserva.fecha}_${(reserva.hora||'').replace(':','-')}`;
-                try { await deleteDoc(doc(db, "calendarExceptions", _baseId)); } catch(_) {}
-                bloqueosHorarios.delete(keyBloqueo(reserva.fecha, reserva.hora));
+                if (!_lockDeOtroTurno(reserva.fecha, normalizarHora(reserva.hora), reserva.id)) {
+                    try { await deleteDoc(doc(db, "calendarExceptions", _baseId)); } catch(_) {}
+                    bloqueosHorarios.delete(keyBloqueo(reserva.fecha, reserva.hora));
+                }
                 // Eliminar slots de extension en calendarExceptions
                 if (reserva.duracionMinutos > 30) {
                     const slotsExtra = reserva.duracionMinutos >= 90 ? 2 : 1;
                     const idxBase = SLOTS_30_COMPLETOS.indexOf(normalizarHora(reserva.hora));
                     for (let i = 1; i <= slotsExtra && idxBase + i < SLOTS_30_COMPLETOS.length; i++) {
                         const extHora = SLOTS_30_COMPLETOS[idxBase + i];
+                        if (_lockDeOtroTurno(reserva.fecha, extHora, reserva.id)) continue;
                         const extId = `ext_${reserva.fecha}_${extHora.replace(':','h')}`;
                         try { await deleteDoc(doc(db, "calendarExceptions", extId)); } catch(_) {}
                         bloqueosHorarios.delete(keyBloqueo(reserva.fecha, extHora));
@@ -10024,8 +10076,13 @@
                 reservasDia.forEach(function(r){ if(r.hora) timesSet.add(r.hora); });
                 var sortedTimes = [...timesSet].sort();
 
+                // Una celda (hora·box) puede tener más de un turno: se imprimen todos.
                 var cellMap = new Map();
-                reservasDia.forEach(function(r){ var bid=getBoxId(r); if(bid&&r.hora) cellMap.set(r.hora+'|'+bid, r); });
+                reservasDia.forEach(function(r){ var bid=getBoxId(r); if(!bid||!r.hora) return; var k=r.hora+'|'+bid; if(!cellMap.has(k)) cellMap.set(k, []); cellMap.get(k).push(r); });
+                // Helvetica (WinAnsi) no dibuja emoji ni símbolos fuera de Latin-1:
+                // se quitan para que la nota no salga con caracteres basura.
+                var _pdfTxt = function(t){ return String(t||'').replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/[\u2013\u2014]/g,'-').replace(/[^\x20-\x7E\u00A0-\u00FF\n]/g,'').replace(/\s+/g,' ').trim(); };
+                var _notaDe = function(r){ return _pdfTxt(r.notaRapida); };
 
                 // Separar mañana (< 13:00) y tarde (>= 13:00) — mismo corte que la versión anterior.
                 var SPLIT = '13:00';
@@ -10094,13 +10151,22 @@
                     var rowHeights = times.map(function(hora) {
                         var maxLines = 0;
                         colBoxes.forEach(function(b) {
-                            var r = cellMap.get(hora + '|' + b.id);
-                            if (!r) return;
-                            doc.setFont('helvetica', 'bold'); doc.setFontSize(cellPt);
-                            var nomLines = doc.splitTextToSize(_nd(r), BOX_W - CELL_PAD * 2).length;
-                            doc.setFont('helvetica', 'normal'); doc.setFontSize(servPt);
-                            var srvLines = doc.splitTextToSize(r.servicio || '—', BOX_W - CELL_PAD * 2).length;
-                            var neededMm = CELL_PAD * 2 + nomLines * mmPerPt(cellPt) + 0.8 + srvLines * mmPerPt(servPt);
+                            var lista = cellMap.get(hora + '|' + b.id);
+                            if (!lista) return;
+                            var neededMm = CELL_PAD * 2;
+                            lista.forEach(function(r, j) {
+                                if (j > 0) neededMm += 1.6; // separación entre turnos de la misma celda
+                                doc.setFont('helvetica', 'bold'); doc.setFontSize(cellPt);
+                                var nomLines = doc.splitTextToSize(_nd(r), BOX_W - CELL_PAD * 2).length;
+                                doc.setFont('helvetica', 'normal'); doc.setFontSize(servPt);
+                                var srvLines = doc.splitTextToSize(r.servicio || '—', BOX_W - CELL_PAD * 2).length;
+                                neededMm += nomLines * mmPerPt(cellPt) + 0.8 + srvLines * mmPerPt(servPt);
+                                var nota = _notaDe(r);
+                                if (nota) {
+                                    doc.setFont('helvetica', 'italic'); doc.setFontSize(servPt);
+                                    neededMm += 0.6 + doc.splitTextToSize('Nota: ' + nota, BOX_W - CELL_PAD * 2).length * mmPerPt(servPt);
+                                }
+                            });
                             maxLines = Math.max(maxLines, neededMm);
                         });
                         return Math.max(maxLines, mmPerPt(cellPt) + CELL_PAD * 2);
@@ -10175,16 +10241,34 @@
                         colBoxes.forEach(function(b) {
                             doc.setDrawColor(150,150,150); doc.setLineWidth(0.3);
                             doc.rect(xC, y, BOX_W, rowH);
-                            var r = cellMap.get(hora + '|' + b.id);
-                            if (r) {
+                            var lista = cellMap.get(hora + '|' + b.id);
+                            if (lista) {
                                 var cy = y + CELL_PAD + mmPerPt(layout.cellPt) * 0.75;
-                                doc.setFont('helvetica', 'bold'); doc.setFontSize(layout.cellPt); doc.setTextColor(20,20,20);
-                                var nomLines = doc.splitTextToSize(_nd(r), BOX_W - CELL_PAD*2);
-                                doc.text(nomLines, xC + CELL_PAD, cy);
-                                cy += nomLines.length * mmPerPt(layout.cellPt) + 0.8;
-                                doc.setFont('helvetica', 'normal'); doc.setFontSize(layout.servPt); doc.setTextColor(85,85,85);
-                                var srvLines = doc.splitTextToSize(r.servicio || '—', BOX_W - CELL_PAD*2);
-                                doc.text(srvLines, xC + CELL_PAD, cy);
+                                lista.forEach(function(r, j) {
+                                    if (j > 0) {
+                                        // Línea fina entre dos turnos que empiezan a la misma hora
+                                        doc.setDrawColor(200,200,200); doc.setLineWidth(0.2);
+                                        doc.line(xC + CELL_PAD, cy - mmPerPt(layout.cellPt) * 0.75 + 0.2, xC + BOX_W - CELL_PAD, cy - mmPerPt(layout.cellPt) * 0.75 + 0.2);
+                                        cy += 1.6;
+                                    }
+                                    doc.setFont('helvetica', 'bold'); doc.setFontSize(layout.cellPt); doc.setTextColor(20,20,20);
+                                    var nomLines = doc.splitTextToSize(_nd(r), BOX_W - CELL_PAD*2);
+                                    doc.text(nomLines, xC + CELL_PAD, cy);
+                                    cy += nomLines.length * mmPerPt(layout.cellPt) + 0.8;
+                                    doc.setFont('helvetica', 'normal'); doc.setFontSize(layout.servPt); doc.setTextColor(85,85,85);
+                                    var srvLines = doc.splitTextToSize(r.servicio || '—', BOX_W - CELL_PAD*2);
+                                    doc.text(srvLines, xC + CELL_PAD, cy);
+                                    cy += srvLines.length * mmPerPt(layout.servPt);
+                                    var nota = _notaDe(r);
+                                    if (nota) {
+                                        // Nota cargada en la Grilla (menú ⋮ → Agregar nota)
+                                        cy += 0.6;
+                                        doc.setFont('helvetica', 'italic'); doc.setFontSize(layout.servPt); doc.setTextColor(40,40,40);
+                                        var notaLines = doc.splitTextToSize('Nota: ' + nota, BOX_W - CELL_PAD*2);
+                                        doc.text(notaLines, xC + CELL_PAD, cy);
+                                        cy += notaLines.length * mmPerPt(layout.servPt);
+                                    }
+                                });
                             }
                             xC += BOX_W;
                         });
@@ -10205,17 +10289,19 @@
                     }
                 }
 
+                // Encabezado: cantidad de TURNOS (no de horarios) de esa parte del día.
+                var _cuentaTurnos = function(times){ return reservasDia.filter(function(r){ return times.indexOf(r.hora) >= 0; }).length; };
                 var sessionsWritten = 0;
                 var expectedPages = (hasMañana && haTarde) ? 2 : 1;
 
                 try {
                     if (hasMañana) {
-                        drawShift(tmMañana, 'Turno Mañana', tmMañana.length, !haTarde);
+                        drawShift(tmMañana, 'Turno Mañana', _cuentaTurnos(tmMañana), !haTarde);
                         sessionsWritten += tmMañana.length;
                     }
                     if (haTarde) {
                         if (hasMañana) doc.addPage();
-                        drawShift(tmTarde, 'Turno Tarde', tmTarde.length, true);
+                        drawShift(tmTarde, 'Turno Tarde', _cuentaTurnos(tmTarde), true);
                         sessionsWritten += tmTarde.length;
                     }
                     if (!hasMañana && !haTarde) {
@@ -16063,6 +16149,21 @@
             } catch(e) { console.error('grillaDesbloquearDefault', e); mostrarAviso('No se pudo habilitar el horario'); }
         };
 
+        // Agendar otra paciente en el box de un turno (a la hora que se elija en el modal).
+        window.grillaAgendarEnBoxDe = (reservaId) => {
+            const r = todasLasReservas.find(x => x.id === reservaId);
+            if (!r) return;
+            grillaAbrirRegistro(normalizarHora(r.hora), _grilla_boxDeReserva(r));
+        };
+        // Tocar el espacio libre de una celda con turnos (fuera de las tarjetas)
+        // abre el alta en ese box a la hora de la fila tocada.
+        window.grillaClickCeldaOcupada = (ev, boxId) => {
+            if (_gDrag) return;
+            if (ev.target.closest('.grilla-tarjeta-turno, button, a, input, select')) return;
+            const hora = _grillaHoraEnY(ev.clientY);
+            if (hora) grillaAbrirRegistro(hora, boxId);
+        };
+
         window.grillaAbrirRegistro = (hora, boxId) => {
             const box = GRILLA_BOXES.find(b => b.id === boxId);
             _mreg_boxPresel = box || null;
@@ -16272,7 +16373,9 @@
             pop.innerHTML = `
                 <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();abrirFicha360DeReserva('${reservaId}','resumen')">📇 Ficha 360°</button>
                 <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();abrirCobro('${reservaId}')">💳 Cobrar / precio y pagos</button>
+                <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();grillaCambiarHorario(null,'${reservaId}')">🕒 Cambiar horario</button>
                 <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();grillaAbrirMover('${reservaId}')">↔ Mover de box / horario</button>
+                <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();grillaAgendarEnBoxDe('${reservaId}')">＋ Agendar otra paciente en este box</button>
                 <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();abrirRecomendacionPostSesion('${reservaId}')">✨ Enviar recomendación post-sesión</button>
                 <button type="button" onclick="document.getElementById('gc-menu-flot')?.remove();grillaVerHistorialPaciente(null,'${reservaId}')">🕘 Últimas sesiones (rápido)</button>
                 <div class="gc-menu-sep"></div>
@@ -16542,7 +16645,7 @@
 
         // Núcleo de "mover un turno" — lo usan el arrastre (grillaDrop) y el
         // selector rápido del menú ⋮ (grillaAbrirMover). Devuelve true si se movió.
-        const _grillaMoverReserva = async (reservaId, nuevoBoxId, hora) => {
+        const _grillaMoverReserva = async (reservaId, nuevoBoxId, hora, opciones = {}) => {
             const r = todasLasReservas.find(x => x.id === reservaId);
             if (!r) return false;
             const boxActual = _grilla_boxDeReserva(r);
@@ -16558,11 +16661,20 @@
                 .filter(x => esReservaActiva(x) && x.fecha === r.fecha && _grilla_boxDeReserva(x) === nuevoBoxId && x.id !== reservaId)
                 .map(x => { const i = aMin(normalizarHora(x.hora)); return { id: x.id, ini: i, fin: i + _durMov(x), x }; })
                 .filter(t => Number.isFinite(t.ini));
-            const conflicto = turnoQueSePisa(_turnosDestino, _iniMov, _iniMov + _durMov(r))?.x || null;
-            if (conflicto) {
-                const nom = (conflicto.nombreLimpio || conflicto.nombre || 'Paciente').split(' ')[0];
-                mostrarAviso(`Slot ocupado · ${nom} ya está en ese horario`);
-                return false;
+            // Si se pisa con otro turno (o un bloqueo) del box destino, se avisa y
+            // decide la administradora; quien ya mostró el aviso pasa { forzar: true }.
+            if (!opciones.forzar) {
+                const _sup = _superposicionesEnBox({ fecha: r.fecha, boxId: nuevoBoxId, ini: _iniMov, fin: _iniMov + _durMov(r), idIgnorar: reservaId });
+                if (_sup.hay) {
+                    const bxD = GRILLA_BOXES.find(b => b.id === nuevoBoxId);
+                    const seguir = await _confirmarSuperposicion({
+                        titulo: `${bxD ? bxD.icon + ' ' + escapeHtml(bxD.title) : 'Box'}: se superpone`,
+                        detalle: `Mover a <b>${etiquetaHora(_iniMov)} – ${etiquetaHora(_iniMov + _durMov(r))} hs</b> coincide con:`,
+                        lineas: _textoSuperposicion(_sup),
+                        si: 'Mover igual', no: 'Cancelar',
+                    });
+                    if (!seguir) return false;
+                }
             }
             try {
                 mostrarLoader(true);
@@ -16821,7 +16933,7 @@
                         </div>`;
                         estadoCls = ' gr-libre';
                     }
-                    return `<td class="grilla-td-box gr-box-${box.id}${estadoCls}${span > 1 ? ' gr-span' : ''}${_crisCls}"${span > 1 ? ` rowspan="${span}"` : ''} data-hora="${hora}" ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
+                    return `<td class="grilla-td-box gr-box-${box.id}${estadoCls}${span > 1 ? ' gr-span' : ''}${_crisCls}"${span > 1 ? ` rowspan="${span}"` : ''} data-hora="${hora}"${grupo ? ` onclick="grillaClickCeldaOcupada(event,'${box.id}')"` : ''} ondragover="grillaDragOver(event)" ondragenter="grillaDragEnter(this)" ondragleave="grillaDragLeave(this)" ondrop="grillaDrop(event,'${box.id}','${hora}',this)">${inner}</td>`;
                 }).join('');
 
                 // División MAÑANA / TARDE: banda separadora que cruza las 5 columnas.
@@ -17175,12 +17287,12 @@
             const cerrar = () => { ov.remove(); document.removeEventListener('keydown', teclas); anterior?.focus?.(); };
             const teclas = (e) => { if (e.key === 'Escape') cerrar(); };
             const render = () => {
-                const occ = sel !== ini0 ? choca(sel) : null;
+                const occ = sel !== ini0 ? choca(sel) : null; // solo aviso: se puede guardar igual
                 const nomOcc = occ ? (occ.nombreLimpio || occ.nombre || 'otro turno').split(' ')[0] : '';
                 const opts = [];
                 for (let m = desde; m <= hasta; m += PASO_GRILLA) {
                     const c = m !== ini0 ? choca(m) : null;
-                    opts.push(`<option value="${m}" ${m === sel ? 'selected' : ''} ${c ? 'disabled' : ''}>${etiquetaHora(aHora(m))} – ${etiquetaHora(aHora(m + dur))}${c ? ` · ocupado (${escapeHtml((c.nombreLimpio || c.nombre || '').split(' ')[0])})` : m === ini0 ? ' · actual' : ''}</option>`);
+                    opts.push(`<option value="${m}" ${m === sel ? 'selected' : ''}>${etiquetaHora(aHora(m))} – ${etiquetaHora(aHora(m + dur))}${c ? ` · se superpone (${escapeHtml((c.nombreLimpio || c.nombre || '').split(' ')[0])})` : m === ini0 ? ' · actual' : ''}</option>`);
                 }
                 const paso = (d) => `<button type="button" class="ghr-paso" data-d="${d}" ${sel + d < desde || sel + d > hasta ? 'disabled' : ''}>${d > 0 ? '+' : '−'}${Math.abs(d)} min</button>`;
                 ov.innerHTML = `<div class="p360-modal ghr-modal" role="dialog" aria-modal="true" aria-label="Cambiar horario">
@@ -17192,19 +17304,19 @@
                         <strong class="ghr-nuevo${occ ? ' ocupado' : ''}" aria-live="polite">${etiquetaHora(aHora(sel))} – ${etiquetaHora(aHora(sel + dur))}</strong>
                     </div>
                     <div class="ghr-pasos">${paso(-15)}${paso(-5)}${paso(5)}${paso(15)}</div>
-                    ${occ ? `<p class="ghr-aviso">Se superpone con ${escapeHtml(nomOcc)} en este box.</p>` : ''}
+                    ${occ ? `<p class="ghr-aviso">⚠️ Se superpone con ${escapeHtml(nomOcc)} en este box. Podés guardarlo igual.</p>` : ''}
                     <label class="p360-lbl" for="_ghr_sel">O elegí el horario</label>
                     <select id="_ghr_sel" class="select-input">${opts.join('')}</select>
                     <div class="p360-modal-acc">
                         <button type="button" class="btn-mini" id="_ghr_cancel">Cancelar</button>
-                        <button type="button" class="p360-btn-pri" id="_ghr_ok" ${sel === ini0 || occ ? 'disabled' : ''}>Guardar horario</button>
+                        <button type="button" class="p360-btn-pri" id="_ghr_ok" ${sel === ini0 ? 'disabled' : ''}>${occ ? 'Guardar igual' : 'Guardar horario'}</button>
                     </div></div>`;
                 ov.querySelectorAll('.ghr-paso').forEach(b => b.onclick = () => { sel += Number(b.dataset.d); render(); ov.querySelector(`.ghr-paso[data-d="${b.dataset.d}"]`)?.focus(); });
                 ov.querySelector('#_ghr_sel').onchange = (e) => { sel = Number(e.target.value); render(); ov.querySelector('#_ghr_sel')?.focus(); };
                 ov.querySelector('#_ghr_cancel').onclick = cerrar;
                 ov.querySelector('#_ghr_ok').onclick = async (e) => {
                     e.target.disabled = true;
-                    const ok = await _grillaMoverReserva(r.id, boxId, aHora(sel));
+                    const ok = await _grillaMoverReserva(r.id, boxId, aHora(sel), { forzar: true });
                     if (ok) { cerrar(); _p360Invalidar(); } else e.target.disabled = false;
                 };
             };
@@ -17248,7 +17360,7 @@
                 const opts = horas.map(h => {
                     const occ = ocupado(selBox, h);
                     const nom = occ ? (occ.nombreLimpio || occ.nombre || 'otro turno').split(' ')[0] : '';
-                    return `<option value="${h}" ${h === selHora ? 'selected' : ''} ${occ ? 'disabled' : ''}>${etiquetaHora(h)}${occ ? ` — ocupado (${escapeHtml(nom)})` : h === horaActual && selBox === boxActual ? ' — actual' : ''}</option>`;
+                    return `<option value="${h}" ${h === selHora ? 'selected' : ''}>${etiquetaHora(h)}${occ ? ` — se superpone (${escapeHtml(nom)})` : h === horaActual && selBox === boxActual ? ' — actual' : ''}</option>`;
                 }).join('');
                 const sinCambios = selBox === boxActual && selHora === horaActual;
                 ov.innerHTML = `<div class="p360-modal" role="dialog" aria-modal="true" aria-label="Mover turno">
@@ -17269,7 +17381,7 @@
                 ov.querySelector('#_mov_cancel').onclick = cerrar;
                 ov.querySelector('#_mov_ok').onclick = async (e) => {
                     e.target.disabled = true;
-                    if (ocupado(selBox, selHora)) { mostrarAviso('Ese horario se superpone con otro turno del box'); e.target.disabled = false; return; }
+                    // Superposición: el aviso lo muestra _grillaMoverReserva (Mover igual / Cancelar).
                     const ok = await _grillaMoverReserva(r.id, selBox, selHora);
                     if (ok) { cerrar(); _p360Invalidar(); } else e.target.disabled = false;
                 };
@@ -18774,6 +18886,8 @@
             </div>
             <p class="mreg-title" id="mreg-title">Registrar turno</p>
             <p class="mreg-subtitle" id="mreg-fecha-label">—</p>
+            <label class="mreg-field-label" for="mreg-hora-sel">Horario</label>
+            <select id="mreg-hora-sel" class="mreg-input mreg-hora-sel"></select>
             <label class="mreg-field-label" for="mreg-nombre-input">Buscar paciente por nombre o DNI</label>
             <input type="text" class="mreg-input" id="mreg-nombre-input" placeholder="Nombre o DNI…" autocomplete="off">
             <div class="mreg-resultados" id="mreg-resultados"></div>
@@ -18785,6 +18899,7 @@
             <div class="mreg-chips-grid" id="mreg-chips-grid"></div>
             <div id="mreg-duracion-badge" style="display:none;margin:-4px 0 14px;padding:8px 14px;background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.20);border-radius:10px;font-size:12.5px;color:rgba(22,61,50,0.90);text-align:center;"></div>
             <input type="hidden" id="mreg-servicio-hidden" value="">
+            <div id="mreg-aviso-sup" class="mreg-aviso-sup" role="status" style="display:none"></div>
             <div class="mreg-actions">
                 <button class="mreg-btn-cancel" onclick="cerrarModalRegistrar()">Cancelar</button>
                 <button class="mreg-btn-confirm" id="mreg-btn-confirmar" disabled onclick="confirmarRegistroManual()">Registrar turno</button>

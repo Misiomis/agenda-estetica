@@ -659,9 +659,19 @@ console.log('\n=== Grilla cada 5 min: turnos desalineados existentes, bloqueo y 
   check('desbloquear y volver a seleccionar: la celda es "+" libre otra vez', !fb.calls.store.has(`calendarExceptions/adm_${D5}_09-10_b2`) && celda('09:10', 'b2').classList.contains('gr-libre') && !!celda('09:10', 'b2').querySelector(".gcl-reg[onclick=\"grillaAbrirRegistro('09:10','b2')\"]"));
   check('estilos: selección verde visible con mouse, al tocar y con foco; sin hover pegado en celular', /@media \(hover: hover\) \{\s*table#grilla-table \.grilla-celda-libre:hover \{ background-color: #ecfdf5/.test(html) && /\.grilla-celda-libre:focus-within,[\s\S]{0,300}#d1fae5/.test(html) && !/\.grilla-celda-libre:hover \{\s*background: #ffffff/.test(html));
   // Mover el turno de 08:00 (15 min) a las 08:05 pisaría el de 08:15–09:00.
+  // Ya no se rechaza: aparece el aviso "se superpone" y decide la administradora.
+  const responderSup = async (promesa, respuesta) => {
+    await tick(30);
+    const ov = $('_sup_overlay');
+    const texto = ov ? ov.textContent.replace(/\s+/g, ' ') : null;
+    if (ov) ov.querySelector(`[data-sup="${respuesta}"]`).click();
+    await promesa; await tick(30);
+    return texto;
+  };
   w.grillaDragStart({ dataTransfer: { setData() {}, effectAllowed: '' } }, 'q800');
-  await w.grillaDrop({ preventDefault() {} }, 'b1', '08:05', null); await tick(20);
-  check('mover a 08:05 se rechaza: choca con el turno de 08:15 (por intervalo, no por hora exacta)', fb.calls.store.get('reservas/q800').hora === '08:00');
+  const supMover = await responderSup(w.grillaDrop({ preventDefault() {} }, 'b1', '08:05', null), 'no');
+  check('mover a 08:05 avisa que se superpone con el de 08:15 (por intervalo) y ofrece "Mover igual"', !!supMover && /Rosa Paz · 08:15 a 09:00 hs/.test(supMover) && /Mover igual/.test(supMover), supMover);
+  check('… "Cancelar" deja el turno donde estaba', fb.calls.store.get('reservas/q800').hora === '08:00' && !$('_sup_overlay'));
   w.grillaDragStart({ dataTransfer: { setData() {}, effectAllowed: '' } }, 'q800');
   await w.grillaDrop({ preventDefault() {} }, 'b2', '08:20', null); await tick(30);
   check('mover a otro box libre a las 08:20 sí funciona', fb.calls.store.get('reservas/q800').hora === '08:20' && fb.calls.store.get('reservas/q800').box === 'b2');
@@ -690,13 +700,18 @@ console.log('\n=== Grilla cada 5 min: turnos desalineados existentes, bloqueo y 
   // respeta ese desplazamiento (en jsdom no hay coordenadas: usa la fila soltada).
   check('el arrastre calcula la hora desde la fila bajo el cursor', /_grillaHoraEnY\(ev\.clientY\)/.test(html) && /_gDragOffsetMin/.test(html));
   // Alta desde el "+" de una celda de 5 min.
-  const altaDesde = async (hora, box, servicio) => {
+  // horaElegida: cambia el horario desde el selector del modal (cada 5 min).
+  // respuesta: qué tocar si aparece el aviso de superposición ('si' | 'no').
+  // paciente: por defecto Marta Sosa (otra paciente para los turnos encimados de
+  // otros boxes: la misma persona a la misma hora es un duplicado y el panel lo limpia).
+  const altaDesde = async (hora, box, servicio, { horaElegida, respuesta = 'no', paciente = { dni: '28777666', nombre: 'Marta Sosa', phone: '3764777666' } } = {}) => {
     w.grillaAbrirRegistro(hora, box); await tick(20);
+    if (horaElegida) { const sel = $('mreg-hora-sel'); sel.value = horaElegida; sel.dispatchEvent(new w.Event('change')); await tick(); }
     const p = w.document.createElement('div');
-    Object.assign(p.dataset, { dni: '28777666', nombre: 'Marta Sosa', phone: '3764777666', notas: '' });
+    Object.assign(p.dataset, { ...paciente, notas: '' });
     w.seleccionarPacienteRegistro(p); await tick();
     $('mreg-servicio-hidden').value = servicio;
-    await w.confirmarRegistroManual(); await tick(40);
+    return responderSup(w.confirmarRegistroManual(), respuesta);
   };
   const reservasMarta = () => [...fb.calls.store.entries()].filter(([k, v]) => k.startsWith('reservas/') && v.fecha === D5 && v.dni === '28777666').map(([, v]) => v);
   await altaDesde('08:05', 'b3', 'Criolipolisis');
@@ -704,9 +719,38 @@ console.log('\n=== Grilla cada 5 min: turnos desalineados existentes, bloqueo y 
   check('"+" de la celda 08:05 (Box 3) crea el turno a las 08:05 en ese box', nueva && nueva.hora === '08:05', reservasMarta());
   check('… y aparece en la Grilla con su horario', /^08:05–/.test(tarjeta('Marta Sosa')?.querySelector('.gc-horario')?.textContent || ''), tarjeta('Marta Sosa')?.outerHTML.slice(0, 200));
   const antes = reservasMarta().length;
-  await altaDesde('08:00', 'b1', 'Criolipolisis');
-  check('"+" de 08:00 en Box 1 con un turno de 30 min se rechaza: pisa el de 08:15 (aviso claro)', reservasMarta().length === antes && !!$('_mreg_choque_overlay') && /08:15 a 09:00 hs/.test($('_mreg_choque_overlay').textContent), $('_mreg_choque_overlay')?.textContent);
-  $('_mreg_choque_overlay')?.remove();
+  const supAlta = await altaDesde('08:00', 'b1', 'Criolipolisis', { respuesta: 'no' });
+  check('"+" de 08:00 en Box 1 (30 min) avisa que se superpone con el de 08:15 (no bloquea)', !!supAlta && /Rosa Paz · 08:15 a 09:00 hs/.test(supAlta) && /Agendar igual/.test(supAlta), supAlta);
+  check('… "Cambiar horario" no crea nada y deja el modal abierto para elegir otra hora', reservasMarta().length === antes && $('modal-registrar-overlay').classList.contains('open') && !$('mreg-btn-confirmar').disabled);
+  w.cerrarModalRegistrar();
+  await altaDesde('08:00', 'b1', 'Criolipolisis', { respuesta: 'si' });
+  const encimada = reservasMarta().find(v => v.box === 'b1' && v.hora === '08:00');
+  check('… "Agendar igual" crea el turno 08:00 en Box 1 aunque se superponga', !!encimada && reservasMarta().length === antes + 1, reservasMarta());
+  const cardsB1 = [...tb5.querySelectorAll('td.gr-box-b1 .grilla-tarjeta-turno')].filter(c => /Marta Sosa|Rosa Paz/.test(c.textContent));
+  check('… y en la Grilla quedan los dos turnos uno al lado del otro (carriles)', cardsB1.length === 2 && cardsB1.every(c => c.classList.contains('gr-carril')), cardsB1.map(c => c.className).join(' | '));
+  // Selector de horario del modal: cualquier hora cada 5 min, aunque la celda sea otra.
+  w.grillaAbrirRegistro('08:00', 'b4'); await tick(20);
+  const opcionesHora = [...$('mreg-hora-sel').options].map(o => o.value);
+  check('el modal tiene selector de horario cada 5 min (08:05, 08:10…)', opcionesHora.includes('08:05') && opcionesHora.includes('08:10') && $('mreg-hora-sel').value === '08:00', opcionesHora.slice(0, 6));
+  w.cerrarModalRegistrar();
+  await altaDesde('08:00', 'b4', 'Drenaje linfático', { horaElegida: '08:10', respuesta: 'si' });
+  check('elegir 08:10 en el selector agenda a las 08:10 (Box 2)', reservasMarta().some(v => v.box === 'b4' && v.hora === '08:10'), reservasMarta().map(v => v.box + ' ' + v.hora));
+  // Registros de la reserva pública: dos turnos a la misma hora no se pisan.
+  const lock0800 = fb.calls.store.get(`calendarExceptions/reserva_admin_${D5}_08-05`);
+  check('el registro público de 08:05 pertenece al primer turno (Box 3)', lock0800 && lock0800.reservaId && fb.calls.store.get('reservas/' + lock0800.reservaId)?.box === 'b3', lock0800);
+  await altaDesde('08:05', 'b2', 'Criolipolisis', { respuesta: 'si', paciente: { dni: '30999888', nombre: 'Laura Ruiz', phone: '3764999888' } });
+  check('… y ese otro turno sí se crea (Laura Ruiz 08:05 en Box 5)', [...fb.calls.store.values()].some(v => v.fecha === D5 && v.dni === '30999888' && v.hora === '08:05' && v.box === 'b2'));
+  const lock0800b = fb.calls.store.get(`calendarExceptions/reserva_admin_${D5}_08-05`);
+  check('agendar otro turno a las 08:05 (otro box) no le pisa ese registro', lock0800b && lock0800b.reservaId === lock0800.reservaId, lock0800b);
+  // Menú ⋮: cambiar horario y agendar otra paciente en el mismo box.
+  check('menú ⋮ ofrece "Cambiar horario" y "Agendar otra paciente en este box"', /grillaCambiarHorario\(null,'\$\{reservaId\}'\)">🕒 Cambiar horario/.test(html) && /grillaAgendarEnBoxDe\('\$\{reservaId\}'\)">＋ Agendar otra paciente en este box/.test(html));
+  w.grillaAgendarEnBoxDe('q815'); await tick(20);
+  check('"Agendar otra paciente en este box" abre el alta en Box 4 a la hora de ese turno', $('modal-registrar-overlay').classList.contains('open') && $('mreg-hora-sel').value === '08:15' && /Box 4/.test($('mreg-box-chip-b1').textContent) && $('mreg-box-chip-b1').style.fontWeight === '800');
+  w.cerrarModalRegistrar();
+  // Arrastre con "Mover igual": queda encimado a propósito.
+  w.grillaDragStart({ dataTransfer: { setData() {}, effectAllowed: '' } }, 'q800');
+  await responderSup(w.grillaDrop({ preventDefault() {} }, 'b1', '08:20', null), 'si');
+  check('"Mover igual" mueve el turno aunque se superponga (08:20 en Box 4)', fb.calls.store.get('reservas/q800').hora === '08:20' && fb.calls.store.get('reservas/q800').box === 'b1');
 }
 
 console.log('\n=== Aviso "kit listo" con detalle y total ===');
