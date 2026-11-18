@@ -590,7 +590,18 @@
         .sup-lista li { background: rgba(202,138,4,.12); border-radius: 10px; padding: 8px 10px; font-size: 13.5px; color: #5c420b; }
         .sup-nota { font-size: 12.5px !important; opacity: .85; }
         .sup-card .fc15-igual { border-color: rgba(120,100,60,.4); color: #5c4a1f; }
-        .mreg-hora-sel { margin-bottom: 12px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
+        .mhp-cab { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 8px; }
+        .mhp-vista { font-size: 22px; font-weight: 800; color: #1e3f2f; font-variant-numeric: tabular-nums; }
+        .mhp { display: grid; gap: 8px; margin-bottom: 10px; }
+        .mhp-fila { display: flex; gap: 6px; }
+        .mhp-horas { display: grid; grid-template-columns: repeat(7, 1fr); }
+        .mhp-horas .mhp-btn { min-width: 0; }
+        .mhp-mins { display: grid; grid-template-columns: repeat(6, 1fr); }
+        .mhp-btn { flex: none; min-width: 46px; min-height: 42px; border-radius: 10px; border: 1.5px solid var(--border-strong, #cbd8d1); background: #fff; color: #1e3f2f; font: 700 15px/1 inherit; font-family: inherit; cursor: pointer; font-variant-numeric: tabular-nums; }
+        .mhp-mins .mhp-btn { min-width: 0; }
+        .mhp-btn.sel { background: #1e3f2f; border-color: #1e3f2f; color: #fff; }
+        .mhp-btn:focus-visible { outline: 2px solid #1e3f2f; outline-offset: 2px; }
+        .mreg-hora-sel { display: none !important; margin-bottom: 12px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
         .mreg-aviso-sup { margin: -4px 0 14px; padding: 9px 12px; border-radius: 10px; background: #fef9c3; border: 1px solid #facc15; color: #713f12; font-size: 12.5px; line-height: 1.45; }
         .plan-cartel { display: flex; gap: 12px; align-items: flex-start; margin: 10px 0 0; padding: 12px 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(230,150,170,.20), rgba(251,231,236,.55)); border: 1.5px solid rgba(214,120,148,.45); color: #7a2f47; box-shadow: 0 4px 14px rgba(214,120,148,.16); }
         .plan-cartel .plan-cartel-ico { font-size: 26px; line-height: 1; flex: 0 0 auto; }
@@ -6995,6 +7006,25 @@
             if (actual % PASO_GRILLA) opts.push(`<option value="${_mreg_hora}" selected>${etiquetaHora(_mreg_hora)} hs</option>`);
             sel.innerHTML = opts.join('');
             sel.onchange = () => window.mregCambiarHora(sel.value);
+            _mregRenderPicker();
+        }
+        // Selector táctil: horas y minutos en botones grandes (más fácil que la
+        // lista o que acertar la fila de 5 min con el dedo). Sincroniza el <select>.
+        function _mregRenderPicker() {
+            const cont = document.getElementById('mreg-hora-pick');
+            const sel = document.getElementById('mreg-hora-sel');
+            if (!cont || !sel || !_mreg_hora) return;
+            const [hSel, mSel] = _mreg_hora.split(':').map(Number);
+            const vista = document.getElementById('mreg-hora-vista');
+            if (vista) vista.textContent = etiquetaHora(_mreg_hora) + ' hs';
+            const horas = [...new Set([...sel.options].map(o => Number(o.value.split(':')[0])))].sort((a, b) => a - b);
+            const pad = (n) => String(n).padStart(2, '0');
+            cont.innerHTML = `<div class="mhp-fila mhp-horas" role="group" aria-label="Hora">${horas.map(h => `<button type="button" class="mhp-btn${h === hSel ? ' sel' : ''}" data-h="${h}" aria-pressed="${h === hSel}">${pad(h)}</button>`).join('')}</div>`
+                + `<div class="mhp-fila mhp-mins" role="group" aria-label="Minutos">${Array.from({ length: 12 }, (_, i) => i * 5).map(m => `<button type="button" class="mhp-btn${m === mSel ? ' sel' : ''}" data-m="${m}" aria-pressed="${m === mSel}">:${pad(m)}</button>`).join('')}</div>`;
+            cont.querySelectorAll('[data-h]').forEach(b => b.onclick = () => { window.mregCambiarHora(`${pad(+b.dataset.h)}:${pad(mSel)}`); });
+            cont.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { window.mregCambiarHora(`${pad(hSel)}:${pad(+b.dataset.m)}`); });
+            const act = cont.querySelector('.mhp-horas .sel');
+            if (act) act.scrollIntoView({ block: 'nearest', inline: 'center' });
         }
         function _mregRenderSubtitulo() {
             const _numDeBoxId = Object.fromEntries(GRILLA_BOXES.map(b => [b.id, b.num]));
@@ -7031,6 +7061,11 @@
             const h = normalizarHora(valor);
             if (!h) return;
             _mreg_hora = h;
+            const sel = document.getElementById('mreg-hora-sel');
+            if (sel && sel.value !== h) { if (![...sel.options].some(o => o.value === h)) sel.insertAdjacentHTML('beforeend', `<option value="${h}">${etiquetaHora(h)} hs</option>`); sel.value = h; }
+            _mregRenderPicker();
+            const vista = document.getElementById('mreg-hora-vista');
+            if (vista) vista.textContent = etiquetaHora(h) + ' hs';
             _mregRenderSubtitulo();
             _mregActualizarBadge();
             window._mregActualizarAviso();
@@ -18896,8 +18931,9 @@
             </div>
             <p class="mreg-title" id="mreg-title">Registrar turno</p>
             <p class="mreg-subtitle" id="mreg-fecha-label">—</p>
-            <label class="mreg-field-label" for="mreg-hora-sel">Horario</label>
-            <select id="mreg-hora-sel" class="mreg-input mreg-hora-sel"></select>
+            <div class="mhp-cab"><span class="mreg-field-label" style="margin:0">Horario</span><strong id="mreg-hora-vista" class="mhp-vista" aria-live="polite"></strong></div>
+            <div id="mreg-hora-pick" class="mhp"></div>
+            <select id="mreg-hora-sel" class="mreg-input mreg-hora-sel" aria-label="Horario (lista completa)"></select>
             <label class="mreg-field-label" for="mreg-nombre-input">Buscar paciente por nombre o DNI</label>
             <input type="text" class="mreg-input" id="mreg-nombre-input" placeholder="Nombre o DNI…" autocomplete="off">
             <div class="mreg-resultados" id="mreg-resultados"></div>
