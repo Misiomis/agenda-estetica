@@ -2837,6 +2837,10 @@
                     <span class="nav-grupo-txt">Pacientes y Fichas</span><span class="nav-grupo-chev" aria-hidden="true">▸</span>
                 </button>
                 <div class="nav-subs">
+                    <button class="btn-nav nav-sub" id="btn-centro-gestion" onclick="navegar('centro-gestion')">
+                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="9" r="6.6"/><path d="m11.8 6.2-1.6 4-4 1.6 1.6-4Z" stroke-linejoin="round"/></svg>
+                        Centro de gestión
+                    </button>
                     <button class="btn-nav nav-sub" id="btn-clientes" onclick="navegar('clientes')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="6" r="2.6"/><path d="M2.3 15.5c.5-3 2.2-4.6 4.7-4.6s4.2 1.6 4.7 4.6"/><circle cx="13.2" cy="5.6" r="2"/><path d="M12.2 10.8c1.9.2 3.1 1.7 3.5 4.1"/></svg>
                         Pacientes
@@ -2962,6 +2966,7 @@
             <div class="bsh-divider"></div>
             <div class="bsh-section">
                 <span class="bsh-label">Atención</span>
+                <button class="bsh-item" onclick="navegar('centro-gestion');cerrarBottomSheet()">🧭 Centro de gestión</button>
                 <button class="bsh-item" onclick="navegar('buscador-avanzado');cerrarBottomSheet()">🎯 Buscador avanzado</button>
                 <button class="bsh-item" onclick="navegar('control-sesiones');cerrarBottomSheet()">⏱️ Control de sesiones</button>
                 <button class="bsh-item" onclick="navegar('recordatorios');cerrarBottomSheet()">🔔 Recordatorios y retorno</button>
@@ -3107,6 +3112,20 @@
                     <div id="contenedorSesionesBuscadas" style="margin-top:10px;"></div>
                     <div class="cliente-help" style="margin-top:14px; font-size:13px; background:rgba(53,122,92,0.10); border-radius:10px; padding:8px 12px;">Buscá por cualquier parte del nombre: "miriam", "sedof", "adriana c". Muestra todos sus turnos con box, servicio y resumen mensual.</div>
                 </div>
+            </div>
+            <!-- ════════════ CENTRO DE GESTIÓN Y CONSULTAS (js/centro-gestion-ui.js) ════════════ -->
+            <div id="sec-centro-gestion" class="section">
+                <div class="p360-sec-head">
+                    <div>
+                        <h3 class="p360-sec-title">Centro de gestión y consultas</h3>
+                        <p class="p360-sec-sub">Buscá en todos los meses, controlá quién falta agendar, compará meses, revisá duplicaciones y posibles duplicados, e imprimí o exportá cualquier listado.</p>
+                    </div>
+                    <div class="p360-acc">
+                        <span class="p360-muted" id="cg-actualizado"></span>
+                        <button class="btn-mini" onclick="cgRecargar()" title="Volver a leer pacientes y turnos de Firestore">↻ Actualizar datos</button>
+                    </div>
+                </div>
+                <div id="cg-raiz"><div class="p360-cargando">Abriendo…</div></div>
             </div>
             <!-- ════════════ BUSCADOR AVANZADO (servicio · período · estado) ════════════ -->
             <div id="sec-buscador-avanzado" class="section">
@@ -3924,6 +3943,7 @@
             esServicioFacial, evaluarIntervaloFacial, textoConflictoFacial
         } from "/js/planificacion-paciente.js";
         import { initDuplicarMes } from "/js/duplicar-mes-ui.js";
+        import { initCentroGestion } from "/js/centro-gestion-ui.js";
         import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
         import { MEDIOS, etiquetaMedio, iconoMedio, parsearPesos, milesAPesos, pesosAMiles, formatoPesos, formatoPesosEnteros, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio, normalizarMontoARS, normalizarDocMontos, MONTOS_RAPIDOS } from "/js/cobro-rapido.js";
         import { esTurnoDeJornadaValido, origenParaNuevoTurno } from "/js/turno-jornada.js";
@@ -13934,7 +13954,7 @@
         // sus pantallas como pestañas. Cada bloque recuerda la última abierta.
         const NAV_GRUPOS = [
             { id: 'jornada', label: 'Grilla y Jornada', items: [['grilla', '📅 Grilla de boxes'], ['agenda', '🗓 Agenda mensual'], ['preparar-jornada', '📋 Preparar jornada']] },
-            { id: 'pacientes', label: 'Pacientes y Fichas', items: [['clientes', '👥 Directorio'], ['buscador-avanzado', '🎯 Buscador avanzado'], ['control-sesiones', '⏱️ Control de sesiones'], ['buscador-sesiones', '🔎 Sesiones'], ['buscar', '🔍 Buscar turnos']] },
+            { id: 'pacientes', label: 'Pacientes y Fichas', items: [['centro-gestion', '🧭 Centro de gestión'], ['clientes', '👥 Directorio'], ['buscador-avanzado', '🎯 Buscador avanzado'], ['control-sesiones', '⏱️ Control de sesiones'], ['buscador-sesiones', '🔎 Sesiones'], ['buscar', '🔍 Buscar turnos']] },
             { id: 'seguimiento', label: 'Seguimiento y Consultas', items: [['recordatorios', '🔔 Recordatorios y retorno'], ['recomendaciones', '✨ Recomendaciones'], ['consultas', '💬 Consultas web'], ['control-consultas', '✅ Control de consultas']] },
             { id: 'recursos', label: 'Recursos del Espacio', items: [['servicios', '🧩 Servicios y boxes'], ['pedidos-kit', '🧴 Pedidos de kit'], ['cursos', '🎓 Mis cursos']] },
             { id: 'gestion', label: 'Gestión y Cierre', items: [['resumen-mensual', '📊 Resumen mensual'], ['export', '⬇ Exportar / Jornadas'], ['@movimientos', '🕘 Movimientos']] },
@@ -13995,6 +14015,7 @@
             if (s === 'recordatorios') window.recRender?.();
             if (s === 'recomendaciones') window.recPostRender?.();
             if (s === 'buscador-avanzado') window.baAbrir?.();
+            if (s === 'centro-gestion') window.cgAbrir?.();
             if (s === 'control-sesiones') window.csAbrir?.();
             _navRenderGrupo(s);
         };
@@ -18500,6 +18521,23 @@
                 claveDe: _pacienteMatchKey, nombreDe: _pacienteNombreDisplay, esRealizada: _csEsRealizada,
             });
         }
+
+        initCentroGestion({
+            db, F: { collection, getDocs, doc, setDoc },
+            escapeHtml, mostrarAviso: (m) => window.mostrarAviso(m), getPdfTools,
+            fetchReservas: _fetchReservasCompletasParaExport,
+            claveDe: _pacienteMatchKey,
+            claveDni: (dni) => 'dni:' + _resolverDniFinal(normalizarDNI(dni)),
+            esDniValido: (d) => { d = String(d || ''); return d.length >= 3 && d !== 'undefined' && d !== 'null' && !d.includes('__PLACEHOLDER__') && !d.includes('<__') && !d.startsWith('549'); },
+            nombreFicha: (c) => toTitleCase(c.fullName || c.fullLname || c.nombre || c.name || ''),
+            esActiva: esReservaActiva, esBloqueo: esReservaBloqueoAdmin,
+            boxDe: (r) => { const id = _grilla_boxDeReserva(r); if (!id) return ''; const b = GRILLA_BOXES.find(x => x.id === id); return b ? b.label : id; },
+            hoy: () => _hoyISOZona(ZONA_HORARIA_NEGOCIO),
+            ahora: () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); },
+            abrirFicha: (clave) => window.abrirFicha360(clave, 'resumen'),
+            irAGrilla: (fecha) => { _grilla_fecha = fecha; window.navegar('grilla'); cargarAdminBlocks(fecha); },
+            usuario: () => auth?.currentUser?.email || '',
+        });
 
         window.csAbrir = async () => {
             const cont = document.getElementById('cs-resultados');
