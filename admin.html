@@ -991,6 +991,25 @@
              en la barra de herramientas de la Grilla y avisa para toda la
              jornada que se está mirando. ── */
         #btn-grilla-cristina.activo { background: #FFD93B; border-color: #D99A00; color: #5C4400; font-weight: 800; }
+        /* Avisos generales de la Grilla (configuracion/avisosGrilla): solo informan, no bloquean. */
+        .grilla-avisos-dia { position: sticky; top: calc(var(--topbar-h, 60px) + 6px); z-index: 6; display: grid; gap: 6px; margin: 8px 0 6px; pointer-events: none; }
+        .grilla-aviso-item { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 10px; font-weight: 800; font-size: 13.5px; border: 1px solid; box-shadow: 0 4px 14px rgba(20,40,30,.12); }
+        .grilla-aviso-item small { font-weight: 600; opacity: .75; margin-left: auto; font-size: 11.5px; white-space: nowrap; }
+        .grilla-aviso-item.c-rojo { background: #FCE4E1; border-color: #E09A92; color: #8E2B22; }
+        .grilla-aviso-item.c-amarillo { background: #FFF1C2; border-color: #E1B94A; color: #6B4E00; }
+        .grilla-aviso-item.c-azul { background: #E2ECF8; border-color: #9DB7DA; color: #24476F; }
+        .grilla-aviso-item.c-verde { background: #DFF1E6; border-color: #93C6A8; color: #1F5B3B; }
+        table#grilla-table td.grilla-td-hora.gr-aviso { box-shadow: inset 4px 0 0 var(--gr-aviso-color, #D9534F) !important; }
+        td.grilla-td-hora .gr-aviso-ico { display: block; font-size: 9px; line-height: 1; pointer-events: none; }
+        .gav-bg { position: fixed; inset: 0; background: rgba(20,30,25,.42); z-index: 9500; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 12px; overflow-y: auto; }
+        .gav-card { background: var(--surface); border-radius: 16px; width: 100%; max-width: 520px; padding: 18px 20px; box-shadow: var(--shadow-lg); }
+        .gav-card h3 { margin: 0 0 4px; font-size: 17px; }
+        .gav-card label { display: grid; gap: 4px; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft); }
+        .gav-card input, .gav-card select { padding: 9px 10px; border: 1px solid var(--border-strong); border-radius: 9px; font: inherit; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--ink); background: var(--surface); }
+        .gav-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+        .gav-lista { display: grid; gap: 6px; margin: 12px 0 0; }
+        .gav-lista .grilla-aviso-item { box-shadow: none; font-size: 12.5px; }
+        .gav-lista button { margin-left: 8px; border: none; background: rgba(0,0,0,.08); border-radius: 7px; padding: 4px 8px; cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 700; color: inherit; }
         .grilla-banner-cristina { background: #FFD93B; border: 1px solid #D99A00; color: #5C4400; font-weight: 800; font-size: 13px; padding: 9px 14px; border-radius: 10px; margin: 8px 0 4px; display: flex; align-items: center; gap: 8px; }
         /* Teñido real de la grilla (no solo el banner): se aplica por fila,
            según si esa hora cae en la mañana o la tarde (misma frontera que
@@ -3020,11 +3039,13 @@
                          desde la Grilla); sigue disponible en Agenda → acciones rápidas. -->
                     <button class="btn-mini" onclick="grillaVistaClasica()" style="border-color:rgba(100,180,140,0.22);color:rgba(22,61,50,0.55);">📅 Vista clásica</button>
                     <button class="btn-mini" id="btn-grilla-cristina" onclick="grillaToggleMenuCristina(event)">⋮ Cristina</button>
+                    <button class="btn-mini" id="btn-grilla-avisos" onclick="grillaAvisosAbrir()" title="Aviso general para uno o varios días (no bloquea horarios)">📢 Avisos</button>
                     <span class="grilla-tools-sep" aria-hidden="true"></span>
                     <button class="btn-mini" id="btn-grilla-ahora" onclick="grillaIrHoraActual()" title="Ir al horario actual de hoy">🕒 Hora actual</button>
                 </div>
                 <div class="grilla-resumen-dia" id="grilla-resumen-dia" aria-live="polite"></div>
                 <div id="grilla-banner-cristina" class="grilla-banner-cristina" style="display:none;">🟡 Hoy viene Cristina</div>
+                <div id="grilla-avisos-dia" class="grilla-avisos-dia" hidden></div>
                 <div class="grilla-scroll-wrap">
                     <table class="grilla-table" id="grilla-table">
                         <thead>
@@ -3947,7 +3968,7 @@
         import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
         import { MEDIOS, etiquetaMedio, iconoMedio, parsearPesos, milesAPesos, pesosAMiles, formatoPesos, formatoPesosEnteros, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio, normalizarMontoARS, normalizarDocMontos, MONTOS_RAPIDOS } from "/js/cobro-rapido.js";
         import { esTurnoDeJornadaValido, origenParaNuevoTurno } from "/js/turno-jornada.js";
-        import { normalizarBoxes, serializarBoxes, nuevoBox, renombrar as renombrarBox, mover as moverBox, nombreCorto as nombreCortoBox, validarNombre as validarNombreBox, MAX_LARGO_NOMBRE as MAX_NOMBRE_BOX } from "/js/boxes-grilla.js";
+        import { normalizarBoxes, boxesParaFecha, FECHA_BOXES_NUEVOS, serializarBoxes, nuevoBox, renombrar as renombrarBox, mover as moverBox, nombreCorto as nombreCortoBox, validarNombre as validarNombreBox, MAX_LARGO_NOMBRE as MAX_NOMBRE_BOX } from "/js/boxes-grilla.js";
         import { armarDiasBloqueados, planDesbloqueo } from "/js/desbloqueo-selectivo.js";
         import { numeroWhatsApp } from "/js/telefono-wa.js";
         import { armarPedidoKit, lineasPedidoKit, totalLineas, etiquetaLinea, cambiarPrecioLinea, normalizarCantidad as normalizarCantKit, CANT_MAX_KIT } from "/js/kit-cantidades.js";
@@ -7228,6 +7249,8 @@
         };
 
         window.registrarReservaManual = async (fecha, hora) => {
+            // Boxes disponibles según el día del turno (Box 1 recién desde diciembre)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(fecha || '')) _boxesSegunFecha(fecha);
             const horaNormalizada = normalizarHora(hora);
             if (!horaNormalizada) { mostrarAviso("Hora inválida"); return; }
 
@@ -15123,7 +15146,13 @@
         const blRender = () => {
             const el = document.getElementById('blabels-lista');
             if (!el) return;
-            if (!_bxgBorrador) _bxgBorrador = GRILLA_BOXES.map(b => ({ ...b }));
+            // Se edita en el orden guardado de siempre (el de noviembre) + «Box 1» al final;
+            // desde diciembre la Grilla igual los muestra ordenados por número.
+            if (!_bxgBorrador) {
+                const _base = normalizarBoxes(_boxesConfigGuardada);
+                const _b1 = boxesParaFecha(_boxesConfigGuardada, '9999-12-31').filter(b => !_base.some(x => x.id === b.id));
+                _bxgBorrador = [..._base, ..._b1].map(b => ({ ...b }));
+            }
             const n = _bxgBorrador.length;
             el.innerHTML = '<div class="bxg-lista">' + _bxgBorrador.map((b, i) => `
                 <div class="bxg-fila" data-box="${b.id}">
@@ -16173,13 +16202,24 @@
         // Boxes activos, en el orden visible. Arranca con la configuración por
         // defecto (Box 4, Box 2, Box 3, Box 5) y se reemplaza EN EL LUGAR con lo
         // guardado en configuracion/boxesGrilla (ver _aplicarConfigBoxes).
-        const GRILLA_BOXES = normalizarBoxes(null);
+        // Desde FECHA_BOXES_NUEVOS (1/12/2026) la Grilla suma «Box 1» y ordena
+        // Box 1 … Box 5; los días anteriores quedan como estaban (no se mezclan
+        // datos de noviembre). La lista se ajusta al día que muestra la Grilla.
+        const GRILLA_BOXES = boxesParaFecha(null, fechaHoyISO());
+        let _boxesConfigGuardada = null;
+        let _boxesFechaAplicada = fechaHoyISO();
+        const _boxesSegunFecha = (fecha) => {
+            _boxesFechaAplicada = fecha;
+            const lista = boxesParaFecha(_boxesConfigGuardada, fecha);
+            GRILLA_BOXES.splice(0, GRILLA_BOXES.length, ...lista);
+        };
         // Lista de boxes guardada (nombres, orden, boxes agregados). Se aplica en
         // el mismo array para que todo lo que ya lo referencia vea el cambio.
         let _boxesGrillaGuardados = false;
         const _aplicarConfigBoxes = (cfg) => {
-            const lista = normalizarBoxes(cfg);
-            GRILLA_BOXES.splice(0, GRILLA_BOXES.length, ...lista);
+            _boxesConfigGuardada = cfg || null;
+            _boxesSegunFecha(_boxesFechaAplicada);
+            const lista = boxesParaFecha(cfg, '9999-12-31'); // duplicar mes: todos los boxes
             _boxesDuplicar.splice(0, _boxesDuplicar.length, ...lista.map(b => ({ id: b.id, label: b.label })));
         };
         // Aplica overrides de labels guardados en Firestore (se parchean después de cargar)
@@ -16209,7 +16249,7 @@
         };
 
         // Duplicar mes usa esta lista; se actualiza en el lugar si cambian los boxes.
-        const _boxesDuplicar = GRILLA_BOXES.map(b => ({ id: b.id, label: b.label }));
+        const _boxesDuplicar = boxesParaFecha(null, "9999-12-31").map(b => ({ id: b.id, label: b.label }));
         initDuplicarMes({
             db, auth, F: { collection, getDocs, getDoc, doc, setDoc, runTransaction, serverTimestamp, query, where },
             escapeHtml, mostrarAviso: (m) => window.mostrarAviso(m), boxes: _boxesDuplicar,
@@ -16242,8 +16282,29 @@
             return null;
         };
 
+        // ── Avisos generales de la Grilla ──
+        // configuracion/avisosGrilla = { avisos: [{ id, texto, desde, hasta, color }] }.
+        // Se muestran en todos los horarios de los días del rango; no bloquean
+        // ni cambian nada de la agenda.
+        let _grillaAvisos = [];
+        let _grillaAvisosCargados = false;
+        const _cargarAvisosGrilla = async (forzar) => {
+            if (_grillaAvisosCargados && !forzar) return;
+            _grillaAvisosCargados = true;
+            try {
+                const snap = await getDoc(doc(db, 'configuracion', 'avisosGrilla'));
+                const lista = snap.exists() && Array.isArray(snap.data().avisos) ? snap.data().avisos : [];
+                _grillaAvisos = lista.filter(a => a && a.texto && /^\d{4}-\d{2}-\d{2}$/.test(a.desde || '') && /^\d{4}-\d{2}-\d{2}$/.test(a.hasta || ''));
+            } catch (e) { console.warn('Avisos de la Grilla:', e); }
+        };
+        const _avisosDelDia = (fecha) => _grillaAvisos.filter(a => a.desde <= fecha && fecha <= a.hasta);
+        const _AVISO_COLORES = { rojo: '#D9534F', amarillo: '#E1A21A', azul: '#3F72AF', verde: '#3C8D5E' };
+        const _fechaAvisoTxt = (f) => { const [y, m, d] = f.split('-'); return d + '/' + m; };
+        const _rangoAvisoTxt = (a) => a.desde === a.hasta ? _fechaAvisoTxt(a.desde) : _fechaAvisoTxt(a.desde) + ' al ' + _fechaAvisoTxt(a.hasta);
+
         const cargarAdminBlocks = async (fecha) => {
             await _cargarHorarioGrilla();
+            await _cargarAvisosGrilla();
             try {
                 const snap = await getDocs(query(collection(db,'calendarExceptions'), where('fecha','==',fecha)));
                 _grilla_adminBlocks.clear();
@@ -16692,6 +16753,62 @@
         // real), uno por fecha, separado en mañana/tarde (ej: viernes a la
         // tarde no viene) — y tiñe toda la grilla de ese turno, no solo un
         // banner. ──
+        window.grillaAvisosAbrir = async () => {
+            await _cargarAvisosGrilla(true);
+            document.getElementById('gav-bg')?.remove();
+            const hoy = fechaHoyISO();
+            const vigentes = _grillaAvisos.filter(a => a.hasta >= hoy).sort((a, b) => a.desde.localeCompare(b.desde));
+            const lista = vigentes.length ? vigentes.map(a => `<div class="grilla-aviso-item c-${_AVISO_COLORES[a.color] ? a.color : 'rojo'}">📢 ${escapeHtml(a.texto)}<small>${escapeHtml(_rangoAvisoTxt(a))}</small><button type="button" onclick="grillaAvisoBorrar('${escapeHtml(a.id)}')">Quitar</button></div>`).join('') : '<div style="font-size:12.5px;color:var(--ink-soft)">No hay avisos vigentes.</div>';
+            document.body.insertAdjacentHTML('beforeend', `<div class="gav-bg" id="gav-bg" onclick="if(event.target===this)this.remove()"><div class="gav-card" role="dialog" aria-modal="true" aria-label="Avisos de la Grilla">
+                <h3>📢 Aviso en la Grilla</h3>
+                <div style="font-size:12.5px;color:var(--ink-soft)">Se muestra arriba de la Grilla y en todos los horarios de esos días. No bloquea turnos: se puede seguir agendando normal.</div>
+                <label style="margin-top:12px">Aviso <input id="gav-texto" maxlength="120" placeholder="Ej: Cristina no viene"></label>
+                <div class="gav-fila">
+                    <label>Desde <input type="date" id="gav-desde" value="${_grilla_fecha}"></label>
+                    <label>Hasta <input type="date" id="gav-hasta" value="${_grilla_fecha}"></label>
+                </div>
+                <label>Color <select id="gav-color"><option value="rojo">Rojo</option><option value="amarillo">Amarillo</option><option value="azul">Azul</option><option value="verde">Verde</option></select></label>
+                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+                    <button type="button" class="btn-mini" onclick="document.getElementById('gav-bg').remove()">Cerrar</button>
+                    <button type="button" class="btn-mini" id="gav-guardar" onclick="grillaAvisoGuardar()" style="background:var(--forest);border-color:var(--forest);color:#fff;font-weight:700">Guardar aviso</button>
+                </div>
+                <div class="gav-lista"><div style="font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft)">Avisos vigentes</div>${lista}</div>
+            </div></div>`);
+            setTimeout(() => document.getElementById('gav-texto')?.focus(), 50);
+        };
+        const _guardarAvisosGrilla = async (lista) => {
+            await setDoc(doc(db, 'configuracion', 'avisosGrilla'), { avisos: lista, actualizadoEn: serverTimestamp(), actualizadoPor: (auth.currentUser && auth.currentUser.email) || null });
+            _grillaAvisos = lista;
+        };
+        window.grillaAvisoGuardar = async () => {
+            const texto = (document.getElementById('gav-texto').value || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+            let desde = document.getElementById('gav-desde').value, hasta = document.getElementById('gav-hasta').value || desde;
+            const color = document.getElementById('gav-color').value;
+            if (!texto) { mostrarAviso('Escribí el aviso.'); return; }
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(desde || '')) { mostrarAviso('Elegí la fecha de inicio.'); return; }
+            if (hasta < desde) [desde, hasta] = [hasta, desde];
+            const btn = document.getElementById('gav-guardar'); if (btn) btn.disabled = true;
+            try {
+                await _cargarAvisosGrilla(true);
+                const nuevo = { id: 'av' + Date.now().toString(36), texto, desde, hasta, color: _AVISO_COLORES[color] ? color : 'rojo', creadoEn: new Date().toISOString() };
+                // Los avisos vencidos hace más de 60 días se limpian solos.
+                const limite = (() => { const d = new Date(); d.setDate(d.getDate() - 60); return d.toISOString().slice(0, 10); })();
+                await _guardarAvisosGrilla([..._grillaAvisos.filter(a => a.hasta >= limite), nuevo]);
+                mostrarAviso('Aviso guardado');
+                window.renderGrilla();
+                window.grillaAvisosAbrir();
+            } catch (e) { console.error(e); mostrarAviso('No se pudo guardar el aviso.'); if (btn) btn.disabled = false; }
+        };
+        window.grillaAvisoBorrar = async (id) => {
+            try {
+                await _cargarAvisosGrilla(true);
+                await _guardarAvisosGrilla(_grillaAvisos.filter(a => a.id !== id));
+                mostrarAviso('Aviso quitado');
+                window.renderGrilla();
+                window.grillaAvisosAbrir();
+            } catch (e) { console.error(e); mostrarAviso('No se pudo quitar el aviso.'); }
+        };
+
         window.grillaToggleMenuCristina = function(ev) {
             ev.stopPropagation();
             const previo = document.getElementById('gc-menu-flot');
@@ -16945,6 +17062,7 @@
         window.renderGrilla = () => {
             const tbody = document.getElementById('grilla-tbody');
             if (!tbody) return;
+            _boxesSegunFecha(_grilla_fecha);
 
             // Título fecha
             const [yy,mm,dd] = _grilla_fecha.split('-').map(Number);
@@ -16972,6 +17090,16 @@
                     bannerCristina.style.display = 'none';
                 }
             }
+
+            // Avisos generales del día (📢 Avisos)
+            const _avisosHoy = _avisosDelDia(_grilla_fecha);
+            const _avBox = document.getElementById('grilla-avisos-dia');
+            if (_avBox) {
+                _avBox.hidden = !_avisosHoy.length;
+                _avBox.innerHTML = _avisosHoy.map(a => `<div class="grilla-aviso-item c-${_AVISO_COLORES[a.color] ? a.color : 'rojo'}" role="status">📢 ${escapeHtml(a.texto)}<small>${escapeHtml(_rangoAvisoTxt(a))}</small></div>`).join('');
+            }
+            const _avColor = _avisosHoy.length ? (_AVISO_COLORES[_avisosHoy[0].color] || _AVISO_COLORES.rojo) : '';
+            const _avTitle = _avisosHoy.map(a => a.texto).join(' · ');
 
             // Encabezado: mismo orden y nombres que las columnas (GRILLA_BOXES).
             const _thead = document.querySelector('#grilla-table thead tr');
@@ -17157,7 +17285,7 @@
                 if (_grCorte === ' gr-corte-tarde' && _grSinCruce) {
                     rows.push(`<tr class="grilla-separador-row" aria-hidden="true"><td colspan="${COLS}"><div class="grilla-separador-tarde">☀️ Fin turno mañana <span class="gst-linea"></span> 🌤️ Inicio turno tarde</div></td></tr>`);
                 }
-                rows.push(`<tr class="${rowCls}${min % 60 === 0 ? ' gr-en-punto' : min % 60 === 30 ? ' gr-y-media' : min % 15 === 0 ? ' gr-cuarto' : ''}${fila.dentro ? '' : ' gr-fila-fuera'}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora${_crisCls}">${fila.etiqueta}</td>${celdas}</tr>`);
+                rows.push(`<tr class="${rowCls}${min % 60 === 0 ? ' gr-en-punto' : min % 60 === 30 ? ' gr-y-media' : min % 15 === 0 ? ' gr-cuarto' : ''}${fila.dentro ? '' : ' gr-fila-fuera'}${_grCorte}${filaConInicio ? ' gr-con-inicio' : ''}" data-hora="${hora}"><td class="grilla-td-hora${_crisCls}${_avColor ? ' gr-aviso' : ''}"${_avColor ? ` style="--gr-aviso-color:${_avColor}" title="📢 ${escapeHtml(_avTitle)}"` : ''}>${fila.etiqueta}${_avColor && min % 60 === 0 ? '<span class="gr-aviso-ico" aria-hidden="true">📢</span>' : ''}</td>${celdas}</tr>`);
             }
             tbody.innerHTML = rows.length
                 ? rows.join('')

@@ -11,6 +11,10 @@
 //   b4 (Relax · Drenaje)  → «Box 2»   2.º
 //   b3 (Facial)           → «Box 3»   3.º
 //   b2 (Corporal)         → «Box 5»   4.º
+// DESDE EL 1/12/2026 (FECHA_BOXES_NUEVOS) se suma «Box 1» (id b6) y la
+// Grilla muestra los boxes ordenados por número: Box 1, 2, 3, 4, 5. Los días
+// anteriores siguen con los 4 boxes y el orden de siempre, para no mezclar
+// datos de noviembre (ver boxesParaFecha).
 // Un box viejo que no esté en la lista (ej. un «b5» histórico) no se muestra
 // ni se borra: sus datos quedan como estaban.
 
@@ -21,8 +25,10 @@ export const BOXES_POR_DEFECTO = [
   { id: 'b3', num: 3, title: 'Box 3', sub: 'Facial', icon: '✨', accent: '#665096' },
   { id: 'b2', num: 2, title: 'Box 5', sub: 'Corporal', icon: '💎', accent: '#315E95' },
 ];
+export const FECHA_BOXES_NUEVOS = '2026-12-01';
+export const BOX_1_NUEVO = { id: 'b6', num: 6, title: 'Box 1', sub: 'General', icon: '🌸', accent: '#9A6B2F' };
 // Ids que nunca se reutilizan para un box nuevo (históricos o reservados).
-export const IDS_RESERVADOS = ['b1', 'b2', 'b3', 'b4', 'b5', 'bv'];
+export const IDS_RESERVADOS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'bv'];
 export const MAX_LARGO_NOMBRE = 24;
 
 const limpiar = (s, max) => String(s ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -38,6 +44,7 @@ export function normalizarBoxes(config) {
   for (const g of guardados) {
     const id = String(g && g.id || '').trim();
     if (!/^[a-z][a-z0-9_]{0,15}$/.test(id) || vistos.has(id)) continue;
+    if (id === BOX_1_NUEVO.id) continue; // Box 1: lo agrega boxesParaFecha según la fecha
     const base = BOXES_POR_DEFECTO.find((b) => b.id === id);
     if (!base && !/^bx\d+$/.test(id)) continue; // solo base o agregados desde el panel
     vistos.add(id);
@@ -96,4 +103,23 @@ export function nombreCorto(box) {
   const t = String(box && box.title || '');
   const m = /(\d+)\s*$/.exec(t);
   return m ? 'B' + m[1] : t.slice(0, 3);
+}
+
+// Orden por el número del nombre («Box 1» … «Box 5»); los que no tienen número
+// quedan al final en el orden en que estaban.
+const numeroDe = (b) => { const m = /(\d+)\s*$/.exec(String(b.title || '')); return m ? Number(m[1]) : Infinity; };
+export const ordenarPorNumero = (lista) => lista.map((b, i) => ({ b, i })).sort((x, y) => (numeroDe(x.b) - numeroDe(y.b)) || (x.i - y.i)).map((x) => x.b);
+
+// Boxes de la Grilla para un día. Antes de FECHA_BOXES_NUEVOS: exactamente los
+// de siempre (normalizarBoxes). Desde esa fecha: se suma «Box 1» (con el
+// nombre que tenga guardado, si se editó) y todo queda ordenado por número.
+export function boxesParaFecha(config, fecha) {
+  const base = normalizarBoxes(config);
+  if (!fecha || fecha < FECHA_BOXES_NUEVOS) return base;
+  const guardado = Array.isArray(config && config.boxes) ? config.boxes.find((g) => g && g.id === BOX_1_NUEVO.id) : null;
+  const box1 = conVisual({ ...BOX_1_NUEVO, ...(guardado ? {
+    title: limpiar(guardado.title, MAX_LARGO_NOMBRE) || BOX_1_NUEVO.title, sub: limpiar(guardado.sub, 40) || BOX_1_NUEVO.sub,
+    icon: limpiar(guardado.icon, 4) || BOX_1_NUEVO.icon, accent: /^#[0-9a-f]{6}$/i.test(guardado.accent || '') ? guardado.accent : BOX_1_NUEVO.accent } : {}) });
+  const yaHay = base.some((b) => b.title.toLowerCase() === box1.title.toLowerCase());
+  return ordenarPorNumero(yaHay ? base : [...base, box1]);
 }

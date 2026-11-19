@@ -824,25 +824,29 @@ console.log('\n=== Desbloqueo selectivo desde la Agenda ===');
 console.log('\n=== Boxes: editar nombres y agregar un box ===');
 {
   w.navegar('servicios'); await tick(30);
-  check('tarjeta «Boxes de la Grilla» con los 4 boxes en orden', $('blabels-lista').querySelectorAll('.bxg-fila').length === 4 && [...$('blabels-lista').querySelectorAll('.bxg-nombre')].map(i => i.value).join(',') === 'Box 4,Box 2,Box 3,Box 5');
+  // Desde 1/12/2026 se suma «Box 1» (b6): el editor lo muestra al final, sin cambiar el orden de siempre.
+  const DIC = HOY >= '2026-12-01';
+  check('tarjeta «Boxes de la Grilla» con los boxes en el orden de siempre + Box 1', $('blabels-lista').querySelectorAll('.bxg-fila').length === 5 && [...$('blabels-lista').querySelectorAll('.bxg-nombre')].map(i => i.value).join(',') === 'Box 4,Box 2,Box 3,Box 5,Box 1');
   $('bxg-nom-b3').value = 'Box 3 Facial';
   $('bxg-nuevo-nombre').value = 'Box 6'; $('bxg-nuevo-sub').value = 'Depilación';
   w.bxgAgregar(); await tick();
-  check('agregar: aparece al final del borrador', $('blabels-lista').querySelectorAll('.bxg-fila').length === 5 && /agregado/.test($('bxg-msg').textContent));
+  check('agregar: aparece al final del borrador', $('blabels-lista').querySelectorAll('.bxg-fila').length === 6 && /agregado/.test($('bxg-msg').textContent));
   $('bxg-nom-b4').value = 'Box 4'; // repetido con b1 → no deja guardar
   await w.blGuardar(); await tick(10);
   check('no deja guardar dos boxes con el mismo nombre', /Ya hay un box/.test($('bxg-msg').textContent) && !fb.calls.store.has('configuracion/boxesGrilla'));
   $('bxg-nom-b4').value = 'Box 2';
   await w.blGuardar(); await tick(20);
   const cfg = fb.calls.store.get('configuracion/boxesGrilla');
-  check('se guarda la configuración con identidad, nombre y orden', cfg && cfg.boxes.map(b => `${b.id}:${b.title}`).join(',') === 'b1:Box 4,b4:Box 2,b3:Box 3 Facial,b2:Box 5,bx1:Box 6', cfg && cfg.boxes.map(b => b.title));
+  check('se guarda la configuración con identidad, nombre y orden', cfg && cfg.boxes.map(b => `${b.id}:${b.title}`).join(',') === 'b1:Box 4,b4:Box 2,b3:Box 3 Facial,b2:Box 5,b6:Box 1,bx1:Box 6', cfg && cfg.boxes.map(b => b.title));
   w.navegar('grilla'); w.grillaIrHoy(); await tick(40);
   const ths = [...w.document.querySelectorAll('#grilla-table thead th.grilla-th-box')];
-  check('la Grilla muestra el nombre editado y el box nuevo (5 columnas)', ths.length === 5 && /Box 3 Facial/.test(ths[2].textContent) && ths[4].dataset.box === 'bx1' && $('grilla-tbody').querySelector('tr[data-hora="08:00"]').querySelectorAll('td.grilla-td-box').length === 5);
+  check('la Grilla muestra el nombre editado y el box nuevo', DIC
+    ? ths.map(th => th.dataset.box).join(',') === 'b6,b4,b3,b1,b2,bx1' && /Box 3 Facial/.test(ths[2].textContent)
+    : ths.length === 5 && /Box 3 Facial/.test(ths[2].textContent) && ths[4].dataset.box === 'bx1' && $('grilla-tbody').querySelector('tr[data-hora="08:00"]').querySelectorAll('td.grilla-td-box').length === 5, ths.map(th => th.dataset.box));
   check('el turno de Paula (b3) sigue en su box, ahora «Box 3 Facial»', (() => { const c = [...$('grilla-tbody').querySelectorAll('.grilla-celda-ocupada')].find(x => x.textContent.includes('Paula Gómez')); return c && c.closest('td').classList.contains('gr-box-b3'); })());
   await w.marcarConfirmacionManual('p-fut', false); await tick(80);
   w.renderGrilla(); await tick(10);
-  check('persiste al recargar (nombres, orden y box nuevo)', [...w.document.querySelectorAll('#grilla-table thead th.grilla-th-box')].map(th => th.dataset.box).join(',') === 'b1,b4,b3,b2,bx1');
+  check('persiste al recargar (nombres, orden y box nuevo)', [...w.document.querySelectorAll('#grilla-table thead th.grilla-th-box')].map(th => th.dataset.box).join(',') === (DIC ? 'b6,b4,b3,b1,b2,bx1' : 'b1,b4,b3,b2,bx1'));
 }
 
 console.log('\n=== WhatsApp con números de otro país ===');
