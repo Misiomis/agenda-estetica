@@ -16219,7 +16219,9 @@
         const _aplicarConfigBoxes = (cfg) => {
             _boxesConfigGuardada = cfg || null;
             _boxesSegunFecha(_boxesFechaAplicada);
-            const lista = boxesParaFecha(cfg, '9999-12-31'); // duplicar mes: todos los boxes
+            // Duplicar mes: cada paciente sigue en el MISMO box (mismo id y nombre). El Box 1
+            // nuevo (b6) no se ofrece: queda vacío hasta que se decida quién va ahí.
+            const lista = normalizarBoxes(cfg);
             _boxesDuplicar.splice(0, _boxesDuplicar.length, ...lista.map(b => ({ id: b.id, label: b.label })));
         };
         // Aplica overrides de labels guardados en Firestore (se parchean después de cargar)
@@ -16249,7 +16251,7 @@
         };
 
         // Duplicar mes usa esta lista; se actualiza en el lugar si cambian los boxes.
-        const _boxesDuplicar = boxesParaFecha(null, "9999-12-31").map(b => ({ id: b.id, label: b.label }));
+        const _boxesDuplicar = normalizarBoxes(null).map(b => ({ id: b.id, label: b.label })); // sin el Box 1 nuevo
         initDuplicarMes({
             db, auth, F: { collection, getDocs, getDoc, doc, setDoc, runTransaction, serverTimestamp, query, where },
             escapeHtml, mostrarAviso: (m) => window.mostrarAviso(m), boxes: _boxesDuplicar,
