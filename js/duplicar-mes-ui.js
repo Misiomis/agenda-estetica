@@ -3,7 +3,7 @@
 // vista previa y, cuando el administrador pulsa el botón final, guarda con la MISMA
 // validación aplicada sobre datos recién leídos.
 import {
-  prepararDuplicacion, prepararCopia, evaluarOcurrencia, buscarAlternativas, normalizarBloqueos, ocupacionDesdeReservas,
+  prepararDuplicacion, prepararCopia, prepararCopiaSeleccion, analizarSeleccion, evaluarOcurrencia, buscarAlternativas, normalizarBloqueos, ocupacionDesdeReservas,
   fechaLarga, horaAMin, minAHora, idReservaDe, claveOcurrencia, categoriaServicio, tieneBloqueoProtegido, motivosInsalvables,
 } from './duplicar-mes.js';
 
@@ -56,6 +56,18 @@ const CSS = `
 .dmp-grupo-t{font-weight:800;font-size:13px;margin:14px 0 4px;text-transform:capitalize}
 .dmp-item{border:1px solid var(--border,#d8e2dc);border-radius:12px;padding:10px 12px;margin:0 0 8px;background:var(--surface,#fff)}
 .dmp-item.resuelto{opacity:.65}
+.dm-selbox{border:1.5px solid rgba(53,122,92,.35);border-radius:14px;padding:10px 12px;margin:0 0 12px;background:rgba(53,122,92,.04)}
+.dm-selbox>summary{cursor:pointer;font-weight:800;font-size:14px}
+.dm-sel-lista{max-height:260px;overflow:auto;border:1px solid var(--border,#d8e2dc);border-radius:10px;margin:6px 0;background:var(--surface,#fff)}
+.dm-sel-fila{display:flex;align-items:center;gap:10px;padding:7px 10px;border-top:1px solid var(--border,#d8e2dc);font-size:13px;cursor:pointer}
+.dm-sel-fila:first-child{border-top:none}
+.dm-sel-fila input{width:18px;height:18px;flex:0 0 auto}
+.dm-sel-fila small{opacity:.7;margin-left:auto;text-align:right}
+.dm-sel-fila.excl{background:rgba(165,67,58,.07)}.dm-sel-fila.excl b{text-decoration:line-through;opacity:.7}
+.dm-sel-fila.incl{background:rgba(53,122,92,.10)}
+.dm-sel-t{font-weight:800;font-size:12px;letter-spacing:.04em;text-transform:uppercase;opacity:.75;margin:10px 0 2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dm-link{border:none;background:none;color:var(--forest,#2f5a47);font:inherit;font-weight:800;font-size:12px;cursor:pointer;text-decoration:underline;padding:0;text-transform:none;letter-spacing:0}
+.dm-nuevo{font-weight:800;font-size:11px;border-radius:999px;padding:1px 8px;margin-left:6px;background:rgba(53,122,92,.18);color:#2f5a47}
 @media (max-width:600px){.dm-card{padding:14px 12px}.dm-form label{flex:1 1 130px}}
 `;
 
@@ -95,7 +107,14 @@ export function initDuplicarMes(deps) {
   const $ = (id) => document.getElementById(id);
   const E = (v) => esc(v == null ? '' : v);
 
-  const st = { datos: null, decisiones: { global: {}, patrones: {}, items: {} }, res: null, ctx: null, ejecutando: false, agrupar: 'paciente', preparando: false };
+  const st = { datos: null, decisiones: { global: {}, patrones: {}, items: {} }, res: null, ctx: null, ejecutando: false, agrupar: 'paciente', preparando: false,
+    sel: { excluir: new Set(), incluir: new Map(), busq: '', refMes: '', evitarAvisos: false }, anal: null };
+  const ymDe = (m) => `${m.anio}-${String(m.mes).padStart(2, '0')}`;
+  const sumarMesYM = (ym, n) => { const [a, m] = ym.split('-').map(Number); const t = a * 12 + m - 1 + n; return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}`; };
+  const nomMes = (ym) => `${MESES[Number(ym.slice(5, 7)) - 1]}${ym.slice(0, 4) !== String(new Date().getFullYear()) ? ' ' + ym.slice(0, 4) : ''}`;
+  // Meses de "nuevos": los dos anteriores al destino (sin el de origen).
+  const mesesNuevosDe = (o, d) => [sumarMesYM(ymDe(d), -2), sumarMesYM(ymDe(d), -1)].filter((m) => m !== ymDe(o) && m !== ymDe(d));
+  const selArg = () => ({ excluir: st.sel.excluir, incluir: [...st.sel.incluir.entries()].map(([dni, mes]) => ({ dni, mes })) });
   const pend = { docs: [], cargado: false, filtros: { estado: 'abiertos', texto: '', motivo: '', categoria: '', box: '' } };
 
   // ── utilidades de lectura ──────────────────────────────────────────────
@@ -109,6 +128,13 @@ export function initDuplicarMes(deps) {
     const snap = await getDocs(collection(db, 'calendarExceptions'));
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }
+  // Rango a leer: origen, destino y los 2 meses anteriores al destino (referencia y nuevos).
+  function rangoLectura(origen, destino) {
+    const ini = [ymDe(origen), sumarMesYM(ymDe(destino), -2)].sort()[0];
+    const fin = [ymDe(origen), ymDe(destino)].sort()[1];
+    return { desde: ini + '-01', hasta: fin + '-31' };
+  }
+  async function leerAvisos() { try { return deps.avisos ? (await deps.avisos()) || [] : []; } catch (_) { return []; } }
   async function leerPendientes() {
     const snap = await getDocs(collection(db, COLECCION_PEND));
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -135,6 +161,7 @@ export function initDuplicarMes(deps) {
       bloqueos, desbloqueos, pendientes: datos.pendientes.map((p) => ({ id: p.id, clave: p.clave, estado: p.estado, reservaId: p.reservaId })), decisiones,
       esActiva: deps.esReservaActiva, boxDe: deps.boxDeReserva, duracionDe: (r) => Number(r.duracionMinutos) > 0 ? Number(r.duracionMinutos) : 30,
       nombreDe: (r) => r.nombreLimpio || r.nombre || r.cliente || r.clienteNombre || '',
+      avisos: datos.avisos || [], evitarAvisos: !!st.sel.evitarAvisos,
     };
     ctx.mesDestino = `${destino.anio}-${String(destino.mes).padStart(2, '0')}`;
     ctx.ocupacion = ocupacionDesdeReservas(datos.reservas, ctx);
@@ -167,6 +194,7 @@ export function initDuplicarMes(deps) {
     ov.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrar(); });
     $('dm-cuerpo').addEventListener('click', onClickCuerpo);
     $('dm-cuerpo').addEventListener('change', onCambioCuerpo);
+    $('dm-cuerpo').addEventListener('input', onInputCuerpo);
   }
   function abrir() {
     inyectar();
@@ -176,6 +204,7 @@ export function initDuplicarMes(deps) {
     const dm = mes === 12 ? 1 : mes + 1;
     $('dm-d-mes').value = String(dm); $('dm-d-anio').value = String(mes === 12 ? anio + 1 : anio);
     st.datos = null; st.res = null; st.decisiones = { global: {}, patrones: {}, items: {} };
+    st.sel = { excluir: new Set(), incluir: new Map(), busq: '', refMes: '', evitarAvisos: false }; st.anal = null;
     $('dm-cuerpo').innerHTML = '';
     $('dm-overlay').classList.add('dm-open');
     $('dm-o-mes').focus();
@@ -195,13 +224,15 @@ export function initDuplicarMes(deps) {
     try {
       if (recargar || !st.datos) {
         $('dm-cuerpo').innerHTML = '<p class="dm-sub">Leyendo reservas, bloqueos y preferencias…</p>';
-        const a = rangoMes(origen.anio, origen.mes), b = rangoMes(destino.anio, destino.mes);
-        const desde = a.ini < b.ini ? a.ini : b.ini, hasta = a.fin > b.fin ? a.fin : b.fin;
-        const [reservas, bloqueosRaw, pendientes] = await Promise.all([leerReservas(desde, hasta), leerBloqueos(), leerPendientes().catch(() => [])]);
-        st.datos = { reservas, bloqueosRaw, pendientes, pacientes: mapaPacientes(), servicios: mapaServicios(reservas), origen, destino };
+        const { desde, hasta } = rangoLectura(origen, destino);
+        const [reservas, bloqueosRaw, pendientes, avisos, historial] = await Promise.all([leerReservas(desde, hasta), leerBloqueos(), leerPendientes().catch(() => []), leerAvisos(), deps.historial ? deps.historial().catch(() => null) : Promise.resolve(null)]);
+        st.datos = { reservas, bloqueosRaw, pendientes, avisos, historial, pacientes: mapaPacientes(), servicios: mapaServicios(reservas), origen, destino };
+        // Pacientes que ya no están en el origen o en el mes de referencia se limpian de la selección.
+        if (!st.sel.refMes || st.sel.refMes >= ymDe(destino)) st.sel.refMes = sumarMesYM(ymDe(destino), -1);
       }
+      st.anal = analizarSeleccion({ reservas: st.datos.reservas, historial: st.datos.historial ? [...st.datos.historial, ...st.datos.reservas] : null, mesOrigen: ymDe(origen), mesRef: st.sel.refMes, mesesNuevos: mesesNuevosDe(origen, destino), esActiva: deps.esReservaActiva, nombreDe: (r) => r.nombreLimpio || r.nombre || r.cliente || r.clienteNombre || '' });
       st.ctx = armarCtx(st.datos, st.decisiones, origen, destino);
-      st.res = prepararCopia(st.ctx);
+      st.res = prepararCopiaSeleccion(st.ctx, selArg());
       st.origenMes = origen; st.destinoMes = destino;
       pintar();
     } catch (e) {
@@ -218,7 +249,7 @@ export function initDuplicarMes(deps) {
     const est = { crear: 'Se creará', ya_cubierta: 'Ya cubierta', pendiente: 'Pendiente', fuera_cupo: 'Fuera del cupo' }[it.estado];
     const consultar = it.estado === 'pendiente' ? `<label class="dm-orig"><input type="checkbox" data-dm-consultar="${E(it.clave)}" ${it.estadoManual === 'pendiente_consultar' ? 'checked' : ''}> Pendiente de consultar</label>` : '';
     return `<div class="dm-fila"><div><b>${E(fechaLarga(it.fecha))}</b> · ${E(it.hora)}–${E(finHora(it.hora, it.dur))} · ${E(boxLabel(it.boxId))} · ${E(CAT_TXT[it.categoria] || it.categoria)}${it.yaRegistrado ? ' · ya estaba en pendientes' : ''}<span class="dm-est ${it.estado}">${est}</span></div>
-      <div class="dm-orig">${E(it.paciente)} · ${E(it.servicio)} · ${it.dur} min · ${E(origenTxt(it))}${it.reservaExistente ? ` · reserva existente ${E(it.reservaExistente)}` : ''}</div>${motivosHtml(it)}${consultar}</div>`;
+      <div class="dm-orig">${E(it.paciente)}${it.incluidoDesde ? `<span class="dm-nuevo">nuevo · desde ${E(nomMes(it.incluidoDesde))}</span>` : ''} · ${E(it.servicio)} · ${it.dur} min · ${E(origenTxt(it))}${it.reservaExistente ? ` · reserva existente ${E(it.reservaExistente)}` : ''}</div>${motivosHtml(it)}${consultar}</div>`;
   }
   function pintar() {
     const r = st.res, s = r.resumen;
@@ -253,10 +284,54 @@ export function initDuplicarMes(deps) {
     const sinBloqDepi = !st.ctx.bloqueos.some((b) => b.protegido && b.fecha.startsWith(st.ctx.mesDestino));
     const avisoDepi = sinBloqDepi ? `<div class="dm-sec"><span class="dm-adv">⚠ No hay bloqueos de depilación (box 2) guardados para ${E(mesTxt(st.destinoMes))}. Si corresponden, cargalos primero en la gestión de bloqueos de la grilla (marcados como depilación); esta función no supone fechas.</span></div>` : '';
     const boton = `<div class="dm-acc"><button type="button" class="dm-btn dm-btn-p" id="dm-crear" ${(s.crear === 0 && s.guardarPendientes === 0) || st.ejecutando ? 'disabled' : ''}>${E(s.etiquetaBoton)}</button></div>`;
-    $('dm-cuerpo').innerHTML = `<h3 style="margin:14px 0 0;font-size:15px">Vista previa: ${E(mesTxt(st.origenMes))} → ${E(mesTxt(st.destinoMes))}</h3>${resumen}${avisoDepi}${definir}${deficits}${notas ? `<details class="dm-sec"><summary>Notas de los patrones</summary>${notas}</details>` : ''}${revision}${origen}${boton}<div id="dm-resultado"></div>`;
+    $('dm-cuerpo').innerHTML = `<h3 style="margin:14px 0 0;font-size:15px">Vista previa: ${E(mesTxt(st.origenMes))} → ${E(mesTxt(st.destinoMes))}</h3>${resumen}${seccionSeleccion()}${avisoDepi}${definir}${deficits}${notas ? `<details class="dm-sec"><summary>Notas de los patrones</summary>${notas}</details>` : ''}${revision}${origen}${boton}<div id="dm-resultado"></div>`;
+  }
+  // ── Selección: no incluir / incluir nuevos / días con aviso ──
+  const filaSel = (p, tipo) => {
+    const on = tipo === 'excl' ? st.sel.excluir.has(p.dni) : st.sel.incluir.has(p.dni);
+    const det = tipo === 'excl'
+      ? `${p.sesionesOrigen} en ${E(nomMes(ymDe(st.origenMes)))} · ${p.sesionesRef ? `${p.sesionesRef} en ${E(nomMes(st.sel.refMes))}` : `<b style="color:#8a2f2a">ninguna en ${E(nomMes(st.sel.refMes))}</b>`}`
+      : `se sumó en ${E(nomMes(p.mesAlta))} · se copia desde ${E(nomMes(p.mesFuente))} (${p.sesiones} sesión${p.sesiones === 1 ? '' : 'es'})`;
+    return `<label class="dm-sel-fila ${on ? tipo : ''}"><input type="checkbox" ${tipo === 'excl' ? `data-dm-excl="${E(p.dni)}"` : `data-dm-incl="${E(p.dni)}" data-mes="${E(p.mesFuente)}"`} ${on ? 'checked' : ''}><b>${E(p.nombre)}</b><small>${det}</small></label>`;
+  };
+  function listaExcluir() {
+    const q = (st.sel.busq || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const l = st.anal.origenPacientes.filter((p) => !q || (p.nombre + ' ' + p.dni).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(q));
+    return l.map((p) => filaSel(p, 'excl')).join('') || '<div class="dm-sel-fila">Nadie coincide con la búsqueda.</div>';
+  }
+  function seccionSeleccion() {
+    const a = st.anal; if (!a) return '';
+    const ref = st.sel.refMes, o = ymDe(st.origenMes), d = ymDe(st.destinoMes);
+    const opcionesRef = [...new Set([o, sumarMesYM(d, -2), sumarMesYM(d, -1)])].filter((m) => m < d).sort();
+    const sinRef = a.sinSesionesRef;
+    const nEx = st.sel.excluir.size, nIn = st.sel.incluir.size;
+    const avisosMes = (st.datos.avisos || []).filter((x) => x.hasta >= d + '-01' && x.desde <= d + '-31');
+    const mesesN = mesesNuevosDe(st.origenMes, st.destinoMes);
+    return `<details class="dm-selbox" open><summary>🚫 No incluir pacientes${nEx ? ` — ${nEx} fuera` : ''}</summary>
+        <div class="dm-sub" style="margin:6px 0">Tildá a quienes <b>no continúan</b>: no se les crea ningún turno en ${E(mesTxt(st.destinoMes))}. Sus datos y sesiones anteriores no se tocan.</div>
+        <div class="dm-sel-t">Sin sesiones en
+          <select class="dm-in" id="dm-sel-ref" style="min-height:30px;padding:2px 8px">${opcionesRef.map((m) => `<option value="${m}" ${m === ref ? 'selected' : ''}>${E(nomMes(m))}</option>`).join('')}</select>
+          (${sinRef.length})${sinRef.length ? ` <button type="button" class="dm-link" data-dm-acc="excl-sinref">No incluir a estos ${sinRef.length}</button>` : ''}${nEx ? ` · <button type="button" class="dm-link" data-dm-acc="excl-ninguno">Incluir a todos de nuevo</button>` : ''}</div>
+        ${sinRef.length ? `<div class="dm-sel-lista">${sinRef.map((p) => filaSel(p, 'excl')).join('')}</div>` : `<div class="dm-sub">Todos los pacientes de ${E(nomMes(o))} tuvieron sesiones en ${E(nomMes(ref))}.</div>`}
+        <div class="dm-sel-t">Buscar otro paciente para no incluir</div>
+        <input type="search" class="dm-in" id="dm-sel-busq" placeholder="Nombre o DNI…" value="${E(st.sel.busq)}" style="width:100%;box-sizing:border-box" autocomplete="off">
+        <div class="dm-sel-lista" id="dm-sel-lista">${listaExcluir()}</div>
+      </details>
+      <details class="dm-selbox" open><summary>➕ Incluir pacientes nuevos${mesesN.length ? ` de ${E(mesesN.map(nomMes).join(' y '))}` : ''}${nIn ? ` — ${nIn} incluido${nIn === 1 ? '' : 's'}` : ''}</summary>
+        <div class="dm-sub" style="margin:6px 0">No están en ${E(nomMes(o))}. Se copian desde su último mes (mismo día de la semana, horario, tratamiento y box) respetando bloqueos y los turnos que ya ocupa la copia: si no entran, quedan como pendientes.</div>
+        ${a.nuevos.length ? `<div class="dm-sel-t">${a.nuevos.length} paciente${a.nuevos.length === 1 ? '' : 's'} nuevo${a.nuevos.length === 1 ? '' : 's'} <button type="button" class="dm-link" data-dm-acc="incl-todos">Incluir a todos</button>${nIn ? ` · <button type="button" class="dm-link" data-dm-acc="incl-ninguno">Quitar todos</button>` : ''}</div><div class="dm-sel-lista">${a.nuevos.map((p) => filaSel(p, 'incl')).join('')}</div>` : '<div class="dm-sub">No hay pacientes nuevos en esos meses.</div>'}
+      </details>
+      <div class="dm-selbox" style="padding:8px 12px"><label class="dm-sel-fila" style="border:none;padding:2px 0"><input type="checkbox" id="dm-evitar-avisos" ${st.sel.evitarAvisos ? 'checked' : ''}><b>No crear turnos en días con aviso 📢</b><small>${avisosMes.length ? avisosMes.map((x) => E(`${x.texto} (${x.desde.slice(8)}/${x.desde.slice(5, 7)}${x.hasta !== x.desde ? '–' + x.hasta.slice(8) + '/' + x.hasta.slice(5, 7) : ''})`)).join(' · ') : 'no hay avisos en ' + E(mesTxt(st.destinoMes))}</small></label></div>`;
+  }
+  function onInputCuerpo(e) {
+    if (e.target.id === 'dm-sel-busq') { st.sel.busq = e.target.value; const l = $('dm-sel-lista'); if (l) l.innerHTML = listaExcluir(); }
   }
   function onCambioCuerpo(e) {
     const t = e.target;
+    if (t.dataset.dmExcl !== undefined) { if (t.checked) st.sel.excluir.add(t.dataset.dmExcl); else st.sel.excluir.delete(t.dataset.dmExcl); preparar({ recargar: false }); return; }
+    if (t.dataset.dmIncl !== undefined) { if (t.checked) st.sel.incluir.set(t.dataset.dmIncl, t.dataset.mes); else st.sel.incluir.delete(t.dataset.dmIncl); preparar({ recargar: false }); return; }
+    if (t.id === 'dm-sel-ref') { st.sel.refMes = t.value; preparar({ recargar: false }); return; }
+    if (t.id === 'dm-evitar-avisos') { st.sel.evitarAvisos = t.checked; preparar({ recargar: false }); return; }
     if (t.id === 'dm-cadan') { st.decisiones.global.cadaNDias = t.value || undefined; preparar({ recargar: false }); }
     else if (t.dataset.dmCont !== undefined) { if (t.value) { st.decisiones.patrones[t.dataset.dmCont] = { ...(st.decisiones.patrones[t.dataset.dmCont] || {}), continuidad: t.value }; preparar({ recargar: false }); } }
     else if (t.id === 'dm-agrupar') { st.agrupar = t.value; pintar(); }
@@ -268,6 +343,14 @@ export function initDuplicarMes(deps) {
   }
   function onClickCuerpo(e) {
     const b = e.target.closest('button'); if (!b) return;
+    const acc = b.dataset.dmAcc;
+    if (acc && st.anal) {
+      if (acc === 'excl-sinref') st.anal.sinSesionesRef.forEach((p) => st.sel.excluir.add(p.dni));
+      if (acc === 'excl-ninguno') st.sel.excluir.clear();
+      if (acc === 'incl-todos') st.anal.nuevos.forEach((p) => st.sel.incluir.set(p.dni, p.mesFuente));
+      if (acc === 'incl-ninguno') st.sel.incluir.clear();
+      preparar({ recargar: false }); return;
+    }
     if (b.id === 'dm-recalcular') preparar({ recargar: true });
     else if (b.id === 'dm-crear') ejecutar();
   }
@@ -344,11 +427,11 @@ export function initDuplicarMes(deps) {
     try {
       // 1) datos frescos + misma validación que en la vista previa
       const { origen, destino } = { origen: st.origenMes, destino: st.destinoMes };
-      const a = rangoMes(origen.anio, origen.mes), b = rangoMes(destino.anio, destino.mes);
-      const [reservas, bloqueosRaw, pendientes] = await Promise.all([leerReservas(a.ini < b.ini ? a.ini : b.ini, a.fin > b.fin ? a.fin : b.fin), leerBloqueos(), leerPendientes().catch(() => [])]);
-      const fresco = { reservas, bloqueosRaw, pendientes, pacientes: st.datos.pacientes, servicios: mapaServicios(reservas), origen, destino };
+      const rg = rangoLectura(origen, destino);
+      const [reservas, bloqueosRaw, pendientes, avisos] = await Promise.all([leerReservas(rg.desde, rg.hasta), leerBloqueos(), leerPendientes().catch(() => []), leerAvisos()]);
+      const fresco = { reservas, bloqueosRaw, pendientes, avisos, pacientes: st.datos.pacientes, servicios: mapaServicios(reservas), origen, destino };
       const ctxF = armarCtx(fresco, st.decisiones, origen, destino);
-      const resF = prepararCopia(ctxF);
+      const resF = prepararCopiaSeleccion(ctxF, selArg());
       const clavesPrevia = new Set(previa.items.map((i) => i.clave));
       const itemsF = resF.items.filter((i) => clavesPrevia.has(i.clave));
       const aCrear = itemsF.filter((i) => i.estado === 'crear');
@@ -356,6 +439,7 @@ export function initDuplicarMes(deps) {
       previa.items.filter((i) => i.estado === 'crear').forEach((i) => { const f = itemsF.find((x) => x.clave === i.clave); if (f && f.estado === 'pendiente') resultado.pasoAPendiente.push(f); });
       // 2) respaldo y registro del lote ANTES de escribir reservas
       const plan = { loteId, origen, destino, administrador: email, fecha: new Date().toISOString(), decisiones: st.decisiones, resumenPrevio: previa.resumen, resumenFinal: resF.resumen,
+        seleccion: { excluidos: [...st.sel.excluir], incluidos: selArg().incluir, mesReferencia: st.sel.refMes, evitarAvisos: !!st.sel.evitarAvisos },
         aCrear: aCrear.map((i) => ({ clave: i.clave, id: i.idReserva, dni: i.dni, fecha: i.fecha, hora: i.hora, boxId: i.boxId, servicio: i.servicio })),
         aPendiente: aPend.map((i) => ({ clave: i.clave, dni: i.dni, fecha: i.fecha, hora: i.hora, boxId: i.boxId, motivos: i.motivos.map((m) => m.codigo) })),
         bloqueosLeidos: ctxF.bloqueos.filter((x) => x.fecha.startsWith(ctxF.mesDestino)).map((x) => ({ id: x.id, tipo: x.tipo, fecha: x.fecha, boxId: x.boxId, protegido: !!x.protegido })) };

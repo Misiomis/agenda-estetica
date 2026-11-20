@@ -16258,6 +16258,9 @@
             getPacientes: () => todasLosPacientes, getFechaAgenda: () => fechaActual, esReservaActiva, boxDeReserva: (r) => _grilla_boxDeReserva(r),
             servicioInfo: (n) => ({ duracionMin: _svDurMap.get(n) || 30, boxes: _inferirBoxes(n, '').map(x => 'b' + x) }),
             inferirBoxes: (n) => _inferirBoxes(n, ''),
+            // Historial completo (para saber quién es paciente nuevo) y avisos 📢 de la Grilla
+            historial: () => _fetchReservasCompletasParaExport(),
+            avisos: async () => { await _cargarAvisosGrilla(true); return _grillaAvisos; },
         });
         let _grilla_fecha         = fechaHoyISO();
         // `${hora}_${boxId}` → { docId, hora, boxId, duracionMinutos }. Los bloqueos

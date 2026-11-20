@@ -586,6 +586,13 @@ export function prepararCopia(ctx) {
     if (sinFecha) item.motivos.push({ codigo: 'sin_fecha_equivalente', texto: `${destinoMesNombre(destino)} no tiene un ${DIAS_NOMBRE[dow]} número ${ord}; se muestra el último ${DIAS_NOMBRE[dow]} solo como referencia.` });
     const ev = evaluarOcurrencia({ ...ctx, ocupacion: [...ocupacionBase, ...aceptadas] }, { fecha, hora, dur: item.dur, boxId: item.boxId, dni, servicio: item.servicio, categoria: cat });
     item.motivos.push(...ev.motivos); item.advertencias = ev.advertencias;
+    // Días con aviso en la Grilla (📢): se avisa siempre; si se pidió evitarlos,
+    // el turno no se crea y queda como pendiente.
+    const avs = (ctx.avisos || []).filter((a) => a && a.desde <= fecha && fecha <= a.hasta);
+    if (avs.length) {
+      const m = { codigo: 'aviso_grilla', texto: `Día con aviso: ${avs.map((a) => a.texto).join(' · ')}` };
+      if (ctx.evitarAvisos) item.motivos.push(m); else item.advertencias = [...item.advertencias, m];
+    }
     const dItem = ((ctx.decisiones || {}).items || {})[clave] || {};
     if (dItem.estadoManual === 'pendiente_consultar') { item.motivos.push({ codigo: 'pendiente_consultar', texto: 'Marcado para consultar con la paciente.' }); item.estadoManual = 'pendiente_consultar'; }
     if (item.motivos.length) { item.estado = 'pendiente'; if (previa) item.yaRegistrado = true; explicar(r, 'pendiente', 'No se pudo copiar en su lugar: figura en pendientes.'); }
@@ -600,3 +607,74 @@ export function prepararCopia(ctx) {
   return { items, patrones: [], porDefinir: [], deficits: [], origenExplicado, resumen, mesOrigen, mesDestino };
 }
 const destinoMesNombre = (d) => ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][d.mes - 1];
+
+// ── Selección de pacientes al duplicar ─────────────────────────────────────
+// Quiénes vienen del mes de origen, quiénes NO tuvieron sesiones en el mes de
+// referencia (posible "no continúa") y quiénes son NUEVOS en los meses
+// indicados (no están en el origen y su primera sesión fue en esos meses).
+//  op.reservas    — reservas leídas (origen, referencia, nuevos y destino).
+//  op.historial   — todas las reservas conocidas (para saber la 1.ª sesión); opcional.
+//  op.mesOrigen, op.mesRef, op.mesesNuevos ['YYYY-MM'], op.esActiva, op.nombreDe.
+export function analizarSeleccion(op) {
+  const dniDe = (r) => String(r.dni || '').trim();
+  const act = (op.reservas || []).filter((r) => r && fechaValida(r.fecha) && op.esActiva(r) && dniDe(r));
+  const hist = (op.historial || op.reservas || []).filter((r) => r && fechaValida(r.fecha) && op.esActiva(r) && dniDe(r));
+  const nombre = new Map();
+  act.forEach((r) => { const n = op.nombreDe ? op.nombreDe(r) : (r.nombre || ''); if (n) nombre.set(dniDe(r), n); });
+  const primera = new Map();
+  hist.forEach((r) => { const d = dniDe(r); if (!primera.has(d) || r.fecha < primera.get(d)) primera.set(d, r.fecha); });
+  const enMes = (m) => { const c = new Map(); act.filter((r) => mesDe(r.fecha) === m).forEach((r) => c.set(dniDe(r), (c.get(dniDe(r)) || 0) + 1)); return c; };
+  const origen = enMes(op.mesOrigen), ref = enMes(op.mesRef);
+  const origenPacientes = [...origen.entries()].map(([dni, n]) => ({ dni, nombre: nombre.get(dni) || dni, sesionesOrigen: n, sesionesRef: ref.get(dni) || 0 }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const meses = [...new Set(op.mesesNuevos || [])].sort();
+  const nuevos = [];
+  const vistos = new Set();
+  for (const m of [...meses].reverse()) { // el mes más reciente primero: de ahí se copia
+    for (const [dni, n] of enMes(m)) {
+      if (vistos.has(dni) || origen.has(dni)) continue;
+      const alta = primera.get(dni);
+      if (!alta || !meses.includes(mesDe(alta))) continue;
+      vistos.add(dni);
+      nuevos.push({ dni, nombre: nombre.get(dni) || dni, mesAlta: mesDe(alta), mesFuente: m, sesiones: n });
+    }
+  }
+  nuevos.sort((a, b) => a.mesAlta.localeCompare(b.mesAlta) || a.nombre.localeCompare(b.nombre, 'es'));
+  return { origenPacientes, sinSesionesRef: origenPacientes.filter((p) => !p.sesionesRef), nuevos };
+}
+
+// Copia literal con selección:
+//  sel.excluir — Set de DNI del mes de origen que NO se copian.
+//  sel.incluir — [{ dni, mes }]: pacientes nuevos que se copian desde SU mes
+//                (mismo día de la semana y posición, hora, servicio y box),
+//                respetando lo que ya ocupa la copia del origen.
+export function prepararCopiaSeleccion(ctx, sel = {}) {
+  const excluir = sel.excluir instanceof Set ? sel.excluir : new Set(sel.excluir || []);
+  const mesOrigen = `${ctx.origen.anio}-${String(ctx.origen.mes).padStart(2, '0')}`;
+  const dniDe = (r) => String(r.dni || '').trim();
+  const fuera = (r, m, keep) => mesDe(String(r.fecha || '')) === m && !keep(dniDe(r));
+  const base = prepararCopia({ ...ctx, reservas: (ctx.reservas || []).filter((r) => !fuera(r, mesOrigen, (d) => !excluir.has(d))) });
+  base.excluidos = [...excluir];
+  const incluir = (sel.incluir || []).filter((x) => x && x.dni && !excluir.has(String(x.dni)) && /^\d{4}-\d{2}$/.test(x.mes || '') && x.mes !== mesOrigen && x.mes !== base.mesDestino);
+  if (!incluir.length) return base;
+  const porMes = new Map();
+  incluir.forEach((x) => { if (!porMes.has(x.mes)) porMes.set(x.mes, new Set()); porMes.get(x.mes).add(String(x.dni)); });
+  const items = [...base.items], origenExplicado = [...base.origenExplicado];
+  // Lo que la copia ya va a crear ocupa su lugar para los siguientes.
+  const ocupadas = () => items.filter((i) => i.estado === 'crear').map((i) => ({ id: i.idReserva, dni: i.dni, nombre: i.paciente, fecha: i.fecha, hora: i.hora, duracionMinutos: i.dur, box: i.boxId, servicio: i.servicio, estado: 'confirmado', _previa: true }));
+  for (const [m, dnis] of [...porMes.entries()].sort()) {
+    const [anio, mes] = m.split('-').map(Number);
+    const reservas = [...(ctx.reservas || []).filter((r) => !fuera(r, m, (d) => dnis.has(d)) && mesDe(String(r.fecha || '')) !== mesOrigen), ...ocupadas()];
+    const r2 = prepararCopia({ ...ctx, origen: { anio, mes }, reservas });
+    const ya = new Set(items.map((i) => i.clave));
+    r2.items.forEach((i) => { if (!ya.has(i.clave)) items.push({ ...i, incluidoDesde: m }); });
+    r2.origenExplicado.forEach((o) => origenExplicado.push({ ...o, incluidoDesde: m }));
+  }
+  const cuenta = (e) => items.filter((i) => i.estado === e).length;
+  const nuevosPend = items.filter((i) => i.estado === 'pendiente' && !i.yaRegistrado).length;
+  const resumen = { ...base.resumen, crear: cuenta('crear'), yaCubiertas: cuenta('ya_cubierta'), pendientes: cuenta('pendiente'), pendientesNuevos: nuevosPend,
+    pendientesYaRegistrados: items.filter((i) => i.estado === 'pendiente' && i.yaRegistrado).length, guardarPendientes: nuevosPend,
+    pacientes: new Set(items.map((i) => i.dni).filter(Boolean)).size, incluidos: new Set(incluir.map((x) => String(x.dni))).size };
+  resumen.etiquetaBoton = `Crear ${resumen.crear} turno${resumen.crear === 1 ? '' : 's'} y guardar ${resumen.guardarPendientes} pendiente${resumen.guardarPendientes === 1 ? '' : 's'}`;
+  return { ...base, items, origenExplicado, resumen, incluidos: incluir };
+}
