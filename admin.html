@@ -1555,6 +1555,19 @@
         .p360-box-chip small { font-size: 10.5px; color: var(--ink-soft); }
         .p360-box-chip.sel { background: var(--forest-soft); border-color: var(--forest); box-shadow: 0 0 0 2px rgba(45,74,50,.18); }
         .p360-box-chip:disabled { opacity: .45; cursor: not-allowed; }
+        /* Envío de sesiones por WhatsApp (Sesiones): una fila para pendientes y otra para realizadas */
+        .ses-envio { display: grid; gap: 7px; margin-bottom: 8px; }
+        .ses-envio-fila { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 7px; }
+        .ses-envio-btn { min-height: 40px; padding: 10px 14px; border-radius: 10px; border: 1px solid; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; line-height: 1.3; }
+        .ses-envio-btn.pend { background: rgba(200,160,30,0.07); border-color: rgba(245,200,50,0.32); color: rgba(138,106,34,0.95); }
+        .ses-envio-btn.real { background: rgba(53,122,92,0.07); border-color: rgba(114,189,153,0.32); color: rgba(22,61,50,0.92); }
+        .ses-envio-btn.elegir { background: var(--surface); }
+        .ses-envio-btn.elegir.pend { border-color: rgba(214,170,40,0.45); }
+        .ses-envio-btn.elegir.real { border-color: rgba(114,189,153,0.50); }
+        .ses-envio-btn:hover { filter: brightness(0.97); }
+        .ses-envio-vacio { min-height: 40px; display: flex; align-items: center; justify-content: center; padding: 10px 14px; border: 1px dashed var(--border); border-radius: 10px; font-size: 12px; color: rgba(22,61,50,0.45); text-align: center; }
+        .ses-envio-fila > .ses-envio-vacio:only-child { grid-column: 1 / -1; }
+        @media (max-width: 560px) { .ses-envio-fila { grid-template-columns: 1fr; } }
         .ses-meses-lista { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
         .ses-mes-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 13.5px; color: var(--ink); }
         .ses-mes-item:has(input:checked) { background: var(--forest-soft); border-color: var(--forest); }
@@ -9510,27 +9523,46 @@
             });
             window._sesMsgShow(idx);
         };
-        // Selector de meses: atajos (mes actual, últimos 3, todo) + casillas por mes.
-        window._sesElegirMeses = function(exportIdx) {
+        // Mensaje de sesiones PENDIENTES (próximas) de los meses elegidos (yms vacío = todas).
+        // Mismo formato que siempre: sin saludo y sin tratamiento (solo día y hora).
+        window._sesMsgPendientes = function(exportIdx, yms) {
             var g = (window._sesExportDB || [])[exportIdx];
             if (!g) return;
+            var todas = !yms || !yms.length;
+            var lista = todas ? g.pendientes : g.pendientes.filter(function(r) { return yms.indexOf((r.fecha||'').slice(0,7)) >= 0; });
+            lista = lista.filter(function(r) { return !esEstadoCancelado(r.estado || r.status); });
+            if (!lista.length) { mostrarAviso('No hay sesiones pendientes en ese período'); return; }
+            var idx = window._sesMsgDB.length;
+            window._sesMsgDB.push({
+                texto: _sesListaTexto(lista, g.nombre + '\n\nTe recuerdo tus pr\u00f3ximas sesiones' + (todas ? '' : ' de ' + _sesListaMeses(yms)) + ' en Espacio Mimar T:\n', false),
+                phone: g.phone,
+                titulo: 'Sesiones pendientes' + (todas ? ' — todas' : ' — ' + _sesListaMeses(yms)),
+            });
+            window._sesMsgShow(idx);
+        };
+        // Selector de meses (pendientes o realizadas): atajos + casillas por mes.
+        window._sesElegirMeses = function(exportIdx, tipo) {
+            var g = (window._sesExportDB || [])[exportIdx];
+            if (!g) return;
+            var esPend = tipo === 'pendientes';
             var porMes = {};
-            g.completadas.forEach(function(r) {
+            (esPend ? g.pendientes : g.completadas).forEach(function(r) {
                 if (esEstadoCancelado(r.estado || r.status)) return;
                 var ym = (r.fecha||'').slice(0,7);
                 porMes[ym] = (porMes[ym] || 0) + 1;
             });
-            var yms = Object.keys(porMes).sort().reverse();
+            // Pendientes: del más cercano al más lejano. Realizadas: del más reciente al más viejo.
+            var yms = esPend ? Object.keys(porMes).sort() : Object.keys(porMes).sort().reverse();
             var hoy = new Date();
             var ymHoy = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0');
             var ov = document.createElement('div');
             ov.className = 'p360-modal-ov';
             ov.innerHTML = "<div class='p360-modal' role='dialog' aria-modal='true' aria-label='Elegir meses'>" +
-                "<p class='p360-modal-t'>📅 Sesiones realizadas por mes</p>" +
+                "<p class='p360-modal-t'>📅 Sesiones " + (esPend ? 'pendientes' : 'realizadas') + " por mes</p>" +
                 "<p class='p360-modal-s'>" + escapeHtml(g.nombre) + " · elegí qué meses enviar</p>" +
                 "<div class='p360-acc' style='margin-bottom:10px;'>" +
                     "<button type='button' class='p360-btn' data-atajo='actual'>Mes actual</button>" +
-                    "<button type='button' class='p360-btn' data-atajo='3'>Últimos 3 meses</button>" +
+                    "<button type='button' class='p360-btn' data-atajo='3'>" + (esPend ? 'Próximos 3 meses' : 'Últimos 3 meses') + "</button>" +
                     "<button type='button' class='p360-btn' data-atajo='todo'>Todo</button>" +
                     "<button type='button' class='p360-btn' data-atajo='nada'>Ninguno</button>" +
                 "</div>" +
@@ -9567,7 +9599,7 @@
             ov.querySelector('[data-accion=ver]').onclick = function() {
                 var sel = elegidos();
                 cerrar();
-                window._sesMsgRealizadas(exportIdx, sel.length === yms.length ? [] : sel);
+                (esPend ? window._sesMsgPendientes : window._sesMsgRealizadas)(exportIdx, sel.length === yms.length ? [] : sel);
             };
             actualizar();
         };
@@ -12912,6 +12944,7 @@
                 // Realizadas: por mes (mes actual directo, o elegir meses); con tratamiento.
                 var _ymHoySes = (function() { var h = new Date(); return h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0'); })();
                 var _realMesActual = completadas.filter(function(r) { return (r.fecha||'').slice(0,7) === _ymHoySes && !esEstadoCancelado(r.estado || r.status); }).length;
+                var _pendMesActual = pendientes.filter(function(r) { return (r.fecha||'').slice(0,7) === _ymHoySes && !esEstadoCancelado(r.estado || r.status); }).length;
 
                 // ── Header paciente ──
                 var pacHeader = "<div style='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;'>" +
@@ -12924,14 +12957,21 @@
 
                 var botonesWA =
                     "<div style='margin-bottom:6px;'><button onclick='window._sesMsgShow("+_msgAvisoIdx+")' style='width:100%;padding:10px 16px;background:rgba(59,130,180,0.07);border:1px solid rgba(100,160,210,0.22);border-radius:10px;color:rgba(61,92,134,0.85);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.03em;font-family:inherit;'>Avisar antes de enviar horarios</button></div>" +
-                    "<div style='display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;'>" +
-                    (pendientes.length ? "<button onclick='window._sesMsgShow("+_msgPendIdx+")' style='flex:1;min-width:140px;padding:10px 14px;background:rgba(200,160,30,0.07);border:1px solid rgba(245,200,50,0.22);border-radius:10px;color:rgba(138,106,34,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>Enviar sesiones pendientes ("+pendientes.length+")</button>" : "<div style='flex:1;min-width:140px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:rgba(22,61,50,0.28);font-size:12px;text-align:center;'>Sin pendientes</div>") +
-                    (completadas.length
+                    "<div class='ses-envio'>" +
+                    // Pendientes: las del mes actual directo, o elegir meses
+                    "<div class='ses-envio-fila'>" + (pendientes.length
+                        ? (_pendMesActual
+                            ? "<button type='button' class='ses-envio-btn pend' onclick='window._sesMsgPendientes("+_exportIdx+",[\""+_ymHoySes+"\"])'>Enviar pendientes de " + _sesNombreMes(_ymHoySes) + " (" + _pendMesActual + ")</button>"
+                            : "<div class='ses-envio-vacio'>Sin pendientes en " + _sesNombreMes(_ymHoySes) + "</div>")
+                          + "<button type='button' class='ses-envio-btn elegir pend' onclick='window._sesElegirMeses("+_exportIdx+",\"pendientes\")'>📅 Elegir meses… (" + pendientes.length + " pendiente" + (pendientes.length !== 1 ? 's' : '') + ")</button>"
+                        : "<div class='ses-envio-vacio'>Sin sesiones pendientes</div>") + "</div>" +
+                    // Realizadas: las del mes actual directo, o elegir meses
+                    "<div class='ses-envio-fila'>" + (completadas.length
                         ? (_realMesActual
-                            ? "<button onclick='window._sesMsgRealizadas("+_exportIdx+",[\""+_ymHoySes+"\"])' style='flex:1;min-width:140px;padding:10px 14px;background:rgba(53,122,92,0.07);border:1px solid rgba(114,189,153,0.22);border-radius:10px;color:rgba(22,61,50,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>Enviar realizadas de " + _sesNombreMes(_ymHoySes) + " ("+_realMesActual+")</button>"
-                            : "<div style='flex:1;min-width:140px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:rgba(22,61,50,0.45);font-size:12px;text-align:center;'>Sin realizadas en " + _sesNombreMes(_ymHoySes) + "</div>")
-                          + "<button onclick='window._sesElegirMeses("+_exportIdx+")' style='flex:1;min-width:140px;padding:10px 14px;background:var(--surface);border:1px solid rgba(114,189,153,0.35);border-radius:10px;color:rgba(22,61,50,0.92);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;'>📅 Elegir meses… ("+completadas.length+" en total)</button>"
-                        : "<div style='flex:1;min-width:140px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:rgba(22,61,50,0.28);font-size:12px;text-align:center;'>Sin realizadas</div>") +
+                            ? "<button type='button' class='ses-envio-btn real' onclick='window._sesMsgRealizadas("+_exportIdx+",[\""+_ymHoySes+"\"])'>Enviar realizadas de " + _sesNombreMes(_ymHoySes) + " (" + _realMesActual + ")</button>"
+                            : "<div class='ses-envio-vacio'>Sin realizadas en " + _sesNombreMes(_ymHoySes) + "</div>")
+                          + "<button type='button' class='ses-envio-btn elegir real' onclick='window._sesElegirMeses("+_exportIdx+",\"realizadas\")'>📅 Elegir meses… (" + completadas.length + " realizada" + (completadas.length !== 1 ? 's' : '') + ")</button>"
+                        : "<div class='ses-envio-vacio'>Sin sesiones realizadas</div>") + "</div>" +
                     "</div>" +
                     "<div style='margin-bottom:14px;'><button onclick='window.exportarHistorialPDF("+_exportIdx+",this)' style='width:100%;padding:10px 16px;background:rgba(80,40,130,0.08);border:1px solid rgba(160,110,220,0.28);border-radius:10px;color:rgba(61,92,134,0.90);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.02em;font-family:inherit;'>📄 Exportar historial completo PDF (" + (pendientes.length+completadas.length+canceladas.length) + " sesiones)</button></div>";
 
