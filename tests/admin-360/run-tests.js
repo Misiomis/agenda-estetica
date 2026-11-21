@@ -236,13 +236,22 @@ const ses = $('contenedorSesionesBuscadas').innerHTML;
 check('buscador muestra a Yanina con botón de realizadas del mes actual y "Elegir meses"', /_sesMsgRealizadas\(/.test(ses) && /_sesElegirMeses\(/.test(ses), ses.slice(0, 300));
 const ultimoMsg = () => w._sesMsgDB[w._sesMsgDB.length - 1].texto;
 // jsdom no ejecuta onclick inline: se lee el mensaje que arma el buscador para ese botón.
-check('botón "Enviar sesiones pendientes (2)"', /Enviar sesiones pendientes \(2\)/.test($('contenedorSesionesBuscadas').textContent));
+check('pendientes por mes: "Elegir meses… (2 pendientes)" + envío del mes actual', /Elegir meses… \(2 pendientes\)/.test($('contenedorSesionesBuscadas').textContent) && /_sesElegirMeses\(\d+,(&quot;|")pendientes/.test(ses) && (/_sesMsgPendientes\(/.test(ses) || /Sin pendientes en /.test($('contenedorSesionesBuscadas').textContent)));
 const pend = w._sesMsgDB.filter(d => d.titulo === 'Sesiones pendientes').pop().texto;
 check('próximas: sin saludo, empieza con el nombre', pend.startsWith('Yanina W\n\nTe recuerdo tus próximas sesiones'), pend.slice(0, 80));
 check('próximas: solo día y hora, sin tratamiento', /18:15 hs/.test(pend) && !/Tratamientos Corporales|Hi-Fu/.test(pend), pend);
 check('próximas: total en negrita', /\*Total: 2 sesiones\*/.test(pend));
 w.document.querySelectorAll('div[style*="position:fixed"]').forEach(x => x.remove());
 const exportIdx = w._sesExportDB.length - 1;
+{
+  const g = w._sesExportDB[exportIdx];
+  const ym = (g.pendientes[0].fecha || '').slice(0, 7);
+  const enMes = g.pendientes.filter(r => (r.fecha || '').slice(0, 7) === ym).length;
+  w._sesMsgPendientes(exportIdx, [ym]);
+  const m = ultimoMsg();
+  check('pendientes de un mes: solo ese mes y con el nombre del mes', new RegExp('próximas sesiones de ').test(m) && new RegExp('Total: ' + enMes + ' sesi').test(m), m.slice(0, 160));
+  w.document.querySelectorAll('div[style*="position:fixed"]').forEach(x => x.remove());
+}
 w._sesElegirMeses(exportIdx); await tick();
 const checksMes = [...w.document.querySelectorAll('.ses-mes-item input')];
 check('selector lista los 3 meses con sesiones realizadas', checksMes.length === 3, checksMes.map(c => c.value));
