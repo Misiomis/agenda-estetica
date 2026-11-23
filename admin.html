@@ -1568,6 +1568,11 @@
         .ses-envio-vacio { min-height: 40px; display: flex; align-items: center; justify-content: center; padding: 10px 14px; border: 1px dashed var(--border); border-radius: 10px; font-size: 12px; color: rgba(22,61,50,0.45); text-align: center; }
         .ses-envio-fila > .ses-envio-vacio:only-child { grid-column: 1 / -1; }
         @media (max-width: 560px) { .ses-envio-fila { grid-template-columns: 1fr; } }
+        .ses-notas-sel { display: grid; grid-template-columns: 1fr 1.4fr; border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; }
+        .ses-notas-sel button { min-height: 38px; padding: 8px 10px; border: none; background: var(--surface); color: var(--ink-soft); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+        .ses-notas-sel button + button { border-left: 1px solid var(--border-strong); }
+        .ses-notas-sel button.on { background: var(--forest); color: #fff; }
+        .ses-notas-sel button:disabled { opacity: .45; cursor: not-allowed; }
         .ses-meses-lista { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
         .ses-mes-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 13.5px; color: var(--ink); }
         .ses-mes-item:has(input:checked) { background: var(--forest-soft); border-color: var(--forest); }
@@ -9503,6 +9508,42 @@
             var total = orden.length;
             return encabezado + cuerpo + '\n*Total: ' + total + ' sesion' + (total !== 1 ? 'es' : '') + '*\n\nEspacio Mimar T';
         }
+        // Realizadas CON las notas de cada sesión (r.detalleSesion, la misma nota
+        // que ya se le envía a la paciente como resumen). Formato WhatsApp:
+        // fecha, hora y tratamiento en negrita; "Notas de la sesión" en negrita y
+        // el texto debajo; una línea fina entre sesiones. Las sesiones sin nota
+        // van igual, sin el bloque de notas.
+        var _SES_SEP = '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500';
+        var _sesNotaDe = function(r) {
+            return String(r.detalleSesion || '').replace(/\r\n?/g, '\n').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+        };
+        function _sesListaTextoNotas(lista, encabezado) {
+            var orden = lista.filter(function(r) { return !esEstadoCancelado(r.estado || r.status); }).sort(_sesOrdenar);
+            var meses = [];
+            orden.forEach(function(r) { var ym = (r.fecha||'').slice(0,7); if (meses.indexOf(ym) < 0) meses.push(ym); });
+            var anioActual = new Date().getFullYear();
+            var bloques = [], mesPrevio = null;
+            orden.forEach(function(r, i) {
+                var fp = (r.fecha||'').split('-');
+                var ym = (r.fecha||'').slice(0,7);
+                var b = '';
+                if (meses.length > 1 && ym !== mesPrevio) {
+                    var nm = _sesNombreMes(ym);
+                    b += '*' + nm.toUpperCase() + '*\n\n';
+                    mesPrevio = ym;
+                }
+                var dt = fp[0] && fp[1] && fp[2] ? new Date(+fp[0], +fp[1]-1, +fp[2]) : null;
+                var dia = dt ? _SES_DIAS[dt.getDay()] : '';
+                var anio = fp[0] && +fp[0] !== anioActual ? ' de ' + fp[0] : '';
+                b += '*' + (i + 1) + '. ' + dia + ' ' + (fp[2] ? parseInt(fp[2], 10) : '') + ' de ' + (_SES_MESES[+fp[1]-1] || '') + anio + '*\n'
+                    + (normalizarHora(r.hora) || r.hora || '--') + ' hs \u00b7 *' + _sesTratamiento(r) + '*';
+                var nota = _sesNotaDe(r);
+                if (nota) b += '\n\n*Notas de la sesi\u00f3n:*\n' + nota;
+                bloques.push(b);
+            });
+            var total = orden.length;
+            return encabezado + '\n' + bloques.join('\n\n' + _SES_SEP + '\n\n') + '\n\n' + _SES_SEP + '\n*Total: ' + total + ' sesion' + (total !== 1 ? 'es' : '') + ' realizada' + (total !== 1 ? 's' : '') + '*\n\nEspacio Mimar T';
+        }
         var _sesListaMeses = function(yms) {
             var nombres = yms.slice().sort().map(function(ym) { return _sesNombreMes(ym); });
             return nombres.length > 1 ? nombres.slice(0, -1).join(', ') + ' y ' + nombres[nombres.length - 1] : (nombres[0] || '');
@@ -9515,9 +9556,14 @@
             var lista = todas ? g.completadas : g.completadas.filter(function(r) { return yms.indexOf((r.fecha||'').slice(0,7)) >= 0; });
             if (!lista.length) { mostrarAviso('No hay sesiones realizadas en ese período'); return; }
             var periodo = todas ? 'ya realizadas' : 'realizadas en ' + _sesListaMeses(yms);
+            var sinNotas = _sesListaTexto(lista, g.nombre + '\n\nEstas son tus sesiones ' + periodo + ' en Espacio Mimar T:\n', true);
+            var nNotas = lista.filter(function(r) { return !esEstadoCancelado(r.estado || r.status) && _sesNotaDe(r); }).length;
+            var conNotas = _sesListaTextoNotas(lista, g.nombre + '\n\nEstas son tus sesiones ' + periodo + ' en Espacio Mimar T, con el detalle de cada una:\n');
             var idx = window._sesMsgDB.length;
             window._sesMsgDB.push({
-                texto: _sesListaTexto(lista, g.nombre + '\n\nEstas son tus sesiones ' + periodo + ' en Espacio Mimar T:\n', true),
+                // Si hay notas, se propone directamente la versión con notas (se puede cambiar).
+                texto: nNotas ? conNotas : sinNotas,
+                textoSinNotas: sinNotas, textoConNotas: conNotas, nNotas: nNotas, conNotas: !!nNotas,
                 phone: g.phone,
                 titulo: 'Sesiones realizadas' + (todas ? ' — todas' : ' — ' + _sesListaMeses(yms)),
             });
@@ -9630,7 +9676,13 @@
             ov.innerHTML = "<div style='background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:540px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:11px;box-shadow:var(--shadow-lg);'>" +
                 "<div style='display:flex;justify-content:space-between;align-items:center;'><span style='font-size:13px;font-weight:800;color:var(--ink);letter-spacing:.04em;'>"+(d.titulo||'Mensaje')+"</span><button onclick='this.closest(\"div[style*=fixed]\").remove()' style='background:none;border:none;color:var(--ink-soft);font-size:20px;cursor:pointer;padding:0 4px;line-height:1;'>×</button></div>" +
                 destinatarioHtml +
-                "<textarea id='_ses_ta_"+idx+"' readonly style='background:var(--surface-2);border:1px solid var(--border-strong);border-radius:10px;padding:12px 14px;color:var(--ink);font-size:12px;font-family:monospace;line-height:1.65;resize:none;height:320px;outline:none;white-space:pre;'>"+escaped+"</textarea>" +
+                (d.textoConNotas
+                    ? "<div class='ses-notas-sel' role='group' aria-label='Notas de las sesiones'>" +
+                        "<button type='button' class='" + (d.conNotas ? '' : 'on') + "' onclick='window._sesMsgNotas("+idx+",false)'>Sin notas</button>" +
+                        "<button type='button' class='" + (d.conNotas ? 'on' : '') + "' onclick='window._sesMsgNotas("+idx+",true)'" + (d.nNotas ? '' : ' disabled') + ">Con notas de cada sesi\u00f3n" + (d.nNotas ? ' (' + d.nNotas + ')' : '') + "</button>" +
+                      "</div>" + (d.nNotas ? '' : "<p style='font-size:11px;color:var(--ink-soft);margin:-4px 0 0;'>Ninguna sesi\u00f3n de este per\u00edodo tiene notas cargadas.</p>")
+                    : '') +
+                "<textarea id='_ses_ta_"+idx+"' readonly style='background:var(--surface-2);border:1px solid var(--border-strong);border-radius:10px;padding:12px 14px;color:var(--ink);font-size:12px;font-family:monospace;line-height:1.65;resize:none;height:320px;outline:none;white-space:pre-wrap;overflow-wrap:anywhere;'>"+escaped+"</textarea>" +
                 "<div style='display:flex;gap:8px;flex-wrap:wrap;'>" +
                 "<button onclick='var ta=document.getElementById(\"_ses_ta_"+idx+"\");ta.select();try{navigator.clipboard.writeText(ta.value).then(function(){mostrarAviso(\"Copiado al portapapeles\");}).catch(function(){document.execCommand(\"copy\");mostrarAviso(\"Copiado\");});}catch(e){document.execCommand(\"copy\");mostrarAviso(\"Copiado\");}' style='flex:1;padding:10px;background:var(--forest);border:none;border-radius:9px;color:#fff;font-weight:700;font-size:12px;cursor:pointer;'>Copiar texto</button>" +
                 // window._sesAbrirWA espera a que termine de registrarse "preparado"
@@ -9645,6 +9697,19 @@
                     : "<p style='font-size:11px;color:var(--danger,#AD2E2E);margin:0;text-align:center;'>Sin un teléfono válido no se puede abrir WhatsApp directo — corregilo en la ficha de la paciente, o copiá el texto y pegalo vos a mano.</p>") +
                 "</div>";
             document.body.appendChild(ov);
+        };
+
+        // Cambia el mensaje entre "sin notas" y "con notas de cada sesión".
+        window._sesMsgNotas = function(idx, on) {
+            var d = window._sesMsgDB[idx];
+            if (!d || !d.textoConNotas) return;
+            if (on && !d.nNotas) return;
+            d.conNotas = !!on;
+            d.texto = on ? d.textoConNotas : d.textoSinNotas;
+            var ta = document.getElementById('_ses_ta_' + idx);
+            if (ta) { ta.value = d.texto; ta.scrollTop = 0; }
+            var sel = ta && ta.parentNode.querySelector('.ses-notas-sel');
+            if (sel) { var bs = sel.querySelectorAll('button'); bs[0].classList.toggle('on', !on); bs[1].classList.toggle('on', !!on); }
         };
 
         // Abre WhatsApp desde el modal de _sesMsgShow. Si la entrada trae a qué
