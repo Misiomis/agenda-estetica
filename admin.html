@@ -700,7 +700,15 @@
             body { padding-bottom: 64px; }
             #toast-container { bottom: 70px; }
         }
+        /* "Modo normal · Activar jornada" se retiró del encabezado: el botón sigue
+           existiendo (el alta de turnos lee su estado) pero solo se ve como aviso
+           cuando el sitio público está en modo jornada. Se cambia desde Control. */
+        #btnFlowModeHeader:not(.is-jornada) { display: none !important; }
+        .header-mob-jornada:not(.jornada-activa) { display: none !important; }
         @media (min-width: 769px) {
+            /* En escritorio el menú lateral ya muestra las pantallas del bloque:
+               la barra de pestañas de arriba las repetía. */
+            #subtabs-bar { display: none !important; }
             .header { padding: 0 20px; }
             .header-desk-row { display: flex; }
             .header-mob-row { display: none !important; }
@@ -1616,6 +1624,13 @@
         .brr-x { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--surface-2); font-size: 18px; cursor: pointer; color: var(--ink); }
         .brr-card-min { padding: 8px 13px; opacity: .85; }
         .brr-card-min b { font-size: 12.5px; }
+        /* Servicios y boxes */
+        #sec-servicios.active { display: flex; flex-direction: column; }
+        #sec-servicios > .p360-sec-head { order: 0; }
+        .svx-nav { order: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; max-width: 820px; width: 100%; margin: 0 0 16px; padding: 0 2px; }
+        .svx-nav a { font-size: 13px; font-weight: 700; color: var(--forest); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+        .svx-card { width: 100%; box-sizing: border-box; max-width: 820px !important; margin: 0 0 20px !important; }
+        .svx-guardar { margin-top: 14px; padding: 10px 18px; font-size: 13px; border-radius: 12px; font-weight: 700; }
         .ses-prox-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; font-size: 10px; font-weight: 800; letter-spacing: .10em; text-transform: uppercase; color: rgba(138,106,34,0.60); }
         .ses-del-abrir { border: 1px solid rgba(173,46,46,0.30); background: rgba(173,46,46,0.05); color: #9A2E2E; border-radius: 8px; padding: 6px 11px; font: inherit; font-size: 11.5px; font-weight: 700; letter-spacing: 0; text-transform: none; cursor: pointer; white-space: nowrap; }
         .ses-del-abrir:hover { background: rgba(173,46,46,0.10); }
@@ -2831,7 +2846,6 @@
                     <div class="hdr-drop-wrap" id="user-wrap">
                         <button class="btn-nav hdr-user-btn" id="btnUserMenu" onclick="toggleHdrDropdown('user')" aria-haspopup="true" aria-controls="user-drop"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;opacity:.85"><circle cx="12" cy="8" r="3.8"/><path d="M14.6 4.7 C15.8 2.2 18.5 2.8 18 5.2"/><path d="M6.5 21 C6.5 17.4 9 15 12 15 C15 15 17.5 17.4 17.5 21"/></svg>Gimena ▾</button>
                         <div class="hdr-drop-menu hdr-drop-right" id="user-drop" role="menu" hidden>
-                            <a class="hdr-drop-item" href="/fechagimena.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">👁</span>Vista Gimena</a>
                             <a class="hdr-drop-item" href="/admin-depi.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">🪒</span>Admin Depilación</a>
                             <a class="hdr-drop-item" href="/admin-depi-gime.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">💼</span>Panel Gimena</a>
                             <a class="hdr-drop-item" href="/reloj/" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">🕒</span>Reloj recepción</a>
@@ -2850,7 +2864,6 @@
                 <div class="hdr-drop-wrap" style="position:relative;">
                     <button class="hdr-user-icon-btn" onclick="toggleHdrDropdown('user-mob')" aria-label="Menú de usuario" aria-haspopup="true" aria-controls="user-mob-drop"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.8"/><path d="M14.6 4.7 C15.8 2.2 18.5 2.8 18 5.2"/><path d="M6.5 21 C6.5 17.4 9 15 12 15 C15 15 17.5 17.4 17.5 21"/></svg></button>
                     <div class="hdr-drop-menu hdr-drop-right" id="user-mob-drop" role="menu" hidden>
-                        <a class="hdr-drop-item" href="/fechagimena.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">👁</span>Vista Gimena</a>
                         <a class="hdr-drop-item" href="/admin-depi.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">🪒</span>Admin Depilación</a>
                         <a class="hdr-drop-item" href="/admin-depi-gime.html" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">💼</span>Panel Gimena</a>
                         <a class="hdr-drop-item" href="/reloj/" target="_blank" rel="noopener" role="menuitem"><span class="hdi-ico" aria-hidden="true">🕒</span>Reloj recepción</a>
@@ -2946,10 +2959,6 @@
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="6" r="2.6"/><path d="M2.3 15.5c.5-3 2.2-4.6 4.7-4.6s4.2 1.6 4.7 4.6"/><circle cx="13.2" cy="5.6" r="2"/><path d="M12.2 10.8c1.9.2 3.1 1.7 3.5 4.1"/></svg>
                         Pacientes
                     </button>
-                    <button class="btn-nav nav-sub" id="btn-buscador-avanzado" onclick="navegar('buscador-avanzado')">
-                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 3.5h13l-5 6v4.5l-3 1.5v-6Z" stroke-linejoin="round"/></svg>
-                        Buscador avanzado
-                    </button>
                     <button class="btn-nav nav-sub" id="btn-control-sesiones" onclick="navegar('control-sesiones')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="9.5" r="6.3"/><path d="M9 6v3.7l2.4 1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 1.8h4" stroke-linecap="round"/></svg>
                         Control de sesiones
@@ -2994,15 +3003,15 @@
                 <div class="nav-subs">
                     <button class="btn-nav nav-sub" id="btn-servicios" onclick="navegar('servicios')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.8 4.5h12.4M2.8 9h12.4M2.8 13.5h7.4" stroke-linecap="round"/></svg>
-                        Servicios
+                        Servicios y boxes
                     </button>
                     <button class="btn-nav nav-sub" id="btn-pedidos-kit" onclick="navegar('pedidos-kit')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 5.6 9 2.3l6.5 3.3-6.5 3.3-6.5-3.3Z"/><path d="M2.5 5.6v6.6L9 15.7l6.5-3.5V5.6M9 8.9v6.8"/></svg>
-                        Kit
+                        Pedidos de kit
                     </button>
                     <button class="btn-nav nav-sub" id="btn-cursos" onclick="navegar('cursos')" style="position:relative">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.5 6.2 9 2.5l7.5 3.7L9 9.9 1.5 6.2Z"/><path d="M4.6 7.7v3.4c0 1.2 1.9 2.2 4.4 2.2s4.4-1 4.4-2.2V7.7M16.5 6.2v4.6" stroke-linecap="round"/></svg>
-                        Mis Cursos
+                        Mis cursos
                         <span id="cursos-badge" class="nav-badge-dot" style="display:none"></span>
                     </button>
                 </div>
@@ -3013,10 +3022,6 @@
                     <span class="nav-grupo-txt">Gestión y Cierre</span><span class="nav-grupo-chev" aria-hidden="true">▸</span>
                 </button>
                 <div class="nav-subs">
-                    <button class="btn-nav nav-sub" id="btn-resumen-mensual" onclick="navegar('resumen-mensual')">
-                        <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2.2" width="14" height="13.6" rx="1.8"/><path d="M5.5 11.2v2M9 8.6v4.6M12.5 6v7.2" stroke-linecap="round"/></svg>
-                        Resumen mensual
-                    </button>
                     <button class="btn-nav nav-sub" id="btn-export" onclick="navegar('export')">
                         <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.3v8.6M5.6 7.5 9 10.9l3.4-3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.8 12.5v2a1.4 1.4 0 0 0 1.4 1.4h9.6a1.4 1.4 0 0 0 1.4-1.4v-2" stroke-linecap="round"/></svg>
                         Exportar
@@ -3065,13 +3070,15 @@
             <div class="bsh-divider"></div>
             <div class="bsh-section">
                 <span class="bsh-label">Jornada y agenda</span>
+                <button class="bsh-item" onclick="navegar('acciones-urgentes');cerrarBottomSheet()">⚡ Acciones urgentes</button>
+                <button class="bsh-item" onclick="navegar('grilla');cerrarBottomSheet()">📅 Grilla</button>
+                <button class="bsh-item" onclick="navegar('agenda');cerrarBottomSheet()">🗓 Agenda</button>
                 <button class="bsh-item" onclick="navegar('preparar-jornada');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="2.5" width="11" height="13.5" rx="1.6"/><path d="M6.5 1.6h5a1 1 0 0 1 1 1v1.3h-7V2.6a1 1 0 0 1 1-1Z"/><path d="M6 8.5h6M6 11.3h6M6 5.8h3" stroke-linecap="round"/></svg> Preparar jornada</button>
             </div>
             <div class="bsh-divider"></div>
             <div class="bsh-section">
                 <span class="bsh-label">Atención</span>
                 <button class="bsh-item" onclick="navegar('centro-gestion');cerrarBottomSheet()">🧭 Centro de gestión</button>
-                <button class="bsh-item" onclick="navegar('buscador-avanzado');cerrarBottomSheet()">🎯 Buscador avanzado</button>
                 <button class="bsh-item" onclick="navegar('control-sesiones');cerrarBottomSheet()">⏱️ Control de sesiones</button>
                 <button class="bsh-item" onclick="navegar('recordatorios');cerrarBottomSheet()">🔔 Recordatorios y retorno</button>
                 <button class="bsh-item" onclick="navegar('recomendaciones');cerrarBottomSheet()">✨ Recomendaciones post-sesión</button>
@@ -3090,7 +3097,6 @@
                 <span class="bsh-label">Gestión</span>
                 <button class="bsh-item" onclick="mostrarUltimosMovimientos();cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="9" r="6.5"/><path d="M9 5.2V9l2.8 1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Movimientos</button>
                 <button class="bsh-item" onclick="navegar('export');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.3v8.6M5.6 7.5 9 10.9l3.4-3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.8 12.5v2a1.4 1.4 0 0 0 1.4 1.4h9.6a1.4 1.4 0 0 0 1.4-1.4v-2" stroke-linecap="round"/></svg> Exportar</button>
-                <button class="bsh-item" onclick="navegar('resumen-mensual');cerrarBottomSheet()">📊 Resumen mensual</button>
             </div>
             <div class="bsh-divider"></div>
             <div class="bsh-section">
@@ -3665,9 +3671,20 @@
             <!--  SECCIÓN: GRILLA DE SERVICIOS   -->
             <!-- ════════════════════════════════ -->
             <div id="sec-servicios" class="section">
+                <div class="p360-sec-head">
+                    <div>
+                        <h3 class="p360-sec-title">Servicios y boxes</h3>
+                        <p class="p360-sec-sub">Tres configuraciones separadas: qué servicios hay (y cuánto duran), cómo se llaman y ordenan los boxes, y qué servicio toma cada box al arrastrar un turno.</p>
+                    </div>
+                </div>
+                <nav class="svx-nav" aria-label="Partes de Servicios y boxes">
+                    <a href="#svx-catalogo" onclick="document.getElementById('svx-catalogo').scrollIntoView({behavior:'smooth',block:'start'});return false">1 · Catálogo de servicios</a>
+                    <a href="#svx-boxes" onclick="document.getElementById('svx-boxes').scrollIntoView({behavior:'smooth',block:'start'});return false">2 · Boxes de la Grilla</a>
+                    <a href="#svx-predet" onclick="document.getElementById('svx-predet').scrollIntoView({behavior:'smooth',block:'start'});return false">3 · Servicio predeterminado por box</a>
+                </nav>
                 <!-- Renombrar Boxes -->
-                <div class="detalle-dia-card" style="max-width:700px;margin:0 auto 20px;">
-                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">🗂 Boxes de la Grilla</h3>
+                <div class="detalle-dia-card svx-card" id="svx-boxes" style="max-width:760px;margin:0 auto 20px;order:2;">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">2 · Boxes de la Grilla</h3>
                     <p style="font-size:13px;color:rgba(22,61,50,0.70);margin:0 0 16px;">Nombre, descripción, ícono y orden de cada box (de izquierda a derecha en la Grilla). Cambiar el nombre no mueve turnos ni bloqueos: cada box conserva todo lo suyo. También podés agregar un box nuevo.</p>
                     <div id="blabels-lista"></div>
                     <div class="bxg-nuevo">
@@ -3677,21 +3694,22 @@
                         <button class="btn-secondary" type="button" onclick="bxgAgregar()">＋ Agregar box</button>
                     </div>
                     <p id="bxg-msg" class="bxg-msg" role="status"></p>
-                    <button class="btn-mini" onclick="blGuardar()" style="margin-top:14px;padding:10px 20px;font-size:13px;border-radius:12px;">💾 Guardar boxes</button>
+                    <button class="btn-mini svx-guardar" onclick="blGuardar()">💾 Guardar nombres y orden de los boxes</button>
                 </div>
                 <!-- Grilla de servicios -->
-                <div class="detalle-dia-card" style="max-width:700px;margin:0 auto;">
-                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">📋 Grilla de Servicios</h3>
+                <div class="detalle-dia-card svx-card" id="svx-catalogo" style="max-width:760px;margin:0 auto 20px;order:1;">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">1 · Catálogo de servicios</h3>
                     <p style="font-size:13px;color:rgba(22,61,50,0.70);margin:0 0 20px;">Indicá cuánto dura cada servicio y en qué box se realiza. La duración se respeta al agendar: el turno ocupa ese tiempo en el box. Al seleccionar un servicio en el registro de un turno, el box se elegirá automáticamente — sin margen de error.</p>
                     <div id="gs-lista" style="margin-bottom:16px;overflow-x:auto;"></div>
-                    <button class="btn-mini" onclick="gsAgregarNuevo()" style="padding:10px 20px;font-size:13px;border-radius:12px;">+ Nuevo servicio</button>
+                    <button class="btn-mini svx-guardar" onclick="gsAgregarNuevo()">＋ Agregar un servicio al catálogo</button>
+                    <p class="p360-muted" style="margin:8px 0 0;font-size:12px">Cada fila se guarda con su propio botón «Guardar este servicio».</p>
                 </div>
                 <!-- Servicio predeterminado por box (arrastrar en la Grilla) -->
-                <div class="detalle-dia-card" style="max-width:700px;margin:16px auto 0;">
-                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">🎯 Servicio predeterminado por box</h3>
+                <div class="detalle-dia-card svx-card" id="svx-predet" style="max-width:760px;margin:0 auto 20px;order:3;">
+                    <h3 style="margin-top:0;font-family:'Playfair Display',serif;font-size:1.3em;">3 · Servicio predeterminado por box</h3>
                     <p style="font-size:13px;color:rgba(22,61,50,0.70);margin:0 0 16px;">Al arrastrar un turno a otro box en la Grilla, el sistema <b>nunca inventa</b> el servicio: solo lo cambia al que elijas acá para ese box. Un box sin predeterminado no cambia el servicio al arrastrar un turno ahí. Solo podés elegir un servicio que ya esté asignado a ese box arriba.</p>
                     <div id="gs-defaults"></div>
-                    <button class="btn-mini" onclick="gsGuardarDefaults()" style="margin-top:14px;padding:10px 20px;font-size:13px;border-radius:12px;">💾 Guardar predeterminados</button>
+                    <button class="btn-mini svx-guardar" onclick="gsGuardarDefaults()">💾 Guardar servicios predeterminados por box</button>
                 </div>
             </div>
 
@@ -14720,10 +14738,10 @@
         // sus pantallas como pestañas. Cada bloque recuerda la última abierta.
         const NAV_GRUPOS = [
             { id: 'jornada', label: 'Grilla y Jornada', items: [['grilla', '📅 Grilla de boxes'], ['agenda', '🗓 Agenda mensual'], ['preparar-jornada', '📋 Preparar jornada']] },
-            { id: 'pacientes', label: 'Pacientes y Fichas', items: [['centro-gestion', '🧭 Centro de gestión'], ['clientes', '👥 Directorio'], ['buscador-avanzado', '🎯 Buscador avanzado'], ['control-sesiones', '⏱️ Control de sesiones'], ['buscador-sesiones', '🔎 Sesiones'], ['buscar', '🔍 Buscar turnos']] },
+            { id: 'pacientes', label: 'Pacientes y Fichas', items: [['centro-gestion', '🧭 Centro de gestión'], ['clientes', '👥 Directorio'], ['control-sesiones', '⏱️ Control de sesiones'], ['buscador-sesiones', '🔎 Sesiones'], ['buscar', '🔍 Buscar turnos']] },
             { id: 'seguimiento', label: 'Seguimiento y Consultas', items: [['recordatorios', '🔔 Recordatorios y retorno'], ['recomendaciones', '✨ Recomendaciones'], ['consultas', '💬 Consultas web'], ['control-consultas', '✅ Control de consultas']] },
             { id: 'recursos', label: 'Recursos del Espacio', items: [['servicios', '🧩 Servicios y boxes'], ['pedidos-kit', '🧴 Pedidos de kit'], ['cursos', '🎓 Mis cursos']] },
-            { id: 'gestion', label: 'Gestión y Cierre', items: [['resumen-mensual', '📊 Resumen mensual'], ['export', '⬇ Exportar / Jornadas'], ['@movimientos', '🕘 Movimientos']] },
+            { id: 'gestion', label: 'Gestión y Cierre', items: [['export', '⬇ Exportar / Jornadas'], ['@movimientos', '🕘 Movimientos']] },
         ];
         const _navUltima = {};
         const _grupoDeSeccion = (s) => NAV_GRUPOS.find(g => g.items.some(([id]) => id === s)) || null;
@@ -15950,7 +15968,7 @@
             if (!lista) return;
             const activos = _gsServicios.filter(s => s.activo !== false).sort((a,b) => (a.nombre||'').localeCompare(b.nombre||'','es'));
             if (!activos.length) {
-                lista.innerHTML = '<div style="font-size:13px;color:rgba(22,61,50,0.4);padding:12px 0;">Sin servicios. Usá "+ Nuevo servicio" para agregar ↓</div>';
+                lista.innerHTML = '<div style="font-size:13px;color:rgba(22,61,50,0.4);padding:12px 0;">Sin servicios. Usá "＋ Agregar un servicio al catálogo" para agregar ↓</div>';
                 return;
             }
             lista.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -15978,7 +15996,7 @@
                             </div>
                         </td>
                         <td style="padding:7px 8px;white-space:nowrap;">
-                            <button class="btn-mini" onclick="gsGuardar('${s.id}')" style="margin-right:4px;">💾 Guardar</button>
+                            <button class="btn-mini" onclick="gsGuardar('${s.id}')" style="margin-right:4px;">💾 Guardar este servicio</button>
                             <button class="btn-mini alerta" onclick="gsBorrar('${s.id}')">🗑</button>
                         </td>
                     </tr>`).join('')}

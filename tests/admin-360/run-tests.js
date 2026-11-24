@@ -313,7 +313,7 @@ check('y sus últimas sesiones con box y tratamiento', ctxReg.includes('Hi-Fu Fa
 
 console.log('\n=== Navegación en 5 bloques con pestañas internas ===');
 check('el sidebar tiene los 5 bloques', ['jornada', 'pacientes', 'seguimiento', 'recursos', 'gestion'].every(g => $('btn-g-' + g)));
-check('ninguna sección quedó sin acceso', ['grilla', 'agenda', 'preparar-jornada', 'clientes', 'buscador-sesiones', 'recordatorios', 'recomendaciones', 'consultas', 'control-consultas', 'servicios', 'pedidos-kit', 'cursos', 'resumen-mensual', 'export'].every(s => $('btn-' + s)));
+check('ninguna sección quedó sin acceso', ['grilla', 'agenda', 'preparar-jornada', 'clientes', 'buscador-sesiones', 'recordatorios', 'recomendaciones', 'consultas', 'control-consultas', 'servicios', 'pedidos-kit', 'cursos', 'export', 'acciones-urgentes', 'centro-gestion'].every(s => $('btn-' + s)));
 check('Agenda CI, Calculadora e Historias ya no están (menú, celular, secciones ni pestañas)', ['historias', 'agenda-ci', 'calculadora'].every(s => !$('btn-' + s) && !$('sec-' + s) && !w.document.querySelector(`[onclick*="navegar('${s}')"]`)) && typeof w.cargarCalculadora === 'undefined' && typeof w.renderHistorias === 'undefined' && typeof w.consIIrHoy === 'undefined');
 w.navegar('control-consultas'); await tick(20);
 const bar = $('subtabs-bar');
@@ -349,7 +349,7 @@ check('el turno desaparece de la Grilla al instante', !$('grilla-tbody').innerHT
 
 console.log('\n=== Buscador avanzado (servicio · período · estado) ===');
 w.navegar('buscador-avanzado'); await tick(40); await new Promise(r => setTimeout(r, 100)); await tick(40);
-check('la sección abre dentro de Pacientes y Fichas', $('sec-buscador-avanzado').classList.contains('active') && /Buscador avanzado/.test($('subtabs-bar').textContent));
+check('Buscador avanzado y Resumen mensual retirados de los menús (la pantalla sigue respondiendo si se la llama)', $('sec-buscador-avanzado').classList.contains('active') && !/Buscador avanzado/.test($('subtabs-bar').textContent) && !$('btn-buscador-avanzado') && !$('btn-resumen-mensual') && ![...w.document.querySelectorAll('.bsh-item')].some(b => /Buscador avanzado|Resumen mensual/.test(b.textContent)));
 check('lista los servicios existentes con su cantidad', /Hi-Fu Corporal/.test($('ba-svc-list').textContent) && /Criolipolisis/.test($('ba-svc-list').textContent));
 check('muestra KPIs del mes en curso', /Sesiones en el período/.test($('ba-kpis').textContent) && /Pacientes únicos/.test($('ba-kpis').textContent));
 // Hi-Fu Corporal, todo el historial hasta hoy
@@ -592,7 +592,7 @@ w.navegar('agenda'); await tick(30);
 check('Agenda: días con turnos libres destacados y hoy marcado', !!w.document.querySelector('#calendarGrid .day.day-libre, .day.day-libre') && !!w.document.querySelector('.day.day-today'));
 check('Agenda: 4 KPI con ícono', w.document.querySelectorAll('#kpiGrid .kpi-ico').length === 4);
 check('Directorio: filtros con texto completo', $('filtroTipoCliente').options[0].text === 'Todos los pacientes' && $('filtroActividadCliente').options[0].text === 'Cualquier actividad' && $('filtroPlanCliente').options[0].text === 'Cualquier planificación' && !!$('filtroTipoCliente').closest('.dir-filtros'));
-check('menú de usuario con íconos y separador antes de Salir', $('user-drop').querySelectorAll('.hdi-ico').length >= 7 && $('user-drop').querySelector('.hdr-drop-divider + .hdr-drop-danger'));
+check('menú de usuario con íconos y separador antes de Salir; sin "Vista Gimena", con "Panel Gimena"', $('user-drop').querySelectorAll('.hdi-ico').length >= 6 && $('user-drop').querySelector('.hdr-drop-divider + .hdr-drop-danger') && !w.document.querySelector('a[href="/fechagimena.html"]') && !!$('user-drop').querySelector('a[href="/admin-depi-gime.html"]'));
 $('jornadaTypeSelectorHeader').style.display = 'block';
 w.cerrarSelectorJornada(); await new Promise(r => setTimeout(r, 250));
 check('selector de jornada: botón ✕ Cerrar lo oculta', $('jornadaTypeSelectorHeader').style.display === 'none' && /✕ Cerrar/.test($('jornadaTypeSelectorHeader').textContent));

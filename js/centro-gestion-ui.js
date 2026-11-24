@@ -79,6 +79,13 @@ const CSS = `
 .cg-estado-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0;padding:10px;border:1px dashed var(--border-strong);border-radius:10px}
 .cg-exp{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .cg-mini{font-size:11.5px;color:var(--ink-soft)}
+.cg-subrev{margin:0 0 14px}
+.cg-catchips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.cg-catchip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface);font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;min-height:34px}
+.cg-catchip b{font-size:13.5px}
+.cg-catchip.bad b{color:#a33b3b}.cg-catchip.warn b{color:#a5631a}.cg-catchip.ok b{color:var(--forest)}
+.cg-catchip.on{background:var(--forest);border-color:var(--forest);color:#fff}.cg-catchip.on b{color:#fff}
+.cg-ind{margin-top:14px}
 @media (max-width:640px){
   .cg-kpis{grid-template-columns:repeat(2,1fr)}
   .cg-tabla .cg-opc{display:none}
@@ -94,7 +101,7 @@ export function initCentroGestion(deps) {
     per: { modo: 'todos', meses: new Set(), anio: '', desde: '', hasta: '' },
     q: '', rapido: new Set(), adv: { nuevosEn: new Set(), presentesEn: new Set(), ausentesEn: new Set(), estadoMes: '', estados: new Set(), sinDias: '', servicio: '', box: '', estadoFormal: '', min: '', max: '', dup: false, conFut: false, sinFut: false, fichasSin: false },
     orden: 'nombre', vista: 'resumida', pagina: 0, sel: new Set(), campos: { dni: false, phone: false, todas: false },
-    ctrl: { mes: '', ref: null, umbral: 2, cat: 'pendientes' }, cmp: new Set(), loteSel: null, ultimaLista: null,
+    ctrl: { mes: '', ref: null, umbral: 2, cat: 'pendientes' }, cmp: new Set(), loteSel: null, ultimaLista: null, subRev: 'comparar',
   };
   const $ = (id) => document.getElementById(id);
   const hoy = () => deps.hoy();
@@ -187,7 +194,7 @@ export function initCentroGestion(deps) {
         ${p.modo === 'meses' ? chipsMeses(p.meses, 'cgPerMes', { soloConDatos: true }) + '<div class="cg-mini">Elegí uno o varios meses (se pueden combinar años). · = mes sin turnos cargados todavía.</div>' : ''}
       </div>
       <nav class="cg-tabs" role="tablist">
-        ${[['pacientes', 'Pacientes'], ['control', `Control de agenda${pendCount ? `<span class="cg-badge">${pendCount}</span>` : ''}`], ['comparar', 'Comparar meses'], ['duplicados', `Posibles duplicados${d.duplicados.length ? `<span class="cg-badge">${d.duplicados.length}</span>` : ''}`], ['duplicaciones', 'Duplicaciones de mes']]
+        ${[['pacientes', 'Pacientes'], ['control', `Control de agenda${pendCount ? `<span class="cg-badge">${pendCount}</span>` : ''}`], ['revision', `Revisión de datos${d.duplicados.length ? `<span class="cg-badge">${d.duplicados.length}</span>` : ''}`]]
           .map(([k, t]) => `<button type="button" role="tab" class="${st.tab === k ? 'on' : ''}" aria-selected="${st.tab === k}" onclick="cgTab('${k}')">${t}</button>`).join('')}
       </nav>
       <div id="cg-cuerpo"></div>`;
@@ -204,7 +211,7 @@ export function initCentroGestion(deps) {
   }
   function renderCuerpo() {
     const c = $('cg-cuerpo'); if (!c) return;
-    c.innerHTML = ({ pacientes: vistaPacientes, control: vistaControl, comparar: vistaComparar, duplicados: vistaDuplicados, duplicaciones: vistaDuplicaciones }[st.tab] || vistaPacientes)();
+    c.innerHTML = ({ pacientes: vistaPacientes, control: vistaControl, revision: vistaRevision }[st.tab] || vistaPacientes)();
   }
 
   // ── Pestaña: Pacientes ──
@@ -298,7 +305,35 @@ export function initCentroGestion(deps) {
     }).join('');
     return `
       <div class="cg-chips" style="margin-bottom:10px">${RAPIDOS.map(([k, t]) => `<button type="button" class="cg-chip${st.rapido.has(k) ? ' on' : ''}" onclick="cgRapido('${k}')">${t}</button>`).join('')}</div>
-      <details class="cg-adv" ${advActivos ? 'open' : ''}><summary>Filtros avanzados${advActivos ? ` (${advActivos})` : ''}</summary>
+      <div class="cg-bar">
+        <div class="cg-fila">
+          <select class="cg-sel" onchange="cgOrden(this.value)" aria-label="Ordenar">${Object.entries(ORDENES).map(([k, t]) => `<option value="${k}" ${st.orden === k ? 'selected' : ''}>Ordenar: ${t}</option>`).join('')}</select>
+          <div class="p360-seg"><button type="button" class="${st.vista === 'resumida' ? 'activo' : ''}" onclick="cgVista('resumida')">Resumida</button><button type="button" class="${st.vista === 'completa' ? 'activo' : ''}" onclick="cgVista('completa')">Completa</button></div>
+          <button type="button" class="p360-btn" onclick="cgLimpiar()">Limpiar filtros</button>
+          <button type="button" class="p360-btn" onclick="cgDirectorio()">👥 Directorio</button>
+        </div>
+        ${barraExport('lista', total)}
+      </div>
+      <div class="cg-nota">${E(textoCriterios(f))}. Estado calculado para <b>${E(nombreMes(foco))}</b>.</div>
+      ${total ? `<div class="cg-tabla-wrap"><table class="cg-tabla"><thead><tr><th><input type="checkbox" onchange="cgSelPagina(this.checked)" aria-label="Seleccionar página"></th><th>Paciente</th><th>Incorporación</th><th>Realizadas</th><th>Última</th><th class="cg-opc">Próximo turno</th><th>Estado</th>${completa ? '<th class="cg-opc">Tratamientos · boxes</th><th class="cg-opc">Canc.</th>' : ''}</tr></thead><tbody>${filasHtml}</tbody></table></div>
+      ${pags > 1 ? `<div class="cg-pag"><button class="p360-btn" ${st.pagina ? '' : 'disabled'} onclick="cgPagina(-1)">‹</button> Página ${st.pagina + 1} de ${pags} · ${total} pacientes <button class="p360-btn" ${st.pagina < pags - 1 ? '' : 'disabled'} onclick="cgPagina(1)">›</button></div>` : ''}`
+        : '<div class="cg-vacio">Ningún paciente coincide con estos filtros.</div>'}
+      <details class="cg-adv cg-ind" ${st.indAbierto ? 'open' : ''} ontoggle="cgInd(this.open)"><summary>Indicadores del listado</summary>
+      <div class="cg-kpis">
+        ${kpi('', stats.unicos, 'pacientes únicos', 'ok')}
+        ${kpi('nuevos', stats.nuevos, 'nuevos de ' + nombreMes(foco, false), '', st.rapido.has('nuevos'))}
+        ${kpi('sin_agendar', stats.sinAgendar, 'sin agendar en ' + nombreMes(foco, false), stats.sinAgendar ? 'bad' : '', st.rapido.has('sin_agendar'))}
+        ${kpi('sin_futuros', stats.unicos - stats.conTurnos, 'sin turnos futuros', '', st.rapido.has('sin_futuros'))}
+        ${kpi('suspendidos', stats.suspendidos, 'suspensión registrada', '', st.rapido.has('suspendidos'))}
+        ${kpi('', stats.sinContinuidad, 'sin continuidad (30+ días, sin turno)', stats.sinContinuidad ? 'warn' : '')}
+        ${kpi('', stats.programadas, 'sesiones programadas')}
+        ${kpi('', stats.realizadas, 'sesiones realizadas')}
+        ${kpi('', stats.pendientes, 'sesiones pendientes (futuras)')}
+        ${kpi('canceladas', stats.canceladas, 'sesiones canceladas', '', st.rapido.has('canceladas'))}
+        ${kpi('duplicados', stats.duplicados, 'posibles duplicados', stats.duplicados ? 'warn' : '')}
+      </div>
+      </details>
+      <details class="cg-adv" ${advActivos ? 'open' : ''} style="margin-top:12px"><summary>Filtros avanzados${advActivos ? ` (${advActivos})` : ''}</summary>
         <div class="cg-adv-grid">
           <div><span class="cg-lbl">Nuevos (incorporados) en</span>${chipsMeses(a.nuevosEn, 'cgAdvMes_nuevosEn', { soloConDatos: true })}</div>
           <div><span class="cg-lbl">Con turnos en (todos estos meses)</span>${chipsMeses(a.presentesEn, 'cgAdvMes_presentesEn', { soloConDatos: true })}</div>
@@ -318,32 +353,7 @@ export function initCentroGestion(deps) {
             <select class="cg-sel" onchange="cgAdv('estadoFormal',this.value)"><option value="">Cualquier estado registrado</option>${Object.entries(ESTADOS_FORMALES).map(([k, t]) => `<option value="${k}" ${a.estadoFormal === k ? 'selected' : ''}>${E(t)}</option>`).join('')}<option value="ninguno" ${a.estadoFormal === 'ninguno' ? 'selected' : ''}>Sin estado registrado</option></select>
             <label class="cg-check">Realizadas en el período: <input type="number" min="0" class="cg-sel" style="width:62px" placeholder="mín" value="${E(a.min)}" onchange="cgAdv('min',this.value)"> a <input type="number" min="0" class="cg-sel" style="width:62px" placeholder="máx" value="${E(a.max)}" onchange="cgAdv('max',this.value)"></label></div>
         </div>
-      </details>
-      <div class="cg-kpis">
-        ${kpi('', stats.unicos, 'pacientes únicos', 'ok')}
-        ${kpi('nuevos', stats.nuevos, 'nuevos de ' + nombreMes(foco, false), '', st.rapido.has('nuevos'))}
-        ${kpi('sin_agendar', stats.sinAgendar, 'sin agendar en ' + nombreMes(foco, false), stats.sinAgendar ? 'bad' : '', st.rapido.has('sin_agendar'))}
-        ${kpi('sin_futuros', stats.unicos - stats.conTurnos, 'sin turnos futuros', '', st.rapido.has('sin_futuros'))}
-        ${kpi('suspendidos', stats.suspendidos, 'suspensión registrada', '', st.rapido.has('suspendidos'))}
-        ${kpi('', stats.sinContinuidad, 'sin continuidad (30+ días, sin turno)', stats.sinContinuidad ? 'warn' : '')}
-        ${kpi('', stats.programadas, 'sesiones programadas')}
-        ${kpi('', stats.realizadas, 'sesiones realizadas')}
-        ${kpi('', stats.pendientes, 'sesiones pendientes (futuras)')}
-        ${kpi('canceladas', stats.canceladas, 'sesiones canceladas', '', st.rapido.has('canceladas'))}
-        ${kpi('duplicados', stats.duplicados, 'posibles duplicados', stats.duplicados ? 'warn' : '')}
-      </div>
-      <div class="cg-bar">
-        <div class="cg-fila">
-          <select class="cg-sel" onchange="cgOrden(this.value)" aria-label="Ordenar">${Object.entries(ORDENES).map(([k, t]) => `<option value="${k}" ${st.orden === k ? 'selected' : ''}>Ordenar: ${t}</option>`).join('')}</select>
-          <div class="p360-seg"><button type="button" class="${st.vista === 'resumida' ? 'activo' : ''}" onclick="cgVista('resumida')">Resumida</button><button type="button" class="${st.vista === 'completa' ? 'activo' : ''}" onclick="cgVista('completa')">Completa</button></div>
-          <button type="button" class="p360-btn" onclick="cgLimpiar()">Limpiar filtros</button>
-        </div>
-        ${barraExport('lista', total)}
-      </div>
-      <div class="cg-nota">${E(textoCriterios(f))}. Estado calculado para <b>${E(nombreMes(foco))}</b>.</div>
-      ${total ? `<div class="cg-tabla-wrap"><table class="cg-tabla"><thead><tr><th><input type="checkbox" onchange="cgSelPagina(this.checked)" aria-label="Seleccionar página"></th><th>Paciente</th><th>Incorporación</th><th>Realizadas</th><th>Última</th><th class="cg-opc">Próximo turno</th><th>Estado</th>${completa ? '<th class="cg-opc">Tratamientos · boxes</th><th class="cg-opc">Canc.</th>' : ''}</tr></thead><tbody>${filasHtml}</tbody></table></div>
-      ${pags > 1 ? `<div class="cg-pag"><button class="p360-btn" ${st.pagina ? '' : 'disabled'} onclick="cgPagina(-1)">‹</button> Página ${st.pagina + 1} de ${pags} · ${total} pacientes <button class="p360-btn" ${st.pagina < pags - 1 ? '' : 'disabled'} onclick="cgPagina(1)">›</button></div>` : ''}`
-        : '<div class="cg-vacio">Ningún paciente coincide con estos filtros.</div>'}`;
+      </details>`;
   }
   function barraExport(origen, total) {
     const s = st.sel.size;
@@ -395,7 +405,7 @@ export function initCentroGestion(deps) {
   function vistaControl() {
     const d = st.datos;
     const c = controlActual();
-    const kp = (cat, v, t, cls) => `<button type="button" class="cg-kpi ${cls}${st.ctrl.cat === cat ? ' on' : ''}" onclick="cgCtrlCat('${cat}')"><b>${v}</b><span>${E(t)}</span></button>`;
+    const ch = (cat, v, t, cls) => `<button type="button" class="cg-catchip ${cls}${st.ctrl.cat === cat ? ' on' : ''}" onclick="cgCtrlCat('${cat}')"><b>${v}</b> ${E(t)}</button>`;
     const lista = ordenarFilas(listaCategoria(c, st.ctrl.cat), st.orden === 'nombre' ? 'estado' : st.orden);
     st.ultimaLista = { control: c, filas: lista, titulo: tituloCategoria(c, st.ctrl.cat) };
     const destinos = d.mesesTodos;
@@ -413,19 +423,27 @@ export function initCentroGestion(deps) {
           <label class="cg-fila"><span class="cg-lbl">Mes de destino</span><select class="cg-sel" onchange="cgCtrlMes(this.value)">${destinos.map((m) => `<option value="${m}" ${m === c.mesDestino ? 'selected' : ''}>${E(nombreMesCap(m))}</option>`).join('')}</select></label>
           <label class="cg-fila"><span class="cg-lbl">Revisión después de</span><select class="cg-sel" onchange="cgCtrlUmbral(this.value)">${[1, 2, 3, 4, 6].map((n) => `<option value="${n}" ${n === c.umbral ? 'selected' : ''}>${n} mes${n === 1 ? '' : 'es'} sin actividad</option>`).join('')}</select></label>
         </div>
-        <div style="margin-top:10px"><span class="cg-lbl">Comparar contra (meses de referencia)</span>
+        <details class="cg-adv" style="margin:10px 0 0"><summary>Comparar contra: ${E(c.referencia.map((m) => nombreMes(m, false)).join(', '))}</summary>
           ${chipsMeses(refSet, 'cgCtrlRef', { soloConDatos: true })}
-          <div class="cg-mini" style="margin-top:4px">Por defecto, los dos meses anteriores al destino. Podés sumar o quitar meses (por ejemplo, el mes que duplicaste).</div></div>
+          <div class="cg-mini" style="margin:4px 0 10px">Por defecto, los dos meses anteriores al destino. Podés sumar o quitar meses (por ejemplo, el mes que duplicaste).</div></details>
       </div>
       <div class="cg-nota"><b>Control de agenda — ${E(nombreMesCap(c.mesDestino))}.</b> ${c.totales.registrados} fichas registradas en el sistema · ${c.totales.unicos} pacientes con actividad en ${E(c.referencia.map((m) => nombreMes(m, false)).join(', '))} o ${E(nombreMes(c.mesDestino, false))} · ${c.totales.turnosDestino} turnos vigentes en ${E(nombreMes(c.mesDestino, false))}. Cada persona se cuenta una sola vez. "Sin agendar" no significa suspendido: la suspensión solo se toma si está registrada en la ficha.</div>
-      <div class="cg-kpis">${CATS.map(([k, t, cls]) => kp(k, (c.cats[k] || []).length, t, (c.cats[k] || []).length ? cls : '')).join('')}</div>
-      <div class="cg-kpis">
-        ${[...c.referencia, c.mesDestino].map((m) => kp('nuevos:' + m, (c.nuevosPorMes[m] || []).length, 'Nuevos de ' + nombreMes(m, false), '')).join('')}
-        ${c.referencia.map((m) => kp('ausentes:' + m, (c.ausentesPorMes[m] || []).length, `De ${nombreMes(m, false)} ausentes en ${nombreMes(c.mesDestino, false)}`, (c.ausentesPorMes[m] || []).length ? 'bad' : '')).join('')}
-        ${c.referencia.map((m) => kp('nuevosRef:' + m, (c.nuevosRefSinAgendar[m] || []).length, `Nuevos de ${nombreMes(m, false)} sin agendar`, (c.nuevosRefSinAgendar[m] || []).length ? 'bad' : '')).join('')}
-      </div>
+      <div class="cg-catchips">${CATS.map(([k, t, cls]) => ch(k, (c.cats[k] || []).length, t, (c.cats[k] || []).length ? cls : '')).join('')}</div>
+      <details class="cg-adv" ${/:/.test(st.ctrl.cat) ? 'open' : ''}><summary>Por mes: nuevos, ausentes y nuevos sin agendar</summary><div class="cg-catchips" style="padding-bottom:12px">
+        ${[...c.referencia, c.mesDestino].map((m) => ch('nuevos:' + m, (c.nuevosPorMes[m] || []).length, 'Nuevos de ' + nombreMes(m, false), '')).join('')}
+        ${c.referencia.map((m) => ch('ausentes:' + m, (c.ausentesPorMes[m] || []).length, `De ${nombreMes(m, false)} ausentes en ${nombreMes(c.mesDestino, false)}`, (c.ausentesPorMes[m] || []).length ? 'bad' : '')).join('')}
+        ${c.referencia.map((m) => ch('nuevosRef:' + m, (c.nuevosRefSinAgendar[m] || []).length, `Nuevos de ${nombreMes(m, false)} sin agendar`, (c.nuevosRefSinAgendar[m] || []).length ? 'bad' : '')).join('')}
+      </div></details>
       <div class="cg-bar"><h4 style="margin:0;font-size:15px">${E(tituloCategoria(c, st.ctrl.cat))} (${lista.length})</h4>${barraExport('control', lista.length)}</div>
       ${lista.length ? `<div class="cg-tabla-wrap"><table class="cg-tabla"><thead><tr><th>N.º</th><th>Paciente</th><th>Incorporación</th><th>Última sesión</th><th class="cg-opc">${E(c.referencia.map((m) => nombreMes(m, false).slice(0, 3)).join(' '))}</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table></div>` : '<div class="cg-vacio">No hay pacientes en esta categoría. 🎉</div>'}`;
+  }
+
+  // ── Pestaña: Revisión de datos (comparar meses · duplicaciones · duplicados) ──
+  function vistaRevision() {
+    const d = st.datos;
+    const subs = [['comparar', 'Comparar meses'], ['duplicaciones', 'Duplicaciones de mes'], ['duplicados', `Posibles duplicados${d.duplicados.length ? ' (' + d.duplicados.length + ')' : ''}`]];
+    const cuerpo = ({ comparar: vistaComparar, duplicaciones: vistaDuplicaciones, duplicados: vistaDuplicados }[st.subRev] || vistaComparar)();
+    return `<div class="p360-seg cg-subrev" role="tablist">${subs.map(([k, t]) => `<button type="button" class="${st.subRev === k ? 'activo' : ''}" onclick="cgSubRev('${k}')">${t}</button>`).join('')}</div>${cuerpo}`;
   }
 
   // ── Pestaña: Comparar meses ──
@@ -711,12 +729,15 @@ export function initCentroGestion(deps) {
     },
     cgRecargar: async () => { try { await cargar(true); render(); aviso('Datos actualizados'); } catch (e) { aviso('No se pudieron actualizar los datos.'); } },
     cgBuscar: (v) => { st.q = v; clearTimeout(tBuscar); tBuscar = setTimeout(() => { if (st.tab !== 'pacientes') st.tab = 'pacientes'; rerender(); }, 180); },
-    cgTab: (t) => { st.tab = t; st.sel.clear(); render(); },
+    cgTab: (t) => { if (['comparar', 'duplicados', 'duplicaciones'].includes(t)) { st.subRev = t; t = 'revision'; } st.tab = t; st.sel.clear(); render(); },
+    cgSubRev: (k) => { st.subRev = k; render(); },
+    cgInd: (open) => { st.indAbierto = !!open; },
+    cgDirectorio: () => { if (window.navegar) window.navegar('clientes'); },
     cgPerModo: (m) => { st.per.modo = m; if (m === 'anio' && !st.per.anio) st.per.anio = hoy().slice(0, 4); if (m === 'meses' && !st.per.meses.size) st.per.meses.add(mesActual()); rerender(); },
     cgPerAnio: (a) => { st.per.anio = a; rerender(); },
     cgPerRango: (k, v) => { st.per[k] = v; rerender(); },
     cgPerMes: (m) => { toggleSet(st.per.meses, m); rerender(); },
-    cgRapido: (k) => { if (k === 'duplicados') { st.tab = 'duplicados'; render(); return; } toggleSet(st.rapido, k); if (k === 'sin_agendar' && st.rapido.has('pendientes')) st.rapido.delete('pendientes'); if (k === 'pendientes' && st.rapido.has('sin_agendar')) st.rapido.delete('sin_agendar'); rerender(); },
+    cgRapido: (k) => { if (k === 'duplicados') { st.tab = 'revision'; st.subRev = 'duplicados'; render(); return; } toggleSet(st.rapido, k); if (k === 'sin_agendar' && st.rapido.has('pendientes')) st.rapido.delete('pendientes'); if (k === 'pendientes' && st.rapido.has('sin_agendar')) st.rapido.delete('sin_agendar'); rerender(); },
     cgAdvMes_nuevosEn: (m) => { toggleSet(st.adv.nuevosEn, m); rerender(); },
     cgAdvMes_presentesEn: (m) => { toggleSet(st.adv.presentesEn, m); rerender(); },
     cgAdvMes_ausentesEn: (m) => { toggleSet(st.adv.ausentesEn, m); rerender(); },
