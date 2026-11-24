@@ -1590,6 +1590,11 @@
         .brr-otro-f { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
         .brr-otro-f input, .brr-otro-f select { padding: 7px 9px; border: 1px solid var(--border-strong); border-radius: 9px; font: inherit; font-size: 13px; min-height: 36px; }
         .brr .brr-ok.peligro { background: #A33B3B; }
+        .pj-notas { margin-top: 6px; border-left: 3px solid rgba(138,106,34,0.35); padding: 4px 0 2px 9px; display: grid; gap: 3px; }
+        .pj-notas-t { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: rgba(138,106,34,0.85); margin-top: 2px; }
+        .pj-nota { font-size: 12px; color: var(--ink); white-space: pre-line; line-height: 1.45; }
+        .pj-nota b { font-weight: 700; }
+        .pj-guia { color: var(--ink-soft); }
         .ses-prox-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; font-size: 10px; font-weight: 800; letter-spacing: .10em; text-transform: uppercase; color: rgba(138,106,34,0.60); }
         .ses-del-abrir { border: 1px solid rgba(173,46,46,0.30); background: rgba(173,46,46,0.05); color: #9A2E2E; border-radius: 8px; padding: 6px 11px; font: inherit; font-size: 11.5px; font-weight: 700; letter-spacing: 0; text-transform: none; cursor: pointer; white-space: nowrap; }
         .ses-del-abrir:hover { background: rgba(173,46,46,0.10); }
@@ -4017,6 +4022,7 @@
         } from "/js/planificacion-paciente.js";
         import { initDuplicarMes } from "/js/duplicar-mes-ui.js";
         import { initCentroGestion } from "/js/centro-gestion-ui.js";
+        import { notasDeTurno, guiasDeTurno, filasNotasDelDia, TIPOS_NOTA } from "/js/notas-jornada.js";
         import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
         import { MEDIOS, etiquetaMedio, iconoMedio, parsearPesos, milesAPesos, pesosAMiles, formatoPesos, formatoPesosEnteros, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio, normalizarMontoARS, normalizarDocMontos, MONTOS_RAPIDOS } from "/js/cobro-rapido.js";
         import { esTurnoDeJornadaValido, origenParaNuevoTurno } from "/js/turno-jornada.js";
@@ -10625,7 +10631,7 @@
                             '</div>' +
                             '<div style="font-size:12px;color:rgba(36,51,43,0.5);margin-top:2px;">' + (r.servicio||'—') + '</div>' +
                             '<div style="margin-top:5px;">' + _cobroBtnHtml(r) + '</div>' +
-                            ((r.detalleSesion||'').trim() ? '<div style="font-size:11px;color:rgba(36,51,43,0.35);margin-top:3px;font-style:italic;white-space:pre-line;">' + (r.detalleSesion||'').trim().slice(0,110) + ((r.detalleSesion||'').length>110?'…':'') + '</div>' : '') +
+                            _pjNotasHtml(r) +
                             _pjBadgeInforme +
                         '</div></div>';
                     });
@@ -10648,6 +10654,18 @@
                     '</div>';
             }
 
+            // Notas del turno + guías registradas en otros turnos de la persona
+            // (cualquier mes). Texto completo, con sus saltos de línea.
+            function _pjNotasHtml(r) {
+                var propias = notasDeTurno(r);
+                var guias = guiasDeTurno(r, todasLasReservas, { claveDe: _pacienteMatchKey, esActiva: esReservaActiva });
+                if (!propias.length && !guias.length) return '';
+                var fc = function(f){ return f.split('-').reverse().join('/'); };
+                var h = '<div class="pj-notas">';
+                if (propias.length) h += '<div class="pj-notas-t">Nota de este turno</div>' + propias.map(function(n){ return '<div class="pj-nota"><b>' + escapeHtml(TIPOS_NOTA[n.tipo]) + ':</b> ' + escapeHtml(n.texto) + '</div>'; }).join('');
+                if (guias.length) h += '<div class="pj-notas-t">Guías registradas (' + guias.length + ')</div>' + guias.map(function(g){ return '<div class="pj-nota pj-guia"><b>' + fc(g.fecha) + ' · ' + escapeHtml(TIPOS_NOTA[g.tipo]) + ':</b> ' + escapeHtml(g.texto) + '</div>'; }).join('');
+                return h + '</div>';
+            }
             window.cargarPreparaJornada = function(fecha) {
                 if (fecha) {
                     _pjFecha = fecha;
@@ -10681,12 +10699,16 @@
              * tabla entre hojas. El único salto de página permitido es el que
              * separa mañana de tarde, y solo si ambas tienen turnos.
              */
-            window.imprimirGrillaJornada = function() {
+            window.imprimirGrillaJornada = async function() {
                 var f = _pjFecha;
                 if (!f) return;
                 var tools = getPdfTools();
                 if (!tools) return;
                 var jsPDF = tools.jsPDF;
+                // Se leen las reservas recién guardadas (últimas ediciones de notas)
+                // y de todos los meses (para las guías). Sin conexión: lo que hay en memoria.
+                var _fuente = todasLasReservas;
+                try { _fuente = await _fetchReservasCompletasParaExport(); } catch (eF) { console.warn('Grilla del día: sin datos frescos', eF); }
 
                 var MESES_PDF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
                 var DIAS_PDF  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -10696,8 +10718,8 @@
                 var _nd = function(r){ return (r.nombre||r.paciente||'—').trim(); };
 
                 var _hn = function(r){ return normalizarHora(r.hora) || ''; };
-                var reservasDia = todasLasReservas
-                    .filter(function(r){ return r.fecha === f && esReservaActiva(r); })
+                var reservasDia = _fuente
+                    .filter(function(r){ return r.fecha === f && esReservaActiva(r) && !esReservaBloqueoAdmin(r); })
                     .sort(function(a,b){ var ha=_hn(a), hb=_hn(b); if (ha !== hb) return ha < hb ? -1 : 1; return _nd(a).localeCompare(_nd(b), 'es'); });
 
                 if (!reservasDia.length) { mostrarAviso('Sin reservas activas para esta fecha.'); return; }
@@ -10705,9 +10727,10 @@
                 // Todos los boxes (incluyendo vacíos — para escribir a mano). Sin
                 // ícono: jsPDF/Helvetica no dibuja emoji (mismo criterio que
                 // fmtBox en generarPDFJornada, unas líneas más abajo en este archivo).
-                var colBoxes = (typeof GRILLA_BOXES !== 'undefined' && GRILLA_BOXES.length)
-                    ? GRILLA_BOXES.map(function(b){ return {id:b.id, label:b.title+(b.sub?' · '+b.sub:'')}; })
-                    : [];
+                // Boxes de la FECHA que se imprime (desde diciembre suma «Box 1»),
+                // no los del día que esté mostrando la Grilla.
+                var _boxesF = boxesParaFecha(_boxesConfigGuardada, f);
+                var colBoxes = _boxesF.map(function(b){ return {id:b.id, label:b.title+(b.sub?' · '+b.sub:'')}; });
 
                 var timesSet = new Set();
                 reservasDia.forEach(function(r){ if(_hn(r)) timesSet.add(_hn(r)); });
@@ -10971,6 +10994,46 @@
                     mostrarAviso('La grilla no se generó correctamente (páginas: ' + totalPages + '/' + expectedPages +
                         ', horarios: ' + sessionsWritten + '/' + sortedTimes.length + '). No se abrió para imprimir.');
                     return;
+                }
+
+                // ── Notas y guías de los turnos del día (después de la grilla) ──
+                // Una fila por nota, repitiendo hora y paciente: si la tabla sigue en
+                // otra hoja siempre se ve de quién es. Texto completo, en negro.
+                var filasN = filasNotasDelDia(reservasDia, _fuente, {
+                    claveDe: _pacienteMatchKey, esActiva: esReservaActiva, nombreDe: _nd,
+                    boxDe: function(r){ var b = _boxesF.find(function(x){ return x.id === getBoxId(r); }); return b ? b.title : ''; },
+                });
+                if (filasN.length) {
+                    doc.addPage('a4', 'landscape');
+                    var W = doc.internal.pageSize.getWidth();
+                    var tituloN = function(){ doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(20,20,20); doc.text(_pdfTxt('Notas y guías del día · ' + DIAS_PDF[new Date(f + 'T12:00').getDay()] + ' ' + f.split('-').reverse().join('/')), 12, 12); };
+                    // Una nota muy larga se parte en tramos que entran en una hoja; cada
+                    // tramo repite hora y paciente (y dice "continuación").
+                    var colTxtW = W - 24 - 26 - 52 - 46 - 4;
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+                    var filasPdf = [];
+                    filasN.forEach(function(x){
+                        var lineas = doc.splitTextToSize(String(x.texto || '').split('\n').map(_pdfTxt).join('\n'), colTxtW);
+                        var TRAMO = 32;
+                        for (var k = 0; k < lineas.length; k += TRAMO) {
+                            filasPdf.push({ x: x, rotulo: k === 0 ? x.rotulo : x.rotulo + ' (continuación)', texto: lineas.slice(k, k + TRAMO).join('\n') });
+                        }
+                    });
+                    tools.runAutoTable(doc, {
+                        startY: 16,
+                        head: [['Hora · Box', 'Paciente · Servicio', 'Nota', 'Texto']],
+                        body: filasPdf.map(function(fp){
+                            var x = fp.x;
+                            return [_pdfTxt(x.hora + (x.box ? ' · ' + x.box : '')), _pdfTxt(x.paciente) + (x.servicio ? '\n' + _pdfTxt(x.servicio) : ''), _pdfTxt(fp.rotulo), fp.texto];
+                        }),
+                        margin: { top: 16, left: 12, right: 12, bottom: 12 },
+                        styles: { font: 'helvetica', fontSize: 9, textColor: [15,15,15], lineColor: [150,150,150], lineWidth: 0.2, cellPadding: 2, overflow: 'linebreak', valign: 'top' },
+                        headStyles: { fillColor: [235,235,235], textColor: [10,10,10], fontStyle: 'bold' },
+                        columnStyles: { 0: { cellWidth: 26, fontStyle: 'bold' }, 1: { cellWidth: 52, fontStyle: 'bold' }, 2: { cellWidth: 46, fontStyle: 'italic' }, 3: { cellWidth: W - 24 - 26 - 52 - 46 } },
+                        showHead: 'everyPage', rowPageBreak: 'avoid',
+                        didDrawPage: function(){ tituloN(); },
+                        willDrawCell: function(d){ if (d.section === 'body' && d.column.index < 2 && d.row.index > 0 && filasPdf[d.row.index - 1].x.reservaId === filasPdf[d.row.index].x.reservaId) { doc.setTextColor(90,90,90); } },
+                    });
                 }
 
                 doc.autoPrint();
