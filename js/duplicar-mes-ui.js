@@ -16,7 +16,7 @@ const CATEGORIAS_ORIGEN = {
   cancelada: 'Canceladas (no se regeneran)', continuidad_por_definir: 'Continuidad por definir', sin_paciente: 'Sin paciente identificado',
 };
 const MOTIVO_TXT = {
-  suspendido: 'Suspendido (se borró de la agenda)',
+  suspendido: 'Cancelado para reprogramar',
   cierre_dia: 'Estética cerrada', bloqueo_estetica: 'Estética bloqueada', bloqueo_box: 'Box bloqueado', bloqueo_depilacion_protegido: 'Box 5 bloqueado por depilación',
   box_ocupado: 'Box ocupado', paciente_ocupado: 'La paciente ya tiene otro turno', box_incompatible: 'Box incompatible', fuera_horario: 'Fuera de horario',
   indisponible: 'Indisponibilidad de la paciente', ausente: 'Paciente ausente', fuera_cupo: 'Fuera del cupo', pendiente_consultar: 'Pendiente de consultar',
@@ -543,7 +543,11 @@ export function initDuplicarMes(deps) {
     cont.addEventListener('change', (e) => { const k = e.target.dataset && e.target.dataset.dmpF; if (k && k !== 'texto') { pend.filtros[k] = e.target.value; pintarPendientes(); } });
     cont.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
-      if (b.dataset.dmpAlt) abrirReagendar(b.dataset.dmpAlt);
+      if (b.dataset.dmpAlt) {
+        const p = pend.docs.find((x) => x.id === b.dataset.dmpAlt);
+        if (p && ((p.origen && p.origen.tipo === 'cancelacion') || String(p.clave || '').startsWith('suspendido|')) && window.auReprogramar) window.auReprogramar(p.id);
+        else abrirReagendar(b.dataset.dmpAlt);
+      }
       else if (b.dataset.dmpConsultar) { const p = pend.docs.find((x) => x.id === b.dataset.dmpConsultar); if (p) cambiarEstadoPend(p.id, p.estado === 'pendiente_consultar' ? 'pendiente' : 'pendiente_consultar'); }
       else if (b.dataset.dmpCerrar) cambiarEstadoPend(b.dataset.dmpCerrar, 'resuelto');
     });
@@ -659,16 +663,28 @@ export function initDuplicarMes(deps) {
       const aviso = (ctx.avisos || []).filter((a) => a && a.desde <= fecha && fecha <= a.hasta).map((a) => a.texto).join(' · ');
       return { ...ev, aviso };
     },
-    // Deja el turno en "Pendientes de reagendar" (antes de borrarlo).
+    // Deja el turno en "Pendientes de reagendar" como ACCIÓN URGENTE, vinculado
+    // a la reserva original (que queda cancelada, no borrada). Guarda una copia
+    // de los datos del turno (paciente, servicio, duración, box, fecha/hora,
+    // notas) por si la reserva no estuviera al reprogramar.
     async guardarPendiente(r, motivo) {
       const o = occDe(r);
       const id = `pd_susp_${r.id}`;
+      const snap = {};
+      Object.keys(r || {}).forEach((k) => {
+        const v = r[k];
+        if (v == null || typeof v === 'function') return;
+        if (typeof v === 'object' && !Array.isArray(v) && (typeof v.toDate === 'function' || typeof v.seconds === 'number')) return; // Timestamps
+        try { snap[k] = JSON.parse(JSON.stringify(v)); } catch (_) { /* no serializable */ }
+      });
       await setDoc(doc(db, COLECCION_PEND, id), {
         kind: 'ocurrencia', clave: `suspendido|${r.id}`, dni: o.dni, paciente: r.nombreLimpio || r.nombre || r.cliente || '',
         categoria: o.categoria, servicio: o.servicio, dur: o.dur, fecha: o.fecha, hora: o.hora, boxId: o.boxId,
         patronKey: `${o.dni}|${o.categoria}`, mesDestino: o.fecha.slice(0, 7), frecuencia: '',
-        origen: { tipo: 'reserva', refs: [r.id], espejo: null, texto: 'Turno suspendido (se borró de la agenda)' },
-        estado: 'pendiente', motivos: [{ codigo: 'suspendido', texto: motivo ? `Suspendió: ${motivo}` : 'Suspendió el turno' }], advertencias: [],
+        origen: { tipo: 'cancelacion', refs: [r.id], espejo: null, texto: 'Turno cancelado para reprogramar' },
+        reservaId: r.id, phone: r.phone || r.telefono || '', notaRapida: r.notaRapida || '', detalleSesion: r.detalleSesion || '',
+        reservaSnapshot: snap,
+        estado: 'pendiente', motivos: [{ codigo: 'suspendido', texto: motivo ? `Canceló: ${motivo}` : 'Canceló el turno' }], advertencias: [],
         creadoAt: serverTimestamp(), actualizadoAt: serverTimestamp(),
       });
       contarPendientes();

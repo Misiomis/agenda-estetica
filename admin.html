@@ -664,7 +664,7 @@
         .bottom-nav {
             display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 60px; z-index: 150;
             background: var(--surface); border-top: 1px solid var(--border);
-            grid-template-columns: repeat(5, 1fr); padding: 0;
+            grid-template-columns: repeat(6, 1fr); padding: 0;
         }
         .bni { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 2px 8px; border: none; background: transparent; color: #97A296; cursor: pointer; font-family: inherit; transition: color 0.15s; position: relative; }
         .bni.active { color: var(--forest); }
@@ -1595,6 +1595,27 @@
         .pj-nota { font-size: 12px; color: var(--ink); white-space: pre-line; line-height: 1.45; }
         .pj-nota b { font-weight: 700; }
         .pj-guia { color: var(--ink-soft); }
+        /* Acciones urgentes */
+        .au-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #B3261E; color: #fff; font-size: 11px; font-weight: 800; margin-left: auto; line-height: 1; }
+        .au-badge[hidden] { display: none !important; }
+        .nav-urgentes { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+        .bni .bni-ico { position: relative; }
+        .bni .au-badge { position: absolute; top: -6px; right: -12px; min-width: 16px; height: 16px; font-size: 10px; }
+        .au-fila { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 14px 16px; margin: 0 0 10px; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid #B3261E; border-radius: 12px; }
+        .au-info { display: grid; gap: 3px; min-width: 0; flex: 1 1 260px; }
+        .au-info b { font-size: 15px; color: var(--ink); }
+        .au-info span { font-size: 12.5px; color: var(--ink-soft); }
+        .au-info .au-turno { color: var(--ink); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+        .au-info .au-mot { white-space: pre-line; }
+        .au-acc { display: flex; gap: 6px; flex-wrap: wrap; }
+        .au-desc { color: var(--ink-soft); }
+        .au-vacio { padding: 28px; text-align: center; color: var(--ink-soft); background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; }
+        .toast-accion { display: flex; align-items: center; gap: 12px; }
+        .toast-accion button { border: 1px solid rgba(255,255,255,.6); background: transparent; color: #fff; border-radius: 8px; padding: 4px 10px; font: inherit; font-weight: 800; cursor: pointer; }
+        .brr { position: relative; }
+        .brr-x { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--surface-2); font-size: 18px; cursor: pointer; color: var(--ink); }
+        .brr-card-min { padding: 8px 13px; opacity: .85; }
+        .brr-card-min b { font-size: 12.5px; }
         .ses-prox-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; font-size: 10px; font-weight: 800; letter-spacing: .10em; text-transform: uppercase; color: rgba(138,106,34,0.60); }
         .ses-del-abrir { border: 1px solid rgba(173,46,46,0.30); background: rgba(173,46,46,0.05); color: #9A2E2E; border-radius: 8px; padding: 6px 11px; font: inherit; font-size: 11.5px; font-weight: 700; letter-spacing: 0; text-transform: none; cursor: pointer; white-space: nowrap; }
         .ses-del-abrir:hover { background: rgba(173,46,46,0.10); }
@@ -2880,6 +2901,10 @@
                 <div class="sidebar-brand-mark">M</div>
                 <div class="sidebar-brand-text"><strong>Mimar T</strong><span>Panel Admin</span></div>
             </div>
+            <button class="btn-nav nav-urgentes" id="btn-acciones-urgentes" onclick="navegar('acciones-urgentes')">
+                <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.5 16 15H2Z" stroke-linejoin="round"/><path d="M9 7v3.6M9 12.6v.1" stroke-linecap="round"/></svg>
+                Acciones urgentes <span class="au-badge" hidden></span>
+            </button>
             <button class="btn-nav sidebar-search" id="btn-buscar" onclick="navegar('buscar')">
                 <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5.2"/><path d="M15.5 15.5 12 12" stroke-linecap="round"/></svg>
                 Buscar
@@ -3019,6 +3044,9 @@
             </button>
             <button class="bni" data-grupo="recursos" onclick="navegarGrupo('recursos')">
                 <span class="bni-ico">✨</span><span class="bni-lbl">Recursos</span>
+            </button>
+            <button class="bni" data-section="acciones-urgentes" onclick="navegar('acciones-urgentes')">
+                <span class="bni-ico">⚡<span class="au-badge" hidden></span></span><span class="bni-lbl">Urgentes</span>
             </button>
             <button class="bni" id="bni-mas" onclick="toggleBottomSheet()">
                 <span class="bni-ico">≡</span><span class="bni-lbl">Más</span>
@@ -3190,6 +3218,17 @@
                     <div id="contenedorSesionesBuscadas" style="margin-top:10px;"></div>
                     <div class="cliente-help" style="margin-top:14px; font-size:13px; background:rgba(53,122,92,0.10); border-radius:10px; padding:8px 12px;">Buscá por cualquier parte del nombre: "miriam", "sedof", "adriana c". Muestra todos sus turnos con box, servicio y resumen mensual.</div>
                 </div>
+            </div>
+            <!-- ════════════ ACCIONES URGENTES (turnos cancelados para reprogramar) ════════════ -->
+            <div id="sec-acciones-urgentes" class="section">
+                <div class="p360-sec-head">
+                    <div>
+                        <h3 class="p360-sec-title">Acciones urgentes</h3>
+                        <p class="p360-sec-sub">Turnos que cancelaste para <u>reprogramar</u>. "Reprogramar" reactiva el mismo turno en el día que elijas (conserva notas y cobros) y lo saca de esta lista.</p>
+                    </div>
+                    <div class="p360-acc"><button class="btn-mini" onclick="auCargar()">↻ Actualizar</button></div>
+                </div>
+                <div id="au-lista"><div class="p360-cargando">Cargando…</div></div>
             </div>
             <!-- ════════════ CENTRO DE GESTIÓN Y CONSULTAS (js/centro-gestion-ui.js) ════════════ -->
             <div id="sec-centro-gestion" class="section">
@@ -4020,7 +4059,7 @@
             estadoPlanificacion, resumenPlanificacion, serializarPlanificacion, nuevoIdFila as planNuevoIdFila,
             esServicioFacial, evaluarIntervaloFacial, textoConflictoFacial
         } from "/js/planificacion-paciente.js";
-        import { initDuplicarMes } from "/js/duplicar-mes-ui.js";
+        import { initDuplicarMes, confirmarUI } from "/js/duplicar-mes-ui.js";
         import { initCentroGestion } from "/js/centro-gestion-ui.js";
         import { notasDeTurno, guiasDeTurno, filasNotasDelDia, TIPOS_NOTA } from "/js/notas-jornada.js";
         import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
@@ -5281,6 +5320,7 @@
                 mostrarLoader(false); // UI disponible — Fase 2 arranca en background
             }
             _cargarDatosSecundarios(); // sin await — no bloquea la UI
+            window.auContar?.();       // contador de Acciones urgentes
         }
 
         // ─── FASE 2: datos secundarios — background ───────────────────────────────
@@ -7856,22 +7896,88 @@
             } catch (eL) { console.warn('Liberar bloqueos del turno', eL); }
             return { avisoConsulta };
         }
+        // ── Bloqueos de horario de un turno (agenda web) ──
+        async function _liberarBloqueosTurno(reserva) {
+            try {
+                const propios = await getDocs(query(collection(db, 'calendarExceptions'), where('reservaId', '==', reserva.id)));
+                for (const d of propios.docs) {
+                    await deleteDoc(doc(db, 'calendarExceptions', d.id));
+                    const x = d.data(); if (x.fecha && x.hora) bloqueosHorarios.delete(keyBloqueo(x.fecha, x.hora));
+                }
+            } catch (e) { console.warn('Liberar bloqueos del turno', e); }
+            const h = normalizarHora(reserva.hora);
+            if (h && reserva.fecha && !_lockDeOtroTurno(reserva.fecha, h, reserva.id)) {
+                try { await deleteDoc(doc(db, 'calendarExceptions', `reserva_admin_${reserva.fecha}_${h.replace(':', '-')}`)); } catch (_) {}
+                bloqueosHorarios.delete(keyBloqueo(reserva.fecha, h));
+            }
+        }
+        async function _crearBloqueosTurno(reservaId, fecha, hora, dur, servicio) {
+            const baseId = `reserva_admin_${fecha}_${hora.replace(':', '-')}`;
+            if (!_lockDeOtroTurno(fecha, hora, reservaId)) {
+                await setDoc(doc(db, 'calendarExceptions', baseId), { fecha, hora, blocked: true, tipo: 'reserva', reservaId, boxes: _inferirBoxes(servicio || '', ''), updatedAt: serverTimestamp() }).catch(() => {});
+                bloqueosHorarios.set(keyBloqueo(fecha, hora), { id: baseId, fecha, hora, blocked: true, tipo: 'reserva', reservaId });
+            }
+            const [hh, mm] = hora.split(':').map(Number);
+            for (let i = 1; i <= Math.max(0, Math.ceil(dur / 30) - 1); i++) {
+                const m = hh * 60 + mm + i * 30; if (m >= 24 * 60) break;
+                const h = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+                if (_lockDeOtroTurno(fecha, h, reservaId)) continue;
+                const extId = `ext_${fecha}_${h.replace(':', 'h')}`;
+                await setDoc(doc(db, 'calendarExceptions', extId), { fecha, hora: h, blocked: true, tipo: 'extension', reservaId }).catch(() => {});
+                bloqueosHorarios.set(keyBloqueo(fecha, h), { id: extId, fecha, hora: h, blocked: true, tipo: 'extension', reservaId });
+            }
+        }
+        // Cancelar un turno SIN borrarlo: queda registrado como cancelado (con sus
+        // notas y cobros), se liberan sus horarios y se sincroniza la consulta vinculada.
+        async function _cancelarReservaNucleo(reserva, { motivo = '', pendienteReprogramar = false } = {}) {
+            const por = (auth.currentUser && auth.currentUser.email) || null;
+            const cancelacion = { pendienteReprogramar: !!pendienteReprogramar, motivo: motivo || '', at: new Date().toISOString(), por };
+            await updateDoc(doc(db, 'reservas', reserva.id), {
+                status: 'cancelado', estado: 'cancelado', canceladoPor: 'admin', motivoCancelacion: motivo || (pendienteReprogramar ? 'Para reprogramar' : ''),
+                canceladoAt: serverTimestamp(), cancelacion,
+            });
+            const idx = todasLasReservas.findIndex(x => x.id === reserva.id);
+            if (idx !== -1) Object.assign(todasLasReservas[idx], { status: 'cancelado', estado: 'cancelado', canceladoPor: 'admin', motivoCancelacion: motivo || '', cancelacion });
+            if (reserva.consultaId) {
+                try {
+                    await updateDoc(doc(db, 'consultas', reserva.consultaId), { estado: 'cancelada', motivoCancelacion: motivo || '', canceladoPor: 'admin', canceladoAt: serverTimestamp() });
+                    const ci = todasLasConsultas.findIndex(c => c.id === reserva.consultaId); if (ci >= 0) todasLasConsultas[ci].estado = 'cancelada';
+                } catch (e) { console.warn('Cancelación: consulta vinculada', e); }
+            }
+            await _liberarBloqueosTurno(reserva);
+            await registrarAuditoria('cancelacion_turno', reserva.fecha, reserva.hora,
+                [reserva.servicio, pendienteReprogramar ? 'Pendiente de reprogramar' : 'Sin reprogramar', motivo ? 'Motivo: ' + motivo : ''].filter(Boolean).join(' · '),
+                reserva.nombreLimpio || reserva.cliente || 'Paciente');
+        }
+        // Aviso con botón (ej. "Abrir Acciones urgentes")
+        function _toastAccion(texto, boton, fn) {
+            const c = document.getElementById('toast-container'); if (!c) { mostrarAviso(texto); return; }
+            const t = document.createElement('div');
+            t.className = 'toast show toast-accion';
+            t.innerHTML = '<span></span><button type="button"></button>';
+            t.querySelector('span').textContent = texto;
+            const b = t.querySelector('button'); b.textContent = boton; b.onclick = () => { t.remove(); fn(); };
+            c.appendChild(t);
+            setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 7000);
+        }
+
         // ── Al borrar un turno: reprogramar · dejar pendiente · borrar sin reprogramar ──
         const _brrFecha = (f) => { const p = f.split('-'); const d = new Date(+p[0], +p[1] - 1, +p[2]); return _SES_DIAS[d.getDay()] + ' ' + parseInt(p[2], 10) + '/' + p[1]; };
         const _brrBox = (id) => { const b = GRILLA_BOXES.find(x => x.id === id) || (window.dmReprog?.boxes() || []).find(x => x.id === id); return b ? (b.title || b.label) : (id || '—'); };
-        function _dialogoBorrarReserva(reserva) {
+        function _dialogoBorrarReserva(reserva, opciones = {}) {
+            const solo = !!opciones.soloReprogramar;
             return new Promise((resolve) => {
                 const hoy = fechaHoyISO();
-                const desde = _sumarDiasISO(reserva.fecha > hoy ? reserva.fecha : hoy, 1);
+                const desde = solo ? _sumarDiasISO(hoy, 1) : _sumarDiasISO(reserva.fecha > hoy ? reserva.fecha : hoy, 1);
                 const hora0 = normalizarHora(reserva.hora) || '10:00';
                 const box0 = _grilla_boxDeReserva(reserva);
                 const st = { accion: 'reprogramar', sug: null, opciones: [], elegida: null, manual: null, cargando: true, error: '' };
                 const ov = document.createElement('div');
                 ov.className = 'p360-modal-ov'; ov.id = '_brr_ov';
                 const fin = (v) => { ov.remove(); document.removeEventListener('keydown', esc); if (resolverModalBorrado === resolverCompat) resolverModalBorrado = null; resolve(v); };
-                const esc = (e) => { if (e.key === 'Escape') fin({ accion: 'cancelar' }); };
+                const esc = (e) => { if (e.key === 'Escape') fin({ accion: 'volver' }); };
                 // Compatibilidad: cerrarModalBorradoReserva(true/false) sigue funcionando.
-                const resolverCompat = (ok) => fin(ok ? { accion: 'borrar' } : { accion: 'cancelar' });
+                const resolverCompat = (ok) => fin(ok ? { accion: 'borrar' } : { accion: 'volver' });
                 resolverModalBorrado = resolverCompat;
                 const opt = (o, i) => `<button type="button" class="brr-opc${st.elegida === o ? ' on' : ''}" data-i="${i}">${escapeHtml(_brrFecha(o.fecha))} · ${o.hora}<small>${escapeHtml(_brrBox(o.boxId))}${o.aviso ? ' · 📢 ' + escapeHtml(o.aviso) : ''}</small></button>`;
                 const boxesSel = [...new Map([...(window.dmReprog?.boxes() || []), ...GRILLA_BOXES].map(b => [b.id, b])).values()];
@@ -7882,22 +7988,26 @@
                         : (st.opciones.length ? `<p class="brr-nota">Próximos lugares libres (mismo horario):</p><div class="brr-opcs">${st.opciones.map(opt).join('')}</div>` : '<p class="brr-nota err">No hay lugar libre en el mismo horario en las próximas 3 semanas. Elegí otro día u horario abajo.</p>');
                     const m = st.manual || {};
                     ov.innerHTML = `<div class="p360-modal brr" role="dialog" aria-modal="true" aria-label="Borrar turno">
-                        <p class="p360-modal-t">Turno de ${escapeHtml(reserva.nombreLimpio || reserva.nombre || 'Paciente')}</p>
+                        <button type="button" class="brr-x" id="_brr_x" aria-label="Cerrar">×</button>
+                        <p class="p360-modal-t">${solo ? 'Reprogramar turno de ' : 'Turno de '}${escapeHtml(reserva.nombreLimpio || reserva.nombre || 'Paciente')}</p>
                         <p class="p360-modal-s">${escapeHtml(_brrFecha(reserva.fecha))} · ${escapeHtml(hora0)} hs · ${escapeHtml(reserva.servicio || '')} · ${escapeHtml(_brrBox(box0))}</p>
-                        <label class="brr-card${st.accion === 'reprogramar' ? ' on' : ''}"><input type="radio" name="brr" value="reprogramar" ${st.accion === 'reprogramar' ? 'checked' : ''}>
-                            <span><b>🔁 Reprogramar</b><small>Se mueve este mismo turno a otro día (conserva notas y cobros).</small></span></label>
+                        ${solo ? `<p class="brr-nota">Turno cancelado: ${escapeHtml(_brrFecha(reserva.fecha))} · ${escapeHtml(hora0)} hs. Elegí el nuevo día; se reactiva el mismo turno (conserva notas y cobros).</p>` : `<label class="brr-card${st.accion === 'reprogramar' ? ' on' : ''}"><input type="radio" name="brr" value="reprogramar" ${st.accion === 'reprogramar' ? 'checked' : ''}>
+                            <span><b>🔁 Reprogramar ya</b><small>Se mueve este mismo turno a otro día (conserva notas y cobros).</small></span></label>`}
                         ${st.accion === 'reprogramar' ? `<div class="brr-sub">${cuerpoRep}
                             <details class="brr-otro" ${m.abierto ? 'open' : ''}><summary>Elegir otro día u horario</summary>
                                 <div class="brr-otro-f"><input type="date" id="_brr_f" value="${escapeHtml(m.fecha || desde)}" min="${hoy}"><input type="time" id="_brr_h" step="300" value="${escapeHtml(m.hora || hora0)}">
                                 <select id="_brr_b">${boxesSel.map(b => `<option value="${b.id}" ${(m.boxId || box0) === b.id ? 'selected' : ''}>${escapeHtml(b.title || b.label)}</option>`).join('')}</select></div>
                                 <p class="brr-nota ${m.ok ? 'ok' : m.motivos ? 'err' : ''}" id="_brr_mres">${m.cargando ? 'Comprobando…' : m.ok ? '✓ Disponible' + (m.aviso ? ' · 📢 ' + escapeHtml(m.aviso) : '') : m.motivos ? '⛔ ' + escapeHtml(m.motivos) : ''}</p>
                             </details></div>` : ''}
-                        <label class="brr-card${st.accion === 'pendiente' ? ' on' : ''}"><input type="radio" name="brr" value="pendiente" ${st.accion === 'pendiente' ? 'checked' : ''}>
-                            <span><b>⏳ Borrar y dejar pendiente de reagendar</b><small>Se borra de la agenda y queda en "Pendientes de reagendar" para darle día después.</small></span></label>
+                        ${solo ? '' : `<label class="brr-card${st.accion === 'pendiente' ? ' on' : ''}"><input type="radio" name="brr" value="pendiente" ${st.accion === 'pendiente' ? 'checked' : ''}>
+                            <span><b>⏳ Cancelar y dejar pendiente de reprogramar</b><small>Se libera el horario y queda en <u>Acciones urgentes</u> para darle día después.</small></span></label>
                         ${st.accion === 'pendiente' ? `<div class="brr-sub"><input type="text" id="_brr_mot" maxlength="140" placeholder="Motivo (opcional): ej. está enferma, viaja…" value="${escapeHtml(st.motivo || '')}"></div>` : ''}
-                        <label class="brr-card${st.accion === 'borrar' ? ' on' : ''}"><input type="radio" name="brr" value="borrar" ${st.accion === 'borrar' ? 'checked' : ''}>
-                            <span><b>🗑 Borrar sin reprogramar</b><small>No se vuelve a agendar. No se puede deshacer.</small></span></label>
-                        <div class="p360-modal-acc"><button type="button" class="btn-mini" id="_brr_no">Cancelar</button><button type="button" class="p360-btn-pri brr-ok ${st.accion === 'borrar' ? 'peligro' : ''}" id="_brr_si">${textoBoton()}</button></div>
+                        <label class="brr-card${st.accion === 'cancelar' ? ' on' : ''}"><input type="radio" name="brr" value="cancelar" ${st.accion === 'cancelar' ? 'checked' : ''}>
+                            <span><b>✖ Cancelar sin reprogramar</b><small>Queda registrado como cancelado. No suma una acción urgente.</small></span></label>
+                        ${st.accion === 'cancelar' ? `<div class="brr-sub"><input type="text" id="_brr_mot" maxlength="140" placeholder="Motivo (opcional)" value="${escapeHtml(st.motivo || '')}"></div>` : ''}
+                        <label class="brr-card brr-card-min${st.accion === 'borrar' ? ' on' : ''}"><input type="radio" name="brr" value="borrar" ${st.accion === 'borrar' ? 'checked' : ''}>
+                            <span><b>🗑 Eliminar el turno por completo</b><small>Se borra de la base (no queda registro del turno). No se puede deshacer.</small></span></label>`}
+                        <div class="p360-modal-acc"><button type="button" class="btn-mini" id="_brr_no">Volver</button><button type="button" class="p360-btn-pri brr-ok ${st.accion === 'borrar' ? 'peligro' : ''}" id="_brr_si">${textoBoton()}</button></div>
                     </div>`;
                     ov.querySelectorAll('input[name=brr]').forEach(r => r.onchange = () => { st.accion = r.value; if (st.accion !== 'reprogramar') st.motivo = st.motivo || ''; render(); });
                     ov.querySelectorAll('.brr-opc').forEach(b => b.onclick = () => { st.elegida = st.opciones[+b.dataset.i]; st.manual = null; render(); });
@@ -7907,7 +8017,8 @@
                         ['_brr_f', '_brr_h', '_brr_b'].forEach(id => { const el = ov.querySelector('#' + id); if (el) el.onchange = comprobar; });
                     }
                     const mot = ov.querySelector('#_brr_mot'); if (mot) { mot.oninput = () => { st.motivo = mot.value; }; mot.focus(); }
-                    ov.querySelector('#_brr_no').onclick = () => fin({ accion: 'cancelar' });
+                    ov.querySelector('#_brr_no').onclick = () => fin({ accion: 'volver' });
+                    ov.querySelector('#_brr_x').onclick = () => fin({ accion: 'volver' });
                     const si = ov.querySelector('#_brr_si');
                     si.disabled = st.accion === 'reprogramar' && !st.elegida;
                     si.onclick = () => {
@@ -7916,8 +8027,9 @@
                     };
                 };
                 function textoBoton() {
-                    if (st.accion === 'pendiente') return 'Borrar y dejar pendiente';
-                    if (st.accion === 'borrar') return 'Borrar definitivamente';
+                    if (st.accion === 'pendiente') return 'Cancelar y dejar pendiente';
+                    if (st.accion === 'cancelar') return 'Cancelar sin reprogramar';
+                    if (st.accion === 'borrar') return 'Eliminar definitivamente';
                     const e = st.elegida;
                     return e ? `Reprogramar al ${_brrFecha(e.fecha)} · ${e.hora}` : 'Reprogramar';
                 }
@@ -7935,7 +8047,7 @@
                     } catch (e) { console.error(e); st.manual = { abierto: true, fecha: f, hora: h, boxId: b, motivos: 'No se pudo comprobar (¿sin conexión?).' }; }
                     render();
                 }
-                ov.addEventListener('mousedown', (e) => { if (e.target === ov) fin({ accion: 'cancelar' }); });
+                ov.addEventListener('mousedown', (e) => { if (e.target === ov) fin({ accion: 'volver' }); });
                 document.addEventListener('keydown', esc);
                 document.body.appendChild(ov);
                 render();
@@ -7943,7 +8055,7 @@
                     try {
                         const r = await window.dmReprog.sugerir(reserva, { desde, dias: 21, max: 6 });
                         st.opciones = r.opciones; st.elegida = r.sugerida; st.sug = r.sugerida;
-                        if (!r.sugerida) st.accion = 'pendiente';
+                        if (!r.sugerida && !solo) st.accion = 'pendiente';
                     } catch (e) { console.error(e); st.error = 'No se pudieron buscar lugares libres (¿sin conexión?).'; }
                     st.cargando = false;
                     if (document.body.contains(ov)) render();
@@ -8011,6 +8123,139 @@
                 return false;
             } finally { mostrarLoader(false); }
         }
+        // ═══ ACCIONES URGENTES: turnos cancelados para reprogramar ═══
+        // Fuente: pendientesReagendar (origen "cancelacion", o los "suspendido|…"
+        // anteriores). Reprogramar reactiva el MISMO turno (mismo id: notas y
+        // cobros) y cierra el pendiente en UNA transacción: un doble clic o un
+        // reintento no duplica nada.
+        const _au = { docs: [], cargado: false, error: '' };
+        const _auEsUrgente = (p) => (p.origen && p.origen.tipo === 'cancelacion') || String(p.clave || '').startsWith('suspendido|');
+        const _auAbierto = (p) => p.estado === 'pendiente' || p.estado === 'pendiente_consultar';
+        window.auContar = async () => {
+            try {
+                const snap = await getDocs(collection(db, 'pendientesReagendar'));
+                _au.docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                _au.cargado = true; _au.error = '';
+            } catch (e) { _au.error = (e && (e.code || e.message)) || 'sin conexión'; }
+            const n = _au.docs.filter(p => _auEsUrgente(p) && _auAbierto(p)).length;
+            document.querySelectorAll('.au-badge').forEach(b => { b.textContent = n ? String(n) : ''; b.hidden = !n; });
+            if (document.getElementById('sec-acciones-urgentes')?.classList.contains('active')) _auRender();
+            return n;
+        };
+        const _auReservaDe = (p) => {
+            const enMem = todasLasReservas.find(r => r.id === (p.reservaId || (p.origen && p.origen.refs && p.origen.refs[0])));
+            const s = p.reservaSnapshot || {};
+            return { ...s, ...(enMem || {}), id: p.reservaId || (p.origen && p.origen.refs && p.origen.refs[0]) || s.id,
+                fecha: p.fecha, hora: p.hora, box: (enMem && enMem.box) || s.box || p.boxId, duracionMinutos: (enMem && enMem.duracionMinutos) || s.duracionMinutos || p.dur,
+                servicio: p.servicio || s.servicio, dni: p.dni || s.dni, nombre: (enMem && enMem.nombre) || s.nombre || p.paciente, nombreLimpio: p.paciente || s.nombreLimpio || s.nombre,
+                phone: (enMem && enMem.phone) || s.phone || p.phone || '' };
+        };
+        function _auRender() {
+            const cont = document.getElementById('au-lista'); if (!cont) return;
+            if (!_au.cargado) { cont.innerHTML = _au.error ? `<p class="p360-alerta err">No se pudieron leer los pendientes (${escapeHtml(_au.error)}).</p>` : '<div class="p360-cargando">Cargando…</div>'; return; }
+            const urg = _au.docs.filter(p => _auEsUrgente(p) && _auAbierto(p)).sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+            const otros = _au.docs.filter(p => !_auEsUrgente(p) && _auAbierto(p)).length;
+            const fc = (f) => f ? f.split('-').reverse().join('/') : '';
+            cont.innerHTML = (urg.length ? urg.map(p => {
+                const mot = (p.motivos || []).map(m => m.texto).filter(Boolean).join(' · ');
+                return `<div class="au-fila" data-id="${escapeHtml(p.id)}">
+                    <div class="au-info"><b>${escapeHtml(p.paciente || p.dni || 'Paciente')}</b>
+                        <span>${escapeHtml(p.servicio || '')} · ${p.dur || 60} min</span>
+                        <span class="au-turno">Turno cancelado: ${escapeHtml(_brrFecha(p.fecha))} · ${escapeHtml(p.hora || '')} hs · ${escapeHtml(_brrBox(p.boxId))}</span>
+                        ${mot ? `<span class="au-mot">${escapeHtml(mot)}</span>` : ''}
+                        ${p.notaRapida || p.detalleSesion ? `<span class="au-mot">📝 ${escapeHtml(p.notaRapida || p.detalleSesion)}</span>` : ''}</div>
+                    <div class="au-acc">
+                        <button type="button" class="p360-btn-pri" onclick="auReprogramar('${escapeHtml(p.id)}')">Reprogramar</button>
+                        <button type="button" class="p360-btn" onclick="auWhatsApp('${escapeHtml(p.id)}')">💬 WhatsApp</button>
+                        <button type="button" class="p360-btn au-desc" onclick="auDescartar('${escapeHtml(p.id)}')">Descartar</button>
+                    </div></div>`;
+            }).join('') : '<div class="au-vacio">✓ No hay turnos pendientes de reprogramar.</div>')
+            + (otros ? `<p class="p360-muted" style="margin-top:14px">Además hay ${otros} pendiente${otros === 1 ? '' : 's'} de reagendar que salieron de <b>Duplicar mes</b>: <a href="#" onclick="navegar('pendientes-reagendar');return false">ver Pendientes de reagendar</a>.</p>` : '');
+        }
+        window.auCargar = async () => { _auRender(); await window.auContar(); _auRender(); };
+        window.auWhatsApp = (id) => {
+            const p = _au.docs.find(x => x.id === id); if (!p) return;
+            const r = _auReservaDe(p);
+            const num = r.phone ? normalizarWA(r.phone) : '';
+            if (!num) { mostrarAviso('Esta paciente no tiene un teléfono válido cargado'); return; }
+            const nom = String(p.paciente || '').split(' ')[0];
+            const txt = `Hola ${nom}! Te escribimos de Espacio Mimar T para reprogramar tu turno de ${p.servicio || 'tratamiento'} del ${p.fecha.split('-').reverse().join('/')} a las ${p.hora} hs. ¿Qué día y horario te quedan cómodos?`;
+            window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+        };
+        window.auDescartar = async (id) => {
+            const p = _au.docs.find(x => x.id === id); if (!p) return;
+            if (!(await confirmarUI({ titulo: '¿Descartar este pendiente?', texto: `${p.paciente}: el turno queda cancelado y no se reprograma.`, aceptar: 'Sí, descartar', cancelar: 'Volver' }))) return;
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = doc(db, 'pendientesReagendar', id); const s = await tx.get(ref);
+                    if (!s.exists() || s.data().estado === 'resuelto') return;
+                    tx.update(ref, { estado: 'descartado', descartadoAt: serverTimestamp(), actualizadoAt: serverTimestamp() });
+                });
+                await registrarAuditoria('pendiente_descartado', p.fecha, p.hora, `${p.servicio || ''} · no se reprograma`, p.paciente || 'Paciente');
+                mostrarAviso('Pendiente descartado');
+            } catch (e) { console.error(e); mostrarAviso('No se pudo descartar'); }
+            await window.auContar();
+        };
+        let _auEnCurso = false;
+        window.auReprogramar = async (id) => {
+            if (_auEnCurso) return;
+            if (!_au.cargado || !_au.docs.some(x => x.id === id)) await window.auContar();
+            const p = _au.docs.find(x => x.id === id);
+            if (!p) { mostrarAviso('No se encontró el pendiente'); return; }
+            if (!_auAbierto(p)) { mostrarAviso('Este pendiente ya está cerrado'); await window.auContar(); return; }
+            const r = _auReservaDe(p);
+            const dec = await _dialogoBorrarReserva(r, { soloReprogramar: true });
+            if (!dec || dec.accion !== 'reprogramar') return;
+            _auEnCurso = true;
+            try {
+                mostrarLoader(true);
+                // Revalidar con datos frescos justo antes de guardar.
+                const ev = await window.dmReprog.evaluar(r, { fecha: dec.fecha, hora: dec.hora, boxId: dec.boxId });
+                if (ev.motivos.length) { mostrarAviso('Ese lugar ya no está disponible: ' + ev.motivos.map(m => m.texto).join(' ')); return; }
+                const reservaId = r.id;
+                const por = (auth.currentUser && auth.currentUser.email) || null;
+                const ya = await runTransaction(db, async (tx) => {
+                    const pref = doc(db, 'pendientesReagendar', id);
+                    const rref = doc(db, 'reservas', reservaId);
+                    const ps = await tx.get(pref); const rs = await tx.get(rref);
+                    if (!ps.exists()) throw new Error('El pendiente ya no existe');
+                    if (ps.data().estado === 'resuelto') return true; // otro clic / reintento ya lo hizo
+                    const antes = { fecha: p.fecha, hora: p.hora, box: p.boxId || null };
+                    const prev = rs.exists() ? rs.data() : (p.reservaSnapshot || {});
+                    const bx = GRILLA_BOXES.find(b => b.id === dec.boxId) || (window.dmReprog?.boxes() || []).find(b => b.id === dec.boxId);
+                    const nuevo = {
+                        fecha: dec.fecha, hora: dec.hora, box: dec.boxId, boxLabel: bx ? (bx.label || bx.title) : null,
+                        estado: 'confirmado', status: 'confirmado', reminderSent: false,
+                        cancelacion: { ...(prev.cancelacion || {}), pendienteReprogramar: false, reprogramadaAt: new Date().toISOString(), reprogramadaPor: por, pendienteId: id },
+                        reprogramadaDe: antes,
+                        reprogramaciones: [...(Array.isArray(prev.reprogramaciones) ? prev.reprogramaciones : []), { de: antes, a: { fecha: dec.fecha, hora: dec.hora, box: dec.boxId }, at: new Date().toISOString(), por, via: 'acciones_urgentes' }].slice(-20),
+                        updatedAt: serverTimestamp(),
+                    };
+                    if (rs.exists()) tx.update(rref, nuevo);
+                    else tx.set(rref, { ...(p.reservaSnapshot || {}), dni: p.dni, nombre: p.paciente, servicio: p.servicio, duracionMinutos: p.dur, ...nuevo, timestamp: serverTimestamp(), creadoPor: 'admin_reprogramar' });
+                    tx.update(pref, { estado: 'resuelto', reservaId, resueltoAt: serverTimestamp(), actualizadoAt: serverTimestamp(), resolucion: { via: 'acciones_urgentes', fecha: dec.fecha, hora: dec.hora, boxId: dec.boxId, reservaId } });
+                    return false;
+                });
+                if (ya) { mostrarAviso('Ya estaba reprogramado'); return; }
+                await _crearBloqueosTurno(reservaId, dec.fecha, dec.hora, Number(p.dur) > 0 ? Number(p.dur) : 30, p.servicio);
+                // Estado local
+                const s = await getDoc(doc(db, 'reservas', reservaId));
+                if (s.exists()) {
+                    const data = { id: reservaId, ...s.data(), nombreLimpio: p.paciente || s.data().nombre };
+                    const i = todasLasReservas.findIndex(x => x.id === reservaId);
+                    if (i >= 0) todasLasReservas[i] = { ...todasLasReservas[i], ...data }; else todasLasReservas.push(data);
+                }
+                await registrarAuditoria('reprogramacion', p.fecha, p.hora, `Reprogramado al ${dec.fecha} ${dec.hora} · ${_brrBox(dec.boxId)}${p.servicio ? ' · ' + p.servicio : ''} (Acciones urgentes)`, p.paciente || 'Paciente');
+                actualizarKPIs(); poblarServiciosFiltro(); renderCalendario();
+                if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+                window._p360DatosActualizados?.(); window.renderGrilla?.();
+                mostrarAviso(`Reprogramado al ${_brrFecha(dec.fecha)} · ${dec.hora} hs · ${_brrBox(dec.boxId)}`);
+            } catch (e) {
+                console.error('Acciones urgentes: reprogramar', e);
+                mostrarAviso('No se pudo reprogramar (' + ((e && e.message) || 'error') + '). El pendiente sigue abierto: podés reintentar.');
+            } finally { _auEnCurso = false; mostrarLoader(false); await window.auContar(); }
+        };
+
         window.borrarReserva = async (idReserva) => {
             const reserva = todasLasReservas.find(r => r.id === idReserva);
             if (!reserva) {
@@ -8018,15 +8263,30 @@
                 return;
             }
             const decision = await _dialogoBorrarReserva(reserva);
-            if (!decision || decision.accion === 'cancelar') return;
+            if (!decision || decision.accion === 'volver' || decision.accion === 'cancelar_dialogo') return;
             if (decision.accion === 'reprogramar') { await _reprogramarReserva(reserva, decision); return; }
+            if (decision.accion === 'pendiente' || decision.accion === 'cancelar') {
+                try {
+                    mostrarLoader(true);
+                    if (decision.accion === 'pendiente') {
+                        // Primero el pendiente; si eso falla, no se cancela nada.
+                        try { await window.dmReprog.guardarPendiente(reserva, decision.motivo || ''); }
+                        catch (eP) { console.error(eP); mostrarAviso('No se pudo guardar el pendiente de reprogramar — el turno no se canceló.'); return; }
+                    }
+                    await _cancelarReservaNucleo(reserva, { motivo: decision.motivo || '', pendienteReprogramar: decision.accion === 'pendiente' });
+                    actualizarKPIs(); poblarServiciosFiltro(); renderCalendario();
+                    if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+                    window.auContar?.();
+                    if (decision.accion === 'pendiente') _toastAccion('Turno cancelado · quedó en Acciones urgentes', 'Abrir', () => window.navegar('acciones-urgentes'));
+                    else mostrarAviso('Turno cancelado (sin reprogramar)');
+                } catch (eC) {
+                    console.error(eC);
+                    mostrarAviso('No se pudo cancelar el turno');
+                } finally { mostrarLoader(false); }
+                return;
+            }
             try {
                 mostrarLoader(true);
-                if (decision.accion === 'pendiente') {
-                    // Primero queda en "Pendientes de reagendar"; si eso falla, no se borra nada.
-                    try { await window.dmReprog.guardarPendiente(reserva, decision.motivo || ''); }
-                    catch (eP) { console.error(eP); mostrarAviso('No se pudo dejar como pendiente de reagendar — no se borró el turno.'); return; }
-                }
                 const { avisoConsulta } = await _borrarReservaNucleo(reserva);
                 if (avisoConsulta) mostrarAviso('Se borró la reserva, pero no la consulta vinculada — eliminála desde la Agenda.');
                 actualizarKPIs();
@@ -8037,7 +8297,7 @@
                 } else {
                     document.getElementById("panelDetalleDia").innerHTML = '';
                 }
-                mostrarAviso(decision.accion === 'pendiente' ? 'Turno borrado · quedó en Pendientes de reagendar' : 'Turno borrado (sin reprogramar)');
+                mostrarAviso('Turno eliminado');
             } catch (error) {
                 console.error("Error Firestore borrarReserva:", error);
                 const msg = error.code === 'permission-denied' ? "Error: No tienes permiso para borrar" : "No se pudo borrar la reserva";
@@ -14522,6 +14782,7 @@
             if (s === 'recomendaciones') window.recPostRender?.();
             if (s === 'buscador-avanzado') window.baAbrir?.();
             if (s === 'centro-gestion') window.cgAbrir?.();
+            if (s === 'acciones-urgentes') window.auCargar?.();
             if (s === 'control-sesiones') window.csAbrir?.();
             _navRenderGrupo(s);
         };
