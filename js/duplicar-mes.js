@@ -678,3 +678,44 @@ export function prepararCopiaSeleccion(ctx, sel = {}) {
   resumen.etiquetaBoton = `Crear ${resumen.crear} turno${resumen.crear === 1 ? '' : 's'} y guardar ${resumen.guardarPendientes} pendiente${resumen.guardarPendientes === 1 ? '' : 's'}`;
   return { ...base, items, origenExplicado, resumen, incluidos: incluir };
 }
+
+// ── Reprogramar un turno suspendido ───────────────────────────────────────
+// Sugiere días para mover un turno: desde `desde`, el MISMO horario y el MISMO
+// box primero; si ese día no hay lugar, otro box compatible con el servicio.
+// Cada opción se valida con evaluarOcurrencia (cierres, bloqueos, box ocupado,
+// la paciente con otro turno, box compatible, horario, disponibilidad). Los
+// domingos no se sugieren. Un día con aviso 📢 se ofrece, pero marcado, y no
+// se elige como sugerencia principal si hay otro día sin aviso.
+//  ctx: el mismo de duplicar (ocupacion, bloqueos, desbloqueos, servicios, pacientes, boxes)
+//  r:   { id, fecha, hora, dur, boxId, dni, servicio, categoria }
+export function sugerirReprogramaciones(ctx0, r, { desde, dias = 21, max = 6 } = {}) {
+  const ctx = conBoxActual(ctx0, r);
+  const hora = normHora(r.hora);
+  const info = (ctx.servicios || {})[r.servicio] || {};
+  const compat = (ctx.boxes || []).map((b) => b.id).filter((id) => !(info.boxes && info.boxes.length) || info.boxes.includes(id));
+  const boxes = [r.boxId, ...compat.filter((id) => id !== r.boxId)].filter(Boolean);
+  const avisosDe = (f) => (ctx.avisos || []).filter((a) => a && a.desde <= f && f <= a.hasta);
+  const opciones = [];
+  let f = fechaValida(desde) ? desde : sumarDias(r.fecha, 1);
+  for (let i = 0; i < dias && opciones.length < max * 3; i++, f = sumarDias(f, 1)) {
+    if (diaSemana(f) === 0) continue;
+    for (const boxId of boxes) {
+      const ev = evaluarOcurrencia(ctx, { fecha: f, hora, dur: r.dur, boxId, dni: r.dni, servicio: r.servicio, categoria: r.categoria, ignorarId: r.id });
+      if (ev.motivos.length) continue;
+      const av = avisosDe(f);
+      opciones.push({ fecha: f, hora, boxId, mismoBox: boxId === r.boxId, aviso: av.map((a) => a.texto).join(' · '), advertencias: ev.advertencias });
+      break; // un box por día: el mismo si se puede, si no el primero compatible
+    }
+  }
+  // Lo primero es el día (lo antes posible, mismo horario); el box es preferencia dentro de cada día.
+  const sugerida = opciones.find((o) => !o.aviso) || opciones[0] || null;
+  return { sugerida, opciones: opciones.slice(0, max) };
+}
+
+// El box donde ya está el turno siempre cuenta como compatible con su servicio
+// (aunque la deducción automática de boxes por servicio no lo incluya).
+export function conBoxActual(ctx, r) {
+  const info = (ctx.servicios || {})[r.servicio];
+  if (!info || !Array.isArray(info.boxes) || !info.boxes.length || !r.boxId || info.boxes.includes(r.boxId)) return ctx;
+  return { ...ctx, servicios: { ...ctx.servicios, [r.servicio]: { ...info, boxes: [...info.boxes, r.boxId] } } };
+}

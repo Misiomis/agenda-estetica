@@ -338,7 +338,7 @@ check('el turno de Laura está en la Grilla antes de eliminar', $('grilla-tbody'
 // Cancelar: no borra nada
 let pendiente = w.grillaEliminarReserva('l-hoy'); await tick();
 // (el modal escribe con innerText, que jsdom guarda como propiedad sin pasarlo a textContent)
-check('pide confirmación antes de borrar', $('confirm-delete-modal').style.display === 'flex' && /Laura Ruiz/.test($('confirm-delete-text-1').innerText || $('confirm-delete-text-1').textContent));
+check('pregunta qué hacer antes de borrar (reprogramar / pendiente / borrar)', !!$('_brr_ov') && /Laura Ruiz/.test($('_brr_ov').textContent) && /Reprogramar/.test($('_brr_ov').textContent) && /Borrar sin reprogramar/.test($('_brr_ov').textContent));
 w.cerrarModalBorradoReserva(false); await pendiente; await tick();
 check('cancelar no borra la reserva', fb.calls.store.has('reservas/l-hoy') && $('grilla-tbody').innerHTML.includes('Laura Ruiz'));
 // Confirmar: se borra de Firestore y desaparece de la Grilla

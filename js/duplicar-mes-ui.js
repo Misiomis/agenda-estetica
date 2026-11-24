@@ -3,7 +3,7 @@
 // vista previa y, cuando el administrador pulsa el botón final, guarda con la MISMA
 // validación aplicada sobre datos recién leídos.
 import {
-  prepararDuplicacion, prepararCopia, prepararCopiaSeleccion, analizarSeleccion, evaluarOcurrencia, buscarAlternativas, normalizarBloqueos, ocupacionDesdeReservas,
+  prepararDuplicacion, prepararCopia, prepararCopiaSeleccion, analizarSeleccion, evaluarOcurrencia, sugerirReprogramaciones, conBoxActual, sumarDias, buscarAlternativas, normalizarBloqueos, ocupacionDesdeReservas,
   fechaLarga, horaAMin, minAHora, idReservaDe, claveOcurrencia, categoriaServicio, tieneBloqueoProtegido, motivosInsalvables,
 } from './duplicar-mes.js';
 
@@ -16,6 +16,7 @@ const CATEGORIAS_ORIGEN = {
   cancelada: 'Canceladas (no se regeneran)', continuidad_por_definir: 'Continuidad por definir', sin_paciente: 'Sin paciente identificado',
 };
 const MOTIVO_TXT = {
+  suspendido: 'Suspendido (se borró de la agenda)',
   cierre_dia: 'Estética cerrada', bloqueo_estetica: 'Estética bloqueada', bloqueo_box: 'Box bloqueado', bloqueo_depilacion_protegido: 'Box 5 bloqueado por depilación',
   box_ocupado: 'Box ocupado', paciente_ocupado: 'La paciente ya tiene otro turno', box_incompatible: 'Box incompatible', fuera_horario: 'Fuera de horario',
   indisponible: 'Indisponibilidad de la paciente', ausente: 'Paciente ausente', fuera_cupo: 'Fuera del cupo', pendiente_consultar: 'Pendiente de consultar',
@@ -634,6 +635,48 @@ export function initDuplicarMes(deps) {
   }
 
   // ── exposición ─────────────────────────────────────────────────────────
+  // ── Reprogramar / dejar pendiente un turno que se suspende ──────────────
+  // Lo usa el borrado de reservas (Grilla y Agenda). Mismas validaciones que
+  // Duplicar mes, sobre datos recién leídos de Firestore.
+  const occDe = (r) => ({
+    id: r.id, fecha: r.fecha, hora: minAHora(horaAMin(r.hora)), dur: Number(r.duracionMinutos) > 0 ? Number(r.duracionMinutos) : 30,
+    boxId: deps.boxDeReserva(r), dni: String(r.dni || '').trim(), servicio: r.servicio || '', categoria: categoriaServicio(r.servicio, null),
+  });
+  async function ctxReprog(r, desde, dias) {
+    const hasta = sumarDias(desde, dias + 1);
+    const [reservas, bloqueosRaw, avisos] = await Promise.all([leerReservas(desde, hasta), leerBloqueos(), leerAvisos()]);
+    const m = { anio: +desde.slice(0, 4), mes: +desde.slice(5, 7) };
+    return armarCtx({ reservas, bloqueosRaw, pendientes: [], avisos, pacientes: mapaPacientes(), servicios: mapaServicios([...reservas, r]) }, { global: {}, patrones: {}, items: {} }, m, m);
+  }
+  window.dmReprog = {
+    async sugerir(r, { desde, dias = 21, max = 6 } = {}) {
+      const ctx = await ctxReprog(r, desde, dias);
+      return sugerirReprogramaciones(ctx, occDe(r), { desde, dias, max });
+    },
+    async evaluar(r, { fecha, hora, boxId }) {
+      const ctx = await ctxReprog(r, fecha, 0);
+      const ev = evaluarOcurrencia(conBoxActual(ctx, occDe(r)), { ...occDe(r), fecha, hora: minAHora(horaAMin(hora)), boxId, ignorarId: r.id });
+      const aviso = (ctx.avisos || []).filter((a) => a && a.desde <= fecha && fecha <= a.hasta).map((a) => a.texto).join(' · ');
+      return { ...ev, aviso };
+    },
+    // Deja el turno en "Pendientes de reagendar" (antes de borrarlo).
+    async guardarPendiente(r, motivo) {
+      const o = occDe(r);
+      const id = `pd_susp_${r.id}`;
+      await setDoc(doc(db, COLECCION_PEND, id), {
+        kind: 'ocurrencia', clave: `suspendido|${r.id}`, dni: o.dni, paciente: r.nombreLimpio || r.nombre || r.cliente || '',
+        categoria: o.categoria, servicio: o.servicio, dur: o.dur, fecha: o.fecha, hora: o.hora, boxId: o.boxId,
+        patronKey: `${o.dni}|${o.categoria}`, mesDestino: o.fecha.slice(0, 7), frecuencia: '',
+        origen: { tipo: 'reserva', refs: [r.id], espejo: null, texto: 'Turno suspendido (se borró de la agenda)' },
+        estado: 'pendiente', motivos: [{ codigo: 'suspendido', texto: motivo ? `Suspendió: ${motivo}` : 'Suspendió el turno' }], advertencias: [],
+        creadoAt: serverTimestamp(), actualizadoAt: serverTimestamp(),
+      });
+      contarPendientes();
+      return id;
+    },
+    boxes: () => deps.boxes,
+  };
+
   window.dmAbrir = abrir;
   window.dmPendientesCargar = () => { conectarPanelPendientes(); return pendientesCargar(); };
   contarPendientes();

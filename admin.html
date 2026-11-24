@@ -1568,6 +1568,28 @@
         .ses-envio-vacio { min-height: 40px; display: flex; align-items: center; justify-content: center; padding: 10px 14px; border: 1px dashed var(--border); border-radius: 10px; font-size: 12px; color: rgba(22,61,50,0.45); text-align: center; }
         .ses-envio-fila > .ses-envio-vacio:only-child { grid-column: 1 / -1; }
         @media (max-width: 560px) { .ses-envio-fila { grid-template-columns: 1fr; } }
+        /* Borrar turno: reprogramar · pendiente · borrar */
+        .brr { max-width: 520px; }
+        .brr-card { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 12px; margin: 8px 0 0; cursor: pointer; background: var(--surface); }
+        .brr-card input { margin-top: 3px; width: 17px; height: 17px; flex: 0 0 auto; accent-color: var(--forest); }
+        .brr-card span { display: grid; gap: 2px; }
+        .brr-card b { font-size: 13.5px; color: var(--ink); }
+        .brr-card small { font-size: 12px; color: var(--ink-soft); }
+        .brr-card.on { border-color: var(--forest); background: var(--forest-soft, rgba(47,90,71,.06)); }
+        .brr-sub { margin: 8px 0 0 12px; padding: 0 0 0 14px; border-left: 2px solid var(--border); }
+        .brr-sub input[type=text] { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid var(--border-strong); border-radius: 9px; font: inherit; font-size: 13px; }
+        .brr-nota { font-size: 12px; color: var(--ink-soft); margin: 4px 0; }
+        .brr-nota.err { color: #9A2E2E; } .brr-nota.ok { color: #256b48; font-weight: 700; }
+        .brr-opcs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+        .brr-opc { text-align: left; padding: 8px 10px; border: 1.5px solid var(--border-strong); border-radius: 10px; background: var(--surface); font: inherit; font-size: 13px; font-weight: 700; color: var(--ink); cursor: pointer; display: grid; gap: 2px; }
+        .brr-opc small { font-weight: 600; font-size: 11px; color: var(--ink-soft); }
+        .brr-opc.on { border-color: var(--forest); background: var(--forest); color: #fff; }
+        .brr-opc.on small { color: rgba(255,255,255,.85); }
+        .brr-otro { margin: 8px 0 0; }
+        .brr-otro > summary { cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--forest); }
+        .brr-otro-f { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
+        .brr-otro-f input, .brr-otro-f select { padding: 7px 9px; border: 1px solid var(--border-strong); border-radius: 9px; font: inherit; font-size: 13px; min-height: 36px; }
+        .brr .brr-ok.peligro { background: #A33B3B; }
         .ses-prox-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; font-size: 10px; font-weight: 800; letter-spacing: .10em; text-transform: uppercase; color: rgba(138,106,34,0.60); }
         .ses-del-abrir { border: 1px solid rgba(173,46,46,0.30); background: rgba(173,46,46,0.05); color: #9A2E2E; border-radius: 8px; padding: 6px 11px; font: inherit; font-size: 11.5px; font-weight: 700; letter-spacing: 0; text-transform: none; cursor: pointer; white-space: nowrap; }
         .ses-del-abrir:hover { background: rgba(173,46,46,0.10); }
@@ -7817,7 +7839,171 @@
                     bloqueosHorarios.delete(keyBloqueo(reserva.fecha, extHora));
                 }
             }
+            // Cualquier otro bloqueo de este turno (extensiones con horario no alineado
+            // a la media hora, etc.) también se libera: nunca quedan bloqueos huérfanos.
+            try {
+                const propios = await getDocs(query(collection(db, 'calendarExceptions'), where('reservaId', '==', idReserva)));
+                for (const d of propios.docs) {
+                    await deleteDoc(doc(db, 'calendarExceptions', d.id));
+                    const x = d.data(); if (x.fecha && x.hora) bloqueosHorarios.delete(keyBloqueo(x.fecha, x.hora));
+                }
+            } catch (eL) { console.warn('Liberar bloqueos del turno', eL); }
             return { avisoConsulta };
+        }
+        // ── Al borrar un turno: reprogramar · dejar pendiente · borrar sin reprogramar ──
+        const _brrFecha = (f) => { const p = f.split('-'); const d = new Date(+p[0], +p[1] - 1, +p[2]); return _SES_DIAS[d.getDay()] + ' ' + parseInt(p[2], 10) + '/' + p[1]; };
+        const _brrBox = (id) => { const b = GRILLA_BOXES.find(x => x.id === id) || (window.dmReprog?.boxes() || []).find(x => x.id === id); return b ? (b.title || b.label) : (id || '—'); };
+        function _dialogoBorrarReserva(reserva) {
+            return new Promise((resolve) => {
+                const hoy = fechaHoyISO();
+                const desde = _sumarDiasISO(reserva.fecha > hoy ? reserva.fecha : hoy, 1);
+                const hora0 = normalizarHora(reserva.hora) || '10:00';
+                const box0 = _grilla_boxDeReserva(reserva);
+                const st = { accion: 'reprogramar', sug: null, opciones: [], elegida: null, manual: null, cargando: true, error: '' };
+                const ov = document.createElement('div');
+                ov.className = 'p360-modal-ov'; ov.id = '_brr_ov';
+                const fin = (v) => { ov.remove(); document.removeEventListener('keydown', esc); if (resolverModalBorrado === resolverCompat) resolverModalBorrado = null; resolve(v); };
+                const esc = (e) => { if (e.key === 'Escape') fin({ accion: 'cancelar' }); };
+                // Compatibilidad: cerrarModalBorradoReserva(true/false) sigue funcionando.
+                const resolverCompat = (ok) => fin(ok ? { accion: 'borrar' } : { accion: 'cancelar' });
+                resolverModalBorrado = resolverCompat;
+                const opt = (o, i) => `<button type="button" class="brr-opc${st.elegida === o ? ' on' : ''}" data-i="${i}">${escapeHtml(_brrFecha(o.fecha))} · ${o.hora}<small>${escapeHtml(_brrBox(o.boxId))}${o.aviso ? ' · 📢 ' + escapeHtml(o.aviso) : ''}</small></button>`;
+                const boxesSel = [...new Map([...(window.dmReprog?.boxes() || []), ...GRILLA_BOXES].map(b => [b.id, b])).values()];
+                const render = () => {
+                    const e = st.elegida;
+                    const cuerpoRep = st.cargando ? '<p class="brr-nota">Buscando el próximo lugar libre…</p>'
+                        : st.error ? `<p class="brr-nota err">${escapeHtml(st.error)}</p>`
+                        : (st.opciones.length ? `<p class="brr-nota">Próximos lugares libres (mismo horario):</p><div class="brr-opcs">${st.opciones.map(opt).join('')}</div>` : '<p class="brr-nota err">No hay lugar libre en el mismo horario en las próximas 3 semanas. Elegí otro día u horario abajo.</p>');
+                    const m = st.manual || {};
+                    ov.innerHTML = `<div class="p360-modal brr" role="dialog" aria-modal="true" aria-label="Borrar turno">
+                        <p class="p360-modal-t">Turno de ${escapeHtml(reserva.nombreLimpio || reserva.nombre || 'Paciente')}</p>
+                        <p class="p360-modal-s">${escapeHtml(_brrFecha(reserva.fecha))} · ${escapeHtml(hora0)} hs · ${escapeHtml(reserva.servicio || '')} · ${escapeHtml(_brrBox(box0))}</p>
+                        <label class="brr-card${st.accion === 'reprogramar' ? ' on' : ''}"><input type="radio" name="brr" value="reprogramar" ${st.accion === 'reprogramar' ? 'checked' : ''}>
+                            <span><b>🔁 Reprogramar</b><small>Se mueve este mismo turno a otro día (conserva notas y cobros).</small></span></label>
+                        ${st.accion === 'reprogramar' ? `<div class="brr-sub">${cuerpoRep}
+                            <details class="brr-otro" ${m.abierto ? 'open' : ''}><summary>Elegir otro día u horario</summary>
+                                <div class="brr-otro-f"><input type="date" id="_brr_f" value="${escapeHtml(m.fecha || desde)}" min="${hoy}"><input type="time" id="_brr_h" step="300" value="${escapeHtml(m.hora || hora0)}">
+                                <select id="_brr_b">${boxesSel.map(b => `<option value="${b.id}" ${(m.boxId || box0) === b.id ? 'selected' : ''}>${escapeHtml(b.title || b.label)}</option>`).join('')}</select></div>
+                                <p class="brr-nota ${m.ok ? 'ok' : m.motivos ? 'err' : ''}" id="_brr_mres">${m.cargando ? 'Comprobando…' : m.ok ? '✓ Disponible' + (m.aviso ? ' · 📢 ' + escapeHtml(m.aviso) : '') : m.motivos ? '⛔ ' + escapeHtml(m.motivos) : ''}</p>
+                            </details></div>` : ''}
+                        <label class="brr-card${st.accion === 'pendiente' ? ' on' : ''}"><input type="radio" name="brr" value="pendiente" ${st.accion === 'pendiente' ? 'checked' : ''}>
+                            <span><b>⏳ Borrar y dejar pendiente de reagendar</b><small>Se borra de la agenda y queda en "Pendientes de reagendar" para darle día después.</small></span></label>
+                        ${st.accion === 'pendiente' ? `<div class="brr-sub"><input type="text" id="_brr_mot" maxlength="140" placeholder="Motivo (opcional): ej. está enferma, viaja…" value="${escapeHtml(st.motivo || '')}"></div>` : ''}
+                        <label class="brr-card${st.accion === 'borrar' ? ' on' : ''}"><input type="radio" name="brr" value="borrar" ${st.accion === 'borrar' ? 'checked' : ''}>
+                            <span><b>🗑 Borrar sin reprogramar</b><small>No se vuelve a agendar. No se puede deshacer.</small></span></label>
+                        <div class="p360-modal-acc"><button type="button" class="btn-mini" id="_brr_no">Cancelar</button><button type="button" class="p360-btn-pri brr-ok ${st.accion === 'borrar' ? 'peligro' : ''}" id="_brr_si">${textoBoton()}</button></div>
+                    </div>`;
+                    ov.querySelectorAll('input[name=brr]').forEach(r => r.onchange = () => { st.accion = r.value; if (st.accion !== 'reprogramar') st.motivo = st.motivo || ''; render(); });
+                    ov.querySelectorAll('.brr-opc').forEach(b => b.onclick = () => { st.elegida = st.opciones[+b.dataset.i]; st.manual = null; render(); });
+                    const det = ov.querySelector('.brr-otro');
+                    if (det) {
+                        det.ontoggle = () => { st.manual = { ...(st.manual || {}), abierto: det.open }; if (det.open && !st.manual.fecha) comprobar(); };
+                        ['_brr_f', '_brr_h', '_brr_b'].forEach(id => { const el = ov.querySelector('#' + id); if (el) el.onchange = comprobar; });
+                    }
+                    const mot = ov.querySelector('#_brr_mot'); if (mot) { mot.oninput = () => { st.motivo = mot.value; }; mot.focus(); }
+                    ov.querySelector('#_brr_no').onclick = () => fin({ accion: 'cancelar' });
+                    const si = ov.querySelector('#_brr_si');
+                    si.disabled = st.accion === 'reprogramar' && !st.elegida;
+                    si.onclick = () => {
+                        if (st.accion === 'reprogramar') { if (st.elegida) fin({ accion: 'reprogramar', fecha: st.elegida.fecha, hora: st.elegida.hora, boxId: st.elegida.boxId }); }
+                        else fin({ accion: st.accion, motivo: (st.motivo || '').trim() });
+                    };
+                };
+                function textoBoton() {
+                    if (st.accion === 'pendiente') return 'Borrar y dejar pendiente';
+                    if (st.accion === 'borrar') return 'Borrar definitivamente';
+                    const e = st.elegida;
+                    return e ? `Reprogramar al ${_brrFecha(e.fecha)} · ${e.hora}` : 'Reprogramar';
+                }
+                async function comprobar() {
+                    const f = ov.querySelector('#_brr_f')?.value, h = normalizarHora(ov.querySelector('#_brr_h')?.value || ''), b = ov.querySelector('#_brr_b')?.value;
+                    st.manual = { abierto: true, fecha: f, hora: h, boxId: b, cargando: true };
+                    if (st.elegida && st.elegida.manual) st.elegida = null;
+                    render();
+                    if (!f || !h) { st.manual = { abierto: true, fecha: f, hora: h, boxId: b, motivos: 'Elegí día y horario.' }; render(); return; }
+                    try {
+                        const ev = await window.dmReprog.evaluar(reserva, { fecha: f, hora: h, boxId: b });
+                        const ok = !ev.motivos.length && f >= hoy;
+                        st.manual = { abierto: true, fecha: f, hora: h, boxId: b, ok, aviso: ev.aviso, motivos: ok ? '' : (f < hoy ? 'Esa fecha ya pasó.' : ev.motivos.map(x => x.texto).join(' ')) };
+                        st.elegida = ok ? { fecha: f, hora: h, boxId: b, aviso: ev.aviso, manual: true } : (st.sug || null); // si no sirve, vuelve a la sugerencia
+                    } catch (e) { console.error(e); st.manual = { abierto: true, fecha: f, hora: h, boxId: b, motivos: 'No se pudo comprobar (¿sin conexión?).' }; }
+                    render();
+                }
+                ov.addEventListener('mousedown', (e) => { if (e.target === ov) fin({ accion: 'cancelar' }); });
+                document.addEventListener('keydown', esc);
+                document.body.appendChild(ov);
+                render();
+                (async () => {
+                    try {
+                        const r = await window.dmReprog.sugerir(reserva, { desde, dias: 21, max: 6 });
+                        st.opciones = r.opciones; st.elegida = r.sugerida; st.sug = r.sugerida;
+                        if (!r.sugerida) st.accion = 'pendiente';
+                    } catch (e) { console.error(e); st.error = 'No se pudieron buscar lugares libres (¿sin conexión?).'; }
+                    st.cargando = false;
+                    if (document.body.contains(ov)) render();
+                })();
+            });
+        }
+        // Mueve el MISMO turno a otra fecha/hora/box: conserva id, notas y cobros.
+        // Libera los bloqueos de horario del día viejo (los de este turno) y crea
+        // los del nuevo, igual que el alta manual. Queda en Movimientos.
+        async function _reprogramarReserva(reserva, dest) {
+            try {
+                mostrarLoader(true);
+                const antes = { fecha: reserva.fecha, hora: normalizarHora(reserva.hora), box: _grilla_boxDeReserva(reserva) || null };
+                const dur = Number(reserva.duracionMinutos) > 0 ? Number(reserva.duracionMinutos) : 30;
+                const bx = GRILLA_BOXES.find(b => b.id === dest.boxId) || (window.dmReprog?.boxes() || []).find(b => b.id === dest.boxId);
+                const registro = { de: antes, a: { fecha: dest.fecha, hora: dest.hora, box: dest.boxId }, at: new Date().toISOString(), por: (auth.currentUser && auth.currentUser.email) || null };
+                const updates = {
+                    fecha: dest.fecha, hora: dest.hora, box: dest.boxId, boxLabel: bx ? (bx.label || bx.title) : null,
+                    reminderSent: false, reprogramadaDe: antes,
+                    reprogramaciones: [...(Array.isArray(reserva.reprogramaciones) ? reserva.reprogramaciones : []), registro].slice(-20),
+                    updatedAt: serverTimestamp(),
+                };
+                await updateDoc(doc(db, 'reservas', reserva.id), updates);
+                // Bloqueos de horario: fuera los de este turno, adentro los del nuevo día.
+                try {
+                    const viejos = await getDocs(query(collection(db, 'calendarExceptions'), where('reservaId', '==', reserva.id)));
+                    for (const d of viejos.docs) {
+                        await deleteDoc(doc(db, 'calendarExceptions', d.id));
+                        const x = d.data(); if (x.fecha && x.hora) bloqueosHorarios.delete(keyBloqueo(x.fecha, x.hora));
+                    }
+                } catch (eL) { console.warn('Reprogramar: liberar bloqueos', eL); }
+                // Bloqueo base viejo sin reservaId (turnos antiguos): se libera si no es de otro turno.
+                if (antes.hora && !_lockDeOtroTurno(antes.fecha, antes.hora, reserva.id)) {
+                    try { await deleteDoc(doc(db, 'calendarExceptions', `reserva_admin_${antes.fecha}_${antes.hora.replace(':', '-')}`)); } catch (_) {}
+                    bloqueosHorarios.delete(keyBloqueo(antes.fecha, antes.hora));
+                }
+                const idx = todasLasReservas.findIndex(x => x.id === reserva.id);
+                if (idx !== -1) Object.assign(todasLasReservas[idx], { ...updates, updatedAt: undefined });
+                const baseId = `reserva_admin_${dest.fecha}_${dest.hora.replace(':', '-')}`;
+                if (!_lockDeOtroTurno(dest.fecha, dest.hora, reserva.id)) {
+                    await setDoc(doc(db, 'calendarExceptions', baseId), { fecha: dest.fecha, hora: dest.hora, blocked: true, tipo: 'reserva', reservaId: reserva.id, boxes: _inferirBoxes(reserva.servicio || '', ''), updatedAt: serverTimestamp() }).catch(() => {});
+                    bloqueosHorarios.set(keyBloqueo(dest.fecha, dest.hora), { id: baseId, fecha: dest.fecha, hora: dest.hora, blocked: true, tipo: 'reserva', reservaId: reserva.id });
+                }
+                const [hh, mm] = dest.hora.split(':').map(Number);
+                for (let i = 1; i <= Math.max(0, Math.ceil(dur / 30) - 1); i++) {
+                    const m = hh * 60 + mm + i * 30; if (m >= 24 * 60) break;
+                    const h = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+                    if (_lockDeOtroTurno(dest.fecha, h, reserva.id)) continue;
+                    const extId = `ext_${dest.fecha}_${h.replace(':', 'h')}`;
+                    await setDoc(doc(db, 'calendarExceptions', extId), { fecha: dest.fecha, hora: h, blocked: true, tipo: 'extension', reservaId: reserva.id }).catch(() => {});
+                    bloqueosHorarios.set(keyBloqueo(dest.fecha, h), { id: extId, fecha: dest.fecha, hora: h, blocked: true, tipo: 'extension', reservaId: reserva.id });
+                }
+                await registrarAuditoria('reprogramacion', antes.fecha, antes.hora,
+                    `Reprogramado al ${dest.fecha} ${dest.hora} · ${_brrBox(dest.boxId)}${reserva.servicio ? ' · ' + reserva.servicio : ''}`,
+                    reserva.nombreLimpio || reserva.cliente || 'Paciente');
+                actualizarKPIs(); poblarServiciosFiltro(); renderCalendario();
+                if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+                window._p360DatosActualizados?.();
+                window.renderGrilla?.();
+                mostrarAviso(`Reprogramado al ${_brrFecha(dest.fecha)} · ${dest.hora} hs · ${_brrBox(dest.boxId)}`);
+                return true;
+            } catch (e) {
+                console.error('Reprogramar', e);
+                mostrarAviso('No se pudo reprogramar el turno');
+                return false;
+            } finally { mostrarLoader(false); }
         }
         window.borrarReserva = async (idReserva) => {
             const reserva = todasLasReservas.find(r => r.id === idReserva);
@@ -7825,10 +8011,16 @@
                 mostrarAviso("No encontré la reserva");
                 return;
             }
-            const confirmacion = await pedirConfirmacionBorradoReserva(reserva);
-            if (!confirmacion) return;
+            const decision = await _dialogoBorrarReserva(reserva);
+            if (!decision || decision.accion === 'cancelar') return;
+            if (decision.accion === 'reprogramar') { await _reprogramarReserva(reserva, decision); return; }
             try {
                 mostrarLoader(true);
+                if (decision.accion === 'pendiente') {
+                    // Primero queda en "Pendientes de reagendar"; si eso falla, no se borra nada.
+                    try { await window.dmReprog.guardarPendiente(reserva, decision.motivo || ''); }
+                    catch (eP) { console.error(eP); mostrarAviso('No se pudo dejar como pendiente de reagendar — no se borró el turno.'); return; }
+                }
                 const { avisoConsulta } = await _borrarReservaNucleo(reserva);
                 if (avisoConsulta) mostrarAviso('Se borró la reserva, pero no la consulta vinculada — eliminála desde la Agenda.');
                 actualizarKPIs();
@@ -7839,7 +8031,7 @@
                 } else {
                     document.getElementById("panelDetalleDia").innerHTML = '';
                 }
-                mostrarAviso("Reserva borrada de Firestore");
+                mostrarAviso(decision.accion === 'pendiente' ? 'Turno borrado · quedó en Pendientes de reagendar' : 'Turno borrado (sin reprogramar)');
             } catch (error) {
                 console.error("Error Firestore borrarReserva:", error);
                 const msg = error.code === 'permission-denied' ? "Error: No tienes permiso para borrar" : "No se pudo borrar la reserva";
@@ -16911,7 +17103,6 @@
         window.grillaEliminarReserva = async function(reservaId) {
             document.getElementById('gc-menu-flot')?.remove();
             await window.borrarReserva(reservaId);
-            if (todasLasReservas.some(x => x.id === reservaId)) return; // canceló o falló
             window._p360DatosActualizados?.();
             window.renderGrilla();
         };
