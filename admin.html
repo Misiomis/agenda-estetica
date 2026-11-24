@@ -1603,6 +1603,52 @@
         .pj-nota { font-size: 12px; color: var(--ink); white-space: pre-line; line-height: 1.45; }
         .pj-nota b { font-weight: 700; }
         .pj-guia { color: var(--ink-soft); }
+        /* ═══ Capa de diseño (2026-11): jerarquía, foco, pestañas, modales, pie ═══ */
+        body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+        /* Foco visible y consistente en todo el panel */
+        :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--forest); outline-offset: 2px; }
+        /* Selección y campos */
+        ::selection { background: rgba(47,90,71,.18); }
+        :where(input, select, textarea):not([type=checkbox]):not([type=radio]):focus { border-color: var(--forest) !important; box-shadow: 0 0 0 3px rgba(47,90,71,.12); }
+        /* Pestaña activa: subrayado fino (en vez de pastilla rellena) */
+        .subtabs-bar.subtabs-bar { gap: 2px; }
+        .subtabs-bar .subtab { border: none; background: transparent; border-radius: 0; padding: 8px 12px; border-bottom: 2px solid transparent; }
+        .subtabs-bar .subtab:hover { border-color: transparent; border-bottom-color: var(--border-strong); }
+        .subtabs-bar .subtab.activo { background: transparent; color: var(--forest); border-bottom: 2px solid var(--forest); }
+        .p360-seg button.activo { box-shadow: inset 0 -2px 0 rgba(255,255,255,.55); }
+        /* Botón principal de cada pantalla: un solo verde fuerte; los secundarios, claros */
+        .p360-btn-pri, .btn-export-main { background: var(--forest); color: #fff; border: 1px solid var(--forest); border-radius: 10px; font-weight: 700; }
+        .p360-btn-pri:hover, .btn-export-main:hover { background: var(--forest-deep, #1f3d30); }
+        .p360-btn-pri:disabled { opacity: .5; cursor: not-allowed; }
+        /* Tarjetas y tablas: bordes y sombras sutiles */
+        .p360-card, .detalle-dia-card { border-radius: 14px; }
+        /* Logo */
+        .hdr-logo { display: inline-block; width: 30px; height: 28px; margin-right: 10px; vertical-align: -6px; background: url('img/logo.png') no-repeat; background-size: 220px 147px; background-position: -49px -55px; }
+        .hdr-brand-mob .hdr-logo { width: 26px; height: 24px; margin-right: 6px; background-size: 191px 127px; background-position: -43px -48px; vertical-align: -5px; }
+        .sidebar-brand-mark { overflow: hidden; }
+        .sidebar-brand-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        /* Avisos: guardado / error */
+        .toast.toast-ok { background: #1F5B3B !important; color: #fff !important; }
+        .toast.toast-error { background: #8E2B22 !important; color: #fff !important; }
+        /* Pie compacto de uso interno */
+        .adm-foot { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid var(--border); background: var(--surface); color: var(--ink-soft); font-size: 12px; }
+        .adm-foot-links { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+        .adm-foot a { color: var(--forest); font-weight: 700; text-decoration: none; }
+        .adm-foot a:hover { text-decoration: underline; text-underline-offset: 3px; }
+        @media (min-width: 769px) { .adm-foot { margin-left: var(--sidebar-w, 240px); } }
+        @media (max-width: 768px) {
+            .adm-foot { padding-bottom: 76px; justify-content: center; text-align: center; }
+            /* Sin desplazamiento horizontal de la página (la Grilla tiene su propio scroll) */
+            html, body { overflow-x: clip; }
+            /* Modales: el cierre y las acciones siempre visibles */
+            .p360-modal-ov { align-items: flex-start !important; padding: 10px !important; }
+            .p360-modal { max-height: calc(100dvh - 20px); overflow-y: auto; overscroll-behavior: contain; }
+            .p360-modal-acc { position: sticky; bottom: -16px; background: var(--surface); padding: 10px 0 4px; margin-bottom: -4px; box-shadow: 0 -10px 12px -12px rgba(0,0,0,.25); z-index: 2; }
+            .brr-x, .cg-x { position: sticky; top: 0; float: right; z-index: 3; }
+            /* Acciones frecuentes al alcance del pulgar */
+            .au-acc .p360-btn-pri, .au-acc .p360-btn { min-height: 44px; }
+        }
+
         /* Acciones urgentes */
         .au-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #B3261E; color: #fff; font-size: 11px; font-weight: 800; margin-left: auto; line-height: 1; }
         .au-badge[hidden] { display: none !important; }
@@ -2838,7 +2884,7 @@
                  reubicados — ver más abajo). -->
             <div class="header-desk-row">
                 <div class="hdr-identity">
-                    <h2 class="hdr-brand" aria-label="Espacio Mimar T">Espacio Mimar<span class="brand-t">T</span></h2>
+                    <h2 class="hdr-brand" aria-label="Espacio Mimar T"><span class="hdr-logo" aria-hidden="true"></span>Espacio Mimar<span class="brand-t">T</span></h2>
                 </div>
                 <nav class="hdr-primary-nav" aria-label="Secciones"></nav>
                 <div class="hdr-right">
@@ -2860,7 +2906,7 @@
             <!-- MÓVIL: header compacto (☰ | título | 👤) -->
             <div class="header-mob-row">
                 <button class="hamburger-btn" id="btnHamburger" onclick="toggleMenuNav()" aria-label="Más opciones" aria-expanded="false" aria-controls="bottom-sheet">☰</button>
-                <h2 class="hdr-brand hdr-brand-mob" aria-label="Espacio Mimar T">Espacio Mimar<span class="brand-t">T</span></h2>
+                <h2 class="hdr-brand hdr-brand-mob" aria-label="Espacio Mimar T"><span class="hdr-logo" aria-hidden="true"></span>Espacio Mimar<span class="brand-t">T</span></h2>
                 <div class="hdr-drop-wrap" style="position:relative;">
                     <button class="hdr-user-icon-btn" onclick="toggleHdrDropdown('user-mob')" aria-label="Menú de usuario" aria-haspopup="true" aria-controls="user-mob-drop"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.8"/><path d="M14.6 4.7 C15.8 2.2 18.5 2.8 18 5.2"/><path d="M6.5 21 C6.5 17.4 9 15 12 15 C15 15 17.5 17.4 17.5 21"/></svg></button>
                     <div class="hdr-drop-menu hdr-drop-right" id="user-mob-drop" role="menu" hidden>
@@ -2911,7 +2957,7 @@
              trabajo cotidiano. navegar() los sigue encontrando igual. ═══ -->
         <aside class="sidebar" aria-label="Navegación principal">
             <div class="sidebar-brand">
-                <div class="sidebar-brand-mark">M</div>
+                <div class="sidebar-brand-mark"><span class="hdr-logo" aria-hidden="true" style="margin:0"></span></div>
                 <div class="sidebar-brand-text"><strong>Mimar T</strong><span>Panel Admin</span></div>
             </div>
             <button class="btn-nav nav-urgentes" id="btn-acciones-urgentes" onclick="navegar('acciones-urgentes')">
@@ -8650,8 +8696,13 @@
         window.mostrarAviso = (m, extra = "") => { 
             const c = document.getElementById("toast-container"); 
             const t = document.createElement("div"); 
-            t.className = "toast show"; 
-            t.innerText = extra ? `${m}: ${extra}` : m; 
+            // Guardado (verde) y error (rojo) se distinguen a simple vista.
+            const _txt = extra ? `${m}: ${extra}` : m;
+            const _err = /^(no se pudo|error|⛔|no hay |no encontr|sin un tel|falta|esa fecha|ese lugar)/i.test(String(_txt).trim()) || /permiso/i.test(String(_txt));
+            const _ok = !_err && /(guardad|cread|reprogramad|eliminad|cancelad|actualizad|registrad|borrad|copiad|quitad|✓|listo)/i.test(String(_txt));
+            t.className = "toast show" + (_err ? " toast-error" : _ok ? " toast-ok" : "");
+            t.setAttribute('role', _err ? 'alert' : 'status');
+            t.innerText = _txt;
             c.appendChild(t); 
             setTimeout(() => { 
                 t.classList.remove("show"); 
@@ -20110,6 +20161,10 @@
         <div class="f360-cuerpo" id="f360-cuerpo" role="tabpanel"></div>
     </aside>
 
+    <footer class="site-footer adm-foot" role="contentinfo">
+        <span>Espacio Mimar T · Panel interno</span>
+        <span class="adm-foot-links"><a href="#" onclick="navegar('acciones-urgentes');return false">Acciones urgentes</a><a href="#" onclick="mostrarUltimosMovimientos();return false">Movimientos</a><a href="/admin-depi-gime.html" target="_blank" rel="noopener">Panel Gimena</a><a href="#" onclick="navegar('control');return false">Configuración</a></span>
+    </footer>
     <script src="/js/shared-footer.js"></script>
 </body>
 </html>
