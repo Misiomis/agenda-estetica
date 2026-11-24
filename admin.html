@@ -1568,6 +1568,18 @@
         .ses-envio-vacio { min-height: 40px; display: flex; align-items: center; justify-content: center; padding: 10px 14px; border: 1px dashed var(--border); border-radius: 10px; font-size: 12px; color: rgba(22,61,50,0.45); text-align: center; }
         .ses-envio-fila > .ses-envio-vacio:only-child { grid-column: 1 / -1; }
         @media (max-width: 560px) { .ses-envio-fila { grid-template-columns: 1fr; } }
+        .ses-prox-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; font-size: 10px; font-weight: 800; letter-spacing: .10em; text-transform: uppercase; color: rgba(138,106,34,0.60); }
+        .ses-del-abrir { border: 1px solid rgba(173,46,46,0.30); background: rgba(173,46,46,0.05); color: #9A2E2E; border-radius: 8px; padding: 6px 11px; font: inherit; font-size: 11.5px; font-weight: 700; letter-spacing: 0; text-transform: none; cursor: pointer; white-space: nowrap; }
+        .ses-del-abrir:hover { background: rgba(173,46,46,0.10); }
+        .ses-del-lista[hidden], .ses-del-confirma[hidden], .ses-del .p360-acc[hidden] { display: none !important; }
+        .ses-del .ses-mes-item small { max-width: 42%; text-align: right; }
+        .ses-del-mes { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); margin: 6px 2px 0; }
+        .ses-del .ses-mes-item:has(input:checked) { background: rgba(173,46,46,0.07); border-color: rgba(173,46,46,0.45); }
+        .ses-del-confirma { border: 1px solid rgba(173,46,46,0.35); background: rgba(173,46,46,0.05); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--ink); max-height: 300px; overflow: auto; }
+        .ses-del-confirma ul { margin: 6px 0; padding-left: 18px; }
+        .ses-del-aviso { color: #9A2E2E; font-weight: 700; margin: 6px 0 0; }
+        .ses-del .ses-del-btn { background: #A33B3B; }
+        .ses-del .ses-del-btn:disabled { opacity: .5; }
         .ses-notas-sel { display: grid; grid-template-columns: 1fr 1.4fr; border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; }
         .ses-notas-sel button { min-height: 38px; padding: 8px 10px; border: none; background: var(--surface); color: var(--ink-soft); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
         .ses-notas-sel button + button { border-left: 1px solid var(--border-strong); }
@@ -7774,6 +7786,39 @@
                 mostrarAviso('No se pudo eliminar la consulta');
             } finally { mostrarLoader(false); }
         };
+        // Borrado de UNA reserva, sin confirmación ni redibujo: Firestore, consulta
+        // vinculada, auditoría (Movimientos) y liberación de los bloqueos de
+        // horario que no use otro turno. Es exactamente lo que hacía borrarReserva.
+        // Devuelve { avisoConsulta } si la consulta vinculada no se pudo borrar.
+        async function _borrarReservaNucleo(reserva) {
+            const idReserva = reserva.id;
+            await deleteDoc(doc(db, "reservas", idReserva));
+            todasLasReservas = todasLasReservas.filter(r => r.id !== idReserva);
+            let avisoConsulta = false;
+            try { await _borrarConsultasVinculadas(reserva); }
+            catch (eCons) { console.error('Cascada consultas:', eCons); avisoConsulta = true; }
+            await registrarAuditoria("borrado_reserva", reserva.fecha, reserva.hora,
+                [reserva.servicio, reserva.dni ? `DNI ${reserva.dni}` : ""].filter(Boolean).join(" · "),
+                reserva.nombreLimpio || reserva.cliente || "Paciente"
+            );
+            const _baseId = `reserva_admin_${reserva.fecha}_${(reserva.hora||'').replace(':','-')}`;
+            if (!_lockDeOtroTurno(reserva.fecha, normalizarHora(reserva.hora), reserva.id)) {
+                try { await deleteDoc(doc(db, "calendarExceptions", _baseId)); } catch(_) {}
+                bloqueosHorarios.delete(keyBloqueo(reserva.fecha, reserva.hora));
+            }
+            if (reserva.duracionMinutos > 30) {
+                const slotsExtra = reserva.duracionMinutos >= 90 ? 2 : 1;
+                const idxBase = SLOTS_30_COMPLETOS.indexOf(normalizarHora(reserva.hora));
+                for (let i = 1; i <= slotsExtra && idxBase + i < SLOTS_30_COMPLETOS.length; i++) {
+                    const extHora = SLOTS_30_COMPLETOS[idxBase + i];
+                    if (_lockDeOtroTurno(reserva.fecha, extHora, reserva.id)) continue;
+                    const extId = `ext_${reserva.fecha}_${extHora.replace(':','h')}`;
+                    try { await deleteDoc(doc(db, "calendarExceptions", extId)); } catch(_) {}
+                    bloqueosHorarios.delete(keyBloqueo(reserva.fecha, extHora));
+                }
+            }
+            return { avisoConsulta };
+        }
         window.borrarReserva = async (idReserva) => {
             const reserva = todasLasReservas.find(r => r.id === idReserva);
             if (!reserva) {
@@ -7784,34 +7829,8 @@
             if (!confirmacion) return;
             try {
                 mostrarLoader(true);
-                await deleteDoc(doc(db, "reservas", idReserva));
-                // Estado local primero: desaparece al instante de la interfaz.
-                todasLasReservas = todasLasReservas.filter(r => r.id !== idReserva);
-                try { await _borrarConsultasVinculadas(reserva); }
-                catch (eCons) { console.error('Cascada consultas:', eCons); mostrarAviso('Se borró la reserva, pero no la consulta vinculada — eliminála desde la Agenda.'); }
-                await registrarAuditoria("borrado_reserva", reserva.fecha, reserva.hora,
-                    [reserva.servicio, reserva.dni ? `DNI ${reserva.dni}` : ""].filter(Boolean).join(" · "),
-                    reserva.nombreLimpio || reserva.cliente || "Paciente"
-                );
-                // Eliminar el slot base en calendarExceptions
-                const _baseId = `reserva_admin_${reserva.fecha}_${(reserva.hora||'').replace(':','-')}`;
-                if (!_lockDeOtroTurno(reserva.fecha, normalizarHora(reserva.hora), reserva.id)) {
-                    try { await deleteDoc(doc(db, "calendarExceptions", _baseId)); } catch(_) {}
-                    bloqueosHorarios.delete(keyBloqueo(reserva.fecha, reserva.hora));
-                }
-                // Eliminar slots de extension en calendarExceptions
-                if (reserva.duracionMinutos > 30) {
-                    const slotsExtra = reserva.duracionMinutos >= 90 ? 2 : 1;
-                    const idxBase = SLOTS_30_COMPLETOS.indexOf(normalizarHora(reserva.hora));
-                    for (let i = 1; i <= slotsExtra && idxBase + i < SLOTS_30_COMPLETOS.length; i++) {
-                        const extHora = SLOTS_30_COMPLETOS[idxBase + i];
-                        if (_lockDeOtroTurno(reserva.fecha, extHora, reserva.id)) continue;
-                        const extId = `ext_${reserva.fecha}_${extHora.replace(':','h')}`;
-                        try { await deleteDoc(doc(db, "calendarExceptions", extId)); } catch(_) {}
-                        bloqueosHorarios.delete(keyBloqueo(reserva.fecha, extHora));
-                    }
-                }
-                todasLasReservas = todasLasReservas.filter(r => r.id !== idReserva);
+                const { avisoConsulta } = await _borrarReservaNucleo(reserva);
+                if (avisoConsulta) mostrarAviso('Se borró la reserva, pero no la consulta vinculada — eliminála desde la Agenda.');
                 actualizarKPIs();
                 poblarServiciosFiltro();
                 renderCalendario();
@@ -9697,6 +9716,110 @@
                     : "<p style='font-size:11px;color:var(--danger,#AD2E2E);margin:0;text-align:center;'>Sin un teléfono válido no se puede abrir WhatsApp directo — corregilo en la ficha de la paciente, o copiá el texto y pegalo vos a mano.</p>") +
                 "</div>";
             document.body.appendChild(ov);
+        };
+
+        // ── Eliminar sesiones próximas de una paciente (Sesiones → buscador) ──
+        // Se eligen días sueltos, un mes entero o todas; se confirma con el
+        // detalle y se borra cada una con el MISMO borrado que la Grilla/Agenda.
+        // Solo próximas: las realizadas no se ofrecen (historial y cobros).
+        window._sesEliminarAbrir = function(exportIdx) {
+            var g = (window._sesExportDB || [])[exportIdx];
+            if (!g) return;
+            var ids = new Set(g.pendientes.map(function(r) { return r.id; }));
+            var lista = todasLasReservas.filter(function(r) { return ids.has(r.id) && !esEstadoCancelado(r.estado || r.status); }).sort(_sesOrdenar);
+            if (!lista.length) { mostrarAviso('No tiene sesiones próximas para eliminar'); return; }
+            var porMes = {};
+            lista.forEach(function(r) { var ym = (r.fecha||'').slice(0,7); (porMes[ym] = porMes[ym] || []).push(r); });
+            var linea = function(r) {
+                var fp = (r.fecha||'').split('-');
+                var dt = new Date(+fp[0], +fp[1]-1, +fp[2]);
+                return _SES_DIAS[dt.getDay()] + ' ' + parseInt(fp[2], 10) + ' de ' + _SES_MESES[+fp[1]-1] + ' · ' + (normalizarHora(r.hora) || r.hora || '--') + ' hs';
+            };
+            var _bx = Object.fromEntries(GRILLA_BOXES.map(function(b) { return [b.id, b.title]; }));
+            var ov = document.createElement('div');
+            ov.className = 'p360-modal-ov';
+            ov.innerHTML = "<div class='p360-modal ses-del' role='dialog' aria-modal='true' aria-label='Eliminar sesiones'>" +
+                "<p class='p360-modal-t'>🗑 Eliminar sesiones próximas</p>" +
+                "<p class='p360-modal-s'>" + escapeHtml(g.nombre) + " · marcá los días que querés eliminar</p>" +
+                "<div class='p360-acc' style='margin-bottom:10px;'>" +
+                    "<button type='button' class='p360-btn' data-sd='todas'>Todas (" + lista.length + ")</button>" +
+                    Object.keys(porMes).sort().map(function(ym) { var nm = _sesNombreMes(ym); return "<button type='button' class='p360-btn' data-sd-mes='" + ym + "'>Todo " + nm + " (" + porMes[ym].length + ")</button>"; }).join('') +
+                    "<button type='button' class='p360-btn' data-sd='ninguna'>Ninguna</button>" +
+                "</div>" +
+                "<div class='ses-meses-lista ses-del-lista'>" + Object.keys(porMes).sort().map(function(ym) {
+                    var nm = _sesNombreMes(ym, true);
+                    return "<div class='ses-del-mes'>" + escapeHtml(nm.charAt(0).toUpperCase() + nm.slice(1)) + "</div>" + porMes[ym].map(function(r) {
+                        return "<label class='ses-mes-item'><input type='checkbox' value='" + escapeHtml(r.id) + "' data-ym='" + ym + "'> <span>" + escapeHtml(linea(r)) + "</span><small>" + escapeHtml(_sesTratamiento(r)) + (_bx[r.box] ? ' · ' + escapeHtml(_bx[r.box]) : '') + "</small></label>";
+                    }).join('');
+                }).join('') + "</div>" +
+                "<div class='ses-del-confirma' hidden></div>" +
+                "<p class='p360-ayuda' id='_ses_del_res'></p>" +
+                "<div class='p360-modal-acc'><button type='button' class='btn-mini' data-accion='cancelar'>Cancelar</button><button type='button' class='p360-btn-pri ses-del-btn' data-accion='eliminar' disabled>Eliminar</button></div>" +
+                "</div>";
+            document.body.appendChild(ov);
+            var checks = Array.prototype.slice.call(ov.querySelectorAll('.ses-del-lista input[type=checkbox]'));
+            var btn = ov.querySelector('[data-accion=eliminar]');
+            var conf = ov.querySelector('.ses-del-confirma');
+            var elegidas = function() { var set = new Set(checks.filter(function(c) { return c.checked; }).map(function(c) { return c.value; })); return lista.filter(function(r) { return set.has(r.id); }); };
+            var paso = 1;
+            var actualizar = function() {
+                var sel = elegidas();
+                paso = 1; conf.hidden = true; ov.querySelector('.ses-del-lista').hidden = false; ov.querySelector('.ses-del .p360-acc').hidden = false; ov.querySelector('[data-accion=cancelar]').textContent = 'Cancelar';
+                btn.textContent = sel.length ? 'Eliminar ' + sel.length + (sel.length !== 1 ? ' sesiones' : ' sesi\u00f3n') : 'Eliminar';
+                btn.disabled = !sel.length;
+                ov.querySelector('#_ses_del_res').textContent = sel.length ? (sel.length === lista.length ? 'Se van a eliminar TODAS sus sesiones pr\u00f3ximas.' : sel.length + ' de ' + lista.length + ' sesiones marcadas.') : 'Marc\u00e1 al menos una sesi\u00f3n.';
+            };
+            checks.forEach(function(c) { c.onchange = actualizar; });
+            Array.prototype.forEach.call(ov.querySelectorAll('[data-sd],[data-sd-mes]'), function(b) {
+                b.onclick = function() {
+                    var a = b.dataset.sd, ym = b.dataset.sdMes;
+                    checks.forEach(function(c) { if (a === 'todas') c.checked = true; else if (a === 'ninguna') c.checked = false; else if (ym && c.dataset.ym === ym) c.checked = true; });
+                    actualizar();
+                };
+            });
+            var cerrar = function() { ov.remove(); };
+            ov.addEventListener('mousedown', function(e) { if (e.target === ov && btn.dataset.ocupado !== '1') cerrar(); });
+            ov.querySelector('[data-accion=cancelar]').onclick = function() {
+                if (btn.dataset.ocupado === '1') return;
+                if (paso === 2) { actualizar(); return; } // "Volver" desde la confirmación
+                cerrar();
+            };
+            btn.onclick = async function() {
+                var sel = elegidas();
+                if (!sel.length) return;
+                if (paso === 1) {
+                    // Paso 2: confirmación con el detalle exacto
+                    paso = 2;
+                    ov.querySelector('.ses-del-lista').hidden = true;
+                    ov.querySelector('.ses-del .p360-acc').hidden = true;
+                    conf.hidden = false;
+                    conf.innerHTML = "<p><b>Vas a eliminar " + sel.length + (sel.length !== 1 ? " sesiones" : " sesi\u00f3n") + " de " + escapeHtml(g.nombre) + ":</b></p><ul>" +
+                        sel.map(function(r) { return "<li>" + escapeHtml(linea(r)) + " · " + escapeHtml(_sesTratamiento(r)) + "</li>"; }).join('') +
+                        "</ul><p class='ses-del-aviso'>Se borran de la Agenda y de la Grilla y se liberan sus horarios. Esta acci\u00f3n no se puede deshacer.</p>";
+                    ov.querySelector('#_ses_del_res').textContent = '';
+                    btn.textContent = 'S\u00ed, eliminar ' + sel.length;
+                    ov.querySelector('[data-accion=cancelar]').textContent = 'Volver';
+                    return;
+                }
+                btn.disabled = true; btn.dataset.ocupado = '1';
+                ov.querySelector('[data-accion=cancelar]').disabled = true;
+                var ok = 0, errores = [], avisoCons = false;
+                for (var i = 0; i < sel.length; i++) {
+                    btn.textContent = 'Eliminando ' + (i + 1) + ' de ' + sel.length + '…';
+                    try { var res = await _borrarReservaNucleo(sel[i]); ok++; if (res.avisoConsulta) avisoCons = true; }
+                    catch (e) { console.error('Eliminar sesión', sel[i].id, e); errores.push(linea(sel[i])); }
+                }
+                cerrar();
+                actualizarKPIs(); poblarServiciosFiltro(); renderCalendario();
+                if (fechaSeleccionada) verTurnos(fechaSeleccionada, document.querySelector('.day.selected'));
+                window._p360DatosActualizados?.();
+                window.renderGrilla?.();
+                window.buscarSesionesPorNombreInput?.();
+                mostrarAviso(errores.length
+                    ? 'Se eliminaron ' + ok + ' sesiones. No se pudieron eliminar: ' + errores.join(', ')
+                    : (ok === 1 ? 'Sesi\u00f3n eliminada' : ok + ' sesiones eliminadas') + (avisoCons ? ' (revis\u00e1 la consulta vinculada en la Agenda)' : ''));
+            };
+            actualizar();
         };
 
         // Cambia el mensaje entre "sin notas" y "con notas de cada sesión".
@@ -13069,7 +13192,7 @@
                         "</div>";
                 });
                 var secPendientes = pendientes.length
-                    ? "<div style='margin-bottom:16px;'><div style='font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:rgba(138,106,34,0.60);margin-bottom:10px;'>Proximas sesiones (" + pendientes.length + ")</div>" + pendHTML + "</div>"
+                    ? "<div style='margin-bottom:16px;'><div class='ses-prox-head'><span>Proximas sesiones (" + pendientes.length + ")</span><button type='button' class='ses-del-abrir' onclick='window._sesEliminarAbrir(" + _exportIdx + ")'>🗑 Eliminar sesiones…</button></div>" + pendHTML + "</div>"
                     : '';
 
                 // ── REALIZADAS por mes (colapsable) ──
