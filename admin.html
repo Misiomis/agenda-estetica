@@ -1694,6 +1694,10 @@
         .cs2-tabla tr.nueva td:last-child { color: #3F72AF; }
         .cs2-sub { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
         .cs2-tabla tr.ok td:last-child { color: #1F5B3B; }
+        .cs2-tabla tr.violeta td:last-child, .cs2-tabla tr.violeta td:nth-child(2) { color: #6E328C; }
+        .cs2-r.violeta b { color: #6E328C; }
+        .cs2-tabla tr.violeta td:first-child { color: var(--ink); font-weight: 600; }
+        .cs2-nota { display: block; margin-top: 3px; font-size: 12px; font-weight: 600; color: #6E328C; line-height: 1.35; max-width: 340px; }
         .cs2-tabla tr.sin td { color: var(--ink-soft); } .cs2-tabla tr.sin td:first-child { color: var(--ink); font-weight: 500; }
         .cs2-ok { padding: 28px; text-align: center; background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; font-size: 15px; }
         @media (max-width: 640px) { .cs2-pdf { margin-left: 0; width: 100%; } .cs2-barra select { min-width: 0; width: 100%; } .cs2-barra label { flex: 1 1 140px; } .cs2-check { margin-left: 0; } .cs2-tabla { font-size: 14px; } .cs2-tabla td, .cs2-tabla th { padding: 9px 7px; } }
@@ -8459,7 +8463,11 @@
         // ocultas). Para cada una: sesiones del Mes 1 y del Mes 2 (hechas +
         // agendadas) y qué falta. Orden: falta agendar, de más, nuevas,
         // completas y, al final, las que no tienen sesiones en ninguno de los dos.
-        const _CS2_ORDEN = { falta: 0, mas: 1, nueva: 2, completa: 3, sin: 4 };
+        // "fuera": le faltan sesiones en el mes, pero tiene turnos agendados DESPUÉS
+        // del mes (el mes siguiente o más adelante). Conviene agendarlas dentro del
+        // mes; si no hay lugar, arranca el mes siguiente con esas sesiones de haber.
+        const _CS2_ORDEN = { falta: 0, fuera: 1, mas: 2, nueva: 3, completa: 4, sin: 5 };
+        const _cs2FechaC = (f) => { const p = f.split('-'); return p[2] + '/' + p[1]; };
         const _cs2Calc = () => {
             const m1 = document.getElementById('cs2-m1').value, m2 = document.getElementById('cs2-m2').value;
             const _ex = _suspSet();
@@ -8468,15 +8476,40 @@
                 const ses2 = p.sesiones.filter(s => s.activa && s.fecha.slice(0, 7) === m2);
                 const hechas = ses2.filter(s => s.realizada).length;
                 const c2 = ses2.length, d = c2 - c1;
-                const est = c1 === 0 && c2 === 0 ? 'sin' : c1 === 0 ? 'nueva' : d < 0 ? 'falta' : d > 0 ? 'mas' : 'completa';
-                return { p, c1, c2, d, est, det: { hechas, agendadas: c2 - hechas } };
+                let est = c1 === 0 && c2 === 0 ? 'sin' : c1 === 0 ? 'nueva' : d < 0 ? 'falta' : d > 0 ? 'mas' : 'completa';
+                // Turnos agendados después del Mes 2 que podrían cubrir lo que falta
+                let fuera = null;
+                if (est === 'falta') {
+                    const desp = p.sesiones.filter(s => s.activa && s.fecha.slice(0, 7) > m2).sort((a, b) => a.fecha.localeCompare(b.fecha));
+                    if (desp.length) {
+                        const faltan = -d, cubre = Math.min(faltan, desp.length);
+                        fuera = { cubre, sinAgendar: faltan - cubre, proxima: desp[0].fecha, mes: desp[0].fecha.slice(0, 7) };
+                        if (cubre === faltan) est = 'fuera';
+                    }
+                }
+                return { p, c1, c2, d, est, fuera, det: { hechas, agendadas: c2 - hechas } };
             });
-            todas.sort((a, b) => (_CS2_ORDEN[a.est] - _CS2_ORDEN[b.est]) || (a.est === 'falta' ? a.d - b.d : 0) || a.p.nombre.localeCompare(b.p.nombre, 'es'));
-            const filas = _cs2.soloRevisar ? todas.filter(f => f.est === 'falta' || f.est === 'mas' || f.est === 'nueva') : todas;
+            todas.sort((a, b) => (_CS2_ORDEN[a.est] - _CS2_ORDEN[b.est]) || ((a.est === 'falta' || a.est === 'fuera') ? a.d - b.d : 0) || a.p.nombre.localeCompare(b.p.nombre, 'es'));
+            const filas = _cs2.soloRevisar ? todas.filter(f => ['falta', 'fuera', 'mas', 'nueva'].includes(f.est)) : todas;
             const n = (e) => todas.filter(f => f.est === e).length;
-            return { m1, m2, filas, total: todas.length, menos: n('falta'), sesFaltan: todas.filter(f => f.est === 'falta').reduce((t, f) => t - f.d, 0), mas: n('mas'), nuevas: n('nueva'), iguales: n('completa'), sin: n('sin') };
+            const sinAg = (f) => f.est === 'falta' ? (f.fuera ? f.fuera.sinAgendar : -f.d) : 0;
+            return { m1, m2, filas, total: todas.length, menos: n('falta'), sesFaltan: todas.reduce((t, f) => t + sinAg(f), 0), fuera: n('fuera') + todas.filter(f => f.est === 'falta' && f.fuera).length, mas: n('mas'), nuevas: n('nueva'), iguales: n('completa'), sin: n('sin') };
         };
-        const _cs2Txt = (f) => f.est === 'sin' ? 'SIN SESIONES' : f.est === 'nueva' ? 'NUEVA' : f.est === 'completa' ? 'COMPLETO ✓' : f.est === 'falta' ? 'FALTA AGENDAR ' + (-f.d) : (f.d === 1 ? '1 DE MÁS' : f.d + ' DE MÁS');
+        const _cs2MesCorto = (ym) => ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][+ym.slice(5, 7) - 1];
+        const _cs2Txt = (f) => {
+            if (f.est === 'sin') return 'SIN SESIONES';
+            if (f.est === 'nueva') return 'NUEVA';
+            if (f.est === 'completa') return 'COMPLETO ✓';
+            if (f.est === 'mas') return f.d === 1 ? '1 DE MÁS' : f.d + ' DE MÁS';
+            if (f.est === 'fuera') return 'COMPLETAR EN EL MES (' + (-f.d === 1 ? 'falta 1' : 'faltan ' + (-f.d)) + ')';
+            return 'FALTA AGENDAR ' + (f.fuera ? f.fuera.sinAgendar : -f.d);
+        };
+        // Aclaración debajo: turnos que quedaron agendados después del mes
+        const _cs2Nota = (f, m2) => {
+            if (!f.fuera) return '';
+            const n = f.fuera.cubre, mesSig = _cs2MesCorto(f.fuera.mes);
+            return (n === 1 ? '1 agendada' : n + ' agendadas') + ' fuera de ' + _cs2MesCorto(m2) + ' (próxima ' + _cs2FechaC(f.fuera.proxima) + '). Conviene agendar en ' + _cs2MesCorto(m2) + '; si no hay lugar, empieza ' + mesSig + ' con ' + n + ' de haber.';
+        };
         const _cs2Det = (x) => [x.hechas ? x.hechas + (x.hechas === 1 ? ' hecha' : ' hechas') : '', x.agendadas ? x.agendadas + (x.agendadas === 1 ? ' agendada' : ' agendadas') : ''].filter(Boolean).join(' + ') || 'ninguna';
         window.cs2Render = () => {
             const cont = document.getElementById('cs2-cuerpo');
@@ -8484,10 +8517,10 @@
             const c = _cs2Calc();
             if (c.m1 === c.m2) { cont.innerHTML = '<p class="p360-alerta">Elegí dos meses distintos.</p>'; return; }
             cont.innerHTML =
-                '<div class="cs2-resumen"><span class="cs2-r"><b>' + c.total + '</b> pacientes registradas</span><span class="cs2-r rojo"><b>' + c.menos + '</b> con sesiones sin agendar (' + c.sesFaltan + ' en total)</span><span class="cs2-r naranja"><b>' + c.mas + '</b> con sesiones de más</span><span class="cs2-r"><b>' + c.iguales + '</b> completas</span><span class="cs2-r"><b>' + c.nuevas + '</b> nuevas</span><span class="cs2-r"><b>' + c.sin + '</b> sin sesiones en los dos meses</span>' +
+                '<div class="cs2-resumen"><span class="cs2-r"><b>' + c.total + '</b> pacientes registradas</span><span class="cs2-r rojo"><b>' + c.menos + '</b> con sesiones sin agendar (' + c.sesFaltan + ' en total)</span><span class="cs2-r violeta"><b>' + c.fuera + '</b> con turnos agendados fuera del mes</span><span class="cs2-r naranja"><b>' + c.mas + '</b> con sesiones de más</span><span class="cs2-r"><b>' + c.iguales + '</b> completas</span><span class="cs2-r"><b>' + c.nuevas + '</b> nuevas</span><span class="cs2-r"><b>' + c.sin + '</b> sin sesiones en los dos meses</span>' +
                 '<label class="cs2-check"><input type="checkbox" ' + (_cs2.soloRevisar ? 'checked' : '') + ' onchange="cs2SoloRevisar(this.checked)"> Mostrar solo las que hay que revisar</label></div>' +
                 (c.filas.length ? '<table class="cs2-tabla"><thead><tr><th>Paciente</th><th>' + _cs2Nom(c.m1) + '</th><th>' + _cs2Nom(c.m2) + '</th><th>Qué falta</th></tr></thead><tbody>' +
-                c.filas.map(f => { const cl = { falta: 'rojo', mas: 'naranja', nueva: 'nueva', completa: 'ok', sin: 'sin' }[f.est]; return '<tr class="' + cl + '"><td>' + escapeHtml(f.p.nombre) + '<button type="button" class="cs2-susp" title="No mostrar más en los controles" onclick="cs2Suspender(\'' + encodeURIComponent(f.p.clave) + '\')">⏸ Suspender</button></td><td><b>' + f.c1 + '</b></td><td><b>' + f.c2 + '</b><span class="cs2-sub">' + _cs2Det(f.det) + '</span></td><td class="cs2-dif">' + _cs2Txt(f) + '</td></tr>'; }).join('') +
+                c.filas.map(f => { const cl = { falta: 'rojo', fuera: 'violeta', mas: 'naranja', nueva: 'nueva', completa: 'ok', sin: 'sin' }[f.est]; return '<tr class="' + cl + '"><td>' + escapeHtml(f.p.nombre) + '<button type="button" class="cs2-susp" title="No mostrar más en los controles" onclick="cs2Suspender(\'' + encodeURIComponent(f.p.clave) + '\')">⏸ Suspender</button></td><td><b>' + f.c1 + '</b></td><td><b>' + f.c2 + '</b><span class="cs2-sub">' + _cs2Det(f.det) + '</span></td><td class="cs2-dif">' + _cs2Txt(f) + (f.fuera ? '<span class="cs2-nota">' + escapeHtml(_cs2Nota(f, c.m2)) + '</span>' : '') + '</td></tr>'; }).join('') +
                 '</tbody></table>' : '<div class="cs2-ok">✓ No hay nada para revisar: no falta agendar a nadie.</div>');
         };
         window.cs2SoloRevisar = (v) => { _cs2.soloRevisar = !!v; window.cs2Render(); };
@@ -8514,11 +8547,11 @@
             tools.runAutoTable(pdf, {
                 startY: 28,
                 head: [['Paciente', _cs2Nom(c.m1), _cs2Nom(c.m2), 'Que falta']],
-                body: c.filas.map(f => [limpio(f.p.nombre), String(f.c1), f.c2 + '  (' + limpio(_cs2Det(f.det)) + ')', limpio(_cs2Txt(f))]),
+                body: c.filas.map(f => [limpio(f.p.nombre), String(f.c1), f.c2 + '  (' + limpio(_cs2Det(f.det)) + ')', limpio(_cs2Txt(f)) + (f.fuera ? '\n' + limpio(_cs2Nota(f, c.m2)) : '')]),
                 styles: { font: 'helvetica', fontSize: 10, cellPadding: 2.5 },
                 headStyles: { fillColor: [47, 90, 71], textColor: 255 },
                 columnStyles: { 1: { halign: 'center' }, 3: { fontStyle: 'bold' } },
-                didParseCell: (d) => { if (d.section !== 'body' || d.column.index !== 3) return; const e = c.filas[d.row.index].est; d.cell.styles.textColor = { falta: [179, 38, 30], mas: [154, 91, 0], completa: [31, 91, 59], nueva: [63, 114, 175], sin: [120, 120, 120] }[e]; },
+                didParseCell: (d) => { if (d.section !== 'body' || d.column.index !== 3) return; const e = c.filas[d.row.index].est; d.cell.styles.textColor = { falta: [179, 38, 30], fuera: [110, 50, 140], mas: [154, 91, 0], completa: [31, 91, 59], nueva: [63, 114, 175], sin: [120, 120, 120] }[e]; },
                 margin: { left: 14, right: 14 },
             });
             pdf.save('sesiones-por-agendar_' + c.m2 + '.pdf');
