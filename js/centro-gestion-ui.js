@@ -124,12 +124,16 @@ export function initCentroGestion(deps) {
         F.getDocs(F.collection(db, COL_LOTES)).catch(() => null),
         F.getDocs(F.collection(db, COL_PEND)).catch(() => null),
       ]);
+      const excl = deps.excluidos ? await deps.excluidos().catch(() => new Set()) : new Set();
       const fichas = snapC.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }))
         .filter((c) => !c.redirigidoA && deps.esDniValido(c.id))
         .map((c) => ({ dni: c.id, fullName: deps.nombreFicha(c), phone: c.phone || c.telefono || '', createdAt: c.createdAt || c.fechaAlta || null, seguimiento: c.seguimiento || null, planificacion: c.planificacion || null, _clave: deps.claveDni(c.id) }));
+      // Lista de suspensión: no aparece en ningún listado ni resumen del Centro.
+      const fichasV = fichas.filter((f) => !excl.has(f._clave));
+      const reservasV = reservas.filter((r) => !excl.has(deps.claveDe(r)));
       const pacientes = construirPacientes({
-        reservas, fichas, hoy: hoy(), ahora: deps.ahora(), claveDe: deps.claveDe, claveFicha: (f) => f._clave,
-        esActiva: deps.esActiva, esBloqueo: deps.esBloqueo, boxDe: deps.boxDe,
+        reservas: reservasV, fichas: fichasV, hoy: hoy(), ahora: deps.ahora(), claveDe: deps.claveDe, claveFicha: (f) => f._clave,
+        esActiva: deps.esActiva, esBloqueo: deps.esBloqueo, boxDe: deps.boxDe, noCuenta: deps.noCuenta,
       });
       const lotes = snapL ? snapL.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || ''))) : null;
       const pendientes = snapP ? snapP.docs.map((d) => ({ id: d.id, ...d.data() })) : [];
@@ -137,7 +141,7 @@ export function initCentroGestion(deps) {
       const ma = mesActual();
       const desde = meses[0] && meses[0] < ma ? meses[0] : ma;
       const hasta = sumarMeses((meses[meses.length - 1] && meses[meses.length - 1] > ma ? meses[meses.length - 1] : ma), 3);
-      const duplicados = posiblesDuplicados(fichas, pacientes);
+      const duplicados = posiblesDuplicados(fichasV, pacientes);
       st.cache = new Map();
       st.datos = { pacientes, fichas, lotes, pendientes, mesesConDatos: new Set(meses), mesesTodos: rangoMeses(desde, hasta), duplicados, porClave: new Map(pacientes.map((p) => [p.clave, p])),
         servicios: [...new Set(pacientes.flatMap((p) => p.servicios))].sort((a, b) => a.localeCompare(b, 'es')),

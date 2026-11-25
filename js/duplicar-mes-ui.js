@@ -231,7 +231,14 @@ export function initDuplicarMes(deps) {
         // Pacientes que ya no están en el origen o en el mes de referencia se limpian de la selección.
         if (!st.sel.refMes || st.sel.refMes >= ymDe(destino)) st.sel.refMes = sumarMesYM(ymDe(destino), -1);
       }
+      if (recargar || !st.suspendidos) st.suspendidos = deps.suspendidos ? await deps.suspendidos().catch(() => new Set()) : new Set();
       st.anal = analizarSeleccion({ reservas: st.datos.reservas, historial: st.datos.historial ? [...st.datos.historial, ...st.datos.reservas] : null, mesOrigen: ymDe(origen), mesRef: st.sel.refMes, mesesNuevos: mesesNuevosDe(origen, destino), esActiva: deps.esReservaActiva, nombreDe: (r) => r.nombreLimpio || r.nombre || r.cliente || r.clienteNombre || '' });
+      // Lista de suspensión: fuera de la copia y de las listas de "nuevas"
+      const _susp = (dni) => st.suspendidos && deps.claveDni && st.suspendidos.has(deps.claveDni(dni));
+      st.anal.origenPacientes.forEach((p) => { if (_susp(p.dni)) { st.sel.excluir.add(p.dni); p.suspendida = true; } });
+      st.anal.sinSesionesRef = st.anal.sinSesionesRef.filter((p) => !p.suspendida);
+      st.anal.nuevos = st.anal.nuevos.filter((p) => !_susp(p.dni));
+      st.sel.incluir.forEach((_, dni) => { if (_susp(dni)) st.sel.incluir.delete(dni); });
       st.ctx = armarCtx(st.datos, st.decisiones, origen, destino);
       st.res = prepararCopiaSeleccion(st.ctx, selArg());
       st.origenMes = origen; st.destinoMes = destino;
@@ -293,6 +300,7 @@ export function initDuplicarMes(deps) {
     const det = tipo === 'excl'
       ? `${p.sesionesOrigen} en ${E(nomMes(ymDe(st.origenMes)))} · ${p.sesionesRef ? `${p.sesionesRef} en ${E(nomMes(st.sel.refMes))}` : `<b style="color:#8a2f2a">ninguna en ${E(nomMes(st.sel.refMes))}</b>`}`
       : `se sumó en ${E(nomMes(p.mesAlta))} · se copia desde ${E(nomMes(p.mesFuente))} (${p.sesiones} sesión${p.sesiones === 1 ? '' : 'es'})`;
+    if (p.suspendida) return `<label class="dm-sel-fila excl" title="Está en la lista de suspensión"><input type="checkbox" checked disabled><b>${E(p.nombre)}</b><small>en la lista de suspensión · no se copia</small></label>`;
     return `<label class="dm-sel-fila ${on ? tipo : ''}"><input type="checkbox" ${tipo === 'excl' ? `data-dm-excl="${E(p.dni)}"` : `data-dm-incl="${E(p.dni)}" data-mes="${E(p.mesFuente)}"`} ${on ? 'checked' : ''}><b>${E(p.nombre)}</b><small>${det}</small></label>`;
   };
   function listaExcluir() {

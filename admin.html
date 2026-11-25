@@ -1649,6 +1649,32 @@
             .au-acc .p360-btn-pri, .au-acc .p360-btn { min-height: 44px; }
         }
 
+        /* Lista de suspensión */
+        .susp-agregar { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
+        .susp-agregar label { display: grid; gap: 5px; font-size: 12px; font-weight: 800; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+        .susp-agregar input { margin: 0; font-size: 15px; text-transform: none; }
+        .susp-res { display: grid; gap: 6px; margin: 8px 0 0; }
+        .susp-cand { display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 14px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); font: inherit; cursor: pointer; color: var(--ink); }
+        .susp-cand:hover { border-color: var(--forest); }
+        .susp-cand span { color: var(--ink-soft); font-size: 12.5px; }
+        .susp-cand em { margin-left: auto; font-style: normal; font-weight: 800; color: var(--forest); }
+        .susp-t { margin: 18px 0 8px; font-size: 14px; }
+        .susp-fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 11px 14px; margin: 0 0 6px; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--ink-soft); border-radius: 10px; }
+        .susp-fila div { display: grid; gap: 2px; } .susp-fila span { font-size: 12.5px; color: var(--ink-soft); }
+        .susp-vacio { padding: 16px; color: var(--ink-soft); text-align: center; background: var(--surface); border: 1px dashed var(--border); border-radius: 10px; }
+        .susp-cuenta:empty { display: none; }
+        .nav-cuenta { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: rgba(0,0,0,.12); font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+        .susp-tabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--border); margin: 0 0 10px; }
+        .susp-tabs button { border: none; background: none; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--ink-soft); padding: 9px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+        .susp-tabs button.on { color: var(--forest); border-bottom-color: var(--forest); }
+        .susp-tabs button small { font-weight: 800; opacity: .7; }
+        .susp-tabs .susp-nueva { color: var(--forest); margin-left: auto; }
+        .susp-info { margin: 0 0 12px; }
+        .susp-ocultar { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; color: var(--ink); margin-left: 6px; }
+        .cs2-susp { margin-left: 10px; border: 1px solid var(--border); background: transparent; color: var(--ink-soft); border-radius: 7px; padding: 2px 8px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; opacity: 0; transition: opacity .15s; }
+        .cs2-tabla tr:hover .cs2-susp, .cs2-susp:focus-visible { opacity: 1; }
+        @media (max-width: 640px) { .susp-agregar { grid-template-columns: 1fr; } .cs2-susp { opacity: 1; display: block; margin: 4px 0 0; } }
+
         /* Comparar sesiones (simple) */
         .cs2-barra { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin: 0 0 14px; }
         .cs2-barra label { display: grid; gap: 4px; font-size: 12px; font-weight: 800; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
@@ -2990,6 +3016,10 @@
                 <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 15V8M7 15V4M11 15V9M15 15V6" stroke-linecap="round"/></svg>
                 Comparar sesiones
             </button>
+            <button class="btn-nav nav-urgentes" id="btn-suspension" onclick="navegar('suspension')">
+                <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="9" r="6.6"/><path d="M7.2 6.3v5.4M10.8 6.3v5.4" stroke-linecap="round"/></svg>
+                Listas de pacientes <span class="susp-cuenta nav-cuenta" title="En suspensión"></span>
+            </button>
             <button class="btn-nav sidebar-search" id="btn-buscar" onclick="navegar('buscar')">
                 <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5.2"/><path d="M15.5 15.5 12 12" stroke-linecap="round"/></svg>
                 Buscar
@@ -3144,6 +3174,7 @@
                 <span class="bsh-label">Jornada y agenda</span>
                 <button class="bsh-item" onclick="navegar('acciones-urgentes');cerrarBottomSheet()">⚡ Acciones urgentes</button>
                 <button class="bsh-item" onclick="navegar('comparar-sesiones');cerrarBottomSheet()">📊 Comparar sesiones</button>
+                <button class="bsh-item" onclick="navegar('suspension');cerrarBottomSheet()">⏸ Listas de pacientes</button>
                 <button class="bsh-item" onclick="navegar('grilla');cerrarBottomSheet()">📅 Grilla</button>
                 <button class="bsh-item" onclick="navegar('agenda');cerrarBottomSheet()">🗓 Agenda</button>
                 <button class="bsh-item" onclick="navegar('preparar-jornada');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="2.5" width="11" height="13.5" rx="1.6"/><path d="M6.5 1.6h5a1 1 0 0 1 1 1v1.3h-7V2.6a1 1 0 0 1 1-1Z"/><path d="M6 8.5h6M6 11.3h6M6 5.8h3" stroke-linecap="round"/></svg> Preparar jornada</button>
@@ -3298,12 +3329,27 @@
                     <div class="cliente-help" style="margin-top:14px; font-size:13px; background:rgba(53,122,92,0.10); border-radius:10px; padding:8px 12px;">Buscá por cualquier parte del nombre: "miriam", "sedof", "adriana c". Muestra todos sus turnos con box, servicio y resumen mensual.</div>
                 </div>
             </div>
+            <!-- ════════════ LISTA DE SUSPENSIÓN ════════════ -->
+            <div id="sec-suspension" class="section">
+                <div class="p360-sec-head"><div>
+                    <h3 class="p360-sec-title">Listas de pacientes</h3>
+                </div></div>
+                <div class="susp-tabs" id="susp-tabs"></div>
+                <p class="p360-sec-sub susp-info" id="susp-info"></p>
+                <div class="susp-agregar">
+                    <label>Agregar a alguien <input type="search" id="susp-busq" class="select-input" placeholder="Escribí el nombre o el DNI…" oninput="suspBuscar()" autocomplete="off"></label>
+                    <label>Motivo (opcional) <input type="text" id="susp-motivo" class="select-input" maxlength="120" placeholder="Ej: viaja, embarazo, terminó el tratamiento…"></label>
+                </div>
+                <div id="susp-res" class="susp-res"></div>
+                <h4 class="susp-t">En la lista</h4>
+                <div id="susp-lista"><div class="p360-cargando">Cargando…</div></div>
+            </div>
             <!-- ════════════ COMPARAR SESIONES (simple: mes 1 vs mes 2) ════════════ -->
             <div id="sec-comparar-sesiones" class="section">
                 <div class="p360-sec-head"><div>
                     <h3 class="p360-sec-title">Comparar sesiones</h3>
                     <p class="p360-sec-sub">En el Mes 2 cada paciente tiene que tener las mismas sesiones que en el Mes 1. Ves cuántas ya se hicieron y cuántas están agendadas, y en <b style="color:#B3261E">rojo</b> cuántas <b>falta agendar</b>.</p>
-                </div></div>
+                </div><div class="p360-acc"><button type="button" class="p360-btn" onclick="navegar('suspension')">⏸ Lista de suspensión <span class="susp-cuenta"></span></button></div></div>
                 <div class="cs2-barra">
                     <label>Mes 1 <select id="cs2-m1" class="select-input" onchange="cs2Render()"></select></label>
                     <span class="cs2-vs">contra</span>
@@ -4845,6 +4891,9 @@
         // Tipo de la jornada activa del día ('crio' | 'radio' | 'detox' | '' si
         // el sitio está en modo normal). Lo actualiza setFlowModeButtons.
         window._jornadaTipoActivo = window._jornadaTipoActivo || '';
+        // "Jornada Doc" y la Consulta inicial no cuentan como sesión de tratamiento
+        // (ni en las realizadas de Sesiones ni en las cuentas de los controles).
+        const _noCuentaComoSesion = (r = {}) => /jornada\s*doc/i.test(String(r.servicio || '')) || /consulta\s*inicial/i.test(String(r.servicio || '')) || _esConsultaInicialReserva(r);
         const _esConsultaInicialReserva = (r = {}) => r.esConsultaInicial === true
             || (typeof _svTipoMap !== 'undefined' && _svTipoMap.get(r.servicio) === SERVICIO_TIPO_CONSULTA_INICIAL);
         // Única fuente de verdad para JORNADA vs NORMAL (ver js/turno-jornada.js):
@@ -5427,6 +5476,7 @@
             }
             _cargarDatosSecundarios(); // sin await — no bloquea la UI
             window.auContar?.();       // contador de Acciones urgentes
+            _suspCargar();             // lista de suspensión
         }
 
         // ─── FASE 2: datos secundarios — background ───────────────────────────────
@@ -8229,6 +8279,138 @@
                 return false;
             } finally { mostrarLoader(false); }
         }
+        // ═══ LISTAS DE PACIENTES (suspensión + las que se creen) ═══
+        // • "Suspensión" (configuracion/listaSuspension): quienes están ahí NO
+        //   aparecen en ningún control ni resumen (Comparar sesiones, Centro de
+        //   gestión, Control de sesiones, Duplicar mes).
+        // • Otras listas (configuracion/listasPacientes), ej. "Pacientes de la
+        //   doctora": agrupan pacientes; cada una decide si además las oculta de
+        //   los controles. Turnos y fichas nunca se tocan.
+        let _suspLista = [];
+        let _listas = [];
+        let _suspCargada = false;
+        let _listaActiva = 'suspension';
+        const _LISTA_DOCTORA = { id: 'doctora', nombre: 'Pacientes de la doctora', ocultar: false, pacientes: [] };
+        const _contarListas = () => {
+            const n = _suspLista.length;
+            document.querySelectorAll('.susp-cuenta').forEach(el => { el.textContent = n ? String(n) : ''; });
+        };
+        const _suspCargar = async (forzar) => {
+            if (_suspCargada && !forzar) return _suspLista;
+            try {
+                const [a, b] = await Promise.all([getDoc(doc(db, 'configuracion', 'listaSuspension')), getDoc(doc(db, 'configuracion', 'listasPacientes'))]);
+                _suspLista = a.exists() && Array.isArray(a.data().pacientes) ? a.data().pacientes.filter(x => x && x.clave) : [];
+                _listas = b.exists() && Array.isArray(b.data().listas) ? b.data().listas.filter(l => l && l.id && l.nombre).map(l => ({ ...l, pacientes: Array.isArray(l.pacientes) ? l.pacientes : [] })) : [];
+                if (!_listas.some(l => l.id === 'doctora')) _listas.unshift({ ..._LISTA_DOCTORA });
+                _suspCargada = true;
+            } catch (e) { console.warn('Listas de pacientes:', e); }
+            _contarListas();
+            return _suspLista;
+        };
+        // Quiénes NO se muestran en controles y resúmenes.
+        const _suspSet = () => new Set([..._suspLista, ..._listas.filter(l => l.ocultar).flatMap(l => l.pacientes)].map(x => x.clave));
+        const _suspGuardar = async (lista) => {
+            await setDoc(doc(db, 'configuracion', 'listaSuspension'), { pacientes: lista, actualizadoEn: serverTimestamp(), actualizadoPor: (auth.currentUser && auth.currentUser.email) || null });
+            _suspLista = lista; _contarListas();
+        };
+        const _listasGuardar = async (listas) => {
+            await setDoc(doc(db, 'configuracion', 'listasPacientes'), { listas, actualizadoEn: serverTimestamp(), actualizadoPor: (auth.currentUser && auth.currentUser.email) || null });
+            _listas = listas;
+        };
+        const _miembrosActiva = () => _listaActiva === 'suspension' ? _suspLista : ((_listas.find(l => l.id === _listaActiva) || {}).pacientes || []);
+        const _guardarMiembrosActiva = async (miembros) => {
+            if (_listaActiva === 'suspension') return _suspGuardar(miembros);
+            return _listasGuardar(_listas.map(l => l.id === _listaActiva ? { ...l, pacientes: miembros } : l));
+        };
+        // Candidatas: fichas de pacientes + nombres que solo están en la agenda.
+        const _suspCandidatas = () => {
+            const m = new Map();
+            (todasLosPacientes || []).forEach(p => { const k = 'dni:' + _resolverDniFinal(normalizarDNI(p.dni)); if (!m.has(k)) m.set(k, { clave: k, nombre: p.fullName || p.dni, dni: String(p.dni || '') }); });
+            (todasLasReservas || []).forEach(r => { if (esReservaBloqueoAdmin(r)) return; const k = _pacienteMatchKey(r); if (!k || k === 'nom:' || m.has(k)) return; m.set(k, { clave: k, nombre: _pacienteNombreDisplay(r), dni: k.startsWith('dni:') ? k.slice(4) : '' }); });
+            return [...m.values()];
+        };
+        window.suspAbrir = async () => {
+            await _suspCargar(true);
+            if (_listaActiva !== 'suspension' && !_listas.some(l => l.id === _listaActiva)) _listaActiva = 'suspension';
+            window.suspRender();
+            setTimeout(() => document.getElementById('susp-busq')?.focus(), 50);
+        };
+        window.suspLista = (id) => { _listaActiva = id; window.suspRender(); };
+        window.suspRender = () => {
+            const cont = document.getElementById('susp-lista'); if (!cont) return;
+            const tabs = document.getElementById('susp-tabs');
+            if (tabs) tabs.innerHTML = [{ id: 'suspension', nombre: '⏸ Suspensión', n: _suspLista.length }, ..._listas.map(l => ({ id: l.id, nombre: l.nombre, n: l.pacientes.length }))]
+                .map(l => '<button type="button" class="' + (l.id === _listaActiva ? 'on' : '') + '" onclick="suspLista(\'' + escapeHtml(l.id) + '\')">' + escapeHtml(l.nombre) + ' <small>' + l.n + '</small></button>').join('')
+                + '<button type="button" class="susp-nueva" onclick="suspNuevaLista()">＋ Nueva lista</button>';
+            const l = _listas.find(x => x.id === _listaActiva);
+            const info = document.getElementById('susp-info');
+            if (info) info.innerHTML = _listaActiva === 'suspension'
+                ? 'Las personas de esta lista <b>no aparecen en ningún control ni resumen</b> (Comparar sesiones, Centro de gestión, Control de sesiones y Duplicar mes). Sus turnos y su ficha no se tocan. Quitala de la lista cuando vuelva.'
+                : 'Lista <b>' + escapeHtml(l ? l.nombre : '') + '</b>. <label class="susp-ocultar"><input type="checkbox" ' + (l && l.ocultar ? 'checked' : '') + ' onchange="suspOcultar(this.checked)"> También ocultarlas de los controles y resúmenes</label>'
+                  + (l && l.id !== 'doctora' ? ' · <a href="#" onclick="suspBorrarLista();return false">Borrar esta lista</a>' : '');
+            const fc = (f) => f ? f.slice(0, 10).split('-').reverse().join('/') : '';
+            const miembros = [..._miembrosActiva()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+            cont.innerHTML = miembros.length ? miembros.map(x => '<div class="susp-fila"><div><b>' + escapeHtml(x.nombre) + '</b><span>' + (x.dni ? 'DNI ' + escapeHtml(x.dni) + ' · ' : '') + 'desde el ' + fc(x.desde) + (x.motivo ? ' · ' + escapeHtml(x.motivo) : '') + '</span></div><button type="button" class="p360-btn" onclick="suspQuitar(\'' + encodeURIComponent(x.clave) + '\')">Quitar de la lista</button></div>').join('')
+                : '<div class="susp-vacio">La lista está vacía.</div>';
+            window.suspBuscar();
+        };
+        window.suspBuscar = () => {
+            const box = document.getElementById('susp-res'); const q = (document.getElementById('susp-busq')?.value || '').trim();
+            if (!box) return;
+            if (q.length < 2) { box.innerHTML = ''; return; }
+            const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+            const palabras = norm(q).split(/\s+/).filter(Boolean);
+            const ya = new Set(_miembrosActiva().map(x => x.clave));
+            const res = _suspCandidatas().filter(c => !ya.has(c.clave) && palabras.every(w => norm(c.nombre + ' ' + c.dni).includes(w))).slice(0, 8);
+            box.innerHTML = res.length ? res.map(c => '<button type="button" class="susp-cand" onclick="suspAgregar(\'' + encodeURIComponent(c.clave) + '\')"><b>' + escapeHtml(c.nombre) + '</b>' + (c.dni ? '<span>DNI ' + escapeHtml(c.dni) + '</span>' : '<span>sin DNI</span>') + '<em>＋ Agregar</em></button>').join('') : '<div class="susp-vacio">No encontré a nadie con ese nombre (o ya está en esta lista).</div>';
+        };
+        window.suspAgregar = async (claveEnc) => {
+            const clave = decodeURIComponent(claveEnc);
+            const c = _suspCandidatas().find(x => x.clave === clave) || { clave, nombre: clave.replace(/^(dni|nom):/, ''), dni: clave.startsWith('dni:') ? clave.slice(4) : '' };
+            const motivo = (document.getElementById('susp-motivo')?.value || '').trim().slice(0, 120);
+            try {
+                await _suspCargar(true);
+                const miembros = _miembrosActiva();
+                if (miembros.some(x => x.clave === clave)) { mostrarAviso('Ya estaba en esta lista'); return; }
+                await _guardarMiembrosActiva([...miembros, { clave, nombre: c.nombre, dni: c.dni, motivo, desde: fechaHoyISO() }]);
+                const nomL = _listaActiva === 'suspension' ? 'la lista de suspensión' : '«' + ((_listas.find(l => l.id === _listaActiva) || {}).nombre || 'la lista') + '»';
+                mostrarAviso(c.nombre + ' agregada a ' + nomL);
+                const b = document.getElementById('susp-busq'); if (b) b.value = '';
+                const mo = document.getElementById('susp-motivo'); if (mo) mo.value = '';
+                window.suspRender();
+            } catch (e) { console.error(e); mostrarAviso('No se pudo guardar la lista'); }
+        };
+        window.suspQuitar = async (claveEnc) => {
+            const clave = decodeURIComponent(claveEnc);
+            try {
+                await _suspCargar(true);
+                const miembros = _miembrosActiva();
+                const x = miembros.find(y => y.clave === clave);
+                await _guardarMiembrosActiva(miembros.filter(y => y.clave !== clave));
+                mostrarAviso((x ? x.nombre : 'Paciente') + ' quitada de la lista');
+                window.suspRender();
+            } catch (e) { console.error(e); mostrarAviso('No se pudo guardar la lista'); }
+        };
+        window.suspNuevaLista = async () => {
+            const nombre = (prompt('Nombre de la nueva lista (ej: Pacientes de cursos):') || '').trim().slice(0, 40);
+            if (!nombre) return;
+            await _suspCargar(true);
+            if (_listas.some(l => l.nombre.toLowerCase() === nombre.toLowerCase())) { mostrarAviso('Ya hay una lista con ese nombre'); return; }
+            const id = 'l' + Date.now().toString(36);
+            try { await _listasGuardar([..._listas, { id, nombre, ocultar: false, pacientes: [] }]); _listaActiva = id; window.suspRender(); mostrarAviso('Lista «' + nombre + '» creada'); }
+            catch (e) { console.error(e); mostrarAviso('No se pudo crear la lista'); }
+        };
+        window.suspOcultar = async (v) => {
+            try { await _listasGuardar(_listas.map(l => l.id === _listaActiva ? { ...l, ocultar: !!v } : l)); mostrarAviso(v ? 'Esta lista ya no aparece en los controles' : 'Esta lista vuelve a aparecer en los controles'); window.suspRender(); }
+            catch (e) { console.error(e); mostrarAviso('No se pudo guardar la lista'); }
+        };
+        window.suspBorrarLista = async () => {
+            const l = _listas.find(x => x.id === _listaActiva); if (!l || l.id === 'doctora') return;
+            if (!(await confirmarUI({ titulo: '¿Borrar la lista «' + l.nombre + '»?', texto: 'Solo se borra la lista (' + l.pacientes.length + ' persona' + (l.pacientes.length === 1 ? '' : 's') + '). Sus turnos y fichas no se tocan.', aceptar: 'Sí, borrar', cancelar: 'Volver' }))) return;
+            try { await _listasGuardar(_listas.filter(x => x.id !== l.id)); _listaActiva = 'suspension'; window.suspRender(); mostrarAviso('Lista borrada'); }
+            catch (e) { console.error(e); mostrarAviso('No se pudo borrar la lista'); }
+        };
+
         // ═══ COMPARAR SESIONES: mes 1 contra mes 2, simple ═══
         const _cs2 = { pacientes: null, iguales: false };
         const _cs2Ym = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
@@ -8246,13 +8428,14 @@
             cont.innerHTML = '<div class="p360-cargando">Contando sesiones…</div>';
             try {
                 const todas = await _fetchReservasCompletasParaExport();
+                await _suspCargar(true);
                 const _cs2Hoy = fechaHoyISO(); const _d = new Date(); const _cs2Ahora = String(_d.getHours()).padStart(2, '0') + ':' + String(_d.getMinutes()).padStart(2, '0');
                 const mapa = new Map();
                 todas.forEach(r => {
                     if (!r.fecha || esReservaBloqueoAdmin(r)) return;
                     const k = _pacienteMatchKey(r); if (!k || k === 'nom:') return;
                     if (!mapa.has(k)) mapa.set(k, { clave: k, nombre: _pacienteNombreDisplay(r), dni: k.startsWith('dni:') ? k.slice(4) : '', sesiones: [] });
-                    mapa.get(k).sesiones.push({ fecha: r.fecha, activa: esReservaActiva(r), realizada: r.fecha < _cs2Hoy || (r.fecha === _cs2Hoy && (normalizarHora(r.hora) || '23:59') <= _cs2Ahora) });
+                    mapa.get(k).sesiones.push({ fecha: r.fecha, activa: esReservaActiva(r) && !_noCuentaComoSesion(r), realizada: r.fecha < _cs2Hoy || (r.fecha === _cs2Hoy && (normalizarHora(r.hora) || '23:59') <= _cs2Ahora) });
                 });
                 _cs2.pacientes = [...mapa.values()];
             } catch (e) { console.error(e); cont.innerHTML = '<p class="p360-alerta err">No se pudieron leer las sesiones. Probá de nuevo.</p>'; return; }
@@ -8262,7 +8445,8 @@
         // se hicieron y cuántas están agendadas. Lo que importa: si falta agendar.
         const _cs2Calc = () => {
             const m1 = document.getElementById('cs2-m1').value, m2 = document.getElementById('cs2-m2').value;
-            const r = compararCantidades(_cs2.pacientes || [], [m1, m2], { base: m1 });
+            const _ex = _suspSet();
+            const r = compararCantidades((_cs2.pacientes || []).filter(p => !_ex.has(p.clave)), [m1, m2], { base: m1 });
             const dif = (f) => f.difs[m2];
             const nueva = (f) => f.conteos[m1] === 0;
             const det = (f) => { const ses = f.p.sesiones.filter(s => s.activa && s.fecha.slice(0, 7) === m2); const hechas = ses.filter(s => s.realizada).length; return { hechas, agendadas: ses.length - hechas }; };
@@ -8281,10 +8465,21 @@
                 '<div class="cs2-resumen"><span class="cs2-r rojo"><b>' + c.menos + '</b> con sesiones sin agendar (' + c.sesFaltan + ' en total)</span><span class="cs2-r naranja"><b>' + c.mas + '</b> con sesiones de más</span><span class="cs2-r"><b>' + c.iguales + '</b> completas</span><span class="cs2-r"><b>' + c.nuevas + '</b> nuevas</span>' +
                 '<label class="cs2-check"><input type="checkbox" ' + (_cs2.iguales ? 'checked' : '') + ' onchange="cs2Iguales(this.checked)"> Ver también las completas</label></div>' +
                 (c.filas.length ? '<table class="cs2-tabla"><thead><tr><th>Paciente</th><th>' + _cs2Nom(c.m1) + '</th><th>' + _cs2Nom(c.m2) + '</th><th>Qué falta</th></tr></thead><tbody>' +
-                c.filas.map(f => { const d = c.dif(f); const nv = c.nueva(f); const x = c.det(f); const cl = nv ? 'nueva' : d < 0 ? 'rojo' : d > 0 ? 'naranja' : 'ok'; return '<tr class="' + cl + '"><td>' + escapeHtml(f.p.nombre) + '</td><td><b>' + f.conteos[c.m1] + '</b></td><td><b>' + f.conteos[c.m2] + '</b><span class="cs2-sub">' + _cs2Det(x) + '</span></td><td class="cs2-dif">' + _cs2Txt(d, nv) + '</td></tr>'; }).join('') +
+                c.filas.map(f => { const d = c.dif(f); const nv = c.nueva(f); const x = c.det(f); const cl = nv ? 'nueva' : d < 0 ? 'rojo' : d > 0 ? 'naranja' : 'ok'; return '<tr class="' + cl + '"><td>' + escapeHtml(f.p.nombre) + '<button type="button" class="cs2-susp" title="No mostrar más en los controles" onclick="cs2Suspender(\'' + encodeURIComponent(f.p.clave) + '\')">⏸ Suspender</button></td><td><b>' + f.conteos[c.m1] + '</b></td><td><b>' + f.conteos[c.m2] + '</b><span class="cs2-sub">' + _cs2Det(x) + '</span></td><td class="cs2-dif">' + _cs2Txt(d, nv) + '</td></tr>'; }).join('') +
                 '</tbody></table>' : '<div class="cs2-ok">✓ No falta agendar nada: todas tienen la misma cantidad de sesiones.</div>');
         };
         window.cs2Iguales = (v) => { _cs2.iguales = !!v; window.cs2Render(); };
+        window.cs2Suspender = async (claveEnc) => {
+            const clave = decodeURIComponent(claveEnc);
+            const p = (_cs2.pacientes || []).find(x => x.clave === clave);
+            if (!(await confirmarUI({ titulo: '¿Pasar a la lista de suspensión?', texto: (p ? p.nombre : 'Esta paciente') + ' deja de aparecer en los controles y resúmenes. Sus turnos no se tocan y la podés quitar de la lista cuando quieras.', aceptar: 'Sí, suspender', cancelar: 'Volver' }))) return;
+            try {
+                await _suspCargar(true);
+                if (!_suspSet().has(clave)) await _suspGuardar([..._suspLista, { clave, nombre: p ? p.nombre : clave, dni: p ? p.dni : '', motivo: '', desde: fechaHoyISO() }]);
+                mostrarAviso((p ? p.nombre : 'Paciente') + ' agregada a la lista de suspensión');
+                window.cs2Render();
+            } catch (e) { console.error(e); mostrarAviso('No se pudo guardar la lista'); }
+        };
         window.cs2Pdf = () => {
             if (!_cs2.pacientes) return;
             const tools = getPdfTools(); if (!tools) return;
@@ -13803,7 +13998,7 @@
                     var isCan = esEstadoCancelado(r.estado || r.status);
                     if (isCan) canceladas.push(r);
                     else if (_esSesionPendiente(r)) pendientes.push(r);
-                    else completadas.push(r);
+                    else if (!_noCuentaComoSesion(r)) completadas.push(r);
                 });
                 // Guardar datos para exportación PDF
                 if (!window._sesExportDB) window._sesExportDB = [];
@@ -14973,6 +15168,7 @@
             if (s === 'centro-gestion') window.cgAbrir?.();
             if (s === 'acciones-urgentes') window.auCargar?.();
             if (s === 'comparar-sesiones') window.cs2Abrir?.();
+            if (s === 'suspension') window.suspAbrir?.();
             if (s === 'control-sesiones') window.csAbrir?.();
             _navRenderGrupo(s);
         };
@@ -17195,6 +17391,9 @@
             // Historial completo (para saber quién es paciente nuevo) y avisos 📢 de la Grilla
             historial: () => _fetchReservasCompletasParaExport(),
             avisos: async () => { await _cargarAvisosGrilla(true); return _grillaAvisos; },
+            // Lista de suspensión: no se copian ni se ofrecen como "nuevas"
+            suspendidos: async () => { await _suspCargar(true); return _suspSet(); },
+            claveDni: (dni) => 'dni:' + _resolverDniFinal(normalizarDNI(dni)),
         });
         let _grilla_fecha         = fechaHoyISO();
         // `${hora}_${boxId}` → { docId, hora, boxId, duracionMinutos }. Los bloqueos
@@ -19583,7 +19782,7 @@
 
         function _csFilas() {
             return calcularControl({
-                reservas: _cs.reservas || [], hoy: _hoyISOZona(ZONA_HORARIA_NEGOCIO),
+                reservas: (_cs.reservas || []).filter(r => !_suspSet().has(_pacienteMatchKey(r))), hoy: _hoyISOZona(ZONA_HORARIA_NEGOCIO),
                 claveDe: _pacienteMatchKey, nombreDe: _pacienteNombreDisplay, esRealizada: _csEsRealizada,
             });
         }
@@ -19592,6 +19791,8 @@
             db, F: { collection, getDocs, doc, setDoc },
             escapeHtml, mostrarAviso: (m) => window.mostrarAviso(m), getPdfTools,
             fetchReservas: _fetchReservasCompletasParaExport,
+            excluidos: async () => { await _suspCargar(true); return _suspSet(); },
+            noCuenta: (r) => _noCuentaComoSesion(r),
             claveDe: _pacienteMatchKey,
             claveDni: (dni) => 'dni:' + _resolverDniFinal(normalizarDNI(dni)),
             esDniValido: (d) => { d = String(d || ''); return d.length >= 3 && d !== 'undefined' && d !== 'null' && !d.includes('__PLACEHOLDER__') && !d.includes('<__') && !d.startsWith('549'); },

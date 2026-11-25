@@ -124,6 +124,7 @@ export function construirPacientes(op) {
       return {
         id: r.id, fecha: r.fecha, hora: hhmm(r.hora), servicio: r.servicio || '', box: op.boxDe ? (op.boxDe(r) || '') : (r.box || ''),
         activa, cancelada: !activa, realizada: activa && realizada(r), futura: activa && !realizada(r),
+        cuenta: !(op.noCuenta && op.noCuenta(r)), // "Jornada Doc" / Consulta inicial: no es sesión de tratamiento
         nota: (r.notaRapida || r.notas || r.observaciones || '').toString().trim(),
         duplicada: r.creadoPor === 'admin_duplicar_mes' || !!r.duplicacion,
         reprogramada: !!(r.reprogramadaDe || r.reagendadaDe || r.movidoDe || (r.duplicacion && r.duplicacion.reagendado)),
@@ -134,7 +135,7 @@ export function construirPacientes(op) {
     if (!p.nombre) p.nombre = 'Sin nombre';
     if (!p.phone) { const r = [...p.reservas].reverse().find((x) => x.phone); if (r) p.phone = String(r.phone); }
     const act = sesiones.filter((s) => s.activa);
-    const hechas = act.filter((s) => s.realizada);
+    const hechas = act.filter((s) => s.realizada && s.cuenta !== false);
     const fut = act.filter((s) => s.futura);
     const primera = (act[0] || sesiones[0] || null);
     // Incorporación: el registro de la ficha si es confiable (no posterior a su
@@ -518,7 +519,7 @@ export function compararCantidades(pacientes, meses, { base } = {}) {
   const otros = ms.filter((m) => m !== b);
   const filas = [];
   for (const p of pacientes) {
-    const conteos = Object.fromEntries(ms.map((m) => [m, p.sesiones.filter((s) => s.activa && s.fecha.slice(0, 7) === m).length]));
+    const conteos = Object.fromEntries(ms.map((m) => [m, p.sesiones.filter((s) => s.activa && s.cuenta !== false && s.fecha.slice(0, 7) === m).length]));
     if (!ms.some((m) => conteos[m] > 0)) continue;
     const difs = Object.fromEntries(otros.map((m) => [m, conteos[m] - conteos[b]]));
     const vals = Object.values(difs);
