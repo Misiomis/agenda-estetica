@@ -1649,6 +1649,26 @@
             .au-acc .p360-btn-pri, .au-acc .p360-btn { min-height: 44px; }
         }
 
+        /* Comparar sesiones (simple) */
+        .cs2-barra { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin: 0 0 14px; }
+        .cs2-barra label { display: grid; gap: 4px; font-size: 12px; font-weight: 800; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+        .cs2-barra select { min-width: 170px; margin: 0; font-size: 15px; text-transform: none; }
+        .cs2-vs { font-weight: 700; color: var(--ink-soft); padding-bottom: 10px; }
+        .cs2-pdf { margin-left: auto; padding: 12px 20px !important; font-size: 14px !important; }
+        .cs2-resumen { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin: 0 0 12px; font-size: 14px; }
+        .cs2-r b { font-size: 18px; } .cs2-r.rojo b { color: #B3261E; } .cs2-r.naranja b { color: #9A5B00; }
+        .cs2-check { margin-left: auto; font-size: 13px; display: flex; gap: 6px; align-items: center; }
+        .cs2-tabla { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; font-size: 15px; }
+        .cs2-tabla th { text-align: left; padding: 10px 12px; background: var(--surface-2); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); }
+        .cs2-tabla td { padding: 11px 12px; border-top: 1px solid var(--border); }
+        .cs2-tabla td:nth-child(2), .cs2-tabla td:nth-child(3), .cs2-tabla th:nth-child(2), .cs2-tabla th:nth-child(3) { text-align: center; }
+        .cs2-tabla tr.rojo td { color: #B3261E; } .cs2-tabla tr.naranja td { color: #9A5B00; }
+        .cs2-tabla tr.rojo td:first-child, .cs2-tabla tr.naranja td:first-child { color: var(--ink); font-weight: 600; }
+        .cs2-dif { font-weight: 800; }
+        .cs2-tabla tr.nueva td:last-child { color: #3F72AF; }
+        .cs2-ok { padding: 28px; text-align: center; background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; font-size: 15px; }
+        @media (max-width: 640px) { .cs2-pdf { margin-left: 0; width: 100%; } .cs2-barra select { min-width: 0; width: 100%; } .cs2-barra label { flex: 1 1 140px; } .cs2-check { margin-left: 0; } .cs2-tabla { font-size: 14px; } .cs2-tabla td, .cs2-tabla th { padding: 9px 7px; } }
+
         /* Acciones urgentes */
         .au-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #B3261E; color: #fff; font-size: 11px; font-weight: 800; margin-left: auto; line-height: 1; }
         .au-badge[hidden] { display: none !important; }
@@ -2964,6 +2984,10 @@
                 <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2.5 16 15H2Z" stroke-linejoin="round"/><path d="M9 7v3.6M9 12.6v.1" stroke-linecap="round"/></svg>
                 Acciones urgentes <span class="au-badge" hidden></span>
             </button>
+            <button class="btn-nav nav-urgentes" id="btn-comparar-sesiones" onclick="navegar('comparar-sesiones')">
+                <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 15V8M7 15V4M11 15V9M15 15V6" stroke-linecap="round"/></svg>
+                Comparar sesiones
+            </button>
             <button class="btn-nav sidebar-search" id="btn-buscar" onclick="navegar('buscar')">
                 <svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5.2"/><path d="M15.5 15.5 12 12" stroke-linecap="round"/></svg>
                 Buscar
@@ -3117,6 +3141,7 @@
             <div class="bsh-section">
                 <span class="bsh-label">Jornada y agenda</span>
                 <button class="bsh-item" onclick="navegar('acciones-urgentes');cerrarBottomSheet()">⚡ Acciones urgentes</button>
+                <button class="bsh-item" onclick="navegar('comparar-sesiones');cerrarBottomSheet()">📊 Comparar sesiones</button>
                 <button class="bsh-item" onclick="navegar('grilla');cerrarBottomSheet()">📅 Grilla</button>
                 <button class="bsh-item" onclick="navegar('agenda');cerrarBottomSheet()">🗓 Agenda</button>
                 <button class="bsh-item" onclick="navegar('preparar-jornada');cerrarBottomSheet()"><svg class="nav-ico" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="2.5" width="11" height="13.5" rx="1.6"/><path d="M6.5 1.6h5a1 1 0 0 1 1 1v1.3h-7V2.6a1 1 0 0 1 1-1Z"/><path d="M6 8.5h6M6 11.3h6M6 5.8h3" stroke-linecap="round"/></svg> Preparar jornada</button>
@@ -3270,6 +3295,20 @@
                     <div id="contenedorSesionesBuscadas" style="margin-top:10px;"></div>
                     <div class="cliente-help" style="margin-top:14px; font-size:13px; background:rgba(53,122,92,0.10); border-radius:10px; padding:8px 12px;">Buscá por cualquier parte del nombre: "miriam", "sedof", "adriana c". Muestra todos sus turnos con box, servicio y resumen mensual.</div>
                 </div>
+            </div>
+            <!-- ════════════ COMPARAR SESIONES (simple: mes 1 vs mes 2) ════════════ -->
+            <div id="sec-comparar-sesiones" class="section">
+                <div class="p360-sec-head"><div>
+                    <h3 class="p360-sec-title">Comparar sesiones</h3>
+                    <p class="p360-sec-sub">Cada paciente tiene que tener la misma cantidad de sesiones en los dos meses. En <b style="color:#B3261E">rojo</b> las que tienen de menos, en <b style="color:#9A5B00">naranja</b> las que tienen de más.</p>
+                </div></div>
+                <div class="cs2-barra">
+                    <label>Mes 1 <select id="cs2-m1" class="select-input" onchange="cs2Render()"></select></label>
+                    <span class="cs2-vs">contra</span>
+                    <label>Mes 2 <select id="cs2-m2" class="select-input" onchange="cs2Render()"></select></label>
+                    <button type="button" class="p360-btn-pri cs2-pdf" onclick="cs2Pdf()">⬇ Descargar PDF</button>
+                </div>
+                <div id="cs2-cuerpo"><div class="p360-cargando">Cargando…</div></div>
             </div>
             <!-- ════════════ ACCIONES URGENTES (turnos cancelados para reprogramar) ════════════ -->
             <div id="sec-acciones-urgentes" class="section">
@@ -4126,6 +4165,7 @@
         import { initDuplicarMes, confirmarUI } from "/js/duplicar-mes-ui.js";
         import { initCentroGestion } from "/js/centro-gestion-ui.js";
         import { notasDeTurno, guiasDeTurno, filasNotasDelDia, TIPOS_NOTA } from "/js/notas-jornada.js";
+        import { compararCantidades, textoDif } from "/js/centro-gestion.js";
         import { calcularBusqueda, tituloBusqueda, agruparDuplicados, nombreMes, MODOS } from "/js/buscador-avanzado.js";
         import { MEDIOS, etiquetaMedio, iconoMedio, parsearPesos, milesAPesos, pesosAMiles, formatoPesos, formatoPesosEnteros, estadoCobro, planCobro, restoMixto, totalesPorMedio, ultimoPrecio, normalizarMontoARS, normalizarDocMontos, MONTOS_RAPIDOS } from "/js/cobro-rapido.js";
         import { esTurnoDeJornadaValido, origenParaNuevoTurno } from "/js/turno-jornada.js";
@@ -8187,6 +8227,78 @@
                 return false;
             } finally { mostrarLoader(false); }
         }
+        // ═══ COMPARAR SESIONES: mes 1 contra mes 2, simple ═══
+        const _cs2 = { pacientes: null, iguales: false };
+        const _cs2Ym = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        const _cs2Nom = (ym) => { const n = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][+ym.slice(5, 7) - 1]; return n + ' ' + ym.slice(0, 4); };
+        window.cs2Abrir = async () => {
+            const cont = document.getElementById('cs2-cuerpo');
+            const m1 = document.getElementById('cs2-m1'), m2 = document.getElementById('cs2-m2');
+            if (!m1.options.length) {
+                const hoy = new Date(), op = [];
+                for (let i = -12; i <= 3; i++) op.push(_cs2Ym(new Date(hoy.getFullYear(), hoy.getMonth() + i, 1)));
+                const html = op.map(ym => '<option value="' + ym + '">' + _cs2Nom(ym) + '</option>').join('');
+                m1.innerHTML = html; m2.innerHTML = html;
+                m1.value = _cs2Ym(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)); m2.value = _cs2Ym(hoy);
+            }
+            cont.innerHTML = '<div class="p360-cargando">Contando sesiones…</div>';
+            try {
+                const todas = await _fetchReservasCompletasParaExport();
+                const mapa = new Map();
+                todas.forEach(r => {
+                    if (!r.fecha || esReservaBloqueoAdmin(r)) return;
+                    const k = _pacienteMatchKey(r); if (!k || k === 'nom:') return;
+                    if (!mapa.has(k)) mapa.set(k, { clave: k, nombre: _pacienteNombreDisplay(r), dni: k.startsWith('dni:') ? k.slice(4) : '', sesiones: [] });
+                    mapa.get(k).sesiones.push({ fecha: r.fecha, activa: esReservaActiva(r) });
+                });
+                _cs2.pacientes = [...mapa.values()];
+            } catch (e) { console.error(e); cont.innerHTML = '<p class="p360-alerta err">No se pudieron leer las sesiones. Probá de nuevo.</p>'; return; }
+            window.cs2Render();
+        };
+        const _cs2Calc = () => {
+            const m1 = document.getElementById('cs2-m1').value, m2 = document.getElementById('cs2-m2').value;
+            const r = compararCantidades(_cs2.pacientes || [], [m1, m2], { base: m1 });
+            const dif = (f) => f.difs[m2];
+            const nueva = (f) => f.conteos[m1] === 0;
+            const filas = r.filas.filter(f => _cs2.iguales || dif(f) !== 0).sort((a, b) => (nueva(a) - nueva(b)) || (dif(a) - dif(b)) || a.p.nombre.localeCompare(b.p.nombre, 'es'));
+            return { m1, m2, filas, menos: r.filas.filter(f => dif(f) < 0).length, mas: r.filas.filter(f => dif(f) > 0 && !nueva(f)).length, nuevas: r.filas.filter(nueva).length, iguales: r.filas.filter(f => dif(f) === 0).length, dif, nueva };
+        };
+        window.cs2Render = () => {
+            const cont = document.getElementById('cs2-cuerpo');
+            if (!_cs2.pacientes) return;
+            const c = _cs2Calc();
+            if (c.m1 === c.m2) { cont.innerHTML = '<p class="p360-alerta">Elegí dos meses distintos.</p>'; return; }
+            const txt = (d) => d === 0 ? 'Igual' : d < 0 ? (d === -1 ? 'FALTA 1' : 'FALTAN ' + (-d)) : (d === 1 ? '1 DE MÁS' : d + ' DE MÁS');
+            cont.innerHTML =
+                '<div class="cs2-resumen"><span class="cs2-r rojo"><b>' + c.menos + '</b> con sesiones de menos</span><span class="cs2-r naranja"><b>' + c.mas + '</b> con sesiones de más</span><span class="cs2-r"><b>' + c.iguales + '</b> iguales</span><span class="cs2-r"><b>' + c.nuevas + '</b> nuevas (no tenían en ' + _cs2Nom(c.m1) + ')</span>' +
+                '<label class="cs2-check"><input type="checkbox" ' + (_cs2.iguales ? 'checked' : '') + ' onchange="cs2Iguales(this.checked)"> Ver también las iguales</label></div>' +
+                (c.filas.length ? '<table class="cs2-tabla"><thead><tr><th>Paciente</th><th>' + _cs2Nom(c.m1) + '</th><th>' + _cs2Nom(c.m2) + '</th><th>Diferencia</th></tr></thead><tbody>' +
+                c.filas.map(f => { const d = c.dif(f); const nv = c.nueva(f); const cl = nv ? 'nueva' : d < 0 ? 'rojo' : d > 0 ? 'naranja' : ''; return '<tr class="' + cl + '"><td>' + escapeHtml(f.p.nombre) + '</td><td>' + f.conteos[c.m1] + '</td><td>' + f.conteos[c.m2] + '</td><td class="cs2-dif">' + (nv ? 'NUEVA' : txt(d)) + '</td></tr>'; }).join('') +
+                '</tbody></table>' : '<div class="cs2-ok">✓ Todas tienen la misma cantidad de sesiones.</div>');
+        };
+        window.cs2Iguales = (v) => { _cs2.iguales = !!v; window.cs2Render(); };
+        window.cs2Pdf = () => {
+            if (!_cs2.pacientes) return;
+            const tools = getPdfTools(); if (!tools) return;
+            const c = _cs2Calc();
+            const pdf = new tools.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const txt = (d) => d === 0 ? 'Igual' : d < 0 ? (d === -1 ? 'FALTA 1' : 'FALTAN ' + (-d)) : (d === 1 ? '1 DE MAS' : d + ' DE MAS');
+            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.text('Comparar sesiones: ' + _cs2Nom(c.m1) + ' contra ' + _cs2Nom(c.m2), 14, 16);
+            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+            pdf.text(c.menos + ' con sesiones de menos  ·  ' + c.mas + ' con sesiones de mas  ·  ' + c.iguales + ' iguales', 14, 23);
+            tools.runAutoTable(pdf, {
+                startY: 28,
+                head: [['Paciente', _cs2Nom(c.m1), _cs2Nom(c.m2), 'Diferencia']],
+                body: c.filas.map(f => [f.p.nombre.replace(/[^\x20-\x7E\u00A0-\u00FF]/g, ''), String(f.conteos[c.m1]), String(f.conteos[c.m2]), c.nueva(f) ? 'NUEVA' : txt(c.dif(f))]),
+                styles: { font: 'helvetica', fontSize: 10, cellPadding: 2.5 },
+                headStyles: { fillColor: [47, 90, 71], textColor: 255 },
+                columnStyles: { 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { fontStyle: 'bold' } },
+                didParseCell: (d) => { if (d.section !== 'body' || c.nueva(c.filas[d.row.index])) return; const v = c.dif(c.filas[d.row.index]); if (v < 0) d.cell.styles.textColor = [179, 38, 30]; else if (v > 0) d.cell.styles.textColor = [154, 91, 0]; },
+                margin: { left: 14, right: 14 },
+            });
+            pdf.save('comparar-sesiones_' + c.m1 + '_' + c.m2 + '.pdf');
+        };
+
         // ═══ ACCIONES URGENTES: turnos cancelados para reprogramar ═══
         // Fuente: pendientesReagendar (origen "cancelacion", o los "suspendido|…"
         // anteriores). Reprogramar reactiva el MISMO turno (mismo id: notas y
@@ -14852,6 +14964,7 @@
             if (s === 'buscador-avanzado') window.baAbrir?.();
             if (s === 'centro-gestion') window.cgAbrir?.();
             if (s === 'acciones-urgentes') window.auCargar?.();
+            if (s === 'comparar-sesiones') window.cs2Abrir?.();
             if (s === 'control-sesiones') window.csAbrir?.();
             _navRenderGrupo(s);
         };
