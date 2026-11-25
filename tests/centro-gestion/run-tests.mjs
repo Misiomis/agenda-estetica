@@ -171,3 +171,28 @@ t('plan con turnos por mes → parcialmente agendado; vigencia vencida → final
 });
 
 console.log(`\n${n} pruebas OK — centro de gestión`);
+
+// ── Control de cantidades entre meses ──
+import('../../js/centro-gestion.js').then(({ compararCantidades, textoDif }) => {
+  let k = 0; const tt = (d, fn) => { fn(); k++; console.log('✓', d); };
+  const ps = ctx([
+    ...['2026-10-01', '2026-10-08', '2026-10-15'].map((f) => R('7001', f, { nombre: 'Adriana Cerri' })),
+    ...['2026-11-05', '2026-11-12'].map((f) => R('7001', f, { nombre: 'Adriana Cerri' })),
+    ...Array.from({ length: 9 }, (_, i) => R('7002', `2026-10-${String(i + 1).padStart(2, '0')}`, { nombre: 'Agnesse' })),
+    ...Array.from({ length: 10 }, (_, i) => R('7002', `2026-11-${String(i + 1).padStart(2, '0')}`, { nombre: 'Agnesse' })),
+    R('7003', '2026-10-03', { nombre: 'Igual' }), R('7003', '2026-11-03', { nombre: 'Igual' }),
+    R('7004', '2026-10-03', { nombre: 'Cancelo' }), R('7004', '2026-11-03', { nombre: 'Cancelo', estado: 'cancelada' }),
+    R('7005', '2026-11-20', { nombre: 'Nueva' }),
+  ]);
+  const r = compararCantidades(ps, ['2026-11', '2026-10']);
+  const de = (dni) => r.filas.find((f) => f.p.dni === dni);
+  tt('base = el primer mes (octubre)', () => assert.equal(r.base, '2026-10'));
+  tt('Adriana: 3 en octubre, 2 en noviembre → falta 1', () => { assert.equal(de('7001').difs['2026-11'], -1); assert.equal(de('7001').estado, 'faltan'); assert.equal(textoDif(-1), 'falta 1'); });
+  tt('Agnesse: 9 → 10 → 1 de más', () => { assert.equal(de('7002').difs['2026-11'], 1); assert.equal(de('7002').estado, 'sobran'); assert.equal(textoDif(1), '1 de más'); });
+  tt('cancelada no cuenta → falta 1', () => assert.equal(de('7004').difs['2026-11'], -1));
+  tt('igual → sin marca; nueva → aparte', () => { assert.equal(de('7003').estado, 'igual'); assert.equal(de('7005').estado, 'nuevo'); });
+  tt('primero los que tienen faltantes', () => assert.equal(r.filas[0].estado, 'faltan'));
+  tt('resumen', () => { assert.equal(r.resumen.sesionesFaltantes, 2); assert.equal(r.resumen.sesionesSobrantes, 1); assert.equal(r.resumen.iguales, 1); });
+  tt('base elegida (noviembre) invierte el signo', () => assert.equal(compararCantidades(ps, ['2026-10', '2026-11'], { base: '2026-11' }).filas.find((f) => f.p.dni === '7002').difs['2026-10'], -1));
+  console.log(`${k} pruebas OK — control de cantidades`);
+});

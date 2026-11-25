@@ -504,3 +504,38 @@ export function criterioIncorporacion(inc) {
   if (!inc || inc.criterio === 'sin_datos') return 'sin datos';
   return inc.criterio === 'registro' ? 'fecha de registro de la ficha' : 'primera aparición en agenda';
 }
+
+// ── Control de cantidades entre meses ──
+// La idea: cada paciente tiene que tener la MISMA cantidad de sesiones en todos
+// los meses que se comparan. Se toma un mes base (por defecto el primero) y en
+// cada otro mes se marca la diferencia: faltan (rojo) o sobran (de más).
+// Se cuentan las sesiones vigentes del mes (realizadas + agendadas; las
+// canceladas no cuentan).
+//  → { meses, base, filas:[{ p, conteos:{mes:n}, difs:{mes:d}, estado }], resumen }
+export function compararCantidades(pacientes, meses, { base } = {}) {
+  const ms = [...new Set((meses || []).filter(esMes))].sort();
+  const b = ms.includes(base) ? base : ms[0];
+  const otros = ms.filter((m) => m !== b);
+  const filas = [];
+  for (const p of pacientes) {
+    const conteos = Object.fromEntries(ms.map((m) => [m, p.sesiones.filter((s) => s.activa && s.fecha.slice(0, 7) === m).length]));
+    if (!ms.some((m) => conteos[m] > 0)) continue;
+    const difs = Object.fromEntries(otros.map((m) => [m, conteos[m] - conteos[b]]));
+    const vals = Object.values(difs);
+    const estado = conteos[b] === 0 ? 'nuevo' : vals.some((d) => d < 0) ? (vals.some((d) => d > 0) ? 'mixto' : 'faltan') : vals.some((d) => d > 0) ? 'sobran' : 'igual';
+    filas.push({ p, conteos, difs, estado });
+  }
+  const orden = { faltan: 0, mixto: 1, sobran: 2, nuevo: 3, igual: 4 };
+  filas.sort((x, y) => (orden[x.estado] - orden[y.estado]) || x.p.nombre.localeCompare(y.p.nombre, 'es'));
+  const resumen = { iguales: 0, conFaltantes: 0, conSobrantes: 0, nuevos: 0, sesionesFaltantes: 0, sesionesSobrantes: 0 };
+  filas.forEach((f) => {
+    if (f.estado === 'igual') resumen.iguales++;
+    if (f.estado === 'nuevo') resumen.nuevos++;
+    if (f.estado === 'faltan' || f.estado === 'mixto') resumen.conFaltantes++;
+    if (f.estado === 'sobran' || f.estado === 'mixto') resumen.conSobrantes++;
+    if (f.estado !== 'nuevo') Object.values(f.difs).forEach((d) => { if (d < 0) resumen.sesionesFaltantes -= d; if (d > 0) resumen.sesionesSobrantes += d; });
+  });
+  return { meses: ms, base: b, otros, filas, resumen };
+}
+// Texto corto de una diferencia: "falta 1", "faltan 2", "1 de más".
+export const textoDif = (d) => (d === 0 ? 'igual' : d < 0 ? (d === -1 ? 'falta 1' : `faltan ${-d}`) : `${d} de más`);

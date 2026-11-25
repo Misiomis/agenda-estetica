@@ -5,7 +5,7 @@
 // en clients/{dni}.seguimiento y conservando el historial.
 
 import {
-  construirPacientes, controlAgenda, compararMeses, filtrarPacientes, posiblesDuplicados, resumenDuplicacion,
+  construirPacientes, controlAgenda, compararMeses, compararCantidades, textoDif, filtrarPacientes, posiblesDuplicados, resumenDuplicacion,
   estadoEnMes, estadisticas, ordenarFilas, aCSV, nombreMes, nombreMesCap, fechaCorta, sumarMeses, rangoMeses, esMes,
   referenciaPorDefecto, ESTADOS, ESTADOS_FORMALES, ESTADO_TXT, ORDENES, criterioIncorporacion, fechaISO, retomo, esPendiente,
 } from './centro-gestion.js';
@@ -80,6 +80,10 @@ const CSS = `
 .cg-exp{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .cg-mini{font-size:11.5px;color:var(--ink-soft)}
 .cg-subrev{margin:0 0 14px}
+.cg-dif{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+.cg-dif.falta{background:#fde5e1;color:#a3261e}.cg-dif.sobra{background:#fff1d6;color:#8a5a00}
+td.cg-cc-falta{color:#a3261e;font-weight:800}td.cg-cc-sobra{color:#8a5a00;font-weight:800}
+.cg-cc .cg-catchip{cursor:default}
 .cg-catchips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
 .cg-catchip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface);font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;min-height:34px}
 .cg-catchip b{font-size:13.5px}
@@ -459,9 +463,41 @@ export function initCentroGestion(deps) {
       ...r.meses.map((m) => ['solo:' + m, `Solo en ${nombreMes(m)}`, r.soloEn[m]]),
     ];
     st.ultimaLista = { comparar: r, grupos };
+    // ── Control de cantidades: misma cantidad de sesiones en todos los meses ──
+    const cc = compararCantidades(d.pacientes, [...st.cmp], { base: st.cmpBase });
+    st.ultimaCantidades = cc;
+    const soloDif = st.cmpSoloDif !== false;
+    const filasCC = soloDif ? cc.filas.filter((f) => f.estado !== 'igual') : cc.filas;
+    const celda = (f, m) => {
+      const n = f.conteos[m];
+      if (m === cc.base) return `<td class="num"><b>${n}</b></td>`;
+      const dif = f.difs[m];
+      const cls = f.estado === 'nuevo' ? 'nuevo' : dif < 0 ? 'falta' : dif > 0 ? 'sobra' : '';
+      return `<td class="num cg-cc-${cls || 'ok'}">${n}${dif && f.estado !== 'nuevo' ? `<span class="cg-dif ${cls}">${E(textoDif(dif))}</span>` : ''}</td>`;
+    };
+    const etiquetaEstado = { faltan: 'Faltan sesiones', sobran: 'Sesiones de más', mixto: 'Faltan y sobran', nuevo: 'Nuevo (no estaba en el mes base)', igual: 'Igual' };
+    const bloqueCC = cc.meses.length < 2 ? '' : `<div class="p360-card cg-cc">
+        <div class="cg-bar"><div><h4 style="margin:0;font-size:15px">Control de cantidades de sesiones</h4>
+          <div class="cg-mini">Cada paciente debería tener la misma cantidad de sesiones que en el mes base. Se cuentan las realizadas y las agendadas (las canceladas no).</div></div>
+          ${barraExport('cantidades', filasCC.length)}</div>
+        <div class="cg-fila" style="margin:8px 0 10px">
+          <label class="cg-fila"><span class="cg-lbl">Mes base</span><select class="cg-sel" onchange="cgCmpBase(this.value)">${cc.meses.map((m) => `<option value="${m}" ${m === cc.base ? 'selected' : ''}>${E(nombreMesCap(m))}</option>`).join('')}</select></label>
+          <label class="cg-check"><input type="checkbox" ${soloDif ? 'checked' : ''} onchange="cgCmpSoloDif(this.checked)"> Mostrar solo los que tienen diferencias</label>
+        </div>
+        <div class="cg-catchips">
+          <span class="cg-catchip bad"><b>${cc.resumen.conFaltantes}</b> con sesiones faltantes (${cc.resumen.sesionesFaltantes})</span>
+          <span class="cg-catchip warn"><b>${cc.resumen.conSobrantes}</b> con sesiones de más (${cc.resumen.sesionesSobrantes})</span>
+          <span class="cg-catchip ok"><b>${cc.resumen.iguales}</b> iguales</span>
+          <span class="cg-catchip"><b>${cc.resumen.nuevos}</b> nuevos</span>
+        </div>
+        ${filasCC.length ? `<div class="cg-tabla-wrap"><table class="cg-tabla"><thead><tr><th>Paciente</th>${cc.meses.map((m) => `<th class="num">${E(nombreMesCap(m))}${m === cc.base ? ' (base)' : ''}</th>`).join('')}<th>Estado</th></tr></thead><tbody>
+          ${filasCC.map((f) => `<tr class="cg-click" onclick="cgVer('${encodeURIComponent(f.p.clave)}')"><td class="cg-nom">${E(f.p.nombre)}</td>${cc.meses.map((m) => celda(f, m)).join('')}<td><span class="cg-est ${{ faltan: 'sin_agendar', mixto: 'sin_agendar', sobran: 'parcial', nuevo: 'en_revision', igual: 'agendado' }[f.estado]}">${E(etiquetaEstado[f.estado])}</span></td></tr>`).join('')}
+        </tbody></table></div>` : '<div class="cg-vacio">Todos tienen la misma cantidad de sesiones. ✓</div>'}
+      </div>`;
     const tabla = (lista) => lista.length ? `<div class="cg-tabla-wrap"><table class="cg-tabla"><thead><tr><th>Paciente</th>${r.meses.map((m) => `<th class="num">${E(nombreMesCap(m).replace(/ (\d{4})$/, ' $1'))}</th>`).join('')}<th>Última</th></tr></thead><tbody>${lista.map((f) => `<tr class="cg-click" onclick="cgVer('${encodeURIComponent(f.p.clave)}')"><td class="cg-nom">${E(f.p.nombre)}</td>${r.meses.map((m) => `<td class="num">${f.sesiones[m] ? f.sesiones[m] : '<span style="opacity:.35">—</span>'}</td>`).join('')}<td>${f.p.ultimaSesion ? fechaCorta(f.p.ultimaSesion) : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="cg-vacio">Nadie.</div>';
     return `
       <div class="p360-card"><span class="cg-lbl">Meses a comparar (2 o más, de cualquier año)</span>${chipsMeses(st.cmp, 'cgCmpMes', { soloConDatos: true })}</div>
+      ${bloqueCC}
       <div class="cg-kpis">${r.meses.map((m) => `<div class="cg-kpi static"><b>${r.totales[m].pacientes}</b><span>pacientes en ${E(nombreMes(m))} · ${r.totales[m].sesiones} turnos</span></div>`).join('')}<div class="cg-kpi static"><b>${r.filas.length}</b><span>pacientes únicos en total</span></div></div>
       ${grupos.map(([k, t, l], i) => `<details class="cg-sec" ${i < 2 ? 'open' : ''}><summary><span>${E(t)}</span><span class="cg-mini">${l.length} · <a href="#" onclick="event.preventDefault();event.stopPropagation();cgExportarGrupo('${k}','print')">imprimir</a> · <a href="#" onclick="event.preventDefault();event.stopPropagation();cgExportarGrupo('${k}','pdf')">PDF</a> · <a href="#" onclick="event.preventDefault();event.stopPropagation();cgExportarGrupo('${k}','xlsx')">Excel</a></span></summary><div>${tabla(l)}</div></details>`).join('')}`;
   }
@@ -618,6 +654,19 @@ export function initCentroGestion(deps) {
       const pend = ['pendientes', 'sinAgendar', 'nuevosDestinoSinAgendar', 'enRevision', 'parciales', 'canceladasSinReprogramar', 'anterioresSinTurnos'].includes(st.ctrl.cat) || /^(ausentes|nuevosRef):/.test(st.ctrl.cat);
       return { titulo: pend ? 'CONTROL DE PACIENTES PENDIENTES DE AGENDAR' : 'CONTROL DE AGENDA', subtitulo: `Mes de destino: ${nombreMesCap(c.mesDestino)} · ${L.titulo} · referencia: ${c.referencia.map((m) => nombreMes(m)).join(', ')}`, columnas: [...columnasPacientes('control'), ...colsRevision], filas: L.filas, revision: true, nombre: `control-agenda-${c.mesDestino}` };
     }
+    if (origen === 'cantidades') {
+      const cc = st.ultimaCantidades;
+      let filas = st.cmpSoloDif !== false ? cc.filas.filter((f) => f.estado !== 'igual') : cc.filas;
+      if (st.sel.size) filas = filas.filter((f) => st.sel.has(f.p.clave));
+      const est = { faltan: 'Faltan sesiones', sobran: 'Sesiones de más', mixto: 'Faltan y sobran', nuevo: 'Nuevo', igual: 'Igual' };
+      const cols = [{ titulo: 'N.º', valor: (_, i) => String(i + 1), ancho: 9 }, { titulo: 'Paciente', valor: (f) => f.p.nombre, ancho: 44 },
+        ...(st.campos.dni ? [{ titulo: 'DNI', valor: (f) => f.p.dni }] : []), ...(st.campos.phone ? [{ titulo: 'Teléfono', valor: (f) => f.p.phone }] : []),
+        ...cc.meses.map((m) => ({ ancho: 27, titulo: nombreMesCap(m) + (m === cc.base ? ' (base)' : ''), valor: (f) => (m === cc.base || f.estado === 'nuevo' || !f.difs[m] ? String(f.conteos[m]) : `${f.conteos[m]} (${textoDif(f.difs[m])})`) })),
+        { titulo: 'Estado', ancho: 32, valor: (f) => est[f.estado] }];
+      const ses = (n) => `${n} ${n === 1 ? 'sesión' : 'sesiones'}`;
+      const r = cc.resumen;
+      return { titulo: 'CONTROL DE CANTIDADES DE SESIONES', subtitulo: `Mes base: ${nombreMes(cc.base)} · comparado con ${cc.otros.map((m) => nombreMes(m)).join(', ')} · ${r.conFaltantes} con faltantes (${ses(r.sesionesFaltantes)}) · ${r.conSobrantes} con sesiones de más (${ses(r.sesionesSobrantes)}) · ${r.iguales} iguales`, columnas: [...cols, { titulo: 'Revisado', valor: () => '☐', ancho: 16, revision: true }, { titulo: 'Observaciones', valor: () => '', revision: true }], filas, revision: true, nombre: `control-cantidades-${cc.meses.join('_')}`, colorear: true };
+    }
     if (origen === 'comparar') {
       const r = L.comparar, g = L.grupos.find((x) => x[0] === grupo);
       const cols = [{ titulo: 'N.º', valor: (_, i) => String(i + 1), ancho: 9 }, { titulo: 'Paciente', valor: (f) => f.p.nombre, ancho: 50 }, ...(st.campos.dni ? [{ titulo: 'DNI', valor: (f) => f.p.dni }] : []), ...(st.campos.phone ? [{ titulo: 'Teléfono', valor: (f) => f.p.phone }] : []), ...r.meses.map((m) => ({ titulo: nombreMesCap(m), valor: (f) => String(f.sesiones[m] || '—') })), { titulo: 'Última sesión', valor: (f) => fechaCorta(f.p.ultimaSesion) }];
@@ -657,7 +706,8 @@ export function initCentroGestion(deps) {
     } else if (formato === 'pdf') {
       const tools = deps.getPdfTools(); if (!tools) return;
       const { jsPDF, runAutoTable } = tools;
-      const ancha = cols.length > 8;
+      const fijos = cols.reduce((t, c) => t + (c.ancho || 0), 0) + cols.filter((c) => !c.ancho).length * 25;
+      const ancha = cols.length > 8 || fijos > 182;
       const pdf = new jsPDF({ orientation: ancha ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
       const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight();
       const t = (s) => String(s ?? '').replace(/☐/g, '').replace(/[^\x20-\x7E -ÿ\n]/g, '');
@@ -672,7 +722,14 @@ export function initCentroGestion(deps) {
       const y0 = encabezado();
       const anchos = {}; let fijo = 0;
       cols.forEach((c, j) => { if (c.ancho) { anchos[j] = { cellWidth: c.ancho }; fijo += c.ancho; } });
+      const colorPdf = (dd) => {
+        if (!x.colorear || dd.section !== 'body') return;
+        const t = String(dd.cell.raw || '');
+        if (/falta|Faltan/.test(t)) { dd.cell.styles.textColor = [176, 30, 30]; dd.cell.styles.fontStyle = 'bold'; }
+        else if (/de más|Sesiones de más/.test(t)) { dd.cell.styles.textColor = [176, 92, 0]; dd.cell.styles.fontStyle = 'bold'; }
+      };
       runAutoTable(pdf, {
+        didParseCell: colorPdf,
         startY: y0, head: [cols.map((c) => t(c.titulo))], body: matriz.map((r) => r.map(t)),
         margin: { top: y0, left: 14, right: 14, bottom: 14 }, rowPageBreak: 'avoid',
         styles: { font: 'helvetica', fontSize: 8.5, cellPadding: x.revision ? 2.6 : 1.8, overflow: 'linebreak', lineColor: [205, 220, 212], lineWidth: 0.2, textColor: [35, 45, 40], minCellHeight: x.revision ? 9 : 0 },
@@ -700,12 +757,12 @@ export function initCentroGestion(deps) {
       table{width:100%;border-collapse:collapse}thead{display:table-header-group}tr{page-break-inside:avoid;break-inside:avoid}
       th{background:#2f5a47;color:#fff;text-align:left;font-size:8.5pt;padding:5px 6px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       td{border-bottom:1px solid #cfdcd4;padding:${x.revision ? '9px' : '5px'} 6px;vertical-align:top;font-size:9.5pt}
-      td.rev{text-align:center;font-size:13pt}td.obs{min-width:45mm}
+      td.rev{text-align:center;font-size:13pt}td.obs{min-width:45mm}td.falta{color:#b01e1e;font-weight:700}td.sobra{color:#b05c00;font-weight:700}
       .pie{position:fixed;bottom:-10mm;right:0;font-size:8pt;color:#888}
       @media screen{body{padding:20px;max-width:1100px;margin:auto}}
     </style></head><body>
       <div class="marca">ESPACIO MIMAR T</div><h1>${esc(x.titulo)}</h1><p class="sub">${esc(x.subtitulo)}</p><p class="emi">${esc(emitido)} · ${x.filas.length} registro${x.filas.length === 1 ? '' : 's'}</p>
-      <table><thead><tr>${cols.map((c) => `<th>${esc(c.titulo)}</th>`).join('')}</tr></thead><tbody>${matriz.map((r) => `<tr>${r.map((v, j) => `<td class="${cols[j].titulo === 'Revisado' ? 'rev' : cols[j].titulo === 'Observaciones' ? 'obs' : ''}">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>
+      <table><thead><tr>${cols.map((c) => `<th>${esc(c.titulo)}</th>`).join('')}</tr></thead><tbody>${matriz.map((r) => `<tr>${r.map((v, j) => `<td class="${cols[j].titulo === 'Revisado' ? 'rev' : cols[j].titulo === 'Observaciones' ? 'obs' : ''}${x.colorear && /falta|Faltan/.test(v) ? ' falta' : x.colorear && /de más/.test(v) ? ' sobra' : ''}">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>
       <script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script></body></html>`);
     w.document.close();
   }
@@ -762,6 +819,8 @@ export function initCentroGestion(deps) {
     cgCtrlCat: (c) => { st.ctrl.cat = c; render(); },
     cgIrControl: (destino, origen) => { st.tab = 'control'; st.ctrl.mes = destino; const ref = new Set(referenciaPorDefecto(destino, 2)); if (esMes(origen) && origen < destino) rangoMeses(origen, sumarMeses(destino, -1)).forEach((m) => ref.add(m)); st.ctrl.ref = [...ref].sort(); st.ctrl.cat = 'pendientes'; render(); },
     cgCmpMes: (m) => { toggleSet(st.cmp, m); render(); },
+    cgCmpBase: (m) => { st.cmpBase = m; render(); },
+    cgCmpSoloDif: (v) => { st.cmpSoloDif = !!v; render(); },
     cgLote: (id) => { st.loteSel = id; render(); },
     cgExportar: (o, f) => exportar(o, f),
     cgExportarGrupo: (g, f) => exportar('comparar', f, g),
