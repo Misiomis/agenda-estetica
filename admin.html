@@ -1694,6 +1694,7 @@
         .cs2-tabla tr.nueva td:last-child { color: #3F72AF; }
         .cs2-sub { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
         .cs2-tabla tr.ok td:last-child { color: #1F5B3B; }
+        .cs2-tabla tr.sin td { color: var(--ink-soft); } .cs2-tabla tr.sin td:first-child { color: var(--ink); font-weight: 500; }
         .cs2-ok { padding: 28px; text-align: center; background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; font-size: 15px; }
         @media (max-width: 640px) { .cs2-pdf { margin-left: 0; width: 100%; } .cs2-barra select { min-width: 0; width: 100%; } .cs2-barra label { flex: 1 1 140px; } .cs2-check { margin-left: 0; } .cs2-tabla { font-size: 14px; } .cs2-tabla td, .cs2-tabla th { padding: 9px 7px; } }
 
@@ -8437,24 +8438,45 @@
                     if (!mapa.has(k)) mapa.set(k, { clave: k, nombre: _pacienteNombreDisplay(r), dni: k.startsWith('dni:') ? k.slice(4) : '', sesiones: [] });
                     mapa.get(k).sesiones.push({ fecha: r.fecha, activa: esReservaActiva(r) && !_noCuentaComoSesion(r), realizada: r.fecha < _cs2Hoy || (r.fecha === _cs2Hoy && (normalizarHora(r.hora) || '23:59') <= _cs2Ahora) });
                 });
+                // TODAS las pacientes registradas (fichas), aunque no tengan turnos.
+                const snapC = await getDocs(collection(db, 'clients'));
+                snapC.docs.forEach(d => {
+                    const cd = d.data() || {};
+                    const id = String(d.id || '');
+                    if (cd.redirigidoA || id.length < 3 || id === 'undefined' || id === 'null' || id.includes('__PLACEHOLDER__') || id.includes('<__') || id.startsWith('549')) return;
+                    const k = 'dni:' + _resolverDniFinal(normalizarDNI(id));
+                    const nombre = toTitleCase(cd.fullName || cd.fullLname || cd.nombre || cd.name || '') || id;
+                    if (mapa.has(k)) { mapa.get(k).nombre = nombre; mapa.get(k).ficha = true; }
+                    else mapa.set(k, { clave: k, nombre, dni: id, sesiones: [], ficha: true });
+                });
                 _cs2.pacientes = [...mapa.values()];
             } catch (e) { console.error(e); cont.innerHTML = '<p class="p360-alerta err">No se pudieron leer las sesiones. Probá de nuevo.</p>'; return; }
             window.cs2Render();
         };
         // Para cada paciente: cuántas tuvo en el Mes 1 y, en el Mes 2, cuántas ya
         // se hicieron y cuántas están agendadas. Lo que importa: si falta agendar.
+        // TODAS las pacientes registradas (menos la lista de suspensión / listas
+        // ocultas). Para cada una: sesiones del Mes 1 y del Mes 2 (hechas +
+        // agendadas) y qué falta. Orden: falta agendar, de más, nuevas,
+        // completas y, al final, las que no tienen sesiones en ninguno de los dos.
+        const _CS2_ORDEN = { falta: 0, mas: 1, nueva: 2, completa: 3, sin: 4 };
         const _cs2Calc = () => {
             const m1 = document.getElementById('cs2-m1').value, m2 = document.getElementById('cs2-m2').value;
             const _ex = _suspSet();
-            const r = compararCantidades((_cs2.pacientes || []).filter(p => !_ex.has(p.clave)), [m1, m2], { base: m1 });
-            const dif = (f) => f.difs[m2];
-            const nueva = (f) => f.conteos[m1] === 0;
-            const det = (f) => { const ses = f.p.sesiones.filter(s => s.activa && s.fecha.slice(0, 7) === m2); const hechas = ses.filter(s => s.realizada).length; return { hechas, agendadas: ses.length - hechas }; };
-            const filas = r.filas.filter(f => _cs2.iguales || dif(f) !== 0).sort((a, b) => (nueva(a) - nueva(b)) || (dif(a) - dif(b)) || a.p.nombre.localeCompare(b.p.nombre, 'es'));
-            const faltan = r.filas.filter(f => dif(f) < 0);
-            return { m1, m2, filas, menos: faltan.length, sesFaltan: faltan.reduce((t, f) => t - dif(f), 0), mas: r.filas.filter(f => dif(f) > 0 && !nueva(f)).length, nuevas: r.filas.filter(nueva).length, iguales: r.filas.filter(f => dif(f) === 0).length, dif, nueva, det };
+            const todas = (_cs2.pacientes || []).filter(p => !_ex.has(p.clave)).map(p => {
+                const c1 = p.sesiones.filter(s => s.activa && s.fecha.slice(0, 7) === m1).length;
+                const ses2 = p.sesiones.filter(s => s.activa && s.fecha.slice(0, 7) === m2);
+                const hechas = ses2.filter(s => s.realizada).length;
+                const c2 = ses2.length, d = c2 - c1;
+                const est = c1 === 0 && c2 === 0 ? 'sin' : c1 === 0 ? 'nueva' : d < 0 ? 'falta' : d > 0 ? 'mas' : 'completa';
+                return { p, c1, c2, d, est, det: { hechas, agendadas: c2 - hechas } };
+            });
+            todas.sort((a, b) => (_CS2_ORDEN[a.est] - _CS2_ORDEN[b.est]) || (a.est === 'falta' ? a.d - b.d : 0) || a.p.nombre.localeCompare(b.p.nombre, 'es'));
+            const filas = _cs2.soloRevisar ? todas.filter(f => f.est === 'falta' || f.est === 'mas' || f.est === 'nueva') : todas;
+            const n = (e) => todas.filter(f => f.est === e).length;
+            return { m1, m2, filas, total: todas.length, menos: n('falta'), sesFaltan: todas.filter(f => f.est === 'falta').reduce((t, f) => t - f.d, 0), mas: n('mas'), nuevas: n('nueva'), iguales: n('completa'), sin: n('sin') };
         };
-        const _cs2Txt = (d, nv) => nv ? 'NUEVA' : d === 0 ? 'COMPLETO ✓' : d < 0 ? 'FALTA AGENDAR ' + (-d) : (d === 1 ? '1 DE MÁS' : d + ' DE MÁS');
+        const _cs2Txt = (f) => f.est === 'sin' ? 'SIN SESIONES' : f.est === 'nueva' ? 'NUEVA' : f.est === 'completa' ? 'COMPLETO ✓' : f.est === 'falta' ? 'FALTA AGENDAR ' + (-f.d) : (f.d === 1 ? '1 DE MÁS' : f.d + ' DE MÁS');
         const _cs2Det = (x) => [x.hechas ? x.hechas + (x.hechas === 1 ? ' hecha' : ' hechas') : '', x.agendadas ? x.agendadas + (x.agendadas === 1 ? ' agendada' : ' agendadas') : ''].filter(Boolean).join(' + ') || 'ninguna';
         window.cs2Render = () => {
             const cont = document.getElementById('cs2-cuerpo');
@@ -8462,13 +8484,13 @@
             const c = _cs2Calc();
             if (c.m1 === c.m2) { cont.innerHTML = '<p class="p360-alerta">Elegí dos meses distintos.</p>'; return; }
             cont.innerHTML =
-                '<div class="cs2-resumen"><span class="cs2-r rojo"><b>' + c.menos + '</b> con sesiones sin agendar (' + c.sesFaltan + ' en total)</span><span class="cs2-r naranja"><b>' + c.mas + '</b> con sesiones de más</span><span class="cs2-r"><b>' + c.iguales + '</b> completas</span><span class="cs2-r"><b>' + c.nuevas + '</b> nuevas</span>' +
-                '<label class="cs2-check"><input type="checkbox" ' + (_cs2.iguales ? 'checked' : '') + ' onchange="cs2Iguales(this.checked)"> Ver también las completas</label></div>' +
+                '<div class="cs2-resumen"><span class="cs2-r"><b>' + c.total + '</b> pacientes registradas</span><span class="cs2-r rojo"><b>' + c.menos + '</b> con sesiones sin agendar (' + c.sesFaltan + ' en total)</span><span class="cs2-r naranja"><b>' + c.mas + '</b> con sesiones de más</span><span class="cs2-r"><b>' + c.iguales + '</b> completas</span><span class="cs2-r"><b>' + c.nuevas + '</b> nuevas</span><span class="cs2-r"><b>' + c.sin + '</b> sin sesiones en los dos meses</span>' +
+                '<label class="cs2-check"><input type="checkbox" ' + (_cs2.soloRevisar ? 'checked' : '') + ' onchange="cs2SoloRevisar(this.checked)"> Mostrar solo las que hay que revisar</label></div>' +
                 (c.filas.length ? '<table class="cs2-tabla"><thead><tr><th>Paciente</th><th>' + _cs2Nom(c.m1) + '</th><th>' + _cs2Nom(c.m2) + '</th><th>Qué falta</th></tr></thead><tbody>' +
-                c.filas.map(f => { const d = c.dif(f); const nv = c.nueva(f); const x = c.det(f); const cl = nv ? 'nueva' : d < 0 ? 'rojo' : d > 0 ? 'naranja' : 'ok'; return '<tr class="' + cl + '"><td>' + escapeHtml(f.p.nombre) + '<button type="button" class="cs2-susp" title="No mostrar más en los controles" onclick="cs2Suspender(\'' + encodeURIComponent(f.p.clave) + '\')">⏸ Suspender</button></td><td><b>' + f.conteos[c.m1] + '</b></td><td><b>' + f.conteos[c.m2] + '</b><span class="cs2-sub">' + _cs2Det(x) + '</span></td><td class="cs2-dif">' + _cs2Txt(d, nv) + '</td></tr>'; }).join('') +
-                '</tbody></table>' : '<div class="cs2-ok">✓ No falta agendar nada: todas tienen la misma cantidad de sesiones.</div>');
+                c.filas.map(f => { const cl = { falta: 'rojo', mas: 'naranja', nueva: 'nueva', completa: 'ok', sin: 'sin' }[f.est]; return '<tr class="' + cl + '"><td>' + escapeHtml(f.p.nombre) + '<button type="button" class="cs2-susp" title="No mostrar más en los controles" onclick="cs2Suspender(\'' + encodeURIComponent(f.p.clave) + '\')">⏸ Suspender</button></td><td><b>' + f.c1 + '</b></td><td><b>' + f.c2 + '</b><span class="cs2-sub">' + _cs2Det(f.det) + '</span></td><td class="cs2-dif">' + _cs2Txt(f) + '</td></tr>'; }).join('') +
+                '</tbody></table>' : '<div class="cs2-ok">✓ No hay nada para revisar: no falta agendar a nadie.</div>');
         };
-        window.cs2Iguales = (v) => { _cs2.iguales = !!v; window.cs2Render(); };
+        window.cs2SoloRevisar = (v) => { _cs2.soloRevisar = !!v; window.cs2Render(); };
         window.cs2Suspender = async (claveEnc) => {
             const clave = decodeURIComponent(claveEnc);
             const p = (_cs2.pacientes || []).find(x => x.clave === clave);
@@ -8488,15 +8510,15 @@
             const limpio = (t) => String(t).replace(/✓/g, '').replace(/[^\x20-\x7E -ÿ]/g, '').trim();
             pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.text('Sesiones por agendar: ' + _cs2Nom(c.m2) + ' (comparado con ' + _cs2Nom(c.m1) + ')', 14, 16);
             pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
-            pdf.text(c.menos + ' con sesiones sin agendar (' + c.sesFaltan + ' en total)  -  ' + c.mas + ' con sesiones de mas  -  ' + c.iguales + ' completas', 14, 23);
+            pdf.text(c.total + ' pacientes  -  ' + c.menos + ' con sesiones sin agendar (' + c.sesFaltan + ' en total)  -  ' + c.mas + ' con sesiones de mas  -  ' + c.iguales + ' completas  -  ' + c.sin + ' sin sesiones', 14, 23);
             tools.runAutoTable(pdf, {
                 startY: 28,
                 head: [['Paciente', _cs2Nom(c.m1), _cs2Nom(c.m2), 'Que falta']],
-                body: c.filas.map(f => { const x = c.det(f); return [limpio(f.p.nombre), String(f.conteos[c.m1]), f.conteos[c.m2] + '  (' + limpio(_cs2Det(x)) + ')', limpio(_cs2Txt(c.dif(f), c.nueva(f)))]; }),
+                body: c.filas.map(f => [limpio(f.p.nombre), String(f.c1), f.c2 + '  (' + limpio(_cs2Det(f.det)) + ')', limpio(_cs2Txt(f))]),
                 styles: { font: 'helvetica', fontSize: 10, cellPadding: 2.5 },
                 headStyles: { fillColor: [47, 90, 71], textColor: 255 },
                 columnStyles: { 1: { halign: 'center' }, 3: { fontStyle: 'bold' } },
-                didParseCell: (d) => { if (d.section !== 'body' || d.column.index !== 3) return; const f = c.filas[d.row.index]; if (c.nueva(f)) return; const v = c.dif(f); if (v < 0) d.cell.styles.textColor = [179, 38, 30]; else if (v > 0) d.cell.styles.textColor = [154, 91, 0]; else d.cell.styles.textColor = [31, 91, 59]; },
+                didParseCell: (d) => { if (d.section !== 'body' || d.column.index !== 3) return; const e = c.filas[d.row.index].est; d.cell.styles.textColor = { falta: [179, 38, 30], mas: [154, 91, 0], completa: [31, 91, 59], nueva: [63, 114, 175], sin: [120, 120, 120] }[e]; },
                 margin: { left: 14, right: 14 },
             });
             pdf.save('sesiones-por-agendar_' + c.m2 + '.pdf');
