@@ -1666,6 +1666,8 @@
         .cs2-tabla tr.rojo td:first-child, .cs2-tabla tr.naranja td:first-child { color: var(--ink); font-weight: 600; }
         .cs2-dif { font-weight: 800; }
         .cs2-tabla tr.nueva td:last-child { color: #3F72AF; }
+        .cs2-sub { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+        .cs2-tabla tr.ok td:last-child { color: #1F5B3B; }
         .cs2-ok { padding: 28px; text-align: center; background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; font-size: 15px; }
         @media (max-width: 640px) { .cs2-pdf { margin-left: 0; width: 100%; } .cs2-barra select { min-width: 0; width: 100%; } .cs2-barra label { flex: 1 1 140px; } .cs2-check { margin-left: 0; } .cs2-tabla { font-size: 14px; } .cs2-tabla td, .cs2-tabla th { padding: 9px 7px; } }
 
@@ -3300,7 +3302,7 @@
             <div id="sec-comparar-sesiones" class="section">
                 <div class="p360-sec-head"><div>
                     <h3 class="p360-sec-title">Comparar sesiones</h3>
-                    <p class="p360-sec-sub">Cada paciente tiene que tener la misma cantidad de sesiones en los dos meses. En <b style="color:#B3261E">rojo</b> las que tienen de menos, en <b style="color:#9A5B00">naranja</b> las que tienen de más.</p>
+                    <p class="p360-sec-sub">En el Mes 2 cada paciente tiene que tener las mismas sesiones que en el Mes 1. Ves cuántas ya se hicieron y cuántas están agendadas, y en <b style="color:#B3261E">rojo</b> cuántas <b>falta agendar</b>.</p>
                 </div></div>
                 <div class="cs2-barra">
                     <label>Mes 1 <select id="cs2-m1" class="select-input" onchange="cs2Render()"></select></label>
@@ -8244,37 +8246,43 @@
             cont.innerHTML = '<div class="p360-cargando">Contando sesiones…</div>';
             try {
                 const todas = await _fetchReservasCompletasParaExport();
+                const _cs2Hoy = fechaHoyISO(); const _d = new Date(); const _cs2Ahora = String(_d.getHours()).padStart(2, '0') + ':' + String(_d.getMinutes()).padStart(2, '0');
                 const mapa = new Map();
                 todas.forEach(r => {
                     if (!r.fecha || esReservaBloqueoAdmin(r)) return;
                     const k = _pacienteMatchKey(r); if (!k || k === 'nom:') return;
                     if (!mapa.has(k)) mapa.set(k, { clave: k, nombre: _pacienteNombreDisplay(r), dni: k.startsWith('dni:') ? k.slice(4) : '', sesiones: [] });
-                    mapa.get(k).sesiones.push({ fecha: r.fecha, activa: esReservaActiva(r) });
+                    mapa.get(k).sesiones.push({ fecha: r.fecha, activa: esReservaActiva(r), realizada: r.fecha < _cs2Hoy || (r.fecha === _cs2Hoy && (normalizarHora(r.hora) || '23:59') <= _cs2Ahora) });
                 });
                 _cs2.pacientes = [...mapa.values()];
             } catch (e) { console.error(e); cont.innerHTML = '<p class="p360-alerta err">No se pudieron leer las sesiones. Probá de nuevo.</p>'; return; }
             window.cs2Render();
         };
+        // Para cada paciente: cuántas tuvo en el Mes 1 y, en el Mes 2, cuántas ya
+        // se hicieron y cuántas están agendadas. Lo que importa: si falta agendar.
         const _cs2Calc = () => {
             const m1 = document.getElementById('cs2-m1').value, m2 = document.getElementById('cs2-m2').value;
             const r = compararCantidades(_cs2.pacientes || [], [m1, m2], { base: m1 });
             const dif = (f) => f.difs[m2];
             const nueva = (f) => f.conteos[m1] === 0;
+            const det = (f) => { const ses = f.p.sesiones.filter(s => s.activa && s.fecha.slice(0, 7) === m2); const hechas = ses.filter(s => s.realizada).length; return { hechas, agendadas: ses.length - hechas }; };
             const filas = r.filas.filter(f => _cs2.iguales || dif(f) !== 0).sort((a, b) => (nueva(a) - nueva(b)) || (dif(a) - dif(b)) || a.p.nombre.localeCompare(b.p.nombre, 'es'));
-            return { m1, m2, filas, menos: r.filas.filter(f => dif(f) < 0).length, mas: r.filas.filter(f => dif(f) > 0 && !nueva(f)).length, nuevas: r.filas.filter(nueva).length, iguales: r.filas.filter(f => dif(f) === 0).length, dif, nueva };
+            const faltan = r.filas.filter(f => dif(f) < 0);
+            return { m1, m2, filas, menos: faltan.length, sesFaltan: faltan.reduce((t, f) => t - dif(f), 0), mas: r.filas.filter(f => dif(f) > 0 && !nueva(f)).length, nuevas: r.filas.filter(nueva).length, iguales: r.filas.filter(f => dif(f) === 0).length, dif, nueva, det };
         };
+        const _cs2Txt = (d, nv) => nv ? 'NUEVA' : d === 0 ? 'COMPLETO ✓' : d < 0 ? 'FALTA AGENDAR ' + (-d) : (d === 1 ? '1 DE MÁS' : d + ' DE MÁS');
+        const _cs2Det = (x) => [x.hechas ? x.hechas + (x.hechas === 1 ? ' hecha' : ' hechas') : '', x.agendadas ? x.agendadas + (x.agendadas === 1 ? ' agendada' : ' agendadas') : ''].filter(Boolean).join(' + ') || 'ninguna';
         window.cs2Render = () => {
             const cont = document.getElementById('cs2-cuerpo');
             if (!_cs2.pacientes) return;
             const c = _cs2Calc();
             if (c.m1 === c.m2) { cont.innerHTML = '<p class="p360-alerta">Elegí dos meses distintos.</p>'; return; }
-            const txt = (d) => d === 0 ? 'Igual' : d < 0 ? (d === -1 ? 'FALTA 1' : 'FALTAN ' + (-d)) : (d === 1 ? '1 DE MÁS' : d + ' DE MÁS');
             cont.innerHTML =
-                '<div class="cs2-resumen"><span class="cs2-r rojo"><b>' + c.menos + '</b> con sesiones de menos</span><span class="cs2-r naranja"><b>' + c.mas + '</b> con sesiones de más</span><span class="cs2-r"><b>' + c.iguales + '</b> iguales</span><span class="cs2-r"><b>' + c.nuevas + '</b> nuevas (no tenían en ' + _cs2Nom(c.m1) + ')</span>' +
-                '<label class="cs2-check"><input type="checkbox" ' + (_cs2.iguales ? 'checked' : '') + ' onchange="cs2Iguales(this.checked)"> Ver también las iguales</label></div>' +
-                (c.filas.length ? '<table class="cs2-tabla"><thead><tr><th>Paciente</th><th>' + _cs2Nom(c.m1) + '</th><th>' + _cs2Nom(c.m2) + '</th><th>Diferencia</th></tr></thead><tbody>' +
-                c.filas.map(f => { const d = c.dif(f); const nv = c.nueva(f); const cl = nv ? 'nueva' : d < 0 ? 'rojo' : d > 0 ? 'naranja' : ''; return '<tr class="' + cl + '"><td>' + escapeHtml(f.p.nombre) + '</td><td>' + f.conteos[c.m1] + '</td><td>' + f.conteos[c.m2] + '</td><td class="cs2-dif">' + (nv ? 'NUEVA' : txt(d)) + '</td></tr>'; }).join('') +
-                '</tbody></table>' : '<div class="cs2-ok">✓ Todas tienen la misma cantidad de sesiones.</div>');
+                '<div class="cs2-resumen"><span class="cs2-r rojo"><b>' + c.menos + '</b> con sesiones sin agendar (' + c.sesFaltan + ' en total)</span><span class="cs2-r naranja"><b>' + c.mas + '</b> con sesiones de más</span><span class="cs2-r"><b>' + c.iguales + '</b> completas</span><span class="cs2-r"><b>' + c.nuevas + '</b> nuevas</span>' +
+                '<label class="cs2-check"><input type="checkbox" ' + (_cs2.iguales ? 'checked' : '') + ' onchange="cs2Iguales(this.checked)"> Ver también las completas</label></div>' +
+                (c.filas.length ? '<table class="cs2-tabla"><thead><tr><th>Paciente</th><th>' + _cs2Nom(c.m1) + '</th><th>' + _cs2Nom(c.m2) + '</th><th>Qué falta</th></tr></thead><tbody>' +
+                c.filas.map(f => { const d = c.dif(f); const nv = c.nueva(f); const x = c.det(f); const cl = nv ? 'nueva' : d < 0 ? 'rojo' : d > 0 ? 'naranja' : 'ok'; return '<tr class="' + cl + '"><td>' + escapeHtml(f.p.nombre) + '</td><td><b>' + f.conteos[c.m1] + '</b></td><td><b>' + f.conteos[c.m2] + '</b><span class="cs2-sub">' + _cs2Det(x) + '</span></td><td class="cs2-dif">' + _cs2Txt(d, nv) + '</td></tr>'; }).join('') +
+                '</tbody></table>' : '<div class="cs2-ok">✓ No falta agendar nada: todas tienen la misma cantidad de sesiones.</div>');
         };
         window.cs2Iguales = (v) => { _cs2.iguales = !!v; window.cs2Render(); };
         window.cs2Pdf = () => {
@@ -8282,21 +8290,21 @@
             const tools = getPdfTools(); if (!tools) return;
             const c = _cs2Calc();
             const pdf = new tools.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-            const txt = (d) => d === 0 ? 'Igual' : d < 0 ? (d === -1 ? 'FALTA 1' : 'FALTAN ' + (-d)) : (d === 1 ? '1 DE MAS' : d + ' DE MAS');
-            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.text('Comparar sesiones: ' + _cs2Nom(c.m1) + ' contra ' + _cs2Nom(c.m2), 14, 16);
+            const limpio = (t) => String(t).replace(/✓/g, '').replace(/[^\x20-\x7E -ÿ]/g, '').trim();
+            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.text('Sesiones por agendar: ' + _cs2Nom(c.m2) + ' (comparado con ' + _cs2Nom(c.m1) + ')', 14, 16);
             pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
-            pdf.text(c.menos + ' con sesiones de menos  ·  ' + c.mas + ' con sesiones de mas  ·  ' + c.iguales + ' iguales', 14, 23);
+            pdf.text(c.menos + ' con sesiones sin agendar (' + c.sesFaltan + ' en total)  -  ' + c.mas + ' con sesiones de mas  -  ' + c.iguales + ' completas', 14, 23);
             tools.runAutoTable(pdf, {
                 startY: 28,
-                head: [['Paciente', _cs2Nom(c.m1), _cs2Nom(c.m2), 'Diferencia']],
-                body: c.filas.map(f => [f.p.nombre.replace(/[^\x20-\x7E\u00A0-\u00FF]/g, ''), String(f.conteos[c.m1]), String(f.conteos[c.m2]), c.nueva(f) ? 'NUEVA' : txt(c.dif(f))]),
+                head: [['Paciente', _cs2Nom(c.m1), _cs2Nom(c.m2), 'Que falta']],
+                body: c.filas.map(f => { const x = c.det(f); return [limpio(f.p.nombre), String(f.conteos[c.m1]), f.conteos[c.m2] + '  (' + limpio(_cs2Det(x)) + ')', limpio(_cs2Txt(c.dif(f), c.nueva(f)))]; }),
                 styles: { font: 'helvetica', fontSize: 10, cellPadding: 2.5 },
                 headStyles: { fillColor: [47, 90, 71], textColor: 255 },
-                columnStyles: { 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { fontStyle: 'bold' } },
-                didParseCell: (d) => { if (d.section !== 'body' || c.nueva(c.filas[d.row.index])) return; const v = c.dif(c.filas[d.row.index]); if (v < 0) d.cell.styles.textColor = [179, 38, 30]; else if (v > 0) d.cell.styles.textColor = [154, 91, 0]; },
+                columnStyles: { 1: { halign: 'center' }, 3: { fontStyle: 'bold' } },
+                didParseCell: (d) => { if (d.section !== 'body' || d.column.index !== 3) return; const f = c.filas[d.row.index]; if (c.nueva(f)) return; const v = c.dif(f); if (v < 0) d.cell.styles.textColor = [179, 38, 30]; else if (v > 0) d.cell.styles.textColor = [154, 91, 0]; else d.cell.styles.textColor = [31, 91, 59]; },
                 margin: { left: 14, right: 14 },
             });
-            pdf.save('comparar-sesiones_' + c.m1 + '_' + c.m2 + '.pdf');
+            pdf.save('sesiones-por-agendar_' + c.m2 + '.pdf');
         };
 
         // ═══ ACCIONES URGENTES: turnos cancelados para reprogramar ═══
