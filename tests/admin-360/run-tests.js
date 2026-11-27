@@ -767,15 +767,15 @@ set('pedidosKit/k2', { dni: '30111222', nombrePaciente: 'Paula Gómez', producto
 abiertas.length = 0;
 await w.enviarWaKit('k2', '30111222', 'Paula Gómez'); await tick(10);
 const kitMsg = decodeURIComponent((abiertas[0] || '').split('text=')[1] || '');
-check('saluda por el nombre y avisa que el kit está listo', /¡Hola Paula!/.test(kitMsg) && /kit de cuidado personalizado/.test(kitMsg) && /listo para retirar/.test(kitMsg), kitMsg);
-check('lista cada producto con su precio', /• Leche de limpieza — \$15\.000/.test(kitMsg) && /• Tónico calmante — \$15\.000/.test(kitMsg) && /• Gel de limpieza — \$10\.000/.test(kitMsg), kitMsg);
-check('muestra el total final del pedido ($40.000)', /Total del pedido: \$40\.000/.test(kitMsg), kitMsg);
-check('mantiene retiro en Farmacia Central, horario y pedido de envases', /Farmacia Central/.test(kitMsg) && /08:00 a 12:00 y de 16:00 a 20:00/.test(kitMsg) && /envases vacíos/.test(kitMsg));
+check('saluda por el nombre y avisa que el kit está listo', /^¡Hola, Paula! Tu kit facial de Espacio MimarT ya está listo./.test(kitMsg), kitMsg);
+check('lista cada producto con su precio e importe', kitMsg.includes('• Leche de limpieza × 1\nPrecio $15.000\nImporte $15.000') && kitMsg.includes('• Tónico calmante × 1') && kitMsg.includes('• Gel de limpieza × 1\nPrecio $10.000'), kitMsg);
+check('muestra el total final del pedido ($40.000)', kitMsg.includes('*Total de tu pedido $40.000*'), kitMsg);
+check('mantiene retiro en Farmacia Central y horario', /Farmacia Central/.test(kitMsg) && /08:00 a 12:00 y de 16:00 a 20:00/.test(kitMsg) && /¡Gracias por elegir Espacio MimarT!/.test(kitMsg));
 check('sin emojis que WhatsApp muestra rotos (solo símbolos básicos)', ![...kitMsg].some(ch => ch.codePointAt(0) > 0xFFFF), kitMsg);
 abiertas.length = 0;
 await w.enviarWaKit('k1', '30111222', 'Paula Gómez'); await tick(10);
 const kitViejo = decodeURIComponent((abiertas[0] || '').split('text=')[1] || '');
-check('pedido viejo sin precios por producto: lista los productos y el total guardado', /• Leche de limpieza/.test(kitViejo) && /Total del pedido: \$30\.000/.test(kitViejo), kitViejo);
+check('pedido viejo sin precios por producto: lista los productos y el total guardado', /• Leche de limpieza/.test(kitViejo) && kitViejo.includes('*Total de tu pedido $30.000*'), kitViejo);
 
 console.log('\n=== Boxes: orden 4, 2, 3, 5 con la misma identidad ===');
 {

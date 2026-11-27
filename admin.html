@@ -4226,6 +4226,7 @@
         import { armarDiasBloqueados, planDesbloqueo } from "/js/desbloqueo-selectivo.js";
         import { numeroWhatsApp } from "/js/telefono-wa.js";
         import { armarPedidoKit, lineasPedidoKit, totalLineas, etiquetaLinea, cambiarPrecioLinea, normalizarCantidad as normalizarCantKit, CANT_MAX_KIT } from "/js/kit-cantidades.js";
+        import { promoVigente as promoKitVigente, cotizarKit, recotizarPedido as recotizarPedidoKit, promoDelPedido as promoDelPedidoKit, evaluarPago as evaluarPagoKit, totalAbonado as totalAbonadoKit, lineasSinPrecio as lineasSinPrecioKit, mensajeKitListo, pesos as pesosKit, hoyArgentina } from "/js/promo-kit.js";
         import { PASO_GRILLA, aMin, aHora, etiquetaHora, franjasDelDia, generarFilas, agruparTurnos, bloqueosDeFila, intervaloBloqueo, turnoQueSePisa, DURACION_BLOQUEO_LEGADO } from "/js/grilla-tiempo.js";
         // Normalización de escala al LEER importes (precios/pagos/gastos): ver
         // js/cobro-rapido.js:normalizarMontoARS. El dato guardado no se toca.
@@ -14268,19 +14269,26 @@
                         : p.estado === 'listo'
                         ? '<span style="background:rgba(53,122,92,0.14);color:rgba(22,61,50,0.92);border:1px solid rgba(53,122,92,0.25);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Listo</span>'
                         : '<span style="background:rgba(165,130,30,0.14);color:rgba(138,106,34,0.92);border:1px solid rgba(165,130,30,0.25);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Pendiente</span>';
+                    const _detGuardado = Array.isArray(p.productosDetalle) ? p.productosDetalle : [];
+                    const _promoP = p.promo && p.promo.pct ? p.promo : null;
+                    const _abonado = totalAbonadoKit(p);
+                    const _faltan = lineasSinPrecioKit(p);
                     const productosList = lineasKit.length
                         ? lineasKit.map(function(l, idx) {
                             const precio = l.precio;
+                            const _hab = _detGuardado[idx] && _detGuardado[idx].precioHabitual != null ? Number(_detGuardado[idx].precioHabitual) : null;
                             const safePrice = (precio !== null && !isNaN(precio)) ? precio : 0;
                             const prod = l.nombre;
                             return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);">' +
                                 '<span>' + (l.cantidad > 1 ? '<strong style="color:rgba(22,61,50,0.95);">' + l.cantidad + ' ×</strong> ' : '') + escapeHtml(prod) + '</span>' +
                                 '<span style="display:flex;align-items:center;gap:5px;white-space:nowrap;">' +
                                     (precio !== null
-                                        ? (l.cantidad > 1 ? '<span style="font-size:11px;opacity:0.7;">' + formatPesos(safePrice) + ' c/u</span>' : '') +
-                                          '<span style="color:rgba(22,61,50,0.92);font-weight:700;">' + formatPesos(safePrice * l.cantidad) + '</span>' +
-                                          '<button onclick="editarPrecioProdKit(\'' + escapeHtml(p.id) + '\',' + idx + ',' + safePrice + ',\'' + escapeHtml(prod).replace(/'/g, "&#39;") + '\')" title="Editar precio unitario" style="background:none;border:none;cursor:pointer;font-size:12px;line-height:1;opacity:0.5;padding:2px 3px;border-radius:4px;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'" aria-label="Editar precio">✏️</button>'
-                                        : '<span style="opacity:0.45;">—</span>'
+                                        ? (_promoP && _hab != null && _hab > safePrice ? '<s style="font-size:11px;opacity:0.6;">' + pesosKit(_hab) + '</s>' : '') +
+                                          (l.cantidad > 1 ? '<span style="font-size:11px;opacity:0.7;">' + pesosKit(safePrice) + ' c/u</span>' : '') +
+                                          '<span style="color:rgba(22,61,50,0.92);font-weight:700;">' + pesosKit(l.subtotal != null ? l.subtotal : safePrice * l.cantidad) + '</span>' +
+                                          '<button onclick="editarPrecioProdKit(\'' + escapeHtml(p.id) + '\',' + idx + ',' + (_hab != null ? _hab : safePrice) + ',\'' + escapeHtml(prod).replace(/'/g, "&#39;") + '\')" title="Editar precio unitario" style="background:none;border:none;cursor:pointer;font-size:12px;line-height:1;opacity:0.5;padding:2px 3px;border-radius:4px;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'" aria-label="Editar precio">✏️</button>'
+                                        : '<span style="color:#a8433a;font-weight:700;">Falta precio</span>' +
+                                          '<button onclick="editarPrecioProdKit(\'' + escapeHtml(p.id) + '\',' + idx + ',0,\'' + escapeHtml(prod).replace(/'/g, "&#39;") + '\')" title="Cargar precio" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px 3px;" aria-label="Cargar precio">✏️</button>'
                                     ) +
                                 '</span>' +
                             '</div>';
@@ -14298,12 +14306,20 @@
                         '<div style="font-size:12px;background:rgba(53,122,92,0.10);border-radius:10px;padding:10px;margin-bottom:8px;">' +
                             '<div style="font-weight:700;color:rgba(22,61,50,0.90);margin-bottom:6px;">Productos solicitados</div>' +
                             productosList +
-                            (totalPedido > 0 ? '<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-weight:800;color:rgba(22,61,50,0.95);font-size:13px;"><span>Total</span><span>' + formatPesos(totalPedido) + '</span></div>' : '') +
+                            (_promoP && p.subtotalHabitual != null ? '<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-size:12px;"><span>Subtotal a precio habitual</span><span>' + pesosKit(p.subtotalHabitual) + '</span></div>' +
+                                '<div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(22,61,50,0.95);font-weight:700;"><span>Descuento ' + escapeHtml(_promoP.nombre || 'promo') + ' (' + _promoP.pct + '%)</span><span>−' + pesosKit(p.descuento || 0) + '</span></div>' : '') +
+                            (totalPedido > 0 ? '<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-weight:800;color:rgba(22,61,50,0.95);font-size:13px;"><span>Total del pedido</span><span>' + pesosKit(totalPedido) + '</span></div>' : '') +
+                            (Array.isArray(p.pagos) && p.pagos.length ? '<div class="kit-pago-est" style="display:flex;justify-content:space-between;padding:4px 0 0;font-size:12px;font-weight:700;"><span>Abonado ' + pesosKit(_abonado) + ' (' + p.pagos.map(function(x) { return String(x.fecha || '').split('-').reverse().join('/'); }).join(', ') + ')</span><span>Saldo ' + pesosKit(Math.max(0, totalPedido - _abonado)) + '</span></div>' : '<div class="kit-pago-est" style="padding:4px 0 0;font-size:12px;opacity:0.7;">Sin pago registrado</div>') +
                         '</div>' +
+                        (_faltan.length ? '<div class="kit-falta-precio" style="font-size:12px;background:rgba(168,67,58,0.10);color:#8a3a32;border:1px solid rgba(168,67,58,0.25);padding:7px 10px;border-radius:8px;margin-bottom:8px;">⚠ Pedido sin precio en: ' + escapeHtml(_faltan.join(', ')) + '. Cargalo con ✏️ antes de avisar.</div>' : '') +
                         (p.descripcionPiel ? '<div style="font-size:12px;background:var(--surface);padding:8px 10px;border-radius:8px;margin-bottom:8px;"><strong>Descripción piel:</strong> ' + escapeHtml(p.descripcionPiel) + '</div>' : '') +
                         '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
                             '<button onclick="enviarWaKit(\'' + escapeHtml(p.id || '') + '\',\'' + escapeHtml(p.dni || '') + '\',\'' + (p.nombrePaciente || '').replace(/'/g, "\\'") + '\')" ' +
-                                'style="background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border:none;padding:9px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;flex:1;">📲 WhatsApp</button>' +
+                                'style="background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border:none;padding:9px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;flex:1;">📲 Avisar kit listo</button>' +
+                            (_abonado < totalPedido - 0.001 || !totalPedido
+                                ? '<button class="kit-btn-pago" onclick="registrarPagoKit(\'' + escapeHtml(p.id || '') + '\')" ' +
+                                  'style="background:#fff;color:#23603f;border:1.5px solid #2f7a57;padding:9px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;flex:1;">$ Registrar pago</button>'
+                                : '') +
                             (p.estado !== 'entregado'
                                 ? '<button onclick="marcarEntregadoKit(\'' + escapeHtml(p.id || '') + '\')" ' +
                                   'style="background:linear-gradient(135deg,#3f8f6f,#2a6e52);color:#fff;border:none;padding:9px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;flex:1;">✓ Entregado</button>'
@@ -14430,8 +14446,9 @@
             }).join('') + (() => {
                 const sel = _kitAdminProds.filter(p => p.sel);
                 if (!sel.length) return '';
-                const r = armarPedidoKit(sel.map(p => ({ nombre: p.nombre, precio: p.precio, cantidad: p.cant })));
-                return `<div class="kit-adm-total"><span>Total · ${r.cantidadTotal} producto${r.cantidadTotal !== 1 ? 's' : ''}</span><strong>$${r.totalPedido.toLocaleString('es-AR')}</strong></div>`;
+                const r = cotizarKit(sel.map(p => ({ nombre: p.nombre, precio: p.precio, cantidad: p.cant })), promoKitVigente());
+                return (r.promo ? `<div class="kit-adm-total" style="font-weight:600;"><span>${escapeHtml(r.promo.nombre)} (${r.promo.pct}%) · habitual ${pesosKit(r.subtotalHabitual)}</span><span>−${pesosKit(r.descuento)}</span></div>` : '')
+                    + `<div class="kit-adm-total"><span>Total · ${r.cantidadTotal} producto${r.cantidadTotal !== 1 ? 's' : ''}</span><strong>${pesosKit(r.totalPedido)}</strong></div>`;
             })();
         }
 
@@ -14449,15 +14466,19 @@
             const dni = _kitAdminPaciente.dni || '';
             const seleccionados = _kitAdminProds.filter(p => p.sel);
             if (!seleccionados.length) { mostrarAviso('Seleccioná al menos un producto'); return; }
-            const { productos, productosDetalle, totalPedido } = armarPedidoKit(seleccionados.map(p => ({ nombre: p.nombre, precio: p.precio, cantidad: p.cant })));
+            const cot = cotizarKit(seleccionados.map(p => ({ nombre: p.nombre, precio: p.precio, cantidad: p.cant })), promoKitVigente());
             try {
                 mostrarLoader(true);
                 await addDoc(collection(db, 'pedidosKit'), {
                     nombrePaciente: nombre,
                     dni: dni || '',
-                    productos,
-                    productosDetalle,
-                    totalPedido,
+                    productos: cot.productos,
+                    productosDetalle: cot.productosDetalle,
+                    subtotalHabitual: cot.subtotalHabitual,
+                    descuento: cot.descuento,
+                    totalPedido: cot.total,
+                    promo: cot.promo,
+                    pagos: [],
                     estado: 'pendiente',
                     origen: 'admin',
                     createdAt: new Date().toISOString()
@@ -14489,6 +14510,7 @@
                 var pSnap = await getDoc(doc(db, 'pedidosKit', pedidoId));
                 if (pSnap.exists()) pedido = pSnap.data();
             } catch(_) {}
+            if (pedido && lineasSinPrecioKit(pedido).length && !confirm('Este pedido no tiene precio en: ' + lineasSinPrecioKit(pedido).join(', ') + '.\nEl mensaje va a decir "Precio a confirmar". ¿Enviar igual?')) return;
             var url = 'https://wa.me/' + num + '?text=' + encodeURIComponent(_mensajeKitListo(pedido, nombre));
             window.open(url, '_blank');
         };
@@ -14498,6 +14520,9 @@
         // kit-facial.html). Solo símbolos del plano básico (✨ • ✔ ♻ ❤): por
         // el enlace wa.me algunos emojis llegaban como "�".
         function _mensajeKitListo(pedido, nombre) {
+            return mensajeKitListo(pedido, nombre);
+        }
+        function _mensajeKitListoViejo(pedido, nombre) {
             var pesos = function(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('es-AR'); };
             var pila = String((pedido && pedido.nombrePaciente) || nombre || '').trim().split(' ')[0];
             var detalle = lineasPedidoKit(pedido);
@@ -14524,6 +14549,62 @@
             return lineas.join('\n');
         }
         
+        window.registrarPagoKit = async function(pedidoId) {
+            if (!pedidoId) return;
+            let pedido;
+            try { const sn = await getDoc(doc(db, 'pedidosKit', pedidoId)); if (!sn.exists()) { mostrarAviso('Pedido no encontrado'); return; } pedido = sn.data(); }
+            catch (e) { console.error(e); mostrarAviso('No se pudo leer el pedido'); return; }
+            document.getElementById('kitPagoOv')?.remove();
+            const ov = document.createElement('div');
+            ov.id = 'kitPagoOv';
+            ov.style.cssText = 'position:fixed;inset:0;z-index:10050;background:rgba(17,33,26,.5);display:flex;align-items:center;justify-content:center;padding:16px;';
+            ov.innerHTML = '<div role="dialog" aria-modal="true" aria-labelledby="kitPagoT" style="background:#fff;border-radius:16px;padding:18px;width:min(400px,100%);box-shadow:0 20px 50px rgba(0,0,0,.25);">' +
+                '<h3 id="kitPagoT" style="margin:0 0 4px;font-size:17px;">Registrar pago</h3>' +
+                '<p style="margin:0 0 12px;font-size:13px;opacity:.75;">' + escapeHtml(pedido.nombrePaciente || '') + '</p>' +
+                '<label style="display:block;font-size:13px;font-weight:700;margin-bottom:4px;">Fecha en que pagó</label>' +
+                '<input id="kitPagoFecha" type="date" value="' + hoyArgentina() + '" style="width:100%;padding:10px;border:1.5px solid #c9d6cd;border-radius:10px;font-size:15px;margin-bottom:10px;">' +
+                '<div id="kitPagoInfo" style="font-size:13px;margin-bottom:10px;"></div>' +
+                '<label style="display:block;font-size:13px;font-weight:700;margin-bottom:4px;">Monto abonado</label>' +
+                '<input id="kitPagoMonto" type="text" inputmode="decimal" style="width:100%;padding:10px;border:1.5px solid #c9d6cd;border-radius:10px;font-size:15px;margin-bottom:14px;">' +
+                '<div style="display:flex;gap:8px;"><button type="button" id="kitPagoNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid #ccc;background:#fff;font-weight:700;cursor:pointer;">Cancelar</button>' +
+                '<button type="button" id="kitPagoSi" style="flex:1;padding:11px;border-radius:10px;border:0;background:#2f7a57;color:#fff;font-weight:700;cursor:pointer;">Guardar pago</button></div></div>';
+            document.body.appendChild(ov);
+            const fechaEl = ov.querySelector('#kitPagoFecha'), montoEl = ov.querySelector('#kitPagoMonto'), info = ov.querySelector('#kitPagoInfo');
+            let ev = null;
+            const pintar = () => {
+                ev = evaluarPagoKit(pedido, fechaEl.value);
+                const promo = pedido.promo && pedido.promo.pct ? pedido.promo : null;
+                info.innerHTML = ev.pierdePromo
+                    ? '<div class="kit-pago-aviso" style="background:#fbeceb;color:#8a3a32;border-radius:10px;padding:9px 10px;">Pagado fuera de ' + escapeHtml(promo.nombre) + ': se cobra a <b>precio habitual</b>.<br>Total a cobrar <b>' + pesosKit(ev.totalAplicable) + '</b> (antes ' + pesosKit(pedido.totalPedido) + ')</div>'
+                    : '<div style="background:#e8f2ec;color:#23603f;border-radius:10px;padding:9px 10px;">Total del pedido <b>' + pesosKit(ev.totalAplicable) + '</b>' + (promo ? ' con ' + escapeHtml(promo.nombre) + ' (' + promo.pct + '%)' : '') + ' · saldo ' + pesosKit(ev.saldo) + '</div>';
+                montoEl.value = String(Math.max(0, ev.saldo)).replace('.', ',');
+            };
+            fechaEl.addEventListener('change', pintar);
+            pintar();
+            const cerrar = () => ov.remove();
+            ov.querySelector('#kitPagoNo').onclick = cerrar;
+            ov.addEventListener('click', (e) => { if (e.target === ov) cerrar(); });
+            ov.querySelector('#kitPagoSi').onclick = async () => {
+                const monto = Math.round(Number(String(montoEl.value).replace(/\./g, '').replace(',', '.')) * 100) / 100;
+                if (!fechaEl.value) { mostrarAviso('Elegí la fecha del pago'); return; }
+                if (!(monto > 0)) { mostrarAviso('Monto inválido'); return; }
+                const cambios = { pagos: (Array.isArray(pedido.pagos) ? pedido.pagos : []).concat([{ monto, fecha: fechaEl.value, registradoAt: new Date().toISOString() }]) };
+                if (ev.pierdePromo) {
+                    const r = ev.recotizado;
+                    Object.assign(cambios, { productos: r.productos, productosDetalle: r.productosDetalle, subtotalHabitual: r.subtotalHabitual, descuento: 0, totalPedido: r.total, promo: null, promoPerdida: pedido.promo });
+                }
+                try {
+                    mostrarLoader(true);
+                    await updateDoc(doc(db, 'pedidosKit', pedidoId), cambios);
+                    cerrar();
+                    mostrarAviso('Pago registrado ✓');
+                    await cargarPedidosKit();
+                } catch (e) { console.error(e); mostrarAviso('No se pudo registrar el pago'); }
+                finally { mostrarLoader(false); }
+            };
+            montoEl.focus();
+        };
+
         window.marcarEntregadoKit = async function(pedidoId) {
             if (!pedidoId) return;
             if (!confirm('¿Marcar este pedido como entregado?')) return;
@@ -14596,6 +14677,15 @@
                 const detalle = Array.isArray(data.productosDetalle)
                     ? data.productosDetalle.map(function(d) { return Object.assign({}, d); })
                     : (Array.isArray(data.productos) ? data.productos.map(function(n) { return { nombre: n, precio: 0 }; }) : []);
+                if (detalle.some(function(d) { return d.precioHabitual != null; }) || data.promo) {
+                    if (!detalle[prodIdx]) { mostrarAviso('Producto no encontrado'); return; }
+                    detalle[prodIdx].precioHabitual = nuevoPrecio; detalle[prodIdx].precio = nuevoPrecio;
+                    const r = recotizarPedidoKit({ productosDetalle: detalle.map(function(d) { return Object.assign({}, d, { precioHabitual: d.precioHabitual != null ? d.precioHabitual : d.precio }); }) }, promoDelPedidoKit(data));
+                    await updateDoc(pedidoRef, { productosDetalle: r.productosDetalle, subtotalHabitual: r.subtotalHabitual, descuento: r.descuento, totalPedido: r.total });
+                    mostrarAviso('Precio actualizado ✓');
+                    await cargarPedidosKit();
+                    return;
+                }
                 const cambio = cambiarPrecioLinea(detalle, prodIdx, nuevoPrecio);
                 if (!cambio) { mostrarAviso('Producto no encontrado'); return; }
                 await updateDoc(pedidoRef, { productosDetalle: cambio.productosDetalle, totalPedido: cambio.totalPedido });

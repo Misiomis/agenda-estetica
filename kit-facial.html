@@ -5,628 +5,233 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kit Facial Domiciliario | Espacio Mimar T</title>
-    <meta name="description" content="Solicitá tu kit facial domiciliario personalizado en Espacio Mimar T.">
+    <meta name="description" content="Pedí tu kit facial domiciliario personalizado en Espacio Mimar T.">
+    <meta name="theme-color" content="#f5f7f3">
     <link rel="stylesheet" href="/mobile-fixes.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/pro-theme.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,600&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --bg:         #060e0b;
-            --primary:    #72bd99;
-            --primary-dk: #4f9777;
-            --ink:        rgba(220, 242, 232, 0.95);
-            --ink-2:      rgba(200, 232, 215, 0.80);
-            --muted:      rgba(165, 205, 188, 0.58);
-            --border:     rgba(255, 255, 255, 0.09);
-            --border-g:   rgba(114, 189, 153, 0.22);
-            --r-xl:       24px;
-            --r-lg:       18px;
-            --r-md:       14px;
-            --r-pill:     999px;
-            --shadow:     0 12px 36px rgba(0, 0, 0, 0.42);
-            --trans:      .24s ease;
+            --bg: #f5f7f3;
+            --card: #ffffff;
+            --ink: #1d2b24;
+            --ink-2: #3c4d44;
+            --muted: #6a7a71;
+            --line: #e1e8e2;
+            --green: #2f7a57;
+            --green-dk: #23603f;
+            --green-soft: #e8f2ec;
+            --gold: #c9a14a;
+            --gold-soft: #f6eedb;
+            --night: #11211a;
+            --red: #a8433a;
+            --r: 16px;
         }
-
         *, *::before, *::after { box-sizing: border-box; }
+        html, body { margin: 0; background: var(--bg); }
+        body { font-family: 'Montserrat', system-ui, sans-serif; color: var(--ink); line-height: 1.45; -webkit-font-smoothing: antialiased; }
+        button { font-family: inherit; }
 
-        body {
-            margin: 0;
-            font-family: 'Montserrat', sans-serif;
-            background:
-                radial-gradient(circle at 78% 12%, rgba(28, 88, 58, 0.20), transparent 44%),
-                radial-gradient(circle at 12% 88%, rgba(8, 48, 28, 0.16), transparent 42%),
-                linear-gradient(160deg, #060e0b 0%, #0c2218 55%, #071a12 100%);
-            color: var(--ink);
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
+        /* ── Encabezado corto ── */
+        .kf-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--card); border-bottom: 1px solid var(--line); }
+        .kf-top a.kf-marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font-weight: 700; font-size: 14px; }
+        .kf-top img { height: 40px; width: auto; }
+        .kf-top .mm-nav-grupo { margin-left: auto; }
+        @media (max-width: 520px) { .kf-top a.kf-volver { display: none; } }
+        .kf-top a.kf-volver { color: var(--green); font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
 
-        /* ── HERO ── */
-        .hero {
-            padding: 52px 18px 0;
-            display: flex;
-            justify-content: center;
-        }
+        .kf-head { width: min(1080px, 100%); margin: 0 auto; padding: 22px 16px 6px; }
+        .kf-head h1 { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 600; font-size: clamp(28px, 6vw, 40px); line-height: 1.08; margin: 0 0 6px; color: var(--ink); }
+        .kf-head p { margin: 0; color: var(--ink-2); font-size: 15px; max-width: 620px; }
 
-        .hero-card {
-            width: min(740px, 96vw);
-            background: linear-gradient(148deg, rgba(10, 26, 18, 0.92) 0%, rgba(16, 42, 30, 0.86) 100%);
-            border: 1px solid rgba(114, 189, 153, 0.16);
-            border-radius: var(--r-xl);
-            padding: 32px 24px 26px;
-            text-align: center;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.44);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            position: relative;
-            overflow: hidden;
-        }
+        /* Franja de promo */
+        .kf-promo { display: none; margin: 14px 0 0; padding: 14px 16px; border-radius: var(--r); background: var(--night); color: #f3efe4; border-left: 4px solid var(--gold); }
+        .kf-promo.on { display: block; }
+        .kf-promo strong { color: var(--gold); font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin-right: 6px; }
+        .kf-promo span { font-size: 14px; }
 
-        .hero-card::before {
-            content: "";
-            position: absolute;
-            top: -50%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60%;
-            height: 80%;
-            background: radial-gradient(ellipse, rgba(114, 189, 153, 0.09) 0%, transparent 70%);
-            pointer-events: none;
-        }
+        main.kf { width: min(1080px, 100%); margin: 0 auto; padding: 12px 16px 120px; }
+        .kf-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 20px 16px; }
 
-        .logo {
-            width: clamp(140px, 26vw, 220px);
-            display: block;
-            margin: 0 auto 16px;
-            filter: drop-shadow(0 6px 16px rgba(40, 70, 55, 0.18));
-            position: relative;
-        }
-
-        .hero-eyebrow {
-            font-size: 9.5px;
-            font-weight: 700;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            color: var(--primary);
-            margin: 0 0 7px;
-            opacity: 0.85;
-        }
-
-        .hero-title {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: clamp(28px, 6vw, 48px);
-            line-height: 1.0;
-            font-style: italic;
-            font-weight: 600;
-            margin: 0 0 10px;
-            color: var(--ink);
-        }
-
-        .hero-sub {
-            margin: 0 auto;
-            max-width: 480px;
-            font-size: clamp(12.5px, 2.2vw, 14px);
-            color: var(--muted);
-            line-height: 1.65;
-        }
-
-        @keyframes floatAura {
-            0%, 100% { transform: translateY(0); }
-            50%       { transform: translateY(-8px); }
-        }
-
-        /* ── MAIN SECTION ── */
-        .section {
-            width: min(700px, 95vw);
-            margin: 28px auto 72px;
-            padding: 0 14px;
-        }
-
-        /* ── KIT CARD ── */
-        .kit-card {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid var(--border);
-            border-radius: var(--r-xl);
-            padding: 28px 24px;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-        }
-
-        .kit-card h2 {
-            margin: 0 0 22px;
-            font-family: 'Cormorant Garamond', serif;
-            font-size: clamp(22px, 4.5vw, 28px);
-            font-style: italic;
-            color: var(--ink);
-            text-align: center;
-        }
-
-        /* ── DNI SCREEN ── */
-        .verif-icon {
-            font-size: 32px;
-            margin-bottom: 12px;
-            display: block;
-        }
-
-        .verif-title {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: clamp(18px, 3.8vw, 22px);
-            font-style: italic;
-            font-weight: 600;
-            color: var(--ink);
-            margin: 0 0 7px;
-        }
-
-        .verif-sub {
-            font-size: 13.5px;
-            color: var(--muted);
-            margin: 0 0 20px;
-            line-height: 1.65;
-        }
-
-        /* ── DNI INPUT ── */
-        #kitDniInput {
-            width: 100%;
-            padding: 14px 16px;
-            border-radius: var(--r-md);
-            border: 1.5px solid rgba(165, 205, 188, 0.22);
-            background: rgba(255, 255, 255, 0.04);
-            color: var(--ink);
-            font-size: 16px;
-            font-family: inherit;
-            outline: none;
-            margin-bottom: 12px;
-            text-align: center;
-            letter-spacing: 0.04em;
-            transition: border-color 0.22s, background 0.22s, box-shadow 0.22s;
-            -moz-appearance: textfield;
-        }
-        #kitDniInput::-webkit-outer-spin-button,
-        #kitDniInput::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        #kitDniInput::placeholder { color: var(--muted); letter-spacing: 0; }
-        #kitDniInput:focus {
-            border-color: #2ECC71;
-            background: rgba(255, 255, 255, 0.065);
-            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
-        }
-        #kitDniInput.dni-error { border-color: rgba(255,100,100,0.60); animation: kitShake .38s ease; }
+        /* ── DNI ── */
+        #verificDNIScreen { text-align: center; max-width: 420px; margin: 0 auto; padding: 8px 0; }
+        .verif-title { font-size: 18px; font-weight: 700; margin: 0 0 6px; color: var(--ink); }
+        .verif-sub { font-size: 14px; color: var(--muted); margin: 0 0 16px; }
+        #kitDniInput { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #c9d6cd; background: #fff; color: var(--ink); font-size: 18px; text-align: center; letter-spacing: .04em; outline: none; margin-bottom: 12px; }
+        #kitDniInput:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(47, 122, 87, .18); }
+        #kitDniInput.dni-error { border-color: var(--red); animation: kitShake .38s ease; }
         @keyframes kitShake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
-        .kit-spin { display:inline-block; width:14px; height:14px; margin-right:8px; vertical-align:-2px; border-radius:50%; border:2px solid rgba(255,255,255,0.35); border-top-color:#fff; animation: kitRot .7s linear infinite; }
+        .kit-spin { display:inline-block; width:14px; height:14px; margin-right:8px; vertical-align:-2px; border-radius:50%; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; animation: kitRot .7s linear infinite; }
         @keyframes kitRot { to { transform: rotate(360deg); } }
-        .producto-item input[type="checkbox"]:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.3); }
 
-        /* ── PRODUCTS LIST ── */
-        .productos-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 22px;
-        }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 50px; padding: 13px 18px; border: 0; border-radius: 12px; background: var(--green); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; text-decoration: none; }
+        .btn:hover:not(:disabled) { background: var(--green-dk); }
+        .btn:disabled { opacity: .55; cursor: not-allowed; }
+        .btn.sec { background: #fff; color: var(--green); border: 1.5px solid var(--green); }
 
-        .producto-item {
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            padding: 14px 15px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1.5px solid rgba(255, 255, 255, 0.08);
-            border-radius: var(--r-md);
-            cursor: pointer;
-            transition: background var(--trans), border-color var(--trans), box-shadow var(--trans);
-            user-select: none;
-            min-height: 56px;
-        }
+        .feedback-message { padding: 12px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; margin: 0 0 14px; }
+        .feedback-message.success { background: var(--green-soft); color: var(--green-dk); }
+        .feedback-message.error { background: #fbeceb; color: var(--red); }
+        .feedback-message.info { background: var(--gold-soft); color: #6b5420; }
 
-        .producto-item:hover {
-            background: rgba(255, 255, 255, 0.075);
-            border-color: rgba(114, 189, 153, 0.32);
-        }
+        /* ── Catálogo + Tu pedido ── */
+        #pacienteActivo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+        #pacienteActivo strong { color: var(--ink); }
+        #pacienteActivo button { background: #fff; border: 1px solid var(--line); border-radius: 10px; color: var(--ink-2); font-size: 12.5px; padding: 7px 10px; cursor: pointer; min-height: 0; }
+        .kf-grid { display: grid; grid-template-columns: 1fr; gap: 18px; }
+        @media (min-width: 900px) { .kf-grid { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; } .kf-resumen { position: sticky; top: 16px; } }
 
-        .producto-item.selected {
-            background: rgba(50, 120, 88, 0.16);
-            border-color: rgba(114, 189, 153, 0.52);
-            box-shadow: 0 2px 12px rgba(114, 189, 153, 0.10);
-        }
+        .kf-sec-t { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+        .productos-list { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        @media (min-width: 620px) { .productos-list { grid-template-columns: 1fr 1fr; } }
+        .producto-item { display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; }
+        .producto-item.selected { border-color: var(--green); background: #fbfdfb; box-shadow: 0 2px 10px rgba(47, 122, 87, .08); }
+        .prod-nombre { font-size: 16px; font-weight: 700; color: var(--ink); margin: 0; }
+        .prod-pres { font-size: 13px; color: var(--muted); margin: 2px 0 0; }
+        .prod-precios { display: flex; flex-direction: column; gap: 2px; }
+        .prod-habitual { font-size: 13px; color: var(--muted); }
+        .prod-habitual s { color: var(--muted); }
+        .prod-final { font-size: 15px; color: var(--ink-2); }
+        .prod-final b { font-size: 21px; font-weight: 800; color: var(--green-dk); }
+        .prod-solo { font-size: 20px; font-weight: 800; color: var(--ink); }
+        .prod-pie { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .kit-cant { display: inline-flex; align-items: center; border: 1.5px solid #c9d6cd; border-radius: 999px; background: #fff; }
+        .kit-cant button { width: 44px; height: 44px; min-height: 44px !important; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--green-dk); font-size: 22px; font-weight: 700; line-height: 1; cursor: pointer; }
+        .kit-cant button:hover:not(:disabled) { background: var(--green-soft); }
+        .kit-cant button:disabled { opacity: .3; cursor: default; }
+        .kit-cant output { min-width: 26px; text-align: center; font-weight: 800; font-size: 17px; font-variant-numeric: tabular-nums; }
+        .prod-agregar { min-height: 44px; padding: 10px 16px; border-radius: 999px; border: 1.5px solid var(--green); background: #fff; color: var(--green); font-weight: 700; font-size: 14px; cursor: pointer; }
+        .prod-agregar:hover { background: var(--green-soft); }
+        .prod-importe { font-size: 13px; color: var(--ink-2); text-align: right; }
+        .prod-importe b { color: var(--ink); }
+        .productos-loading { padding: 20px; text-align: center; color: var(--muted); }
 
-        .producto-item.selected .producto-precio {
-            background: rgba(114, 189, 153, 0.20);
-            color: rgba(138, 220, 180, 0.95);
-        }
+        /* Tu pedido */
+        .kf-resumen { background: var(--card); border: 1.5px solid var(--line); border-radius: var(--r); padding: 16px; }
+        .kf-resumen h2 { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 26px; margin: 0 0 10px; color: var(--ink); }
+        .res-vacio { color: var(--muted); font-size: 14px; margin: 0 0 6px; }
+        .res-linea { padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+        .res-linea .rl-top { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; color: var(--ink); }
+        .res-linea .rl-det { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+        .res-fila { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 4px 0; color: var(--ink-2); }
+        .res-fila.desc { color: var(--green-dk); font-weight: 700; }
+        .res-total { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 8px 0 4px; padding: 12px 14px; border-radius: 12px; background: var(--night); color: #fff; }
+        .res-total span { font-size: 12.5px; font-weight: 800; letter-spacing: .06em; color: #f3efe4; }
+        .res-total b { font-size: 24px; font-weight: 800; color: var(--gold); }
+        .res-nota { font-size: 12.5px; color: var(--muted); margin: 6px 0 0; }
+        .descripcion-box { margin: 14px 0; }
+        .descripcion-box label { display: block; font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+        .descripcion-box textarea { width: 100%; min-height: 92px; padding: 12px; border: 1.5px solid #c9d6cd; border-radius: 12px; font-size: 16px; color: var(--ink); background: #fff; resize: vertical; outline: none; }
+        .descripcion-box textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(47, 122, 87, .15); }
 
-        /* Custom checkbox */
-        .producto-item input[type="checkbox"] {
-            width: 22px;
-            height: 22px;
-            min-width: 22px;
-            min-height: 22px !important;
-            cursor: pointer;
-            flex-shrink: 0;
-            appearance: none;
-            -webkit-appearance: none;
-            border: 1.5px solid rgba(114, 189, 153, 0.30);
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.04);
-            position: relative;
-            transition: background 0.18s, border-color 0.18s;
-        }
-        .producto-item input[type="checkbox"]:checked {
-            background: var(--primary-dk);
-            border-color: var(--primary-dk);
-        }
-        .producto-item input[type="checkbox"]:checked::after {
-            content: '';
-            position: absolute;
-            left: 5px;
-            top: 2px;
-            width: 8px;
-            height: 12px;
-            border: 2px solid #fff;
-            border-top: none;
-            border-left: none;
-            transform: rotate(45deg);
+        /* Barra fija en celular */
+        .kf-barra { display: none; }
+        @media (max-width: 899px) {
+            .kf-barra.on { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; align-items: center; gap: 12px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(0, 0, 0, .08); }
+            .kf-barra .kb-tot { flex: 1; min-width: 0; }
+            .kf-barra .kb-tot small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--muted); }
+            .kf-barra .kb-tot b { font-size: 20px; font-weight: 800; color: var(--ink); }
+            .kf-barra .btn { width: auto; flex-shrink: 0; min-height: 46px; padding: 10px 16px; font-size: 14px; }
         }
 
-        .producto-item label {
-            font-size: clamp(14px, 2.8vw, 15px);
-            font-weight: 500;
-            color: var(--ink);
-            cursor: pointer;
-            flex: 1;
-            line-height: 1.3;
-        }
+        /* Confirmación */
+        #successScreen { display: none; max-width: 520px; margin: 0 auto; text-align: center; padding: 10px 0; }
+        #successScreen h2 { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 28px; margin: 6px 0 8px; }
+        #successScreen p { color: var(--ink-2); font-size: 15px; margin: 0 0 12px; }
+        #successResumen { text-align: left; margin: 12px 0 16px; }
+        .succ-acc { display: grid; gap: 10px; }
 
-        .producto-precio {
-            font-size: 12.5px;
-            font-weight: 700;
-            color: var(--primary-dk);
-            background: rgba(114, 189, 153, 0.12);
-            padding: 4px 11px;
-            border-radius: var(--r-pill);
-            flex-shrink: 0;
-            white-space: nowrap;
-            transition: background var(--trans), color var(--trans);
-        }
-
-        .kit-cant {
-            display: none; align-items: center; flex-shrink: 0;
-            border: 1px solid rgba(114, 189, 153, 0.35); border-radius: var(--r-pill);
-            background: rgba(255, 255, 255, 0.05);
-        }
-        .producto-item.selected .kit-cant { display: inline-flex; }
-        .kit-cant button {
-            width: 40px; height: 40px; min-width: 40px; min-height: 40px !important; padding: 0;
-            border: 0; border-radius: var(--r-pill); background: transparent; cursor: pointer;
-            color: var(--ink); font-size: 18px; font-weight: 600; line-height: 1; font-family: inherit;
-            transition: background 0.18s;
-        }
-        .kit-cant button:hover:not(:disabled) { background: rgba(114, 189, 153, 0.18); }
-        .kit-cant button:disabled { opacity: 0.35; cursor: default; }
-        .kit-cant button:focus-visible { outline: 2px solid rgba(138, 220, 180, 0.9); outline-offset: 1px; }
-        .kit-cant span { min-width: 20px; text-align: center; font-weight: 700; font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
-        @media (max-width: 420px) {
-            .producto-item.selected { flex-wrap: wrap; }
-            .producto-item.selected label { flex-basis: calc(100% - 40px); }
-            .producto-item.selected .kit-cant { margin-left: 35px; }
-            .producto-item.selected .producto-precio { margin-left: auto; }
-        }
-
-        .productos-loading {
-            text-align: center;
-            padding: 22px;
-            color: var(--muted);
-            font-size: 13.5px;
-        }
-
-        /* ── TOTAL ── */
-        .total-kit {
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(135deg, rgba(114, 189, 153, 0.11), rgba(79, 151, 119, 0.06));
-            border: 1.5px solid rgba(114, 189, 153, 0.32);
-            border-radius: var(--r-md);
-            padding: 13px 16px;
-            margin-bottom: 20px;
-            font-size: 13.5px;
-            font-weight: 600;
-            color: var(--ink-2);
-        }
-
-        .total-kit .total-monto {
-            font-size: 20px;
-            font-weight: 800;
-            color: var(--primary-dk);
-            transition: transform .2s ease;
-        }
-        .total-kit .total-monto.bump { transform: scale(1.12); }
-        .total-kit .total-cant { display: block; font-size: 11.5px; font-weight: 500; color: var(--muted); margin-top: 2px; }
-
-        /* Total + botón: en celulares quedan fijos abajo mientras se recorre el catálogo */
-        .kit-barra .total-kit { display: flex; }
-        @media (max-width: 768px) {
-            .kit-barra {
-                position: sticky; bottom: 0; z-index: 20;
-                display: flex; align-items: center; gap: 12px;
-                margin: 0 -16px -20px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-                background: rgba(8, 20, 14, 0.94);
-                backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-                border-top: 1px solid rgba(46, 204, 113, 0.25);
-                border-radius: 18px 18px 0 0;
-                box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.45);
-            }
-            .kit-barra .total-kit { flex: 1; margin: 0; padding: 0; background: none; border: none; flex-direction: column; align-items: flex-start; justify-content: center; }
-            .kit-barra .total-kit > span:first-child { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
-            .kit-barra .btn-submit { width: auto; flex-shrink: 0; padding: 13px 20px; margin: 0; }
-        }
-
-        /* ── TEXTAREA ── */
-        .descripcion-box {
-            margin-bottom: 22px;
-        }
-
-        .descripcion-box label {
-            display: block;
-            font-size: 13.5px;
-            font-weight: 600;
-            color: var(--ink-2);
-            margin-bottom: 10px;
-        }
-
-        .descripcion-box textarea {
-            width: 100%;
-            min-height: 100px;
-            padding: 13px 15px;
-            border: 1.5px solid rgba(165, 205, 188, 0.18);
-            border-radius: var(--r-md);
-            font-family: inherit;
-            font-size: 15px;
-            color: var(--ink);
-            background: rgba(255, 255, 255, 0.04);
-            resize: vertical;
-            outline: none;
-            line-height: 1.6;
-            transition: border-color var(--trans), background var(--trans), box-shadow var(--trans);
-        }
-
-        .descripcion-box textarea::placeholder { color: var(--muted); }
-
-        .descripcion-box textarea:focus {
-            border-color: rgba(114, 189, 153, 0.48);
-            background: rgba(255, 255, 255, 0.065);
-            box-shadow: 0 0 0 3px rgba(114, 189, 153, 0.09);
-        }
-
-        /* ── SUBMIT BUTTON ── */
-        .btn-submit {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #5eab88 0%, #3d8a68 100%);
-            color: white;
-            border: none;
-            border-radius: var(--r-md);
-            font-size: 13.5px;
-            font-weight: 700;
-            letter-spacing: 0.07em;
-            text-transform: uppercase;
-            cursor: pointer;
-            font-family: inherit;
-            transition: transform var(--trans), box-shadow var(--trans), filter var(--trans);
-            min-height: 50px;
-        }
-
-        .btn-submit:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 26px rgba(58, 138, 102, 0.34);
-            filter: brightness(1.06);
-        }
-
-        .btn-submit:active:not(:disabled) {
-            transform: translateY(0);
-            filter: brightness(0.97);
-        }
-
-        .btn-submit:disabled {
-            opacity: 0.55;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* ── FEEDBACK MESSAGES ── */
-        .feedback-message {
-            padding: 13px 16px;
-            border-radius: var(--r-md);
-            font-size: 13.5px;
-            font-weight: 600;
-            text-align: center;
-            margin-bottom: 18px;
-            line-height: 1.5;
-        }
-
-        .feedback-message.success {
-            background: rgba(114, 189, 153, 0.12);
-            color: rgba(138, 220, 180, 0.95);
-            border: 1px solid rgba(114, 189, 153, 0.30);
-        }
-
-        .feedback-message.error {
-            background: rgba(220, 80, 80, 0.10);
-            color: rgba(248, 155, 155, 0.92);
-            border: 1px solid rgba(220, 80, 80, 0.24);
-        }
-
-        .feedback-message.info {
-            background: rgba(114, 189, 153, 0.07);
-            color: var(--ink-2);
-            border: 1px solid var(--border-g);
-        }
-
-        /* ── SUCCESS SCREEN ── */
-        #successScreen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 28px 16px 20px;
-            gap: 14px;
-            animation: fadeInUp .42s ease both;
-        }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(16px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        .success-icon {
-            width: 72px; height: 72px; border-radius: 50%;
-            background: linear-gradient(135deg, #72bd99, #4f9777);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 32px;
-            box-shadow: 0 10px 28px rgba(79, 151, 119, 0.28);
-        }
-
-        .success-title {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: clamp(22px, 4vw, 26px);
-            font-style: italic;
-            color: var(--ink);
-            margin: 0;
-        }
-
-        .success-body {
-            font-size: 14px;
-            line-height: 1.7;
-            color: var(--muted);
-            max-width: 380px;
-            margin: 0;
-        }
-
-        .btn-otro {
-            margin-top: 6px;
-            padding: 12px 28px;
-            background: transparent;
-            border: 1.5px solid rgba(114, 189, 153, 0.38);
-            color: var(--primary);
-            border-radius: var(--r-md);
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-            transition: background var(--trans), color var(--trans), border-color var(--trans);
-        }
-
-        .btn-otro:hover {
-            background: var(--primary-dk);
-            color: #fff;
-            border-color: var(--primary-dk);
-        }
-
-        /* ── RESPONSIVE ── */
-        @media (max-width: 480px) {
-            .hero { padding: 28px 12px 0; }
-            .hero-card { padding: 22px 16px 18px; border-radius: var(--r-lg); }
-            .logo { width: clamp(130px, 40vw, 170px); margin-bottom: 12px; }
-            .section { margin-top: 20px; padding: 0 10px; }
-            .kit-card { padding: 20px 16px; border-radius: var(--r-lg); }
-            .kit-card h2 { font-size: 22px; }
-            .producto-item { padding: 13px; gap: 11px; }
-            .descripcion-box textarea { font-size: 16px; }
-        }
-
-        @media (min-width: 481px) and (max-width: 768px) {
-            .hero { padding: 38px 14px 0; }
-            .hero-card { padding: 26px 20px 22px; }
-        }
-
-        @media (min-width: 769px) {
-            .hero { padding: 56px 20px 0; }
-            .hero-card { padding: 36px 32px 28px; }
-            .kit-card { padding: 30px 28px; }
-            .section { margin-top: 30px; }
+        @media (max-width: 380px) {
+            .kf-card { padding: 16px 12px; }
+            .prod-final b { font-size: 19px; }
         }
     </style>
 </head>
 <body>
-    <section class="hero">
-        <div class="hero-card">
-            <img src="/img/logo.png" alt="Espacio Mimar T" class="logo">
-            <p class="hero-eyebrow">Espacio Mimar T</p>
-            <h1 class="hero-title">Kit Facial Domiciliario</h1>
-            <p class="hero-sub">Cuidado de tu piel en casa, con productos recomendados por Gimena Knack.</p>
-        </div>
+    <header class="kf-top nav-wrapper">
+        <a href="/" class="kf-marca"><img src="/img/logo.png" alt="" width="34" height="34">Espacio MimarT</a>
+        <a href="/" class="kf-volver">← Volver al inicio</a>
+    </header>
+
+    <section class="kf-head">
+        <h1 id="kfTitulo">Kit facial domiciliario</h1>
+        <p id="kfSub">Cuidá tu piel en casa con los productos que te recomienda Gimena Knack.</p>
+        <div class="kf-promo" id="kfPromo" role="note"><strong id="kfPromoPct">15% OFF</strong><span id="kfPromoTxt">Pedí y aboná hoy. Tenés 15% de descuento en todos los productos de tu kit.</span></div>
     </section>
 
     <!-- Modal: DNI no registrado -->
-    <div id="modalSinRegistro" role="dialog" aria-modal="true" aria-labelledby="modalSinRegistroTitulo" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(6,14,11,0.93);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px;">
-        <div style="width:100%;max-width:420px;background:linear-gradient(165deg,#0d1a0e 0%,#07100a 100%);border:1px solid rgba(60,179,113,0.25);border-radius:24px;padding:34px 26px;box-shadow:0 32px 72px rgba(0,0,0,0.65);text-align:center;">
-            <div style="font-size:48px;margin-bottom:16px;" aria-hidden="true">🌿</div>
-            <p id="modalSinRegistroTitulo" style="font-family:'Cormorant Garamond',serif;font-size:24px;color:#b8e8c8;margin:0 0 14px;font-weight:600;font-style:italic;">¡Hola! Aún no te conocemos</p>
-            <p style="font-size:14px;color:rgba(165,205,188,0.78);line-height:1.70;margin:0 0 8px;">El kit domiciliario está pensado para quienes ya son parte de nuestra comunidad de pacientes.</p>
-            <p style="font-size:13px;color:rgba(165,205,188,0.55);line-height:1.65;margin:0 0 24px;">Sería un placer conocerte y ayudarte a encontrar los productos que realmente le sientan bien a tu piel. ¿Qué te parece si agendamos tu <strong style="color:rgba(185,230,205,0.80);">consulta inicial</strong>? Así Gimena puede recomendarte lo mejor para vos — consultá el valor y las condiciones vigentes al agendar.</p>
-            <a href="/fecha.html" style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,rgba(60,179,113,0.22),rgba(60,179,113,0.10));border:1.5px solid rgba(60,179,113,0.40);border-radius:14px;color:rgba(185,230,205,0.92);font-size:14px;font-weight:700;text-decoration:none;margin-bottom:10px;">Agendar mi consulta inicial</a>
-            <a href="https://wa.me/5493757512496?text=Hola%2C%20quisiera%20ser%20paciente%20de%20Espacio%20Mimar%20T%20para%20acceder%20al%20kit%20facial%20%F0%9F%8C%BF" target="_blank" rel="noopener noreferrer" style="display:block;width:100%;padding:12px;background:transparent;border:1px solid rgba(165,205,188,0.25);border-radius:14px;color:rgba(165,205,188,0.70);font-size:13px;font-weight:600;text-decoration:none;margin-bottom:10px;">Prefiero escribir por WhatsApp</a>
-            <button id="btnCerrarModalSinRegistro" type="button" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(165,205,188,0.15);border-radius:14px;color:rgba(165,205,188,0.40);font-size:13px;cursor:pointer;font-family:inherit;">Volver</button>
+    <div id="modalSinRegistro" role="dialog" aria-modal="true" aria-labelledby="modalSinRegistroTitulo" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(17,33,26,.55);align-items:center;justify-content:center;padding:20px;">
+        <div style="width:100%;max-width:420px;background:#fff;border-radius:20px;padding:28px 22px;box-shadow:0 24px 60px rgba(0,0,0,.25);text-align:center;">
+            <p id="modalSinRegistroTitulo" style="font-family:'Cormorant Garamond',serif;font-size:26px;color:#1d2b24;margin:0 0 10px;font-weight:600;font-style:italic;">¡Hola! Aún no te conocemos</p>
+            <p style="font-size:14px;color:#3c4d44;line-height:1.6;margin:0 0 8px;">El kit domiciliario está pensado para quienes ya son parte de nuestra comunidad de pacientes.</p>
+            <p style="font-size:13px;color:#6a7a71;line-height:1.6;margin:0 0 18px;">¿Agendamos tu <strong>consulta inicial</strong>? Así Gimena puede recomendarte lo mejor para tu piel.</p>
+            <a href="/fecha.html" class="btn" style="margin-bottom:10px;">Agendar mi consulta inicial</a>
+            <a href="https://wa.me/5493757512496?text=Hola%2C%20quisiera%20ser%20paciente%20de%20Espacio%20Mimar%20T%20para%20acceder%20al%20kit%20facial" target="_blank" rel="noopener noreferrer" class="btn sec" style="margin-bottom:10px;">Prefiero escribir por WhatsApp</a>
+            <button id="btnCerrarModalSinRegistro" type="button" class="btn sec" style="border-color:#e1e8e2;color:#6a7a71;">Volver</button>
         </div>
     </div>
 
-    <main class="section">
-        <div class="kit-card">
-            <h2>Seleccioná tus productos</h2>
-
-            <!-- Pantalla de verificación de DNI -->
-            <div id="verificDNIScreen" style="display:block;text-align:center;padding:8px 0 16px;">
-                <span class="verif-icon">🌿</span>
+    <main class="kf">
+        <div class="kf-card">
+            <!-- Verificación de DNI -->
+            <div id="verificDNIScreen">
                 <p class="verif-title">Espacio exclusivo para pacientes</p>
-                <p class="verif-sub">Ingresá tu DNI para verificar tu acceso.</p>
-                <input id="kitDniInput" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="12" placeholder="Tu DNI sin puntos"
+                <p class="verif-sub">Ingresá tu DNI y pasás directo a tu kit.</p>
+                <input id="kitDniInput" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="12" placeholder="Tu DNI sin puntos" aria-label="DNI"
                        oninput="this.classList.remove('dni-error')"
                        onkeydown="if(event.key==='Enter')window._verificarDNIKit()">
-                <button id="kitDniBtn" onclick="window._verificarDNIKit()" class="btn-submit">Continuar</button>
+                <button id="kitDniBtn" onclick="window._verificarDNIKit()" class="btn">Continuar</button>
             </div>
 
-            <div id="feedbackMessage" class="feedback-message" style="display: none;"></div>
+            <div id="feedbackMessage" class="feedback-message" style="display:none;"></div>
 
             <div id="contenidoKit" style="display:none;">
-                <p id="pacienteActivo" style="font-size:12.5px;color:rgba(165,205,188,0.60);margin:0 0 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;"></p>
-                <p id="catalogoRefAviso" class="feedback-message info" style="display:none;margin-bottom:14px;">Mostrando precios de referencia — te confirmamos el valor final al recibir tu pedido.</p>
-                <div class="productos-list" id="productosList">
-                    <div class="productos-loading">Cargando productos...</div>
-                </div>
-
-                <div class="descripcion-box">
-                    <label for="descripcionPiel">Describe brevemente cómo está tu piel</label>
-                    <textarea id="descripcionPiel" placeholder="Ej: tengo la piel mixta, con algunas manchas por el sol y necesito hidratación..."></textarea>
-                </div>
-
-                <div class="kit-barra">
-                    <div class="total-kit" id="totalKit" aria-live="polite">
-                        <span>Total seleccionado <span class="total-cant" id="totalCant">Ningún producto elegido</span></span>
-                        <span class="total-monto" id="totalMonto">$0</span>
-                    </div>
-                    <button class="btn-submit" id="btnSolicitarKit">Solicitar Kit</button>
+                <p id="pacienteActivo"></p>
+                <p id="catalogoRefAviso" class="feedback-message info" style="display:none;">Mostrando precios de referencia: te confirmamos el valor final al recibir tu pedido.</p>
+                <div class="kf-grid">
+                    <section aria-labelledby="tCatalogo">
+                        <p class="kf-sec-t" id="tCatalogo">Productos</p>
+                        <div class="productos-list" id="productosList">
+                            <div class="productos-loading">Cargando productos...</div>
+                        </div>
+                    </section>
+                    <aside class="kf-resumen" id="tuPedido" aria-labelledby="tTuPedido">
+                        <h2 id="tTuPedido">Tu pedido</h2>
+                        <div id="resumenPedido" aria-live="polite"></div>
+                        <div class="descripcion-box">
+                            <label for="descripcionPiel">Contanos brevemente cómo está tu piel</label>
+                            <textarea id="descripcionPiel" placeholder="Ej: piel mixta, con algunas manchas por el sol y necesito hidratación..."></textarea>
+                        </div>
+                        <button class="btn" id="btnSolicitarKit" type="button">Confirmar pedido</button>
+                    </aside>
                 </div>
             </div>
 
             <div id="successScreen">
-                <div class="success-icon">💚</div>
-                <h2 class="success-title">¡Tu solicitud fue enviada!</h2>
-                <p class="success-body">
-                    Gimena va a revisar tu pedido y se va a poner en contacto con vos a la brevedad.<br>
-                    ¡Gracias por confiar en Espacio Mimar T! ✨
-                </p>
-                <button class="btn-otro" id="btnNuevaSolicitud">Hacer otra solicitud</button>
+                <div style="font-size:40px;" aria-hidden="true">💚</div>
+                <h2>¡Recibimos tu pedido!</h2>
+                <p id="successTxt">Gimena va a preparar tu kit y te avisamos por WhatsApp cuando esté listo.</p>
+                <div id="successResumen"></div>
+                <div class="succ-acc">
+                    <a class="btn" id="btnPagoWa" href="#" target="_blank" rel="noopener noreferrer">Coordinar el pago por WhatsApp</a>
+                    <button class="btn sec" id="btnNuevaSolicitud" type="button">Hacer otro pedido</button>
+                </div>
             </div>
-
         </div>
     </main>
+
+    <div class="kf-barra" id="kfBarra">
+        <div class="kb-tot"><small>TOTAL DE TU PEDIDO</small><b id="barraTotal">$0</b></div>
+        <a class="btn" href="#tuPedido" id="barraVer">Ver mi pedido</a>
+    </div>
 
     <script src="/js/shared-footer.js"></script>
 
     <script type="module">
         import { db, collection, addDoc, doc, getDoc } from "/js/firebase-web.js";
         import "/js/mimar-sesion.js";
-        import { armarPedidoKit, normalizarCantidad, CANT_MAX_KIT } from "/js/kit-cantidades.js";
+        import { CANT_MAX_KIT } from "/js/kit-cantidades.js";
+        import { promoVigente, cotizarKit, pesos } from "/js/promo-kit.js";
 
         const PRODUCTOS_DEFAULT = [
             { nombre: "Leche de limpieza",                   precio: 15000 },
@@ -634,32 +239,39 @@
             { nombre: "Tónico calmante",                     precio: 15000 },
             { nombre: "Crema/Gel regeneradora hidratante",   precio: 15000 }
         ];
+        const WA_ESPACIO = "5493757512496";
 
         let productosKit = [];
         let cantKit = [];
+        // Promo con la que se están mostrando los precios ahora mismo
+        let promoMostrada = promoVigente();
+        let ultimoPedido = null;
 
         const escapeHtml = (value) => String(value ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
-        const getUserData = () => {
-            const dni = localStorage.getItem("clienteDNI");
-            const nombre = localStorage.getItem("clienteNombre");
-            return { dni, nombre };
-        };
+        const getUserData = () => ({ dni: localStorage.getItem("clienteDNI"), nombre: localStorage.getItem("clienteNombre") });
 
         const showFeedback = (message, type = "info", autohide = true) => {
             const el = document.getElementById("feedbackMessage");
             el.textContent = message;
             el.className = `feedback-message ${type}`;
             el.style.display = "block";
-            if (autohide) setTimeout(() => { el.style.display = "none"; }, 5000);
+            if (autohide) setTimeout(() => { el.style.display = "none"; }, 6000);
         };
 
-        const formatPrecio = (n) => '$' + Number(n).toLocaleString('es-AR');
+        // Encabezado según haya promo o no
+        const pintarEncabezado = () => {
+            const p = promoMostrada;
+            document.getElementById("kfTitulo").textContent = p ? `${p.nombre} en tu rutina facial` : "Kit facial domiciliario";
+            document.getElementById("kfSub").textContent = p ? `Pedí y aboná hoy. Tenés ${p.pct}% de descuento en todos los productos de tu kit.` : "Cuidá tu piel en casa con los productos que te recomienda Gimena Knack.";
+            document.getElementById("kfPromo").classList.toggle("on", !!p);
+            if (p) {
+                document.getElementById("kfPromoPct").textContent = `${p.pct}% OFF`;
+                document.getElementById("kfPromoTxt").textContent = `${p.nombre}: solo por hoy, viernes 27 de noviembre, en todos los productos.`;
+            }
+        };
 
         const cargarProductosKit = async () => {
             const avisoRef = document.getElementById('catalogoRefAviso');
@@ -668,106 +280,108 @@
                 const snap = await getDoc(doc(db, 'configuracion', 'kitProductos'));
                 if (snap.exists() && Array.isArray(snap.data().productos) && snap.data().productos.length > 0) {
                     productosKit = snap.data().productos;
-                } else {
-                    // Catálogo configurado vacío (o sin configurar todavía) — distinto de
-                    // un error de conexión, pero en ambos casos el precio que se muestra
-                    // es de referencia, no confirmado: se avisa igual en los dos casos.
-                    productosKit = PRODUCTOS_DEFAULT;
-                    usandoRespaldo = true;
-                }
+                } else { productosKit = PRODUCTOS_DEFAULT; usandoRespaldo = true; }
             } catch (e) {
                 console.warn('[Kit] No se pudo consultar el catálogo, usando precios de referencia:', e.code || e.message);
-                productosKit = PRODUCTOS_DEFAULT;
-                usandoRespaldo = true;
+                productosKit = PRODUCTOS_DEFAULT; usandoRespaldo = true;
             }
             if (avisoRef) avisoRef.style.display = usandoRespaldo ? 'block' : 'none';
+            cantKit = productosKit.map(() => 0);
             renderizarProductos();
         };
 
-        const renderizarProductos = () => {
-            const lista = document.getElementById('productosList');
-            cantKit = productosKit.map(() => 1);
-            lista.innerHTML = productosKit.map((p, i) => `
-                <div class="producto-item" onclick="document.getElementById('prod-${i}').click()">
-                    <input type="checkbox" id="prod-${i}" data-i="${i}" value="${escapeHtml(p.nombre)}" autocomplete="off" onclick="event.stopPropagation()" onchange="actualizarTotal()">
-                    <label for="prod-${i}" onclick="event.preventDefault()">${escapeHtml(p.nombre)}</label>
-                    <div class="kit-cant" role="group" aria-label="Cantidad de ${escapeHtml(p.nombre)}" onclick="event.stopPropagation()">
+        const tarjetaProducto = (p, i) => {
+            const promo = promoMostrada;
+            const habitual = Number(p.precio) || 0;
+            const fila = cotizarKit([{ nombre: p.nombre, precio: habitual, cantidad: 1 }], promo).productosDetalle[0];
+            const cant = cantKit[i] || 0;
+            const precios = promo
+                ? `<span class="prod-habitual">Precio habitual <s>${pesos(habitual)}</s></span><span class="prod-final">Precio ${escapeHtml(promo.nombre)} <b>${pesos(fila.precioFinal)}</b></span>`
+                : `<span class="prod-solo">${pesos(habitual)}</span>`;
+            const control = cant > 0
+                ? `<div class="kit-cant" role="group" aria-label="Cantidad de ${escapeHtml(p.nombre)}">
                         <button type="button" onclick="cambiarCantKit(${i}, -1)" aria-label="Quitar uno">−</button>
-                        <span id="cant-${i}" aria-live="polite">1</span>
-                        <button type="button" id="mas-${i}" onclick="cambiarCantKit(${i}, 1)" aria-label="Agregar uno">+</button>
-                    </div>
-                    <span class="producto-precio" id="precio-${i}">${formatPrecio(p.precio)}</span>
-                </div>
-            `).join('');
-            // Nada arranca seleccionado: el navegador puede restaurar casillas
-            // marcadas de una visita anterior (ej. al volver atrás).
-            lista.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
-            actualizarTotal();
+                        <output id="cant-${i}" aria-live="polite">${cant}</output>
+                        <button type="button" onclick="cambiarCantKit(${i}, 1)" ${cant >= CANT_MAX_KIT ? 'disabled' : ''} aria-label="Agregar uno">+</button>
+                   </div><span class="prod-importe">Importe<br><b>${pesos(fila.precioFinal * cant)}</b></span>`
+                : `<button type="button" class="prod-agregar" onclick="cambiarCantKit(${i}, 1)">Agregar</button>`;
+            return `<article class="producto-item${cant > 0 ? ' selected' : ''}" data-i="${i}">
+                    <div><p class="prod-nombre">${escapeHtml(p.nombre)}</p>${p.presentacion ? `<p class="prod-pres">${escapeHtml(p.presentacion)}</p>` : ''}</div>
+                    <div class="prod-precios">${precios}</div>
+                    <div class="prod-pie">${control}</div>
+                </article>`;
         };
 
-        window.actualizarTotal = () => {
-            const checks = document.querySelectorAll('#productosList input[type="checkbox"]:checked');
-            const pedido = armarPedidoKit(itemsElegidos());
-            const total = pedido.totalPedido;
-            productosKit.forEach((p, i) => {
-                const cb = document.getElementById('prod-' + i);
-                const cant = cantKit[i] || 1;
-                const precioEl = document.getElementById('precio-' + i);
-                if (precioEl) precioEl.textContent = formatPrecio(Number(p.precio) * (cb && cb.checked ? cant : 1));
-                const cantEl = document.getElementById('cant-' + i);
-                if (cantEl) cantEl.textContent = cant;
-                const mas = document.getElementById('mas-' + i);
-                if (mas) mas.disabled = cant >= CANT_MAX_KIT;
-            });
-            const montoEl = document.getElementById('totalMonto');
-            const nuevo = formatPrecio(total);
-            if (montoEl.textContent !== nuevo) {
-                montoEl.textContent = nuevo;
-                montoEl.classList.add('bump');
-                setTimeout(() => montoEl.classList.remove('bump'), 200);
-            }
-            document.getElementById('totalCant').textContent = checks.length
-                ? `${pedido.cantidadTotal} producto${pedido.cantidadTotal !== 1 ? 's' : ''}`
-                : 'Ningún producto elegido';
-            // update selected style
-            document.querySelectorAll('#productosList .producto-item').forEach(item => {
-                const cb = item.querySelector('input[type="checkbox"]');
-                item.classList.toggle('selected', cb.checked);
-            });
+        const renderizarProductos = () => {
+            document.getElementById('productosList').innerHTML = productosKit.map(tarjetaProducto).join('');
+            renderizarResumen();
         };
 
-        // Productos marcados con su cantidad
         function itemsElegidos() {
-            return [...document.querySelectorAll('#productosList input[type="checkbox"]:checked')].map(cb => {
-                const i = Number(cb.dataset.i);
-                const prod = productosKit[i];
-                return { nombre: prod ? prod.nombre : cb.value, precio: prod ? Number(prod.precio) || 0 : 0, cantidad: cantKit[i] || 1 };
-            });
+            return productosKit.map((p, i) => ({ nombre: p.nombre, precio: Number(p.precio) || 0, cantidad: cantKit[i] || 0 }))
+                .filter(it => it.cantidad > 0);
         }
 
-        // − en 1 desmarca el producto; + en uno sin marcar lo marca.
-        window.cambiarCantKit = (i, delta) => {
-            const cb = document.getElementById('prod-' + i);
-            if (!cb) return;
-            const nueva = (cantKit[i] || 1) + delta;
-            if (!cb.checked && delta > 0) { cb.checked = true; }
-            else if (nueva < 1) { cb.checked = false; cantKit[i] = 1; }
-            else { cantKit[i] = normalizarCantidad(nueva); }
-            actualizarTotal();
+        // Tabla "Tu pedido" (también se usa en la confirmación)
+        const htmlResumen = (c) => {
+            if (!c.productosDetalle.length) return '<p class="res-vacio">Todavía no agregaste productos.</p>';
+            const promo = c.promo;
+            const lineas = c.productosDetalle.map(l => `<div class="res-linea">
+                    <div class="rl-top"><span>${escapeHtml(l.nombre)} × ${l.cantidad}</span><span>${pesos(l.importe)}</span></div>
+                    <div class="rl-det">${l.cantidad > 1 ? `${pesos(l.precioFinal)} c/u` : pesos(l.precioFinal)}${promo ? ` · habitual ${pesos(l.precioHabitual)}${l.cantidad > 1 ? ' c/u' : ''}` : ''}</div>
+                </div>`).join('');
+            const resumenPromo = promo ? `<div class="res-fila"><span>Subtotal a precio habitual</span><span>${pesos(c.subtotalHabitual)}</span></div>
+                <div class="res-fila desc"><span>Descuento ${escapeHtml(promo.nombre)} (${promo.pct}%)</span><span>−${pesos(c.descuento)}</span></div>` : '';
+            return lineas + `<div style="margin-top:8px;">${resumenPromo}</div>
+                <div class="res-total"><span>TOTAL DE TU PEDIDO</span><b>${pesos(c.total)}</b></div>`;
         };
+
+        const renderizarResumen = () => {
+            const c = cotizarKit(itemsElegidos(), promoMostrada);
+            document.getElementById('resumenPedido').innerHTML = htmlResumen(c)
+                + (promoMostrada && c.productosDetalle.length ? `<p class="res-nota">El precio ${escapeHtml(promoMostrada.nombre)} es para pedidos hechos y abonados hoy.</p>` : '');
+            const barra = document.getElementById('kfBarra');
+            barra.classList.toggle('on', c.productosDetalle.length > 0 && document.getElementById('contenidoKit').style.display !== 'none');
+            document.getElementById('barraTotal').textContent = pesos(c.total);
+            return c;
+        };
+
+        window.cambiarCantKit = (i, delta) => {
+            const n = Math.max(0, Math.min(CANT_MAX_KIT, (cantKit[i] || 0) + delta));
+            cantKit[i] = n;
+            const art = document.querySelector(`.producto-item[data-i="${i}"]`);
+            if (art) art.outerHTML = tarjetaProducto(productosKit[i], i);
+            renderizarResumen();
+            // Mantener el foco en el control para seguir sumando con teclado
+            const nuevo = document.querySelector(`.producto-item[data-i="${i}"] .kit-cant button:last-child, .producto-item[data-i="${i}"] .prod-agregar`);
+            if (nuevo && document.activeElement === document.body) nuevo.focus({ preventScroll: true });
+        };
+
+        // Si la promo empieza o termina con la página abierta: se conserva lo
+        // elegido y se muestran los precios y el total actualizados.
+        const revisarPromo = () => {
+            const ahora = promoVigente();
+            if ((ahora && ahora.id) === (promoMostrada && promoMostrada.id)) return false;
+            const termino = !!promoMostrada && !ahora;
+            promoMostrada = ahora;
+            pintarEncabezado();
+            if (productosKit.length) renderizarProductos();
+            if (termino) showFeedback("La promo Black Friday terminó. Mantuvimos tus productos y actualizamos el total a precio habitual: revisalo antes de confirmar.", "info", false);
+            return true;
+        };
+        setInterval(revisarPromo, 20000);
+        document.addEventListener("visibilitychange", () => { if (!document.hidden) revisarPromo(); });
 
         const _mostrarVerif = () => {
             document.getElementById("verificDNIScreen").style.display = "block";
             document.getElementById("contenidoKit").style.display = "none";
             document.getElementById("successScreen").style.display = "none";
+            document.getElementById("kfBarra").classList.remove("on");
             cerrarModalSinRegistro();
             const inp = document.getElementById("kitDniInput");
             if (inp) inp.value = '';
         };
 
-        // Foco: al abrir, se mueve adentro del modal (para lectores de
-        // pantalla y navegación por teclado); al cerrar, vuelve a donde
-        // estaba antes de abrirlo, en vez de perderse en el body.
         let _focoAntesDeModalSinRegistro = null;
         function abrirModalSinRegistro() {
             const modal = document.getElementById("modalSinRegistro");
@@ -788,22 +402,13 @@
         document.getElementById("btnCerrarModalSinRegistro")?.addEventListener("click", cerrarModalSinRegistro);
         document.getElementById("modalSinRegistro")?.addEventListener("click", (e) => { if (e.target.id === "modalSinRegistro") cerrarModalSinRegistro(); });
 
-        // Refleja qué paciente quedó identificado y permite limpiar SOLO ese
-        // contexto (nunca todo localStorage) para que un dispositivo
-        // compartido no arrastre el nombre de la persona anterior.
         const actualizarPacienteActivo = () => {
             const el = document.getElementById('pacienteActivo');
-            if (!el) return;
             const { dni, nombre } = getUserData();
             if (!dni) { el.textContent = ''; return; }
-            el.innerHTML = `<span>Pedido para <strong style="color:rgba(185,230,205,0.85);">${escapeHtml(nombre || 'paciente sin nombre registrado')}</strong> · DNI ${escapeHtml(dni)}</span><button type="button" onclick="window.cambiarPacienteKit()" style="background:transparent;border:1px solid rgba(165,205,188,0.25);border-radius:10px;color:rgba(165,205,188,0.70);font-size:11.5px;padding:5px 10px;cursor:pointer;font-family:inherit;">Cambiar paciente</button>`;
+            el.innerHTML = `<span>Pedido para <strong>${escapeHtml(nombre || 'paciente sin nombre registrado')}</strong> · DNI ${escapeHtml(dni)}</span><button type="button" onclick="window.cambiarPacienteKit()">Cambiar paciente</button>`;
         };
-
-        // "Cambiar paciente" cierra la sesión compartida del sitio (solo las
-        // claves de sesión, nunca todo localStorage) y vuelve a pedir el DNI.
-        window.cambiarPacienteKit = () => {
-            window.MimarSesion.cerrar();
-        };
+        window.cambiarPacienteKit = () => { window.MimarSesion.cerrar(); };
 
         const _mostrarCatalogo = () => {
             document.getElementById("verificDNIScreen").style.display = "none";
@@ -813,8 +418,6 @@
             cargarProductosKit();
         };
 
-        // Si la paciente ya ingresó con su DNI en otra sección del sitio, no
-        // se le vuelve a pedir: se revalida contra clients en segundo plano.
         const checkAuthAndLoad = async () => {
             const sesion = window.MimarSesion.obtener();
             if (!sesion) { _mostrarVerif(); return; }
@@ -841,88 +444,82 @@
             input.classList.remove('dni-error');
             btn.disabled = true;
             btn.innerHTML = '<span class="kit-spin" aria-hidden="true"></span>Buscando tu ficha...';
-
-            // Guarda la sesión compartida con el dato fresco de clients (el
-            // evento "mimar:sesion" muestra el catálogo)
             const r = await window.MimarSesion.ingresar(dni);
-
             btn.disabled = false;
             btn.textContent = 'Continuar';
-
             if (!r.ok) {
                 if (r.motivo === "conexion") showFeedback("No pudimos conectarnos. Intentá de nuevo en unos segundos.", "error");
                 else abrirModalSinRegistro();
             }
         };
 
+        const textoPagoWa = (pedido) => {
+            const l = pedido.productosDetalle.map(x => `• ${x.nombre} × ${x.cantidad}: ${pesos(x.importe)}`).join('\n');
+            return `Hola, hice un pedido de kit facial${pedido.promo ? ` con ${pedido.promo.nombre} (${pedido.promo.pct}%)` : ''} y quiero coordinar el pago.\n${l}\nTotal de mi pedido: ${pesos(pedido.totalPedido)}\n${pedido.nombrePaciente || ''} · DNI ${pedido.dni}`;
+        };
+
         const submitKitRequest = async () => {
             const { dni } = getUserData();
+            if (!dni) { showFeedback("Ingresá tu DNI para pedir tu kit.", "error"); return; }
 
-            if (!dni) {
-                showFeedback("Ingresá tu DNI para solicitar un kit.", "error");
+            // Si la promo cambió mientras el carrito estaba abierto, se
+            // muestra el total nuevo y se pide confirmar otra vez.
+            if (revisarPromo()) {
+                document.getElementById("tuPedido").scrollIntoView({ behavior: "smooth", block: "start" });
                 return;
             }
-
-            const { productos, productosDetalle: productosSeleccionados, totalPedido } = armarPedidoKit(itemsElegidos());
-
-            if (productos.length === 0) {
-                showFeedback("Seleccioná al menos un producto.", "error");
-                return;
-            }
+            const cot = cotizarKit(itemsElegidos(), promoMostrada);
+            if (!cot.productos.length) { showFeedback("Agregá al menos un producto.", "error"); return; }
 
             const descripcionPiel = document.getElementById("descripcionPiel").value.trim();
-
-            if (!descripcionPiel || descripcionPiel.length < 10) {
-                showFeedback("Contános un poco más sobre tu piel (mínimo 10 caracteres).", "error");
-                return;
-            }
+            if (descripcionPiel.length < 10) { showFeedback("Contanos un poco más sobre tu piel (mínimo 10 caracteres).", "error"); document.getElementById("descripcionPiel").focus(); return; }
 
             const btn = document.getElementById("btnSolicitarKit");
             btn.disabled = true;
             btn.textContent = "Enviando...";
-
             try {
                 const datosCliente = await getClienteData(dni);
-                // Prioridad al dato fresco de Firestore, nunca al cacheado en
-                // localStorage — evita que un nombre viejo de otra búsqueda en
-                // el mismo dispositivo se cuele en un pedido nuevo.
                 const nombre = datosCliente?.fullName || datosCliente?.nombre || localStorage.getItem('clienteNombre') || '';
-
+                const ahora = new Date().toISOString();
                 const pedidoData = {
-                    fecha: new Date().toISOString(),
-                    productos: productos,
-                    productosDetalle: productosSeleccionados,
-                    totalPedido: totalPedido,
-                    descripcionPiel: descripcionPiel,
+                    fecha: ahora,
+                    productos: cot.productos,
+                    productosDetalle: cot.productosDetalle,
+                    subtotalHabitual: cot.subtotalHabitual,
+                    descuento: cot.descuento,
+                    totalPedido: cot.total,
+                    promo: cot.promo,
+                    pagos: [],
+                    descripcionPiel,
                     nombrePaciente: nombre,
                     telefono: datosCliente?.phone || datosCliente?.telefono || "",
-                    dni: dni,
+                    dni,
                     estado: "pendiente",
-                    createdAt: new Date().toISOString()
+                    createdAt: ahora
                 };
-
                 await addDoc(collection(db, "pedidosKit"), pedidoData);
+                ultimoPedido = pedidoData;
 
-                // La notificación automática a Gimena por WhatsApp se eliminó:
-                // los pedidos de kit se revisan desde Admin (sección Kits).
-
-                // Limpiar formulario
-                document.querySelectorAll('#productosList input[type="checkbox"]').forEach(cb => { cb.checked = false; });
-                cantKit = productosKit.map(() => 1);
+                cantKit = productosKit.map(() => 0);
                 document.getElementById("descripcionPiel").value = "";
-                actualizarTotal();
+                renderizarProductos();
 
-                // Mostrar pantalla de éxito
                 document.getElementById("contenidoKit").style.display = "none";
                 document.getElementById("feedbackMessage").style.display = "none";
-                const successScreen = document.getElementById("successScreen");
-                successScreen.style.display = "flex";
-
+                document.getElementById("kfBarra").classList.remove("on");
+                document.getElementById("successResumen").innerHTML = `<div class="kf-resumen"><h2>Tu pedido</h2>${htmlResumen(cot)}</div>`;
+                document.getElementById("successTxt").textContent = cot.promo
+                    ? `Para conservar el precio ${cot.promo.nombre}, aboná hoy, viernes 27 de noviembre. Te avisamos por WhatsApp cuando tu kit esté listo.`
+                    : "Gimena va a preparar tu kit y te avisamos por WhatsApp cuando esté listo.";
+                document.getElementById("btnPagoWa").href = `https://wa.me/${WA_ESPACIO}?text=${encodeURIComponent(textoPagoWa(pedidoData))}`;
+                document.getElementById("successScreen").style.display = "block";
+                document.querySelector(".kf-head").scrollIntoView({ block: "start" });
             } catch (error) {
                 console.error("Error al guardar pedido:", error);
-                showFeedback("No se pudo enviar la solicitud. Intentá de nuevo.", "error");
+                showFeedback("No se pudo enviar el pedido. Intentá de nuevo.", "error");
+            } finally {
                 btn.disabled = false;
-                btn.textContent = "Solicitar Kit";
+                btn.textContent = "Confirmar pedido";
             }
         };
 
@@ -930,20 +527,17 @@
             try {
                 const docSnap = await getDoc(doc(db, "clients", dni));
                 return docSnap.exists() ? docSnap.data() : null;
-            } catch (e) {
-                console.error("Error getting client:", e);
-                return null;
-            }
+            } catch (e) { console.error("Error getting client:", e); return null; }
         };
 
         document.getElementById("btnSolicitarKit").addEventListener("click", submitKitRequest);
-
-        document.getElementById("btnNuevaSolicitud").addEventListener("click", () => {
-            document.getElementById("btnSolicitarKit").disabled = false;
-            document.getElementById("btnSolicitarKit").textContent = "Solicitar Kit";
-            checkAuthAndLoad();
+        document.getElementById("barraVer").addEventListener("click", (e) => {
+            e.preventDefault();
+            document.getElementById("tuPedido").scrollIntoView({ behavior: "smooth", block: "start" });
         });
+        document.getElementById("btnNuevaSolicitud").addEventListener("click", checkAuthAndLoad);
 
+        pintarEncabezado();
         checkAuthAndLoad();
     </script>
 </body>

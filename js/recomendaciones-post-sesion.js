@@ -104,6 +104,27 @@ Los mejores resultados llegan con constancia y respetando la frecuencia de sesio
 
 Espacio MimarT 🤍
 Un lugar pensado para vos.`,
+  ultracavitacion: `✨ Cuidados posteriores a tu sesión de Ultracavitación
+
+Hoy realizamos un tratamiento de ultracavitación con tecnología Sveltia, que utiliza ondas de ultrasonido para trabajar sobre la adiposidad localizada, favoreciendo la remodelación del contorno corporal.
+
+Para acompañar el tratamiento y favorecer los mejores resultados, te recomendamos durante las próximas 72 horas:
+
+✅ Beber aproximadamente 2 litros de agua por día, salvo indicación médica contraria.
+✅ Realizar al menos 30 minutos de caminata o actividad física moderada.
+✅ Mantener una alimentación equilibrada, rica en proteínas, frutas y verduras.
+✅ Reducir el consumo de azúcares, harinas refinadas, frituras y alimentos ultraprocesados.
+✅ Evitar el consumo de bebidas alcohólicas.
+✅ Respetar la frecuencia de las sesiones indicadas.
+
+Recordá que los resultados son progresivos y pueden variar según cada organismo. La constancia y los hábitos saludables son fundamentales para acompañar el tratamiento.
+
+Ante cualquier duda o molestia, estamos a tu disposición.
+
+Gracias por elegir cuidarte con nosotros. 💚
+
+Equipo de Espacio MimarT
+Un lugar pensado para vos.`,
 };
 
 // Constante de admin.html de la que se copió cada texto (la usa el test de sincronía).
@@ -143,6 +164,7 @@ export const PLANTILLAS_POST_SESION = {
   depilacion: { titulo: 'Depilación láser — después de la sesión', icono: '⚡', categoria: 'depilacion', momento: 'despues' },
   limpieza_peeling: { titulo: 'Limpieza profunda / Peeling / Dermaplaning', icono: '🧖', categoria: 'facial', momento: 'despues' },
   radiofrecuencia: { titulo: 'Radiofrecuencia / Tensado — después de la sesión', icono: '🔆', categoria: 'radiofrecuencia', momento: 'despues' },
+  ultracavitacion: { titulo: 'Ultracavitación (Sveltia) — después de la sesión', icono: '🌀', categoria: 'corporal', momento: 'despues' },
   drenaje_masajes: { titulo: 'Drenaje linfático / Masajes / Detox', icono: '🌿', categoria: 'drenaje', momento: 'despues' },
 };
 ORDEN_PLANTILLAS_HIFU.forEach((clave) => {
@@ -174,6 +196,7 @@ const REGLAS = [
   [/meso/i, ['mesoterapia', 'kit_facial', 'facial_despues']],
   [/peeling|dermapl|limpieza/i, ['limpieza_peeling', 'kit_facial', 'facial_despues']],
   [/facial|rostro|cutis/i, ['facial_despues', 'limpieza_peeling', 'kit_facial', 'facial_antes']],
+  [/cavita|ultras|sveltia/i, ['ultracavitacion', 'agua', 'drenaje_masajes']],
   [/crio/i, ['criolipolisis', 'agua', 'faja']],
   [/radiofrec|tensad|\brf\b/i, ['radiofrecuencia', 'fraxis_corporal', 'agua']],
   [/drenapress|presoter/i, ['drenapress', 'agua']],
