@@ -983,22 +983,22 @@ html:has(.lb[open]) { overflow: hidden; }
   .lb[open] { animation: none; }
 }
 
-/* ── Black Friday (solo el viernes 27/11/2026, lo activa js/promo-kit.js) ── */
-.bf-banner { display: none; margin-top: 72px; background: #0f1d17; border-bottom: 2px solid #c9a14a; padding: 14px clamp(16px, 5vw, 80px); position: relative; z-index: 2; }
-body.bf-on .bf-banner { display: block; }
-body.bf-on .hero { padding-top: clamp(20px, 4svh, 48px); }
-.bf-in { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 12px 22px; flex-wrap: wrap; }
-.bf-pct { font-family: 'Montserrat', 'Inter', sans-serif; font-size: clamp(34px, 9vw, 46px); font-weight: 800; line-height: 1; color: #d9b45c; letter-spacing: -0.02em; white-space: nowrap; }
-.bf-pct small { display: block; font-size: 12px; letter-spacing: 0.18em; color: #e9dcb8; font-weight: 700; margin-top: 2px; }
-.bf-txt { flex: 1 1 260px; min-width: 0; }
-.bf-txt strong { display: block; color: #f6f1e4; font-size: 16px; font-weight: 700; margin-bottom: 2px; }
-.bf-txt span { display: block; color: #dfe9e2; font-size: 14px; line-height: 1.45; }
-.bf-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 11px 18px; border-radius: 999px; background: #c9a14a; color: #11211a; font-weight: 800; font-size: 14px; text-decoration: none; white-space: nowrap; box-shadow: 0 0 0 1px rgba(255,255,255,0.12) inset; }
-.bf-btn:hover { background: #d9b45c; }
+/* ── Aviso de jornada de la Dra. Cecilia (se oculta solo al pasar la fecha) ── */
+.doc-aviso { display: none; margin-top: 72px; background: #1a1424; border-bottom: 2px solid #a855f7; padding: 14px clamp(16px, 5vw, 80px); position: relative; z-index: 2; }
+body.doc-on .doc-aviso { display: block; }
+body.doc-on .hero { padding-top: clamp(20px, 4svh, 48px); }
+.doc-in { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 12px 22px; flex-wrap: wrap; }
+.doc-fecha { font-family: 'Montserrat', 'Inter', sans-serif; font-size: clamp(30px, 8vw, 40px); font-weight: 800; line-height: 1; color: #d8b4fe; white-space: nowrap; }
+.doc-fecha small { display: block; font-size: 12px; letter-spacing: 0.18em; color: #e9d5ff; font-weight: 700; margin-top: 2px; }
+.doc-txt { flex: 1 1 260px; min-width: 0; }
+.doc-txt strong { display: block; color: #faf5ff; font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+.doc-txt span { display: block; color: #e4dcef; font-size: 14px; line-height: 1.45; }
+.doc-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 11px 18px; border-radius: 999px; border: 0; background: #a855f7; color: #fff; font: 800 14px 'Montserrat', sans-serif; cursor: pointer; white-space: nowrap; }
+.doc-btn:hover { background: #9333ea; }
 @media (max-width: 560px) {
-  .bf-banner { padding: 12px 16px 14px; }
-  .bf-in { gap: 8px 14px; }
-  .bf-btn { flex: 1 1 100%; white-space: normal; text-align: center; }
+  .doc-aviso { padding: 12px 16px 14px; }
+  .doc-in { gap: 8px 14px; }
+  .doc-btn { flex: 1 1 100%; white-space: normal; }
 }
     </style>
 </head>
@@ -1041,23 +1041,24 @@ body.bf-on .hero { padding-top: clamp(20px, 4svh, 48px); }
         </nav>
     </div>
 
-    <!-- ── BLACK FRIDAY (visible solo el viernes 27/11/2026, hora Argentina) ── -->
-    <aside class="bf-banner" id="bfBanner" aria-label="Black Friday" hidden>
-        <div class="bf-in">
-            <div class="bf-pct">15% OFF<small>BLACK FRIDAY</small></div>
-            <div class="bf-txt">
-                <strong>¡MimarT se suma al Black Friday!</strong>
-                <span>15% de descuento en todos los productos de tu kit facial domiciliario.</span>
-                <span>Pedí y aboná tu kit hoy, viernes 27 de noviembre.</span>
+    <!-- ── AVISO: jornada de la Dra. Cecilia (visible hasta el fin del jueves 3/12/2026) ── -->
+    <aside class="doc-aviso" id="docAviso" aria-label="Jornada de la Dra. Cecilia" hidden>
+        <div class="doc-in">
+            <div class="doc-fecha">Jueves 3<small>DE DICIEMBRE</small></div>
+            <div class="doc-txt">
+                <strong>Viene la Dra. Cecilia Rodríguez</strong>
+                <span>Cirujana Plástica · Medicina Estética, en Espacio Mimar T. Cupos limitados.</span>
             </div>
-            <a class="bf-btn" href="/kit-facial.html">Pedir mi kit con 15% de descuento</a>
+            <button type="button" class="doc-btn" onclick="abrirModalCecilia()">Reservar mi turno</button>
         </div>
     </aside>
-    <script type="module">
-        import { promoVigente } from "/js/promo-kit.js";
-        const bf = document.getElementById("bfBanner");
-        const mostrarBF = () => { const on = !!promoVigente(); bf.hidden = !on; document.body.classList.toggle("bf-on", on); };
-        mostrarBF(); setInterval(mostrarBF, 30000);
+    <script>
+        (function () {
+            var VENCE = Date.parse('2026-12-04T00:00:00-03:00');
+            var el = document.getElementById('docAviso');
+            function pintar() { var on = Date.now() < VENCE; el.hidden = !on; document.body.classList.toggle('doc-on', on); }
+            pintar(); setInterval(pintar, 60000);
+        })();
     </script>
 
     <!-- ── HERO ── -->
@@ -1106,7 +1107,7 @@ body.bf-on .hero { padding-top: clamp(20px, 4svh, 48px); }
                         <div class="hb-content">
                             <strong>Dra. Cecilia Rodríguez</strong>
                             <span>Cirujana Plástica · Medicina Estética</span>
-                            <em class="hb-pronto" id="ceciliaPronto">Viernes 11 · Últimos cupos</em>
+                            <em class="hb-pronto" id="ceciliaPronto">Jueves 3 de diciembre · Cupos limitados</em>
                         </div>
                         <span class="hb-arrow hb-arrow-doc">→</span>
                     </div>
@@ -1674,7 +1675,7 @@ body.bf-on .hero { padding-top: clamp(20px, 4svh, 48px); }
             <!-- Encabezado -->
             <div style="background:linear-gradient(135deg,rgba(168,85,247,0.14),rgba(60,179,113,0.06));padding:28px 26px 22px;position:relative;">
                 <button onclick="cerrarModalCecilia()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:8px;color:rgba(165,205,188,0.55);font-size:18px;line-height:1;padding:4px 10px;cursor:pointer;">✕</button>
-                <p id="ceciliaEyebrow" style="margin:0 0 4px;font-size:10px;font-weight:700;letter-spacing:.20em;text-transform:uppercase;color:#4ade80;">Este viernes 11 en Espacio Mimar T</p>
+                <p id="ceciliaEyebrow" style="margin:0 0 4px;font-size:10px;font-weight:700;letter-spacing:.20em;text-transform:uppercase;color:#4ade80;">Este jueves 3 de diciembre en Espacio Mimar T</p>
                 <h2 id="modalCeciliaTitulo" style="margin:0 0 4px;font-family:'Cormorant Garamond',serif;font-size:clamp(22px,4vw,28px);font-weight:600;color:rgba(220,242,232,0.97);line-height:1.15;">Dra. Cecilia Rodríguez</h2>
                 <p style="margin:0 0 14px;font-size:12.5px;font-weight:600;color:rgba(192,132,252,0.75);letter-spacing:.04em;">Cirujana Plástica · Medicina Estética · Resultados Naturales</p>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;">
@@ -1688,10 +1689,10 @@ body.bf-on .hero { padding-top: clamp(20px, 4svh, 48px); }
                 <p style="margin:0 0 16px;font-size:13px;color:rgba(165,205,188,0.72);line-height:1.75;">Especialista en <strong style="color:rgba(220,242,232,0.90);">mamas, contorno corporal y lipofilling</strong>, la Dra. Cecilia Rodríguez llega a Espacio Mimar T con más de 15 años de trayectoria y un enfoque en resultados naturales que respetan la identidad de cada paciente.</p>
                 <p style="margin:0 0 20px;font-size:13px;color:rgba(165,205,188,0.72);line-height:1.75;">Miembro de <strong style="color:rgba(220,242,232,0.90);">SACPER y SACPERNEA</strong>, trabaja con los más altos estándares de la cirugía plástica argentina. Su llegada suma una nueva dimensión de tratamientos a nuestro espacio.</p>
                 <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.22);border-radius:12px;padding:14px 16px;margin-bottom:20px;">
-                    <p id="ceciliaAvisoTexto" style="margin:0;font-size:12px;color:rgba(200,240,215,0.80);line-height:1.65;"><strong style="color:#4ade80;">Este viernes 11</strong> la Dra. Cecilia atiende en Espacio Mimar T, con cupos limitados. Escribinos por WhatsApp para reservar tu turno antes de que se completen.</p>
+                    <p id="ceciliaAvisoTexto" style="margin:0;font-size:12px;color:rgba(200,240,215,0.80);line-height:1.65;"><strong style="color:#4ade80;">El jueves 3 de diciembre</strong> la Dra. Cecilia atiende en Espacio Mimar T, con cupos limitados. Escribinos por WhatsApp para reservar tu turno antes de que se completen.</p>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:10px;">
-                    <a id="ceciliaWaLink" href="https://wa.me/5493765021721?text=Hola%2C+quiero+reservar+un+turno+con+la+Dra.+Cecilia+para+este+viernes+11." target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(37,211,102,0.14);border:1px solid rgba(37,211,102,0.28);border-radius:12px;padding:13px 18px;text-decoration:none;color:rgba(180,245,210,0.90);font-size:13px;font-weight:700;letter-spacing:.03em;transition:background .2s;">
+                    <a id="ceciliaWaLink" href="https://wa.me/5493765021721?text=Hola%2C+quiero+reservar+un+turno+con+la+Dra.+Cecilia+para+el+jueves+3+de+diciembre." target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(37,211,102,0.14);border:1px solid rgba(37,211,102,0.28);border-radius:12px;padding:13px 18px;text-decoration:none;color:rgba(180,245,210,0.90);font-size:13px;font-weight:700;letter-spacing:.03em;transition:background .2s;">
                         Reservar turno · WhatsApp 3765 021721
                     </a>
                     <a href="https://www.instagram.com/dra.ceciliarodriguez/" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(168,85,247,0.10);border:1px solid rgba(168,85,247,0.24);border-radius:12px;padding:13px 18px;text-decoration:none;color:rgba(192,132,252,0.85);font-size:13px;font-weight:700;letter-spacing:.03em;transition:background .2s;">
@@ -1718,14 +1719,11 @@ body.bf-on .hero { padding-top: clamp(20px, 4svh, 48px); }
         _focoAntesDeModalCecilia = null;
     }
     document.addEventListener('keydown',function(e){if(e.key==='Escape')cerrarModalCecilia();});
-    // La convocatoria "Este viernes 11" era para una fecha puntual
-    // (11/09/2026) que ya pasó — mostrarla como si siguiera vigente es
-    // información falsa, y abrir el popup solo, encima, es una interrupción
-    // ya sin motivo real. Se cae a un texto neutral (sin inventar una fecha
-    // nueva) y se deja de auto-abrir una vez vencida — la tarjeta y el modal
-    // con la info profesional de la Dra. Cecilia siguen accesibles igual.
+    // Convocatoria con fecha puntual (jueves 3/12/2026). Cuando pasa, se cae
+    // a un texto neutral (sin inventar una fecha nueva) y deja de abrirse
+    // sola — la tarjeta y el modal de la Dra. Cecilia siguen accesibles.
     (function(){
-        var VENCE = new Date('2026-09-12T00:00:00-03:00').getTime(); // el sábado siguiente al viernes 11
+        var VENCE = new Date('2026-12-04T00:00:00-03:00').getTime(); // el viernes siguiente al jueves 3
         var vencido = Date.now() >= VENCE;
         if (vencido) {
             var pronto = document.getElementById('ceciliaPronto');
@@ -1739,8 +1737,8 @@ body.bf-on .hero { padding-top: clamp(20px, 4svh, 48px); }
             return; // no se auto-abre una convocatoria ya vencida
         }
         try {
-            if (sessionStorage.getItem('cecilia-anuncio-viernes11')) return;
-            sessionStorage.setItem('cecilia-anuncio-viernes11', '1');
+            if (sessionStorage.getItem('cecilia-anuncio-jueves3dic')) return;
+            sessionStorage.setItem('cecilia-anuncio-jueves3dic', '1');
         } catch (e) { /* Sin sessionStorage disponible: no se auto-abre, sigue accesible desde la tarjeta. */ return; }
         setTimeout(abrirModalCecilia, 1200);
     })();

@@ -4,13 +4,14 @@ let fallas = 0;
 const ok = (c, m) => { console.log((c ? '  ✓ ' : '  ✗ ') + m); if (!c) fallas++; };
 
 // Vigencia: viernes 27/11/2026 en hora argentina
-ok(!promoVigente('2026-11-26T23:59:59-03:00'), 'jueves 23:59 AR: sin promo');
-ok(promoVigente('2026-11-27T00:00:00-03:00') === PROMO_BLACK_FRIDAY, 'viernes 00:00 AR: con promo');
-ok(promoVigente('2026-11-27T23:59:59-03:00'), 'viernes 23:59 AR: con promo');
-ok(!promoVigente('2026-11-28T00:00:00-03:00'), 'sábado 00:00 AR: terminó');
-ok(promoVigente('2026-11-28T02:30:00Z'), 'viernes 23:30 AR expresado en UTC (sábado 02:30Z): con promo');
+ok(!promoVigente('2026-11-26T23:59:59-03:00', [PROMO_BLACK_FRIDAY]), 'jueves 23:59 AR: sin promo');
+ok(promoVigente('2026-11-27T00:00:00-03:00', [PROMO_BLACK_FRIDAY]) === PROMO_BLACK_FRIDAY, 'viernes 00:00 AR: con promo');
+ok(promoVigente('2026-11-27T23:59:59-03:00', [PROMO_BLACK_FRIDAY]), 'viernes 23:59 AR: con promo');
+ok(!promoVigente('2026-11-28T00:00:00-03:00', [PROMO_BLACK_FRIDAY]), 'sábado 00:00 AR: terminó');
+ok(promoVigente('2026-11-28T02:30:00Z', [PROMO_BLACK_FRIDAY]), 'viernes 23:30 AR expresado en UTC (sábado 02:30Z): con promo');
 ok(diaEnPromo('2026-11-27', PROMO_BLACK_FRIDAY) && !diaEnPromo('2026-11-28', PROMO_BLACK_FRIDAY), 'día de pago manual 27 sí, 28 no');
 
+ok(!promoVigente('2026-11-27T12:00:00-03:00') && !promoVigente(), 'Black Friday desactivado: ya no se aplica ninguna promo');
 // Ejemplo: Leche ×1 + Crema ×2 a $20.000 → $51.000
 const items = [{ nombre: 'Leche de limpieza', precio: 20000, cantidad: 1 }, { nombre: 'Crema hidratante', precio: 20000, cantidad: 2 }];
 const c = cotizarKit(items, PROMO_BLACK_FRIDAY);

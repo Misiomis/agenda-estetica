@@ -17,7 +17,10 @@ export const PROMO_BLACK_FRIDAY = {
   hasta: '2026-11-28T00:00:00-03:00',
 };
 
-export const PROMOS_KIT = [PROMO_BLACK_FRIDAY];
+// Promos que se pueden aplicar hoy (vacío: Black Friday ya terminó).
+export const PROMOS_KIT = [];
+// Todas las que existieron: para reconocer pedidos ya guardados.
+const PROMOS_HISTORICAS = [PROMO_BLACK_FRIDAY];
 
 // Promo vigente en ese instante (o null).
 export function promoVigente(fecha = new Date(), promos = PROMOS_KIT) {
@@ -96,7 +99,7 @@ export function recotizarPedido(pedido, promo = null) {
 
 export function promoDelPedido(pedido) {
   const id = pedido && pedido.promo && pedido.promo.id;
-  return id ? PROMOS_KIT.find((p) => p.id === id) || null : null;
+  return id ? PROMOS_HISTORICAS.find((p) => p.id === id) || null : null;
 }
 
 export function totalAbonado(pedido) {
